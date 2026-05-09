@@ -450,7 +450,9 @@ void onUrlChanged(Uri? url) {
 
 ```dart
 Future<void> _extractCookieAndSave(String token) async {
-  final cookieManager = CookieManager.instance();
+  final cookieManager = CookieManager.instance(
+    webViewEnvironment: webViewEnvironment,
+  );
   final cookies = await cookieManager.getCookies(
     url: WebUri('https://mp.weixin.qq.com'),
   );
@@ -462,6 +464,8 @@ Future<void> _extractCookieAndSave(String token) async {
   await WxmpAuthService.instance.saveAuth(cookieStr, token);
 }
 ```
+
+Windows 使用自定义 WebView2 用户数据目录时，`CookieManager` 必须传入和登录页 `InAppWebView` 相同的 `WebViewEnvironment`；否则会读取默认浏览器存储，登录成功后仍可能得到空 Cookie。
 
 ---
 
