@@ -18,6 +18,8 @@ import 'package:sspu_all_in_one/services/campus_network_status_service.dart';
 import 'package:sspu_all_in_one/services/storage_service.dart';
 import 'package:sspu_all_in_one/services/student_report_service.dart';
 
+part 'student_report_service_test_support.dart';
+
 void main() {
   setUp(() {
     FlutterSecureStorage.setMockInitialValues({});
@@ -147,6 +149,43 @@ void main() {
     expect(gateway.fetchedUris.single.path, '/sharedc/sso/fore-login.do');
   });
 
+  test('学工报表 SSO 返回登录页时自动刷新 OA 会话并重试', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    var refreshCount = 0;
+    final gateway = _FakeStudentReportGateway(
+      entryPage: _oaPortalSnapshot,
+      requireAuthReportEntryFirst: true,
+    );
+    final service = _buildService(
+      gateway: gateway,
+      campusReachable: true,
+      refreshOaLogin: () async {
+        refreshCount++;
+        await AcademicCredentialsService.instance.saveOaLoginSession(
+          _sessionSnapshot,
+        );
+        return _loginSuccessResult();
+      },
+    );
+
+    final result = await service.fetchSecondClassroomCredits();
+
+    expect(result.status, StudentReportQueryStatus.success);
+    expect(refreshCount, 1);
+    expect(
+      gateway.fetchedUris
+          .where((uri) => uri.path.contains('/sharedc/sso/'))
+          .length,
+      2,
+    );
+  });
+
   test('学工报表 SSO 链路超时时返回网络错误状态', () async {
     await AcademicCredentialsService.instance.saveCredentials(
       oaAccount: '20260001',
@@ -203,162 +242,94 @@ void main() {
     );
     expect(result.summary?.records, hasLength(2));
   });
-}
 
-StudentReportService _buildService({
-  required _FakeStudentReportGateway gateway,
-  required bool campusReachable,
-  StudentReportOaLoginRefresher? refreshOaLogin,
-}) {
-  return StudentReportService(
-    gateway: gateway,
-    refreshOaLogin: refreshOaLogin,
-    campusNetworkStatusService: CampusNetworkStatusService(
-      probeUri: Uri.parse('https://xgbb.sspu.edu.cn/'),
-      probe: (probeUri, timeout) async => CampusNetworkProbeResult(
-        reachable: campusReachable,
-        detail: campusReachable ? '校园网可达' : '校园网不可达',
-        statusCode: campusReachable ? 200 : null,
-      ),
-    ),
-  );
-}
-
-class _FakeStudentReportGateway implements StudentReportGateway {
-  _FakeStudentReportGateway({
-    this.requireAuthFirst = false,
-    StudentReportHttpSnapshot? entryPage,
-    StudentReportHttpSnapshot? creditPage,
-    StudentReportHttpSnapshot? reportEntryPage,
-    this.timeoutReportEntry = false,
-  }) : entryPage = entryPage ?? _snapshot(_homeHtml),
-       creditPage = creditPage ?? _snapshot(_creditHtml),
-       reportEntryPage = reportEntryPage ?? _snapshot(_homeHtml);
-
-  final bool requireAuthFirst;
-  final bool timeoutReportEntry;
-  final StudentReportHttpSnapshot entryPage;
-  final StudentReportHttpSnapshot creditPage;
-  final StudentReportHttpSnapshot reportEntryPage;
-  final List<Map<String, String>> resetCookieHeaders = [];
-  final List<Uri> fetchedUris = [];
-  int openCount = 0;
-  int fetchCount = 0;
-
-  @override
-  Future<void> resetSession(Map<String, String> cookieHeadersByHost) async {
-    resetCookieHeaders.add(cookieHeadersByHost);
-  }
-
-  @override
-  Future<StudentReportHttpSnapshot> openEntryPage(
-    Uri entranceUri,
-    Duration timeout,
-  ) async {
-    openCount++;
-    if (requireAuthFirst && openCount == 1) return _casSnapshot;
-    return entryPage;
-  }
-
-  @override
-  Future<StudentReportHttpSnapshot> fetchPage(
-    Uri pageUri,
-    Duration timeout,
-  ) async {
-    fetchCount++;
-    fetchedUris.add(pageUri);
-    if (pageUri.path.contains('/sharedc/sso/')) {
-      if (timeoutReportEntry) throw TimeoutException('SSO timeout');
-      return reportEntryPage;
-    }
-    if (pageUri.path.contains('/studentxfform/')) return creditPage;
-    if (pageUri.path.contains('secondClassroom')) return creditPage;
-    return StudentReportHttpSnapshot(
-      finalUri: pageUri,
-      statusCode: 404,
-      body: 'not found',
+  test('第二课堂明细页过期时自动刷新 OA 会话后重新读取', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
     );
-  }
-}
-
-StudentReportHttpSnapshot _snapshot(String body) {
-  return StudentReportHttpSnapshot(
-    finalUri: Uri.parse('https://xgbb.sspu.edu.cn/sharedc/core/home/index.do'),
-    statusCode: 200,
-    body: body,
-  );
-}
-
-final StudentReportHttpSnapshot _casSnapshot = StudentReportHttpSnapshot(
-  finalUri: Uri.parse('https://id.sspu.edu.cn/cas/login'),
-  statusCode: 200,
-  body: '<html><title>登录 - 上海第二工业大学</title></html>',
-);
-
-final StudentReportHttpSnapshot _oaPortalSnapshot = StudentReportHttpSnapshot(
-  finalUri: Uri.parse('https://oa.sspu.edu.cn/interface/Entrance.jsp'),
-  statusCode: 200,
-  body: '''
-<html>
-  <body>
-    <a href="https://xgbb.sspu.edu.cn/sharedc/sso/fore-login.do">学工报表</a>
-  </body>
-</html>
-''',
-);
-
-final AcademicLoginSessionSnapshot _sessionSnapshot =
-    AcademicLoginSessionSnapshot(
-      cookieHeadersByHost: const {
-        'oa.sspu.edu.cn': 'OA=fake-oa-session',
-        'id.sspu.edu.cn': 'CASTGC=fake-cas-session',
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    var refreshCount = 0;
+    final gateway = _FakeStudentReportGateway(
+      entryPage: _onclickHome,
+      requireAuthCreditFirst: true,
+    );
+    final service = _buildService(
+      gateway: gateway,
+      campusReachable: true,
+      refreshOaLogin: () async {
+        refreshCount++;
+        await AcademicCredentialsService.instance.saveOaLoginSession(
+          _sessionSnapshot,
+        );
+        return _loginSuccessResult();
       },
-      authenticatedAt: DateTime(2026, 5, 1),
-      entranceUri: _oaEntranceUri,
-      finalUri: _oaEntranceUri,
     );
 
-final Uri _oaEntranceUri = Uri.parse(
-  'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=xgreport',
-);
+    final result = await service.fetchSecondClassroomCredits();
 
-const String _homeHtml = '''
-<html>
-  <body>
-    <a href="/sharedc/core/home/secondClassroom.do">第二课堂学分查询</a>
-  </body>
-</html>
-''';
+    expect(result.status, StudentReportQueryStatus.success);
+    expect(refreshCount, 1);
+    expect(
+      gateway.fetchedUris
+          .where((uri) => uri.path.contains('/studentxfform/'))
+          .length,
+      2,
+    );
+  });
 
-const String _creditHtml = '''
-<html>
-  <body>
-    <table>
-      <tr><th>类别</th><th>项目名称</th><th>认定时间</th><th>状态</th><th>学分</th></tr>
-      <tr><td>思想成长</td><td>主题团日</td><td>2026-04-20</td><td>已认定</td><td>1.5</td></tr>
-      <tr><td>创新创业</td><td>创新训练项目</td><td>2026-04-25</td><td>通过</td><td>2</td></tr>
-    </table>
-  </body>
-</html>
-''';
+  test('解析得分列和空白类别延续的第二课堂明细', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final gateway = _FakeStudentReportGateway(
+      entryPage: _onclickHome,
+      creditPage: _snapshot(_scoreColumnCreditHtml),
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
 
-final StudentReportHttpSnapshot _clientErrorHome = _snapshot('''
-<html>
-  <head><title>学工报表</title></head>
-  <body>
-    <script>console.error('client fallback');</script>
-    <a href="/sharedc/core/home/secondClassroom.do">第二课堂学分查询</a>
-  </body>
-</html>
-''');
+    final result = await service.fetchSecondClassroomCredits();
 
-final StudentReportHttpSnapshot _onclickHome = _snapshot('''
-<html>
-  <body>
-    <nav>第二课堂</nav>
-    <a href="javascript:void(0)" onclick="toMainUrl('dc/studentxfform/index.do','',true)">
-      <span>第二学堂学分查询</span>
-    </a>
-  </body>
-</html>
-''');
+    expect(result.status, StudentReportQueryStatus.success);
+    final records = result.summary?.records;
+    expect(records, hasLength(2));
+    expect(records?[0].credit, 0.5);
+    expect(records?[0].semester, '2025-2026-2');
+    expect(records?[0].occurredAt, '2026-03-01');
+    expect(records?[1].category, '社会实践');
+    expect(records?[1].itemName, '专题讲座');
+    expect(records?[1].credit, 1);
+  });
+
+  test('解析无显式学期行的第二课堂成绩明细学期且不把活动类型当状态', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final gateway = _FakeStudentReportGateway(
+      entryPage: _onclickHome,
+      creditPage: _snapshot(_semesterDetailCreditHtml),
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final result = await service.fetchSecondClassroomCredits();
+
+    expect(result.status, StudentReportQueryStatus.success);
+    final records = result.summary?.records;
+    expect(records, hasLength(1));
+    expect(records?.single.semester, '2024-2025-1');
+    expect(records?.single.category, '活动');
+    expect(records?.single.itemName, '迎新志愿服务');
+    expect(records?.single.status, isNull);
+    expect(records?.single.credit, 1);
+  });
+}

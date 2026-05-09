@@ -25,6 +25,7 @@ import 'http_service.dart';
 import 'storage_service.dart';
 
 part 'student_report_gateway.dart';
+part 'student_report_page_navigator.dart';
 part 'student_report_page_parser.dart';
 
 /// 教务页依赖的学工报表接口，便于 widget 测试替换。
@@ -235,8 +236,17 @@ class StudentReportService implements StudentReportClient {
     required CampusNetworkStatus campusNetworkStatus,
   }) async {
     var sessionSnapshot = await _credentialsService.readOaLoginSession();
-    var entrySnapshot = await _openEntryWithSession(sessionSnapshot);
-    if (_isAuthenticationRequired(entrySnapshot)) {
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final result = await _fetchWithSessionSnapshot(
+        sessionSnapshot: sessionSnapshot,
+        requireCredits: requireCredits,
+        campusNetworkStatus: campusNetworkStatus,
+      );
+      if (result.status != StudentReportQueryStatus.oaLoginRequired ||
+          attempt == 1) {
+        return result;
+      }
+
       final loginResult = await _refreshOaLogin();
       if (!loginResult.isSuccess) {
         return _buildResult(
@@ -250,9 +260,22 @@ class StudentReportService implements StudentReportClient {
       sessionSnapshot =
           await _credentialsService.readOaLoginSession() ??
           loginResult.sessionSnapshot;
-      entrySnapshot = await _openEntryWithSession(sessionSnapshot);
     }
 
+    return _buildResult(
+      StudentReportQueryStatus.oaLoginRequired,
+      message: 'OA 登录状态不可用，无法查询学工报表',
+      detail: '已尝试刷新 OA/CAS 会话，但学工报表仍要求登录。',
+      campusNetworkStatus: campusNetworkStatus,
+    );
+  }
+
+  Future<StudentReportQueryResult> _fetchWithSessionSnapshot({
+    required AcademicLoginSessionSnapshot? sessionSnapshot,
+    required bool requireCredits,
+    required CampusNetworkStatus campusNetworkStatus,
+  }) async {
+    final entrySnapshot = await _openEntryWithSession(sessionSnapshot);
     if (_isAuthenticationRequired(entrySnapshot)) {
       return _buildResult(
         StudentReportQueryStatus.oaLoginRequired,
@@ -279,6 +302,15 @@ class StudentReportService implements StudentReportClient {
     if (reportSystemUri != null &&
         reportEntrySnapshot.finalUri.host != homeUri.host) {
       reportEntrySnapshot = await _gateway.fetchPage(reportSystemUri, timeout);
+    }
+    if (_isAuthenticationRequired(reportEntrySnapshot)) {
+      return _buildResult(
+        StudentReportQueryStatus.oaLoginRequired,
+        message: '学工报表登录状态不可用',
+        detail: '学工报表 SSO 入口返回登录页，需要刷新 OA/CAS 会话。',
+        finalUri: reportEntrySnapshot.finalUri,
+        campusNetworkStatus: campusNetworkStatus,
+      );
     }
 
     final homeSnapshot = await _fetchHomePage(reportEntrySnapshot);
@@ -319,8 +351,16 @@ class StudentReportService implements StudentReportClient {
         targetUri,
         timeout,
       );
-      if (!_isAuthenticationRequired(secondClassroomSnapshot) &&
-          !_isUnavailable(secondClassroomSnapshot)) {
+      if (_isAuthenticationRequired(secondClassroomSnapshot)) {
+        return _buildResult(
+          StudentReportQueryStatus.oaLoginRequired,
+          message: '第二课堂学分登录状态不可用',
+          detail: '第二课堂学分页返回登录页，需要刷新 OA/CAS 会话。',
+          finalUri: secondClassroomSnapshot.finalUri,
+          campusNetworkStatus: campusNetworkStatus,
+        );
+      }
+      if (!_isUnavailable(secondClassroomSnapshot)) {
         snapshots.add(secondClassroomSnapshot);
       }
     }
@@ -362,7 +402,9 @@ class StudentReportService implements StudentReportClient {
     StudentReportHttpSnapshot entrySnapshot,
   ) async {
     if (entrySnapshot.finalUri.host == homeUri.host &&
-        entrySnapshot.body.contains('第二课堂')) {
+        StudentReportPageNavigator.hasSecondClassroomCreditHint(
+          entrySnapshot.body,
+        )) {
       return entrySnapshot;
     }
     return _gateway.fetchPage(homeUri, timeout);

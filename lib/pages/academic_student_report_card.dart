@@ -221,6 +221,7 @@ class _SecondClassroomScoreTile extends StatelessWidget {
     final theme = FluentTheme.of(context);
     final meta = [
       record.category,
+      if (record.semester != null) record.semester!,
       if (record.occurredAt != null) record.occurredAt!,
       if (record.status != null) record.status!,
     ].join(' · ');
@@ -318,6 +319,8 @@ class _SecondClassroomRecordDetailCard extends StatelessWidget {
       _DetailRow(label: '项目', value: record.itemName),
       _DetailRow(label: '类别', value: record.category),
       _DetailRow(label: '得分', value: _formatCredit(record.credit)),
+      if (record.semester != null)
+        _DetailRow(label: '学期', value: record.semester!),
       if (record.occurredAt != null)
         _DetailRow(label: '时间', value: record.occurredAt!),
       if (record.status != null) _DetailRow(label: '状态', value: record.status!),
