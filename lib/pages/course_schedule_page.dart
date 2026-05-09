@@ -13,6 +13,7 @@ import 'package:fluent_ui/fluent_ui.dart';
 import '../models/academic_eams.dart';
 import '../services/academic_eams_service.dart';
 import '../theme/fluent_tokens.dart';
+import '../widgets/fluent_surface.dart';
 
 /// 独立课程表页面。
 class CourseSchedulePage extends StatefulWidget {
@@ -110,7 +111,6 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
     final canPop = Navigator.of(context).canPop();
     final snapshot = _result?.snapshot;
     final courseTable = snapshot?.courseTable;
@@ -151,46 +151,39 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
         ),
       ),
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(FluentSpacing.l),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('课程表说明', style: theme.typography.bodyStrong),
-                const SizedBox(height: FluentSpacing.s),
-                Text(
-                  _autoRefreshEnabled
-                      ? '自动刷新已开启，每 $_autoRefreshIntervalMinutes 分钟更新一次；也可手动刷新。'
-                      : '自动刷新未开启。点击“刷新课表”可手动读取；本专科教务需要校园网或学校 VPN。',
-                ),
-                const SizedBox(height: FluentSpacing.xs),
-                Text(
-                  '本页面只展示课程名称、时间、地点、教师和周次信息，不提供选课、退课或调课入口。',
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
-                  ),
-                ),
-              ],
-            ),
+        FluentSurface(
+          padding: const EdgeInsets.all(FluentSpacing.l),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const FluentSectionHeader(
+                title: '课程表说明',
+                subtitle: '只展示课程名称、时间、地点、教师和周次，不提供写入型入口。',
+                icon: FluentIcons.calendar,
+              ),
+              const SizedBox(height: FluentSpacing.m),
+              Text(
+                _autoRefreshEnabled
+                    ? '自动刷新已开启，每 $_autoRefreshIntervalMinutes 分钟更新一次；也可手动刷新。'
+                    : '自动刷新未开启。点击“刷新课表”可手动读取；本专科教务需要校园网或学校 VPN。',
+              ),
+            ],
           ),
         ),
         const SizedBox(height: FluentSpacing.m),
         if (_isLoading && _result == null)
-          const Card(
-            child: Padding(
-              padding: EdgeInsets.all(FluentSpacing.xl),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: ProgressRing(strokeWidth: 2),
-                  ),
-                  SizedBox(width: FluentSpacing.s),
-                  Text('正在读取当前学期课表...'),
-                ],
-              ),
+          const FluentSurface(
+            padding: EdgeInsets.all(FluentSpacing.xl),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: ProgressRing(strokeWidth: 2),
+                ),
+                SizedBox(width: FluentSpacing.s),
+                Text('正在读取当前学期课表...'),
+              ],
             ),
           )
         else if (_result == null)
@@ -273,67 +266,64 @@ class _CourseScheduleSummaryCard extends StatelessWidget {
     final courseTable = snapshot.courseTable!;
     final completion = snapshot.programCompletion;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('本学期概览', style: theme.typography.bodyStrong),
-            const SizedBox(height: FluentSpacing.s),
-            Wrap(
-              spacing: FluentSpacing.s,
-              runSpacing: FluentSpacing.s,
-              children: [
+    return FluentSurface(
+      padding: const EdgeInsets.all(FluentSpacing.l),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('本学期概览', style: theme.typography.bodyStrong),
+          const SizedBox(height: FluentSpacing.s),
+          Wrap(
+            spacing: FluentSpacing.s,
+            runSpacing: FluentSpacing.s,
+            children: [
+              _CourseSummaryTag(
+                label: '学期',
+                value: courseTable.termName ?? '当前学期',
+              ),
+              _CourseSummaryTag(
+                label: '课程数',
+                value: '${courseTable.entries.length} 门',
+              ),
+              _CourseSummaryTag(
+                label: '刷新时间',
+                value:
+                    '${checkedAt.hour.toString().padLeft(2, '0')}:${checkedAt.minute.toString().padLeft(2, '0')}',
+              ),
+              if (completion != null)
                 _CourseSummaryTag(
-                  label: '学期',
-                  value: courseTable.termName ?? '当前学期',
-                ),
-                _CourseSummaryTag(
-                  label: '课程数',
-                  value: '${courseTable.entries.length} 门',
-                ),
-                _CourseSummaryTag(
-                  label: '刷新时间',
+                  label: '培养计划',
                   value:
-                      '${checkedAt.hour.toString().padLeft(2, '0')}:${checkedAt.minute.toString().padLeft(2, '0')}',
+                      '${completion.completedCredits.toStringAsFixed(1)}/${(completion.completedCredits + completion.pendingCredits).toStringAsFixed(1)} 学分',
                 ),
-                if (completion != null)
-                  _CourseSummaryTag(
-                    label: '培养计划',
-                    value:
-                        '${completion.completedCredits.toStringAsFixed(1)}/${(completion.completedCredits + completion.pendingCredits).toStringAsFixed(1)} 学分',
-                  ),
-              ],
+            ],
+          ),
+          if (profile != null && profile.hasAnyValue) ...[
+            const SizedBox(height: FluentSpacing.m),
+            Text(
+              [
+                if (profile.name != null && profile.name!.isNotEmpty)
+                  '姓名：${profile.name}',
+                if (profile.department != null &&
+                    profile.department!.isNotEmpty)
+                  '院系：${profile.department}',
+                if (profile.major != null && profile.major!.isNotEmpty)
+                  '专业：${profile.major}',
+                if (profile.className != null && profile.className!.isNotEmpty)
+                  '班级：${profile.className}',
+              ].join('  ·  '),
             ),
-            if (profile != null && profile.hasAnyValue) ...[
-              const SizedBox(height: FluentSpacing.m),
-              Text(
-                [
-                  if (profile.name != null && profile.name!.isNotEmpty)
-                    '姓名：${profile.name}',
-                  if (profile.department != null &&
-                      profile.department!.isNotEmpty)
-                    '院系：${profile.department}',
-                  if (profile.major != null && profile.major!.isNotEmpty)
-                    '专业：${profile.major}',
-                  if (profile.className != null &&
-                      profile.className!.isNotEmpty)
-                    '班级：${profile.className}',
-                ].join('  ·  '),
-              ),
-            ],
-            if (snapshot.warnings.isNotEmpty) ...[
-              const SizedBox(height: FluentSpacing.m),
-              InfoBar(
-                title: const Text('课表已可用，部分教务模块仍在降级'),
-                content: Text(snapshot.warnings.join('；')),
-                severity: InfoBarSeverity.warning,
-                isLong: true,
-              ),
-            ],
           ],
-        ),
+          if (snapshot.warnings.isNotEmpty) ...[
+            const SizedBox(height: FluentSpacing.m),
+            InfoBar(
+              title: const Text('课表已可用，部分教务模块仍在降级'),
+              content: Text(snapshot.warnings.join('；')),
+              severity: InfoBarSeverity.warning,
+              isLong: true,
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -385,22 +375,20 @@ class _CourseScheduleWeekdaySection extends StatelessWidget {
       _ => '未知',
     };
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: FluentTheme.of(context).typography.subtitle),
-            const SizedBox(height: FluentSpacing.m),
-            ...entries.map(
-              (entry) => Padding(
-                padding: const EdgeInsets.only(bottom: FluentSpacing.s),
-                child: _CourseScheduleEntryCard(entry: entry),
-              ),
+    return FluentSurface(
+      padding: const EdgeInsets.all(FluentSpacing.l),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: FluentTheme.of(context).typography.subtitle),
+          const SizedBox(height: FluentSpacing.m),
+          ...entries.map(
+            (entry) => Padding(
+              padding: const EdgeInsets.only(bottom: FluentSpacing.s),
+              child: _CourseScheduleEntryCard(entry: entry),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

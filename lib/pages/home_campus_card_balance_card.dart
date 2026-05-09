@@ -15,114 +15,84 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
     final result = _campusCardResult;
     final snapshot = result?.snapshot;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return FluentSurface(
+      padding: const EdgeInsets.all(FluentSpacing.l),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          FluentSectionHeader(
+            title: '校园卡余额',
+            subtitle: '需要校园网或学校 VPN，并复用 OA/CAS 登录状态。',
+            icon: FluentIcons.payment_card,
+            action: Tooltip(
+              message: snapshot == null ? '刷新后查看详情' : '查看校园卡详情',
+              child: IconButton(
+                icon: const Icon(FluentIcons.chevron_right, size: 14),
+                onPressed: snapshot == null
+                    ? null
+                    : () => _openCampusCardDetail(snapshot),
+              ),
+            ),
+          ),
+          const SizedBox(height: FluentSpacing.l),
+          if (_isLoadingCampusCard) ...[
+            const Row(
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: theme.accentColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    FluentIcons.payment_card,
-                    color: theme.accentColor,
-                    size: 22,
-                  ),
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: ProgressRing(strokeWidth: 2),
                 ),
-                const SizedBox(width: FluentSpacing.m),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('校园卡余额', style: theme.typography.bodyStrong),
-                      const SizedBox(height: FluentSpacing.xxs),
-                      Text(
-                        '需要校园网或学校 VPN，并复用 OA/CAS 登录状态。',
-                        style: theme.typography.caption?.copyWith(
-                          color: theme.resources.textFillColorSecondary,
-                        ),
-                      ),
-                    ],
+                SizedBox(width: FluentSpacing.s),
+                Text('正在读取校园卡余额...'),
+              ],
+            ),
+          ] else if (result == null) ...[
+            Text(
+              _campusCardAutoRefreshEnabled
+                  ? '自动刷新已开启，等待下一次读取；也可点击右下角刷新。'
+                  : '自动刷新未开启。点击右下角刷新图标可手动读取；校园卡查询需要校园网或学校 VPN。',
+            ),
+          ] else if (result.isSuccess && snapshot != null) ...[
+            _buildCampusCardBalanceSummary(context, snapshot),
+          ] else ...[
+            InfoBar(
+              title: Text(result.message),
+              content: Text(result.detail),
+              severity: _campusCardSeverity(result.status),
+              isLong: true,
+            ),
+          ],
+          const SizedBox(height: FluentSpacing.m),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Wrap(
+              spacing: FluentSpacing.xs,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  _campusCardLastRefreshLabel(result),
+                  style: theme.typography.caption?.copyWith(
+                    color: theme.resources.textFillColorSecondary,
                   ),
                 ),
                 Tooltip(
-                  message: snapshot == null ? '刷新后查看详情' : '查看校园卡详情',
+                  message: '刷新校园卡余额',
                   child: IconButton(
-                    icon: const Icon(FluentIcons.chevron_right, size: 14),
-                    onPressed: snapshot == null
-                        ? null
-                        : () => _openCampusCardDetail(snapshot),
+                    icon: _isLoadingCampusCard
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: ProgressRing(strokeWidth: 2),
+                          )
+                        : const Icon(FluentIcons.refresh, size: 14),
+                    onPressed: _isLoadingCampusCard ? null : _loadCampusCard,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: FluentSpacing.l),
-            if (_isLoadingCampusCard) ...[
-              const Row(
-                children: [
-                  SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: ProgressRing(strokeWidth: 2),
-                  ),
-                  SizedBox(width: FluentSpacing.s),
-                  Text('正在读取校园卡余额...'),
-                ],
-              ),
-            ] else if (result == null) ...[
-              Text(
-                _campusCardAutoRefreshEnabled
-                    ? '自动刷新已开启，等待下一次读取；也可点击右下角刷新。'
-                    : '自动刷新未开启。点击右下角刷新图标可手动读取；校园卡查询需要校园网或学校 VPN。',
-              ),
-            ] else if (result.isSuccess && snapshot != null) ...[
-              _buildCampusCardBalanceSummary(context, snapshot),
-            ] else ...[
-              InfoBar(
-                title: Text(result.message),
-                content: Text(result.detail),
-                severity: _campusCardSeverity(result.status),
-                isLong: true,
-              ),
-            ],
-            const SizedBox(height: FluentSpacing.m),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Wrap(
-                spacing: FluentSpacing.xs,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text(
-                    _campusCardLastRefreshLabel(result),
-                    style: theme.typography.caption?.copyWith(
-                      color: theme.resources.textFillColorSecondary,
-                    ),
-                  ),
-                  Tooltip(
-                    message: '刷新校园卡余额',
-                    child: IconButton(
-                      icon: _isLoadingCampusCard
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: ProgressRing(strokeWidth: 2),
-                            )
-                          : const Icon(FluentIcons.refresh, size: 14),
-                      onPressed: _isLoadingCampusCard ? null : _loadCampusCard,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

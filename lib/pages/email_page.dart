@@ -14,6 +14,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../models/email_mailbox.dart';
 import '../services/email_service.dart';
 import '../theme/fluent_tokens.dart';
+import '../widgets/fluent_surface.dart';
 
 part 'email_message_detail_page.dart';
 
@@ -159,55 +160,23 @@ class _EmailPageState extends State<EmailPage> {
 
   /// 构建页面说明，强调只读边界。
   Widget _buildOverviewCard(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: theme.accentColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    FluentIcons.mail,
-                    color: theme.accentColor,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: FluentSpacing.m),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('SSPU 邮箱只读收件箱', style: theme.typography.bodyStrong),
-                      const SizedBox(height: FluentSpacing.xxs),
-                      Text(
-                        '在设置页保存学工号和邮箱密码后，可通过 IMAP 或 POP 读取最近邮件。',
-                        style: theme.typography.caption?.copyWith(
-                          color: theme.resources.textFillColorSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: FluentSpacing.l),
-            const InfoBar(
-              title: Text('只读访问边界'),
-              content: Text('本页面不会发送邮件、删除邮件、移动邮件或主动标记已读；SMTP 仅用于认证与连通性校验。'),
-              severity: InfoBarSeverity.info,
-              isLong: true,
-            ),
-          ],
-        ),
+    return const FluentSurface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          FluentSectionHeader(
+            title: 'SSPU 邮箱只读收件箱',
+            subtitle: '在设置页保存学工号和邮箱密码后，可通过 IMAP 或 POP 读取最近邮件。',
+            icon: FluentIcons.mail,
+          ),
+          SizedBox(height: FluentSpacing.l),
+          InfoBar(
+            title: Text('只读访问边界'),
+            content: Text('本页面不会发送邮件、删除邮件、移动邮件或主动标记已读；SMTP 仅用于认证与连通性校验。'),
+            severity: InfoBarSeverity.info,
+            isLong: true,
+          ),
+        ],
       ),
     );
   }
@@ -215,103 +184,99 @@ class _EmailPageState extends State<EmailPage> {
   /// 构建协议选择与登录校验操作区。
   Widget _buildProtocolCard(BuildContext context) {
     final theme = FluentTheme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('协议操作', style: theme.typography.bodyStrong),
-            const SizedBox(height: FluentSpacing.xs),
-            Text(
-              'IMAP 使用 BODY.PEEK[] 读取，POP 仅 RETR 最近邮件；SMTP 不提供发送入口。',
-              style: theme.typography.caption?.copyWith(
-                color: theme.resources.textFillColorSecondary,
-              ),
+    return FluentSurface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('协议操作', style: theme.typography.bodyStrong),
+          const SizedBox(height: FluentSpacing.xs),
+          Text(
+            'IMAP 使用 BODY.PEEK[] 读取，POP 仅 RETR 最近邮件；SMTP 不提供发送入口。',
+            style: theme.typography.caption?.copyWith(
+              color: theme.resources.textFillColorSecondary,
             ),
-            const SizedBox(height: FluentSpacing.m),
-            Wrap(
-              spacing: FluentSpacing.s,
-              runSpacing: FluentSpacing.s,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                SizedBox(
-                  width: 160,
-                  child: ComboBox<EmailProtocol>(
-                    value: _selectedProtocol,
-                    items: const [
-                      ComboBoxItem(
-                        value: EmailProtocol.imap,
-                        child: Text('IMAP 收信'),
-                      ),
-                      ComboBoxItem(
-                        value: EmailProtocol.pop,
-                        child: Text('POP 收信'),
-                      ),
-                    ],
-                    onChanged: _isFetchingMessages
-                        ? null
-                        : (protocol) {
-                            if (protocol == null) return;
-                            setState(() => _selectedProtocol = protocol);
-                          },
-                  ),
+          ),
+          const SizedBox(height: FluentSpacing.m),
+          Wrap(
+            spacing: FluentSpacing.s,
+            runSpacing: FluentSpacing.s,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              SizedBox(
+                width: 160,
+                child: ComboBox<EmailProtocol>(
+                  value: _selectedProtocol,
+                  items: const [
+                    ComboBoxItem(
+                      value: EmailProtocol.imap,
+                      child: Text('IMAP 收信'),
+                    ),
+                    ComboBoxItem(
+                      value: EmailProtocol.pop,
+                      child: Text('POP 收信'),
+                    ),
+                  ],
+                  onChanged: _isFetchingMessages
+                      ? null
+                      : (protocol) {
+                          if (protocol == null) return;
+                          setState(() => _selectedProtocol = protocol);
+                        },
                 ),
-                FilledButton(
-                  onPressed: _isFetchingMessages ? null : _fetchMessages,
+              ),
+              FilledButton(
+                onPressed: _isFetchingMessages ? null : _fetchMessages,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_isFetchingMessages) ...[
+                      const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: ProgressRing(strokeWidth: 2),
+                      ),
+                    ] else ...[
+                      const Icon(FluentIcons.refresh, size: 14),
+                    ],
+                    const SizedBox(width: 6),
+                    const Text('读取最近邮件'),
+                  ],
+                ),
+              ),
+              for (final protocol in EmailProtocol.values)
+                Button(
+                  onPressed: _validatingProtocol == null && !_isFetchingMessages
+                      ? () => _validateLogin(protocol)
+                      : null,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (_isFetchingMessages) ...[
+                      if (_validatingProtocol == protocol) ...[
                         const SizedBox(
                           width: 14,
                           height: 14,
                           child: ProgressRing(strokeWidth: 2),
                         ),
                       ] else ...[
-                        const Icon(FluentIcons.refresh, size: 14),
+                        const Icon(FluentIcons.plug_connected, size: 14),
                       ],
                       const SizedBox(width: 6),
-                      const Text('读取最近邮件'),
+                      Text('校验 ${protocol.label}'),
                     ],
                   ),
                 ),
-                for (final protocol in EmailProtocol.values)
-                  Button(
-                    onPressed:
-                        _validatingProtocol == null && !_isFetchingMessages
-                        ? () => _validateLogin(protocol)
-                        : null,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (_validatingProtocol == protocol) ...[
-                          const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: ProgressRing(strokeWidth: 2),
-                          ),
-                        ] else ...[
-                          const Icon(FluentIcons.plug_connected, size: 14),
-                        ],
-                        const SizedBox(width: 6),
-                        Text('校验 ${protocol.label}'),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-            if (_validationResult != null) ...[
-              const SizedBox(height: FluentSpacing.m),
-              InfoBar(
-                title: Text(_validationResult!.message),
-                content: Text(_validationResult!.detail),
-                severity: _severityOf(_validationResult!.status),
-                isLong: true,
-              ),
             ],
+          ),
+          if (_validationResult != null) ...[
+            const SizedBox(height: FluentSpacing.m),
+            InfoBar(
+              title: Text(_validationResult!.message),
+              content: Text(_validationResult!.detail),
+              severity: _severityOf(_validationResult!.status),
+              isLong: true,
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -320,20 +285,17 @@ class _EmailPageState extends State<EmailPage> {
   Widget _buildMailboxSection(BuildContext context) {
     final result = _mailboxResult;
     if (_isFetchingMessages) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(FluentSpacing.xl),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 18,
-                height: 18,
-                child: ProgressRing(strokeWidth: 2),
-              ),
-              SizedBox(width: FluentSpacing.s),
-              Text('正在读取最近邮件...'),
-            ],
-          ),
+      return const FluentSurface(
+        child: Row(
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: ProgressRing(strokeWidth: 2),
+            ),
+            SizedBox(width: FluentSpacing.s),
+            Text('正在读取最近邮件...'),
+          ],
         ),
       );
     }
@@ -365,19 +327,17 @@ class _EmailPageState extends State<EmailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(FluentSpacing.l),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${snapshot.protocol.label} 最近邮件：${messages.length} 封',
-                  ),
+        FluentSurface(
+          padding: const EdgeInsets.all(FluentSpacing.l),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${snapshot.protocol.label} 最近邮件：${messages.length} 封',
                 ),
-                Text('上次刷新：${_formatDateTime(snapshot.fetchedAt)}'),
-              ],
-            ),
+              ),
+              Text('上次刷新：${_formatDateTime(snapshot.fetchedAt)}'),
+            ],
           ),
         ),
         const SizedBox(height: FluentSpacing.m),
@@ -399,49 +359,43 @@ class _EmailPageState extends State<EmailPage> {
     final theme = FluentTheme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: FluentSpacing.s),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(FluentSpacing.l),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      message.subject,
-                      style: theme.typography.bodyStrong,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+      child: FluentSurface(
+        padding: const EdgeInsets.all(FluentSpacing.l),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    message.subject,
+                    style: theme.typography.bodyStrong,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(width: FluentSpacing.s),
-                  Text(_formatOptionalDateTime(message.receivedAt)),
-                ],
-              ),
-              const SizedBox(height: FluentSpacing.xs),
-              Text(
-                _senderLabel(message),
-                style: theme.typography.caption?.copyWith(
-                  color: theme.resources.textFillColorSecondary,
                 ),
+                const SizedBox(width: FluentSpacing.s),
+                Text(_formatOptionalDateTime(message.receivedAt)),
+              ],
+            ),
+            const SizedBox(height: FluentSpacing.xs),
+            Text(
+              _senderLabel(message),
+              style: theme.typography.caption?.copyWith(
+                color: theme.resources.textFillColorSecondary,
               ),
-              const SizedBox(height: FluentSpacing.s),
-              Text(
-                message.preview,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: FluentSpacing.s),
+            Text(message.preview, maxLines: 3, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: FluentSpacing.m),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Button(
+                onPressed: () => _openMessageDetail(message),
+                child: const Text('查看正文'),
               ),
-              const SizedBox(height: FluentSpacing.m),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Button(
-                  onPressed: () => _openMessageDetail(message),
-                  child: const Text('查看正文'),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -35,108 +35,77 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
     final theme = FluentTheme.of(context);
     final summary = result?.summary;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return FluentSurface(
+      accentColor: theme.resources.systemFillColorSuccess,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          FluentSectionHeader(
+            title: '课外活动考勤',
+            subtitle: '数据来自体育部查询系统，使用学工号和体育部查询密码登录。',
+            icon: FluentIcons.running,
+            accentColor: theme.resources.systemFillColorSuccess,
+          ),
+          const SizedBox(height: FluentSpacing.l),
+          if (isLoading) ...[
+            const Row(
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: theme.resources.systemFillColorSuccess.withValues(
-                      alpha: 0.12,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    FluentIcons.running,
-                    color: theme.resources.systemFillColorSuccess,
-                    size: 22,
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: ProgressRing(strokeWidth: 2),
+                ),
+                SizedBox(width: FluentSpacing.s),
+                Text('正在读取体育部考勤...'),
+              ],
+            ),
+          ] else if (result == null) ...[
+            Text(
+              autoRefreshEnabled
+                  ? '自动刷新已开启，等待下一次读取；也可点击右上角刷新。'
+                  : '自动刷新未开启。点击右上角刷新图标可手动读取；体育查询需要校园网或学校 VPN。',
+            ),
+          ] else if (result!.isSuccess && summary != null) ...[
+            _SportsAttendanceSummaryView(summary: summary),
+          ] else ...[
+            InfoBar(
+              title: Text(result!.message),
+              content: Text(result!.detail),
+              severity: _sportsAttendanceSeverity(result!.status),
+              isLong: true,
+            ),
+          ],
+          const SizedBox(height: FluentSpacing.m),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Wrap(
+              spacing: FluentSpacing.xs,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  _sportsAttendanceLastRefreshLabel(result),
+                  style: theme.typography.caption?.copyWith(
+                    color: theme.resources.textFillColorSecondary,
                   ),
                 ),
-                const SizedBox(width: FluentSpacing.m),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('课外活动考勤', style: theme.typography.bodyStrong),
-                      const SizedBox(height: FluentSpacing.xxs),
-                      Text(
-                        '数据来自体育部查询系统，使用学工号和体育部查询密码登录。',
-                        style: theme.typography.caption?.copyWith(
-                          color: theme.resources.textFillColorSecondary,
-                        ),
-                      ),
-                    ],
+                Tooltip(
+                  message: '手动刷新体育考勤',
+                  child: IconButton(
+                    key: const Key('academic-sports-refresh'),
+                    icon: isLoading
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: ProgressRing(strokeWidth: 2),
+                          )
+                        : const Icon(FluentIcons.refresh, size: 14),
+                    onPressed: isLoading ? null : onRefresh,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: FluentSpacing.l),
-            if (isLoading) ...[
-              const Row(
-                children: [
-                  SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: ProgressRing(strokeWidth: 2),
-                  ),
-                  SizedBox(width: FluentSpacing.s),
-                  Text('正在读取体育部考勤...'),
-                ],
-              ),
-            ] else if (result == null) ...[
-              Text(
-                autoRefreshEnabled
-                    ? '自动刷新已开启，等待下一次读取；也可点击右上角刷新。'
-                    : '自动刷新未开启。点击右上角刷新图标可手动读取；体育查询需要校园网或学校 VPN。',
-              ),
-            ] else if (result!.isSuccess && summary != null) ...[
-              _SportsAttendanceSummaryView(summary: summary),
-            ] else ...[
-              InfoBar(
-                title: Text(result!.message),
-                content: Text(result!.detail),
-                severity: _sportsAttendanceSeverity(result!.status),
-                isLong: true,
-              ),
-            ],
-            const SizedBox(height: FluentSpacing.m),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Wrap(
-                spacing: FluentSpacing.xs,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text(
-                    _sportsAttendanceLastRefreshLabel(result),
-                    style: theme.typography.caption?.copyWith(
-                      color: theme.resources.textFillColorSecondary,
-                    ),
-                  ),
-                  Tooltip(
-                    message: '手动刷新体育考勤',
-                    child: IconButton(
-                      key: const Key('academic-sports-refresh'),
-                      icon: isLoading
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: ProgressRing(strokeWidth: 2),
-                            )
-                          : const Icon(FluentIcons.refresh, size: 14),
-                      onPressed: isLoading ? null : onRefresh,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

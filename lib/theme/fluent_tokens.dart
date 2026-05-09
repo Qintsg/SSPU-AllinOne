@@ -146,7 +146,13 @@ class FluentElevation {
 
   /// 卡片悬停阴影（稍强）
   static const List<BoxShadow> cardHover = [
-    BoxShadow(color: Color(0x14000000), blurRadius: 8, offset: Offset(0, 2)),
+    BoxShadow(color: Color(0x12000000), blurRadius: 10, offset: Offset(0, 3)),
+    BoxShadow(color: Color(0x08000000), blurRadius: 2, offset: Offset(0, 1)),
+  ];
+
+  /// 卡片按下阴影，保持反馈但避免跳动。
+  static const List<BoxShadow> cardPressed = [
+    BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 1)),
   ];
 
   /// 弹窗/浮层阴影
@@ -159,7 +165,12 @@ class FluentElevation {
 
   /// 暗色主题卡片悬停阴影
   static const List<BoxShadow> cardHoverDark = [
-    BoxShadow(color: Color(0x20000000), blurRadius: 8, offset: Offset(0, 2)),
+    BoxShadow(color: Color(0x26000000), blurRadius: 12, offset: Offset(0, 4)),
+  ];
+
+  /// 暗色主题卡片按下阴影。
+  static const List<BoxShadow> cardPressedDark = [
+    BoxShadow(color: Color(0x18000000), blurRadius: 4, offset: Offset(0, 1)),
   ];
 }
 
@@ -279,6 +290,9 @@ class FluentDuration {
 
   /// 慢速过渡（页面切换、大面积动画）
   static const Duration slow = Duration(milliseconds: 300);
+
+  /// 长列表/复杂区域的错峰入场间隔。
+  static const Duration stagger = Duration(milliseconds: 80);
 }
 
 /// Fluent 2 缓动曲线
@@ -286,13 +300,13 @@ class FluentEasing {
   FluentEasing._();
 
   /// 标准缓动（大多数交互）
-  static const Curve standard = Curves.easeInOut;
+  static const Curve standard = Curves.easeInOutCubic;
 
   /// 加速离开
-  static const Curve decelerate = Curves.easeOut;
+  static const Curve decelerate = Curves.easeOutCubic;
 
   /// 弹性进入
-  static const Curve accelerate = Curves.easeIn;
+  static const Curve accelerate = Curves.easeInCubic;
 }
 
 // ==================== 响应式断点 Token ====================
