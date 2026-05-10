@@ -18,6 +18,8 @@ import '../services/academic_eams_service.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/student_report_service.dart';
 import '../theme/fluent_tokens.dart';
+import '../widgets/fluent_surface.dart';
+import '../widgets/responsive_layout.dart';
 import 'course_schedule_page.dart';
 
 part 'academic_eams_summary_card.dart';
@@ -255,69 +257,75 @@ class _AcademicPageState extends State<AcademicPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ScaffoldPage.scrollable(
-      header: const PageHeader(title: Text('教务中心')),
-      children: [
-        AcademicEamsSummaryCard(
-              result: _academicEamsResult,
-              isLoading: _isLoadingAcademicEams,
-              autoRefreshEnabled: _academicEamsAutoRefreshEnabled,
-              onRefresh: _loadAcademicEamsOverview,
-              onOpenCourseSchedule: () => Navigator.of(context).push(
-                FluentPageRoute(
-                  builder: (_) => CourseSchedulePage(
-                    academicEamsService: _academicEamsService,
-                    initialResult: _academicEamsResult,
-                    autoRefreshEnabledOverride: _academicEamsAutoRefreshEnabled,
-                    autoRefreshIntervalOverride:
-                        _academicEamsAutoRefreshIntervalMinutes,
+    return ResponsiveBuilder(
+      builder: (context, deviceType, constraints) {
+        return ScaffoldPage.scrollable(
+          header: const PageHeader(title: Text('教务中心')),
+          padding: responsivePagePadding(deviceType),
+          children: [
+            AcademicEamsSummaryCard(
+                  result: _academicEamsResult,
+                  isLoading: _isLoadingAcademicEams,
+                  autoRefreshEnabled: _academicEamsAutoRefreshEnabled,
+                  onRefresh: _loadAcademicEamsOverview,
+                  onOpenCourseSchedule: () => Navigator.of(context).push(
+                    FluentPageRoute(
+                      builder: (_) => CourseSchedulePage(
+                        academicEamsService: _academicEamsService,
+                        initialResult: _academicEamsResult,
+                        autoRefreshEnabledOverride:
+                            _academicEamsAutoRefreshEnabled,
+                        autoRefreshIntervalOverride:
+                            _academicEamsAutoRefreshIntervalMinutes,
+                      ),
+                    ),
                   ),
-                ),
+                )
+                .animate()
+                .fadeIn(
+                  duration: FluentDuration.slow,
+                  curve: FluentEasing.decelerate,
+                )
+                .slideY(begin: 0.05, end: 0),
+            const SizedBox(height: FluentSpacing.m),
+            AcademicSportsAttendanceCard(
+                  result: _sportsAttendanceResult,
+                  isLoading: _isLoadingSportsAttendance,
+                  autoRefreshEnabled: _sportsAttendanceAutoRefreshEnabled,
+                  onRefresh: _loadSportsAttendance,
+                )
+                .animate(delay: FluentDuration.stagger)
+                .fadeIn(
+                  duration: FluentDuration.slow,
+                  curve: FluentEasing.decelerate,
+                )
+                .slideY(begin: 0.05, end: 0),
+            const SizedBox(height: FluentSpacing.m),
+            AcademicStudentReportCard(
+                  result: _studentReportResult,
+                  isLoading: _isLoadingStudentReport,
+                  autoRefreshEnabled: _studentReportAutoRefreshEnabled,
+                  onRefresh: _loadStudentReport,
+                )
+                .animate(delay: FluentDuration.stagger * 2)
+                .fadeIn(
+                  duration: FluentDuration.slow,
+                  curve: FluentEasing.decelerate,
+                )
+                .slideY(begin: 0.05, end: 0),
+            const SizedBox(height: FluentSpacing.m),
+            const InfoBar(
+              title: Text('只读边界'),
+              content: Text(
+                '本专科教务仅接入个人信息、课表、成绩、考试、培养计划、开课检索和空闲教室等只读能力；'
+                '不提供选课、退课、调课、教学评价、提交申请或任何状态变更入口。',
               ),
-            )
-            .animate()
-            .fadeIn(
-              duration: FluentDuration.slow,
-              curve: FluentEasing.decelerate,
-            )
-            .slideY(begin: 0.05, end: 0),
-        const SizedBox(height: FluentSpacing.m),
-        AcademicSportsAttendanceCard(
-              result: _sportsAttendanceResult,
-              isLoading: _isLoadingSportsAttendance,
-              autoRefreshEnabled: _sportsAttendanceAutoRefreshEnabled,
-              onRefresh: _loadSportsAttendance,
-            )
-            .animate(delay: 80.ms)
-            .fadeIn(
-              duration: FluentDuration.slow,
-              curve: FluentEasing.decelerate,
-            )
-            .slideY(begin: 0.05, end: 0),
-        const SizedBox(height: FluentSpacing.m),
-        AcademicStudentReportCard(
-              result: _studentReportResult,
-              isLoading: _isLoadingStudentReport,
-              autoRefreshEnabled: _studentReportAutoRefreshEnabled,
-              onRefresh: _loadStudentReport,
-            )
-            .animate(delay: 160.ms)
-            .fadeIn(
-              duration: FluentDuration.slow,
-              curve: FluentEasing.decelerate,
-            )
-            .slideY(begin: 0.05, end: 0),
-        const SizedBox(height: FluentSpacing.m),
-        const InfoBar(
-          title: Text('只读边界'),
-          content: Text(
-            '本专科教务仅接入个人信息、课表、成绩、考试、培养计划、开课检索和空闲教室等只读能力；'
-            '不提供选课、退课、调课、教学评价、提交申请或任何状态变更入口。',
-          ),
-          severity: InfoBarSeverity.info,
-          isLong: true,
-        ),
-      ],
+              severity: InfoBarSeverity.info,
+              isLong: true,
+            ),
+          ],
+        );
+      },
     );
   }
 }

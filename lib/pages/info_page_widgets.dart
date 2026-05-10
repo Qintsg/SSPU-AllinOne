@@ -13,21 +13,35 @@ Widget _buildInfoPageView(_InfoPageState state, BuildContext context) {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            state._buildActionBar(theme),
-            if (refreshSnapshot.isRefreshing) ...[
-              const SizedBox(height: FluentSpacing.s),
-              state._buildRefreshProgress(theme),
-            ],
-            const SizedBox(height: FluentSpacing.m),
-            state._buildSearchBar(theme),
-            const SizedBox(height: FluentSpacing.s),
-            state
-                ._buildFilterBar(theme, isDark)
-                .animate()
-                .fadeIn(
-                  duration: FluentDuration.slow,
-                  curve: FluentEasing.decelerate,
-                ),
+            FluentSurface(
+              padding: const EdgeInsets.all(FluentSpacing.l),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const FluentSectionHeader(
+                    title: '消息操作',
+                    subtitle: '搜索、筛选和刷新聚合消息',
+                    icon: FluentIcons.filter,
+                  ),
+                  const SizedBox(height: FluentSpacing.m),
+                  state._buildActionBar(theme),
+                  if (refreshSnapshot.isRefreshing) ...[
+                    const SizedBox(height: FluentSpacing.s),
+                    state._buildRefreshProgress(theme),
+                  ],
+                  const SizedBox(height: FluentSpacing.m),
+                  state._buildSearchBar(theme),
+                  const SizedBox(height: FluentSpacing.s),
+                  state
+                      ._buildFilterBar(theme, isDark)
+                      .animate()
+                      .fadeIn(
+                        duration: FluentDuration.slow,
+                        curve: FluentEasing.decelerate,
+                      ),
+                ],
+              ),
+            ),
             const SizedBox(height: FluentSpacing.m),
             Expanded(
               child:
@@ -35,30 +49,33 @@ Widget _buildInfoPageView(_InfoPageState state, BuildContext context) {
                       state._filteredMessages.isEmpty
                   ? const Center(child: ProgressRing())
                   : state._filteredMessages.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            FluentIcons.inbox,
-                            size: 48,
-                            color: theme.resources.textFillColorSecondary,
-                          ),
-                          const SizedBox(height: FluentSpacing.m),
-                          Text(
-                            '暂无消息',
-                            style: theme.typography.body?.copyWith(
+                  ? FluentSurface(
+                      width: double.infinity,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              FluentIcons.inbox,
+                              size: 48,
                               color: theme.resources.textFillColorSecondary,
                             ),
-                          ),
-                          const SizedBox(height: FluentSpacing.s),
-                          Text(
-                            '点击上方刷新按钮获取最新消息',
-                            style: theme.typography.caption?.copyWith(
-                              color: theme.resources.textFillColorSecondary,
+                            const SizedBox(height: FluentSpacing.m),
+                            Text(
+                              '暂无消息',
+                              style: theme.typography.body?.copyWith(
+                                color: theme.resources.textFillColorSecondary,
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: FluentSpacing.s),
+                            Text(
+                              '点击上方刷新按钮获取最新消息',
+                              style: theme.typography.caption?.copyWith(
+                                color: theme.resources.textFillColorSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   : state._buildMessageList(theme, isDark),
@@ -307,25 +324,28 @@ Widget _buildInfoMessageList(
 ) {
   final messages = state._pagedMessages;
 
-  return ListView.separated(
-    itemCount: messages.length,
-    separatorBuilder: (_, _) => const Divider(),
-    itemBuilder: (context, index) {
-      final message = messages[index];
-      final isRead = state._stateService.isRead(message.id);
+  return FluentSurface(
+    padding: const EdgeInsets.symmetric(vertical: FluentSpacing.s),
+    child: ListView.separated(
+      itemCount: messages.length,
+      separatorBuilder: (_, _) => const Divider(),
+      itemBuilder: (context, index) {
+        final message = messages[index];
+        final isRead = state._stateService.isRead(message.id);
 
-      return MessageTile(
-        message: message,
-        isRead: isRead,
-        isDark: isDark,
-        theme: theme,
-        onTap: () => state._openMessage(message),
-        onMarkRead: () async {
-          await state._stateService.markAsRead(message.id);
-          state._refreshView();
-        },
-      );
-    },
+        return MessageTile(
+          message: message,
+          isRead: isRead,
+          isDark: isDark,
+          theme: theme,
+          onTap: () => state._openMessage(message),
+          onMarkRead: () async {
+            await state._stateService.markAsRead(message.id);
+            state._refreshView();
+          },
+        );
+      },
+    ),
   );
 }
 

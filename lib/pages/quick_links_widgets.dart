@@ -43,63 +43,39 @@ class _LinkTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
-    return HoverButton(
+    return FluentSurface(
+      width: width,
+      minHeight: 122,
+      accentColor: color,
+      padding: const EdgeInsets.all(FluentSpacing.l),
       onPressed: () => onTap(url),
-      builder: (context, states) {
-        final isHovered = states.isHovered;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          width: width,
-          constraints: const BoxConstraints(minHeight: 122),
-          padding: const EdgeInsets.all(FluentSpacing.l),
-          decoration: BoxDecoration(
-            color: isHovered
-                ? color.withValues(alpha: isDark ? 0.15 : 0.08)
-                : isDark
-                ? FluentDarkColors.hoverFill
-                : theme.resources.cardBackgroundFillColorDefault,
-            borderRadius: BorderRadius.circular(FluentRadius.xLarge),
-            border: Border.all(
-              color: isHovered
-                  ? color.withValues(alpha: 0.3)
-                  : isDark
-                  ? FluentDarkColors.borderSubtle
-                  : FluentLightColors.borderSubtle,
-            ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 28, color: color),
+          const SizedBox(height: FluentSpacing.s),
+          Text(
+            label,
+            style: theme.typography.body?.copyWith(fontWeight: FontWeight.w500),
+            textAlign: TextAlign.center,
+            maxLines: subtitle == null ? 3 : 2,
+            overflow: TextOverflow.ellipsis,
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 28, color: color),
-              const SizedBox(height: FluentSpacing.s),
-              Text(
-                label,
-                style: theme.typography.body?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: subtitle == null ? 3 : 2,
-                overflow: TextOverflow.ellipsis,
+          if (subtitle != null) ...[
+            const SizedBox(height: FluentSpacing.xs),
+            Text(
+              subtitle!,
+              style: theme.typography.caption?.copyWith(
+                color: theme.resources.textFillColorSecondary,
               ),
-              if (subtitle != null) ...[
-                const SizedBox(height: FluentSpacing.xs),
-                Text(
-                  subtitle!,
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ],
-          ),
-        );
-      },
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

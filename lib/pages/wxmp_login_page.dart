@@ -18,6 +18,19 @@ import '../theme/fluent_tokens.dart';
 /// 公众号平台登录 URL
 const String _wxmpLoginUrl = 'https://mp.weixin.qq.com/';
 
+/// 测试入口：创建与登录 WebView 绑定到同一存储环境的 CookieManager。
+@visibleForTesting
+CookieManager debugCreateWxmpCookieManager(
+  WebViewEnvironment? webViewEnvironment,
+) {
+  return _createWxmpCookieManager(webViewEnvironment);
+}
+
+/// Windows 自定义 WebView2 用户数据目录时，CookieManager 也必须使用同一环境。
+CookieManager _createWxmpCookieManager(WebViewEnvironment? webViewEnvironment) {
+  return CookieManager.instance(webViewEnvironment: webViewEnvironment);
+}
+
 /// 微信公众号平台扫码登录页
 /// 加载 mp.weixin.qq.com，用户扫码后从 URL 提取 token，从 CookieManager 提取 Cookie
 class WxmpLoginPage extends StatefulWidget {
@@ -185,7 +198,7 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
   }
 
   Future<_CookieReadResult> _readWxmpCookies(String successUrl) async {
-    final cookieManager = CookieManager.instance();
+    final cookieManager = _createWxmpCookieManager(widget.webViewEnvironment);
     final cookieMap = <String, String>{};
     final cookieNames = <String>{};
     final currentUrl = await _controller?.getUrl();

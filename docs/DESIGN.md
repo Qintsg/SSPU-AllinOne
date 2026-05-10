@@ -1,6 +1,6 @@
 # SSPU All-in-One 设计文档
 
-> 版本：v0.2.2-alpha+4 | 最后更新：2026-05-01
+> 版本：v0.2.2-alpha+4 | 最后更新：2026-05-09
 
 ---
 
@@ -65,7 +65,7 @@ SSPU All-in-One 是面向上海第二工业大学（SSPU）师生的校园综合
 | 入口层 | `lib/main.dart` | 平台能力初始化、FluentApp 配置、EULA / 密码 / 托盘生命周期 |
 | 导航层 | `lib/app.dart` | 桌面侧边栏导航、移动端底部导航、页面切换容器 |
 | 页面层 | `lib/pages/` | 主页、教务、信息中心、设置、关于、登录 WebView 等页面 |
-| 组件层 | `lib/widgets/` | 设置分区、消息项、频道列表、响应式布局等可复用 UI |
+| 组件层 | `lib/widgets/` | 设置分区、消息项、Fluent 2 surface、频道列表、响应式布局等可复用 UI |
 | 控制层 | `lib/controllers/` | 复杂分区状态协调，当前主要用于微信推文设置 |
 | 服务层 | `lib/services/` | 状态持久化、抓取、自动刷新、通知、退出、应用信息等 |
 | 模型 / 工具层 | `lib/models/`、`lib/utils/` | 消息模型、渠道配置、时间/匹配/WebView 环境工具 |
@@ -137,6 +137,10 @@ _initApp()
 
 所有主页面切换使用 `EntrancePageTransition`；手机底部导航通过 `KeyedSubtree` 强制刷新当前页，保持切换后的内容状态与动画一致。
 
+### 3.4 Fluent 2 surface 与微动效
+
+主导航页面统一使用 `FluentSurface` 承载核心内容区。该组件集中处理浅色 / 深色背景、描边、圆角、阴影、悬停高亮和按压缩放反馈，避免页面各自硬编码视觉状态。页面入场动画继续使用 `flutter_animate` 的淡入与轻微纵向位移，并通过 `FluentDuration.stagger` 对多张卡片做错峰入场。
+
 ---
 
 ## 4. 页面设计
@@ -156,7 +160,7 @@ _initApp()
 **UI 结构**：
 - `ScaffoldPage.scrollable` 作为页面容器
 - `PageHeader` 显示页面标题
-- `Card` 组件包裹内容区域
+- `FluentSurface` 组件包裹欢迎区、校园卡余额和最新消息摘要
 
 ### 4.2 教务中心（AcademicPage）
 
@@ -174,6 +178,8 @@ _initApp()
 
 **已实现能力**：作为主导航独立页面展示当前学期课表，复用本专科教务自动刷新配置，并在凭据、校园网 / VPN 或课表不可用时显示明确状态。页面仅展示课程名称、时间、地点、教师和周次，不提供选课、退课、调课等写入入口。
 
+**UI 结构**：说明区、学期概览和按星期分组的课程块统一使用 `FluentSurface`，保持与教务中心一致的边框、圆角和阴影层级。
+
 ### 4.3 信息中心（InfoPage）
 
 **文件**：`lib/pages/info_page.dart`
@@ -188,6 +194,8 @@ _initApp()
 - 刷新进度条与单例刷新状态保持
 - 本地缓存持久化与已读状态管理
 
+**UI 结构**：操作、刷新进度、搜索和筛选集中在同一个 `FluentSurface` 中，消息列表和空状态使用独立 surface，减少分散按钮和裸列表带来的层级割裂。
+
 ### 4.4 快速跳转（QuickLinksPage）
 
 **文件**：`lib/pages/quick_links_page.dart`
@@ -201,6 +209,8 @@ _initApp()
 - 根据名称自动推断图标与强调色
 - 点击后通过默认浏览器打开外部链接
 
+**UI 结构**：搜索框和最佳匹配入口合并为一个操作 surface；链接磁贴使用可点击 `FluentSurface`，悬停时显示强调色边框、柔和背景和阴影提升。
+
 ### 4.4.1 学校邮箱（EmailPage）
 
 **文件**：`lib/pages/email_page.dart`
@@ -208,6 +218,8 @@ _initApp()
 **当前状态**：已实现只读收信与协议校验
 
 **已实现能力**：使用学工号派生学校邮箱账号，通过 IMAP / POP 只读读取最近邮件，并通过 SMTP 仅校验登录状态。页面展示标题、发件人、时间、正文摘要和正文快照，不提供发送、回复、转发、删除、移动、标记已读或修改文件夹入口。
+
+**UI 结构**：页面说明、协议操作、读取进度、邮箱摘要和邮件摘要卡片统一使用 `FluentSurface`，保持与课程表、教务中心一致的阴影和边框层级。
 
 ### 4.5 设置页（SettingsPage）
 
@@ -459,7 +471,8 @@ ContentDialog: 输入当前密码
 - 所有页面的文字颜色、背景色必须通过 `FluentTheme.of(context)` 获取
 - 半透明效果使用 `.withValues(alpha: x)` 方法
 - 不硬编码颜色值（白色/黑色除外的主题依赖色）
-- `Card`、`InfoBar` 等组件自动适配主题色
+- 主页面优先使用 `FluentSurface` 和 `FluentSectionHeader`，统一浅色 / 深色背景、描边、阴影、图标容器和标题说明布局
+- 阴影与交互动效通过 `FluentElevation`、`FluentDuration` 和 `FluentEasing` token 获取；禁止在页面中新增零散硬编码阴影和缓动
 
 ---
 

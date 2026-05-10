@@ -15,6 +15,7 @@ import '../models/message_item.dart';
 import '../services/campus_card_service.dart';
 import '../services/message_state_service.dart';
 import '../theme/fluent_tokens.dart';
+import '../widgets/fluent_surface.dart';
 import '../utils/webview_env.dart';
 import '../widgets/responsive_layout.dart';
 import 'webview_page.dart';
@@ -147,55 +148,48 @@ class _HomePageState extends State<HomePage> {
           header: const PageHeader(title: Text('主页')),
           padding: EdgeInsets.all(pagePadding),
           children: [
-            // 欢迎卡片
-            Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+            FluentSurface(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? FluentDarkColors.backgroundSecondary
+                              : FluentLightColors.backgroundSecondary,
+                          borderRadius: BorderRadius.circular(
+                            FluentRadius.xxLarge,
+                          ),
+                          boxShadow: isDark
+                              ? FluentElevation.cardRestDark
+                              : FluentElevation.cardRest,
+                        ),
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          width: 80,
+                          height: 80,
+                        ),
+                      ),
+                      const SizedBox(width: FluentSpacing.l),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                // 根据主题亮暗自适应背景色
-                                color: isDark
-                                    ? FluentDarkColors.backgroundSecondary
-                                    : FluentLightColors.backgroundSecondary,
-                                borderRadius: BorderRadius.circular(
-                                  FluentRadius.xxLarge,
-                                ),
-                              ),
-                              child: Image.asset(
-                                'assets/images/logo.png',
-                                width: 80,
-                                height: 80,
-                              ),
+                            Text(
+                              '欢迎使用 SSPU All-in-One',
+                              style: theme.typography.subtitle,
                             ),
-                            const SizedBox(width: FluentSpacing.l),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '欢迎使用 SSPU All-in-One',
-                                    style: theme.typography.subtitle,
-                                  ),
-                                  const SizedBox(height: FluentSpacing.s),
-                                  Text(
-                                    '上海第二工业大学校园综合服务应用',
-                                    style: theme.typography.bodyLarge,
-                                  ),
-                                ],
-                              ),
+                            const SizedBox(height: FluentSpacing.s),
+                            Text(
+                              '上海第二工业大学校园综合服务应用',
+                              style: theme.typography.bodyLarge,
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 )
                 .animate()
@@ -217,37 +211,44 @@ class _HomePageState extends State<HomePage> {
 
             const SizedBox(height: FluentSpacing.l),
 
-            // 最新消息
-            Text('最新消息', style: theme.typography.bodyStrong),
-            const SizedBox(height: FluentSpacing.s),
-            Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(FluentSpacing.l),
-                    child: _latestMessages.isEmpty
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: FluentSpacing.xl,
-                              ),
-                              child: Text(
-                                '暂无消息，开启信息渠道并等待自动刷新后将在此显示',
-                                style: theme.typography.caption,
-                              ),
+            FluentSurface(
+                  padding: const EdgeInsets.all(FluentSpacing.l),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const FluentSectionHeader(
+                        title: '最新消息',
+                        subtitle: '展示最近 5 条已启用渠道消息',
+                        icon: FluentIcons.news,
+                      ),
+                      const SizedBox(height: FluentSpacing.m),
+                      if (_latestMessages.isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: FluentSpacing.xl,
                             ),
-                          )
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              for (
-                                int i = 0;
-                                i < _latestMessages.length;
-                                i++
-                              ) ...[
-                                if (i > 0) const Divider(),
-                                _buildMessageItem(context, _latestMessages[i]),
-                              ],
-                            ],
+                            child: Text(
+                              '暂无消息，开启信息渠道并等待自动刷新后将在此显示',
+                              style: theme.typography.caption,
+                            ),
                           ),
+                        )
+                      else
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (
+                              int i = 0;
+                              i < _latestMessages.length;
+                              i++
+                            ) ...[
+                              if (i > 0) const Divider(),
+                              _buildMessageItem(context, _latestMessages[i]),
+                            ],
+                          ],
+                        ),
+                    ],
                   ),
                 )
                 .animate(delay: 200.ms)

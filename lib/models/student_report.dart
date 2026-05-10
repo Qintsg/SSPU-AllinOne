@@ -48,6 +48,7 @@ class SecondClassroomCreditRecord {
     required this.itemName,
     required this.credit,
     required this.rawCells,
+    this.semester,
     this.occurredAt,
     this.status,
   });
@@ -60,6 +61,9 @@ class SecondClassroomCreditRecord {
 
   /// 认定学分。
   final double credit;
+
+  /// 成绩归属学期，保持页面原始格式。
+  final String? semester;
 
   /// 发生或认定时间，保持页面原始格式。
   final String? occurredAt;

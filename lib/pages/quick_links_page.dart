@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/quick_links_config_service.dart';
 import '../services/quick_links_search_service.dart';
 import '../theme/fluent_tokens.dart';
+import '../widgets/fluent_surface.dart';
 import '../widgets/responsive_layout.dart';
 
 part 'quick_links_widgets.dart';
@@ -172,41 +173,44 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
     bool hasSearchQuery,
     List<QuickLinkSearchResult> searchResults,
   ) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: TextBox(
-            controller: _searchController,
-            placeholder: '搜索快捷入口或网址',
-            prefix: const Padding(
-              padding: EdgeInsets.only(left: 8.0),
-              child: Icon(FluentIcons.search, size: 14),
+    return FluentSurface(
+      padding: const EdgeInsets.all(FluentSpacing.m),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: TextBox(
+              controller: _searchController,
+              placeholder: '搜索快捷入口或网址',
+              prefix: const Padding(
+                padding: EdgeInsets.only(left: 8.0),
+                child: Icon(FluentIcons.search, size: 14),
+              ),
+              suffix: hasSearchQuery
+                  ? IconButton(
+                      icon: const Icon(FluentIcons.clear, size: 12),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    )
+                  : null,
+              onChanged: (value) => setState(() => _searchQuery = value),
+              onSubmitted: (_) => _openBestMatch(searchResults),
             ),
-            suffix: hasSearchQuery
-                ? IconButton(
-                    icon: const Icon(FluentIcons.clear, size: 12),
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() => _searchQuery = '');
-                    },
-                  )
-                : null,
-            onChanged: (value) => setState(() => _searchQuery = value),
-            onSubmitted: (_) => _openBestMatch(searchResults),
           ),
-        ),
-        const SizedBox(width: FluentSpacing.s),
-        Tooltip(
-          message: '打开最佳匹配',
-          child: FilledButton(
-            onPressed: searchResults.isEmpty
-                ? null
-                : () => _openBestMatch(searchResults),
-            child: const Icon(FluentIcons.open_in_new_window, size: 14),
+          const SizedBox(width: FluentSpacing.s),
+          Tooltip(
+            message: '打开最佳匹配',
+            child: FilledButton(
+              onPressed: searchResults.isEmpty
+                  ? null
+                  : () => _openBestMatch(searchResults),
+              child: const Icon(FluentIcons.open_in_new_window, size: 14),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
