@@ -1,5 +1,5 @@
 /*
- * 应用入口 — 初始化 FluentApp 并处理 EULA、密码保护、窗口关闭与托盘逻辑
+ * 应用入口 — 初始化 FluentApp 并处理协议确认、密码保护、窗口关闭与托盘逻辑
  * @Project : SSPU-AllinOne
  * @File : main.dart
  * @Author : Qintsg
@@ -16,6 +16,7 @@ import 'package:tray_manager/tray_manager.dart';
 import 'app.dart';
 import 'pages/lock_page.dart';
 import 'pages/agreement_page.dart';
+import 'pages/privacy_policy_page.dart';
 import 'services/app_exit_service.dart';
 import 'services/app_data_directory_service.dart';
 import 'services/password_service.dart';
@@ -82,11 +83,11 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 初始化检查是否已完成
   bool _isInitialized = false;
 
-  /// 是否已接受 EULA
-  bool _eulaAccepted = false;
+  /// 是否已接受使用协议与隐私协议。
+  bool _agreementsAccepted = false;
 
-  /// 防止 EULA 弹窗重复弹出
-  bool _eulaDialogShowing = false;
+  /// 防止协议弹窗重复弹出。
+  bool _agreementDialogShowing = false;
 
   /// 防止关闭确认弹窗重复弹出
   bool _closeDialogShowing = false;
@@ -116,15 +117,15 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     super.dispose();
   }
 
-  /// 初始化应用状态：先检查 EULA，再检查密码
+  /// 初始化应用状态：先检查协议确认状态，再检查密码。
   Future<void> _initApp() async {
     try {
       await StorageService.init();
-      final eulaOk = await StorageService.isEulaAccepted();
+      final agreementsOk = await StorageService.areCurrentAgreementsAccepted();
       final hasPassword = await PasswordService.isPasswordSet();
       if (!mounted) return;
       setState(() {
-        _eulaAccepted = eulaOk;
+        _agreementsAccepted = agreementsOk;
         _isUnlocked = !hasPassword;
         _isInitialized = true;
       });
@@ -283,12 +284,12 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     }
   }
 
-  // ==================== EULA 弹窗 ====================
+  // ==================== 协议弹窗 ====================
 
-  /// 显示首次启动的 EULA 弹窗（仅弹出一次）
-  void _showEulaDialog(BuildContext context) {
-    if (_eulaDialogShowing) return;
-    _eulaDialogShowing = true;
+  /// 显示首次启动的协议弹窗（仅弹出一次）。
+  void _showAgreementDialog(BuildContext context) {
+    if (_agreementDialogShowing) return;
+    _agreementDialogShowing = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       showDialog<bool>(
@@ -296,14 +297,26 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
         barrierDismissible: false,
         builder: (dialogContext) {
           return ContentDialog(
-            title: const Text('使用协议'),
+            title: const Text('使用协议与隐私协议'),
             constraints: const BoxConstraints(maxWidth: 680),
             content: SizedBox(
               height: 420,
               child: SingleChildScrollView(
-                child: SelectableText(
-                  kAgreementText.trim(),
-                  style: FluentTheme.of(dialogContext).typography.body,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SelectableText(
+                      kAgreementText.trim(),
+                      style: FluentTheme.of(dialogContext).typography.body,
+                    ),
+                    const SizedBox(height: 24),
+                    const Divider(),
+                    const SizedBox(height: 16),
+                    SelectableText(
+                      kPrivacyPolicyText.trim(),
+                      style: FluentTheme.of(dialogContext).typography.body,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -312,7 +325,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                 child: const Text('不同意'),
                 onPressed: () {
                   Navigator.pop(dialogContext, false);
-                  // 不同意 EULA 时按平台能力关闭应用入口。
+                  // 不同意协议时按平台能力关闭应用入口。
                   _closeApplication();
                 },
               ),
@@ -326,11 +339,11 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
           );
         },
       ).then((accepted) async {
-        _eulaDialogShowing = false;
+        _agreementDialogShowing = false;
         if (accepted == true) {
-          await StorageService.acceptEula();
+          await StorageService.acceptCurrentAgreements();
           if (mounted) {
-            setState(() => _eulaAccepted = true);
+            setState(() => _agreementsAccepted = true);
           }
         }
       });
@@ -359,7 +372,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     );
   }
 
-  /// 根据初始化、EULA 和密码验证状态构建首屏
+  /// 根据初始化、协议确认和密码验证状态构建首屏
   Widget _buildHome() {
     if (!_isInitialized) {
       return const ScaffoldPage(content: Center(child: ProgressRing()));
@@ -376,11 +389,11 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       );
     }
 
-    // 未接受 EULA 时显示空白页并弹出协议对话框
-    if (!_eulaAccepted) {
+    // 未接受协议时显示空白页并弹出协议对话框。
+    if (!_agreementsAccepted) {
       return Builder(
         builder: (context) {
-          _showEulaDialog(context);
+          _showAgreementDialog(context);
           return const ScaffoldPage(content: Center(child: ProgressRing()));
         },
       );

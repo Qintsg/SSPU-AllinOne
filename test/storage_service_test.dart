@@ -40,13 +40,35 @@ void main() {
   test('SharedPreferences 状态后端会迁移旧键值', () async {
     SharedPreferences.setMockInitialValues({
       StorageKeys.eulaAccepted: true,
+      StorageKeys.agreementAccepted: true,
       'legacy_string': 'legacy-value',
     });
     StorageService.debugUseSharedPreferencesStorageForTesting(true);
 
     await StorageService.init();
 
-    expect(await StorageService.isEulaAccepted(), isTrue);
+    expect(await StorageService.areCurrentAgreementsAccepted(), isTrue);
     expect(await StorageService.getString('legacy_string'), 'legacy-value');
+  });
+
+  test('接受协议会同时写入当前协议键和旧版兼容键', () async {
+    await StorageService.init();
+
+    await StorageService.acceptCurrentAgreements();
+
+    expect(await StorageService.getBool(StorageKeys.agreementAccepted), isTrue);
+    expect(await StorageService.getBool(StorageKeys.eulaAccepted), isTrue);
+    expect(await StorageService.areCurrentAgreementsAccepted(), isTrue);
+    expect(await StorageService.isEulaAccepted(), isTrue);
+  });
+
+  test('仅有旧版 EULA 键时需要重新确认当前协议', () async {
+    SharedPreferences.setMockInitialValues({StorageKeys.eulaAccepted: true});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+
+    await StorageService.init();
+
+    expect(await StorageService.getBool(StorageKeys.eulaAccepted), isTrue);
+    expect(await StorageService.areCurrentAgreementsAccepted(), isFalse);
   });
 }

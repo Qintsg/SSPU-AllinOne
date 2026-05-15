@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/app_info_service.dart';
 import '../theme/fluent_tokens.dart';
 import 'agreement_page.dart';
+import 'privacy_policy_page.dart';
 
 /// 使用/参考的开源项目列表
 /// 若后续用户没有明确说明，不得修改此内容
@@ -201,6 +202,18 @@ class AboutPage extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const Divider(),
+                  _buildActionTile(
+                    context,
+                    icon: FluentIcons.shield,
+                    title: '隐私协议',
+                    subtitle: '查看本地数据、凭据和网络访问说明',
+                    onTap: () => Navigator.of(context).push(
+                      FluentPageRoute(
+                        builder: (_) => const _PrivacyPolicyNavigationWrapper(),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             )
@@ -318,6 +331,35 @@ class _AgreementNavigationWrapper extends StatelessWidget {
         Card(
           child: SelectableText(
             kAgreementText.trim(),
+            style: FluentTheme.of(context).typography.body,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 隐私协议导航包装器（从关于页导航进入时使用）
+class _PrivacyPolicyNavigationWrapper extends StatelessWidget {
+  const _PrivacyPolicyNavigationWrapper();
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaffoldPage.scrollable(
+      header: PageHeader(
+        title: const Text('隐私协议'),
+        leading: Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: IconButton(
+            icon: const Icon(FluentIcons.back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+      ),
+      children: [
+        Card(
+          child: SelectableText(
+            kPrivacyPolicyText.trim(),
             style: FluentTheme.of(context).typography.body,
           ),
         ),

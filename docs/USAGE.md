@@ -438,7 +438,7 @@ flutter --version
 flutter pub deps | Select-String "fluent_ui"
 ```
 
-### 10.5 Android release 构建失败
+### 10.4 Android release 构建失败
 
 若 `flutter build apk --release` 提示缺少签名配置，请检查：
 
@@ -446,7 +446,7 @@ flutter pub deps | Select-String "fluent_ui"
 - `storeFile` 是否指向实际存在的 keystore 文件
 - `storePassword` / `keyPassword` / `keyAlias` 是否与 keystore 一致
 
-### 10.4 本地状态文件异常
+### 10.5 本地状态文件异常
 
 桌面端会将用户设置、认证信息、消息缓存和 WebView2 运行态写入 `~/.sspu-all-in-one/`；Android / iOS 会写入系统分配的应用支持目录。设置页提供 `wxmp_config.toml` 内置编辑器，移动端可直接在应用内修改公众号平台认证配置。教务凭据使用系统安全存储单独保存，不写入 `app_state.json`，安全设置页只显示学工号和密码填写状态。若状态文件损坏或需要重建本地状态，可先退出应用，备份后删除对应目录中的文件，再重新启动应用。
 
@@ -457,6 +457,14 @@ flutter pub deps | Select-String "fluent_ui"
 - `webview2/`：Windows WebView2 用户数据目录
 - 系统安全存储：学工号、OA 密码、体育部查询密码和邮箱密码；Linux 打包运行时需提供 `libsecret` 相关依赖
 
+### 10.6 隐私协议与数据清理
+
+首次启动会同时展示使用协议与隐私协议。关于页也提供“使用协议”和“隐私协议”入口，可随时查看本地状态文件、系统安全存储、WebView2 运行态、外部服务访问和用户清理方式说明。
+
+协议确认状态使用 `agreement_20260515_accepted` 保存；旧版 `eula_accepted` 仅保留为兼容键。升级到包含隐私协议的版本后，只有旧版 EULA 确认状态的用户需要重新确认当前协议。
+
+隐私协议中的清理入口与设置页保持一致：安全设置可清理信息中心缓存、清除所有本地数据，教务凭据区域可单独清除 OA 密码、体育部查询密码和邮箱密码，微信公众号平台区域可清除认证信息或编辑 `wxmp_config.toml`。
+
 ---
 
 ## 11. 注意事项
@@ -466,3 +474,4 @@ flutter pub deps | Select-String "fluent_ui"
 3. **Windows 开发**：确保以管理员身份运行 Visual Studio Installer 安装 C++ 工作负载
 4. **Web 调试**：推荐使用 Chrome，其他浏览器可能存在兼容性差异
 5. **用户数据存储位置**：桌面端位于 `~/.sspu-all-in-one/`，移动端位于系统分配的应用支持目录，包括密码哈希、设置项、消息缓存、微信公众号认证配置和 WebView2 运行态；教务凭据另存于系统安全存储
+6. **协议入口**：首次启动会展示使用协议与隐私协议，关于页可随时查看完整协议正文

@@ -8,13 +8,19 @@
 
 ## [Unreleased]
 
+### 新增
+
+- 新增隐私协议页面，并在首次启动协议确认弹窗和关于页中提供入口。
+
 ### 变更
 
 - 项目名称统一迁移为 `SSPU-AllinOne`，同步更新 Dart 包名、Android / Apple / Linux 应用身份、Windows / Linux 主程序名、Release 资产命名、前端展示文案、仓库文档链接与发布元数据。
+- 首次启动确认从单一使用协议扩展为使用协议与隐私协议，并使用当前协议版本键触发既有用户重新确认。
 
 ### 文档
 
 - 补充改名后的签名边界：Android 现有 keystore 可继续签名新包名产物但不构成旧包名原地升级；Apple Bundle ID 迁移后需要新的 App ID 与 provisioning profile。
+- 补充隐私协议对本地状态文件、系统安全存储、WebView2 运行态、外部服务访问和用户清理方式的说明。
 
 ## [0.2.5-alpha+1] - 2026-05-15
 

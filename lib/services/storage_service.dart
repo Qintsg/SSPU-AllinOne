@@ -311,16 +311,27 @@ class StorageService {
     await remove(StorageKeys.quickAuthEnabled);
   }
 
-  // ==================== EULA 相关 ====================
+  // ==================== 协议相关 ====================
 
-  /// 检查是否已接受 EULA。
-  static Future<bool> isEulaAccepted() async {
-    return getBool(StorageKeys.eulaAccepted);
+  /// 检查是否已接受当前版本的使用协议与隐私协议。
+  static Future<bool> areCurrentAgreementsAccepted() async {
+    return getBool(StorageKeys.agreementAccepted);
   }
 
-  /// 标记 EULA 已接受（永久生效）。
-  static Future<void> acceptEula() async {
+  /// 标记当前版本的使用协议与隐私协议已接受。
+  static Future<void> acceptCurrentAgreements() async {
+    await setBool(StorageKeys.agreementAccepted, true);
     await setBool(StorageKeys.eulaAccepted, true);
+  }
+
+  /// 检查当前协议确认状态，保留旧命名以兼容既有测试和调用方。
+  static Future<bool> isEulaAccepted() async {
+    return areCurrentAgreementsAccepted();
+  }
+
+  /// 标记当前协议已接受，保留旧命名以兼容既有测试和调用方。
+  static Future<void> acceptEula() async {
+    await acceptCurrentAgreements();
   }
 
   // ==================== 窗口行为相关 ====================
