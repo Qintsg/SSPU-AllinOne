@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 '''
 发布说明提取与校验脚本
-@Project : SSPU-all-in-one
+@Project : SSPU-AllinOne
 @File : render_release_notes.py
 @Author : Qintsg
 @Date : 2026-04-23 23:20

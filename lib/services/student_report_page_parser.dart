@@ -1,6 +1,6 @@
 /*
  * 学工报表页面解析器 — 定位第二课堂入口并提取学分明细
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : student_report_page_parser.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

@@ -1,6 +1,6 @@
 /*
  * 微信公众号平台认证服务测试 — 校验认证状态诊断
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : wxmp_auth_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-22
@@ -10,9 +10,9 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sspu_all_in_one/services/storage_service.dart';
-import 'package:sspu_all_in_one/services/wxmp_auth_service.dart';
-import 'package:sspu_all_in_one/services/wxmp_config_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
+import 'package:sspu_allinone/services/wxmp_auth_service.dart';
+import 'package:sspu_allinone/services/wxmp_config_service.dart';
 
 void main() {
   late Directory configDirectory;

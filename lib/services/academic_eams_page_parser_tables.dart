@@ -1,6 +1,6 @@
 /*
  * 本专科教务表格解析辅助 — 构建网格、课表单元格与通用表格读取工具
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_eams_page_parser_tables.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

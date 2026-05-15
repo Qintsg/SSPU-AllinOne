@@ -1,6 +1,6 @@
 /*
  * OA/CAS 登录网关 — 手动维护 Cookie 与跳转链路
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_login_gateway.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

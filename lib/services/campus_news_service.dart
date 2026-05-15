@@ -2,7 +2,7 @@
  * 新闻网消息解析服务 — 抓取新闻网综合新闻列表
  * 通过栏目列表页解析，支持翻页与完整发布日期
  * 综合新闻结构: ul li > span.riqi1(YYYY-MM-DD) + a[title](标题)
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : campus_news_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

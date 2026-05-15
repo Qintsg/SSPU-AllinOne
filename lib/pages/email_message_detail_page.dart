@@ -1,6 +1,6 @@
 /*
  * 邮件正文详情页 — 展示邮箱只读收信结果中的正文快照
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : email_message_detail_page.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

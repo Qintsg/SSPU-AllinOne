@@ -1,6 +1,6 @@
 /*
  * 统一存储服务测试 — 校验 Web 兼容状态后端不会访问本地文件目录
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : storage_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-25
@@ -8,7 +8,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sspu_all_in_one/services/storage_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
 
 void main() {
   setUp(() {

@@ -1,6 +1,6 @@
 /*
  * 微信推文矩阵卡片组件 — SSPU 官方公众号展示与关注控制
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_wechat_matrix_card.dart
  * @Author : Qintsg
  * @Date : 2026-04-23

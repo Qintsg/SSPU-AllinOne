@@ -1,6 +1,6 @@
 /*
  * 学校邮箱服务测试 — 校验凭据读取、协议边界与账号规范化
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : email_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-05-01
@@ -9,10 +9,10 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sspu_all_in_one/models/email_mailbox.dart';
-import 'package:sspu_all_in_one/services/academic_credentials_service.dart';
-import 'package:sspu_all_in_one/services/email_service.dart';
-import 'package:sspu_all_in_one/services/storage_service.dart';
+import 'package:sspu_allinone/models/email_mailbox.dart';
+import 'package:sspu_allinone/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/services/email_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
 
 void main() {
   setUp(() {

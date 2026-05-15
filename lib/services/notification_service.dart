@@ -2,7 +2,7 @@
  * 系统通知服务 — Windows 本地消息通知推送
  * 基于 local_notifier 包，提供简洁的通知发送接口
  * 支持基本文本通知、带副标题和正文的通知、带操作按钮的通知
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : notification_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19
@@ -33,7 +33,7 @@ class NotificationService {
 
     // 设置应用名称，用于 Windows 通知中心显示
     await localNotifier.setup(
-      appName: 'SSPU All-in-One',
+      appName: 'SSPU-AllinOne',
       shortcutPolicy: ShortcutPolicy.requireCreate,
     );
 

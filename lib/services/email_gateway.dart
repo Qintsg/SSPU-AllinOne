@@ -1,6 +1,6 @@
 /*
  * 学校邮箱协议网关 — 封装 IMAP / POP / SMTP 只读与认证边界
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : email_gateway.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

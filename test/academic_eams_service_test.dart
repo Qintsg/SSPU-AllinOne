@@ -1,6 +1,6 @@
 /*
  * 本专科教务服务测试 — 校验 OA 会话、只读摘要、开课检索与空闲教室查询
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_eams_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-05-02
@@ -9,11 +9,11 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sspu_all_in_one/models/academic_eams.dart';
-import 'package:sspu_all_in_one/models/academic_login_validation.dart';
-import 'package:sspu_all_in_one/services/academic_credentials_service.dart';
-import 'package:sspu_all_in_one/services/academic_eams_service.dart';
-import 'package:sspu_all_in_one/services/storage_service.dart';
+import 'package:sspu_allinone/models/academic_eams.dart';
+import 'package:sspu_allinone/models/academic_login_validation.dart';
+import 'package:sspu_allinone/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/services/academic_eams_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
 
 import 'academic_eams_service_test_support.dart';
 

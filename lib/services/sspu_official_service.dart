@@ -4,7 +4,7 @@
  * 官网使用 div 嵌套结构：.col_news_con ul.news_list li.news > a > div.news_meta + div.news_title
  * 校内活动由官网 JS 通过 _wp3services/generalQuery 动态加载
  * 注意：需限定 .col_news_con 容器，排除页脚 .foot-left 中的固定栏目小部件
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : sspu_official_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

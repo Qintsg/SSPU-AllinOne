@@ -1,7 +1,7 @@
 /*
  * 信息中心 — 校园消息聚合列表
  * 展示学校官网、微信等渠道的消息，支持搜索、筛选、已读/未读、分页
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : info_page.dart
  * @Author : Qintsg
  * @Date : 2026-07-19

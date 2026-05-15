@@ -2,7 +2,7 @@
  * 微信公众号平台文章采集服务 — 通过 mp.weixin.qq.com API 获取文章
  * 作为公众号平台链路的文章获取实现
  * 使用 Dio HTTP 客户端直接调用公众号管理平台 API
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : wxmp_article_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-22

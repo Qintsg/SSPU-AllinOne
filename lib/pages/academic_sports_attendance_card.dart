@@ -1,6 +1,6 @@
 /*
  * 教务中心体育考勤卡片 — 展示体育部课外活动考勤汇总与明细入口
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_sports_attendance_card.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

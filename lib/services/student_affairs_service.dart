@@ -2,7 +2,7 @@
  * 学生处消息解析服务 — 抓取学生处学工要闻和通知公告列表
  * 通过栏目列表页解析，支持翻页与完整发布日期
  * 列表结构: li.hovers > a[title](标题) + div.item-time(YYYY-MM-DD)
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : student_affairs_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

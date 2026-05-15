@@ -1,6 +1,6 @@
 /*
  * 本专科教务只读搜索流程 — 处理开课检索与空闲教室查询
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_eams_search_flow.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

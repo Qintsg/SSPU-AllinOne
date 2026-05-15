@@ -1,6 +1,6 @@
 /*
  * Fluent 2 通用视觉组件 — 统一页面 surface、图标与标题样式
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : fluent_surface.dart
  * @Author : Qintsg
  * @Date : 2026-05-09

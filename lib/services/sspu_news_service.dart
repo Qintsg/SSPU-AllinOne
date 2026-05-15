@@ -2,7 +2,7 @@
  * SSPU 信息公开网解析服务 — 抓取并解析学校信息公开网站的消息列表
  * 支持 3148（最新公开信息）和 3149（通知公示）两个栏目
  * 支持自动翻页，当单页不足目标条数时继续抓取下一页
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : sspu_news_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

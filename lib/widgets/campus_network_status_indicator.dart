@@ -1,6 +1,6 @@
 /*
  * 校园网状态徽标 — 在导航栏展示校园网 / VPN 检测结果
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : campus_network_status_indicator.dart
  * @Author : Qintsg
  * @Date : 2026-04-27

@@ -1,6 +1,6 @@
 /*
  * OA/CAS 登录加密工具 — RSA PKCS#1 v1.5 与 DER 公钥解析
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_login_crypto.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

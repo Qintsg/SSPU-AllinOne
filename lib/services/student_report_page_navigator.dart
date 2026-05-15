@@ -1,6 +1,6 @@
 /*
  * 学工报表页面导航器 — 定位学工报表与第二课堂只读入口
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : student_report_page_navigator.dart
  * @Author : Qintsg
  * @Date : 2026-05-09

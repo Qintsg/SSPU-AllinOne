@@ -1,7 +1,7 @@
 /*
  * 锁定页 — 应用启动时的密码验证界面
  * 设计参考 1Password 锁定页面风格
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : lock_page.dart
  * @Author : Qintsg
  * @Date : 2026-04-18
@@ -170,7 +170,7 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
     });
 
     final result = await SystemAuthService.instance.authenticate(
-      localizedReason: '验证身份以解锁 SSPU All-in-One',
+      localizedReason: '验证身份以解锁 SSPU-AllinOne',
     );
 
     if (!mounted || _hasCompletedUnlock) return;
@@ -229,7 +229,7 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
                 const SizedBox(height: FluentSpacing.xxl),
 
                 // 应用名称
-                Text('SSPU All-in-One', style: theme.typography.subtitle),
+                Text('SSPU-AllinOne', style: theme.typography.subtitle),
                 const SizedBox(height: FluentSpacing.s),
                 Text(
                   '应用已锁定',

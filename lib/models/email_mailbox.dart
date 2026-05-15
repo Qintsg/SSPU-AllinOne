@@ -1,6 +1,6 @@
 /*
  * 学校邮箱模型 — 描述只读收信与协议登录校验结果
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : email_mailbox.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

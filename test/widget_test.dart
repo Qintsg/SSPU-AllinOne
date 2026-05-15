@@ -1,6 +1,6 @@
 /*
  * 基础冒烟测试与移动端导航回归测试
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : widget_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-18
@@ -12,14 +12,14 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sspu_all_in_one/app.dart';
-import 'package:sspu_all_in_one/controllers/settings_wechat_controller.dart';
-import 'package:sspu_all_in_one/pages/webview_page.dart';
-import 'package:sspu_all_in_one/services/campus_network_status_service.dart';
-import 'package:sspu_all_in_one/services/storage_service.dart';
-import 'package:sspu_all_in_one/services/wxmp_config_service.dart';
-import 'package:sspu_all_in_one/widgets/settings_auto_refresh_section.dart';
-import 'package:sspu_all_in_one/widgets/settings_wechat_section.dart';
+import 'package:sspu_allinone/app.dart';
+import 'package:sspu_allinone/controllers/settings_wechat_controller.dart';
+import 'package:sspu_allinone/pages/webview_page.dart';
+import 'package:sspu_allinone/services/campus_network_status_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
+import 'package:sspu_allinone/services/wxmp_config_service.dart';
+import 'package:sspu_allinone/widgets/settings_auto_refresh_section.dart';
+import 'package:sspu_allinone/widgets/settings_wechat_section.dart';
 
 /// 等待目标组件出现，避免页面异步加载尚未完成时提前断言。
 Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {

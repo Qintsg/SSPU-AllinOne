@@ -1,6 +1,6 @@
 /*
  * 微信公众号平台文章批量抓取 — 已关注账号分页读取与增量停止
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : wxmp_article_fetch.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

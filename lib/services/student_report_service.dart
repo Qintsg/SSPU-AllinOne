@@ -1,6 +1,6 @@
 /*
  * 学工报表服务 — 通过 OA/CAS 登录态只读获取第二课堂学分
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : student_report_service.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

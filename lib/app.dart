@@ -1,7 +1,7 @@
 /*
  * 应用主体 — 根据设备形态切换侧边栏导航与底部导航
  * 桌面/平板继续使用 Fluent NavigationView，手机竖屏使用底部导航栏
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : app.dart
  * @Author : Qintsg
  * @Date : 2026-04-18

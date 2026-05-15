@@ -83,7 +83,7 @@ runs:
           prerelease=true
         fi
 
-        release_title="SSPU All-in-One ${tag} (${release_version})"
+        release_title="SSPU-AllinOne ${tag} (${release_version})"
 
         {
           echo "version=$release_version"

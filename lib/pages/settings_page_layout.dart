@@ -1,6 +1,6 @@
 /*
  * 设置页布局 — 响应式导航与设置分区内容切换
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_page_layout.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

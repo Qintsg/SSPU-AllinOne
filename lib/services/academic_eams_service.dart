@@ -1,6 +1,6 @@
 /*
  * 本专科教务服务 — 复用 OA/CAS 登录态只读获取 EAMS 课表、成绩、考试和培养计划
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_eams_service.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

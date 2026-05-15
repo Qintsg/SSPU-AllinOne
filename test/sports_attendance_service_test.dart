@@ -1,6 +1,6 @@
 /*
  * 体育部课外活动考勤服务测试 — 校验独立登录、状态分类与考勤解析
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : sports_attendance_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-30
@@ -9,12 +9,12 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sspu_all_in_one/models/academic_credentials.dart';
-import 'package:sspu_all_in_one/models/sports_attendance.dart';
-import 'package:sspu_all_in_one/services/academic_credentials_service.dart';
-import 'package:sspu_all_in_one/services/campus_network_status_service.dart';
-import 'package:sspu_all_in_one/services/sports_attendance_service.dart';
-import 'package:sspu_all_in_one/services/storage_service.dart';
+import 'package:sspu_allinone/models/academic_credentials.dart';
+import 'package:sspu_allinone/models/sports_attendance.dart';
+import 'package:sspu_allinone/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/services/campus_network_status_service.dart';
+import 'package:sspu_allinone/services/sports_attendance_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
 
 void main() {
   setUp(() {

@@ -1,6 +1,6 @@
 /*
  * 本专科教务查询表单解析器 — 解析开课检索与空闲教室的只读查询参数
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_eams_page_parser_forms.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

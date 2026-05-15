@@ -1,7 +1,7 @@
 /*
  * 消息来源名称模型 — 信息中心二级来源枚举
  * 拆分来源名称枚举，保持 MessageItem 主模型文件低于仓库行数上限
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : message_source_name.dart
  * @Author : Qintsg
  * @Date : 2026-05-11

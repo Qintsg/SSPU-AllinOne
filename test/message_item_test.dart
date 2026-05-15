@@ -1,13 +1,13 @@
 /*
  * 消息数据模型测试 — 校验微信账号显示字段兼容性
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : message_item_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-25
  */
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/models/message_item.dart';
+import 'package:sspu_allinone/models/message_item.dart';
 
 void main() {
   test('微信账号显示 ID 可序列化并反序列化', () {

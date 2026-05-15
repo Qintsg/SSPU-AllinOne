@@ -1,6 +1,6 @@
 /*
  * 体育部考勤 HTTP 网关 — 手动维护 Cookie 与 WebForms 跳转链路
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : sports_attendance_gateway.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

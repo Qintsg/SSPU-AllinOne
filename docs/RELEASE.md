@@ -1,4 +1,4 @@
-# SSPU-all-in-one 发布规则
+# SSPU-AllinOne 发布规则
 
 > 适用范围：本规则基于仓库当前代码结构制定，忽略历史 workflow 与既有 release 实现。
 > 目标：统一版本、命名、打包、发布矩阵、校验与说明，确保产物可追踪、可下载、可验证。
@@ -166,13 +166,13 @@ Alpha 版本默认从 `develop` 发起，并通过 Release PR merge 后自动触
 除 Android 通用 APK 外，所有发布资产统一命名为：
 
 ```text
-SSPU-All-in-One-v{version}-{platform}-{arch}-{kind}.{ext}
+SSPU-AllinOne-v{version}-{platform}-{arch}-{kind}.{ext}
 ```
 
 Android 通用 APK 采用以下固定短名：
 
 ```text
-SSPU-All-in-One-v{version}-android-universal.apk
+SSPU-AllinOne-v{version}-android-universal.apk
 ```
 
 字段说明：
@@ -221,22 +221,22 @@ SSPU-All-in-One-v{version}-android-universal.apk
 ### 6.3 推荐命名示例
 
 ```text
-SSPU-All-in-One-v0.2.0-alpha+3-android-universal.apk
-SSPU-All-in-One-v0.2.0+1-windows-x64-installer.exe
-SSPU-All-in-One-v0.2.0+1-windows-x64-portable.zip
-SSPU-All-in-One-v0.2.0+1-windows-arm64-installer.exe
-SSPU-All-in-One-v0.2.0+1-windows-arm64-portable.zip
-SSPU-All-in-One-v0.2.0+1-macos-universal-installer.dmg
-SSPU-All-in-One-v0.2.0+1-macos-universal-unsigned.dmg
-SSPU-All-in-One-v0.2.0+1-linux-x64-appimage.AppImage
-SSPU-All-in-One-v0.2.0+1-linux-x64-deb.deb
-SSPU-All-in-One-v0.2.0+1-linux-x64-rpm.rpm
-SSPU-All-in-One-v0.2.0+1-linux-x64-portable.tar.gz
-SSPU-All-in-One-v0.2.0+1-linux-arm64-appimage.AppImage
-SSPU-All-in-One-v0.2.0+1-linux-arm64-deb.deb
-SSPU-All-in-One-v0.2.0+1-linux-arm64-rpm.rpm
-SSPU-All-in-One-v0.2.0+1-linux-arm64-portable.tar.gz
-SSPU-All-in-One-v0.2.0+1-web-universal-static.zip
+SSPU-AllinOne-v0.2.0-alpha+3-android-universal.apk
+SSPU-AllinOne-v0.2.0+1-windows-x64-installer.exe
+SSPU-AllinOne-v0.2.0+1-windows-x64-portable.zip
+SSPU-AllinOne-v0.2.0+1-windows-arm64-installer.exe
+SSPU-AllinOne-v0.2.0+1-windows-arm64-portable.zip
+SSPU-AllinOne-v0.2.0+1-macos-universal-installer.dmg
+SSPU-AllinOne-v0.2.0+1-macos-universal-unsigned.dmg
+SSPU-AllinOne-v0.2.0+1-linux-x64-appimage.AppImage
+SSPU-AllinOne-v0.2.0+1-linux-x64-deb.deb
+SSPU-AllinOne-v0.2.0+1-linux-x64-rpm.rpm
+SSPU-AllinOne-v0.2.0+1-linux-x64-portable.tar.gz
+SSPU-AllinOne-v0.2.0+1-linux-arm64-appimage.AppImage
+SSPU-AllinOne-v0.2.0+1-linux-arm64-deb.deb
+SSPU-AllinOne-v0.2.0+1-linux-arm64-rpm.rpm
+SSPU-AllinOne-v0.2.0+1-linux-arm64-portable.tar.gz
+SSPU-AllinOne-v0.2.0+1-web-universal-static.zip
 ```
 
 ### 6.4 命名约束
@@ -249,6 +249,14 @@ SSPU-All-in-One-v0.2.0+1-web-universal-static.zip
 3. 不允许在文件名中混入时间戳、随机字符串、构建机器信息
 4. 不允许使用中文文件名
 
+### 6.5 应用身份与签名边界
+
+1. 展示名称统一为 `SSPU-AllinOne`，Dart 包名与桌面主程序名统一为 `sspu_allinone`。
+2. Android `applicationId` 为 `cn.qintsg.sspu_allinone`，Linux application ID 为 `cn.qintsg.sspu_allinone`，Apple Bundle ID 为 `cn.qintsg.sspuAllinOne`。
+3. Android 包名迁移后可继续使用既有 keystore 签名新产物，但系统会将其识别为另一款应用，不保证旧包名原地升级。
+4. Apple Bundle ID 迁移后必须为 `cn.qintsg.sspuAllinOne` 准备新的 App ID 与 provisioning profile；证书不因显示名称变化而重取。
+5. Windows 安装器使用新的 Inno Setup `AppId`，避免新版安装器继续绑定旧产品身份。
+
 ---
 
 ## 7. 各平台发布产物规则
@@ -257,7 +265,7 @@ SSPU-All-in-One-v0.2.0+1-web-universal-static.zip
 
 公开 Release 默认只上传：
 
-- `SSPU-All-in-One-v{version}-android-universal.apk`
+- `SSPU-AllinOne-v{version}-android-universal.apk`
 
 可选附加产物（非默认）：
 
@@ -274,10 +282,10 @@ SSPU-All-in-One-v0.2.0+1-web-universal-static.zip
 
 公开 Release 默认上传：
 
-- `SSPU-All-in-One-v{version}-windows-x64-installer.exe`
-- `SSPU-All-in-One-v{version}-windows-x64-portable.zip`
-- `SSPU-All-in-One-v{version}-windows-arm64-installer.exe`
-- `SSPU-All-in-One-v{version}-windows-arm64-portable.zip`
+- `SSPU-AllinOne-v{version}-windows-x64-installer.exe`
+- `SSPU-AllinOne-v{version}-windows-x64-portable.zip`
+- `SSPU-AllinOne-v{version}-windows-arm64-installer.exe`
+- `SSPU-AllinOne-v{version}-windows-arm64-portable.zip`
 
 约束：
 
@@ -290,7 +298,7 @@ SSPU-All-in-One-v0.2.0+1-web-universal-static.zip
 
 公开 Release 默认上传：
 
-- `SSPU-All-in-One-v{version}-macos-universal-installer.dmg`
+- `SSPU-AllinOne-v{version}-macos-universal-installer.dmg`
 
 约束：
 
@@ -298,7 +306,7 @@ SSPU-All-in-One-v0.2.0+1-web-universal-static.zip
 2. 未签名或未公证时，必须在发布说明中明确标注
 3. 若必须提供未签名产物，命名应使用 `unsigned`
 4. 当前仓库自动化默认产出未签名 DMG，因此公开 Release 资产使用：
-   `SSPU-All-in-One-v{version}-macos-universal-unsigned.dmg`
+   `SSPU-AllinOne-v{version}-macos-universal-unsigned.dmg`
 5. unsigned DMG 的 Release 构建不得携带 App Sandbox、Keychain Access Groups 等受限 entitlement；若改为 Developer ID 签名与公证，必须同步调整签名配置、产物命名和发布说明
 6. unsigned DMG 打包前必须对 `.app` 重新 ad-hoc 签名，确保 Flutter/Xcode 构建后残留的受限 entitlement 被剥离
 
@@ -306,14 +314,14 @@ SSPU-All-in-One-v0.2.0+1-web-universal-static.zip
 
 公开 Release 默认上传以下 Linux 资产：
 
-- `SSPU-All-in-One-v{version}-linux-x64-appimage.AppImage`
-- `SSPU-All-in-One-v{version}-linux-x64-deb.deb`
-- `SSPU-All-in-One-v{version}-linux-x64-rpm.rpm`
-- `SSPU-All-in-One-v{version}-linux-x64-portable.tar.gz`
-- `SSPU-All-in-One-v{version}-linux-arm64-appimage.AppImage`
-- `SSPU-All-in-One-v{version}-linux-arm64-deb.deb`
-- `SSPU-All-in-One-v{version}-linux-arm64-rpm.rpm`
-- `SSPU-All-in-One-v{version}-linux-arm64-portable.tar.gz`
+- `SSPU-AllinOne-v{version}-linux-x64-appimage.AppImage`
+- `SSPU-AllinOne-v{version}-linux-x64-deb.deb`
+- `SSPU-AllinOne-v{version}-linux-x64-rpm.rpm`
+- `SSPU-AllinOne-v{version}-linux-x64-portable.tar.gz`
+- `SSPU-AllinOne-v{version}-linux-arm64-appimage.AppImage`
+- `SSPU-AllinOne-v{version}-linux-arm64-deb.deb`
+- `SSPU-AllinOne-v{version}-linux-arm64-rpm.rpm`
+- `SSPU-AllinOne-v{version}-linux-arm64-portable.tar.gz`
 
 #### 7.4.1 Linux 包类型与适用发行版
 
@@ -362,7 +370,7 @@ SSPU-All-in-One-v0.2.0+1-web-universal-static.zip
 
 公开 Release 默认上传：
 
-- `SSPU-All-in-One-v{version}-web-universal-static.zip`
+- `SSPU-AllinOne-v{version}-web-universal-static.zip`
 
 约束：
 
@@ -422,7 +430,7 @@ SSPU-All-in-One-v0.2.0+1-web-universal-static.zip
 
 ```json
 {
-  "name": "SSPU-all-in-one",
+  "name": "SSPU-AllinOne",
   "version": "0.2.0+1",
   "channel": "stable",
   "build_number": 1,
@@ -432,21 +440,21 @@ SSPU-All-in-One-v0.2.0+1-web-universal-static.zip
       "platform": "linux",
       "arch": "x64",
       "kind": "appimage",
-      "filename": "SSPU-All-in-One-v0.2.0+1-linux-x64-appimage.AppImage",
+      "filename": "SSPU-AllinOne-v0.2.0+1-linux-x64-appimage.AppImage",
       "sha256": "..."
     },
     {
       "platform": "linux",
       "arch": "x64",
       "kind": "deb",
-      "filename": "SSPU-All-in-One-v0.2.0+1-linux-x64-deb.deb",
+      "filename": "SSPU-AllinOne-v0.2.0+1-linux-x64-deb.deb",
       "sha256": "..."
     },
     {
       "platform": "linux",
       "arch": "x64",
       "kind": "rpm",
-      "filename": "SSPU-All-in-One-v0.2.0+1-linux-x64-rpm.rpm",
+      "filename": "SSPU-AllinOne-v0.2.0+1-linux-x64-rpm.rpm",
       "sha256": "..."
     }
   ]
@@ -607,14 +615,14 @@ vMAJOR.MINOR.PATCH-rc
 ### 13.1 预发布建议最小清单
 
 ```text
-SSPU-All-in-One-v{version}-android-universal.apk
-SSPU-All-in-One-v{version}-windows-x64-portable.zip
-SSPU-All-in-One-v{version}-windows-arm64-portable.zip
-SSPU-All-in-One-v{version}-linux-x64-appimage.AppImage
-SSPU-All-in-One-v{version}-linux-x64-portable.tar.gz
-SSPU-All-in-One-v{version}-linux-arm64-appimage.AppImage
-SSPU-All-in-One-v{version}-linux-arm64-portable.tar.gz
-SSPU-All-in-One-v{version}-web-universal-static.zip
+SSPU-AllinOne-v{version}-android-universal.apk
+SSPU-AllinOne-v{version}-windows-x64-portable.zip
+SSPU-AllinOne-v{version}-windows-arm64-portable.zip
+SSPU-AllinOne-v{version}-linux-x64-appimage.AppImage
+SSPU-AllinOne-v{version}-linux-x64-portable.tar.gz
+SSPU-AllinOne-v{version}-linux-arm64-appimage.AppImage
+SSPU-AllinOne-v{version}-linux-arm64-portable.tar.gz
+SSPU-AllinOne-v{version}-web-universal-static.zip
 SHA256SUMS.txt
 manifest.json
 release-notes.md
@@ -623,21 +631,21 @@ release-notes.md
 ### 13.2 正式发布建议完整清单
 
 ```text
-SSPU-All-in-One-v{version}-android-universal.apk
-SSPU-All-in-One-v{version}-windows-x64-installer.exe
-SSPU-All-in-One-v{version}-windows-x64-portable.zip
-SSPU-All-in-One-v{version}-windows-arm64-installer.exe
-SSPU-All-in-One-v{version}-windows-arm64-portable.zip
-SSPU-All-in-One-v{version}-macos-universal-unsigned.dmg
-SSPU-All-in-One-v{version}-linux-x64-appimage.AppImage
-SSPU-All-in-One-v{version}-linux-x64-deb.deb
-SSPU-All-in-One-v{version}-linux-x64-rpm.rpm
-SSPU-All-in-One-v{version}-linux-x64-portable.tar.gz
-SSPU-All-in-One-v{version}-linux-arm64-appimage.AppImage
-SSPU-All-in-One-v{version}-linux-arm64-deb.deb
-SSPU-All-in-One-v{version}-linux-arm64-rpm.rpm
-SSPU-All-in-One-v{version}-linux-arm64-portable.tar.gz
-SSPU-All-in-One-v{version}-web-universal-static.zip
+SSPU-AllinOne-v{version}-android-universal.apk
+SSPU-AllinOne-v{version}-windows-x64-installer.exe
+SSPU-AllinOne-v{version}-windows-x64-portable.zip
+SSPU-AllinOne-v{version}-windows-arm64-installer.exe
+SSPU-AllinOne-v{version}-windows-arm64-portable.zip
+SSPU-AllinOne-v{version}-macos-universal-unsigned.dmg
+SSPU-AllinOne-v{version}-linux-x64-appimage.AppImage
+SSPU-AllinOne-v{version}-linux-x64-deb.deb
+SSPU-AllinOne-v{version}-linux-x64-rpm.rpm
+SSPU-AllinOne-v{version}-linux-x64-portable.tar.gz
+SSPU-AllinOne-v{version}-linux-arm64-appimage.AppImage
+SSPU-AllinOne-v{version}-linux-arm64-deb.deb
+SSPU-AllinOne-v{version}-linux-arm64-rpm.rpm
+SSPU-AllinOne-v{version}-linux-arm64-portable.tar.gz
+SSPU-AllinOne-v{version}-web-universal-static.zip
 SHA256SUMS.txt
 manifest.json
 release-notes.md

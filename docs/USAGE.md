@@ -1,4 +1,4 @@
-# SSPU All-in-One 使用文档
+# SSPU-AllinOne 使用文档
 
 > 本文档面向开发者，说明项目在开发状态下的环境准备、运行、测试、构建与调试方式。
 
@@ -42,8 +42,8 @@ flutter doctor
 
 ```bash
 # 克隆仓库
-git clone https://github.com/Qintsg/SSPU-all-in-one.git
-cd SSPU-all-in-one
+git clone https://github.com/Qintsg/SSPU-AllinOne.git
+cd SSPU-AllinOne
 ```
 
 ---
@@ -126,7 +126,7 @@ flutter analyze
 期望输出：
 
 ```
-Analyzing sspu_all_in_one...
+Analyzing sspu_allinone...
 No issues found!
 ```
 
@@ -228,6 +228,7 @@ flutter build appbundle --release
 - 仓库通过 `android/key.properties` 读取本地 Android release 签名配置
 - 可参考 `android/key.properties.example` 填写签名信息
 - 当前工作区已生成本机自签名 keystore：`android/app/sspu-release.jks`
+- 当前 Android `applicationId` 为 `cn.qintsg.sspu_allinone`。仅修改展示名称不需要重新生成签名；本次包名迁移后，Android 会将新版识别为另一款应用。现有 keystore 可继续签名新包名产物，但不能作为旧包名应用的原地升级链路。
 - `key.properties` 与 `.jks` 默认被 `.gitignore` 忽略，不会进入仓库
 - GitHub Actions 可通过 `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD` 四个 Secrets 在运行时写入签名配置
 - 系统快速验证依赖 `local_auth`，Android Runner 使用 `FlutterFragmentActivity` 并声明 `android.permission.USE_BIOMETRIC`；仍保留密码输入作为兜底路径
@@ -241,7 +242,7 @@ flutter build appbundle --release
 
 - `app-release.apk` 可直接安装到 Android 设备
 - `app-release.aab` 用于应用商店上传，不适合本地直接安装
-- GitHub Release 默认公开发布 `SSPU-All-in-One-v{version}-android-universal.apk`
+- GitHub Release 默认公开发布 `SSPU-AllinOne-v{version}-android-universal.apk`
 
 ### 7.2 iOS
 
@@ -249,6 +250,8 @@ flutter build appbundle --release
 # 需在 macOS 上运行
 flutter build ios --release
 ```
+
+iOS Bundle ID 已迁移为 `cn.qintsg.sspuAllinOne`。Bundle ID 变化后，需要在 Apple Developer 账号中准备新的 App ID，并重新生成匹配的 provisioning profile；证书本身不因显示名称变化而重取，但 profile 必须覆盖新的 Bundle ID。
 
 iOS 系统快速验证通过 `local_auth` 调用系统能力，`Info.plist` 已配置 `NSFaceIDUsageDescription`。启用该功能仍需先开启应用密码保护并输入当前密码确认。
 
@@ -284,7 +287,7 @@ flutter build windows --release
 发布后使用：
 
 - 需要连同整个 `Release/` 目录一起分发，不能只拷贝单个 `.exe`
-- 启动入口为 `sspu_all_in_one.exe`
+- 启动入口为 `sspu_allinone.exe`
 - GitHub Release 默认同时提供 x64 / arm64 的 installer 与 portable 产物
 
 ### 7.5 macOS 桌面
@@ -300,7 +303,7 @@ flutter build macos --release
 
 - 分发生成的 `.app` 包
 - 若未做 Apple 签名与公证，首次运行可能需要在系统安全设置中手动允许
-- 当前 GitHub Release 默认产出未签名 DMG：`SSPU-All-in-One-v{version}-macos-universal-unsigned.dmg`
+- 当前 GitHub Release 默认产出未签名 DMG：`SSPU-AllinOne-v{version}-macos-universal-unsigned.dmg`
 - macOS 系统快速验证通过 `local_auth` 调用系统能力，`Info.plist` 已配置 `NSFaceIDUsageDescription`
 
 ### 7.6 Linux 桌面
@@ -317,35 +320,35 @@ flutter build linux --release
 若使用 Release 压缩包运行，建议使用 `tar` 解压以保留 Unix 可执行权限：
 
 ```bash
-tar -xzf sspu-all-in-one-linux-x64.tar.gz
-cd sspu-all-in-one-linux-x64
-./sspu_all_in_one
+tar -xzf sspu-allinone-linux-x64.tar.gz
+cd sspu-allinone-linux-x64
+./sspu_allinone
 ```
 
 如果使用图形化解压工具后出现 `Permission denied`，请补一次可执行权限：
 
 ```bash
-chmod +x sspu_all_in_one
-./sspu_all_in_one
+chmod +x sspu_allinone
+./sspu_allinone
 ```
 
 若通过 GitHub Release 工作流发布，当前还会额外生成：
 
-- `SSPU-All-in-One-v{version}-linux-x64-appimage.AppImage`
-- `SSPU-All-in-One-v{version}-linux-x64-deb.deb`
-- `SSPU-All-in-One-v{version}-linux-x64-rpm.rpm`
-- `SSPU-All-in-One-v{version}-linux-x64-portable.tar.gz`
-- `SSPU-All-in-One-v{version}-linux-arm64-appimage.AppImage`
-- `SSPU-All-in-One-v{version}-linux-arm64-deb.deb`
-- `SSPU-All-in-One-v{version}-linux-arm64-rpm.rpm`
-- `SSPU-All-in-One-v{version}-linux-arm64-portable.tar.gz`
+- `SSPU-AllinOne-v{version}-linux-x64-appimage.AppImage`
+- `SSPU-AllinOne-v{version}-linux-x64-deb.deb`
+- `SSPU-AllinOne-v{version}-linux-x64-rpm.rpm`
+- `SSPU-AllinOne-v{version}-linux-x64-portable.tar.gz`
+- `SSPU-AllinOne-v{version}-linux-arm64-appimage.AppImage`
+- `SSPU-AllinOne-v{version}-linux-arm64-deb.deb`
+- `SSPU-AllinOne-v{version}-linux-arm64-rpm.rpm`
+- `SSPU-AllinOne-v{version}-linux-arm64-portable.tar.gz`
 
 Linux 当前没有 `local_auth` 官方实现，系统快速验证入口会隐藏，用户仍使用手动密码解锁。
 
 面向 Debian / Ubuntu 及其衍生发行版，可直接使用：
 
 ```bash
-sudo apt install ./SSPU-All-in-One-v{version}-linux-x64-deb.deb
+sudo apt install ./SSPU-AllinOne-v{version}-linux-x64-deb.deb
 ```
 
 ---
@@ -369,7 +372,7 @@ sudo apt install ./SSPU-All-in-One-v{version}-linux-x64-deb.deb
 ## 9. 项目目录结构
 
 ```
-SSPU-all-in-one/
+SSPU-AllinOne/
 ├── lib/                         # Dart 源码
 │   ├── main.dart                # 应用入口
 │   ├── app.dart                 # 导航骨架

@@ -1,6 +1,6 @@
 /*
  * 微信推文设置关注操作 — SSPU 微信矩阵单个与批量关注流程
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_wechat_follow_actions.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

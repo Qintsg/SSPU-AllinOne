@@ -1,6 +1,6 @@
 /*
  * 学工报表服务测试支撑 — 提供 fake 网关与页面样例
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : student_report_service_test_support.dart
  * @Author : Qintsg
  * @Date : 2026-05-09

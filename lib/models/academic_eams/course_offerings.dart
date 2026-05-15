@@ -1,6 +1,6 @@
 /*
  * 本专科教务系统开课检索模型
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : course_offerings.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

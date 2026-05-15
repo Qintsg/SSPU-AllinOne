@@ -1,6 +1,6 @@
 /*
  * 本专科教务服务测试支撑 — 提供 fake 网关、会话快照与页面样例
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_eams_service_test_support.dart
  * @Author : Qintsg
  * @Date : 2026-05-02
@@ -8,9 +8,9 @@
 
 import 'dart:async';
 
-import 'package:sspu_all_in_one/models/academic_login_validation.dart';
-import 'package:sspu_all_in_one/services/academic_eams_service.dart';
-import 'package:sspu_all_in_one/services/campus_network_status_service.dart';
+import 'package:sspu_allinone/models/academic_login_validation.dart';
+import 'package:sspu_allinone/services/academic_eams_service.dart';
+import 'package:sspu_allinone/services/campus_network_status_service.dart';
 
 AcademicEamsService buildAcademicEamsServiceForTest({
   required FakeAcademicEamsGateway gateway,

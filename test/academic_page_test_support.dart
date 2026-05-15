@@ -1,6 +1,6 @@
 /*
  * 教务中心页面测试支撑 — 提供 fake 服务与页面样例结果
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_page_test_support.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

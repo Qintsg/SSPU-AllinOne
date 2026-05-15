@@ -1,6 +1,6 @@
 /*
  * 应用退出服务 — 统一处理桌面端安全退出流程
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : app_exit_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-21

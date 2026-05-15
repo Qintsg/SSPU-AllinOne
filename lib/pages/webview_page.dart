@@ -1,7 +1,7 @@
 /*
  * 内嵌 WebView 页面 — 在应用内展示网页内容
  * 使用 flutter_inappwebview 实现跨平台内嵌浏览（Windows/macOS/Android/iOS/Linux）
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : webview_page.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

@@ -1,6 +1,6 @@
 /*
  * 学校邮箱页面 — 只读查看最近邮件并校验协议登录状态
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : email_page.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

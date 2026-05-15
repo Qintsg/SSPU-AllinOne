@@ -2,7 +2,7 @@
  * 保卫处消息解析服务 — 抓取保卫处网站的平安动态与宣教专栏
  * 支持 1019（平安动态）和 1023（宣教专栏）两个栏目
  * 保卫处列表结构: ul li > span(日期) + a[title](标题)
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : security_news_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

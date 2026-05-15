@@ -1,6 +1,6 @@
 /*
  * 学工报表模型 — 描述第二课堂学分只读查询结果
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : student_report.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

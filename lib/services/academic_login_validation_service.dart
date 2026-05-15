@@ -1,6 +1,6 @@
 /*
  * 本专科教务系统登录校验服务 — 通过 OA/CAS 只读登录流程验证凭据可用性
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_login_validation_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-27

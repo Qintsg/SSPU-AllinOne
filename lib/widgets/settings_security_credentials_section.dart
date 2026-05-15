@@ -1,6 +1,6 @@
 /*
  * 设置页教务凭据区域 — 账号、密码与 OA 登录校验展示
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_security_credentials_section.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

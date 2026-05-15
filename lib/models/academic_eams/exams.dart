@@ -1,6 +1,6 @@
 /*
  * 本专科教务系统考试模型
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : exams.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

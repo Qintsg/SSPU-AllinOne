@@ -3,7 +3,7 @@
  * flutter_inappwebview 在 Windows 上要求所有 WebView 实例共享同一个
  * WebViewEnvironment，必须在 runApp() 之前完成初始化。
  * 其他文件通过导入本文件访问 globalWebViewEnvironment。
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : webview_env.dart
  * @Author : Qintsg
  * @Date : 2026-04-21

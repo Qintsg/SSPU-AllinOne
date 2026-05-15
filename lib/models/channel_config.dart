@@ -1,6 +1,6 @@
-﻿/*
+/*
  * 信息渠道配置模型 — 定义所有数据源渠道的元数据与分组
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : channel_config.dart
  * @Author : Qintsg
  * @Date : 2025-04-17

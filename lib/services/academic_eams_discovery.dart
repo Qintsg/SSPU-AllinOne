@@ -1,6 +1,6 @@
 /*
  * 本专科教务发现与分类逻辑 — 处理首页识别、只读菜单探测和结果分类
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_eams_discovery.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

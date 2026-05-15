@@ -1,6 +1,6 @@
 /*
  * 渠道列表组件 — 分区级渠道状态与刷新配置入口
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : channel_list_section.dart
  * @Author : Qintsg
  * @Date : 2026-04-22

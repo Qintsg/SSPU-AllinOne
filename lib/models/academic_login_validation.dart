@@ -1,6 +1,6 @@
 /*
  * 教务登录校验模型 — 描述本专科教务系统 OA 登录只读校验结果
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_login_validation.dart
  * @Author : Qintsg
  * @Date : 2026-04-27

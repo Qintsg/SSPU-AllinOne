@@ -1,6 +1,6 @@
 /*
  * 主页 — 应用首屏，展示欢迎信息与最新消息摘要
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : home_page.dart
  * @Author : Qintsg
  * @Date : 2026-04-18
@@ -178,7 +178,7 @@ class _HomePageState extends State<HomePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '欢迎使用 SSPU All-in-One',
+                              '欢迎使用 SSPU-AllinOne',
                               style: theme.typography.subtitle,
                             ),
                             const SizedBox(height: FluentSpacing.s),

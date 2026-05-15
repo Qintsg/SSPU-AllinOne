@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 '''
 Release 资产元数据生成脚本
-@Project : SSPU-all-in-one
+@Project : SSPU-AllinOne
 @File : generate_release_metadata.py
 @Author : Qintsg
 @Date : 2026-04-23 23:20
@@ -19,7 +19,7 @@ from typing import Dict, List
 
 
 FILENAME_PATTERN = re.compile(
-    r"^SSPU-All-in-One-v(?P<version>.+?)-"
+    r"^SSPU-AllinOne-v(?P<version>.+?)-"
     r"(?P<platform>android|ios|windows|macos|linux|web)-"
     r"(?P<arch>universal|x64|arm64|armv7)"
     r"(?:-(?P<kind>installer|portable|bundle|static|unsigned|appimage|deb|rpm))?"
@@ -133,7 +133,7 @@ def render_manifest(
     :return: manifest.json 对应的数据结构
     """
     return {
-        "name": "SSPU-all-in-one",
+        "name": "SSPU-AllinOne",
         "version": arguments.version,
         "channel": arguments.channel,
         "build_number": arguments.build_number,

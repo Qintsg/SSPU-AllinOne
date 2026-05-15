@@ -1,6 +1,6 @@
 /*
  * OA/CAS 登录表单结构 — 组装只读登录校验所需字段
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_login_form.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

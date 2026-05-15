@@ -1,7 +1,7 @@
 /*
  * 微信公众号文章采集服务 — 统一封装公众号平台文章获取
  * Issue #47 起仅保留微信公众号平台方案，原微信读书链路仅做历史数据清理
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : wechat_article_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-20

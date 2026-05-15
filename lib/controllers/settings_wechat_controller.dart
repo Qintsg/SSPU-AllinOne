@@ -1,6 +1,6 @@
 /*
  * 微信推文设置控制器 — 管理公众号平台认证、刷新设置与 SSPU 微信矩阵状态
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_wechat_controller.dart
  * @Author : Qintsg
  * @Date : 2026-04-23

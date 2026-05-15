@@ -1,6 +1,6 @@
 /*
  * 学校邮箱页面测试 — 校验只读收信、正文详情与 SMTP 校验入口
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : email_page_test.dart
  * @Author : Qintsg
  * @Date : 2026-05-01
@@ -8,9 +8,9 @@
 
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/models/email_mailbox.dart';
-import 'package:sspu_all_in_one/pages/email_page.dart';
-import 'package:sspu_all_in_one/services/email_service.dart';
+import 'package:sspu_allinone/models/email_mailbox.dart';
+import 'package:sspu_allinone/pages/email_page.dart';
+import 'package:sspu_allinone/services/email_service.dart';
 
 /// 等待目标组件出现，覆盖异步收信和动画后的首帧。
 Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {

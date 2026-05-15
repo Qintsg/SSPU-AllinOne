@@ -1,6 +1,6 @@
 /*
  * 设置页微信分区组件 — 公众号平台认证、刷新设置与 SSPU 微信矩阵
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_wechat_section.dart
  * @Author : Qintsg
  * @Date : 2026-04-23

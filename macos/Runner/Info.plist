@@ -25,7 +25,7 @@
 	<key>NSHumanReadableCopyright</key>
 	<string>$(PRODUCT_COPYRIGHT)</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>用于在启用密码保护后，通过系统认证快速解锁 SSPU All-in-One。</string>
+	<string>用于在启用密码保护后，通过系统认证快速解锁 SSPU-AllinOne。</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>

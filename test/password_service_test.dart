@@ -1,6 +1,6 @@
 /*
  * 密码服务测试 — 校验系统快速验证配置随密码状态安全清理
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : password_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-25
@@ -10,8 +10,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sspu_all_in_one/services/password_service.dart';
-import 'package:sspu_all_in_one/services/storage_service.dart';
+import 'package:sspu_allinone/services/password_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
 
 void main() {
   late Directory storageDirectory;

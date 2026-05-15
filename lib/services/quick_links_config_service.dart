@@ -1,6 +1,6 @@
 /*
  * 快捷跳转配置服务 — 从 YAML 资产读取校园站点分组与链接
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : quick_links_config_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-23

@@ -1,6 +1,6 @@
 /*
  * 首页测试 — 校验校园卡余额卡片展示、手动刷新和详情入口
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : home_page_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-30
@@ -9,10 +9,10 @@
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sspu_all_in_one/models/campus_card.dart';
-import 'package:sspu_all_in_one/pages/home_page.dart';
-import 'package:sspu_all_in_one/services/campus_card_service.dart';
-import 'package:sspu_all_in_one/services/storage_service.dart';
+import 'package:sspu_allinone/models/campus_card.dart';
+import 'package:sspu_allinone/pages/home_page.dart';
+import 'package:sspu_allinone/services/campus_card_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
 
 /// 等待目标组件出现，避免页面异步加载尚未完成时提前断言。
 Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {

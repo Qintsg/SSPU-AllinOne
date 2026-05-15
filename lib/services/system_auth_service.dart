@@ -1,6 +1,6 @@
 /*
  * 系统快速验证服务 — 封装 local_auth 平台能力并提供安全降级
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : system_auth_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-25

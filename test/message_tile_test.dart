@@ -1,6 +1,6 @@
 /*
  * 消息列表项组件测试 — 校验微信推文元信息展示
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : message_tile_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-25
@@ -8,9 +8,9 @@
 
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/models/message_item.dart';
-import 'package:sspu_all_in_one/theme/fluent_tokens.dart';
-import 'package:sspu_all_in_one/widgets/message_tile.dart';
+import 'package:sspu_allinone/models/message_item.dart';
+import 'package:sspu_allinone/theme/fluent_tokens.dart';
+import 'package:sspu_allinone/widgets/message_tile.dart';
 
 void main() {
   Future<void> pumpTile(

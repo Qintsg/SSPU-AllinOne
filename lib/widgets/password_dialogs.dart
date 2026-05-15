@@ -1,6 +1,6 @@
 /*
  * 密码相关对话框 — 设置、移除、修改密码
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : password_dialogs.dart
  * @Author : Qintsg
  * @Date : 2026-04-17

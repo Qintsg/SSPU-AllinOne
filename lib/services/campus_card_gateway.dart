@@ -1,6 +1,6 @@
 /*
  * 校园卡 HTTP 网关 — 手动维护 OA/CAS Cookie 与校园卡跳转链路
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : campus_card_gateway.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

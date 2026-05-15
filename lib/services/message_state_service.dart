@@ -1,7 +1,7 @@
 /*
  * 消息状态管理服务 — 管理消息已读状态和渠道开关配置
  * 使用 StorageService 持久化已读消息集合和渠道启用状态
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : message_state_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

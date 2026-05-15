@@ -1,6 +1,6 @@
 /*
  * 学校邮箱服务 — 通过 IMAP / POP 只读收信，并用 SMTP 做登录校验
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : email_service.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

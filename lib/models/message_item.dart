@@ -1,7 +1,7 @@
 /*
  * 消息数据模型 — 信息中心统一消息结构
  * 定义消息项、消息来源类型、来源名称和内容分类
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : message_item.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

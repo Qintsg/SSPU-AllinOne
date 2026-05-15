@@ -1,6 +1,6 @@
 /*
  * 应用数据目录服务 — 统一解析用户级配置、缓存与运行态文件目录
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : app_data_directory_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-23

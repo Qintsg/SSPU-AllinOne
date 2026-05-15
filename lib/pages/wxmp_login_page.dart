@@ -1,7 +1,7 @@
 /*
  * 微信公众号平台扫码登录页 — 内嵌 WebView 加载 mp.weixin.qq.com
  * 用户扫码登录后自动提取 Cookie 和 Token
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : wxmp_login_page.dart
  * @Author : Qintsg
  * @Date : 2026-04-22

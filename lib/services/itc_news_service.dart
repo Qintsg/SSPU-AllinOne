@@ -2,7 +2,7 @@
  * 信息技术中心消息解析服务 — 抓取 ITC 网站的最新消息列表
  * 支持 zxxx（最新消息）栏目
  * ITC 页面使用不同于信息公开网的列表结构：li.nN > span(日期) + a(标题)
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : itc_news_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

@@ -1,6 +1,6 @@
 /*
  * 独立课程表页面 — 展示本专科教务系统只读课表数据
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : course_schedule_page.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

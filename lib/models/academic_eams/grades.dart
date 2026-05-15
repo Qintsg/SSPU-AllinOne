@@ -1,6 +1,6 @@
 /*
  * 本专科教务系统成绩模型
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : grades.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

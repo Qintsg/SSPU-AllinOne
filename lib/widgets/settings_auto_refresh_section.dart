@@ -1,6 +1,6 @@
 /*
  * 设置页自动刷新分区组件 — 校园网检测频率与刷新设置快捷入口
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_auto_refresh_section.dart
  * @Author : Qintsg
  * @Date : 2026-04-27

@@ -2,7 +2,7 @@
  * 密码管理服务 — 本地密码保护功能的核心逻辑
  * 委托 StorageService 进行数据持久化
  * 所有数据仅保留在设备本地，不上传至任何云端
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : password_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-18

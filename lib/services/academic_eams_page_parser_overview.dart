@@ -1,6 +1,6 @@
 /*
  * 本专科教务概览解析器 — 解析课表、成绩、培养计划、考试与只读检索结果
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_eams_page_parser_overview.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

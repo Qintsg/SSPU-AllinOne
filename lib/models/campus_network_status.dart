@@ -1,6 +1,6 @@
 /*
  * 校园网状态模型 — 描述校园网 / VPN 前置检测结果
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : campus_network_status.dart
  * @Author : Qintsg
  * @Date : 2026-04-27

@@ -1,6 +1,6 @@
 /*
  * 微信公众号平台关注管理 — 本地关注列表与文章模型转换
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : wxmp_article_following.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

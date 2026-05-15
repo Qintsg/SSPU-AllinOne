@@ -1,6 +1,6 @@
 /*
  * 本专科教务系统查询状态模型
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : query_status.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

@@ -1,6 +1,6 @@
 /*
  * 教务凭据模型 — 描述 OA 账号及外部系统密码填写状态
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_credentials.dart
  * @Author : Qintsg
  * @Date : 2026-04-24

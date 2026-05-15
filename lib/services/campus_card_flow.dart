@@ -1,6 +1,6 @@
 /*
  * 校园卡读取流程与入口分类辅助
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : campus_card_flow.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

@@ -1,6 +1,6 @@
 /*
  * 快速跳转 — 从 YAML 配置读取常用校园链接与服务入口
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : quick_links_page.dart
  * @Author : Qintsg
  * @Date : 2026-04-23

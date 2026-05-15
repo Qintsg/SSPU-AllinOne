@@ -1,6 +1,6 @@
 /*
  * 本专科教务个人信息解析器 — 解析 EAMS 页面中的学生基础信息
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_eams_page_parser_profile.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

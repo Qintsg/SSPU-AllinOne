@@ -1,6 +1,6 @@
 /*
  * 快速跳转组件 — 链接磁贴与配色角色
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : quick_links_widgets.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

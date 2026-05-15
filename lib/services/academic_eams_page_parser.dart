@@ -1,6 +1,6 @@
 /*
  * 本专科教务页面解析器 — 管理只读入口提取与通用解析辅助结构
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_eams_page_parser.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

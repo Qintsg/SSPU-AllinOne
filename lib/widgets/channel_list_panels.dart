@@ -1,6 +1,6 @@
 /*
  * 渠道列表面板组件 — 顶部刷新设置卡片与单渠道卡片
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : channel_list_panels.dart
  * @Author : Qintsg
  * @Date : 2026-04-23

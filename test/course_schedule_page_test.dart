@@ -1,6 +1,6 @@
 /*
  * 课程表页面测试 — 校验独立课表页展示、自动刷新与错误状态
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : course_schedule_page_test.dart
  * @Author : Qintsg
  * @Date : 2026-05-02
@@ -8,9 +8,9 @@
 
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/models/academic_eams.dart';
-import 'package:sspu_all_in_one/pages/course_schedule_page.dart';
-import 'package:sspu_all_in_one/services/academic_eams_service.dart';
+import 'package:sspu_allinone/models/academic_eams.dart';
+import 'package:sspu_allinone/pages/course_schedule_page.dart';
+import 'package:sspu_allinone/services/academic_eams_service.dart';
 
 Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
   for (var attempt = 0; attempt < 40; attempt++) {

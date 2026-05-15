@@ -1,6 +1,6 @@
 /*
  * 设置页常规分区组件 — 窗口行为与消息推送设置
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_general_section.dart
  * @Author : Qintsg
  * @Date : 2026-04-23

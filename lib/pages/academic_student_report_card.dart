@@ -1,6 +1,6 @@
 /*
  * 教务中心第二课堂学分卡片 — 展示学工报表只读查询结果
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_student_report_card.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

@@ -1,6 +1,6 @@
 /*
  * 本专科教务壳页跟随逻辑 — 从 EAMS 壳页继续读取真实课表、成绩和考试内容
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_eams_shell_followups.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

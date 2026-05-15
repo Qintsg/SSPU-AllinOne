@@ -1,6 +1,6 @@
 /*
  * 快捷跳转搜索服务 — 为快捷入口提供精确、模糊与意图匹配
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : quick_links_search_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-24

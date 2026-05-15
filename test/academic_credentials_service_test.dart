@@ -1,6 +1,6 @@
 /*
  * 教务凭据安全存储服务测试 — 校验本地可解密凭据的保存与清除语义
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_credentials_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-24
@@ -8,9 +8,9 @@
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/models/academic_credentials.dart';
-import 'package:sspu_all_in_one/models/academic_login_validation.dart';
-import 'package:sspu_all_in_one/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/models/academic_credentials.dart';
+import 'package:sspu_allinone/models/academic_login_validation.dart';
+import 'package:sspu_allinone/services/academic_credentials_service.dart';
 
 void main() {
   final service = AcademicCredentialsService.instance;

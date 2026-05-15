@@ -1,6 +1,6 @@
 /*
  * 安全设置分区测试 — 校验教务凭据展示状态与密码回访隐藏行为
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_security_section_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-24
@@ -9,8 +9,8 @@
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/services/academic_credentials_service.dart';
-import 'package:sspu_all_in_one/widgets/settings_security_section.dart';
+import 'package:sspu_allinone/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/widgets/settings_security_section.dart';
 
 /// 等待目标组件出现，覆盖安全存储异步加载后的首帧。
 Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {

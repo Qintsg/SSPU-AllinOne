@@ -1,6 +1,6 @@
 /*
  * 教务中心本专科教务摘要卡片 — 展示 EAMS 只读状态、课表、成绩、考试与培养计划概览
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_eams_summary_card.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

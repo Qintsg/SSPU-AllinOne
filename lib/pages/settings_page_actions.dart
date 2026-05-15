@@ -1,6 +1,6 @@
 /*
  * 设置页操作逻辑 — 加载设置、保存偏好与执行安全动作
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_page_actions.dart
  * @Author : Qintsg
  * @Date : 2026-05-01
@@ -360,7 +360,7 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
     setState(() => _isQuickAuthBusy = true);
     final authResult = await SystemAuthService.instance.authenticate(
-      localizedReason: '验证身份以启用 SSPU All-in-One 系统快速解锁',
+      localizedReason: '验证身份以启用 SSPU-AllinOne 系统快速解锁',
     );
     if (!mounted) return;
 

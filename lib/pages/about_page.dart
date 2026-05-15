@@ -1,6 +1,6 @@
 /*
  * 关于页面 — 展示软件信息、作者、许可证、开源项目列表
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : about_page.dart
  * @Author : Qintsg
  * @Date : 2026-04-18
@@ -154,7 +154,7 @@ class AboutPage extends StatelessWidget {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('SSPU All-in-One', style: typography.subtitle),
+                            Text('SSPU-AllinOne', style: typography.subtitle),
                             const SizedBox(height: FluentSpacing.xs),
                             Text(versionText, style: typography.caption),
                             const SizedBox(height: FluentSpacing.l),
@@ -185,9 +185,9 @@ class AboutPage extends StatelessWidget {
                     context,
                     icon: FluentIcons.open_source,
                     title: 'GitHub 仓库',
-                    subtitle: 'Qintsg/SSPU-all-in-one',
+                    subtitle: 'Qintsg/SSPU-AllinOne',
                     onTap: () =>
-                        _openUrl('https://github.com/Qintsg/SSPU-all-in-one'),
+                        _openUrl('https://github.com/Qintsg/SSPU-AllinOne'),
                   ),
                   const Divider(),
                   _buildActionTile(

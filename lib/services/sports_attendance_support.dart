@@ -1,6 +1,6 @@
 /*
  * 体育部考勤服务内部结构 — 登录表单字段组装
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : sports_attendance_support.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

@@ -1,6 +1,6 @@
 /*
  * 微信推文设置指引组件 — 公众号平台注册与接入说明
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_wechat_auth_guide.dart
  * @Author : Qintsg
  * @Date : 2026-04-23

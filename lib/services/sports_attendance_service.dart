@@ -1,6 +1,6 @@
 /*
  * 体育部课外活动考勤服务 — 登录体育部查询系统并只读获取考勤汇总与明细
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : sports_attendance_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-30

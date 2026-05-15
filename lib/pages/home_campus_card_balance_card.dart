@@ -1,6 +1,6 @@
 /*
  * 主页校园卡余额卡片 — 展示余额、状态和最近交易摘要
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : home_campus_card_balance_card.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

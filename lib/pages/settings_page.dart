@@ -1,6 +1,6 @@
 /*
  * 设置页 — 页面级状态与分区切换入口
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_page.dart
  * @Author : Qintsg
  * @Date : 2026-04-18

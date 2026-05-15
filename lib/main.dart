@@ -1,6 +1,6 @@
 /*
  * 应用入口 — 初始化 FluentApp 并处理 EULA、密码保护、窗口关闭与托盘逻辑
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : main.dart
  * @Author : Qintsg
  * @Date : 2026-04-18
@@ -348,7 +348,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   Widget build(BuildContext context) {
     return FluentApp(
       navigatorKey: _navigatorKey,
-      title: 'SSPU All-in-One',
+      title: 'SSPU-AllinOne',
       theme: FluentTokenTheme.light(),
       darkTheme: FluentTokenTheme.dark(),
       themeMode: ThemeMode.system,

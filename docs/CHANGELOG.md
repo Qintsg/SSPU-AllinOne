@@ -8,7 +8,13 @@
 
 ## [Unreleased]
 
-暂无未发布变更。
+### 变更
+
+- 项目名称统一迁移为 `SSPU-AllinOne`，同步更新 Dart 包名、Android / Apple / Linux 应用身份、Windows / Linux 主程序名、Release 资产命名、前端展示文案、仓库文档链接与发布元数据。
+
+### 文档
+
+- 补充改名后的签名边界：Android 现有 keystore 可继续签名新包名产物但不构成旧包名原地升级；Apple Bundle ID 迁移后需要新的 App ID 与 provisioning profile。
 
 ## [0.2.5-alpha+1] - 2026-05-15
 

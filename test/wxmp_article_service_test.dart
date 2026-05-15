@@ -1,14 +1,14 @@
 /*
  * 微信公众号平台文章服务测试 — 校验认证探针错误码处理
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : wxmp_article_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-23
  */
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/models/message_item.dart';
-import 'package:sspu_all_in_one/services/wxmp_article_service.dart';
+import 'package:sspu_allinone/models/message_item.dart';
+import 'package:sspu_allinone/services/wxmp_article_service.dart';
 
 void main() {
   test('searchbiz 返回 200040 时判定为 CSRF 认证失效', () {

@@ -1,7 +1,7 @@
 /*
  * SSPU 微信公众号推荐列表 — 来源于校园+微信矩阵
  * 数据通过 CampusPlus API 获取（appId=52, newMediaType=16）
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : sspu_wechat_accounts.dart
  * @Author : Qintsg
  * @Date : 2026-04-21

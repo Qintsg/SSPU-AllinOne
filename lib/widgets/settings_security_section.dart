@@ -1,6 +1,6 @@
 /*
  * 设置页安全分区组件 — 密码保护与数据管理
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_security_section.dart
  * @Author : Qintsg
  * @Date : 2026-04-23

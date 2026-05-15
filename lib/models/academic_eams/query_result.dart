@@ -1,6 +1,6 @@
 /*
  * 本专科教务系统查询结果模型
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : query_result.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

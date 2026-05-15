@@ -1,6 +1,6 @@
 /*
  * 校园网状态检测服务 — 通过可替换探针检测校园网 / VPN 可达性
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : campus_network_status_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-27

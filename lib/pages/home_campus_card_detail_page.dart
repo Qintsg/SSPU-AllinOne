@@ -1,6 +1,6 @@
 /*
  * 主页校园卡详情页 — 校园卡余额与交易记录只读展示
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : home_campus_card_detail_page.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

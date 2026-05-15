@@ -1,14 +1,14 @@
 /*
  * 快捷跳转配置服务测试 — 校验 YAML 分组解析与自定义图标字段
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : quick_links_config_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-23
  */
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/services/quick_links_config_service.dart';
-import 'package:sspu_all_in_one/services/quick_links_search_service.dart';
+import 'package:sspu_allinone/services/quick_links_config_service.dart';
+import 'package:sspu_allinone/services/quick_links_search_service.dart';
 
 void main() {
   test('可以解析快捷跳转 YAML 分组和链接条目', () {

@@ -1,6 +1,6 @@
 /*
  * 消息状态服务测试 — 校验渠道默认启用状态和自动刷新间隔
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : message_state_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-22
@@ -10,8 +10,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sspu_all_in_one/services/message_state_service.dart';
-import 'package:sspu_all_in_one/services/storage_service.dart';
+import 'package:sspu_allinone/services/message_state_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
 
 void main() {
   late Directory storageDirectory;

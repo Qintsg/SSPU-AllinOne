@@ -2,7 +2,7 @@
  * HTTP 请求服务 — 基于 dio 的统一网络请求封装
  * 提供单例 HTTP 客户端、请求拦截器、错误处理、超时管理
  * 所有网络请求应通过此服务发起，确保统一的错误处理与日志记录
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : http_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

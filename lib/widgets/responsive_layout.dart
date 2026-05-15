@@ -1,6 +1,6 @@
 /*
  * 响应式布局工具组件 — 根据窗口宽度自动切换布局策略
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : responsive_layout.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

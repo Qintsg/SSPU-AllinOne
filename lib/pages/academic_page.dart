@@ -1,6 +1,6 @@
 /*
  * 教务中心 — 课程、成绩、考试等教务信息聚合
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_page.dart
  * @Author : Qintsg
  * @Date : 2026-04-18

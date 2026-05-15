@@ -1,6 +1,6 @@
 /*
  * 本专科教务摘要流程 — 处理凭据校验、OA 会话刷新与概览聚合
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_eams_overview_flow.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

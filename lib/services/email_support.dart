@@ -1,6 +1,6 @@
 /*
  * 学校邮箱服务内部结构 — 凭据读取结果与文本兜底扩展
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : email_support.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

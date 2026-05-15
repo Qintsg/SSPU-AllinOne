@@ -1,6 +1,6 @@
 /*
  * 校园卡页面解析器 — 提取余额、状态与交易记录
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : campus_card_page_parser.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

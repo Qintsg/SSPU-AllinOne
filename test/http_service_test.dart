@@ -1,6 +1,6 @@
 /*
  * HTTP 请求服务测试 — 校验调试日志脱敏边界
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : http_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-05-11
@@ -11,7 +11,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/services/http_service.dart';
+import 'package:sspu_allinone/services/http_service.dart';
 
 void main() {
   test('Debug HTTP 日志不输出查询参数、fragment 或 userInfo', () async {

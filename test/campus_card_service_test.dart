@@ -1,6 +1,6 @@
 /*
  * 校园卡查询服务测试 — 校验 OA 会话、自动刷新设置与余额明细解析
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : campus_card_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-30
@@ -9,12 +9,12 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sspu_all_in_one/models/academic_login_validation.dart';
-import 'package:sspu_all_in_one/models/campus_card.dart';
-import 'package:sspu_all_in_one/services/academic_credentials_service.dart';
-import 'package:sspu_all_in_one/services/campus_card_service.dart';
-import 'package:sspu_all_in_one/services/campus_network_status_service.dart';
-import 'package:sspu_all_in_one/services/storage_service.dart';
+import 'package:sspu_allinone/models/academic_login_validation.dart';
+import 'package:sspu_allinone/models/campus_card.dart';
+import 'package:sspu_allinone/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/services/campus_card_service.dart';
+import 'package:sspu_allinone/services/campus_network_status_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
 
 void main() {
   setUp(() {

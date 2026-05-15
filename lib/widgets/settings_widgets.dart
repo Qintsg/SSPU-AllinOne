@@ -1,6 +1,6 @@
 /*
  * 设置页公用组件 — 间隔选择器、时间选择器、渠道开关行、导航标签
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_widgets.dart
  * @Author : Qintsg
  * @Date : 2026-04-17

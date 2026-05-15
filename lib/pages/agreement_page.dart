@@ -1,6 +1,6 @@
 /*
  * 使用协议页面 — 展示完整的使用协议条款
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : agreement_page.dart
  * @Author : Qintsg
  * @Date : 2026-04-18
@@ -11,7 +11,7 @@ import 'package:fluent_ui/fluent_ui.dart';
 /// 使用协议全文
 /// 若后续用户没有明确说明，不得修改此内容
 const String kAgreementText = '''
-SSPU All-in-One 使用协议
+SSPU-AllinOne 使用协议
 
 开发者：Qintsg
 最后更新日期：2026年4月18日
@@ -20,7 +20,7 @@ SSPU All-in-One 使用协议
 
 一、免责声明
 
-1. 本软件（SSPU All-in-One）未获得上海第二工业大学（SSPU）、微信、微信公众平台及其关联方的任何官方授权、认可或背书。
+1. 本软件（SSPU-AllinOne）未获得上海第二工业大学（SSPU）、微信、微信公众平台及其关联方的任何官方授权、认可或背书。
 
 2. 本软件与上海第二工业大学、腾讯公司及其旗下产品（包括但不限于微信、微信公众平台）不存在任何合作、代理或隶属关系。
 

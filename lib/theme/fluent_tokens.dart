@@ -1,7 +1,7 @@
 /*
  * Fluent 2 Design Token 体系 — 统一管理颜色、排版、间距、圆角等视觉参数
  * 参考 https://fluent2.microsoft.design/ 设计规范
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : fluent_tokens.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

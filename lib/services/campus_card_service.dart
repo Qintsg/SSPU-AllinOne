@@ -1,6 +1,6 @@
 /*
  * 校园卡余额查询服务 — 通过 OA/CAS 登录态只读获取余额、状态和交易记录
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : campus_card_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-30

@@ -1,6 +1,6 @@
 /*
  * 校园卡查询模型 — 描述余额、卡状态和交易记录只读查询结果
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : campus_card.dart
  * @Author : Qintsg
  * @Date : 2026-04-30

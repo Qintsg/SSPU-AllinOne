@@ -1,6 +1,6 @@
 /*
  * macOS Release entitlement 配置回归测试
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : macos_release_entitlements_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-26

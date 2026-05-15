@@ -1,6 +1,6 @@
 /*
  * 消息列表项组件 — 从 info_page.dart 提取的消息展示行
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : message_tile.dart
  * @Author : Qintsg
  * @Date : 2026-04-17

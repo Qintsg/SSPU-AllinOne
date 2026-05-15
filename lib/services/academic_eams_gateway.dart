@@ -1,6 +1,6 @@
 /*
  * 本专科教务 HTTP 网关 — 手动维护 OA/CAS Cookie 与 EAMS 跳转链路
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_eams_gateway.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

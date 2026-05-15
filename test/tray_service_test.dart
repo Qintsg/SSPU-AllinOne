@@ -1,13 +1,13 @@
 /*
  * 托盘图标路径候选构建测试
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : tray_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-24
  */
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/services/tray_service.dart';
+import 'package:sspu_allinone/services/tray_service.dart';
 
 void main() {
   group('buildTrayIconCandidates', () {

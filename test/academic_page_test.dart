@@ -1,6 +1,6 @@
 /*
  * 教务中心页面测试 — 校验体育部课外活动考勤汇总与明细展示
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_page_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-30
@@ -8,13 +8,13 @@
 
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/models/academic_eams.dart';
-import 'package:sspu_all_in_one/models/sports_attendance.dart';
-import 'package:sspu_all_in_one/models/student_report.dart';
-import 'package:sspu_all_in_one/pages/academic_page.dart';
-import 'package:sspu_all_in_one/services/academic_eams_service.dart';
-import 'package:sspu_all_in_one/services/sports_attendance_service.dart';
-import 'package:sspu_all_in_one/services/student_report_service.dart';
+import 'package:sspu_allinone/models/academic_eams.dart';
+import 'package:sspu_allinone/models/sports_attendance.dart';
+import 'package:sspu_allinone/models/student_report.dart';
+import 'package:sspu_allinone/pages/academic_page.dart';
+import 'package:sspu_allinone/services/academic_eams_service.dart';
+import 'package:sspu_allinone/services/sports_attendance_service.dart';
+import 'package:sspu_allinone/services/student_report_service.dart';
 
 part 'academic_page_test_support.dart';
 

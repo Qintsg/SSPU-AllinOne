@@ -1,6 +1,6 @@
 /*
  * 设置页自动刷新行 — 构建受限服务刷新开关与间隔选择
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_auto_refresh_rows.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

@@ -1,4 +1,4 @@
-package cn.qintsg.sspu_all_in_one
+package cn.qintsg.sspu_allinone
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

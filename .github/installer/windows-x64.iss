@@ -1,11 +1,11 @@
-#define AppName "SSPU All-in-One"
+#define AppName "SSPU-AllinOne"
 #define AppPublisher "Qintsg"
-#define AppExeName "sspu_all_in_one.exe"
+#define AppExeName "sspu_allinone.exe"
 #define AppVersion GetEnv("APP_VERSION")
 #define WorkspaceDir GetEnv("GITHUB_WORKSPACE")
 
 [Setup]
-AppId={{8B5A91A2-4F0A-4D8A-8F8D-2F55E6F0F8B1}
+AppId={{3657CB2B-B935-4DE9-A7F2-FFA5E5FB1C8E}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
@@ -13,7 +13,7 @@ DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 OutputDir={#WorkspaceDir}\dist
-OutputBaseFilename=SSPU-All-in-One-v{#AppVersion}-windows-x64-installer
+OutputBaseFilename=SSPU-AllinOne-v{#AppVersion}-windows-x64-installer
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern

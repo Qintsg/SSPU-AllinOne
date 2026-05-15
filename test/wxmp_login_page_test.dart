@@ -1,6 +1,6 @@
 /*
  * 微信公众号平台登录页测试 — 校验 WebView2 Cookie 存储环境绑定
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : wxmp_login_page_test.dart
  * @Author : Qintsg
  * @Date : 2026-05-09
@@ -8,7 +8,7 @@
 
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/pages/wxmp_login_page.dart';
+import 'package:sspu_allinone/pages/wxmp_login_page.dart';
 
 void main() {
   test('CookieManager 使用登录 WebView 的 WebViewEnvironment', () {

@@ -1,6 +1,6 @@
 /*
  * 信息中心刷新服务 — 保持官网与微信推文刷新进度和后台任务
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : info_refresh_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-23

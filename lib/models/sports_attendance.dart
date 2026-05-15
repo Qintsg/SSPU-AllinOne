@@ -1,6 +1,6 @@
 /*
  * 体育部课外活动考勤模型 — 描述体育部查询系统只读考勤结果
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : sports_attendance.dart
  * @Author : Qintsg
  * @Date : 2026-04-30

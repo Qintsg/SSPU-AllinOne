@@ -1,6 +1,6 @@
 /*
  * 本专科教务登录校验服务测试 — 校验 OA/CAS 只读登录状态分类
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_login_validation_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-27
@@ -8,10 +8,10 @@
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/models/academic_login_validation.dart';
-import 'package:sspu_all_in_one/services/academic_credentials_service.dart';
-import 'package:sspu_all_in_one/services/academic_login_validation_service.dart';
-import 'package:sspu_all_in_one/services/campus_network_status_service.dart';
+import 'package:sspu_allinone/models/academic_login_validation.dart';
+import 'package:sspu_allinone/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/services/academic_login_validation_service.dart';
+import 'package:sspu_allinone/services/campus_network_status_service.dart';
 
 const String _publicKeyPem = '''-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1OWi0JWNagnRhJIpkPWZZbcXwvsLJ9pziJb00SwmjPDKeYTzlLsbU24WDPZlDSlH/E0FteYlkJnCgIAtS31SAy5LVGaecHYn4lsEo/ioT5vZpY7HrDQ/IIUUZa3YJuM26gZNdLcr0gm0+4yR3fix+aUyM3GML5bwjSm4EThrXJ2Fd9l+WlYvWJ4f4hyfFM245P7S7F56JCxjJeZDsFlvB+Ex/0xms/osbqCTrSoZd7jc7CbZhUbUzqn71e8oVhC6/eq+yV9pBgRiTMaAxcWTh7VRnhGCHNUs3HrAUfmPz72DMM+EQAwNbnh8qM9R7b1tW0KqYx0AKoEAFZ96xSpsNwIDAQAB

@@ -1,14 +1,14 @@
 /*
  * 微信关注账号匹配工具测试 — 校验推荐账号与已关注公众号的映射规则
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : wechat_followed_account_matcher_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-23
  */
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/models/sspu_wechat_accounts.dart';
-import 'package:sspu_all_in_one/utils/wechat_followed_account_matcher.dart';
+import 'package:sspu_allinone/models/sspu_wechat_accounts.dart';
+import 'package:sspu_allinone/utils/wechat_followed_account_matcher.dart';
 
 void main() {
   test('优先使用推荐账号元信息匹配已关注公众号', () {

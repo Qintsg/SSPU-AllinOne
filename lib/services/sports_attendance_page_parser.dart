@@ -1,6 +1,6 @@
 /*
  * 体育部考勤页面解析器 — 提取课外活动分类次数与记录
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : sports_attendance_page_parser.dart
  * @Author : Qintsg
  * @Date : 2026-05-01

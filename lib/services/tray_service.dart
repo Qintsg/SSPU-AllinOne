@@ -1,6 +1,6 @@
 /*
  * 系统托盘服务 — 管理 Windows 任务栏托盘图标与右键菜单
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : tray_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19
@@ -61,7 +61,7 @@ class TrayService {
     try {
       final iconPath = _resolveIconPath();
       await trayManager.setIcon(iconPath);
-      await trayManager.setToolTip('SSPU All-in-One');
+      await trayManager.setToolTip('SSPU-AllinOne');
 
       // 右键菜单：显示主窗口 / 退出
       final menu = Menu(

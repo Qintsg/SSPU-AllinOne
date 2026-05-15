@@ -1,6 +1,6 @@
 /*
  * 教务凭据安全存储服务 — 保存 OA 账号及外部系统密码
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_credentials_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-24
@@ -43,10 +43,8 @@ class AcademicCredentialsService {
   static const String _oaLoginSessionKey = 'academic_login_session_snapshot';
 
   /// 系统安全存储实例。
-  /// Android 上启用 EncryptedSharedPreferences，密钥仍由平台安全能力托管。
-  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  );
+  /// Android 端由 flutter_secure_storage 使用当前默认加密实现托管密钥。
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   /// 获取设置页展示所需的凭据状态。
   Future<AcademicCredentialsStatus> getStatus() async {

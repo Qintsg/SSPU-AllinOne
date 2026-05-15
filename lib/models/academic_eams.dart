@@ -1,6 +1,6 @@
 /*
  * 本专科教务系统模型 — 描述 EAMS 只读查询结果与结构化业务数据
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : academic_eams.dart
  * @Author : Qintsg
  * @Date : 2026-05-02

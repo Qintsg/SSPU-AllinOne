@@ -1,6 +1,6 @@
 /*
  * 学工报表服务测试 — 校验 OA 会话、校园网前置检测与第二课堂学分解析
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : student_report_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-05-01
@@ -11,12 +11,12 @@ import 'dart:async';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sspu_all_in_one/models/academic_login_validation.dart';
-import 'package:sspu_all_in_one/models/student_report.dart';
-import 'package:sspu_all_in_one/services/academic_credentials_service.dart';
-import 'package:sspu_all_in_one/services/campus_network_status_service.dart';
-import 'package:sspu_all_in_one/services/storage_service.dart';
-import 'package:sspu_all_in_one/services/student_report_service.dart';
+import 'package:sspu_allinone/models/academic_login_validation.dart';
+import 'package:sspu_allinone/models/student_report.dart';
+import 'package:sspu_allinone/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/services/campus_network_status_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
+import 'package:sspu_allinone/services/student_report_service.dart';
 
 part 'student_report_service_test_support.dart';
 
