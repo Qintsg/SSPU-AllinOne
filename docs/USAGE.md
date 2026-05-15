@@ -401,7 +401,7 @@ SSPU-AllinOne/
 ├── .github/                     # GitHub 配置
 │   └── dida365-state.md         # 任务状态镜像
 ├── AGENTS.md                    # 代理工作规范
-├── LICENSE                      # MIT 许可证
+├── LICENSE                      # Artistic License 2.0 许可证
 ├── pubspec.yaml                 # 项目配置与依赖
 ├── pubspec.lock                 # 依赖锁定文件
 └── analysis_options.yaml        # 静态分析配置
@@ -461,7 +461,7 @@ flutter pub deps | Select-String "fluent_ui"
 
 首次启动会同时展示使用协议与隐私协议。关于页也提供“使用协议”和“隐私协议”入口，可随时查看本地状态文件、系统安全存储、WebView2 运行态、外部服务访问和用户清理方式说明。
 
-协议确认状态使用 `agreement_20260515_accepted` 保存；旧版 `eula_accepted` 仅保留为兼容键。升级到包含隐私协议的版本后，只有旧版 EULA 确认状态的用户需要重新确认当前协议。
+协议确认状态使用 `agreement_20260515_artistic20_accepted` 保存；旧版 `agreement_20260515_accepted` 与 `eula_accepted` 仅保留为历史状态，不作为当前协议确认依据。升级到 Artistic License 2.0 后，已确认旧协议的用户需要重新确认当前协议。
 
 隐私协议中的清理入口与设置页保持一致：安全设置可清理信息中心缓存、清除所有本地数据，教务凭据区域可单独清除 OA 密码、体育部查询密码和邮箱密码，微信公众号平台区域可清除认证信息或编辑 `wxmp_config.toml`。
 

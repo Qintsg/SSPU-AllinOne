@@ -22,8 +22,9 @@ class StorageKeys {
   /// 旧版 EULA 接受状态，保留用于兼容旧数据与旧测试夹具。
   static const String eulaAccepted = 'eula_accepted';
 
-  /// 当前版本使用协议与隐私协议接受状态。
-  static const String agreementAccepted = 'agreement_20260515_accepted';
+  /// 当前使用协议与隐私协议接受状态。
+  static const String agreementAccepted =
+      'agreement_20260515_artistic20_accepted';
 
   /// 关闭行为偏好（ask / minimize / exit）。
   static const String closeBehavior = 'close_behavior';

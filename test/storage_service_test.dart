@@ -40,14 +40,14 @@ void main() {
   test('SharedPreferences 状态后端会迁移旧键值', () async {
     SharedPreferences.setMockInitialValues({
       StorageKeys.eulaAccepted: true,
-      StorageKeys.agreementAccepted: true,
+      'legacy_agreement_key': true,
       'legacy_string': 'legacy-value',
     });
     StorageService.debugUseSharedPreferencesStorageForTesting(true);
 
     await StorageService.init();
 
-    expect(await StorageService.areCurrentAgreementsAccepted(), isTrue);
+    expect(await StorageService.getBool('legacy_agreement_key'), isTrue);
     expect(await StorageService.getString('legacy_string'), 'legacy-value');
   });
 
@@ -69,6 +69,18 @@ void main() {
     await StorageService.init();
 
     expect(await StorageService.getBool(StorageKeys.eulaAccepted), isTrue);
+    expect(await StorageService.areCurrentAgreementsAccepted(), isFalse);
+  });
+
+  test('仅有旧版 MIT 协议键时需要重新确认当前协议', () async {
+    SharedPreferences.setMockInitialValues({
+      'agreement_20260515_accepted': true,
+    });
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+
+    await StorageService.init();
+
+    expect(await StorageService.getBool('agreement_20260515_accepted'), isTrue);
     expect(await StorageService.areCurrentAgreementsAccepted(), isFalse);
   });
 }

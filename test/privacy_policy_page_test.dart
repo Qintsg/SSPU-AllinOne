@@ -10,6 +10,7 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sspu_allinone/pages/about_page.dart';
+import 'package:sspu_allinone/pages/agreement_page.dart';
 import 'package:sspu_allinone/pages/privacy_policy_page.dart';
 
 void main() {
@@ -38,7 +39,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(const FluentApp(home: AboutPage()));
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
 
     expect(find.text('隐私协议'), findsOneWidget);
     expect(find.text('查看本地数据、凭据和网络访问说明'), findsOneWidget);
@@ -48,5 +49,24 @@ void main() {
 
     expect(find.textContaining('SSPU-AllinOne 隐私协议'), findsOneWidget);
     expect(find.textContaining('清除所有本地数据'), findsOneWidget);
+  });
+
+  testWidgets('关于页展示当前项目许可证', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(const FluentApp(home: AboutPage()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('许可证：'), findsOneWidget);
+    expect(find.text('Artistic License 2.0'), findsOneWidget);
+  });
+
+  testWidgets('使用协议展示 Artistic License 2.0 许可证', (tester) async {
+    await tester.pumpWidget(const FluentApp(home: AgreementPage()));
+
+    expect(find.text('使用协议'), findsOneWidget);
+    expect(find.textContaining('Artistic License 2.0 许可证'), findsOneWidget);
+    expect(find.textContaining('采用 MIT'), findsNothing);
   });
 }

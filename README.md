@@ -2,7 +2,7 @@
 
 > 上海第二工业大学校园综合服务应用
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Artistic-2.0](https://img.shields.io/badge/License-Artistic--2.0-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev)
 [![Version](https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2FQintsg%2FSSPU-AllinOne%2Fmain%2Fpubspec.yaml&query=%24.version&label=version&color=orange)](docs/CHANGELOG.md)
 
@@ -150,4 +150,4 @@ flutter build web --release
 
 ## 许可证
 
-[MIT](LICENSE) © [Qintsg](https://github.com/Qintsg)
+[Artistic License 2.0](LICENSE) © [Qintsg](https://github.com/Qintsg)

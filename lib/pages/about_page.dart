@@ -161,7 +161,11 @@ class AboutPage extends StatelessWidget {
                             const SizedBox(height: FluentSpacing.l),
                             _buildInfoRow(context, '著作人', 'Qintsg'),
                             const SizedBox(height: FluentSpacing.s),
-                            _buildInfoRow(context, '许可证', 'MIT License'),
+                            _buildInfoRow(
+                              context,
+                              '许可证',
+                              'Artistic License 2.0',
+                            ),
                           ],
                         );
                       },

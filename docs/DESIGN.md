@@ -511,4 +511,4 @@ ContentDialog: 输入当前密码
 8. **调试日志脱敏**：HTTP Debug 日志仅输出 scheme、host 和 path，不输出 query、fragment 或 userInfo
 9. **发布签名不入库**：Android release keystore 通过本地文件或 CI Secrets 注入
 10. **无敏感信息调试日志**：密码、教务凭据与微信认证敏感字段不输出到控制台
-11. **协议版本确认**：首次启动弹窗同时展示使用协议与隐私协议，当前版本确认状态使用 `agreement_20260515_accepted` 保存，旧版 `eula_accepted` 仅作为兼容键保留
+11. **协议版本确认**：首次启动弹窗同时展示使用协议与隐私协议，当前确认状态使用 `agreement_20260515_artistic20_accepted` 保存，旧版协议键仅作为历史状态保留
