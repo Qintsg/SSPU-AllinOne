@@ -355,7 +355,7 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
             const SizedBox(height: FluentSpacing.xs),
             Text(
               '高级配置已合并到认证配置中，扫码登录成功后会自动更新配置文件。'
-              '用户配置与文章缓存统一保存在 ~/.sspu-all-in-one/。',
+              '用户配置与文章缓存统一保存在 ~/.sspu-all-in/。',
               style: theme.typography.caption,
             ),
             if (_controller.wxmpAuthStatus != null) ...[

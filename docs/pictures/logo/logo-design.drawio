@@ -30,8 +30,8 @@
           <mxGeometry x="60" y="105" width="480" height="160" as="geometry"/>
         </mxCell>
 
-        <!-- All-in-One 文字 -->
-        <mxCell id="text-aio" value="All-in-One" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=88;fontFamily=Playfair Display,Georgia,serif;fontStyle=3;fontColor=#1A1A1A;" vertex="1" parent="1">
+        <!-- AllinOne 文字 -->
+        <mxCell id="text-aio" value="AllinOne" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=88;fontFamily=Playfair Display,Georgia,serif;fontStyle=3;fontColor=#1A1A1A;" vertex="1" parent="1">
           <mxGeometry x="45" y="305" width="510" height="145" as="geometry"/>
         </mxCell>
 

@@ -1,6 +1,6 @@
 /*
  * 统一数据存储服务 — 管理所有持久化数据的读写与迁移
- * 使用 ~/.sspu-all-in-one/app_state.json 作为统一用户配置与缓存文件
+ * 使用 ~/.sspu-all-in/app_state.json 作为统一用户配置与缓存文件
  * @Project : SSPU-AllinOne
  * @File : storage_service.dart
  * @Author : Qintsg
