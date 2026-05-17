@@ -1,17 +1,19 @@
 /*
- * Fluent 2 通用视觉组件 — 统一页面 surface、图标与标题样式
+ * Material 3 通用视觉组件 — 统一页面 surface、图标与标题样式
  * @Project : SSPU-AllinOne
  * @File : fluent_surface.dart
  * @Author : Qintsg
  * @Date : 2026-05-09
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/material.dart';
 
-import '../theme/fluent_tokens.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_shapes.dart';
+import '../theme/app_spacing.dart';
 
-/// Fluent 2 卡片 surface。
-/// 集中处理浅/暗色背景、描边、阴影、悬停和按压反馈，避免各页面重复硬编码视觉状态。
+/// Material 3 卡片 surface。
+/// 保留旧类名以降低迁移期间调用方改动，内部已改为 Material 3 token。
 class FluentSurface extends StatefulWidget {
   /// surface 内部内容。
   final Widget child;
@@ -46,7 +48,7 @@ class FluentSurface extends StatefulWidget {
   const FluentSurface({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(FluentSpacing.xl),
+    this.padding = AppSpacing.cardPadding,
     this.margin = EdgeInsets.zero,
     this.width,
     this.minHeight,
@@ -54,7 +56,7 @@ class FluentSurface extends StatefulWidget {
     this.onPressed,
     this.subtle = false,
     this.elevated = true,
-    this.borderRadius = FluentRadius.card,
+    this.borderRadius = AppShapes.lg,
   });
 
   @override
@@ -69,29 +71,26 @@ class _FluentSurfaceState extends State<FluentSurface> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final accentColor = widget.accentColor ?? theme.accentColor;
-    final backgroundColor = _resolveBackgroundColor(theme, isDark, accentColor);
-    final borderColor = _resolveBorderColor(isDark, accentColor);
-    final shadows = _resolveShadows(isDark);
+    final colorScheme = Theme.of(context).colorScheme;
+    final accentColor = widget.accentColor ?? colorScheme.primary;
+    final backgroundColor = _resolveBackgroundColor(colorScheme, accentColor);
+    final borderColor = _resolveBorderColor(colorScheme, accentColor);
 
     final surface = AnimatedScale(
       scale: _isPressed ? 0.995 : (_isHovered && _isInteractive ? 1.004 : 1),
-      duration: FluentDuration.fast,
-      curve: FluentEasing.decelerate,
+      duration: AppMotion.short,
+      curve: Curves.easeOutCubic,
       child: AnimatedContainer(
         width: widget.width,
         constraints: BoxConstraints(minHeight: widget.minHeight ?? 0),
-        duration: FluentDuration.normal,
-        curve: FluentEasing.decelerate,
+        duration: AppMotion.medium,
+        curve: Curves.easeOutCubic,
         margin: widget.margin,
         padding: widget.padding,
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: widget.borderRadius,
           border: Border.all(color: borderColor),
-          boxShadow: widget.elevated ? shadows : null,
         ),
         child: widget.child,
       ),
@@ -107,59 +106,35 @@ class _FluentSurfaceState extends State<FluentSurface> {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: widget.onPressed,
-        onTapDown: _isInteractive
-            ? (_) => setState(() => _isPressed = true)
-            : null,
-        onTapCancel: _isInteractive
-            ? () => setState(() => _isPressed = false)
-            : null,
-        onTapUp: _isInteractive
-            ? (_) => setState(() => _isPressed = false)
-            : null,
+        onTapDown: _isInteractive ? (_) => setState(() => _isPressed = true) : null,
+        onTapCancel: _isInteractive ? () => setState(() => _isPressed = false) : null,
+        onTapUp: _isInteractive ? (_) => setState(() => _isPressed = false) : null,
         child: surface,
       ),
     );
   }
 
-  Color _resolveBackgroundColor(
-    FluentThemeData theme,
-    bool isDark,
-    Color accentColor,
-  ) {
+  Color _resolveBackgroundColor(ColorScheme colorScheme, Color accentColor) {
     if (_isHovered && _isInteractive) {
-      return accentColor.withValues(alpha: isDark ? 0.16 : 0.08);
+      return accentColor.withValues(alpha: 0.10);
     }
     if (widget.subtle) {
-      return theme.resources.controlAltFillColorSecondary;
+      return colorScheme.surfaceContainerHighest;
     }
-    return isDark
-        ? FluentDarkColors.backgroundCard
-        : FluentLightColors.backgroundCard;
+    return widget.elevated
+        ? colorScheme.surfaceContainerLow
+        : colorScheme.surface;
   }
 
-  Color _resolveBorderColor(bool isDark, Color accentColor) {
+  Color _resolveBorderColor(ColorScheme colorScheme, Color accentColor) {
     if (_isHovered && _isInteractive) {
-      return accentColor.withValues(alpha: isDark ? 0.42 : 0.28);
+      return accentColor.withValues(alpha: 0.32);
     }
-    return isDark
-        ? FluentDarkColors.borderSubtle
-        : FluentLightColors.borderSubtle;
-  }
-
-  List<BoxShadow> _resolveShadows(bool isDark) {
-    if (_isPressed && _isInteractive) {
-      return isDark
-          ? FluentElevation.cardPressedDark
-          : FluentElevation.cardPressed;
-    }
-    if (_isHovered && _isInteractive) {
-      return isDark ? FluentElevation.cardHoverDark : FluentElevation.cardHover;
-    }
-    return isDark ? FluentElevation.cardRestDark : FluentElevation.cardRest;
+    return colorScheme.outlineVariant;
   }
 }
 
-/// Fluent 2 图标容器，用于页面摘要和操作卡片的统一视觉锚点。
+/// Material 3 图标容器，用于页面摘要和操作卡片的统一视觉锚点。
 class FluentSurfaceIcon extends StatelessWidget {
   /// 图标。
   final IconData icon;
@@ -184,7 +159,7 @@ class FluentSurfaceIcon extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(FluentRadius.xLarge),
+        borderRadius: AppShapes.md,
       ),
       child: Icon(icon, color: color, size: size * 0.5),
     );
@@ -219,27 +194,31 @@ class FluentSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final resolvedAccentColor = accentColor ?? theme.accentColor;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final resolvedAccentColor = accentColor ?? colorScheme.primary;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (icon != null) ...[
           FluentSurfaceIcon(icon: icon!, color: resolvedAccentColor),
-          const SizedBox(width: FluentSpacing.m),
+          const SizedBox(width: AppSpacing.md),
         ],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: theme.typography.bodyStrong),
+              Semantics(
+                header: true,
+                child: Text(title, style: textTheme.titleMedium),
+              ),
               if (subtitle != null) ...[
-                const SizedBox(height: FluentSpacing.xxs),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   subtitle!,
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -247,7 +226,7 @@ class FluentSectionHeader extends StatelessWidget {
           ),
         ),
         if (action != null) ...[
-          const SizedBox(width: FluentSpacing.m),
+          const SizedBox(width: AppSpacing.md),
           action!,
         ],
       ],

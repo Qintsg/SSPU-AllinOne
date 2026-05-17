@@ -8,11 +8,12 @@
 
 import 'dart:async';
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/material.dart';
 
 import '../models/campus_network_status.dart';
 import '../services/campus_network_status_service.dart';
-import '../theme/fluent_tokens.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_spacing.dart';
 
 /// 应用级校园网 / VPN 状态徽标。
 class CampusNetworkStatusIndicator extends StatefulWidget {
@@ -56,8 +57,7 @@ class _CampusNetworkStatusIndicatorState
   void didUpdateWidget(CampusNetworkStatusIndicator oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.service != widget.service) {
-      final oldService =
-          oldWidget.service ?? CampusNetworkStatusService.instance;
+      final oldService = oldWidget.service ?? CampusNetworkStatusService.instance;
       oldService.removeListener(_onServiceSettingsChanged);
       _service.addListener(_onServiceSettingsChanged);
       _status = CampusNetworkStatus.unknown(probeUri: _service.probeUri);
@@ -72,10 +72,12 @@ class _CampusNetworkStatusIndicatorState
     super.dispose();
   }
 
+  /// 服务设置变化时重新加载检测间隔。
   void _onServiceSettingsChanged() {
     unawaited(_reloadDetectionInterval());
   }
 
+  /// 加载检测间隔并立即刷新状态。
   Future<void> _loadIntervalAndRefresh() async {
     final interval = await _service.getDetectionIntervalMinutes();
     if (!mounted) return;
@@ -83,6 +85,7 @@ class _CampusNetworkStatusIndicatorState
     await _refreshStatus();
   }
 
+  /// 重新加载自动检测间隔。
   Future<void> _reloadDetectionInterval() async {
     final interval = await _service.getDetectionIntervalMinutes();
     if (!mounted) return;
@@ -90,6 +93,7 @@ class _CampusNetworkStatusIndicatorState
     _scheduleNextRefresh();
   }
 
+  /// 刷新校园网状态。
   Future<void> _refreshStatus() async {
     if (_isChecking) return;
     _refreshTimer?.cancel();
@@ -103,6 +107,7 @@ class _CampusNetworkStatusIndicatorState
     _scheduleNextRefresh();
   }
 
+  /// 安排下一次自动检测。
   void _scheduleNextRefresh() {
     _refreshTimer?.cancel();
     if (_detectionIntervalMinutes <= 0) return;
@@ -114,37 +119,36 @@ class _CampusNetworkStatusIndicatorState
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final foregroundColor = _foregroundColor(theme);
-    final fillColor = foregroundColor.withValues(alpha: 0.10);
-    final borderColor = foregroundColor.withValues(alpha: 0.28);
+    final colorScheme = Theme.of(context).colorScheme;
+    final foregroundColor = _foregroundColor(colorScheme);
+    final fillColor = _containerColor(colorScheme);
 
     return Tooltip(
       message: _tooltipMessage,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final showLabel = constraints.maxWidth >= 96;
-          return HoverButton(
-            key: const Key('campus-network-status-indicator'),
-            onPressed: _isChecking ? null : _refreshStatus,
-            builder: (context, states) {
-              final isActive = states.isHovered || states.isPressed;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 120),
+          return Semantics(
+            button: true,
+            label: '校园网状态，${_status.label}，点击重新检测',
+            child: InkWell(
+              key: const Key('campus-network-status-indicator'),
+              onTap: _isChecking ? null : _refreshStatus,
+              borderRadius: const BorderRadius.all(Radius.circular(999)),
+              child: AnimatedContainer(
+                duration: AppMotion.short,
                 constraints: BoxConstraints(
-                  minWidth: showLabel ? 0 : 28,
-                  minHeight: 28,
+                  minWidth: showLabel ? 48 : 48,
+                  minHeight: 48,
                 ),
-                padding: EdgeInsets.symmetric(
-                  horizontal: showLabel ? 10 : 8,
-                  vertical: 5,
+                padding: EdgeInsetsDirectional.symmetric(
+                  horizontal: showLabel ? AppSpacing.md : AppSpacing.sm,
+                  vertical: AppSpacing.sm,
                 ),
                 decoration: BoxDecoration(
-                  color: isActive
-                      ? fillColor.withValues(alpha: 0.18)
-                      : fillColor,
-                  border: Border.all(color: borderColor),
-                  borderRadius: BorderRadius.circular(FluentRadius.circular),
+                  color: fillColor,
+                  border: Border.all(color: foregroundColor.withValues(alpha: 0.28)),
+                  borderRadius: const BorderRadius.all(Radius.circular(999)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -152,65 +156,69 @@ class _CampusNetworkStatusIndicatorState
                   children: [
                     _buildStatusIcon(foregroundColor),
                     if (showLabel) ...[
-                      const SizedBox(width: FluentSpacing.s),
+                      const SizedBox(width: AppSpacing.sm),
                       Flexible(
                         child: Text(
                           _isChecking ? '检测中' : _status.label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.typography.caption?.copyWith(
-                            color: foregroundColor,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(color: foregroundColor),
                         ),
                       ),
                     ],
                   ],
                 ),
-              );
-            },
+              ),
+            ),
           );
         },
       ),
     );
   }
 
+  /// 构建当前状态图标。
   Widget _buildStatusIcon(Color foregroundColor) {
     if (_isChecking) {
-      return SizedBox(
-        width: 12,
-        height: 12,
-        child: ProgressRing(strokeWidth: 2, activeColor: foregroundColor),
+      return SizedBox.square(
+        dimension: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: foregroundColor,
+        ),
       );
     }
 
-    return Icon(_statusIcon, size: 12, color: foregroundColor);
+    return Icon(_statusIcon, size: 20, color: foregroundColor);
   }
 
   IconData get _statusIcon {
     return switch (_status.accessMode) {
       CampusNetworkAccessMode.campus ||
       CampusNetworkAccessMode.vpn ||
-      CampusNetworkAccessMode.campusOrVpn => FluentIcons.plug_connected,
-      CampusNetworkAccessMode.unavailable => FluentIcons.plug_disconnected,
-      CampusNetworkAccessMode.unknown => FluentIcons.sync_status,
+      CampusNetworkAccessMode.campusOrVpn => Icons.power,
+      CampusNetworkAccessMode.unavailable => Icons.power_off,
+      CampusNetworkAccessMode.unknown => Icons.sync,
     };
   }
 
-  Color _foregroundColor(FluentThemeData theme) {
-    final isDark = theme.brightness == Brightness.dark;
+  Color _foregroundColor(ColorScheme colorScheme) {
     return switch (_status.accessMode) {
       CampusNetworkAccessMode.campus ||
       CampusNetworkAccessMode.vpn ||
-      CampusNetworkAccessMode.campusOrVpn =>
-        isDark
-            ? FluentDarkColors.statusSuccess
-            : FluentLightColors.statusSuccess,
-      CampusNetworkAccessMode.unavailable =>
-        isDark
-            ? FluentDarkColors.statusWarning
-            : FluentLightColors.statusWarning,
-      CampusNetworkAccessMode.unknown => theme.accentColor,
+      CampusNetworkAccessMode.campusOrVpn => colorScheme.primary,
+      CampusNetworkAccessMode.unavailable => colorScheme.error,
+      CampusNetworkAccessMode.unknown => colorScheme.onSurfaceVariant,
+    };
+  }
+
+  Color _containerColor(ColorScheme colorScheme) {
+    return switch (_status.accessMode) {
+      CampusNetworkAccessMode.campus ||
+      CampusNetworkAccessMode.vpn ||
+      CampusNetworkAccessMode.campusOrVpn => colorScheme.primaryContainer,
+      CampusNetworkAccessMode.unavailable => colorScheme.errorContainer,
+      CampusNetworkAccessMode.unknown => colorScheme.surfaceContainerHighest,
     };
   }
 

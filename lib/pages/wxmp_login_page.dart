@@ -7,8 +7,7 @@
  * @Date : 2026-04-22
  */
 
-import 'package:flutter/foundation.dart';
-import 'package:fluent_ui/fluent_ui.dart';
+import '../widgets/material_compat.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../services/wxmp_article_service.dart';

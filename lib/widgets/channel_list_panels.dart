@@ -6,11 +6,12 @@
  * @Date : 2026-04-23
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/material.dart';
 
 import '../models/channel_config.dart';
 import '../models/message_item.dart';
-import '../theme/fluent_tokens.dart';
+import '../theme/app_shapes.dart';
+import '../theme/app_spacing.dart';
 import 'responsive_layout.dart';
 import 'settings_widgets.dart';
 
@@ -43,105 +44,106 @@ class ChannelGroupRefreshPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final foreground = enabled
-        ? null
-        : theme.resources.textFillColorSecondary.withValues(alpha: 0.7);
+        ? colorScheme.onSurfaceVariant
+        : colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(FluentSpacing.m),
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.inactiveColor.withValues(alpha: 0.035),
-        borderRadius: BorderRadius.circular(FluentRadius.xLarge),
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: AppShapes.md,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('刷新设置', style: theme.typography.bodyStrong),
-          const SizedBox(height: FluentSpacing.xs),
-          Text(
-            '这些设置会应用到本分区内每个已接入的内容渠道。',
-            style: theme.typography.caption?.copyWith(color: foreground),
-          ),
-          const SizedBox(height: FluentSpacing.s),
-          Wrap(
-            spacing: FluentSpacing.l,
-            runSpacing: FluentSpacing.s,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              buildCountNumberBox(
-                context: context,
-                label: '手动刷新文章个数',
-                value: groupManualCount,
-                enabled: hasImplementedChannel,
-                onChanged: onGroupManualCountChanged,
-              ),
-              Wrap(
-                spacing: FluentSpacing.xs,
-                runSpacing: FluentSpacing.xs,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text(
-                    '自动刷新：',
-                    style: theme.typography.caption?.copyWith(
-                      color: hasImplementedChannel ? null : foreground,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Semantics(
+              header: true,
+              child: Text('刷新设置', style: textTheme.titleSmall),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '这些设置会应用到本分区内每个已接入的内容渠道。',
+              style: textTheme.bodySmall?.copyWith(color: foreground),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.lg,
+              runSpacing: AppSpacing.sm,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                buildCountNumberBox(
+                  context: context,
+                  label: '手动刷新文章个数',
+                  value: groupManualCount,
+                  enabled: hasImplementedChannel,
+                  onChanged: onGroupManualCountChanged,
+                ),
+                Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      '自动刷新：',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: hasImplementedChannel ? foreground : foreground,
+                      ),
                     ),
-                  ),
-                  ToggleSwitch(
-                    checked: groupAutoRefreshEnabled,
-                    onChanged: hasImplementedChannel
-                        ? onGroupAutoRefreshToggled
-                        : null,
-                  ),
-                ],
-              ),
-              Wrap(
-                spacing: FluentSpacing.xs,
-                runSpacing: FluentSpacing.xs,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text(
-                    '自动刷新间隔：',
-                    style: theme.typography.caption?.copyWith(
-                      color: enabled && groupAutoRefreshEnabled
-                          ? null
-                          : foreground,
+                    Switch(
+                      value: groupAutoRefreshEnabled,
+                      onChanged: hasImplementedChannel
+                          ? onGroupAutoRefreshToggled
+                          : null,
                     ),
-                  ),
-                  ComboBox<int>(
-                    value: kIntervalOptions.containsKey(groupInterval)
-                        ? groupInterval
-                        : 60,
-                    items: kIntervalOptions.entries
-                        .where((entry) => entry.key > 0)
-                        .map(
-                          (entry) => ComboBoxItem<int>(
-                            value: entry.key,
-                            child: Text(entry.value),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: enabled && groupAutoRefreshEnabled
-                        ? (value) {
-                            if (value != null) {
-                              onGroupIntervalChanged(value);
+                  ],
+                ),
+                Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      '自动刷新间隔：',
+                      style: textTheme.bodySmall?.copyWith(color: foreground),
+                    ),
+                    DropdownButton<int>(
+                      value: kIntervalOptions.containsKey(groupInterval)
+                          ? groupInterval
+                          : 60,
+                      items: kIntervalOptions.entries
+                          .where((entry) => entry.key > 0)
+                          .map(
+                            (entry) => DropdownMenuItem<int>(
+                              value: entry.key,
+                              child: Text(entry.value),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: enabled && groupAutoRefreshEnabled
+                          ? (value) {
+                              if (value != null) {
+                                onGroupIntervalChanged(value);
+                              }
                             }
-                          }
-                        : null,
-                  ),
-                ],
-              ),
-              buildCountNumberBox(
-                context: context,
-                label: '自动刷新文章个数',
-                value: groupAutoCount,
-                enabled: enabled && groupAutoRefreshEnabled,
-                onChanged: onGroupAutoCountChanged,
-              ),
-            ],
-          ),
-        ],
+                          : null,
+                    ),
+                  ],
+                ),
+                buildCountNumberBox(
+                  context: context,
+                  label: '自动刷新文章个数',
+                  value: groupAutoCount,
+                  enabled: enabled && groupAutoRefreshEnabled,
+                  onChanged: onGroupAutoCountChanged,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -166,105 +168,109 @@ class ChannelListItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final subtitle = channel.implemented
         ? channel.description
         : '${channel.description}（暂未接入）';
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: FluentSpacing.s),
-      child: Container(
-        padding: const EdgeInsets.all(FluentSpacing.m),
+      padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.sm),
+      child: DecoratedBox(
         decoration: BoxDecoration(
-          color: theme.inactiveColor.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(FluentRadius.xLarge),
+          color: colorScheme.surfaceContainerHigh,
+          borderRadius: AppShapes.md,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final shouldStack = shouldStackSettingsControls(constraints);
-                final description = Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(channel.icon, size: 20),
-                    const SizedBox(width: FluentSpacing.m),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            channel.name,
-                            style: theme.typography.bodyStrong,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: FluentSpacing.xxs),
-                          Text(
-                            subtitle,
-                            style: theme.typography.caption?.copyWith(
-                              color: enabled
-                                  ? null
-                                  : theme.resources.textFillColorSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-
-                if (shouldStack) {
-                  return Column(
+        child: Padding(
+          padding: const EdgeInsetsDirectional.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final shouldStack = shouldStackSettingsControls(constraints);
+                  final description = Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      description,
-                      const SizedBox(height: FluentSpacing.s),
-                      Padding(
-                        padding: const EdgeInsets.only(left: FluentSpacing.xxl),
-                        child: ToggleSwitch(
-                          checked: enabled,
-                          onChanged: onToggled,
+                      Icon(channel.icon, color: colorScheme.primary),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              channel.name,
+                              style: textTheme.titleSmall,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              subtitle,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: enabled
+                                    ? colorScheme.onSurfaceVariant
+                                    : colorScheme.onSurfaceVariant.withValues(
+                                        alpha: 0.6,
+                                      ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   );
-                }
 
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: description),
-                    const SizedBox(width: FluentSpacing.s),
-                    ToggleSwitch(checked: enabled, onChanged: onToggled),
-                  ],
-                );
-              },
-            ),
-            if (channel.implemented &&
-                channelSubcategories.containsKey(channel.id)) ...[
-              const SizedBox(height: FluentSpacing.s),
-              _ChannelSubcategoryButtons(
-                channelId: channel.id,
-                channelEnabled: enabled,
-                categoryEnabledMap: categoryEnabledMap,
-                onToggleCategory: onToggleCategory,
+                  if (shouldStack) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        description,
+                        const SizedBox(height: AppSpacing.sm),
+                        Padding(
+                          padding: const EdgeInsetsDirectional.only(
+                            start: AppSpacing.xxl,
+                          ),
+                          child: Switch(value: enabled, onChanged: onToggled),
+                        ),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: description),
+                      const SizedBox(width: AppSpacing.sm),
+                      Switch(value: enabled, onChanged: onToggled),
+                    ],
+                  );
+                },
               ),
-            ],
-            if (!channel.implemented) ...[
-              const SizedBox(height: FluentSpacing.s),
-              Padding(
-                padding: const EdgeInsets.only(left: FluentSpacing.xxl),
-                child: Text(
-                  '此渠道数据源尚未接入，开关仅作为预配置使用。',
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
+              if (channel.implemented &&
+                  channelSubcategories.containsKey(channel.id)) ...[
+                const SizedBox(height: AppSpacing.sm),
+                _ChannelSubcategoryButtons(
+                  channelId: channel.id,
+                  channelEnabled: enabled,
+                  categoryEnabledMap: categoryEnabledMap,
+                  onToggleCategory: onToggleCategory,
+                ),
+              ],
+              if (!channel.implemented) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(start: AppSpacing.xxl),
+                  child: Text(
+                    '此渠道数据源尚未接入，开关仅作为预配置使用。',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -286,25 +292,26 @@ class _ChannelSubcategoryButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final subcategories = channelSubcategories[channelId]!;
     final labelColor = channelEnabled
-        ? null
-        : theme.resources.textFillColorSecondary.withValues(alpha: 0.7);
+        ? colorScheme.onSurfaceVariant
+        : colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
 
     return Padding(
-      padding: const EdgeInsets.only(left: FluentSpacing.xxl),
+      padding: const EdgeInsetsDirectional.only(start: AppSpacing.xxl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '内容分类',
-            style: theme.typography.caption?.copyWith(color: labelColor),
+            style: textTheme.bodySmall?.copyWith(color: labelColor),
           ),
-          const SizedBox(height: FluentSpacing.xs),
+          const SizedBox(height: AppSpacing.xs),
           Wrap(
-            spacing: FluentSpacing.s,
-            runSpacing: FluentSpacing.s,
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
             children: subcategories.map((subcategory) {
               final isEnabled =
                   categoryEnabledMap[subcategory.category.name] ?? true;
@@ -337,31 +344,14 @@ class _ChannelSubcategoryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final background = !interactive
-        ? theme.resources.controlFillColorDisabled
-        : enabled
-        ? theme.resources.systemFillColorSuccessBackground
-        : theme.resources.systemFillColorNeutralBackground;
-    final foreground = !interactive
-        ? theme.resources.textFillColorDisabled
-        : enabled
-        ? theme.resources.systemFillColorSuccess
-        : theme.resources.textFillColorSecondary;
+    if (!interactive) {
+      return Chip(label: Text(name));
+    }
 
-    return Button(
-      style: ButtonStyle(
-        backgroundColor: WidgetStatePropertyAll(background),
-        foregroundColor: WidgetStatePropertyAll(foreground),
-        padding: const WidgetStatePropertyAll(
-          EdgeInsets.symmetric(
-            horizontal: FluentSpacing.l,
-            vertical: FluentSpacing.s,
-          ),
-        ),
-      ),
-      onPressed: interactive ? onPressed : null,
-      child: Text(name),
+    return FilterChip(
+      label: Text(name),
+      selected: enabled,
+      onSelected: (_) => onPressed(),
     );
   }
 }

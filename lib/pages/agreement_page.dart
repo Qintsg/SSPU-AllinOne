@@ -6,10 +6,12 @@
  * @Date : 2026-04-18
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/material.dart';
 
-/// 使用协议全文
-/// 若后续用户没有明确说明，不得修改此内容
+import '../theme/app_spacing.dart';
+
+/// 使用协议全文。
+/// 若后续用户没有明确说明，不得修改此内容。
 const String kAgreementText = '''
 SSPU-AllinOne 使用协议
 
@@ -51,22 +53,33 @@ SSPU-AllinOne 使用协议
 2. 如本协议的任何条款被认定为无效或不可执行，其余条款仍然有效。
 ''';
 
-/// 使用协议页面
+/// 使用协议页面。
 class AgreementPage extends StatelessWidget {
   const AgreementPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ScaffoldPage.scrollable(
-      header: const PageHeader(title: Text('使用协议')),
-      children: [
-        Card(
-          child: SelectableText(
-            kAgreementText.trim(),
-            style: FluentTheme.of(context).typography.body,
+    return Scaffold(
+      appBar: AppBar(title: const Text('使用协议')),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: AppSpacing.regularPagePadding,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: Card.filled(
+                child: Padding(
+                  padding: AppSpacing.cardPadding,
+                  child: SelectableText(
+                    kAgreementText.trim(),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

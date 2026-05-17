@@ -6,7 +6,7 @@
  * @Date : 2026-04-23
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'material_compat.dart';
 
 import '../models/academic_credentials.dart';
 import '../models/academic_login_validation.dart';

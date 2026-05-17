@@ -6,8 +6,7 @@
  * @Date : 2026-04-23
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter/foundation.dart';
+import 'material_compat.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../controllers/settings_wechat_controller.dart';

@@ -1,5 +1,5 @@
 /*
- * 应用入口 — 初始化 FluentApp 并处理协议确认、密码保护、窗口关闭与托盘逻辑
+ * 应用入口 — 初始化 MaterialApp 并处理协议确认、密码保护、窗口关闭与托盘逻辑
  * @Project : SSPU-AllinOne
  * @File : main.dart
  * @Author : Qintsg
@@ -8,8 +8,7 @@
 
 import 'dart:async';
 import 'dart:io';
-import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter/foundation.dart';
+import 'widgets/material_compat.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
@@ -27,10 +26,11 @@ import 'services/auto_refresh_service.dart';
 import 'utils/webview_env.dart';
 
 /// 全局字体族名称
-import 'theme/fluent_tokens.dart';
+import 'theme/app_spacing.dart';
+import 'theme/app_theme.dart';
 
-/// 字体族常量（已迁移至 FluentTokenTheme.fontFamily，保留兼容引用）
-const String kFontFamily = FluentTokenTheme.fontFamily;
+/// 字体族常量（已迁移至 AppTheme.fontFamily，保留兼容引用）
+const String kFontFamily = AppTheme.fontFamily;
 
 /// 桌面窗口插件仅在 Flutter 桌面平台注册。
 bool get _supportsDesktopShell =>
@@ -95,7 +95,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 启动初始化失败时显示明确错误，避免长期停留在加载状态。
   String? _startupErrorMessage;
 
-  /// FluentApp 内部导航器 key，用于在 WindowListener 回调中弹出对话框
+  /// MaterialApp 内部导航器 key，用于在 WindowListener 回调中弹出对话框
   final _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
@@ -201,25 +201,26 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (_, setDialogState) {
-            return ContentDialog(
+            return AlertDialog(
               title: const Text('关闭应用'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('选择点击关闭按钮时的操作：'),
-                  const SizedBox(height: 12),
-                  Checkbox(
-                    checked: rememberChoice,
+                  const SizedBox(height: AppSpacing.md),
+                  CheckboxListTile(
+                    value: rememberChoice,
                     onChanged: (value) {
                       setDialogState(() => rememberChoice = value ?? false);
                     },
-                    content: const Text('以后都使用此选项'),
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('以后都使用此选项'),
                   ),
                 ],
               ),
               actions: [
-                Button(
+                TextButton(
                   child: const Text('最小化到托盘'),
                   onPressed: () async {
                     Navigator.pop(dialogContext);
@@ -296,32 +297,31 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) {
-          return ContentDialog(
+          return AlertDialog(
             title: const Text('使用协议与隐私协议'),
-            constraints: const BoxConstraints(maxWidth: 680),
-            content: SizedBox(
-              height: 420,
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 680, maxHeight: 420),
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SelectableText(
                       kAgreementText.trim(),
-                      style: FluentTheme.of(dialogContext).typography.body,
+                      style: Theme.of(dialogContext).textTheme.bodyMedium,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.lg),
                     const Divider(),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.md),
                     SelectableText(
                       kPrivacyPolicyText.trim(),
-                      style: FluentTheme.of(dialogContext).typography.body,
+                      style: Theme.of(dialogContext).textTheme.bodyMedium,
                     ),
                   ],
                 ),
               ),
             ),
             actions: [
-              Button(
+              TextButton(
                 child: const Text('不同意'),
                 onPressed: () {
                   Navigator.pop(dialogContext, false);
@@ -359,14 +359,12 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
 
   @override
   Widget build(BuildContext context) {
-    return FluentApp(
+    return MaterialApp(
       navigatorKey: _navigatorKey,
       title: 'SSPU-AllinOne',
-      theme: FluentTokenTheme.light(),
-      darkTheme: FluentTokenTheme.dark(),
+      theme: AppTheme.build(Brightness.light),
+      darkTheme: AppTheme.build(Brightness.dark),
       themeMode: ThemeMode.system,
-      localizationsDelegates: FluentLocalizations.localizationsDelegates,
-      supportedLocales: FluentLocalizations.supportedLocales,
       debugShowCheckedModeBanner: false,
       home: _buildHome(),
     );
@@ -375,14 +373,14 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 根据初始化、协议确认和密码验证状态构建首屏
   Widget _buildHome() {
     if (!_isInitialized) {
-      return const ScaffoldPage(content: Center(child: ProgressRing()));
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_startupErrorMessage != null) {
-      return ScaffoldPage(
-        content: Center(
+      return Scaffold(
+        body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(FluentSpacing.xxl),
+            padding: AppSpacing.regularPagePadding,
             child: Text(_startupErrorMessage!),
           ),
         ),
@@ -394,7 +392,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       return Builder(
         builder: (context) {
           _showAgreementDialog(context);
-          return const ScaffoldPage(content: Center(child: ProgressRing()));
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         },
       );
     }

@@ -6,34 +6,31 @@
  * @Date : 2026-04-18
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../services/app_info_service.dart';
-import '../theme/fluent_tokens.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_shapes.dart';
+import '../theme/app_spacing.dart';
 import 'agreement_page.dart';
 import 'privacy_policy_page.dart';
 
-/// 使用/参考的开源项目列表
-/// 若后续用户没有明确说明，不得修改此内容
+/// 使用/参考的开源项目列表。
+/// 若后续用户没有明确说明，不得修改此内容。
 const List<_OpenSourceProject> _openSourceProjects = [
   _OpenSourceProject(
     name: 'Flutter',
-    description: '跨平台 UI 框架',
+    description: '跨平台 UI 框架与 Material 3 组件体系',
     license: 'BSD-3-Clause',
     url: 'https://flutter.dev',
   ),
   _OpenSourceProject(
-    name: 'fluent_ui',
-    description: 'Fluent Design 组件库',
-    license: 'BSD-3-Clause',
-    url: 'https://pub.dev/packages/fluent_ui',
-  ),
-  _OpenSourceProject(
-    name: 'Fluent 2 Design System',
-    description: '微软 Fluent 2 设计系统，本项目 Token 体系参考来源',
-    license: 'MIT',
-    url: 'https://fluent2.microsoft.design',
+    name: 'Material Design 3',
+    description: 'Google Material 3 设计系统，本项目新前端规范来源',
+    license: 'Apache-2.0',
+    url: 'https://m3.material.io',
   ),
   _OpenSourceProject(
     name: 'shared_preferences',
@@ -105,8 +102,8 @@ class _OpenSourceProject {
   });
 }
 
-/// 关于页面
-/// 若后续用户没有明确说明，不得修改此页面内容
+/// 关于页面。
+/// 若后续用户没有明确说明，不得修改此页面内容。
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
@@ -119,159 +116,189 @@ class AboutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final typography = FluentTheme.of(context).typography;
-    final isDark = FluentTheme.of(context).brightness == Brightness.dark;
+    final textTheme = Theme.of(context).textTheme;
 
-    return ScaffoldPage.scrollable(
-      header: const PageHeader(title: Text('关于')),
-      children: [
-        // 软件信息
-        Card(
-              child: Row(
+    return Scaffold(
+      appBar: AppBar(title: const Text('关于')),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: AppSpacing.regularPagePadding,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 840),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 96,
-                    height: 96,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? FluentDarkColors.backgroundSecondary
-                          : FluentLightColors.backgroundSecondary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Image.asset(
-                      'assets/images/logo.png',
-                      width: 96,
-                      height: 96,
-                    ),
+                  _buildAppInfoCard(context)
+                      .animate()
+                      .fadeIn(
+                        duration: AppMotion.medium,
+                        curve: Curves.easeOutCubic,
+                      )
+                      .slideY(begin: 0.05, end: 0),
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildActionCard(context)
+                      .animate(delay: 100.ms)
+                      .fadeIn(
+                        duration: AppMotion.medium,
+                        curve: Curves.easeOutCubic,
+                      )
+                      .slideY(begin: 0.05, end: 0),
+                  const SizedBox(height: AppSpacing.lg),
+                  Semantics(
+                    header: true,
+                    child: Text('使用/参考的开源项目', style: textTheme.titleMedium),
                   ),
-                  const SizedBox(width: FluentSpacing.l),
-                  Expanded(
-                    child: FutureBuilder<AppVersionInfo>(
-                      future: AppInfoService.instance.loadVersionInfo(),
-                      builder: (context, snapshot) {
-                        final versionText =
-                            snapshot.data?.displayText ?? '版本加载中...';
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('SSPU-AllinOne', style: typography.subtitle),
-                            const SizedBox(height: FluentSpacing.xs),
-                            Text(versionText, style: typography.caption),
-                            const SizedBox(height: FluentSpacing.l),
-                            _buildInfoRow(context, '著作人', 'Qintsg'),
-                            const SizedBox(height: FluentSpacing.s),
-                            _buildInfoRow(
-                              context,
-                              '许可证',
-                              'Artistic License 2.0',
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _buildOpenSourceCard(context)
+                      .animate(delay: 200.ms)
+                      .fadeIn(
+                        duration: AppMotion.medium,
+                        curve: Curves.easeOutCubic,
+                      )
+                      .slideY(begin: 0.05, end: 0),
                 ],
               ),
-            )
-            .animate()
-            .fadeIn(
-              duration: FluentDuration.slow,
-              curve: FluentEasing.decelerate,
-            )
-            .slideY(begin: 0.05, end: 0),
-        const SizedBox(height: FluentSpacing.l),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
-        // 操作按钮
-        Card(
-              child: Column(
-                children: [
-                  _buildActionTile(
-                    context,
-                    icon: FluentIcons.open_source,
-                    title: 'GitHub 仓库',
-                    subtitle: 'Qintsg/SSPU-AllinOne',
-                    onTap: () =>
-                        _openUrl('https://github.com/Qintsg/SSPU-AllinOne'),
-                  ),
-                  const Divider(),
-                  _buildActionTile(
-                    context,
-                    icon: FluentIcons.document_set,
-                    title: '使用协议',
-                    subtitle: '查看完整使用协议条款',
-                    onTap: () => Navigator.of(context).push(
-                      FluentPageRoute(
-                        builder: (_) => const _AgreementNavigationWrapper(),
-                      ),
-                    ),
-                  ),
-                  const Divider(),
-                  _buildActionTile(
-                    context,
-                    icon: FluentIcons.shield,
-                    title: '隐私协议',
-                    subtitle: '查看本地数据、凭据和网络访问说明',
-                    onTap: () => Navigator.of(context).push(
-                      FluentPageRoute(
-                        builder: (_) => const _PrivacyPolicyNavigationWrapper(),
-                      ),
-                    ),
-                  ),
-                ],
+  /// 构建应用信息卡片。
+  Widget _buildAppInfoCard(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Card.filled(
+      child: Padding(
+        padding: AppSpacing.cardPadding,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
+                borderRadius: AppShapes.lg,
               ),
-            )
-            .animate(delay: 100.ms)
-            .fadeIn(
-              duration: FluentDuration.slow,
-              curve: FluentEasing.decelerate,
-            )
-            .slideY(begin: 0.05, end: 0),
-        const SizedBox(height: FluentSpacing.l),
-
-        // 开源项目列表
-        Text('使用/参考的开源项目', style: typography.bodyStrong),
-        const SizedBox(height: FluentSpacing.s),
-        Card(
-              child: Column(
-                children: _openSourceProjects.asMap().entries.map((entry) {
-                  final project = entry.value;
-                  final isLast = entry.key == _openSourceProjects.length - 1;
+              child: Padding(
+                padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: 80,
+                  height: 80,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: FutureBuilder<AppVersionInfo>(
+                future: AppInfoService.instance.loadVersionInfo(),
+                builder: (context, snapshot) {
+                  final versionText = snapshot.data?.displayText ?? '版本加载中...';
                   return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildActionTile(
-                        context,
-                        icon: FluentIcons.code,
-                        title: project.name,
-                        subtitle: '${project.description} · ${project.license}',
-                        onTap: () => _openUrl(project.url),
+                      Semantics(
+                        header: true,
+                        child: Text('SSPU-AllinOne', style: textTheme.titleLarge),
                       ),
-                      if (!isLast) const Divider(),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        versionText,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      _buildInfoRow(context, '著作人', 'Qintsg'),
+                      const SizedBox(height: AppSpacing.sm),
+                      _buildInfoRow(context, '许可证', 'Artistic License 2.0'),
                     ],
                   );
-                }).toList(),
+                },
               ),
-            )
-            .animate(delay: 200.ms)
-            .fadeIn(
-              duration: FluentDuration.slow,
-              curve: FluentEasing.decelerate,
-            )
-            .slideY(begin: 0.05, end: 0),
-      ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
+  /// 构建操作入口卡片。
+  Widget _buildActionCard(BuildContext context) {
+    return Card.filled(
+      child: Column(
+        children: [
+          _buildActionTile(
+            context,
+            icon: Icons.code,
+            title: 'GitHub 仓库',
+            subtitle: 'Qintsg/SSPU-AllinOne',
+            onTap: () => _openUrl('https://github.com/Qintsg/SSPU-AllinOne'),
+          ),
+          const Divider(height: 1),
+          _buildActionTile(
+            context,
+            icon: Icons.description_outlined,
+            title: '使用协议',
+            subtitle: '查看完整使用协议条款',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AgreementPage()),
+            ),
+          ),
+          const Divider(height: 1),
+          _buildActionTile(
+            context,
+            icon: Icons.shield_outlined,
+            title: '隐私协议',
+            subtitle: '查看本地数据、凭据和网络访问说明',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建开源项目卡片。
+  Widget _buildOpenSourceCard(BuildContext context) {
+    return Card.filled(
+      child: Column(
+        children: _openSourceProjects.asMap().entries.map((entry) {
+          final project = entry.value;
+          final isLast = entry.key == _openSourceProjects.length - 1;
+          return Column(
+            children: [
+              _buildActionTile(
+                context,
+                icon: Icons.integration_instructions_outlined,
+                title: project.name,
+                subtitle: '${project.description} · ${project.license}',
+                onTap: () => _openUrl(project.url),
+              ),
+              if (!isLast) const Divider(height: 1),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  /// 构建信息行。
   Widget _buildInfoRow(BuildContext context, String label, String value) {
-    final typography = FluentTheme.of(context).typography;
+    final textTheme = Theme.of(context).textTheme;
     return Row(
       children: [
-        Text('$label：', style: typography.body),
-        Text(value, style: typography.bodyStrong),
+        Text('$label：', style: textTheme.bodyMedium),
+        Flexible(child: Text(value, style: textTheme.titleSmall)),
       ],
     );
   }
 
+  /// 构建可点击操作行。
   Widget _buildActionTile(
     BuildContext context, {
     required IconData icon,
@@ -279,95 +306,12 @@ class AboutPage extends StatelessWidget {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    final typography = FluentTheme.of(context).typography;
-    return HoverButton(
-      onPressed: onTap,
-      builder: (context, states) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: [
-              Icon(icon, size: 20),
-              const SizedBox(width: FluentSpacing.m),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: typography.body),
-                    Text(
-                      subtitle,
-                      style: typography.caption?.copyWith(
-                        color: FluentTheme.of(
-                          context,
-                        ).resources.textFillColorSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(FluentIcons.chevron_right, size: 12),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// 使用协议导航包装器（从关于页导航进入时使用）
-class _AgreementNavigationWrapper extends StatelessWidget {
-  const _AgreementNavigationWrapper();
-
-  @override
-  Widget build(BuildContext context) {
-    return ScaffoldPage.scrollable(
-      header: PageHeader(
-        title: const Text('使用协议'),
-        leading: Padding(
-          padding: const EdgeInsets.only(right: 8.0),
-          child: IconButton(
-            icon: const Icon(FluentIcons.back),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
-      ),
-      children: [
-        Card(
-          child: SelectableText(
-            kAgreementText.trim(),
-            style: FluentTheme.of(context).typography.body,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// 隐私协议导航包装器（从关于页导航进入时使用）
-class _PrivacyPolicyNavigationWrapper extends StatelessWidget {
-  const _PrivacyPolicyNavigationWrapper();
-
-  @override
-  Widget build(BuildContext context) {
-    return ScaffoldPage.scrollable(
-      header: PageHeader(
-        title: const Text('隐私协议'),
-        leading: Padding(
-          padding: const EdgeInsets.only(right: 8.0),
-          child: IconButton(
-            icon: const Icon(FluentIcons.back),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
-      ),
-      children: [
-        Card(
-          child: SelectableText(
-            kPrivacyPolicyText.trim(),
-            style: FluentTheme.of(context).typography.body,
-          ),
-        ),
-      ],
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: Text(subtitle),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: onTap,
     );
   }
 }

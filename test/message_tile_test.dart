@@ -6,10 +6,10 @@
  * @Date : 2026-04-25
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/models/message_item.dart';
-import 'package:sspu_allinone/theme/fluent_tokens.dart';
+import 'package:sspu_allinone/theme/app_theme.dart';
 import 'package:sspu_allinone/widgets/message_tile.dart';
 
 void main() {
@@ -18,18 +18,16 @@ void main() {
     MessageItem message, {
     double width = 900,
   }) async {
-    final theme = FluentTokenTheme.light();
     await tester.pumpWidget(
-      FluentApp(
-        theme: theme,
-        home: ScaffoldPage(
-          content: SizedBox(
+      MaterialApp(
+        theme: AppTheme.build(Brightness.light),
+        home: Scaffold(
+          body: SizedBox(
             width: width,
             child: MessageTile(
               message: message,
               isRead: false,
               isDark: false,
-              theme: theme,
               onTap: () {},
               onMarkRead: () {},
             ),
@@ -114,7 +112,7 @@ void main() {
 
     expect(find.text('微信推文'), findsOneWidget);
     expect(find.text('青春二工大'), findsOneWidget);
-    expect(find.byIcon(FluentIcons.open_in_new_window), findsOneWidget);
-    expect(find.byIcon(FluentIcons.read), findsOneWidget);
+    expect(find.byIcon(Icons.open_in_new), findsOneWidget);
+    expect(find.byIcon(Icons.mark_email_read_outlined), findsOneWidget);
   });
 }

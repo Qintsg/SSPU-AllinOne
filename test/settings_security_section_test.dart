@@ -6,7 +6,7 @@
  * @Date : 2026-04-24
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:sspu_allinone/widgets/material_compat.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
@@ -43,9 +43,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      FluentApp(
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
             child: SettingsSecuritySection(
               isPasswordEnabled: false,
               onPasswordProtectionChanged: (_) {},
@@ -79,9 +79,9 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
 
     await tester.pumpWidget(
-      FluentApp(
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
             child: SettingsSecuritySection(
               isPasswordEnabled: false,
               onPasswordProtectionChanged: (_) {},
@@ -112,9 +112,9 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
 
     await tester.pumpWidget(
-      FluentApp(
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
             child: SettingsSecuritySection(
               isPasswordEnabled: false,
               onPasswordProtectionChanged: (_) {},
@@ -136,9 +136,9 @@ void main() {
     expect(find.text('系统快速验证'), findsNothing);
 
     await tester.pumpWidget(
-      FluentApp(
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
             child: SettingsSecuritySection(
               isPasswordEnabled: true,
               onPasswordProtectionChanged: (_) {},
@@ -161,9 +161,9 @@ void main() {
     expect(find.textContaining('仍可使用应用密码手动解锁'), findsOneWidget);
 
     await tester.pumpWidget(
-      FluentApp(
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
             child: SettingsSecuritySection(
               isPasswordEnabled: true,
               onPasswordProtectionChanged: (_) {},
@@ -192,9 +192,9 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        FluentApp(
-          home: ScaffoldPage(
-            content: SingleChildScrollView(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
               child: SettingsSecuritySection(
                 isPasswordEnabled: true,
                 onPasswordProtectionChanged: (_) {},

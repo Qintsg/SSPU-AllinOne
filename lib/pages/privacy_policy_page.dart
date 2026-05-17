@@ -6,7 +6,9 @@
  * @Date : 2026-05-15
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/material.dart';
+
+import '../theme/app_spacing.dart';
 
 /// 隐私协议全文。
 /// 本协议与当前应用的数据落盘、外部服务访问和清理能力保持同步。
@@ -101,16 +103,27 @@ class PrivacyPolicyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScaffoldPage.scrollable(
-      header: const PageHeader(title: Text('隐私协议')),
-      children: [
-        Card(
-          child: SelectableText(
-            kPrivacyPolicyText.trim(),
-            style: FluentTheme.of(context).typography.body,
+    return Scaffold(
+      appBar: AppBar(title: const Text('隐私协议')),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: AppSpacing.regularPagePadding,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: Card.filled(
+                child: Padding(
+                  padding: AppSpacing.cardPadding,
+                  child: SelectableText(
+                    kPrivacyPolicyText.trim(),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

@@ -6,9 +6,9 @@
  * @Date : 2026-04-23
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/material.dart';
 
-import '../theme/fluent_tokens.dart';
+import '../theme/app_spacing.dart';
 import 'settings_widgets.dart';
 
 /// 常规设置分区。
@@ -67,41 +67,36 @@ class SettingsGeneralSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildWindowBehaviorSection(context),
-        const SizedBox(height: FluentSpacing.l),
+        const SizedBox(height: AppSpacing.lg),
         _buildNotificationSection(context),
       ],
     );
   }
 
   Widget _buildWindowBehaviorSection(BuildContext context) {
-    return Card(
+    final textTheme = Theme.of(context).textTheme;
+    return Card.filled(
       child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.xl),
+        padding: AppSpacing.cardPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('窗口行为', style: FluentTheme.of(context).typography.subtitle),
-            const SizedBox(height: FluentSpacing.l),
+            Semantics(header: true, child: Text('窗口行为', style: textTheme.titleMedium)),
+            const SizedBox(height: AppSpacing.md),
             buildResponsiveSettingsRow(
               context: context,
-              icon: FluentIcons.chrome_close,
-              title: Text(
-                '关闭按钮行为',
-                style: FluentTheme.of(context).typography.bodyStrong,
-              ),
-              subtitle: Text(
-                '选择点击窗口关闭按钮时的操作',
-                style: FluentTheme.of(context).typography.caption,
-              ),
+              icon: Icons.close,
+              title: Text('关闭按钮行为', style: textTheme.titleSmall),
+              subtitle: Text('选择点击窗口关闭按钮时的操作', style: textTheme.bodySmall),
               trailing: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 220),
-                child: ComboBox<String>(
+                child: DropdownButton<String>(
                   isExpanded: true,
                   value: closeBehavior,
                   items: const [
-                    ComboBoxItem(value: 'ask', child: Text('每次询问')),
-                    ComboBoxItem(value: 'minimize', child: Text('最小化到托盘')),
-                    ComboBoxItem(value: 'exit', child: Text('直接退出')),
+                    DropdownMenuItem(value: 'ask', child: Text('每次询问')),
+                    DropdownMenuItem(value: 'minimize', child: Text('最小化到托盘')),
+                    DropdownMenuItem(value: 'exit', child: Text('直接退出')),
                   ],
                   onChanged: (value) {
                     if (value != null) {
@@ -118,61 +113,59 @@ class SettingsGeneralSection extends StatelessWidget {
   }
 
   Widget _buildNotificationSection(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final disabledColor = theme.inactiveColor.withValues(alpha: 0.4);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final disabledColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
 
-    return Card(
+    return Card.filled(
       child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.xl),
+        padding: AppSpacing.cardPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('消息推送', style: theme.typography.subtitle),
-            const SizedBox(height: FluentSpacing.l),
+            Semantics(header: true, child: Text('消息推送', style: textTheme.titleMedium)),
+            const SizedBox(height: AppSpacing.md),
             buildResponsiveSettingsRow(
               context: context,
-              icon: FluentIcons.ringer,
-              title: Text('启用消息推送', style: theme.typography.bodyStrong),
-              subtitle: Text(
-                '当自动刷新发现新消息时推送系统通知',
-                style: theme.typography.caption,
-              ),
-              trailing: ToggleSwitch(
-                checked: notificationEnabled,
+              icon: Icons.notifications_outlined,
+              title: Text('启用消息推送', style: textTheme.titleSmall),
+              subtitle: Text('当自动刷新发现新消息时推送系统通知', style: textTheme.bodySmall),
+              trailing: Switch(
+                value: notificationEnabled,
                 onChanged: onNotificationChanged,
               ),
             ),
-            const SizedBox(height: FluentSpacing.l),
+            const SizedBox(height: AppSpacing.md),
             buildResponsiveSettingsRow(
               context: context,
-              icon: FluentIcons.ringer_off,
+              icon: Icons.notifications_off_outlined,
               iconColor: notificationEnabled ? null : disabledColor,
               title: Text(
                 '勿扰时段',
-                style: theme.typography.bodyStrong?.copyWith(
+                style: textTheme.titleSmall?.copyWith(
                   color: notificationEnabled ? null : disabledColor,
                 ),
               ),
               subtitle: Text(
                 '在指定时间段内不推送通知',
-                style: theme.typography.caption?.copyWith(
+                style: textTheme.bodySmall?.copyWith(
                   color: notificationEnabled ? null : disabledColor,
                 ),
               ),
-              trailing: ToggleSwitch(
-                checked: dndEnabled,
+              trailing: Switch(
+                value: dndEnabled,
                 onChanged: notificationEnabled ? onDndChanged : null,
               ),
             ),
             if (dndEnabled && notificationEnabled)
               Padding(
-                padding: const EdgeInsets.only(
-                  left: FluentSpacing.xxl,
-                  top: FluentSpacing.m,
+                padding: const EdgeInsetsDirectional.only(
+                  start: AppSpacing.xxl,
+                  top: AppSpacing.md,
                 ),
                 child: Wrap(
-                  spacing: FluentSpacing.s,
-                  runSpacing: FluentSpacing.s,
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     buildTimePicker(
@@ -182,7 +175,7 @@ class SettingsGeneralSection extends StatelessWidget {
                       minute: dndStartMinute,
                       onChanged: onDndStartChanged,
                     ),
-                    Text('—', style: theme.typography.bodyStrong),
+                    Text('—', style: textTheme.titleSmall),
                     buildTimePicker(
                       context: context,
                       label: '结束',

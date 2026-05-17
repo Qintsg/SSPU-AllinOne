@@ -6,7 +6,7 @@
  * @Date : 2026-04-23
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import '../widgets/material_compat.dart';
 
 import '../models/sspu_wechat_accounts.dart';
 import '../services/auto_refresh_service.dart';

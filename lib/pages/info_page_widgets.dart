@@ -337,7 +337,6 @@ Widget _buildInfoMessageList(
           message: message,
           isRead: isRead,
           isDark: isDark,
-          theme: theme,
           onTap: () => state._openMessage(message),
           onMarkRead: () async {
             await state._stateService.markAsRead(message.id);

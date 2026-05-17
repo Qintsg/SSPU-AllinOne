@@ -32,9 +32,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Fluent UI — 微软 Fluent 设计风格组件库
-  fluent_ui: ^4.11.1
-
   # 本地持久化存储，用于密码保护等设置
   shared_preferences: ^2.5.3
 

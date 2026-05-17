@@ -10,171 +10,125 @@ part of 'settings_auto_refresh_section.dart';
 
 extension _SettingsAutoRefreshRows on SettingsAutoRefreshSection {
   Widget _buildSportsAttendanceAutoRefreshRow(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return buildResponsiveSettingsRow(
       context: context,
-      icon: FluentIcons.running,
-      title: Text('体育查询自动刷新', style: theme.typography.bodyStrong),
+      icon: Icons.directions_run_outlined,
+      title: Text('体育查询自动刷新', style: textTheme.titleSmall),
       subtitle: Text(
         '控制教务中心课外活动考勤卡片的自动读取；体育查询需要校园网或学校 VPN，关闭后仍可在卡片右上角手动刷新',
-        style: theme.typography.caption,
+        style: textTheme.bodySmall,
       ),
-      trailing: Wrap(
-        spacing: FluentSpacing.s,
-        runSpacing: FluentSpacing.s,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          ToggleSwitch(
-            checked: sportsAttendanceAutoRefreshEnabled,
-            onChanged: (value) => onSportsAttendanceAutoRefreshChanged(value),
-          ),
-          _buildSportsAttendanceIntervalComboBox(),
-        ],
+      trailing: _buildAutoRefreshControls(
+        enabled: sportsAttendanceAutoRefreshEnabled,
+        interval: sportsAttendanceAutoRefreshIntervalMinutes,
+        onEnabledChanged: onSportsAttendanceAutoRefreshChanged,
+        onIntervalChanged: onSportsAttendanceAutoRefreshIntervalChanged,
       ),
-    );
-  }
-
-  Widget _buildSportsAttendanceIntervalComboBox() {
-    return _buildEnabledIntervalComboBox(
-      selectedIntervalMinutes: sportsAttendanceAutoRefreshIntervalMinutes,
-      enabled: sportsAttendanceAutoRefreshEnabled,
-      onChanged: onSportsAttendanceAutoRefreshIntervalChanged,
     );
   }
 
   Widget _buildCampusCardAutoRefreshRow(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return buildResponsiveSettingsRow(
       context: context,
-      icon: FluentIcons.payment_card,
-      title: Text('校园卡余额自动刷新', style: theme.typography.bodyStrong),
+      icon: Icons.credit_card_outlined,
+      title: Text('校园卡余额自动刷新', style: textTheme.titleSmall),
       subtitle: Text(
         '控制主页校园卡余额卡片的自动读取；需要校园网或学校 VPN 与 OA 登录，关闭后仍可在卡片右下角手动刷新',
-        style: theme.typography.caption,
+        style: textTheme.bodySmall,
       ),
-      trailing: Wrap(
-        spacing: FluentSpacing.s,
-        runSpacing: FluentSpacing.s,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          ToggleSwitch(
-            checked: campusCardAutoRefreshEnabled,
-            onChanged: (value) => onCampusCardAutoRefreshChanged(value),
-          ),
-          _buildCampusCardIntervalComboBox(),
-        ],
+      trailing: _buildAutoRefreshControls(
+        enabled: campusCardAutoRefreshEnabled,
+        interval: campusCardAutoRefreshIntervalMinutes,
+        onEnabledChanged: onCampusCardAutoRefreshChanged,
+        onIntervalChanged: onCampusCardAutoRefreshIntervalChanged,
       ),
-    );
-  }
-
-  Widget _buildCampusCardIntervalComboBox() {
-    return _buildEnabledIntervalComboBox(
-      selectedIntervalMinutes: campusCardAutoRefreshIntervalMinutes,
-      enabled: campusCardAutoRefreshEnabled,
-      onChanged: onCampusCardAutoRefreshIntervalChanged,
     );
   }
 
   Widget _buildEmailAutoRefreshRow(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return buildResponsiveSettingsRow(
       context: context,
-      icon: FluentIcons.mail,
-      title: Text('学校邮箱自动刷新', style: theme.typography.bodyStrong),
+      icon: Icons.mail_outline,
+      title: Text('学校邮箱自动刷新', style: textTheme.titleSmall),
       subtitle: Text(
         '控制学校邮箱页面的自动收信；邮箱系统不要求校园网或 VPN，关闭后仍可在邮箱页手动读取',
-        style: theme.typography.caption,
+        style: textTheme.bodySmall,
       ),
-      trailing: Wrap(
-        spacing: FluentSpacing.s,
-        runSpacing: FluentSpacing.s,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          ToggleSwitch(
-            checked: emailAutoRefreshEnabled,
-            onChanged: (value) => onEmailAutoRefreshChanged(value),
-          ),
-          _buildEmailIntervalComboBox(),
-        ],
+      trailing: _buildAutoRefreshControls(
+        enabled: emailAutoRefreshEnabled,
+        interval: emailAutoRefreshIntervalMinutes,
+        onEnabledChanged: onEmailAutoRefreshChanged,
+        onIntervalChanged: onEmailAutoRefreshIntervalChanged,
       ),
-    );
-  }
-
-  Widget _buildEmailIntervalComboBox() {
-    return _buildEnabledIntervalComboBox(
-      selectedIntervalMinutes: emailAutoRefreshIntervalMinutes,
-      enabled: emailAutoRefreshEnabled,
-      onChanged: onEmailAutoRefreshIntervalChanged,
     );
   }
 
   Widget _buildStudentReportAutoRefreshRow(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return buildResponsiveSettingsRow(
       context: context,
-      icon: FluentIcons.education,
-      title: Text('第二课堂学分自动刷新', style: theme.typography.bodyStrong),
+      icon: Icons.school_outlined,
+      title: Text('第二课堂学分自动刷新', style: textTheme.titleSmall),
       subtitle: Text(
         '控制教务中心第二课堂学分卡片的自动读取；需要校园网或学校 VPN 与 OA 登录，关闭后仍可在卡片右上角手动刷新',
-        style: theme.typography.caption,
+        style: textTheme.bodySmall,
       ),
-      trailing: Wrap(
-        spacing: FluentSpacing.s,
-        runSpacing: FluentSpacing.s,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          ToggleSwitch(
-            checked: studentReportAutoRefreshEnabled,
-            onChanged: (value) => onStudentReportAutoRefreshChanged(value),
-          ),
-          _buildStudentReportIntervalComboBox(),
-        ],
+      trailing: _buildAutoRefreshControls(
+        enabled: studentReportAutoRefreshEnabled,
+        interval: studentReportAutoRefreshIntervalMinutes,
+        onEnabledChanged: onStudentReportAutoRefreshChanged,
+        onIntervalChanged: onStudentReportAutoRefreshIntervalChanged,
       ),
-    );
-  }
-
-  Widget _buildStudentReportIntervalComboBox() {
-    return _buildEnabledIntervalComboBox(
-      selectedIntervalMinutes: studentReportAutoRefreshIntervalMinutes,
-      enabled: studentReportAutoRefreshEnabled,
-      onChanged: onStudentReportAutoRefreshIntervalChanged,
     );
   }
 
   Widget _buildAcademicEamsAutoRefreshRow(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return buildResponsiveSettingsRow(
       context: context,
-      icon: FluentIcons.education,
-      title: Text('本专科教务自动刷新', style: theme.typography.bodyStrong),
+      icon: Icons.assignment_outlined,
+      title: Text('本专科教务自动刷新', style: textTheme.titleSmall),
       subtitle: Text(
         '控制教务中心本专科教务摘要和独立课程表页面的自动读取；需要校园网或学校 VPN 与 OA 登录，关闭后仍可在页面中手动刷新',
-        style: theme.typography.caption,
+        style: textTheme.bodySmall,
       ),
-      trailing: Wrap(
-        spacing: FluentSpacing.s,
-        runSpacing: FluentSpacing.s,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          ToggleSwitch(
-            checked: academicEamsAutoRefreshEnabled,
-            onChanged: (value) => onAcademicEamsAutoRefreshChanged(value),
-          ),
-          _buildAcademicEamsIntervalComboBox(),
-        ],
+      trailing: _buildAutoRefreshControls(
+        enabled: academicEamsAutoRefreshEnabled,
+        interval: academicEamsAutoRefreshIntervalMinutes,
+        onEnabledChanged: onAcademicEamsAutoRefreshChanged,
+        onIntervalChanged: onAcademicEamsAutoRefreshIntervalChanged,
       ),
     );
   }
 
-  Widget _buildAcademicEamsIntervalComboBox() {
-    return _buildEnabledIntervalComboBox(
-      selectedIntervalMinutes: academicEamsAutoRefreshIntervalMinutes,
-      enabled: academicEamsAutoRefreshEnabled,
-      onChanged: onAcademicEamsAutoRefreshIntervalChanged,
+  Widget _buildAutoRefreshControls({
+    required bool enabled,
+    required int interval,
+    required Future<void> Function(bool enabled) onEnabledChanged,
+    required Future<void> Function(int minutes) onIntervalChanged,
+  }) {
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Switch(
+          value: enabled,
+          onChanged: (value) => onEnabledChanged(value),
+        ),
+        _buildEnabledIntervalDropdown(
+          selectedIntervalMinutes: interval,
+          enabled: enabled,
+          onChanged: onIntervalChanged,
+        ),
+      ],
     );
   }
 
-  Widget _buildEnabledIntervalComboBox({
+  Widget _buildEnabledIntervalDropdown({
     required int selectedIntervalMinutes,
     required bool enabled,
     required Future<void> Function(int minutes) onChanged,
@@ -189,13 +143,15 @@ extension _SettingsAutoRefreshRows on SettingsAutoRefreshSection {
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 180),
-      child: ComboBox<int>(
+      child: DropdownButton<int>(
         isExpanded: true,
         value: selectedValue,
         items: enabledIntervalOptions.entries
             .map(
-              (entry) =>
-                  ComboBoxItem<int>(value: entry.key, child: Text(entry.value)),
+              (entry) => DropdownMenuItem<int>(
+                value: entry.key,
+                child: Text(entry.value),
+              ),
             )
             .toList(),
         onChanged: enabled

@@ -8,7 +8,7 @@
 
 // ignore_for_file: use_build_context_synchronously
 
-import 'package:fluent_ui/fluent_ui.dart';
+import '../widgets/material_compat.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/channel_config.dart';

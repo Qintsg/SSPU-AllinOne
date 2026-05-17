@@ -6,9 +6,9 @@
  * @Date : 2026-04-27
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/material.dart';
 
-import '../theme/fluent_tokens.dart';
+import '../theme/app_spacing.dart';
 import 'settings_widgets.dart';
 
 part 'settings_auto_refresh_rows.dart';
@@ -131,41 +131,41 @@ class SettingsAutoRefreshSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildCampusNetworkIntervalCard(context),
-        const SizedBox(height: FluentSpacing.l),
+        const SizedBox(height: AppSpacing.lg),
         _buildRefreshShortcutCard(context),
       ],
     );
   }
 
   Widget _buildCampusNetworkIntervalCard(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return Card(
+    final textTheme = Theme.of(context).textTheme;
+    return Card.filled(
       child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.xl),
+        padding: AppSpacing.cardPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('自动刷新设置', style: theme.typography.subtitle),
-            const SizedBox(height: FluentSpacing.l),
+            Semantics(header: true, child: Text('自动刷新设置', style: textTheme.titleMedium)),
+            const SizedBox(height: AppSpacing.md),
             buildResponsiveSettingsRow(
               context: context,
-              icon: FluentIcons.plug_connected,
-              title: Text('校园网 / VPN 状态检测', style: theme.typography.bodyStrong),
+              icon: Icons.power_outlined,
+              title: Text('校园网 / VPN 状态检测', style: textTheme.titleSmall),
               subtitle: Text(
                 '控制导航栏状态徽标的自动检测频率；关闭后仍可点击徽标手动检测',
-                style: theme.typography.caption,
+                style: textTheme.bodySmall,
               ),
               trailing: _buildIntervalComboBox(),
             ),
-            const SizedBox(height: FluentSpacing.m),
+            const SizedBox(height: AppSpacing.md),
             _buildSportsAttendanceAutoRefreshRow(context),
-            const SizedBox(height: FluentSpacing.m),
+            const SizedBox(height: AppSpacing.md),
             _buildCampusCardAutoRefreshRow(context),
-            const SizedBox(height: FluentSpacing.m),
+            const SizedBox(height: AppSpacing.md),
             _buildEmailAutoRefreshRow(context),
-            const SizedBox(height: FluentSpacing.m),
+            const SizedBox(height: AppSpacing.md),
             _buildStudentReportAutoRefreshRow(context),
-            const SizedBox(height: FluentSpacing.m),
+            const SizedBox(height: AppSpacing.md),
             _buildAcademicEamsAutoRefreshRow(context),
           ],
         ),
@@ -174,41 +174,40 @@ class SettingsAutoRefreshSection extends StatelessWidget {
   }
 
   Widget _buildRefreshShortcutCard(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return Card(
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return Card.filled(
       child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.xl),
+        padding: AppSpacing.cardPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('消息自动刷新快捷入口', style: theme.typography.subtitle),
-            const SizedBox(height: FluentSpacing.s),
+            Semantics(header: true, child: Text('消息自动刷新快捷入口', style: textTheme.titleMedium)),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               '以下入口会跳转到对应分区顶部的自动刷新设置面板。',
-              style: theme.typography.caption?.copyWith(
-                color: theme.resources.textFillColorSecondary,
-              ),
+              style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
             ),
-            const SizedBox(height: FluentSpacing.l),
+            const SizedBox(height: AppSpacing.md),
             _buildShortcutRow(
               context: context,
-              icon: FluentIcons.education,
+              icon: Icons.school_outlined,
               title: '职能部门',
               description: '配置职能部门官网消息的自动刷新频率和抓取条数',
               onPressed: onOpenDepartmentRefreshSettings,
             ),
-            const SizedBox(height: FluentSpacing.m),
+            const SizedBox(height: AppSpacing.md),
             _buildShortcutRow(
               context: context,
-              icon: FluentIcons.library,
+              icon: Icons.local_library_outlined,
               title: '教学单位',
               description: '配置学院、中心等教学单位消息的自动刷新频率和抓取条数',
               onPressed: onOpenTeachingRefreshSettings,
             ),
-            const SizedBox(height: FluentSpacing.m),
+            const SizedBox(height: AppSpacing.md),
             _buildShortcutRow(
               context: context,
-              icon: FluentIcons.chat,
+              icon: Icons.chat_outlined,
               title: '微信推文',
               description: '配置公众号平台推文的自动刷新频率和抓取条数',
               onPressed: onOpenWechatRefreshSettings,
@@ -227,13 +226,15 @@ class SettingsAutoRefreshSection extends StatelessWidget {
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 180),
-      child: ComboBox<int>(
+      child: DropdownButton<int>(
         isExpanded: true,
         value: selectedValue,
         items: kIntervalOptions.entries
             .map(
-              (entry) =>
-                  ComboBoxItem<int>(value: entry.key, child: Text(entry.value)),
+              (entry) => DropdownMenuItem<int>(
+                value: entry.key,
+                child: Text(entry.value),
+              ),
             )
             .toList(),
         onChanged: (value) {
@@ -252,13 +253,13 @@ class SettingsAutoRefreshSection extends StatelessWidget {
     required String description,
     required VoidCallback onPressed,
   }) {
-    final theme = FluentTheme.of(context);
+    final textTheme = Theme.of(context).textTheme;
     return buildResponsiveSettingsRow(
       context: context,
       icon: icon,
-      title: Text(title, style: theme.typography.bodyStrong),
-      subtitle: Text(description, style: theme.typography.caption),
-      trailing: Button(onPressed: onPressed, child: const Text('前往设置')),
+      title: Text(title, style: textTheme.titleSmall),
+      subtitle: Text(description, style: textTheme.bodySmall),
+      trailing: OutlinedButton(onPressed: onPressed, child: const Text('前往设置')),
     );
   }
 }

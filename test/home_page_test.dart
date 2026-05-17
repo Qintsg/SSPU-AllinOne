@@ -6,7 +6,7 @@
  * @Date : 2026-04-30
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:sspu_allinone/widgets/material_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/models/campus_card.dart';
@@ -43,7 +43,7 @@ void main() {
   testWidgets('首页校园卡卡片可手动刷新并进入详情页', (tester) async {
     final service = _FakeCampusCardClient(result: _successResult);
     await tester.pumpWidget(
-      FluentApp(
+      MaterialApp(
         home: HomePage(
           campusCardService: service,
           campusCardAutoRefreshEnabledOverride: false,
@@ -76,7 +76,7 @@ void main() {
   testWidgets('校园卡自动刷新开启时会主动读取余额', (tester) async {
     final service = _FakeCampusCardClient(result: _successResult);
     await tester.pumpWidget(
-      FluentApp(
+      MaterialApp(
         home: HomePage(
           campusCardService: service,
           campusCardAutoRefreshEnabledOverride: true,

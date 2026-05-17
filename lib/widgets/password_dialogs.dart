@@ -6,11 +6,13 @@
  * @Date : 2026-04-17
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
-import '../services/password_service.dart';
+import 'package:flutter/material.dart';
 
-/// 显示设置密码对话框
-/// 返回 true 表示密码设置成功
+import '../services/password_service.dart';
+import '../theme/app_spacing.dart';
+
+/// 显示设置密码对话框。
+/// 返回 true 表示密码设置成功。
 Future<bool> showSetPasswordDialog(BuildContext context) async {
   final passwordController = TextEditingController();
   final confirmController = TextEditingController();
@@ -21,42 +23,33 @@ Future<bool> showSetPasswordDialog(BuildContext context) async {
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          return ContentDialog(
+          return AlertDialog(
             title: const Text('设置密码'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('设置密码后，每次重新打开应用时需要输入密码才能进入。'),
-                const SizedBox(height: 16),
-                InfoLabel(
+                const SizedBox(height: AppSpacing.md),
+                _PasswordField(
+                  controller: passwordController,
                   label: '输入密码',
-                  child: PasswordBox(
-                    controller: passwordController,
-                    placeholder: '请输入密码',
-                    revealMode: PasswordRevealMode.peekAlways,
-                  ),
+                  hintText: '请输入密码',
                 ),
-                const SizedBox(height: 12),
-                InfoLabel(
+                const SizedBox(height: AppSpacing.sm),
+                _PasswordField(
+                  controller: confirmController,
                   label: '确认密码',
-                  child: PasswordBox(
-                    controller: confirmController,
-                    placeholder: '请再次输入密码',
-                    revealMode: PasswordRevealMode.peekAlways,
-                  ),
+                  hintText: '请再次输入密码',
                 ),
                 if (errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  InfoBar(
-                    title: Text(errorMessage!),
-                    severity: InfoBarSeverity.error,
-                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _PasswordDialogError(message: errorMessage!),
                 ],
               ],
             ),
             actions: [
-              Button(
+              TextButton(
                 child: const Text('取消'),
                 onPressed: () => Navigator.pop(dialogContext, false),
               ),
@@ -95,8 +88,8 @@ Future<bool> showSetPasswordDialog(BuildContext context) async {
   return false;
 }
 
-/// 显示移除密码的确认对话框
-/// 返回 true 表示密码移除成功
+/// 显示移除密码的确认对话框。
+/// 返回 true 表示密码移除成功。
 Future<bool> showRemovePasswordDialog(BuildContext context) async {
   final passwordController = TextEditingController();
   String? errorMessage;
@@ -106,33 +99,27 @@ Future<bool> showRemovePasswordDialog(BuildContext context) async {
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          return ContentDialog(
+          return AlertDialog(
             title: const Text('移除密码'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('请输入当前密码以确认移除密码保护。'),
-                const SizedBox(height: 16),
-                InfoLabel(
+                const SizedBox(height: AppSpacing.md),
+                _PasswordField(
+                  controller: passwordController,
                   label: '当前密码',
-                  child: PasswordBox(
-                    controller: passwordController,
-                    placeholder: '请输入当前密码',
-                    revealMode: PasswordRevealMode.peekAlways,
-                  ),
+                  hintText: '请输入当前密码',
                 ),
                 if (errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  InfoBar(
-                    title: Text(errorMessage!),
-                    severity: InfoBarSeverity.error,
-                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _PasswordDialogError(message: errorMessage!),
                 ],
               ],
             ),
             actions: [
-              Button(
+              TextButton(
                 child: const Text('取消'),
                 onPressed: () => Navigator.pop(dialogContext, false),
               ),
@@ -184,33 +171,27 @@ Future<bool> showConfirmCurrentPasswordDialog(
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          return ContentDialog(
+          return AlertDialog(
             title: Text(title),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(message),
-                const SizedBox(height: 16),
-                InfoLabel(
+                const SizedBox(height: AppSpacing.md),
+                _PasswordField(
+                  controller: passwordController,
                   label: '当前密码',
-                  child: PasswordBox(
-                    controller: passwordController,
-                    placeholder: '请输入当前密码',
-                    revealMode: PasswordRevealMode.peekAlways,
-                  ),
+                  hintText: '请输入当前密码',
                 ),
                 if (errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  InfoBar(
-                    title: Text(errorMessage!),
-                    severity: InfoBarSeverity.error,
-                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _PasswordDialogError(message: errorMessage!),
                 ],
               ],
             ),
             actions: [
-              Button(
+              TextButton(
                 child: const Text('取消'),
                 onPressed: () => Navigator.pop(dialogContext, false),
               ),
@@ -240,8 +221,8 @@ Future<bool> showConfirmCurrentPasswordDialog(
   return result == true;
 }
 
-/// 显示修改密码对话框
-/// 返回 true 表示密码修改成功
+/// 显示修改密码对话框。
+/// 返回 true 表示密码修改成功。
 Future<bool> showChangePasswordDialog(BuildContext context) async {
   final oldPasswordController = TextEditingController();
   final newPasswordController = TextEditingController();
@@ -253,49 +234,37 @@ Future<bool> showChangePasswordDialog(BuildContext context) async {
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          return ContentDialog(
+          return AlertDialog(
             title: const Text('修改密码'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                InfoLabel(
+                _PasswordField(
+                  controller: oldPasswordController,
                   label: '当前密码',
-                  child: PasswordBox(
-                    controller: oldPasswordController,
-                    placeholder: '请输入当前密码',
-                    revealMode: PasswordRevealMode.peekAlways,
-                  ),
+                  hintText: '请输入当前密码',
                 ),
-                const SizedBox(height: 12),
-                InfoLabel(
+                const SizedBox(height: AppSpacing.sm),
+                _PasswordField(
+                  controller: newPasswordController,
                   label: '新密码',
-                  child: PasswordBox(
-                    controller: newPasswordController,
-                    placeholder: '请输入新密码',
-                    revealMode: PasswordRevealMode.peekAlways,
-                  ),
+                  hintText: '请输入新密码',
                 ),
-                const SizedBox(height: 12),
-                InfoLabel(
+                const SizedBox(height: AppSpacing.sm),
+                _PasswordField(
+                  controller: confirmController,
                   label: '确认新密码',
-                  child: PasswordBox(
-                    controller: confirmController,
-                    placeholder: '请再次输入新密码',
-                    revealMode: PasswordRevealMode.peekAlways,
-                  ),
+                  hintText: '请再次输入新密码',
                 ),
                 if (errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  InfoBar(
-                    title: Text(errorMessage!),
-                    severity: InfoBarSeverity.error,
-                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _PasswordDialogError(message: errorMessage!),
                 ],
               ],
             ),
             actions: [
-              Button(
+              TextButton(
                 child: const Text('取消'),
                 onPressed: () => Navigator.pop(dialogContext, false),
               ),
@@ -346,4 +315,54 @@ Future<bool> showChangePasswordDialog(BuildContext context) async {
   newPasswordController.dispose();
   confirmController.dispose();
   return false;
+}
+
+class _PasswordField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String hintText;
+
+  const _PasswordField({
+    required this.controller,
+    required this.label,
+    required this.hintText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      obscureText: true,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hintText,
+        prefixIcon: const Icon(Icons.lock_outline),
+      ),
+    );
+  }
+}
+
+class _PasswordDialogError extends StatelessWidget {
+  final String message;
+
+  const _PasswordDialogError({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Row(
+      children: [
+        Icon(Icons.error_outline, color: colorScheme.error),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Text(
+            message,
+            style: textTheme.bodySmall?.copyWith(color: colorScheme.error),
+          ),
+        ),
+      ],
+    );
+  }
 }

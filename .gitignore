@@ -108,6 +108,7 @@ Desktop.ini
 .github/copilot-runtime/
 
 # 本地自动化与平台安装器临时产物
+.claude/
 .omx/
 .codex/
 .playwright-mcp/

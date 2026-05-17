@@ -6,12 +6,15 @@
  * @Date : 2026-04-17
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-import '../theme/fluent_tokens.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_shapes.dart';
+import '../theme/app_spacing.dart';
 import 'responsive_layout.dart';
 
-/// 可选的自动刷新间隔（分钟 => 显示文本）
+/// 可选的自动刷新间隔（分钟 => 显示文本）。
 const Map<int, String> kIntervalOptions = {
   0: '关闭',
   15: '15 分钟',
@@ -23,42 +26,43 @@ const Map<int, String> kIntervalOptions = {
   1440: '24 小时',
 };
 
-/// 构建自动刷新间隔选择器
-/// [currentValue] 当前间隔（分钟）
-/// [enabled] 渠道是否启用（未启用时灰色不可点）
-/// [onChanged] 选中新值后回调
+/// 构建自动刷新间隔选择器。
 Widget buildIntervalSelector({
   required BuildContext context,
   required int currentValue,
   required bool enabled,
   required Future<void> Function(int minutes) onChanged,
 }) {
+  final colorScheme = Theme.of(context).colorScheme;
+  final textTheme = Theme.of(context).textTheme;
+  final disabledColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
+
   return Padding(
-    padding: const EdgeInsets.only(left: 32, top: 6),
-    child: Row(
+    padding: const EdgeInsetsDirectional.only(
+      start: AppSpacing.xl,
+      top: AppSpacing.sm,
+    ),
+    child: Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Icon(
-          FluentIcons.sync,
-          size: 14,
-          color: enabled
-              ? FluentTheme.of(context).inactiveColor
-              : FluentTheme.of(context).inactiveColor.withValues(alpha: 0.4),
+          Icons.sync,
+          size: 20,
+          color: enabled ? colorScheme.onSurfaceVariant : disabledColor,
         ),
-        const SizedBox(width: 8),
         Text(
           '自动刷新：',
-          style: FluentTheme.of(context).typography.caption?.copyWith(
-            color: enabled
-                ? null
-                : FluentTheme.of(context).inactiveColor.withValues(alpha: 0.4),
+          style: textTheme.bodySmall?.copyWith(
+            color: enabled ? colorScheme.onSurfaceVariant : disabledColor,
           ),
         ),
-        const SizedBox(width: 4),
-        ComboBox<int>(
+        DropdownButton<int>(
           value: kIntervalOptions.containsKey(currentValue) ? currentValue : 0,
           items: kIntervalOptions.entries
               .map(
-                (entry) => ComboBoxItem<int>(
+                (entry) => DropdownMenuItem<int>(
                   value: entry.key,
                   child: Text(entry.value),
                 ),
@@ -75,12 +79,7 @@ Widget buildIntervalSelector({
   );
 }
 
-/// 构建左侧垂直导航项目
-/// [index] 当前导航项索引
-/// [selectedIndex] 当前选中的索引
-/// [icon] 导航图标
-/// [label] 导航文本
-/// [onTap] 点击回调
+/// 构建左侧垂直导航项目。
 Widget buildSettingsNavItem({
   required BuildContext context,
   required int index,
@@ -90,51 +89,58 @@ Widget buildSettingsNavItem({
   required VoidCallback onTap,
 }) {
   final isSelected = index == selectedIndex;
-  final theme = FluentTheme.of(context);
+  final colorScheme = Theme.of(context).colorScheme;
+  final textTheme = Theme.of(context).textTheme;
 
-  return HoverButton(
-    onPressed: onTap,
-    builder: (context, states) {
-      final hovered = states.isHovered || states.isPressed;
-      return AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
+  return Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: AppShapes.md,
+      child: AnimatedContainer(
+        duration: AppMotion.short,
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
         decoration: BoxDecoration(
-          color: isSelected
-              ? theme.accentColor.withValues(alpha: 0.1)
-              : hovered
-              ? theme.inactiveColor.withValues(alpha: 0.06)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
+          color: isSelected ? colorScheme.secondaryContainer : null,
+          borderRadius: AppShapes.md,
         ),
         child: Row(
           children: [
-            // 选中指示条
             AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              width: 3,
-              height: 16,
-              margin: const EdgeInsets.only(right: 10),
+              duration: AppMotion.short,
+              width: 4,
+              height: 24,
+              margin: const EdgeInsetsDirectional.only(end: AppSpacing.sm),
               decoration: BoxDecoration(
-                color: isSelected ? theme.accentColor : Colors.transparent,
-                borderRadius: BorderRadius.circular(2),
+                color: isSelected ? colorScheme.primary : Colors.transparent,
+                borderRadius: AppShapes.xs,
               ),
             ),
-            Icon(icon, size: 16, color: isSelected ? theme.accentColor : null),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: isSelected
-                  ? theme.typography.bodyStrong?.copyWith(
-                      color: theme.accentColor,
-                    )
-                  : theme.typography.body,
+            Icon(
+              icon,
+              color: isSelected
+                  ? colorScheme.onSecondaryContainer
+                  : colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                label,
+                style: isSelected
+                    ? textTheme.titleSmall?.copyWith(
+                        color: colorScheme.onSecondaryContainer,
+                      )
+                    : textTheme.bodyMedium,
+              ),
             ),
           ],
         ),
-      );
-    },
+      ),
+    ),
   );
 }
 
@@ -147,10 +153,35 @@ Widget buildCountNumberBox({
   required bool enabled,
   required ValueChanged<int> onChanged,
 }) {
-  final theme = FluentTheme.of(context);
+  final colorScheme = Theme.of(context).colorScheme;
+  final textTheme = Theme.of(context).textTheme;
   final foreground = enabled
-      ? theme.typography.caption?.color
-      : theme.inactiveColor.withValues(alpha: 0.4);
+      ? colorScheme.onSurfaceVariant
+      : colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
+
+  Widget numberField() {
+    return SizedBox(
+      width: 128,
+      child: TextFormField(
+        key: ValueKey('$label-$value-$enabled'),
+        initialValue: value.toString(),
+        enabled: enabled,
+        keyboardType: TextInputType.number,
+        textInputAction: TextInputAction.done,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        decoration: const InputDecoration(isDense: true, suffixText: '条'),
+        onChanged: (newValue) {
+          final parsed = int.tryParse(newValue);
+          if (parsed == null) return;
+          onChanged(parsed.clamp(1, 200));
+        },
+        onFieldSubmitted: (newValue) {
+          final parsed = int.tryParse(newValue);
+          onChanged((parsed ?? value).clamp(1, 200));
+        },
+      ),
+    );
+  }
 
   return LayoutBuilder(
     builder: (context, constraints) {
@@ -163,30 +194,11 @@ Widget buildCountNumberBox({
             children: [
               Text(
                 '$label：',
-                style: theme.typography.caption?.copyWith(color: foreground),
+                style: textTheme.bodySmall?.copyWith(color: foreground),
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: FluentSpacing.xs),
-              SizedBox(
-                width: 128,
-                child: NumberBox(
-                  value: value,
-                  min: 1,
-                  max: 200,
-                  mode: SpinButtonPlacementMode.inline,
-                  smallChange: 1,
-                  onChanged: enabled
-                      ? (newValue) {
-                          final parsed = num.tryParse('${newValue ?? value}');
-                          final normalized = (parsed?.round() ?? value).clamp(
-                            1,
-                            200,
-                          );
-                          onChanged(normalized);
-                        }
-                      : null,
-                ),
-              ),
+              const SizedBox(height: AppSpacing.xs),
+              numberField(),
             ],
           ),
         );
@@ -199,31 +211,12 @@ Widget buildCountNumberBox({
             Expanded(
               child: Text(
                 '$label：',
-                style: theme.typography.caption?.copyWith(color: foreground),
+                style: textTheme.bodySmall?.copyWith(color: foreground),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: FluentSpacing.s),
-            SizedBox(
-              width: 128,
-              child: NumberBox(
-                value: value,
-                min: 1,
-                max: 200,
-                mode: SpinButtonPlacementMode.inline,
-                smallChange: 1,
-                onChanged: enabled
-                    ? (newValue) {
-                        final parsed = num.tryParse('${newValue ?? value}');
-                        final normalized = (parsed?.round() ?? value).clamp(
-                          1,
-                          200,
-                        );
-                        onChanged(normalized);
-                      }
-                    : null,
-              ),
-            ),
+            const SizedBox(width: AppSpacing.sm),
+            numberField(),
           ],
         ),
       );
@@ -246,14 +239,14 @@ Widget buildResponsiveSettingsRow({
       final leading = Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: iconColor),
-          const SizedBox(width: FluentSpacing.m),
+          Icon(icon, color: iconColor ?? Theme.of(context).colorScheme.primary),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 title,
-                const SizedBox(height: FluentSpacing.xxs),
+                const SizedBox(height: AppSpacing.xs),
                 subtitle,
               ],
             ),
@@ -266,9 +259,9 @@ Widget buildResponsiveSettingsRow({
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             leading,
-            const SizedBox(height: FluentSpacing.s),
+            const SizedBox(height: AppSpacing.sm),
             Padding(
-              padding: const EdgeInsets.only(left: FluentSpacing.xxl),
+              padding: const EdgeInsetsDirectional.only(start: AppSpacing.xxl),
               child: trailing,
             ),
           ],
@@ -278,7 +271,7 @@ Widget buildResponsiveSettingsRow({
       return Row(
         children: [
           Expanded(child: leading),
-          const SizedBox(width: FluentSpacing.m),
+          const SizedBox(width: AppSpacing.md),
           trailing,
         ],
       );
@@ -286,11 +279,7 @@ Widget buildResponsiveSettingsRow({
   );
 }
 
-/// 构建时间选择器（小时 + 分钟 ComboBox）
-/// [label] 标签（如"开始""结束"）
-/// [hour] 当前小时（0–23）
-/// [minute] 当前分钟（0/15/30/45）
-/// [onChanged] 选中新值后回调
+/// 构建时间选择器（小时 + 分钟下拉框）。
 Widget buildTimePicker({
   required BuildContext context,
   required String label,
@@ -298,15 +287,19 @@ Widget buildTimePicker({
   required int minute,
   required Future<void> Function(int h, int m) onChanged,
 }) {
-  return Row(
-    mainAxisSize: MainAxisSize.min,
+  final textTheme = Theme.of(context).textTheme;
+
+  return Wrap(
+    spacing: AppSpacing.xs,
+    runSpacing: AppSpacing.xs,
+    crossAxisAlignment: WrapCrossAlignment.center,
     children: [
-      Text('$label ', style: FluentTheme.of(context).typography.caption),
-      ComboBox<int>(
+      Text('$label ', style: textTheme.bodySmall),
+      DropdownButton<int>(
         value: hour,
         items: List.generate(
           24,
-          (h) => ComboBoxItem<int>(
+          (h) => DropdownMenuItem<int>(
             value: h,
             child: Text(h.toString().padLeft(2, '0')),
           ),
@@ -315,17 +308,14 @@ Widget buildTimePicker({
           if (h != null) onChanged(h, minute);
         },
       ),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Text(':', style: FluentTheme.of(context).typography.bodyStrong),
-      ),
-      ComboBox<int>(
+      Text(':', style: textTheme.titleSmall),
+      DropdownButton<int>(
         value: [0, 15, 30, 45].contains(minute) ? minute : 0,
         items: const [
-          ComboBoxItem(value: 0, child: Text('00')),
-          ComboBoxItem(value: 15, child: Text('15')),
-          ComboBoxItem(value: 30, child: Text('30')),
-          ComboBoxItem(value: 45, child: Text('45')),
+          DropdownMenuItem(value: 0, child: Text('00')),
+          DropdownMenuItem(value: 15, child: Text('15')),
+          DropdownMenuItem(value: 30, child: Text('30')),
+          DropdownMenuItem(value: 45, child: Text('45')),
         ],
         onChanged: (m) {
           if (m != null) onChanged(hour, m);
@@ -335,12 +325,7 @@ Widget buildTimePicker({
   );
 }
 
-/// 构建信息渠道开关行
-/// [icon] 图标
-/// [title] 渠道名称
-/// [subtitle] 渠道描述
-/// [value] 是否启用
-/// [onChanged] 切换回调
+/// 构建信息渠道开关行。
 Widget buildChannelToggle({
   required BuildContext context,
   required IconData icon,
@@ -349,31 +334,34 @@ Widget buildChannelToggle({
   required bool value,
   required ValueChanged<bool> onChanged,
 }) {
+  final textTheme = Theme.of(context).textTheme;
+  final colorScheme = Theme.of(context).colorScheme;
+
   return Row(
     children: [
-      Icon(icon, size: 20),
-      const SizedBox(width: 12),
+      Icon(icon, color: colorScheme.primary),
+      const SizedBox(width: AppSpacing.md),
       Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: FluentTheme.of(context).typography.bodyStrong),
-            const SizedBox(height: 2),
-            Text(subtitle, style: FluentTheme.of(context).typography.caption),
+            Text(title, style: textTheme.titleSmall),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              subtitle,
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
       ),
-      ToggleSwitch(checked: value, onChanged: onChanged),
+      Switch(value: value, onChanged: onChanged),
     ],
   );
 }
 
-/// 构建设置分区导航栏按钮
-/// [index] 分区索引
-/// [selectedIndex] 当前选中索引
-/// [icon] 图标
-/// [label] 显示文本
-/// [onTap] 点击回调
+/// 构建设置分区导航栏按钮。
 Widget buildNavTab({
   required BuildContext context,
   required int index,
@@ -383,36 +371,23 @@ Widget buildNavTab({
   required VoidCallback onTap,
 }) {
   final isSelected = selectedIndex == index;
-  final theme = FluentTheme.of(context);
+  final colorScheme = Theme.of(context).colorScheme;
+
   return Padding(
-    padding: const EdgeInsets.only(bottom: 4),
-    child: Button(
-      style: ButtonStyle(
-        padding: WidgetStatePropertyAll(
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        ),
-        backgroundColor: WidgetStatePropertyAll(
-          isSelected
-              ? theme.accentColor.withValues(alpha: 0.1)
-              : Colors.transparent,
-        ),
-      ),
-      onPressed: onTap,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: isSelected ? theme.accentColor : null),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: isSelected
-                ? theme.typography.bodyStrong?.copyWith(
-                    color: theme.accentColor,
-                  )
-                : theme.typography.body,
+    padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.xs),
+    child: isSelected
+        ? FilledButton.tonalIcon(
+            onPressed: onTap,
+            icon: Icon(icon),
+            label: Text(label),
+          )
+        : TextButton.icon(
+            style: TextButton.styleFrom(
+              foregroundColor: colorScheme.onSurfaceVariant,
+            ),
+            onPressed: onTap,
+            icon: Icon(icon),
+            label: Text(label),
           ),
-        ],
-      ),
-    ),
   );
 }

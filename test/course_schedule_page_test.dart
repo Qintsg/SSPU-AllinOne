@@ -6,7 +6,7 @@
  * @Date : 2026-05-02
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:sspu_allinone/widgets/material_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/pages/course_schedule_page.dart';
@@ -22,7 +22,7 @@ Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
 void main() {
   testWidgets('课程表页面自动刷新开启时会主动读取课表', (tester) async {
     await tester.pumpWidget(
-      FluentApp(
+      MaterialApp(
         home: CourseSchedulePage(
           academicEamsService: _FakeAcademicEamsClient(result: _successResult),
           autoRefreshEnabledOverride: true,
@@ -42,7 +42,7 @@ void main() {
 
   testWidgets('课程表页面展示缺少 OA 密码提示', (tester) async {
     await tester.pumpWidget(
-      FluentApp(
+      MaterialApp(
         home: CourseSchedulePage(
           academicEamsService: _FakeAcademicEamsClient(
             result: _missingPassword,
@@ -61,7 +61,7 @@ void main() {
 
   testWidgets('课程表页面作为二级页面打开时显示返回按钮', (tester) async {
     await tester.pumpWidget(
-      FluentApp(
+      MaterialApp(
         home: Navigator(
           onGenerateRoute: (_) =>
               FluentPageRoute(builder: (_) => const SizedBox.shrink()),

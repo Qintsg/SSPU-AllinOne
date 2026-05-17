@@ -6,7 +6,7 @@
  * @Date : 2025-04-17
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/material.dart';
 import 'message_item.dart';
 
 part 'channel_config_department.dart';

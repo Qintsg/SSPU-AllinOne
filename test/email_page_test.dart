@@ -6,7 +6,7 @@
  * @Date : 2026-05-01
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:sspu_allinone/widgets/material_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/models/email_mailbox.dart';
 import 'package:sspu_allinone/pages/email_page.dart';
@@ -24,7 +24,7 @@ void main() {
   testWidgets('邮箱页面可读取 IMAP 邮件并进入正文详情', (tester) async {
     final service = _FakeEmailClient();
     await tester.pumpWidget(
-      FluentApp(
+      MaterialApp(
         home: EmailPage(
           emailService: service,
           emailAutoRefreshEnabledOverride: false,
@@ -58,7 +58,7 @@ void main() {
   testWidgets('邮箱页面可触发 SMTP 登录校验但不读取邮件', (tester) async {
     final service = _FakeEmailClient();
     await tester.pumpWidget(
-      FluentApp(
+      MaterialApp(
         home: EmailPage(
           emailService: service,
           emailAutoRefreshEnabledOverride: false,
@@ -81,7 +81,7 @@ void main() {
   testWidgets('邮箱自动刷新开启时会主动读取 IMAP 邮件', (tester) async {
     final service = _FakeEmailClient();
     await tester.pumpWidget(
-      FluentApp(
+      MaterialApp(
         home: EmailPage(
           emailService: service,
           emailAutoRefreshEnabledOverride: true,

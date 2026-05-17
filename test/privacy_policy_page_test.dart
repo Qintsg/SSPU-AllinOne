@@ -6,7 +6,7 @@
  * @Date : 2026-05-15
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:sspu_allinone/widgets/material_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sspu_allinone/pages/about_page.dart';
@@ -25,7 +25,7 @@ void main() {
   });
 
   testWidgets('隐私协议页面展示本地数据和系统安全存储说明', (tester) async {
-    await tester.pumpWidget(const FluentApp(home: PrivacyPolicyPage()));
+    await tester.pumpWidget(const MaterialApp(home: PrivacyPolicyPage()));
 
     expect(find.text('隐私协议'), findsOneWidget);
     expect(find.textContaining('开发者不会主动收集、上传'), findsOneWidget);
@@ -38,7 +38,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1000, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const FluentApp(home: AboutPage()));
+    await tester.pumpWidget(const MaterialApp(home: AboutPage()));
     await tester.pumpAndSettle();
 
     expect(find.text('隐私协议'), findsOneWidget);
@@ -55,7 +55,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1000, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const FluentApp(home: AboutPage()));
+    await tester.pumpWidget(const MaterialApp(home: AboutPage()));
     await tester.pumpAndSettle();
 
     expect(find.text('许可证：'), findsOneWidget);
@@ -63,7 +63,7 @@ void main() {
   });
 
   testWidgets('使用协议展示 Artistic License 2.0 许可证', (tester) async {
-    await tester.pumpWidget(const FluentApp(home: AgreementPage()));
+    await tester.pumpWidget(const MaterialApp(home: AgreementPage()));
 
     expect(find.text('使用协议'), findsOneWidget);
     expect(find.textContaining('Artistic License 2.0 许可证'), findsOneWidget);

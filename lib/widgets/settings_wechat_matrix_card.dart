@@ -6,10 +6,12 @@
  * @Date : 2026-04-23
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/material.dart';
 
 import '../models/sspu_wechat_accounts.dart';
-import '../theme/fluent_tokens.dart';
+import '../theme/app_breakpoints.dart';
+import '../theme/app_shapes.dart';
+import '../theme/app_spacing.dart';
 import '../utils/wechat_followed_account_matcher.dart';
 
 /// SSPU 微信矩阵卡片。
@@ -56,51 +58,24 @@ class SettingsWechatMatrixCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
     final allAccountsFollowed = sspuWechatAccounts.every(
       (account) => findFollowedWechatAccount(account, followedMps) != null,
     );
 
-    return Card(
+    return Card.filled(
       child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.l),
+        padding: AppSpacing.cardPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             LayoutBuilder(
               builder: (context, constraints) {
                 final shouldStack =
-                    FluentBreakpoints.fromWidth(constraints.maxWidth) ==
-                    DeviceType.phone;
-                final intro = Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: FluentSpacing.s,
-                      runSpacing: FluentSpacing.xs,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text('SSPU 微信矩阵', style: theme.typography.bodyStrong),
-                        Text(
-                          '来源：校园+微信矩阵·共 ${sspuWechatAccounts.length} 个',
-                          style: theme.typography.caption,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: FluentSpacing.s),
-                    Text(
-                      '以下为上海第二工业大学官方认可的微信公众号',
-                      style: theme.typography.caption,
-                    ),
-                    const SizedBox(height: FluentSpacing.s),
-                    Text(
-                      '已关注的公众号可在此直接控制是否获取推文；未关注项仅展示状态。',
-                      style: theme.typography.caption,
-                    ),
-                  ],
-                );
+                    AppBreakpoints.fromWidth(constraints.maxWidth) ==
+                    WindowSizeClass.compact;
+                final intro = _buildIntro(context);
                 final batchAction = !allAccountsFollowed
-                    ? _buildBatchFollowAction(theme, alignEnd: !shouldStack)
+                    ? _buildBatchFollowAction(context, alignEnd: !shouldStack)
                     : null;
 
                 if (shouldStack) {
@@ -109,7 +84,7 @@ class SettingsWechatMatrixCard extends StatelessWidget {
                     children: [
                       intro,
                       if (batchAction != null) ...[
-                        const SizedBox(height: FluentSpacing.s),
+                        const SizedBox(height: AppSpacing.sm),
                         batchAction,
                       ],
                     ],
@@ -121,22 +96,22 @@ class SettingsWechatMatrixCard extends StatelessWidget {
                   children: [
                     Expanded(child: intro),
                     if (batchAction != null) ...[
-                      const SizedBox(width: FluentSpacing.m),
+                      const SizedBox(width: AppSpacing.md),
                       batchAction,
                     ],
                   ],
                 );
               },
             ),
-            const SizedBox(height: FluentSpacing.m),
+            const SizedBox(height: AppSpacing.md),
             LayoutBuilder(
               builder: (context, constraints) {
                 final itemWidth = constraints.maxWidth < 360
                     ? constraints.maxWidth
                     : 340.0;
                 return Wrap(
-                  spacing: FluentSpacing.m,
-                  runSpacing: FluentSpacing.s,
+                  spacing: AppSpacing.md,
+                  runSpacing: AppSpacing.sm,
                   children: sspuWechatAccounts.map((account) {
                     final followed = findFollowedWechatAccount(
                       account,
@@ -150,84 +125,14 @@ class SettingsWechatMatrixCard extends StatelessWidget {
 
                     return SizedBox(
                       width: itemWidth,
-                      child: Container(
-                        padding: const EdgeInsets.all(FluentSpacing.s),
-                        decoration: BoxDecoration(
-                          color: theme.inactiveColor.withValues(alpha: 0.035),
-                          borderRadius: BorderRadius.circular(
-                            FluentRadius.xLarge,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(
-                                FluentRadius.large,
-                              ),
-                              child: Image.network(
-                                account.iconUrl,
-                                width: 36,
-                                height: 36,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Icon(
-                                      FluentIcons.chat,
-                                      size: 28,
-                                      color: theme.accentColor,
-                                    ),
-                              ),
-                            ),
-                            const SizedBox(width: FluentSpacing.s),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    account.name,
-                                    style: theme.typography.bodyStrong,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: FluentSpacing.xxs),
-                                  Text(
-                                    account.wxAccount,
-                                    style: theme.typography.caption,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: FluentSpacing.s),
-                            if (!authenticated)
-                              Text(
-                                '未认证',
-                                style: theme.typography.caption?.copyWith(
-                                  color: theme.resources.textFillColorSecondary,
-                                ),
-                              )
-                            else if (followed == null)
-                              Button(
-                                onPressed: following
-                                    ? null
-                                    : () => onFollowAccount(account),
-                                child: following
-                                    ? const SizedBox(
-                                        width: 14,
-                                        height: 14,
-                                        child: ProgressRing(strokeWidth: 2),
-                                      )
-                                    : const Text('关注'),
-                              )
-                            else
-                              Tooltip(
-                                message: '控制是否获取该公众号推文',
-                                child: ToggleSwitch(
-                                  checked: enabled,
-                                  onChanged: (value) =>
-                                      onToggleMp(fakeid, value),
-                                ),
-                              ),
-                          ],
-                        ),
+                      child: _WechatAccountTile(
+                        account: account,
+                        authenticated: authenticated,
+                        followed: followed != null,
+                        enabled: enabled,
+                        following: following,
+                        onFollow: () => onFollowAccount(account),
+                        onToggle: (value) => onToggleMp(fakeid, value),
                       ),
                     );
                   }).toList(),
@@ -240,46 +145,175 @@ class SettingsWechatMatrixCard extends StatelessWidget {
     );
   }
 
+  /// 构建卡片简介。
+  Widget _buildIntro(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.xs,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Semantics(
+              header: true,
+              child: Text('SSPU 微信矩阵', style: textTheme.titleMedium),
+            ),
+            Text(
+              '来源：校园+微信矩阵 · 共 ${sspuWechatAccounts.length} 个',
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          '以下为上海第二工业大学官方认可的微信公众号',
+          style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          '已关注的公众号可在此直接控制是否获取推文；未关注项仅展示状态。',
+          style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+        ),
+      ],
+    );
+  }
+
   Widget _buildBatchFollowAction(
-    FluentThemeData theme, {
+    BuildContext context, {
     required bool alignEnd,
   }) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
-      crossAxisAlignment: alignEnd
-          ? CrossAxisAlignment.end
-          : CrossAxisAlignment.start,
+      crossAxisAlignment: alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
-        FilledButton(
+        FilledButton.icon(
           onPressed: !authenticated || batchFollowing ? null : onBatchFollow,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (batchFollowing)
-                const Padding(
-                  padding: EdgeInsets.only(right: FluentSpacing.s),
-                  child: SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: ProgressRing(strokeWidth: 2),
-                  ),
-                ),
-              const Text('一键全部关注'),
-            ],
-          ),
+          icon: batchFollowing
+              ? const SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.group_add_outlined),
+          label: const Text('一键全部关注'),
         ),
         if (batchFollowing && batchProgress.isNotEmpty) ...[
-          const SizedBox(height: FluentSpacing.xs),
+          const SizedBox(height: AppSpacing.xs),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 220),
             child: Text(
               batchProgress,
-              style: theme.typography.caption,
+              style: textTheme.bodySmall,
               textAlign: alignEnd ? TextAlign.right : TextAlign.left,
               overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
       ],
+    );
+  }
+}
+
+class _WechatAccountTile extends StatelessWidget {
+  final SspuWechatAccount account;
+  final bool authenticated;
+  final bool followed;
+  final bool enabled;
+  final bool following;
+  final VoidCallback onFollow;
+  final ValueChanged<bool> onToggle;
+
+  const _WechatAccountTile({
+    required this.account,
+    required this.authenticated,
+    required this.followed,
+    required this.enabled,
+    required this.following,
+    required this.onFollow,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: AppShapes.md,
+      ),
+      child: Padding(
+        padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: AppShapes.sm,
+              child: Image.network(
+                account.iconUrl,
+                width: 40,
+                height: 40,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  Icons.chat_outlined,
+                  size: 32,
+                  color: colorScheme.primary,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    account.name,
+                    style: textTheme.titleSmall,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    account.wxAccount,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            if (!authenticated)
+              Text(
+                '未认证',
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              )
+            else if (!followed)
+              OutlinedButton(
+                onPressed: following ? null : onFollow,
+                child: following
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('关注'),
+              )
+            else
+              Tooltip(
+                message: '控制是否获取该公众号推文',
+                child: Switch(value: enabled, onChanged: onToggle),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

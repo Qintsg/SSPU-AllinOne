@@ -6,29 +6,30 @@
  * @Date : 2026-04-17
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
-import '../models/message_item.dart';
-import '../theme/fluent_tokens.dart';
+import 'package:flutter/material.dart';
 
-/// 单条消息列表项组件
-/// 展示消息标题、标签、日期、已读/未读状态、操作按钮
-class MessageTile extends StatelessWidget {
-  /// 消息数据
+import '../models/message_item.dart';
+import '../theme/app_breakpoints.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_shapes.dart';
+import '../theme/app_spacing.dart';
+
+/// 单条消息列表项组件。
+/// 展示消息标题、标签、日期、已读/未读状态、操作按钮。
+class MessageTile extends StatefulWidget {
+  /// 消息数据。
   final MessageItem message;
 
-  /// 是否已读
+  /// 是否已读。
   final bool isRead;
 
-  /// 当前是否暗色主题
+  /// 当前是否暗色主题；迁移期间保留兼容参数，组件实际从 Theme 读取颜色。
   final bool isDark;
 
-  /// 当前 Fluent 主题
-  final FluentThemeData theme;
-
-  /// 点击跳转回调
+  /// 点击跳转回调。
   final VoidCallback onTap;
 
-  /// 标为已读回调
+  /// 标为已读回调。
   final VoidCallback onMarkRead;
 
   const MessageTile({
@@ -36,59 +37,62 @@ class MessageTile extends StatelessWidget {
     required this.message,
     required this.isRead,
     required this.isDark,
-    required this.theme,
     required this.onTap,
     required this.onMarkRead,
   });
 
   @override
+  State<MessageTile> createState() => _MessageTileState();
+}
+
+class _MessageTileState extends State<MessageTile> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    // 未读消息使用更醒目的样式
-    final titleStyle = isRead
-        ? theme.typography.body?.copyWith(
-            color: theme.resources.textFillColorSecondary,
-          )
-        : theme.typography.bodyStrong;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final titleStyle = widget.isRead
+        ? textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)
+        : textTheme.titleSmall;
 
-    return HoverButton(
-      onPressed: onTap,
-      builder: (context, states) {
-        final isHovered = states.isHovered;
-
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(
-            vertical: FluentSpacing.s + FluentSpacing.xxs,
-            horizontal: FluentSpacing.m,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: InkWell(
+        onTap: widget.onTap,
+        borderRadius: AppShapes.md,
+        child: AnimatedContainer(
+          duration: AppMotion.short,
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsetsDirectional.symmetric(
+            vertical: AppSpacing.sm,
+            horizontal: AppSpacing.md,
           ),
           decoration: BoxDecoration(
-            color: isHovered
-                ? (isDark
-                      ? FluentDarkColors.hoverFill
-                      : FluentLightColors.hoverFill)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(FluentRadius.large),
+            color: _isHovered ? colorScheme.surfaceContainerHighest : null,
+            borderRadius: AppShapes.md,
           ),
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isNarrow =
-                  FluentBreakpoints.fromWidth(constraints.maxWidth) ==
-                  DeviceType.phone;
-              final content = _buildMessageContent(titleStyle);
-              final actions = _buildDateAndActions(isNarrow: isNarrow);
+                  AppBreakpoints.fromWidth(constraints.maxWidth) ==
+                  WindowSizeClass.compact;
+              final content = _buildMessageContent(context, titleStyle);
+              final actions = _buildDateAndActions(context, isNarrow: isNarrow);
 
               if (isNarrow) {
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildUnreadIndicator(),
+                    _buildUnreadIndicator(context),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           content,
-                          const SizedBox(height: FluentSpacing.s),
+                          const SizedBox(height: AppSpacing.sm),
                           actions,
                         ],
                       ),
@@ -99,76 +103,73 @@ class MessageTile extends StatelessWidget {
 
               return Row(
                 children: [
-                  _buildUnreadIndicator(),
+                  _buildUnreadIndicator(context),
                   Expanded(child: content),
-                  const SizedBox(width: FluentSpacing.m),
+                  const SizedBox(width: AppSpacing.md),
                   actions,
                 ],
               );
             },
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Widget _buildUnreadIndicator() {
+  /// 构建未读指示点。
+  Widget _buildUnreadIndicator(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      width: FluentSpacing.s,
-      height: FluentSpacing.s,
-      margin: const EdgeInsets.only(
-        top: FluentSpacing.xs,
-        right: FluentSpacing.s + FluentSpacing.xxs,
+      width: AppSpacing.sm,
+      height: AppSpacing.sm,
+      margin: const EdgeInsetsDirectional.only(
+        top: AppSpacing.xs,
+        end: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isRead
-            ? Colors.transparent
-            : (isDark
-                  ? FluentDarkColors.unreadIndicator
-                  : FluentLightColors.unreadIndicator),
+        color: widget.isRead ? null : colorScheme.primary,
       ),
     );
   }
 
-  Widget _buildMessageContent(TextStyle? titleStyle) {
+  /// 构建消息主体内容。
+  Widget _buildMessageContent(BuildContext context, TextStyle? titleStyle) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          message.title,
+          widget.message.title,
           style: titleStyle,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: FluentSpacing.xs + FluentSpacing.xxs),
+        const SizedBox(height: AppSpacing.xs),
         Wrap(
-          spacing: FluentSpacing.xs + FluentSpacing.xxs,
-          runSpacing: FluentSpacing.xs,
-          children: _buildMetadataTags(),
+          spacing: AppSpacing.xs,
+          runSpacing: AppSpacing.xs,
+          children: _buildMetadataTags(context),
         ),
       ],
     );
   }
 
-  Widget _buildDateAndActions({required bool isNarrow}) {
+  /// 构建日期与操作按钮区域。
+  Widget _buildDateAndActions(BuildContext context, {required bool isNarrow}) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final dateText = Text(
-      _formatDisplayDateTime(message),
-      style: theme.typography.caption?.copyWith(
-        color: theme.resources.textFillColorSecondary,
-      ),
+      _formatDisplayDateTime(widget.message),
+      style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
     );
-    final buttons = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: _actionButtons,
-    );
+    final buttons = Row(mainAxisSize: MainAxisSize.min, children: _actionButtons);
 
     if (isNarrow) {
       return Wrap(
-        spacing: FluentSpacing.s,
-        runSpacing: FluentSpacing.xs,
+        spacing: AppSpacing.sm,
+        runSpacing: AppSpacing.xs,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [dateText, buttons],
       );
@@ -182,7 +183,7 @@ class MessageTile extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 160),
           child: dateText,
         ),
-        const SizedBox(height: FluentSpacing.xs + FluentSpacing.xxs),
+        const SizedBox(height: AppSpacing.xs),
         buttons,
       ],
     );
@@ -190,21 +191,16 @@ class MessageTile extends StatelessWidget {
 
   List<Widget> get _actionButtons {
     return [
-      Tooltip(
-        message: '在浏览器中打开',
-        child: IconButton(
-          icon: const Icon(FluentIcons.open_in_new_window, size: 14),
-          onPressed: onTap,
-        ),
+      IconButton(
+        tooltip: '在浏览器中打开',
+        icon: const Icon(Icons.open_in_new),
+        onPressed: widget.onTap,
       ),
-      const SizedBox(width: FluentSpacing.xs),
-      if (!isRead)
-        Tooltip(
-          message: '标为已读',
-          child: IconButton(
-            icon: const Icon(FluentIcons.read, size: 14),
-            onPressed: onMarkRead,
-          ),
+      if (!widget.isRead)
+        IconButton(
+          tooltip: '标为已读',
+          icon: const Icon(Icons.mark_email_read_outlined),
+          onPressed: widget.onMarkRead,
         ),
     ];
   }
@@ -232,61 +228,98 @@ class MessageTile extends StatelessWidget {
     return '$year-$month-$day';
   }
 
-  /// 格式化时间戳为 HH:mm
+  /// 格式化时间戳为 HH:mm。
   String _formatTime(int timestampMs) {
     final dt = DateTime.fromMillisecondsSinceEpoch(timestampMs);
     return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
-  /// 构建标签 badge
-  /// [text] 标签文字
-  /// [color] 标签颜色
-  Widget _buildTag(String text, AccentColor color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: FluentSpacing.xs + FluentSpacing.xxs,
-        vertical: FluentSpacing.xxs,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: isDark ? 0.2 : 0.1),
-        borderRadius: BorderRadius.circular(FluentRadius.medium),
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 220),
-        child: Text(
-          text,
-          style: theme.typography.caption?.copyWith(
-            fontSize: FluentTypographySize.caption - 1,
-            color: isDark ? color.lighter : color.dark,
+  /// 构建标签 badge。
+  Widget _buildTag(
+    BuildContext context,
+    String text, {
+    required Color backgroundColor,
+    required Color foregroundColor,
+  }) {
+    return DecoratedBox(
+      decoration: BoxDecoration(color: backgroundColor, borderRadius: AppShapes.sm),
+      child: Padding(
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 220),
+          child: Text(
+            text,
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: foregroundColor),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
   }
 
-  List<Widget> _buildMetadataTags() {
+  List<Widget> _buildMetadataTags(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final tags = <Widget>[];
     final seenSourceLabels = <String>{};
 
-    void addSourceTag(String text, AccentColor color) {
+    void addSourceTag(
+      String text, {
+      required Color backgroundColor,
+      required Color foregroundColor,
+    }) {
       final trimmed = text.trim();
       if (trimmed.isEmpty || !seenSourceLabels.add(trimmed)) return;
-      tags.add(_buildTag(trimmed, color));
+      tags.add(
+        _buildTag(
+          context,
+          trimmed,
+          backgroundColor: backgroundColor,
+          foregroundColor: foregroundColor,
+        ),
+      );
     }
 
     if (_isWechatMessage) {
-      addSourceTag(message.sourceType.label, Colors.blue);
-      addSourceTag(_wechatAccountName, Colors.magenta);
+      addSourceTag(
+        widget.message.sourceType.label,
+        backgroundColor: colorScheme.primaryContainer,
+        foregroundColor: colorScheme.onPrimaryContainer,
+      );
+      addSourceTag(
+        _wechatAccountName,
+        backgroundColor: colorScheme.secondaryContainer,
+        foregroundColor: colorScheme.onSecondaryContainer,
+      );
     } else {
-      addSourceTag(message.sourceType.label, Colors.blue);
-      addSourceTag(message.sourceName.label, Colors.teal);
-      addSourceTag(message.category.label, Colors.orange);
+      addSourceTag(
+        widget.message.sourceType.label,
+        backgroundColor: colorScheme.primaryContainer,
+        foregroundColor: colorScheme.onPrimaryContainer,
+      );
+      addSourceTag(
+        widget.message.sourceName.label,
+        backgroundColor: colorScheme.secondaryContainer,
+        foregroundColor: colorScheme.onSecondaryContainer,
+      );
+      addSourceTag(
+        widget.message.category.label,
+        backgroundColor: colorScheme.tertiaryContainer,
+        foregroundColor: colorScheme.onTertiaryContainer,
+      );
 
-      final mpName = message.mpName?.trim();
+      final mpName = widget.message.mpName?.trim();
       if (mpName != null && mpName.isNotEmpty) {
-        tags.add(_buildTag(mpName, Colors.magenta));
+        addSourceTag(
+          mpName,
+          backgroundColor: colorScheme.surfaceContainerHighest,
+          foregroundColor: colorScheme.onSurfaceVariant,
+        );
       }
     }
 
@@ -294,12 +327,12 @@ class MessageTile extends StatelessWidget {
   }
 
   bool get _isWechatMessage {
-    return message.sourceType == MessageSourceType.wechatPublic ||
-        message.sourceType == MessageSourceType.wechatService;
+    return widget.message.sourceType == MessageSourceType.wechatPublic ||
+        widget.message.sourceType == MessageSourceType.wechatService;
   }
 
   String get _wechatAccountName {
-    final mpName = message.mpName?.trim();
+    final mpName = widget.message.mpName?.trim();
     if (mpName == null || mpName.isEmpty) return '公众号名称未知';
     return mpName;
   }
