@@ -22,6 +22,7 @@
 
 - 修复 Windows 构建缓存保留旧项目路径时 `flutter run -d windows` 无法重新生成 CMake 构建文件的问题；清理 `build/windows` 后会按当前目录重新配置。
 - 兼容 Visual Studio 18 / MSVC 14.51 对 `<experimental/coroutine>` 的弃用阻断，避免 Windows 插件编译时因旧协程头静态断言失败。
+- 修复首页、信息中心、设置页等 surface 组件在窗口约束变化时可能一闪而过的 `Cannot interpolate between finite constraints and unbounded constraints` 运行时异常。
 
 ### 文档
 
