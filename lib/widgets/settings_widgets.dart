@@ -97,47 +97,49 @@ Widget buildSettingsNavItem({
     child: InkWell(
       onTap: onTap,
       borderRadius: AppShapes.md,
-      child: AnimatedContainer(
-        duration: AppMotion.short,
+      child: SizedBox(
         width: double.infinity,
-        padding: const EdgeInsetsDirectional.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected ? colorScheme.secondaryContainer : null,
-          borderRadius: AppShapes.md,
-        ),
-        child: Row(
-          children: [
-            AnimatedContainer(
-              duration: AppMotion.short,
-              width: 4,
-              height: 24,
-              margin: const EdgeInsetsDirectional.only(end: AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: isSelected ? colorScheme.primary : Colors.transparent,
-                borderRadius: AppShapes.xs,
+        child: AnimatedContainer(
+          duration: AppMotion.short,
+          padding: const EdgeInsetsDirectional.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            color: isSelected ? colorScheme.secondaryContainer : null,
+            borderRadius: AppShapes.md,
+          ),
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: AppMotion.short,
+                width: 4,
+                height: 24,
+                margin: const EdgeInsetsDirectional.only(end: AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: isSelected ? colorScheme.primary : Colors.transparent,
+                  borderRadius: AppShapes.xs,
+                ),
               ),
-            ),
-            Icon(
-              icon,
-              color: isSelected
-                  ? colorScheme.onSecondaryContainer
-                  : colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                label,
-                style: isSelected
-                    ? textTheme.titleSmall?.copyWith(
-                        color: colorScheme.onSecondaryContainer,
-                      )
-                    : textTheme.bodyMedium,
+              Icon(
+                icon,
+                color: isSelected
+                    ? colorScheme.onSecondaryContainer
+                    : colorScheme.onSurfaceVariant,
               ),
-            ),
-          ],
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  label,
+                  style: isSelected
+                      ? textTheme.titleSmall?.copyWith(
+                          color: colorScheme.onSecondaryContainer,
+                        )
+                      : textTheme.bodyMedium,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     ),

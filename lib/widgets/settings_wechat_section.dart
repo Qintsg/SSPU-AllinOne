@@ -85,10 +85,12 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
   }
 
   Future<void> _openWxmpLogin() async {
+    final webViewEnvironment = await ensureGlobalWebViewEnvironment();
+    if (!mounted) return;
+
     final success = await Navigator.of(context).push<bool>(
       FluentPageRoute(
-        builder: (_) =>
-            WxmpLoginPage(webViewEnvironment: globalWebViewEnvironment),
+        builder: (_) => WxmpLoginPage(webViewEnvironment: webViewEnvironment),
       ),
     );
     if (success == true) {

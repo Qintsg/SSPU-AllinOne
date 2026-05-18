@@ -209,13 +209,14 @@ class _InfoPageState extends State<InfoPage> {
   /// WebView 初始化失败时自动 fallback 到外部浏览器
   Future<void> _openMessage(MessageItem message) async {
     await _stateService.markAsRead(message.id);
+    final webViewEnvironment = await ensureGlobalWebViewEnvironment();
     if (mounted) {
       Navigator.of(context).push(
         FluentPageRoute(
           builder: (_) => WebViewPage(
             url: message.url,
             initialTitle: message.title,
-            webViewEnvironment: globalWebViewEnvironment,
+            webViewEnvironment: webViewEnvironment,
           ),
         ),
       );

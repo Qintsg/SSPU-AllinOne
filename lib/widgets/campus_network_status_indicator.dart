@@ -135,39 +135,38 @@ class _CampusNetworkStatusIndicatorState
               key: const Key('campus-network-status-indicator'),
               onTap: _isChecking ? null : _refreshStatus,
               borderRadius: const BorderRadius.all(Radius.circular(999)),
-              child: AnimatedContainer(
-                duration: AppMotion.short,
-                constraints: BoxConstraints(
-                  minWidth: showLabel ? 48 : 48,
-                  minHeight: 48,
-                ),
-                padding: EdgeInsetsDirectional.symmetric(
-                  horizontal: showLabel ? AppSpacing.md : AppSpacing.sm,
-                  vertical: AppSpacing.sm,
-                ),
-                decoration: BoxDecoration(
-                  color: fillColor,
-                  border: Border.all(color: foregroundColor.withValues(alpha: 0.28)),
-                  borderRadius: const BorderRadius.all(Radius.circular(999)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildStatusIcon(foregroundColor),
-                    if (showLabel) ...[
-                      const SizedBox(width: AppSpacing.sm),
-                      Flexible(
-                        child: Text(
-                          _isChecking ? '检测中' : _status.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(color: foregroundColor),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                child: AnimatedContainer(
+                  duration: AppMotion.short,
+                  padding: EdgeInsetsDirectional.symmetric(
+                    horizontal: showLabel ? AppSpacing.md : AppSpacing.sm,
+                    vertical: AppSpacing.sm,
+                  ),
+                  decoration: BoxDecoration(
+                    color: fillColor,
+                    border: Border.all(color: foregroundColor.withValues(alpha: 0.28)),
+                    borderRadius: const BorderRadius.all(Radius.circular(999)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildStatusIcon(foregroundColor),
+                      if (showLabel) ...[
+                        const SizedBox(width: AppSpacing.sm),
+                        Flexible(
+                          child: Text(
+                            _isChecking ? '检测中' : _status.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(color: foregroundColor),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),

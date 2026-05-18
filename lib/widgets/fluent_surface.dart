@@ -76,24 +76,35 @@ class _FluentSurfaceState extends State<FluentSurface> {
     final backgroundColor = _resolveBackgroundColor(colorScheme, accentColor);
     final borderColor = _resolveBorderColor(colorScheme, accentColor);
 
+    Widget surfaceContent = AnimatedContainer(
+      duration: AppMotion.medium,
+      curve: Curves.easeOutCubic,
+      margin: widget.margin,
+      padding: widget.padding,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: widget.borderRadius,
+        border: Border.all(color: borderColor),
+      ),
+      child: widget.child,
+    );
+
+    if (widget.minHeight != null) {
+      surfaceContent = ConstrainedBox(
+        constraints: BoxConstraints(minHeight: widget.minHeight!),
+        child: surfaceContent,
+      );
+    }
+
+    if (widget.width != null) {
+      surfaceContent = SizedBox(width: widget.width, child: surfaceContent);
+    }
+
     final surface = AnimatedScale(
       scale: _isPressed ? 0.995 : (_isHovered && _isInteractive ? 1.004 : 1),
       duration: AppMotion.short,
       curve: Curves.easeOutCubic,
-      child: AnimatedContainer(
-        width: widget.width,
-        constraints: BoxConstraints(minHeight: widget.minHeight ?? 0),
-        duration: AppMotion.medium,
-        curve: Curves.easeOutCubic,
-        margin: widget.margin,
-        padding: widget.padding,
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: widget.borderRadius,
-          border: Border.all(color: borderColor),
-        ),
-        child: widget.child,
-      ),
+      child: surfaceContent,
     );
 
     return MouseRegion(
