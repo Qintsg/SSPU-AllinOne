@@ -23,6 +23,10 @@
 - 补充改名后的签名边界：Android 现有 keystore 可继续签名新包名产物但不构成旧包名原地升级；Apple Bundle ID 迁移后需要新的 App ID 与 provisioning profile。
 - 补充隐私协议对本地状态文件、系统安全存储、WebView2 运行态、外部服务访问和用户清理方式的说明。
 
+### 依赖
+
+- 升级可解析到最新版本的 Flutter 依赖锁定项：`flutter_secure_storage_windows`、`json_annotation`、`url_launcher_web`、`vm_service`、`win32`。
+
 ## [0.2.5-alpha+1] - 2026-05-15
 
 ### 发布
