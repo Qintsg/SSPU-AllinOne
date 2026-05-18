@@ -23,6 +23,8 @@
 - 修复 Windows 构建缓存保留旧项目路径时 `flutter run -d windows` 无法重新生成 CMake 构建文件的问题；清理 `build/windows` 后会按当前目录重新配置。
 - 兼容 Visual Studio 18 / MSVC 14.51 对 `<experimental/coroutine>` 的弃用阻断，避免 Windows 插件编译时因旧协程头静态断言失败。
 - 修复首页、信息中心、设置页等 surface 组件在窗口约束变化时可能一闪而过的 `Cannot interpolate between finite constraints and unbounded constraints` 运行时异常。
+- 将 Windows WebView2 环境改为首次打开内嵌网页时懒加载，并在退出流程中显式释放已创建环境，避免未打开 WebView 时关闭应用仍触发 Chromium 窗口类清理报错。
+- 优化桌面端退出顺序：关闭应用时优先隐藏前端窗口，再在后台限时释放 WebView2、托盘和窗口管理资源，降低退出时用户可见卡顿。
 
 ### 文档
 

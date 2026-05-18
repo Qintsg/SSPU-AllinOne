@@ -267,15 +267,17 @@ class _HomePageState extends State<HomePage> {
   Widget _buildMessageItem(BuildContext context, MessageItem msg) {
     final theme = FluentTheme.of(context);
     return HoverButton(
-      onPressed: () {
-        // 标记已读并跳转内嵌 WebView
+      onPressed: () async {
+        // 标记已读并跳转内嵌 WebView。
         MessageStateService.instance.markAsRead(msg.id);
+        final webViewEnvironment = await ensureGlobalWebViewEnvironment();
+        if (!context.mounted) return;
         Navigator.of(context).push(
           FluentPageRoute(
             builder: (_) => WebViewPage(
               url: msg.url,
               initialTitle: msg.title,
-              webViewEnvironment: globalWebViewEnvironment,
+              webViewEnvironment: webViewEnvironment,
             ),
           ),
         );

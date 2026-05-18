@@ -9,7 +9,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'widgets/material_compat.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'app.dart';
@@ -17,13 +16,11 @@ import 'pages/lock_page.dart';
 import 'pages/agreement_page.dart';
 import 'pages/privacy_policy_page.dart';
 import 'services/app_exit_service.dart';
-import 'services/app_data_directory_service.dart';
 import 'services/password_service.dart';
 import 'services/storage_service.dart';
 import 'services/tray_service.dart';
 import 'services/notification_service.dart';
 import 'services/auto_refresh_service.dart';
-import 'utils/webview_env.dart';
 
 /// 全局字体族名称
 import 'theme/app_spacing.dart';
@@ -36,25 +33,8 @@ const String kFontFamily = AppTheme.fontFamily;
 bool get _supportsDesktopShell =>
     !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
 
-/// WebView2 和本地通知当前只面向 Windows 发行包启用。
-bool get _supportsWindowsServices => !kIsWeb && Platform.isWindows;
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Windows 平台：在 runApp() 前初始化 WebView2 环境
-  // 必须在任何 WebView 实例创建前完成，否则会触发 RPC_E_DISCONNECTED (-2147417848)
-  if (_supportsWindowsServices) {
-    final availableVersion = await WebViewEnvironment.getAvailableVersion();
-    if (availableVersion != null) {
-      // WebView2 运行态同样放入统一应用数据目录，便于用户定位和清理。
-      final webViewDataFolder =
-          await AppDataDirectoryService.ensureDirectoryPath('webview2');
-      globalWebViewEnvironment = await WebViewEnvironment.create(
-        settings: WebViewEnvironmentSettings(userDataFolder: webViewDataFolder),
-      );
-    }
-  }
 
   if (_supportsDesktopShell) {
     // 桌面端拦截关闭事件并提供系统托盘入口。
@@ -392,7 +372,9 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       return Builder(
         builder: (context) {
           _showAgreementDialog(context);
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         },
       );
     }
