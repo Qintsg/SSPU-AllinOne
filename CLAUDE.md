@@ -37,7 +37,7 @@
 - 公开版本格式：`X.X.X[-channel]` 或 `X.X.X.X[-channel]`。
 - `channel` 仅允许：`alpha`、`beta`、`hotfix`、`rc`、`lts`。
 - `pubspec.yaml` 版本格式：`X.X.X[-channel]+build` 或 `X.X.X.X[-channel]+build`。
-- `+build` 由发版自动化在每次发版时递增，不得出现在安装包文件名、系统内部展示、Release 标题或 Release 描述中。
+- `+build` 必须在上一次 `pubspec.yaml` build 号基础上递增；无论发布新的公开版本还是重发同一公开版本，都不得重置，且不得出现在安装包文件名、系统内部展示、Release 标题或 Release 描述中。
 - 版本号只在 `pubspec.yaml` 与 `docs/CHANGELOG.md` 中维护。
 
 ## 文档要求
