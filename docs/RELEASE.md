@@ -10,7 +10,7 @@
 1. `pubspec.yaml` 与 `docs/CHANGELOG.md` 是唯一需要人工维护版本号的文件。
 2. `pubspec.yaml` 保存 Flutter 可识别的完整版本：`X.X.X[-channel]+build` 或 `X.X.X.X[-channel]+build`。
 3. `docs/CHANGELOG.md` 章节标题保存公开版本，不写 `+build`，例如 `[1.0.0-alpha]`。
-4. `+build` 只作为内部构建号，由发版自动化在每次发版时递增；安装包文件名、系统内部展示、Release 标题和 Release 描述均不得显式写出 `+build`。
+4. `+build` 只作为内部构建号，每次发新版本或重发同一公开版本时，都必须在上一次 `pubspec.yaml` build 号基础上自动递增；安装包文件名、系统内部展示、Release 标题和 Release 描述均不得显式写出 `+build`。
 5. Git Tag、release 分支名、Release 标题、安装包文件名、`manifest.json` 的公开版本必须一致。
 6. 公开 Release 只放终端用户可直接消费的产物，不放中间构建目录、缓存或调试产物。
 
@@ -95,7 +95,7 @@ alpha、beta、rc 属于预发布，直接由 `release/vX.X.X-channel` 分支合
 
 1. 从 `develop` 签出 `release/vX.X.X-channel` 分支，例如 `release/v1.0.0-alpha`。
 2. 只修改 `pubspec.yaml` 与 `docs/CHANGELOG.md` 中的版本号。
-3. `pubspec.yaml` 使用 `X.X.X-channel+build`；`docs/CHANGELOG.md` 使用 `[X.X.X-channel]`。
+3. `pubspec.yaml` 使用 `X.X.X-channel+build`，且 `build` 必须在上一次 `pubspec.yaml` 的基础上自动加一；`docs/CHANGELOG.md` 使用 `[X.X.X-channel]`。
 4. 创建 `release/v... -> develop` 的 Release PR。
 5. PR 必须使用 Release 模板，完整填写发布说明，并携带 `release` label。
 6. PR merge 后由 `Build & Release` workflow 自动构建并创建 GitHub Pre-release。
@@ -228,7 +228,7 @@ Linux 正式发布必须同时覆盖 `x64` 与 `arm64`，并提供 AppImage、de
 ## 9. 失败与重发
 
 1. 构建失败时不得手工上传不完整产物冒充 Release。
-2. 需要重发同一公开版本时，只递增 `pubspec.yaml` 中的 `+build`，并重新走对应 Release PR 流程。
+2. 需要重发同一公开版本时，只递增 `pubspec.yaml` 中的 `+build`，并重新走对应 Release PR 流程；需要发布新的公开版本时，也必须在上一次 `pubspec.yaml` build 号基础上继续递增，不得重置。
 3. 若发现产物命名、校验或版本错误，应撤回或标记失效后重新发版。
 4. 不允许静默替换同名产物而不更新校验与说明。
 

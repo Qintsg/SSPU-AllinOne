@@ -44,7 +44,7 @@ Scope: repo
 - 公开版本格式为 `X.X.X[-channel]` 或 `X.X.X.X[-channel]`。
 - `channel` 仅允许 `alpha`、`beta`、`hotfix`、`rc`、`lts`。
 - `pubspec.yaml` 使用 `X.X.X[-channel]+build` 或 `X.X.X.X[-channel]+build`。
-- `+build` 由发版自动化递增，不在安装包文件名、系统内部展示或 Release 描述中显式写出。
+- `+build` 必须在上一次 `pubspec.yaml` build 号基础上递增；无论发布新的公开版本还是重发同一公开版本，都不得重置，并且不在安装包文件名、系统内部展示或 Release 描述中显式写出。
 - 除 stable、lts、hotfix 外，其它 Release 均为 Pre-release。
 
 ## 验证规则
