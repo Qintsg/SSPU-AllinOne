@@ -429,16 +429,26 @@ flutter doctor -v
 # flutter create .
 ```
 
-### 10.3 fluent_ui 编译问题
+### 10.3 Windows CMake 缓存路径错误
 
-确认 Flutter SDK 版本与 fluent_ui 版本兼容：
+如果项目目录改名后运行 `flutter run -d windows`，并出现 `CMakeCache.txt directory ... is different` 或 `source ... does not match`，说明 `build/windows` 中仍保留旧源码路径缓存。删除可再生缓存后重新构建即可：
+
+```bash
+rm -rf build/windows
+flutter pub get
+flutter run -d windows
+```
+
+### 10.4 Material 3 组件编译问题
+
+确认 Flutter SDK 版本满足 `pubspec.yaml` 的最低要求，并避免重新引入已移除的外部 Fluent UI 依赖：
 
 ```bash
 flutter --version
-flutter pub deps | Select-String "fluent_ui"
+flutter analyze
 ```
 
-### 10.4 Android release 构建失败
+### 10.5 Android release 构建失败
 
 若 `flutter build apk --release` 提示缺少签名配置，请检查：
 
@@ -446,7 +456,7 @@ flutter pub deps | Select-String "fluent_ui"
 - `storeFile` 是否指向实际存在的 keystore 文件
 - `storePassword` / `keyPassword` / `keyAlias` 是否与 keystore 一致
 
-### 10.5 本地状态文件异常
+### 10.6 本地状态文件异常
 
 桌面端会将用户设置、认证信息、消息缓存和 WebView2 运行态写入 `~/.sspu-all-in/`；Android / iOS 会写入系统分配的应用支持目录。设置页提供 `wxmp_config.toml` 内置编辑器，移动端可直接在应用内修改公众号平台认证配置。教务凭据使用系统安全存储单独保存，不写入 `app_state.json`，安全设置页只显示学工号和密码填写状态。若状态文件损坏或需要重建本地状态，可先退出应用，备份后删除对应目录中的文件，再重新启动应用。
 

@@ -18,6 +18,11 @@
 - 项目名称统一迁移为 `SSPU-AllinOne`，同步更新 Dart 包名、Android / Apple / Linux 应用身份、Windows / Linux 主程序名、Release 资产命名、前端展示文案、仓库文档链接与发布元数据。
 - 首次启动确认从单一使用协议扩展为使用协议与隐私协议，并使用当前协议版本键触发既有用户重新确认。
 
+### 修复
+
+- 修复 Windows 构建缓存保留旧项目路径时 `flutter run -d windows` 无法重新生成 CMake 构建文件的问题；清理 `build/windows` 后会按当前目录重新配置。
+- 兼容 Visual Studio 18 / MSVC 14.51 对 `<experimental/coroutine>` 的弃用阻断，避免 Windows 插件编译时因旧协程头静态断言失败。
+
 ### 文档
 
 - 补充改名后的签名边界：Android 现有 keystore 可继续签名新包名产物但不构成旧包名原地升级；Apple Bundle ID 迁移后需要新的 App ID 与 provisioning profile。
