@@ -9,15 +9,23 @@ inputs:
 
 outputs:
   version:
-    description: 完整版本号，保留 +BUILD
+    description: 公开版本号，不含 +build
     value: ${{ steps.parse.outputs.version }}
 
+  public_version:
+    description: 公开版本号，不含 +build
+    value: ${{ steps.parse.outputs.public_version }}
+
+  pubspec_version:
+    description: pubspec.yaml 完整版本号，保留 +build
+    value: ${{ steps.parse.outputs.pubspec_version }}
+
   version_core:
-    description: 不含 +BUILD 的版本主体
+    description: 不含 channel 与 +build 的数字版本主体
     value: ${{ steps.parse.outputs.version_core }}
 
   channel:
-    description: 发布通道，stable / alpha / beta / rc
+    description: 发布通道，stable / alpha / beta / rc / lts / hotfix
     value: ${{ steps.parse.outputs.channel }}
 
   build_number:
@@ -61,32 +69,36 @@ runs:
           fail "未在 $PUBSPEC_PATH 中找到 version 字段。"
         fi
 
-        release_version="${version_line#*:}"
-        release_version="${release_version%%#*}"
-        release_version="$(echo "$release_version" | xargs)"
+        pubspec_version="${version_line#*:}"
+        pubspec_version="${pubspec_version%%#*}"
+        pubspec_version="$(echo "$pubspec_version" | xargs)"
 
-        if [[ -z "$release_version" ]]; then
+        if [[ -z "$pubspec_version" ]]; then
           fail "version 字段为空。"
         fi
 
-        if [[ ! "$release_version" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-(alpha|beta|rc)(\.[0-9]+)?)?\+([1-9][0-9]*)$ ]]; then
-          fail "版本号不符合发布规范：$release_version。期望格式：1.2.3+4、1.2.3-beta+4 或 1.2.3-beta.1+4。"
+        if [[ ! "$pubspec_version" =~ ^([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?)(-(alpha|beta|hotfix|rc|lts))?\+([1-9][0-9]*)$ ]]; then
+          fail "版本号不符合发布规范：$pubspec_version。期望格式：1.0.0+1、1.0.0-alpha+1 或 1.0.0.1-hotfix+1。"
         fi
 
-        version_core="${BASH_REMATCH[1]}${BASH_REMATCH[2]:-}"
-        channel="${BASH_REMATCH[3]:-stable}"
+        version_core="${BASH_REMATCH[1]}"
+        channel_suffix="${BASH_REMATCH[3]:-}"
+        channel="${BASH_REMATCH[4]:-stable}"
         build_number="${BASH_REMATCH[5]}"
-        tag="v${version_core}"
+        public_version="${version_core}${channel_suffix}"
+        tag="v${public_version}"
 
-        prerelease=false
-        if [[ "$channel" != "stable" ]]; then
-          prerelease=true
+        prerelease=true
+        if [[ "$channel" == "stable" || "$channel" == "lts" || "$channel" == "hotfix" ]]; then
+          prerelease=false
         fi
 
-        release_title="SSPU-AllinOne ${tag} (${release_version})"
+        release_title="SSPU-AllinOne ${tag}"
 
         {
-          echo "version=$release_version"
+          echo "version=$public_version"
+          echo "public_version=$public_version"
+          echo "pubspec_version=$pubspec_version"
           echo "version_core=$version_core"
           echo "channel=$channel"
           echo "build_number=$build_number"
@@ -100,7 +112,8 @@ runs:
           echo
           echo "| Key | Value |"
           echo "| --- | --- |"
-          echo "| Version | \`$release_version\` |"
+          echo "| Public Version | \`$public_version\` |"
+          echo "| Pubspec Version | \`$pubspec_version\` |"
           echo "| Version Core | \`$version_core\` |"
           echo "| Tag | \`$tag\` |"
           echo "| Channel | \`$channel\` |"

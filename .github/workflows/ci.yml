@@ -50,18 +50,18 @@ jobs:
           base_ref='${{ github.event.pull_request.base.ref }}'
           channel='${{ steps.release.outputs.channel }}'
 
-          if [[ "$channel" == "stable" ]]; then
+          if [[ "$channel" == "stable" || "$channel" == "lts" || "$channel" == "hotfix" ]]; then
             [[ "$base_ref" == "main" ]] || {
-              echo "正式版 Release 只能从 main 发出，当前目标分支为 $base_ref。" >&2
+              echo "stable / lts / hotfix Release PR 只能合并到 main，当前目标分支为 $base_ref。" >&2
               exit 1
             }
             exit 0
           fi
 
-          if [[ "$base_ref" != "main" && "$base_ref" != "develop" && ! "$base_ref" =~ ^release/ ]]; then
-            echo "预发布 Release 仅允许合并到 main、develop 或 release/*，当前目标分支为 $base_ref。" >&2
+          [[ "$base_ref" == "develop" ]] || {
+            echo "alpha / beta / rc Release PR 只能合并到 develop，当前目标分支为 $base_ref。" >&2
             exit 1
-          fi
+          }
 
       - name: 校验 Release PR 正文模板
         shell: bash

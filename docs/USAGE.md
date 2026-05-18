@@ -59,7 +59,7 @@ flutter pub get
 
 | 包名 | 用途 |
 |------|------|
-| `fluent_ui` | Fluent Design 风格 UI 组件 |
+| Flutter Material | Material 3 基础组件与图标 |
 | `shared_preferences` | 本地键值对存储 |
 | `path_provider` | 平台应用支持目录解析 |
 | `crypto` | SHA-256 哈希 |
@@ -399,8 +399,10 @@ SSPU-AllinOne/
 │   ├── DESIGN.md                # 设计文档
 │   └── USAGE.md                 # 使用文档（本文件）
 ├── .github/                     # GitHub 配置
-│   └── dida365-state.md         # 任务状态镜像
-├── AGENTS.md                    # 代理工作规范
+│   ├── workflows/                 # CI 与 Release 工作流
+│   ├── ISSUE_TEMPLATE/            # Issue 模板
+│   └── PULL_REQUEST_TEMPLATE/     # PR 模板
+├── CLAUDE.md                      # 仓库级代理与工作流规范
 ├── LICENSE                      # Artistic License 2.0 许可证
 ├── pubspec.yaml                 # 项目配置与依赖
 ├── pubspec.lock                 # 依赖锁定文件
@@ -429,13 +431,13 @@ flutter doctor -v
 # flutter create .
 ```
 
-### 10.3 fluent_ui 编译问题
+### 10.3 Material 3 组件编译问题
 
-确认 Flutter SDK 版本与 fluent_ui 版本兼容：
+确认 Flutter SDK 版本满足 `pubspec.yaml` 的最低要求，并避免重新引入已移除的外部 Fluent UI 依赖：
 
 ```bash
 flutter --version
-flutter pub deps | Select-String "fluent_ui"
+flutter analyze
 ```
 
 ### 10.4 Android release 构建失败

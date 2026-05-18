@@ -35,7 +35,12 @@ def parse_arguments() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(description="生成 Release 元数据与校验文件。")
     parser.add_argument("--asset-dir", required=True, help="Release 资产目录。")
-    parser.add_argument("--version", required=True, help="完整版本号，例如 0.2.0-alpha+1。")
+    parser.add_argument("--version", required=True, help="公开版本号，例如 1.0.0-alpha。")
+    parser.add_argument(
+        "--pubspec-version",
+        required=True,
+        help="pubspec.yaml 完整版本号，例如 1.0.0-alpha+1。",
+    )
     parser.add_argument("--channel", required=True, help="版本通道，例如 stable 或 beta。")
     parser.add_argument("--build-number", required=True, type=int, help="构建序号。")
     parser.add_argument("--tag", required=True, help="Release Tag，例如 v0.2.0-alpha。")
@@ -78,7 +83,7 @@ def build_platform_entry(asset_file: Path, expected_version: str) -> Dict[str, s
     """
     解析单个产物文件并生成 manifest 平台条目
     :param asset_file: 产物文件路径
-    :param expected_version: 应与文件名严格匹配的完整版本号
+    :param expected_version: 应与文件名严格匹配的公开版本号
     :return: manifest.json 中的单个平台信息
     :raises ValueError: 文件名不符合命名规范时抛出异常
     """
@@ -89,7 +94,7 @@ def build_platform_entry(asset_file: Path, expected_version: str) -> Dict[str, s
     parsed_data = match.groupdict()
     if parsed_data["version"] != expected_version:
         raise ValueError(
-            f"资产文件版本与 pubspec.yaml 不一致：{asset_file.name} != {expected_version}",
+            f"资产文件版本与公开版本不一致：{asset_file.name} != {expected_version}",
         )
 
     inferred_kind = parsed_data["kind"] or infer_kind(
@@ -135,6 +140,7 @@ def render_manifest(
     return {
         "name": "SSPU-AllinOne",
         "version": arguments.version,
+        "pubspec_version": arguments.pubspec_version,
         "channel": arguments.channel,
         "build_number": arguments.build_number,
         "tag": arguments.tag,

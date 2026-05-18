@@ -6,7 +6,10 @@ inputs:
     description: Release 资产目录
     required: true
   version:
-    description: 完整版本号
+    description: 公开版本号，不含 +build
+    required: true
+  pubspec-version:
+    description: pubspec.yaml 完整版本号，保留 +build
     required: true
   channel:
     description: 发布通道
@@ -36,6 +39,7 @@ runs:
         python scripts/release/generate_release_metadata.py \
           --asset-dir '${{ inputs.asset-dir }}' \
           --version '${{ inputs.version }}' \
+          --pubspec-version '${{ inputs.pubspec-version }}' \
           --channel '${{ inputs.channel }}' \
           --build-number '${{ inputs.build-number }}' \
           --tag '${{ inputs.tag }}' \

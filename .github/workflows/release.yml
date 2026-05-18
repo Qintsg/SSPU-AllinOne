@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       base_ref:
-        description: '本次手动发布对应的目标分支（正式版填 main；预发布填 main / develop / release/*）'
+        description: '本次手动发布对应的目标分支（alpha / beta / rc 填 develop；stable / lts / hotfix 填 main）'
         required: true
         default: 'develop'
       release_notes:
@@ -37,6 +37,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.release.outputs.version }}
+      public_version: ${{ steps.release.outputs.public_version }}
+      pubspec_version: ${{ steps.release.outputs.pubspec_version }}
       version_core: ${{ steps.release.outputs.version_core }}
       channel: ${{ steps.release.outputs.channel }}
       build_number: ${{ steps.release.outputs.build_number }}
@@ -62,18 +64,18 @@ jobs:
 
           channel='${{ steps.release.outputs.channel }}'
 
-          if [[ "$channel" == "stable" ]]; then
+          if [[ "$channel" == "stable" || "$channel" == "lts" || "$channel" == "hotfix" ]]; then
             [[ "$base_ref" == "main" ]] || {
-              echo "正式 Release 必须由 main 分支上的 release PR merge 触发。" >&2
+              echo "stable / lts / hotfix Release 必须由 develop -> main 的 release PR merge 触发。" >&2
               exit 1
             }
             exit 0
           fi
 
-          if [[ "$base_ref" != "main" && "$base_ref" != "develop" && ! "$base_ref" =~ ^release/ ]]; then
-            echo "预发布 Release 仅允许从 main、develop 或 release/* 触发，当前目标分支为 $base_ref。" >&2
+          [[ "$base_ref" == "develop" ]] || {
+            echo "alpha / beta / rc Release 必须由 release/v... -> develop 的 release PR merge 触发，当前目标分支为 $base_ref。" >&2
             exit 1
-          fi
+          }
 
   build-android:
     needs: prepare
@@ -818,6 +820,7 @@ jobs:
         with:
           asset-dir: dist
           version: ${{ needs.prepare.outputs.version }}
+          pubspec-version: ${{ needs.prepare.outputs.pubspec_version }}
           channel: ${{ needs.prepare.outputs.channel }}
           build-number: ${{ needs.prepare.outputs.build_number }}
           tag: ${{ needs.prepare.outputs.tag }}
