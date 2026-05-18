@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_spacing.dart';
+import 'settings_update_section.dart';
 import 'settings_widgets.dart';
 
 /// 常规设置分区。
@@ -68,6 +69,8 @@ class SettingsGeneralSection extends StatelessWidget {
       children: [
         _buildWindowBehaviorSection(context),
         const SizedBox(height: AppSpacing.lg),
+        SettingsUpdateSection(),
+        const SizedBox(height: AppSpacing.lg),
         _buildNotificationSection(context),
       ],
     );
@@ -81,7 +84,10 @@ class SettingsGeneralSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Semantics(header: true, child: Text('窗口行为', style: textTheme.titleMedium)),
+            Semantics(
+              header: true,
+              child: Text('窗口行为', style: textTheme.titleMedium),
+            ),
             const SizedBox(height: AppSpacing.md),
             buildResponsiveSettingsRow(
               context: context,
@@ -123,7 +129,10 @@ class SettingsGeneralSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Semantics(header: true, child: Text('消息推送', style: textTheme.titleMedium)),
+            Semantics(
+              header: true,
+              child: Text('消息推送', style: textTheme.titleMedium),
+            ),
             const SizedBox(height: AppSpacing.md),
             buildResponsiveSettingsRow(
               context: context,
