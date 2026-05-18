@@ -14,6 +14,7 @@
 
 ### 变更
 
+- 统一版本号、Release 分支、构建产物命名和发布 PR label 规则：公开版本不再显式包含 `+build`，stable / lts / hotfix 作为普通 Release，alpha / beta / rc 作为 Pre-release。
 - 项目许可证从 MIT 切换为 Artistic License 2.0，仓库许可证文件、展示文案、应用内使用协议和当前协议确认键同步更新。
 - 项目名称统一迁移为 `SSPU-AllinOne`，同步更新 Dart 包名、Android / Apple / Linux 应用身份、Windows / Linux 主程序名、Release 资产命名、前端展示文案、仓库文档链接与发布元数据。
 - 首次启动确认从单一使用协议扩展为使用协议与隐私协议，并使用当前协议版本键触发既有用户重新确认。
@@ -249,7 +250,7 @@
 - 为 Linux Release 显式补齐并校验主程序可执行权限，同时补充压缩包解压与 `chmod +x` 使用说明
 - 收窄“刷新官网消息”的手动刷新范围，避免微信公众号抓取串入官网刷新链路导致信息中心长时间卡在加载状态
 - 为 macOS Debug / Release entitlements 补充 `com.apple.security.network.client`，修复官网刷新与内嵌 WebView 页面统一空白的问题
-- 修复 Release 版本解析会丢失 `+BUILD`、Tag 与资产命名不一致、Web / Linux / Android 公开产物不符合发布规则的问题
+- 统一版本解析保留内部 `+build` 并产出不含构建号的公开版本，修复 Tag 与资产命名不一致、Web / Linux / Android 公开产物不符合发布规则的问题
 - 修复最新 Release workflow 中 Windows arm64 / Linux arm64 依赖 `subosito/flutter-action` 获取不存在的 stable arm64 bundle 而失败的问题，改为从官方 `flutter/flutter` 仓库检出指定 tag 并在 runner 本机预缓存 SDK
 
 ## [0.1.5-alpha] - 2026-04-21
@@ -275,9 +276,9 @@
 - Dependabot 默认向 `develop` 提交分组升级 PR，减少依赖更新噪音并贴合分支流转
 - Issue 配置关闭空白提单入口，并补充文档导向链接
 - PR CI 调整为仅执行 `flutter analyze`，并对带 `release` 标签的 PR 追加发布分支与发布说明模板校验
-- Release 工作流改为从 `pubspec.yaml` 读取完整版本号，统一生成 Android/Windows/macOS/Linux/Web 公开资产与校验文件
+- Release 工作流改为从 `pubspec.yaml` 读取版本号，统一生成 Android/Windows/macOS/Linux/Web 公开资产与校验文件
 - Release 工作流新增 Windows arm64、Linux arm64 正式构建与打包步骤，删除独立实验性架构发布分叉
-- 预发布 Release 的目标分支约束调整为允许 `main`、`develop` 与 `release/*`，并同步到 CI、Release workflow 与仓库模板
+- 预发布 Release 的目标分支约束调整为对应发布通道，并同步到 CI、Release workflow 与仓库模板
 - 依赖升级：`package_info_plus` 升级到 `10.1.0`，并同步刷新锁文件中的 `package_info_plus_platform_interface` 与 `win32`
 - `Build & Release` 工作流新增 `workflow_dispatch` 手动触发入口，支持显式传入目标分支与 Release Notes
 
@@ -301,7 +302,7 @@
 - 项目基础结构与配置
 - MIT 许可证
 - README.md 项目文档
-- AGENTS.md 代理工作规范
+- CLAUDE.md 代理工作规范
 - docs/ 文档目录（API.md、CHANGELOG.md）
 - .gitignore 版本控制忽略规则
 - Fluent 2 设计风格前端页面驾架（主页、教务中心、信息中心、快速跳转、设置）
