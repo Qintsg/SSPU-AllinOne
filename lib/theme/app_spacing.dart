@@ -1,5 +1,5 @@
 /*
- * Material 3 间距 Token — 统一 4dp 基准网格
+ * Fluent 2 间距 Token — 统一 4dp 基准网格
  * @Project : SSPU-AllinOne
  * @File : app_spacing.dart
  * @Author : Qintsg
@@ -8,7 +8,7 @@
 
 import 'package:flutter/widgets.dart';
 
-/// Material 3 间距 Token。
+/// Fluent 2 间距 Token。
 class AppSpacing {
   AppSpacing._();
 

@@ -53,7 +53,7 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
                 SizedBox(
                   width: 18,
                   height: 18,
-                  child: ProgressRing(strokeWidth: 2),
+                  child: FluentProgressRing(strokeWidth: 2),
                 ),
                 SizedBox(width: FluentSpacing.s),
                 Text('正在读取体育部考勤...'),
@@ -68,11 +68,10 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
           ] else if (result!.isSuccess && summary != null) ...[
             _SportsAttendanceSummaryView(summary: summary),
           ] else ...[
-            InfoBar(
+            FluentInfoBar(
               title: Text(result!.message),
               content: Text(result!.detail),
               severity: _sportsAttendanceSeverity(result!.status),
-              isLong: true,
             ),
           ],
           const SizedBox(height: FluentSpacing.m),
@@ -88,19 +87,17 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
                     color: theme.resources.textFillColorSecondary,
                   ),
                 ),
-                Tooltip(
-                  message: '手动刷新体育考勤',
-                  child: IconButton(
-                    key: const Key('academic-sports-refresh'),
-                    icon: isLoading
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: ProgressRing(strokeWidth: 2),
-                          )
-                        : const Icon(FluentIcons.refresh, size: 14),
-                    onPressed: isLoading ? null : onRefresh,
-                  ),
+                FluentIconButton(
+                  key: const Key('academic-sports-refresh'),
+                  tooltip: '手动刷新体育考勤',
+                  icon: isLoading
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: FluentProgressRing(strokeWidth: 2),
+                        )
+                      : const Icon(FluentIcons.refresh),
+                  onPressed: isLoading ? null : onRefresh,
                 ),
               ],
             ),
@@ -110,21 +107,21 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
     );
   }
 
-  InfoBarSeverity _sportsAttendanceSeverity(
+  FluentInfoSeverity _sportsAttendanceSeverity(
     SportsAttendanceQueryStatus status,
   ) {
     return switch (status) {
-      SportsAttendanceQueryStatus.success => InfoBarSeverity.success,
+      SportsAttendanceQueryStatus.success => FluentInfoSeverity.success,
       SportsAttendanceQueryStatus.missingStudentId ||
       SportsAttendanceQueryStatus.missingSportsPassword ||
       SportsAttendanceQueryStatus.campusNetworkUnavailable =>
-        InfoBarSeverity.warning,
+        FluentInfoSeverity.warning,
       SportsAttendanceQueryStatus.loginPageUnavailable ||
       SportsAttendanceQueryStatus.credentialsRejected ||
       SportsAttendanceQueryStatus.sessionUnavailable ||
       SportsAttendanceQueryStatus.parseFailed ||
       SportsAttendanceQueryStatus.networkError ||
-      SportsAttendanceQueryStatus.unexpectedError => InfoBarSeverity.error,
+      SportsAttendanceQueryStatus.unexpectedError => FluentInfoSeverity.error,
     };
   }
 
@@ -148,26 +145,15 @@ class _SportsAttendanceSummaryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              '${summary.totalCount}',
-              style: theme.typography.display?.copyWith(
-                color: theme.accentColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(width: FluentSpacing.s),
-            Padding(
-              padding: const EdgeInsets.only(bottom: FluentSpacing.xs),
-              child: Text('总次数', style: theme.typography.bodyStrong),
-            ),
-          ],
+        FluentMetricCard(
+          label: '总次数',
+          value: '${summary.totalCount}',
+          suffix: '次',
+          icon: FluentIcons.running,
+          tone: FluentStatusChipTone.success,
         ),
         const SizedBox(height: FluentSpacing.m),
         Wrap(
@@ -193,7 +179,7 @@ class _SportsAttendanceSummaryView extends StatelessWidget {
           ],
         ),
         const SizedBox(height: FluentSpacing.l),
-        FilledButton(
+        FluentButton.primary(
           onPressed: () => Navigator.of(context).push(
             FluentPageRoute(
               builder: (_) => SportsAttendanceDetailPage(summary: summary),
@@ -224,18 +210,11 @@ class _SportsAttendanceCountPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: FluentSpacing.m,
-        vertical: FluentSpacing.s,
-      ),
-      decoration: BoxDecoration(
-        color: theme.accentColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: theme.accentColor.withValues(alpha: 0.16)),
-      ),
-      child: Text('${category.label} $count 次'),
+    return FluentStatusChip(
+      label: '${category.label} $count 次',
+      tone: count < 0
+          ? FluentStatusChipTone.warning
+          : FluentStatusChipTone.brand,
     );
   }
 }
@@ -250,16 +229,17 @@ class SportsAttendanceDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
-    return ScaffoldPage.scrollable(
-      header: PageHeader(
+    return FluentPage.scrollable(
+      header: FluentPageHeader(
         title: const Text('课外活动考勤记录'),
-        commandBar: Button(
+        commandBar: FluentButton.outline(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('返回'),
         ),
       ),
       children: [
-        Card(
+        FluentCard(
+          padding: EdgeInsets.zero,
           child: Padding(
             padding: const EdgeInsets.all(FluentSpacing.l),
             child: Column(
@@ -276,11 +256,10 @@ class SportsAttendanceDetailPage extends StatelessWidget {
         ),
         const SizedBox(height: FluentSpacing.m),
         if (summary.records.isEmpty)
-          const InfoBar(
+          const FluentInfoBar(
             title: Text('暂无明细记录'),
             content: Text('体育部页面返回了汇总次数，但没有可展示的考勤明细。'),
-            severity: InfoBarSeverity.info,
-            isLong: true,
+            severity: FluentInfoSeverity.info,
           )
         else
           ...summary.records.map(_buildRecordCard),
@@ -303,7 +282,8 @@ class SportsAttendanceDetailPage extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: FluentSpacing.s),
-      child: Card(
+      child: FluentCard(
+        padding: EdgeInsets.zero,
         child: Padding(
           padding: const EdgeInsets.all(FluentSpacing.m),
           child: Column(

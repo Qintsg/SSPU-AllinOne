@@ -1,5 +1,5 @@
 /*
- * Material 3 响应式断点 — 根据窗口宽度选择布局结构
+ * Fluent 2 响应式断点 — 根据窗口宽度选择布局结构
  * @Project : SSPU-AllinOne
  * @File : app_breakpoints.dart
  * @Author : Qintsg
@@ -8,7 +8,7 @@
 
 import 'package:flutter/widgets.dart';
 
-/// Material 3 窗口尺寸等级。
+/// Fluent 2 窗口尺寸等级。
 enum WindowSizeClass {
   /// Compact：0–599dp。
   compact,

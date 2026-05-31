@@ -6,14 +6,13 @@
  * @Date : 2026-04-23
  */
 
-import '../widgets/material_compat.dart';
+import '../design/fluent_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/quick_links_config_service.dart';
 import '../services/quick_links_search_service.dart';
 import '../theme/fluent_tokens.dart';
-import '../widgets/fluent_surface.dart';
 import '../widgets/responsive_layout.dart';
 
 part 'quick_links_widgets.dart';
@@ -37,20 +36,20 @@ class QuickLinksPage extends StatelessWidget {
       future: QuickLinksConfigService.instance.loadGroups(),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const ScaffoldPage(
-            header: PageHeader(title: Text('快速跳转')),
-            content: Center(child: ProgressRing()),
+          return const FluentPage(
+            header: FluentPageHeader(title: Text('快速跳转')),
+            content: Center(child: FluentProgressRing()),
           );
         }
 
         if (snapshot.hasError || snapshot.data == null) {
-          return ScaffoldPage(
-            header: const PageHeader(title: Text('快速跳转')),
+          return FluentPage(
+            header: const FluentPageHeader(title: Text('快速跳转')),
             content: Center(
-              child: InfoBar(
+              child: FluentInfoBar(
                 title: const Text('快捷跳转配置加载失败'),
                 content: Text('${snapshot.error ?? '配置为空'}'),
-                severity: InfoBarSeverity.error,
+                severity: FluentInfoSeverity.error,
               ),
             ),
           );
@@ -141,8 +140,8 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
           DeviceType.desktop => FluentSpacing.xxl,
         };
 
-        return ScaffoldPage.scrollable(
-          header: const PageHeader(title: Text('快速跳转')),
+        return FluentPage.scrollable(
+          header: const FluentPageHeader(title: Text('快速跳转')),
           padding: EdgeInsets.all(pagePadding),
           children: [
             _buildSearchBar(theme, hasSearchQuery, searchResults),
@@ -179,16 +178,14 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: TextBox(
+            child: FluentTextField(
               controller: _searchController,
               placeholder: '搜索快捷入口或网址',
-              prefix: const Padding(
-                padding: EdgeInsets.only(left: 8.0),
-                child: Icon(FluentIcons.search, size: 14),
-              ),
+              prefixIcon: FluentIcons.search,
               suffix: hasSearchQuery
-                  ? IconButton(
-                      icon: const Icon(FluentIcons.clear, size: 12),
+                  ? FluentIconButton(
+                      icon: const Icon(FluentIcons.clear),
+                      iconSize: 12,
                       onPressed: () {
                         _searchController.clear();
                         setState(() => _searchQuery = '');
@@ -202,11 +199,11 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
           const SizedBox(width: FluentSpacing.s),
           Tooltip(
             message: '打开最佳匹配',
-            child: FilledButton(
+            child: FluentButton.primary(
               onPressed: searchResults.isEmpty
                   ? null
                   : () => _openBestMatch(searchResults),
-              child: const Icon(FluentIcons.open_in_new_window, size: 14),
+              child: const Icon(FluentIcons.openInNewWindow, size: 14),
             ),
           ),
         ],
@@ -228,7 +225,7 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  FluentIcons.search_issue,
+                  FluentIcons.searchIssue,
                   size: 42,
                   color: theme.resources.textFillColorSecondary,
                 ),

@@ -6,7 +6,7 @@
  * @Date : 2026-04-22
  */
 
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 
 import '../models/channel_config.dart';
 import '../models/message_item.dart';
@@ -120,7 +120,7 @@ class _ChannelListSectionState extends State<ChannelListSection> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: FluentProgressRing());
     }
 
     final textTheme = Theme.of(context).textTheme;
@@ -152,12 +152,12 @@ class _ChannelListSectionState extends State<ChannelListSection> {
               header: true,
               child: Text(widget.title, style: textTheme.titleMedium),
             ),
-            FilledButton.icon(
+            FluentButton.primaryIcon(
               onPressed: () => _setAllChannelsEnabled(true),
               icon: const Icon(Icons.check),
               label: const Text('一键全开'),
             ),
-            OutlinedButton.icon(
+            FluentButton.outlineIcon(
               onPressed: () => _setAllChannelsEnabled(false),
               icon: const Icon(Icons.block),
               label: const Text('一键全关'),

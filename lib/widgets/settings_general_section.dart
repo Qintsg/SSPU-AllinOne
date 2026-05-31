@@ -6,7 +6,7 @@
  * @Date : 2026-04-23
  */
 
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 
 import '../theme/app_spacing.dart';
 import 'settings_update_section.dart';
@@ -78,7 +78,8 @@ class SettingsGeneralSection extends StatelessWidget {
 
   Widget _buildWindowBehaviorSection(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Card.filled(
+    return FluentCard(
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: AppSpacing.cardPadding,
         child: Column(
@@ -96,13 +97,13 @@ class SettingsGeneralSection extends StatelessWidget {
               subtitle: Text('选择点击窗口关闭按钮时的操作', style: textTheme.bodySmall),
               trailing: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 220),
-                child: DropdownButton<String>(
+                child: FluentSelect<String>(
                   isExpanded: true,
                   value: closeBehavior,
                   items: const [
-                    DropdownMenuItem(value: 'ask', child: Text('每次询问')),
-                    DropdownMenuItem(value: 'minimize', child: Text('最小化到托盘')),
-                    DropdownMenuItem(value: 'exit', child: Text('直接退出')),
+                    FluentSelectItem(value: 'ask', child: Text('每次询问')),
+                    FluentSelectItem(value: 'minimize', child: Text('最小化到托盘')),
+                    FluentSelectItem(value: 'exit', child: Text('直接退出')),
                   ],
                   onChanged: (value) {
                     if (value != null) {
@@ -123,7 +124,8 @@ class SettingsGeneralSection extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final disabledColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
 
-    return Card.filled(
+    return FluentCard(
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: AppSpacing.cardPadding,
         child: Column(
@@ -139,7 +141,7 @@ class SettingsGeneralSection extends StatelessWidget {
               icon: Icons.notifications_outlined,
               title: Text('启用消息推送', style: textTheme.titleSmall),
               subtitle: Text('当自动刷新发现新消息时推送系统通知', style: textTheme.bodySmall),
-              trailing: Switch(
+              trailing: FluentSwitch(
                 value: notificationEnabled,
                 onChanged: onNotificationChanged,
               ),
@@ -161,7 +163,7 @@ class SettingsGeneralSection extends StatelessWidget {
                   color: notificationEnabled ? null : disabledColor,
                 ),
               ),
-              trailing: Switch(
+              trailing: FluentSwitch(
                 value: dndEnabled,
                 onChanged: notificationEnabled ? onDndChanged : null,
               ),

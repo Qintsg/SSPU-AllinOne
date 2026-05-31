@@ -6,7 +6,7 @@
  * @Date : 2026-04-23
  */
 
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 
 import '../models/sspu_wechat_accounts.dart';
 import '../theme/app_breakpoints.dart';
@@ -62,7 +62,8 @@ class SettingsWechatMatrixCard extends StatelessWidget {
       (account) => findFollowedWechatAccount(account, followedMps) != null,
     );
 
-    return Card.filled(
+    return FluentCard(
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: AppSpacing.cardPadding,
         child: Column(
@@ -193,12 +194,12 @@ class SettingsWechatMatrixCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
-        FilledButton.icon(
+        FluentButton.primaryIcon(
           onPressed: !authenticated || batchFollowing ? null : onBatchFollow,
           icon: batchFollowing
               ? const SizedBox.square(
                   dimension: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: FluentProgressRing(strokeWidth: 2),
                 )
               : const Icon(Icons.group_add_outlined),
           label: const Text('一键全部关注'),
@@ -297,19 +298,19 @@ class _WechatAccountTile extends StatelessWidget {
                 ),
               )
             else if (!followed)
-              OutlinedButton(
+              FluentButton.outline(
                 onPressed: following ? null : onFollow,
                 child: following
                     ? const SizedBox.square(
                         dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: FluentProgressRing(strokeWidth: 2),
                       )
                     : const Text('关注'),
               )
             else
               Tooltip(
                 message: '控制是否获取该公众号推文',
-                child: Switch(value: enabled, onChanged: onToggle),
+                child: FluentSwitch(value: enabled, onChanged: onToggle),
               ),
           ],
         ),

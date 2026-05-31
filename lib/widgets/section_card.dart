@@ -1,12 +1,12 @@
 /*
- * Material 3 通用分区卡片 — 统一页面分区容器样式
+ * Fluent 2 通用分区卡片 — 统一页面分区容器样式
  * @Project : SSPU-AllinOne
  * @File : section_card.dart
  * @Author : Qintsg
  * @Date : 2026-05-16
  */
 
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 
 import '../theme/app_spacing.dart';
 
@@ -46,8 +46,8 @@ class SectionCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final hasHeader = title != null || subtitle != null || trailing != null;
 
-    return Card.filled(
-      color: colorScheme.surfaceContainerLow,
+    return FluentCard(
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: padding,
         child: Column(

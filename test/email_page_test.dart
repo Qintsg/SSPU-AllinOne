@@ -6,7 +6,7 @@
  * @Date : 2026-05-01
  */
 
-import 'package:sspu_allinone/widgets/material_compat.dart';
+import 'package:sspu_allinone/design/fluent_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/models/email_mailbox.dart';
 import 'package:sspu_allinone/pages/email_page.dart';

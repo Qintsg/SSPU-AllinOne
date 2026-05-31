@@ -1,14 +1,12 @@
 /*
- * 应用主体 — 根据 Material 3 窗口尺寸等级切换自适应导航结构
+ * 应用主体 — 根据 Fluent 2 窗口尺寸等级切换自适应导航结构
  * @Project : SSPU-AllinOne
  * @File : app.dart
  * @Author : Qintsg
  * @Date : 2026-04-18
  */
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-
+import 'design/fluent_ui.dart';
 import 'pages/about_page.dart';
 import 'pages/academic_page.dart';
 import 'pages/course_schedule_page.dart';
@@ -22,6 +20,8 @@ import 'theme/app_breakpoints.dart';
 import 'theme/app_spacing.dart';
 import 'widgets/campus_network_status_indicator.dart';
 
+part 'app_navigation_items.dart';
+
 /// 仅移动端原生平台需要优先启用底部导航。
 bool get _supportsMobileBottomNavigation {
   if (kIsWeb) return false;
@@ -33,7 +33,7 @@ bool get _supportsMobileBottomNavigation {
 }
 
 /// 应用主体骨架。
-/// 管理 Material 3 自适应导航结构与页面切换。
+/// 管理 Fluent 2 自适应导航结构与页面切换。
 class AppShell extends StatefulWidget {
   /// 手动上锁回调。
   final VoidCallback? onLock;
@@ -51,53 +51,56 @@ class _AppShellState extends State<AppShell> {
   /// 当前选中的导航项索引。
   int _selectedIndex = 0;
 
+  /// 已访问过的页面索引，用于懒加载并保留导航切换后的页面状态。
+  final Set<int> _visitedDestinationIndexes = <int>{0};
+
   List<_AppDestination> get _destinations => [
     const _AppDestination(
       title: '主页',
-      icon: Icons.home_outlined,
-      selectedIcon: Icons.home,
+      icon: FluentIcons.home,
+      selectedIcon: FluentIcons.home,
       body: HomePage(),
     ),
     const _AppDestination(
       title: '教务',
-      icon: Icons.school_outlined,
-      selectedIcon: Icons.school,
+      icon: FluentIcons.education,
+      selectedIcon: FluentIcons.education,
       body: AcademicPage(),
     ),
     const _AppDestination(
       title: '课表',
-      icon: Icons.calendar_month_outlined,
-      selectedIcon: Icons.calendar_month,
+      icon: FluentIcons.calendar,
+      selectedIcon: FluentIcons.calendar,
       body: CourseSchedulePage(),
     ),
     const _AppDestination(
       title: '信息',
-      icon: Icons.info_outline,
-      selectedIcon: Icons.info,
+      icon: FluentIcons.info,
+      selectedIcon: FluentIcons.infoSolid,
       body: InfoPage(),
     ),
     const _AppDestination(
       title: '邮箱',
-      icon: Icons.mail_outline,
-      selectedIcon: Icons.mail,
+      icon: FluentIcons.mail,
+      selectedIcon: FluentIcons.mail,
       body: EmailPage(),
     ),
     const _AppDestination(
       title: '跳转',
-      icon: Icons.link_outlined,
-      selectedIcon: Icons.link,
+      icon: FluentIcons.link,
+      selectedIcon: FluentIcons.link,
       body: QuickLinksPage(),
     ),
     _AppDestination(
       title: '设置',
-      icon: Icons.settings_outlined,
-      selectedIcon: Icons.settings,
+      icon: FluentIcons.settings,
+      selectedIcon: FluentIcons.settings,
       body: SettingsPage(onLock: widget.onLock),
     ),
     const _AppDestination(
       title: '关于',
-      icon: Icons.help_outline,
-      selectedIcon: Icons.help,
+      icon: FluentIcons.info,
+      selectedIcon: FluentIcons.infoSolid,
       body: AboutPage(),
     ),
   ];
@@ -109,12 +112,14 @@ class _AppShellState extends State<AppShell> {
     final orientation = MediaQuery.orientationOf(context);
     final useBottomNavigation =
         sizeClass == WindowSizeClass.compact ||
-        (_supportsMobileBottomNavigation && orientation == Orientation.portrait);
+        (_supportsMobileBottomNavigation &&
+            orientation == Orientation.portrait);
 
     if (useBottomNavigation) {
       return _CompactNavigationShell(
         destinations: destinations,
         selectedIndex: _selectedIndex,
+        visitedIndexes: _visitedDestinationIndexes,
         onChanged: _selectDestination,
       );
     }
@@ -124,6 +129,7 @@ class _AppShellState extends State<AppShell> {
       return _DrawerNavigationShell(
         destinations: destinations,
         selectedIndex: _selectedIndex,
+        visitedIndexes: _visitedDestinationIndexes,
         onChanged: _selectDestination,
         campusNetworkStatusService: widget.campusNetworkStatusService,
       );
@@ -132,6 +138,7 @@ class _AppShellState extends State<AppShell> {
     return _RailNavigationShell(
       destinations: destinations,
       selectedIndex: _selectedIndex,
+      visitedIndexes: _visitedDestinationIndexes,
       extended: sizeClass == WindowSizeClass.expanded,
       onChanged: _selectDestination,
       campusNetworkStatusService: widget.campusNetworkStatusService,
@@ -140,7 +147,13 @@ class _AppShellState extends State<AppShell> {
 
   /// 切换当前导航目的地。
   void _selectDestination(int index) {
-    setState(() => _selectedIndex = index);
+    final destinations = _destinations;
+    if (index < 0 || index >= destinations.length) return;
+
+    setState(() {
+      _selectedIndex = index;
+      _visitedDestinationIndexes.add(index);
+    });
   }
 }
 
@@ -161,38 +174,136 @@ class _AppDestination {
 class _CompactNavigationShell extends StatelessWidget {
   final List<_AppDestination> destinations;
   final int selectedIndex;
+  final Set<int> visitedIndexes;
   final ValueChanged<int> onChanged;
+
+  static const List<int> _primaryIndexes = <int>[0, 1, 2, 3];
+  static const _moreDestination = _AppDestination(
+    title: '更多',
+    icon: FluentIcons.more,
+    selectedIcon: FluentIcons.more,
+    body: SizedBox.shrink(),
+  );
 
   const _CompactNavigationShell({
     required this.destinations,
     required this.selectedIndex,
+    required this.visitedIndexes,
     required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.fluentColors;
+    final primaryIndexes = _primaryIndexes
+        .where((index) => index < destinations.length)
+        .toList(growable: false);
+    final hiddenIndexes = [
+      for (var i = 0; i < destinations.length; i++)
+        if (!primaryIndexes.contains(i)) i,
+    ];
+    final moreSelected = hiddenIndexes.contains(selectedIndex);
+
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: KeyedSubtree(
-          key: ValueKey(selectedIndex),
-          child: destinations[selectedIndex].body,
+        child: _NavigationBody(
+          destinations: destinations,
+          selectedIndex: selectedIndex,
+          visitedIndexes: visitedIndexes,
         ),
       ),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: Container(
         key: const Key('mobile-bottom-navigation'),
-        selectedIndex: selectedIndex,
-        onDestinationSelected: onChanged,
-        destinations: [
-          for (final destination in destinations)
-            NavigationDestination(
-              icon: Icon(destination.icon),
-              selectedIcon: Icon(destination.selectedIcon),
-              label: destination.title,
-              tooltip: destination.title,
+        decoration: BoxDecoration(
+          color: colors.neutralBackground2,
+          border: Border(top: BorderSide(color: colors.neutralStrokeDivider)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xs,
+              vertical: AppSpacing.xs,
             ),
-        ],
+            child: Row(
+              children: [
+                for (final i in primaryIndexes)
+                  Expanded(
+                    child: _FluentBottomNavigationItem(
+                      destination: destinations[i],
+                      selected: selectedIndex == i,
+                      onTap: () => onChanged(i),
+                    ),
+                  ),
+                if (hiddenIndexes.isNotEmpty)
+                  Expanded(
+                    child: _FluentBottomNavigationItem(
+                      destination: _moreDestination,
+                      selected: moreSelected,
+                      onTap: () => _openMoreDestinations(
+                        context,
+                        hiddenIndexes: hiddenIndexes,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
+    );
+  }
+
+  /// 打开移动端“更多”入口，承载低频页面避免底部导航拥挤。
+  Future<void> _openMoreDestinations(
+    BuildContext context, {
+    required List<int> hiddenIndexes,
+  }) {
+    return showFluentDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return FluentDialog(
+          title: const Text('更多功能'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final index in hiddenIndexes)
+                Padding(
+                  padding: EdgeInsets.only(
+                    bottom: index == hiddenIndexes.last ? 0 : AppSpacing.sm,
+                  ),
+                  child: FluentSurface(
+                    subtle: true,
+                    elevated: false,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.sm,
+                    ),
+                    semanticLabel: '打开${destinations[index].title}',
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                      onChanged(index);
+                    },
+                    child: Row(
+                      children: [
+                        Icon(destinations[index].icon, size: 20),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(child: Text(destinations[index].title)),
+                        if (selectedIndex == index)
+                          Icon(
+                            FluentIcons.checkMark,
+                            size: 18,
+                            color: context.fluentColors.brandForeground1,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -200,6 +311,7 @@ class _CompactNavigationShell extends StatelessWidget {
 class _RailNavigationShell extends StatelessWidget {
   final List<_AppDestination> destinations;
   final int selectedIndex;
+  final Set<int> visitedIndexes;
   final bool extended;
   final ValueChanged<int> onChanged;
   final CampusNetworkStatusService? campusNetworkStatusService;
@@ -207,6 +319,7 @@ class _RailNavigationShell extends StatelessWidget {
   const _RailNavigationShell({
     required this.destinations,
     required this.selectedIndex,
+    required this.visitedIndexes,
     required this.extended,
     required this.onChanged,
     required this.campusNetworkStatusService,
@@ -214,41 +327,45 @@ class _RailNavigationShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.fluentColors;
     return Scaffold(
       body: SafeArea(
         child: Row(
           children: [
-            NavigationRail(
-              selectedIndex: selectedIndex,
-              extended: extended,
-              minExtendedWidth: 176,
-              onDestinationSelected: onChanged,
-              destinations: [
-                for (final destination in destinations)
-                  NavigationRailDestination(
-                    icon: Icon(destination.icon),
-                    selectedIcon: Icon(destination.selectedIcon),
-                    label: Text(destination.title),
-                  ),
-              ],
-              trailing: Expanded(
-                child: Align(
-                  alignment: AlignmentDirectional.bottomCenter,
-                  child: Padding(
+            Container(
+              width: extended ? 176 : 72,
+              decoration: BoxDecoration(
+                color: colors.neutralBackground2,
+                border: BorderDirectional(
+                  end: BorderSide(color: colors.neutralStrokeDivider),
+                ),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: AppSpacing.sm),
+                  for (var i = 0; i < destinations.length; i++)
+                    _FluentSideNavigationItem(
+                      destination: destinations[i],
+                      selected: selectedIndex == i,
+                      extended: extended,
+                      onTap: () => onChanged(i),
+                    ),
+                  const Spacer(),
+                  Padding(
                     key: const Key('campus-network-status-pane-item'),
                     padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
                     child: CampusNetworkStatusIndicator(
                       service: campusNetworkStatusService,
                     ),
                   ),
-                ),
+                ],
               ),
             ),
-            const VerticalDivider(width: 1),
             Expanded(
-              child: KeyedSubtree(
-                key: ValueKey(selectedIndex),
-                child: destinations[selectedIndex].body,
+              child: _NavigationBody(
+                destinations: destinations,
+                selectedIndex: selectedIndex,
+                visitedIndexes: visitedIndexes,
               ),
             ),
           ],
@@ -261,29 +378,37 @@ class _RailNavigationShell extends StatelessWidget {
 class _DrawerNavigationShell extends StatelessWidget {
   final List<_AppDestination> destinations;
   final int selectedIndex;
+  final Set<int> visitedIndexes;
   final ValueChanged<int> onChanged;
   final CampusNetworkStatusService? campusNetworkStatusService;
 
   const _DrawerNavigationShell({
     required this.destinations,
     required this.selectedIndex,
+    required this.visitedIndexes,
     required this.onChanged,
     required this.campusNetworkStatusService,
   });
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.fluentColors;
+    final type = context.fluentType;
 
     return Scaffold(
       body: SafeArea(
         child: Row(
           children: [
-            SizedBox(
+            Container(
               width: 280,
-              child: NavigationDrawer(
-                selectedIndex: selectedIndex,
-                onDestinationSelected: onChanged,
+              decoration: BoxDecoration(
+                color: colors.neutralBackground2,
+                border: BorderDirectional(
+                  end: BorderSide(color: colors.neutralStrokeDivider),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Padding(
                     padding: const EdgeInsetsDirectional.fromSTEB(
@@ -294,14 +419,17 @@ class _DrawerNavigationShell extends StatelessWidget {
                     ),
                     child: Text(
                       'SSPU-AllinOne',
-                      style: textTheme.titleLarge,
+                      style: type.title2.copyWith(
+                        color: colors.neutralForeground1,
+                      ),
                     ),
                   ),
-                  for (final destination in destinations)
-                    NavigationDrawerDestination(
-                      icon: Icon(destination.icon),
-                      selectedIcon: Icon(destination.selectedIcon),
-                      label: Text(destination.title),
+                  for (var i = 0; i < destinations.length; i++)
+                    _FluentSideNavigationItem(
+                      destination: destinations[i],
+                      selected: selectedIndex == i,
+                      extended: true,
+                      onTap: () => onChanged(i),
                     ),
                   const Padding(
                     padding: EdgeInsetsDirectional.symmetric(
@@ -319,16 +447,44 @@ class _DrawerNavigationShell extends StatelessWidget {
                 ],
               ),
             ),
-            const VerticalDivider(width: 1),
             Expanded(
-              child: KeyedSubtree(
-                key: ValueKey(selectedIndex),
-                child: destinations[selectedIndex].body,
+              child: _NavigationBody(
+                destinations: destinations,
+                selectedIndex: selectedIndex,
+                visitedIndexes: visitedIndexes,
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _NavigationBody extends StatelessWidget {
+  const _NavigationBody({
+    required this.destinations,
+    required this.selectedIndex,
+    required this.visitedIndexes,
+  });
+
+  final List<_AppDestination> destinations;
+  final int selectedIndex;
+  final Set<int> visitedIndexes;
+
+  @override
+  Widget build(BuildContext context) {
+    return IndexedStack(
+      index: selectedIndex,
+      children: [
+        for (var i = 0; i < destinations.length; i++)
+          KeyedSubtree(
+            key: ValueKey('app-destination-$i'),
+            child: visitedIndexes.contains(i)
+                ? destinations[i].body
+                : const SizedBox.shrink(),
+          ),
+      ],
     );
   }
 }

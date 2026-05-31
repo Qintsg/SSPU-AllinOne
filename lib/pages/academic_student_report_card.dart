@@ -51,7 +51,7 @@ class AcademicStudentReportCard extends StatelessWidget {
                 SizedBox(
                   width: 18,
                   height: 18,
-                  child: ProgressRing(strokeWidth: 2),
+                  child: FluentProgressRing(strokeWidth: 2),
                 ),
                 SizedBox(width: FluentSpacing.s),
                 Text('正在读取第二课堂学分...'),
@@ -66,11 +66,10 @@ class AcademicStudentReportCard extends StatelessWidget {
           ] else if (result!.isSuccess && summary != null) ...[
             _SecondClassroomSummaryView(summary: summary),
           ] else ...[
-            InfoBar(
+            FluentInfoBar(
               title: Text(result!.message),
               content: Text(result!.detail),
               severity: _studentReportSeverity(result!.status),
-              isLong: true,
             ),
           ],
           const SizedBox(height: FluentSpacing.m),
@@ -86,19 +85,17 @@ class AcademicStudentReportCard extends StatelessWidget {
                     color: theme.resources.textFillColorSecondary,
                   ),
                 ),
-                Tooltip(
-                  message: '手动刷新第二课堂学分',
-                  child: IconButton(
-                    key: const Key('academic-student-report-refresh'),
-                    icon: isLoading
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: ProgressRing(strokeWidth: 2),
-                          )
-                        : const Icon(FluentIcons.refresh, size: 14),
-                    onPressed: isLoading ? null : onRefresh,
-                  ),
+                FluentIconButton(
+                  key: const Key('academic-student-report-refresh'),
+                  tooltip: '手动刷新第二课堂学分',
+                  icon: isLoading
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: FluentProgressRing(strokeWidth: 2),
+                        )
+                      : const Icon(FluentIcons.refresh),
+                  onPressed: isLoading ? null : onRefresh,
                 ),
               ],
             ),
@@ -108,19 +105,19 @@ class AcademicStudentReportCard extends StatelessWidget {
     );
   }
 
-  InfoBarSeverity _studentReportSeverity(StudentReportQueryStatus status) {
+  FluentInfoSeverity _studentReportSeverity(StudentReportQueryStatus status) {
     return switch (status) {
-      StudentReportQueryStatus.success => InfoBarSeverity.success,
+      StudentReportQueryStatus.success => FluentInfoSeverity.success,
       StudentReportQueryStatus.missingOaAccount ||
       StudentReportQueryStatus.missingOaPassword ||
       StudentReportQueryStatus.campusNetworkUnavailable =>
-        InfoBarSeverity.warning,
+        FluentInfoSeverity.warning,
       StudentReportQueryStatus.oaLoginRequired ||
       StudentReportQueryStatus.reportSystemUnavailable ||
       StudentReportQueryStatus.secondClassroomEntryUnavailable ||
       StudentReportQueryStatus.parseFailed ||
       StudentReportQueryStatus.networkError ||
-      StudentReportQueryStatus.unexpectedError => InfoBarSeverity.error,
+      StudentReportQueryStatus.unexpectedError => FluentInfoSeverity.error,
     };
   }
 
@@ -147,22 +144,10 @@ class _SecondClassroomSummaryView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              summary.records.length.toString(),
-              style: theme.typography.display?.copyWith(
-                color: theme.accentColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(width: FluentSpacing.s),
-            Padding(
-              padding: const EdgeInsets.only(bottom: FluentSpacing.xs),
-              child: Text('项得分记录', style: theme.typography.bodyStrong),
-            ),
-          ],
+        FluentMetricCard(
+          label: '项得分记录',
+          value: summary.records.length.toString(),
+          icon: FluentIcons.certificate,
         ),
         const SizedBox(height: FluentSpacing.xs),
         Text(
@@ -190,7 +175,7 @@ class _SecondClassroomSummaryView extends StatelessWidget {
             ),
           ),
         const SizedBox(height: FluentSpacing.l),
-        FilledButton(
+        FluentButton.primary(
           onPressed: () => Navigator.of(context).push(
             FluentPageRoute(
               builder: (_) => StudentReportDetailPage(summary: summary),
@@ -228,60 +213,51 @@ class _SecondClassroomScoreTile extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: FluentSpacing.s),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.all(FluentSpacing.m),
-            decoration: BoxDecoration(
-              color: theme.accentColor.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: theme.accentColor.withValues(alpha: 0.16),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(record.itemName, style: theme.typography.bodyStrong),
-                      if (meta.isNotEmpty) ...[
-                        const SizedBox(height: FluentSpacing.xxs),
-                        Text(
-                          meta,
-                          style: theme.typography.caption?.copyWith(
-                            color: theme.resources.textFillColorSecondary,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: FluentSpacing.m),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
+      child: FluentCard(
+        bordered: true,
+        elevated: false,
+        onPressed: onTap,
+        semanticLabel: '查看${record.itemName}得分详情',
+        padding: const EdgeInsets.all(FluentSpacing.m),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(record.itemName, style: theme.typography.bodyStrong),
+                  if (meta.isNotEmpty) ...[
+                    const SizedBox(height: FluentSpacing.xxs),
                     Text(
-                      _formatCredit(record.credit),
-                      style: theme.typography.bodyLarge?.copyWith(
-                        color: theme.accentColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      '得分',
+                      meta,
                       style: theme.typography.caption?.copyWith(
                         color: theme.resources.textFillColorSecondary,
                       ),
                     ),
                   ],
+                ],
+              ),
+            ),
+            const SizedBox(width: FluentSpacing.m),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  _formatCredit(record.credit),
+                  style: theme.typography.bodyLarge?.copyWith(
+                    color: theme.accentColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '得分',
+                  style: theme.typography.caption?.copyWith(
+                    color: theme.resources.textFillColorSecondary,
+                  ),
                 ),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -294,11 +270,11 @@ Future<void> _showSecondClassroomRecordDialog(
 ) {
   return showDialog<void>(
     context: context,
-    builder: (dialogContext) => ContentDialog(
+    builder: (dialogContext) => FluentDialog(
       title: const Text('得分详情'),
       content: _SecondClassroomRecordDetailCard(record: record),
       actions: [
-        Button(
+        FluentButton.outline(
           onPressed: () => Navigator.of(dialogContext).pop(),
           child: const Text('关闭'),
         ),
@@ -331,7 +307,8 @@ class _SecondClassroomRecordDetailCard extends StatelessWidget {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 360),
       child: SingleChildScrollView(
-        child: Card(
+        child: FluentCard(
+          padding: EdgeInsets.zero,
           child: Padding(
             padding: const EdgeInsets.all(FluentSpacing.l),
             child: Column(
@@ -393,16 +370,17 @@ class StudentReportDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
-    return ScaffoldPage.scrollable(
-      header: PageHeader(
+    return FluentPage.scrollable(
+      header: FluentPageHeader(
         title: const Text('第二课堂得分明细'),
-        commandBar: Button(
+        commandBar: FluentButton.outline(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('返回'),
         ),
       ),
       children: [
-        Card(
+        FluentCard(
+          padding: EdgeInsets.zero,
           child: Padding(
             padding: const EdgeInsets.all(FluentSpacing.l),
             child: Column(

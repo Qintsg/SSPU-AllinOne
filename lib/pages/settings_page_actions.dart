@@ -150,19 +150,19 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
   /// 显示操作成功提示。
   void _showSuccessBar(String message) {
-    displayInfoBar(
+    showFluentInfoBar(
       context,
-      builder: (ctx, close) =>
-          InfoBar(title: Text(message), severity: InfoBarSeverity.success),
+      title: Text(message),
+      severity: FluentInfoSeverity.success,
     );
   }
 
   /// 显示操作失败提示。
   void _showErrorBar(String message) {
-    displayInfoBar(
+    showFluentInfoBar(
       context,
-      builder: (ctx, close) =>
-          InfoBar(title: Text(message), severity: InfoBarSeverity.error),
+      title: Text(message),
+      severity: FluentInfoSeverity.error,
     );
   }
 
@@ -388,7 +388,7 @@ mixin _SettingsPageActions on State<SettingsPage> {
   Future<void> _showClearMessageCacheDialog() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => ContentDialog(
+      builder: (ctx) => FluentDialog(
         title: const Text('清理信息中心缓存'),
         content: const Text(
           '此操作将清除信息中心缓存的所有消息（包括官网消息和微信公众号文章）。\n\n'
@@ -396,11 +396,11 @@ mixin _SettingsPageActions on State<SettingsPage> {
           '是否继续？',
         ),
         actions: [
-          Button(
+          FluentButton.outline(
             onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('取消'),
           ),
-          FilledButton(
+          FluentButton.primary(
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('确认清理'),
           ),
@@ -412,15 +412,13 @@ mixin _SettingsPageActions on State<SettingsPage> {
       await StorageService.remove(MessageChannelKeys.persistedMessages);
       await StorageService.remove(MessageChannelKeys.readMessageIds);
       if (!mounted) return;
-      displayInfoBar(
+      showFluentInfoBar(
         context,
-        builder: (ctx, close) => InfoBar(
-          title: const Text('信息中心缓存已清理'),
-          severity: InfoBarSeverity.success,
-          action: IconButton(
-            icon: const Icon(FluentIcons.clear),
-            onPressed: close,
-          ),
+        title: const Text('信息中心缓存已清理'),
+        severity: FluentInfoSeverity.success,
+        actionBuilder: (close) => FluentIconButton(
+          icon: const Icon(FluentIcons.clear),
+          onPressed: close,
         ),
       );
     }
@@ -430,18 +428,18 @@ mixin _SettingsPageActions on State<SettingsPage> {
   Future<void> _showClearAllDataDialog() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => ContentDialog(
+      builder: (ctx) => FluentDialog(
         title: const Text('确认清除所有数据'),
         content: const Text(
           '此操作将清除所有本地数据（包括登录信息、设置等），应用将退出。\n'
           '是否继续？',
         ),
         actions: [
-          Button(
+          FluentButton.outline(
             onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('取消'),
           ),
-          FilledButton(
+          FluentButton.primary(
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('确认清除并退出'),
           ),

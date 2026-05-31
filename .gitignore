@@ -114,5 +114,6 @@ Desktop.ini
 .playwright-mcp/
 .worktree/
 .worktrees/
+.agents/
 .opencode/
 .sisyphus/

@@ -6,7 +6,7 @@
  * @Date : 2026-05-15
  */
 
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 
 import '../theme/app_spacing.dart';
 
@@ -103,27 +103,26 @@ class PrivacyPolicyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('隐私协议')),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: AppSpacing.regularPagePadding,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 720),
-              child: Card.filled(
-                child: Padding(
-                  padding: AppSpacing.cardPadding,
-                  child: SelectableText(
-                    kPrivacyPolicyText.trim(),
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
+    return FluentPage.scrollable(
+      header: const FluentPageHeader(title: Text('隐私协议')),
+      padding: AppSpacing.regularPagePadding,
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: FluentCard(
+              padding: EdgeInsets.zero,
+              child: Padding(
+                padding: AppSpacing.cardPadding,
+                child: SelectableText(
+                  kPrivacyPolicyText.trim(),
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

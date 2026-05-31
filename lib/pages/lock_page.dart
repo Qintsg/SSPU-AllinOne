@@ -9,7 +9,7 @@
 
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 
 import '../services/password_service.dart';
 import '../services/system_auth_service.dart';
@@ -260,17 +260,14 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
       },
       child: Column(
         children: [
-          TextField(
+          FluentTextField(
             controller: _passwordController,
             focusNode: _focusNode,
             obscureText: true,
-            decoration: InputDecoration(
-              labelText: '密码',
-              hintText: '输入密码以解锁',
-              prefixIcon: const Icon(Icons.lock_outline),
-              errorText: _errorMessage,
-              errorMaxLines: 2,
-            ),
+            label: '密码',
+            placeholder: '输入密码以解锁',
+            prefixIcon: Icons.lock_outline,
+            errorText: _errorMessage,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _handleUnlock(),
           ),
@@ -294,12 +291,13 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
           const SizedBox(height: AppSpacing.md),
           SizedBox(
             width: double.infinity,
-            child: FilledButton(
+            child: FluentButton.primary(
               onPressed: _isVerifying ? null : _handleUnlock,
+              expand: true,
               child: _isVerifying
                   ? const SizedBox.square(
                       dimension: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: FluentProgressRing(strokeWidth: 2),
                     )
                   : const Text('解锁'),
             ),
@@ -308,16 +306,17 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
             const SizedBox(height: AppSpacing.sm),
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton.icon(
+              child: FluentButton.outlineIcon(
                 onPressed: _isSystemAuthenticating
                     ? null
                     : () => _handleSystemUnlock(),
                 icon: _isSystemAuthenticating
                     ? const SizedBox.square(
                         dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: FluentProgressRing(strokeWidth: 2),
                       )
                     : const Icon(Icons.fingerprint),
+                expand: true,
                 label: Text(_isSystemAuthenticating ? '等待系统认证' : '使用系统认证'),
               ),
             ),

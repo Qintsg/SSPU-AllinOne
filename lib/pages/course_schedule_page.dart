@@ -8,12 +8,11 @@
 
 import 'dart:async';
 
-import '../widgets/material_compat.dart';
+import '../design/fluent_ui.dart';
 
 import '../models/academic_eams.dart';
 import '../services/academic_eams_service.dart';
 import '../theme/fluent_tokens.dart';
-import '../widgets/fluent_surface.dart';
 
 /// 独立课程表页面。
 class CourseSchedulePage extends StatefulWidget {
@@ -115,20 +114,20 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     final snapshot = _result?.snapshot;
     final courseTable = snapshot?.courseTable;
 
-    return ScaffoldPage.scrollable(
-      header: PageHeader(
+    return FluentPage.scrollable(
+      header: FluentPageHeader(
         title: const Text('课程表'),
         commandBar: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (canPop) ...[
-              Button(
+              FluentButton.outline(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('返回'),
               ),
               const SizedBox(width: FluentSpacing.s),
             ],
-            FilledButton(
+            FluentButton.primary(
               key: const Key('course-schedule-refresh'),
               onPressed: _isLoading ? null : _loadCourseTable,
               child: Row(
@@ -138,7 +137,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
                     const SizedBox(
                       width: 14,
                       height: 14,
-                      child: ProgressRing(strokeWidth: 2),
+                      child: FluentProgressRing(strokeWidth: 2),
                     )
                   else
                     const Icon(FluentIcons.refresh, size: 14),
@@ -179,7 +178,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
                 SizedBox(
                   width: 18,
                   height: 18,
-                  child: ProgressRing(strokeWidth: 2),
+                  child: FluentProgressRing(strokeWidth: 2),
                 ),
                 SizedBox(width: FluentSpacing.s),
                 Text('正在读取当前学期课表...'),
@@ -187,18 +186,16 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
             ),
           )
         else if (_result == null)
-          const InfoBar(
+          const FluentInfoBar(
             title: Text('尚未读取课表'),
             content: Text('点击“刷新课表”即可按当前 OA 登录态只读获取本学期课表。'),
-            severity: InfoBarSeverity.info,
-            isLong: true,
+            severity: FluentInfoSeverity.info,
           )
         else if (!_result!.isSuccess || courseTable == null)
-          InfoBar(
+          FluentInfoBar(
             title: Text(_result!.message),
             content: Text(_result!.detail),
             severity: _severityOf(_result!.status),
-            isLong: true,
           )
         else ...[
           _CourseScheduleSummaryCard(
@@ -212,21 +209,21 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     );
   }
 
-  InfoBarSeverity _severityOf(AcademicEamsQueryStatus status) {
+  FluentInfoSeverity _severityOf(AcademicEamsQueryStatus status) {
     return switch (status) {
-      AcademicEamsQueryStatus.success => InfoBarSeverity.success,
+      AcademicEamsQueryStatus.success => FluentInfoSeverity.success,
       AcademicEamsQueryStatus.partialSuccess ||
       AcademicEamsQueryStatus.missingOaAccount ||
       AcademicEamsQueryStatus.missingOaPassword ||
       AcademicEamsQueryStatus.campusNetworkUnavailable =>
-        InfoBarSeverity.warning,
+        FluentInfoSeverity.warning,
       AcademicEamsQueryStatus.oaLoginRequired ||
       AcademicEamsQueryStatus.systemUnavailable ||
       AcademicEamsQueryStatus.readOnlyEntryUnavailable ||
       AcademicEamsQueryStatus.queryFormUnavailable ||
       AcademicEamsQueryStatus.parseFailed ||
       AcademicEamsQueryStatus.networkError ||
-      AcademicEamsQueryStatus.unexpectedError => InfoBarSeverity.error,
+      AcademicEamsQueryStatus.unexpectedError => FluentInfoSeverity.error,
     };
   }
 
@@ -316,11 +313,10 @@ class _CourseScheduleSummaryCard extends StatelessWidget {
           ],
           if (snapshot.warnings.isNotEmpty) ...[
             const SizedBox(height: FluentSpacing.m),
-            InfoBar(
+            FluentInfoBar(
               title: const Text('课表已可用，部分教务模块仍在降级'),
               content: Text(snapshot.warnings.join('；')),
-              severity: InfoBarSeverity.warning,
-              isLong: true,
+              severity: FluentInfoSeverity.warning,
             ),
           ],
         ],
@@ -428,7 +424,7 @@ class _CourseScheduleEntryCard extends StatelessWidget {
                   entry.weekDescription!.isNotEmpty)
                 _buildMeta(
                   context,
-                  FluentIcons.calendar_week,
+                  FluentIcons.calendarWeek,
                   entry.weekDescription!,
                 ),
             ],

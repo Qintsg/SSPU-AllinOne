@@ -13,7 +13,7 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
   Widget _buildAcademicCredentialsSection(BuildContext context) {
     final theme = FluentTheme.of(context);
     if (_isCredentialsLoading) {
-      return const Center(child: ProgressRing());
+      return const Center(child: FluentProgressRing());
     }
 
     return Column(
@@ -26,9 +26,9 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
           style: theme.typography.caption,
         ),
         const SizedBox(height: FluentSpacing.m),
-        InfoLabel(
+        FluentInfoLabel(
           label: '学工号（OA账号）',
-          child: TextBox(
+          child: FluentTextField(
             controller: _oaAccountController,
             placeholder: '请输入学工号',
           ),
@@ -65,7 +65,7 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
           spacing: FluentSpacing.s,
           runSpacing: FluentSpacing.s,
           children: [
-            FilledButton(
+            FluentButton.primary(
               onPressed: _isSavingCredentials ? null : _saveAcademicCredentials,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -74,7 +74,7 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
                     const SizedBox(
                       width: 14,
                       height: 14,
-                      child: ProgressRing(strokeWidth: 2),
+                      child: FluentProgressRing(strokeWidth: 2),
                     ),
                   ] else ...[
                     const Icon(FluentIcons.save, size: 14),
@@ -84,7 +84,7 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
                 ],
               ),
             ),
-            Button(
+            FluentButton.outline(
               onPressed: _isSavingCredentials || _isValidatingAcademicLogin
                   ? null
                   : _validateAcademicLogin,
@@ -95,10 +95,10 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
                     const SizedBox(
                       width: 14,
                       height: 14,
-                      child: ProgressRing(strokeWidth: 2),
+                      child: FluentProgressRing(strokeWidth: 2),
                     ),
                   ] else ...[
-                    const Icon(FluentIcons.plug_connected, size: 14),
+                    const Icon(FluentIcons.plugConnected, size: 14),
                   ],
                   const SizedBox(width: 6),
                   const Text('验证 OA 登录'),
@@ -119,31 +119,30 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
   Widget _buildAcademicLoginValidationResult(
     AcademicLoginValidationResult result,
   ) {
-    return InfoBar(
+    return FluentInfoBar(
       title: Text(result.message),
       content: Text(result.detail),
       severity: _loginValidationSeverity(result.status),
-      isLong: true,
     );
   }
 
   /// 将登录校验状态映射为 Fluent 提示等级。
-  InfoBarSeverity _loginValidationSeverity(
+  FluentInfoSeverity _loginValidationSeverity(
     AcademicLoginValidationStatus status,
   ) {
     return switch (status) {
-      AcademicLoginValidationStatus.success => InfoBarSeverity.success,
+      AcademicLoginValidationStatus.success => FluentInfoSeverity.success,
       AcademicLoginValidationStatus.missingOaAccount ||
       AcademicLoginValidationStatus.missingOaPassword ||
       AcademicLoginValidationStatus.campusNetworkUnavailable ||
       AcademicLoginValidationStatus.captchaRequired ||
       AcademicLoginValidationStatus.additionalVerificationRequired =>
-        InfoBarSeverity.warning,
+        FluentInfoSeverity.warning,
       AcademicLoginValidationStatus.loginPageUnavailable ||
       AcademicLoginValidationStatus.credentialsRejected ||
       AcademicLoginValidationStatus.webFlowChanged ||
       AcademicLoginValidationStatus.networkError ||
-      AcademicLoginValidationStatus.unexpectedError => InfoBarSeverity.error,
+      AcademicLoginValidationStatus.unexpectedError => FluentInfoSeverity.error,
     };
   }
 
@@ -157,12 +156,13 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InfoLabel(
+        FluentInfoLabel(
           label: label,
-          child: PasswordBox(
+          child: FluentTextField(
             controller: controller,
             placeholder: '留空则不修改已保存密码',
-            revealMode: PasswordRevealMode.peekAlways,
+            obscureText: true,
+            prefixIcon: FluentIcons.lock,
           ),
         ),
         const SizedBox(height: FluentSpacing.xs),
@@ -173,7 +173,7 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
           children: [
             _buildSecretStatus(hasSecret),
             if (hasSecret)
-              Button(
+              FluentButton.outline(
                 onPressed: _isSavingCredentials
                     ? null
                     : () => _clearAcademicSecret(secret),
@@ -199,7 +199,7 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
-          hasSecret ? FluentIcons.check_mark : FluentIcons.blocked,
+          hasSecret ? FluentIcons.checkMark : FluentIcons.blocked,
           size: 14,
         ),
         const SizedBox(width: FluentSpacing.xs),

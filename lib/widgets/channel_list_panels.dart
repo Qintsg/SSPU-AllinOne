@@ -6,7 +6,7 @@
  * @Date : 2026-04-23
  */
 
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 
 import '../models/channel_config.dart';
 import '../models/message_item.dart';
@@ -93,7 +93,7 @@ class ChannelGroupRefreshPanel extends StatelessWidget {
                         color: hasImplementedChannel ? foreground : foreground,
                       ),
                     ),
-                    Switch(
+                    FluentSwitch(
                       value: groupAutoRefreshEnabled,
                       onChanged: hasImplementedChannel
                           ? onGroupAutoRefreshToggled
@@ -110,14 +110,14 @@ class ChannelGroupRefreshPanel extends StatelessWidget {
                       '自动刷新间隔：',
                       style: textTheme.bodySmall?.copyWith(color: foreground),
                     ),
-                    DropdownButton<int>(
+                    FluentSelect<int>(
                       value: kIntervalOptions.containsKey(groupInterval)
                           ? groupInterval
                           : 60,
                       items: kIntervalOptions.entries
                           .where((entry) => entry.key > 0)
                           .map(
-                            (entry) => DropdownMenuItem<int>(
+                            (entry) => FluentSelectItem<int>(
                               value: entry.key,
                               child: Text(entry.value),
                             ),
@@ -231,7 +231,7 @@ class ChannelListItemCard extends StatelessWidget {
                           padding: const EdgeInsetsDirectional.only(
                             start: AppSpacing.xxl,
                           ),
-                          child: Switch(value: enabled, onChanged: onToggled),
+                          child: FluentSwitch(value: enabled, onChanged: onToggled),
                         ),
                       ],
                     );
@@ -242,7 +242,7 @@ class ChannelListItemCard extends StatelessWidget {
                     children: [
                       Expanded(child: description),
                       const SizedBox(width: AppSpacing.sm),
-                      Switch(value: enabled, onChanged: onToggled),
+                      FluentSwitch(value: enabled, onChanged: onToggled),
                     ],
                   );
                 },
@@ -344,14 +344,44 @@ class _ChannelSubcategoryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!interactive) {
-      return Chip(label: Text(name));
-    }
+    final colors = context.fluentColors;
+    final radii = context.fluentRadii;
+    final stroke = context.fluentStroke;
+    final type = context.fluentType;
+    final foreground = !interactive
+        ? colors.neutralForegroundDisabled
+        : enabled
+        ? colors.brandForeground1
+        : colors.neutralForeground2;
+    final background = enabled
+        ? colors.brandBackgroundSelected.withValues(alpha: 0.12)
+        : colors.neutralBackground2;
+    final border = enabled ? colors.brandStroke2 : colors.neutralStroke2;
 
-    return FilterChip(
-      label: Text(name),
-      selected: enabled,
-      onSelected: (_) => onPressed(),
+    return Semantics(
+      button: interactive,
+      toggled: enabled,
+      enabled: interactive,
+      child: MouseRegion(
+        cursor: interactive ? SystemMouseCursors.click : MouseCursor.defer,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: interactive ? onPressed : null,
+          child: AnimatedContainer(
+            duration: context.fluentMotion.durationFaster,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: background,
+              borderRadius: BorderRadius.circular(radii.circular),
+              border: Border.all(color: border, width: stroke.thin),
+            ),
+            child: Text(
+              name,
+              style: type.caption1.copyWith(color: foreground),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

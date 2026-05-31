@@ -1,70 +1,72 @@
 /*
- * Material 3 兼容 Token — 为历史调用提供过渡期命名
+ * Fluent 2 静态 Token — 静态命名映射至 design/fluent 精确令牌值
  * @Project : SSPU-AllinOne
  * @File : fluent_tokens.dart
  * @Author : Qintsg
- * @Date : 2026-04-19
+ * @Date : 2026-05-18
+ *
+ * 本文件为历史静态调用提供 Fluent 命名；数值与 design/fluent/tokens 一致，
+ * 仅因 static const 上下文无法引用 ThemeExtension 而镜像固化。
  */
 
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
 import 'app_motion.dart';
 import 'app_shapes.dart';
 import 'app_spacing.dart';
 import 'app_theme.dart';
 
-/// 亮色主题固定语义色兼容层。
+/// 亮色主题固定语义色。
 class FluentLightColors {
   FluentLightColors._();
 
-  static const Color brandPrimary = AppColors.brandBlue;
-  static const Color brandHover = Color(0xFF106EBE);
-  static const Color brandPressed = Color(0xFF005A9E);
-  static const Color backgroundDefault = Color(0xFFFDFBFF);
+  static const Color brandPrimary = Color(0xFF0F6CBD);
+  static const Color brandHover = Color(0xFF115EA3);
+  static const Color brandPressed = Color(0xFF0F548C);
+  static const Color backgroundDefault = Color(0xFFFFFFFF);
   static const Color backgroundCard = Color(0xFFFFFFFF);
-  static const Color backgroundSidebar = Color(0xFFF4F3F8);
-  static const Color backgroundSecondary = Color(0xFFE8E7EF);
-  static const Color textPrimary = Color(0xFF1B1B1F);
-  static const Color textSecondary = Color(0xFF5F5E66);
-  static const Color textDisabled = Color(0xFF8C8A93);
-  static const Color borderSubtle = Color(0xFFE1E2EA);
-  static const Color divider = Color(0xFFE1E2EA);
-  static const Color statusSuccess = Color(0xFF2E7D32);
-  static const Color statusWarning = Color(0xFFB26A00);
-  static const Color statusError = Color(0xFFBA1A1A);
-  static const Color statusInfo = AppColors.brandBlue;
+  static const Color backgroundSidebar = Color(0xFFFAFAFA);
+  static const Color backgroundSecondary = Color(0xFFF5F5F5);
+  static const Color textPrimary = Color(0xFF242424);
+  static const Color textSecondary = Color(0xFF424242);
+  static const Color textDisabled = Color(0xFFBDBDBD);
+  static const Color borderSubtle = Color(0xFFE0E0E0);
+  static const Color divider = Color(0xFFEBEBEB);
+  static const Color statusSuccess = Color(0xFF0E700E);
+  static const Color statusWarning = Color(0xFFBC4B09);
+  static const Color statusError = Color(0xFFB10E1C);
+  static const Color statusInfo = Color(0xFF0F6CBD);
   static const Color hoverFill = Color(0x0A000000);
   static const Color activeFill = Color(0x06000000);
-  static const Color unreadIndicator = AppColors.brandBlue;
+  static const Color unreadIndicator = Color(0xFF0F6CBD);
 }
 
-/// 暗色主题固定语义色兼容层。
+/// 暗色主题固定语义色。
 class FluentDarkColors {
   FluentDarkColors._();
 
-  static const Color brandPrimary = Color(0xFFAEC6FF);
-  static const Color brandHover = Color(0xFFC8D7FF);
-  static const Color brandPressed = Color(0xFF7FA7E8);
-  static const Color backgroundDefault = Color(0xFF111318);
-  static const Color backgroundCard = Color(0xFF1A1C22);
-  static const Color backgroundSidebar = Color(0xFF181A20);
-  static const Color backgroundSecondary = Color(0xFF24262D);
-  static const Color textPrimary = Color(0xFFE4E2E9);
-  static const Color textSecondary = Color(0xFFC8C6D0);
-  static const Color textDisabled = Color(0xFF777680);
-  static const Color borderSubtle = Color(0xFF444750);
-  static const Color divider = Color(0xFF444750);
-  static const Color statusSuccess = Color(0xFFA5D6A7);
-  static const Color statusWarning = Color(0xFFFFD180);
-  static const Color statusError = Color(0xFFFFB4AB);
-  static const Color statusInfo = Color(0xFFAEC6FF);
+  static const Color brandPrimary = Color(0xFF479EF5);
+  static const Color brandHover = Color(0xFF62ABF5);
+  static const Color brandPressed = Color(0xFF2886DE);
+  static const Color backgroundDefault = Color(0xFF292929);
+  static const Color backgroundCard = Color(0xFF292929);
+  static const Color backgroundSidebar = Color(0xFF1F1F1F);
+  static const Color backgroundSecondary = Color(0xFF141414);
+  static const Color textPrimary = Color(0xFFFFFFFF);
+  static const Color textSecondary = Color(0xFFD6D6D6);
+  static const Color textDisabled = Color(0xFF5C5C5C);
+  static const Color borderSubtle = Color(0xFF525252);
+  static const Color divider = Color(0xFF3D3D3D);
+  static const Color statusSuccess = Color(0xFF54B054);
+  static const Color statusWarning = Color(0xFFFAA06B);
+  static const Color statusError = Color(0xFFDC626D);
+  static const Color statusInfo = Color(0xFF479EF5);
   static const Color hoverFill = Color(0x0AFFFFFF);
   static const Color activeFill = Color(0x06FFFFFF);
-  static const Color unreadIndicator = Color(0xFFAEC6FF);
+  static const Color unreadIndicator = Color(0xFF479EF5);
 }
 
-/// Material 3 浮层阴影兼容层。
+/// Fluent 2 浮层阴影静态映射。
 class FluentElevation {
   FluentElevation._();
 
@@ -77,7 +79,7 @@ class FluentElevation {
   static const List<BoxShadow> cardPressedDark = [];
 }
 
-/// Material 3 间距兼容层。
+/// Fluent 2 间距静态映射。
 class FluentSpacing {
   FluentSpacing._();
 
@@ -94,53 +96,53 @@ class FluentSpacing {
   static const EdgeInsets listItemVertical = EdgeInsets.symmetric(vertical: s);
 }
 
-/// Material 3 圆角兼容层。
+/// Fluent 2 圆角静态映射。
 class FluentRadius {
   FluentRadius._();
 
-  static const double small = 4;
-  static const double medium = 8;
-  static const double large = 12;
-  static const double xLarge = 16;
-  static const double xxLarge = 28;
+  static const double small = 2;
+  static const double medium = 4;
+  static const double large = 6;
+  static const double xLarge = 8;
+  static const double xxLarge = 8;
   static const double circular = 9999;
   static const BorderRadius card = AppShapes.lg;
   static const BorderRadius button = AppShapes.sm;
-  static const BorderRadius tag = AppShapes.sm;
+  static const BorderRadius tag = AppShapes.xs;
 }
 
-/// Material 3 排版尺寸兼容层。
+/// Fluent 2 排版尺寸静态映射。
 class FluentTypographySize {
   FluentTypographySize._();
 
-  static const double title = 22;
+  static const double title = 20;
   static const double subtitle = 16;
   static const double bodyStrong = 14;
   static const double body = 14;
   static const double caption = 12;
-  static const double overline = 11;
+  static const double overline = 10;
 }
 
-/// Material 3 动效时长兼容层。
+/// Fluent 2 动效时长静态映射。
 class FluentDuration {
   FluentDuration._();
 
   static const Duration fast = AppMotion.short;
   static const Duration normal = AppMotion.medium;
-  static const Duration slow = AppMotion.medium;
+  static const Duration slow = AppMotion.long;
   static const Duration stagger = Duration(milliseconds: 80);
 }
 
-/// Material 3 动效曲线兼容层。
+/// Fluent 2 动效曲线静态映射。
 class FluentEasing {
   FluentEasing._();
 
   static const Curve standard = AppMotion.emphasized;
-  static const Curve decelerate = Curves.easeOutCubic;
-  static const Curve accelerate = Curves.easeInCubic;
+  static const Curve decelerate = Cubic(0.1, 0.9, 0.2, 1);
+  static const Curve accelerate = Cubic(0.7, 0, 1, 0.5);
 }
 
-/// 设备类型枚举兼容层。
+/// 设备类型枚举。
 enum DeviceType {
   /// 手机（Compact）。
   phone,
@@ -152,7 +154,7 @@ enum DeviceType {
   desktop,
 }
 
-/// 响应式布局断点兼容层。
+/// 响应式布局断点。
 class FluentBreakpoints {
   FluentBreakpoints._();
 
@@ -167,7 +169,7 @@ class FluentBreakpoints {
   }
 }
 
-/// Material 3 主题兼容工厂。
+/// Fluent 2 主题静态工厂。
 class FluentTokenTheme {
   FluentTokenTheme._();
 

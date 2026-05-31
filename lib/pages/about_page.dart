@@ -6,7 +6,7 @@
  * @Date : 2026-04-18
  */
 
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -22,15 +22,15 @@ import 'privacy_policy_page.dart';
 const List<_OpenSourceProject> _openSourceProjects = [
   _OpenSourceProject(
     name: 'Flutter',
-    description: '跨平台 UI 框架与 Material 3 组件体系',
+    description: '跨平台 UI 框架与渲染基础能力',
     license: 'BSD-3-Clause',
     url: 'https://flutter.dev',
   ),
   _OpenSourceProject(
-    name: 'Material Design 3',
-    description: 'Google Material 3 设计系统，本项目新前端规范来源',
-    license: 'Apache-2.0',
-    url: 'https://m3.material.io',
+    name: 'Fluent 2 Design System',
+    description: 'Microsoft Fluent 2 设计系统，本项目前端视觉规范来源',
+    license: 'Microsoft Design Guidelines',
+    url: 'https://fluent2.microsoft.design/',
   ),
   _OpenSourceProject(
     name: 'shared_preferences',
@@ -118,51 +118,49 @@ class AboutPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('关于')),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: AppSpacing.regularPagePadding,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 840),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildAppInfoCard(context)
-                      .animate()
-                      .fadeIn(
-                        duration: AppMotion.medium,
-                        curve: Curves.easeOutCubic,
-                      )
-                      .slideY(begin: 0.05, end: 0),
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildActionCard(context)
-                      .animate(delay: 100.ms)
-                      .fadeIn(
-                        duration: AppMotion.medium,
-                        curve: Curves.easeOutCubic,
-                      )
-                      .slideY(begin: 0.05, end: 0),
-                  const SizedBox(height: AppSpacing.lg),
-                  Semantics(
-                    header: true,
-                    child: Text('使用/参考的开源项目', style: textTheme.titleMedium),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  _buildOpenSourceCard(context)
-                      .animate(delay: 200.ms)
-                      .fadeIn(
-                        duration: AppMotion.medium,
-                        curve: Curves.easeOutCubic,
-                      )
-                      .slideY(begin: 0.05, end: 0),
-                ],
-              ),
+    return FluentPage.scrollable(
+      header: const FluentPageHeader(title: Text('关于')),
+      padding: AppSpacing.regularPagePadding,
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 840),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildAppInfoCard(context)
+                    .animate()
+                    .fadeIn(
+                      duration: AppMotion.medium,
+                      curve: Curves.easeOutCubic,
+                    )
+                    .slideY(begin: 0.05, end: 0),
+                const SizedBox(height: AppSpacing.lg),
+                _buildActionCard(context)
+                    .animate(delay: 100.ms)
+                    .fadeIn(
+                      duration: AppMotion.medium,
+                      curve: Curves.easeOutCubic,
+                    )
+                    .slideY(begin: 0.05, end: 0),
+                const SizedBox(height: AppSpacing.lg),
+                Semantics(
+                  header: true,
+                  child: Text('使用/参考的开源项目', style: textTheme.titleMedium),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                _buildOpenSourceCard(context)
+                    .animate(delay: 200.ms)
+                    .fadeIn(
+                      duration: AppMotion.medium,
+                      curve: Curves.easeOutCubic,
+                    )
+                    .slideY(begin: 0.05, end: 0),
+              ],
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -171,7 +169,8 @@ class AboutPage extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Card.filled(
+    return FluentCard(
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: AppSpacing.cardPadding,
         child: Row(
@@ -228,7 +227,8 @@ class AboutPage extends StatelessWidget {
 
   /// 构建操作入口卡片。
   Widget _buildActionCard(BuildContext context) {
-    return Card.filled(
+    return FluentCard(
+      padding: EdgeInsets.zero,
       child: Column(
         children: [
           _buildActionTile(
@@ -245,7 +245,7 @@ class AboutPage extends StatelessWidget {
             title: '使用协议',
             subtitle: '查看完整使用协议条款',
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AgreementPage()),
+              FluentPageRoute(builder: (_) => const AgreementPage()),
             ),
           ),
           const Divider(height: 1),
@@ -255,7 +255,7 @@ class AboutPage extends StatelessWidget {
             title: '隐私协议',
             subtitle: '查看本地数据、凭据和网络访问说明',
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+              FluentPageRoute(builder: (_) => const PrivacyPolicyPage()),
             ),
           ),
         ],
@@ -265,7 +265,8 @@ class AboutPage extends StatelessWidget {
 
   /// 构建开源项目卡片。
   Widget _buildOpenSourceCard(BuildContext context) {
-    return Card.filled(
+    return FluentCard(
+      padding: EdgeInsets.zero,
       child: Column(
         children: _openSourceProjects.asMap().entries.map((entry) {
           final project = entry.value;
@@ -306,12 +307,41 @@ class AboutPage extends StatelessWidget {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right),
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: colorScheme.primary),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: textTheme.titleSmall),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    subtitle,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
+          ],
+        ),
+      ),
     );
   }
 }

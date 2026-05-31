@@ -6,7 +6,7 @@
  * @Date : 2026-04-30
  */
 
-import 'package:sspu_allinone/widgets/material_compat.dart';
+import 'package:sspu_allinone/design/fluent_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/models/campus_card.dart';
@@ -64,7 +64,7 @@ void main() {
     expect(find.textContaining('2026-04-29'), findsOneWidget);
     expect(find.text('上次刷新：2026-04-30 10:20'), findsOneWidget);
 
-    await tester.tap(find.byIcon(FluentIcons.chevron_right));
+    await tester.tap(find.byIcon(FluentIcons.chevronRight));
     await tester.pumpAndSettle();
 
     expect(find.text('校园卡详情'), findsOneWidget);

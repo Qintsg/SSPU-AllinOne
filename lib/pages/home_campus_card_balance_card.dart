@@ -23,15 +23,13 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
           FluentSectionHeader(
             title: '校园卡余额',
             subtitle: '需要校园网或学校 VPN，并复用 OA/CAS 登录状态。',
-            icon: FluentIcons.payment_card,
-            action: Tooltip(
-              message: snapshot == null ? '刷新后查看详情' : '查看校园卡详情',
-              child: IconButton(
-                icon: const Icon(FluentIcons.chevron_right, size: 14),
-                onPressed: snapshot == null
-                    ? null
-                    : () => _openCampusCardDetail(snapshot),
-              ),
+            icon: FluentIcons.paymentCard,
+            action: FluentIconButton(
+              tooltip: snapshot == null ? '刷新后查看详情' : '查看校园卡详情',
+              icon: const Icon(FluentIcons.chevronRight),
+              onPressed: snapshot == null
+                  ? null
+                  : () => _openCampusCardDetail(snapshot),
             ),
           ),
           const SizedBox(height: FluentSpacing.l),
@@ -41,7 +39,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
                 SizedBox(
                   width: 18,
                   height: 18,
-                  child: ProgressRing(strokeWidth: 2),
+                  child: FluentProgressRing(strokeWidth: 2),
                 ),
                 SizedBox(width: FluentSpacing.s),
                 Text('正在读取校园卡余额...'),
@@ -56,11 +54,10 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
           ] else if (result.isSuccess && snapshot != null) ...[
             _buildCampusCardBalanceSummary(context, snapshot),
           ] else ...[
-            InfoBar(
+            FluentInfoBar(
               title: Text(result.message),
               content: Text(result.detail),
               severity: _campusCardSeverity(result.status),
-              isLong: true,
             ),
           ],
           const SizedBox(height: FluentSpacing.m),
@@ -76,18 +73,16 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
                     color: theme.resources.textFillColorSecondary,
                   ),
                 ),
-                Tooltip(
-                  message: '刷新校园卡余额',
-                  child: IconButton(
-                    icon: _isLoadingCampusCard
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: ProgressRing(strokeWidth: 2),
-                          )
-                        : const Icon(FluentIcons.refresh, size: 14),
-                    onPressed: _isLoadingCampusCard ? null : _loadCampusCard,
-                  ),
+                FluentIconButton(
+                  tooltip: '刷新校园卡余额',
+                  icon: _isLoadingCampusCard
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: FluentProgressRing(strokeWidth: 2),
+                        )
+                      : const Icon(FluentIcons.refresh),
+                  onPressed: _isLoadingCampusCard ? null : _loadCampusCard,
                 ),
               ],
             ),
@@ -107,32 +102,19 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              snapshot.balance == null
-                  ? '未读取'
-                  : _formatMoney(snapshot.balance!),
-              style: theme.typography.display?.copyWith(
-                color: theme.accentColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(width: FluentSpacing.s),
-            Padding(
-              padding: const EdgeInsets.only(bottom: FluentSpacing.xs),
-              child: Text('账户余额', style: theme.typography.bodyStrong),
-            ),
-          ],
+        FluentMetricCard(
+          label: '账户余额',
+          value: snapshot.balance == null
+              ? '未读取'
+              : _formatMoney(snapshot.balance!),
+          icon: FluentIcons.paymentCard,
         ),
         if (snapshot.hasAbnormalStatus) ...[
           const SizedBox(height: FluentSpacing.s),
-          InfoBar(
+          FluentInfoBar(
             title: Text('卡状态：${snapshot.status}'),
             content: const Text('校园卡状态不是正常状态，请以校园卡系统或服务窗口为准。'),
-            severity: InfoBarSeverity.warning,
-            isLong: true,
+            severity: FluentInfoSeverity.warning,
           ),
         ],
         const SizedBox(height: FluentSpacing.m),
@@ -181,17 +163,17 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
     );
   }
 
-  InfoBarSeverity _campusCardSeverity(CampusCardQueryStatus status) {
+  FluentInfoSeverity _campusCardSeverity(CampusCardQueryStatus status) {
     return switch (status) {
-      CampusCardQueryStatus.success => InfoBarSeverity.success,
+      CampusCardQueryStatus.success => FluentInfoSeverity.success,
       CampusCardQueryStatus.missingOaAccount ||
       CampusCardQueryStatus.missingOaPassword ||
       CampusCardQueryStatus.campusNetworkUnavailable ||
-      CampusCardQueryStatus.oaLoginRequired => InfoBarSeverity.warning,
+      CampusCardQueryStatus.oaLoginRequired => FluentInfoSeverity.warning,
       CampusCardQueryStatus.cardSystemUnavailable ||
       CampusCardQueryStatus.parseFailed ||
       CampusCardQueryStatus.networkError ||
-      CampusCardQueryStatus.unexpectedError => InfoBarSeverity.error,
+      CampusCardQueryStatus.unexpectedError => FluentInfoSeverity.error,
     };
   }
 

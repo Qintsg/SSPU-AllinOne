@@ -8,7 +8,7 @@
  */
 
 import 'dart:math';
-import '../widgets/material_compat.dart';
+import '../design/fluent_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/message_item.dart';
@@ -16,7 +16,7 @@ import '../models/channel_config.dart';
 import '../services/info_refresh_service.dart';
 import '../services/wechat_article_service.dart';
 import '../theme/fluent_tokens.dart';
-import '../widgets/fluent_surface.dart';
+import '../widgets/app_feedback.dart';
 import '../widgets/message_tile.dart';
 import '../widgets/responsive_layout.dart';
 import '../services/message_state_service.dart';
@@ -116,15 +116,13 @@ class _InfoPageState extends State<InfoPage> {
   Future<void> _refreshSchoolWebsite() async {
     final started = await _refreshService.startSchoolWebsiteRefresh();
     if (!started && mounted) {
-      displayInfoBar(
+      showFluentInfoBar(
         context,
-        builder: (ctx, close) => InfoBar(
-          title: const Text('已有刷新任务正在进行'),
-          severity: InfoBarSeverity.info,
-          action: IconButton(
-            icon: const Icon(FluentIcons.clear),
-            onPressed: close,
-          ),
+        title: const Text('已有刷新任务正在进行'),
+        severity: FluentInfoSeverity.info,
+        actionBuilder: (close) => FluentIconButton(
+          icon: const Icon(FluentIcons.clear),
+          onPressed: close,
         ),
       );
     }
@@ -137,19 +135,15 @@ class _InfoPageState extends State<InfoPage> {
     if (!isConfigured) {
       _wechatSourceConfigured = false;
       if (mounted) {
-        displayInfoBar(
+        showFluentInfoBar(
           context,
-          builder: (ctx, close) {
-            return InfoBar(
-              title: const Text('未获取到微信公众号文章'),
-              content: const Text('请先在设置中完成公众号平台认证并关注目标公众号'),
-              severity: InfoBarSeverity.warning,
-              action: IconButton(
-                icon: const Icon(FluentIcons.clear),
-                onPressed: close,
-              ),
-            );
-          },
+          title: const Text('未获取到微信公众号文章'),
+          content: const Text('请先在设置中完成公众号平台认证并关注目标公众号'),
+          severity: FluentInfoSeverity.warning,
+          actionBuilder: (close) => FluentIconButton(
+            icon: const Icon(FluentIcons.clear),
+            onPressed: close,
+          ),
         );
         setState(() {});
       }
@@ -159,15 +153,13 @@ class _InfoPageState extends State<InfoPage> {
     _wechatSourceConfigured = true;
     final started = await _refreshService.startWechatRefresh();
     if (!started && mounted) {
-      displayInfoBar(
+      showFluentInfoBar(
         context,
-        builder: (ctx, close) => InfoBar(
-          title: const Text('已有刷新任务正在进行'),
-          severity: InfoBarSeverity.info,
-          action: IconButton(
-            icon: const Icon(FluentIcons.clear),
-            onPressed: close,
-          ),
+        title: const Text('已有刷新任务正在进行'),
+        severity: FluentInfoSeverity.info,
+        actionBuilder: (close) => FluentIconButton(
+          icon: const Icon(FluentIcons.clear),
+          onPressed: close,
         ),
       );
     }

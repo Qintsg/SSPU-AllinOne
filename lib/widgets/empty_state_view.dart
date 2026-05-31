@@ -1,13 +1,12 @@
 /*
- * Material 3 空状态视图 — 统一空数据、无结果与未配置提示
+ * Fluent 2 空状态视图 — 统一空数据、无结果与未配置提示
  * @Project : SSPU-AllinOne
  * @File : empty_state_view.dart
  * @Author : Qintsg
  * @Date : 2026-05-16
  */
 
-import 'package:flutter/material.dart';
-
+import '../design/fluent_ui.dart';
 import '../theme/app_spacing.dart';
 
 /// 通用空状态视图。
@@ -34,8 +33,8 @@ class EmptyStateView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.fluentColors;
+    final type = context.fluentType;
 
     return Center(
       child: Padding(
@@ -45,14 +44,16 @@ class EmptyStateView extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 48, color: colorScheme.onSurfaceVariant),
+              Icon(icon, size: 48, color: colors.neutralForeground3),
               const SizedBox(height: AppSpacing.md),
               Semantics(
                 header: true,
                 child: Text(
                   title,
                   textAlign: TextAlign.center,
-                  style: textTheme.titleMedium,
+                  style: type.subtitle2.copyWith(
+                    color: colors.neutralForeground1,
+                  ),
                 ),
               ),
               if (message != null) ...[
@@ -60,9 +61,7 @@ class EmptyStateView extends StatelessWidget {
                 Text(
                   message!,
                   textAlign: TextAlign.center,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+                  style: type.body1.copyWith(color: colors.neutralForeground2),
                 ),
               ],
               if (action != null) ...[

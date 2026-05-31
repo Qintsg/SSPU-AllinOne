@@ -6,7 +6,7 @@
  * @Date : 2026-04-17
  */
 
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 
 import '../services/password_service.dart';
 import '../theme/app_spacing.dart';
@@ -23,7 +23,7 @@ Future<bool> showSetPasswordDialog(BuildContext context) async {
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          return AlertDialog(
+          return FluentDialog(
             title: const Text('设置密码'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -49,11 +49,11 @@ Future<bool> showSetPasswordDialog(BuildContext context) async {
               ],
             ),
             actions: [
-              TextButton(
+              FluentButton.transparent(
                 child: const Text('取消'),
                 onPressed: () => Navigator.pop(dialogContext, false),
               ),
-              FilledButton(
+              FluentButton.primary(
                 child: const Text('确认'),
                 onPressed: () {
                   final password = passwordController.text;
@@ -99,7 +99,7 @@ Future<bool> showRemovePasswordDialog(BuildContext context) async {
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          return AlertDialog(
+          return FluentDialog(
             title: const Text('移除密码'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -119,11 +119,11 @@ Future<bool> showRemovePasswordDialog(BuildContext context) async {
               ],
             ),
             actions: [
-              TextButton(
+              FluentButton.transparent(
                 child: const Text('取消'),
                 onPressed: () => Navigator.pop(dialogContext, false),
               ),
-              FilledButton(
+              FluentButton.primary(
                 child: const Text('确认移除'),
                 onPressed: () async {
                   final isCorrect = await PasswordService.verifyPassword(
@@ -171,7 +171,7 @@ Future<bool> showConfirmCurrentPasswordDialog(
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          return AlertDialog(
+          return FluentDialog(
             title: Text(title),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -191,11 +191,11 @@ Future<bool> showConfirmCurrentPasswordDialog(
               ],
             ),
             actions: [
-              TextButton(
+              FluentButton.transparent(
                 child: const Text('取消'),
                 onPressed: () => Navigator.pop(dialogContext, false),
               ),
-              FilledButton(
+              FluentButton.primary(
                 child: Text(confirmLabel),
                 onPressed: () async {
                   final isCorrect = await PasswordService.verifyPassword(
@@ -234,7 +234,7 @@ Future<bool> showChangePasswordDialog(BuildContext context) async {
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          return AlertDialog(
+          return FluentDialog(
             title: const Text('修改密码'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -264,11 +264,11 @@ Future<bool> showChangePasswordDialog(BuildContext context) async {
               ],
             ),
             actions: [
-              TextButton(
+              FluentButton.transparent(
                 child: const Text('取消'),
                 onPressed: () => Navigator.pop(dialogContext, false),
               ),
-              FilledButton(
+              FluentButton.primary(
                 child: const Text('确认修改'),
                 onPressed: () async {
                   final oldPassword = oldPasswordController.text;
@@ -330,14 +330,12 @@ class _PasswordField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return FluentTextField(
       controller: controller,
       obscureText: true,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hintText,
-        prefixIcon: const Icon(Icons.lock_outline),
-      ),
+      label: label,
+      placeholder: hintText,
+      prefixIcon: Icons.lock_outline,
     );
   }
 }
