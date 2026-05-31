@@ -18,7 +18,6 @@ import 'pages/settings_page.dart';
 import 'services/campus_network_status_service.dart';
 import 'theme/app_breakpoints.dart';
 import 'theme/app_spacing.dart';
-import 'widgets/campus_network_status_indicator.dart';
 
 part 'app_navigation_items.dart';
 
@@ -55,11 +54,13 @@ class _AppShellState extends State<AppShell> {
   final Set<int> _visitedDestinationIndexes = <int>{0};
 
   List<_AppDestination> get _destinations => [
-    const _AppDestination(
+    _AppDestination(
       title: '主页',
       icon: FluentIcons.home,
       selectedIcon: FluentIcons.home,
-      body: HomePage(),
+      body: HomePage(
+        campusNetworkStatusService: widget.campusNetworkStatusService,
+      ),
     ),
     const _AppDestination(
       title: '教务',
@@ -131,7 +132,6 @@ class _AppShellState extends State<AppShell> {
         selectedIndex: _selectedIndex,
         visitedIndexes: _visitedDestinationIndexes,
         onChanged: _selectDestination,
-        campusNetworkStatusService: widget.campusNetworkStatusService,
       );
     }
 
@@ -141,7 +141,6 @@ class _AppShellState extends State<AppShell> {
       visitedIndexes: _visitedDestinationIndexes,
       extended: sizeClass == WindowSizeClass.expanded,
       onChanged: _selectDestination,
-      campusNetworkStatusService: widget.campusNetworkStatusService,
     );
   }
 
@@ -314,7 +313,6 @@ class _RailNavigationShell extends StatelessWidget {
   final Set<int> visitedIndexes;
   final bool extended;
   final ValueChanged<int> onChanged;
-  final CampusNetworkStatusService? campusNetworkStatusService;
 
   const _RailNavigationShell({
     required this.destinations,
@@ -322,7 +320,6 @@ class _RailNavigationShell extends StatelessWidget {
     required this.visitedIndexes,
     required this.extended,
     required this.onChanged,
-    required this.campusNetworkStatusService,
   });
 
   @override
@@ -350,14 +347,6 @@ class _RailNavigationShell extends StatelessWidget {
                       extended: extended,
                       onTap: () => onChanged(i),
                     ),
-                  const Spacer(),
-                  Padding(
-                    key: const Key('campus-network-status-pane-item'),
-                    padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
-                    child: CampusNetworkStatusIndicator(
-                      service: campusNetworkStatusService,
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -380,14 +369,12 @@ class _DrawerNavigationShell extends StatelessWidget {
   final int selectedIndex;
   final Set<int> visitedIndexes;
   final ValueChanged<int> onChanged;
-  final CampusNetworkStatusService? campusNetworkStatusService;
 
   const _DrawerNavigationShell({
     required this.destinations,
     required this.selectedIndex,
     required this.visitedIndexes,
     required this.onChanged,
-    required this.campusNetworkStatusService,
   });
 
   @override
@@ -431,19 +418,6 @@ class _DrawerNavigationShell extends StatelessWidget {
                       extended: true,
                       onTap: () => onChanged(i),
                     ),
-                  const Padding(
-                    padding: EdgeInsetsDirectional.symmetric(
-                      horizontal: AppSpacing.md,
-                    ),
-                    child: Divider(),
-                  ),
-                  Padding(
-                    key: const Key('campus-network-status-pane-item'),
-                    padding: const EdgeInsetsDirectional.all(AppSpacing.md),
-                    child: CampusNetworkStatusIndicator(
-                      service: campusNetworkStatusService,
-                    ),
-                  ),
                 ],
               ),
             ),

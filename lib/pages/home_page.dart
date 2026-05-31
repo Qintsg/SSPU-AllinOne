@@ -13,9 +13,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../models/campus_card.dart';
 import '../models/message_item.dart';
 import '../services/campus_card_service.dart';
+import '../services/campus_network_status_service.dart';
 import '../services/message_state_service.dart';
 import '../theme/fluent_tokens.dart';
 import '../utils/webview_env.dart';
+import '../widgets/campus_network_status_indicator.dart';
 import '../widgets/responsive_layout.dart';
 import 'webview_page.dart';
 
@@ -28,6 +30,9 @@ class HomePage extends StatefulWidget {
   /// 校园卡余额查询服务，测试中可替换为 fake。
   final CampusCardBalanceClient? campusCardService;
 
+  /// 校园网 / VPN 状态检测服务，测试中可替换为 fake。
+  final CampusNetworkStatusService? campusNetworkStatusService;
+
   /// 测试专用：覆盖校园卡余额自动刷新开关。
   final bool? campusCardAutoRefreshEnabledOverride;
 
@@ -37,6 +42,7 @@ class HomePage extends StatefulWidget {
   const HomePage({
     super.key,
     this.campusCardService,
+    this.campusNetworkStatusService,
     this.campusCardAutoRefreshEnabledOverride,
     this.campusCardAutoRefreshIntervalOverride,
   });
@@ -144,7 +150,14 @@ class _HomePageState extends State<HomePage> {
         };
 
         return FluentPage.scrollable(
-          header: const FluentPageHeader(title: Text('主页')),
+          header: FluentPageHeader(
+            title: const Text('主页'),
+            commandBar: CampusNetworkStatusIndicator(
+              service: widget.campusNetworkStatusService,
+              variant: CampusNetworkStatusIndicatorVariant.home,
+              indicatorKey: const Key('campus-network-status-home'),
+            ),
+          ),
           padding: EdgeInsets.all(pagePadding),
           children: [
             FluentSurface(

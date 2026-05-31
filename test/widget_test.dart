@@ -17,6 +17,7 @@ import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/services/campus_network_status_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/services/wxmp_config_service.dart';
+import 'package:sspu_allinone/widgets/campus_network_status_indicator.dart';
 import 'package:sspu_allinone/widgets/settings_auto_refresh_section.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_section.dart';
 
@@ -60,7 +61,12 @@ void main() {
     await configureMobileView(tester);
 
     try {
-      await tester.pumpWidget(const MaterialApp(home: AppShell()));
+      SharedPreferences.setMockInitialValues({});
+      StorageService.debugUseSharedPreferencesStorageForTesting(true);
+      final service = _buildCampusNetworkStatusService();
+      await tester.pumpWidget(
+        MaterialApp(home: AppShell(campusNetworkStatusService: service)),
+      );
       await tester.pump(const Duration(milliseconds: 100));
 
       final bottomNavigation = find.byKey(
@@ -99,23 +105,19 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
     } finally {
       debugDefaultTargetPlatformOverride = previousTargetPlatform;
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
       await resetMobileView(tester);
     }
   });
 
-  testWidgets('桌面导航在设置上方显示校园网状态徽标', (WidgetTester tester) async {
+  testWidgets('桌面首页右上角显示校园网状态小徽标', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     StorageService.debugUseSharedPreferencesStorageForTesting(true);
     final previousTargetPlatform = debugDefaultTargetPlatformOverride;
-    final service = CampusNetworkStatusService(
-      probe: (uri, timeout) async {
-        return CampusNetworkProbeResult(
-          reachable: true,
-          statusCode: 200,
-          detail: '已访问 ${uri.host}，HTTP 200',
-        );
-      },
-    );
+    final service = _buildCampusNetworkStatusService();
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
@@ -126,13 +128,18 @@ void main() {
         MaterialApp(home: AppShell(campusNetworkStatusService: service)),
       );
       await tester.pump(const Duration(milliseconds: 100));
+      await pumpUntilFound(tester, find.text('VPN'));
 
       // 校园网徽标由可注入服务驱动，避免组件测试依赖真实校园网环境。
       expect(
-        find.byKey(const Key('campus-network-status-indicator')),
+        find.byKey(const Key('campus-network-status-home')),
         findsOneWidget,
       );
-      expect(find.text('校园网/VPN'), findsOneWidget);
+      expect(find.text('VPN'), findsOneWidget);
+      expect(
+        find.byKey(const Key('campus-network-status-pane-item')),
+        findsNothing,
+      );
 
       // 首页入场动画会保留短计时器，测试结束前推进时间以清理动画状态。
       await tester.pump(const Duration(milliseconds: 300));
@@ -140,9 +147,65 @@ void main() {
       debugDefaultTargetPlatformOverride = previousTargetPlatform;
       StorageService.debugUseSharedPreferencesStorageForTesting(null);
       SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
       await tester.binding.setSurfaceSize(null);
+    }
+  });
+
+  testWidgets('多个校园网状态入口共享同一次检测结果', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+    var probeCount = 0;
+    final service = CampusNetworkStatusService(
+      probe: (uri, timeout) async {
+        probeCount++;
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        return CampusNetworkProbeResult(
+          reachable: true,
+          statusCode: 200,
+          detail: '已访问 ${uri.host}，HTTP 200',
+        );
+      },
+    );
+
+    try {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Row(
+            children: [
+              CampusNetworkStatusIndicator(
+                service: service,
+                indicatorKey: const Key('campus-network-status-first'),
+              ),
+              CampusNetworkStatusIndicator(
+                service: service,
+                indicatorKey: const Key('campus-network-status-second'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      await pumpUntilFound(tester, find.text('VPN 环境'));
+
+      expect(
+        find.byKey(const Key('campus-network-status-first')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('campus-network-status-second')),
+        findsOneWidget,
+      );
+      expect(find.text('VPN 环境'), findsNWidgets(2));
+      expect(probeCount, 2);
+    } finally {
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
     }
   });
 
@@ -295,6 +358,18 @@ void main() {
       await tester.binding.setSurfaceSize(null);
     }
   });
+}
+
+CampusNetworkStatusService _buildCampusNetworkStatusService() {
+  return CampusNetworkStatusService(
+    probe: (uri, timeout) async {
+      return CampusNetworkProbeResult(
+        reachable: true,
+        statusCode: 200,
+        detail: '已访问 ${uri.host}，HTTP 200',
+      );
+    },
+  );
 }
 
 class _SettingsNavigationLayoutHarness extends StatelessWidget {
