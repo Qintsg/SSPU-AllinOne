@@ -8,7 +8,7 @@
 
 import 'dart:io';
 
-import 'package:sspu_allinone/widgets/material_compat.dart';
+import 'package:sspu_allinone/design/fluent_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/app.dart';
@@ -63,7 +63,35 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: AppShell()));
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
+      final bottomNavigation = find.byKey(
+        const Key('mobile-bottom-navigation'),
+      );
+      expect(bottomNavigation, findsOneWidget);
+      expect(
+        find.descendant(of: bottomNavigation, matching: find.text('主页')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: bottomNavigation, matching: find.text('教务')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: bottomNavigation, matching: find.text('课表')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: bottomNavigation, matching: find.text('信息')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: bottomNavigation, matching: find.text('更多')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('更多'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('更多功能'), findsOneWidget);
       expect(find.text('设置'), findsOneWidget);
       expect(find.text('关于'), findsOneWidget);
 
@@ -173,7 +201,7 @@ void main() {
     expect(find.text('教学单位'), findsOneWidget);
     expect(find.text('微信推文'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(OutlinedButton, '前往设置').first);
+    await tester.tap(find.text('前往设置').first);
     await tester.pump(const Duration(milliseconds: 150));
     expect(selectedShortcut, 3);
   });
@@ -294,20 +322,20 @@ class _NarrowSettingsNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Icon(FluentIcons.global_nav_button, size: 16),
+        const Icon(FluentIcons.globalNavButton, size: 16),
         const SizedBox(width: 8),
         Expanded(
-          child: ComboBox<int>(
+          child: FluentSelect<int>(
             key: const Key('settings-narrow-tab-combo'),
             value: 0,
             isExpanded: true,
             items: const [
-              ComboBoxItem(value: 0, child: Text('常规设置')),
-              ComboBoxItem(value: 1, child: Text('自动刷新设置')),
-              ComboBoxItem(value: 2, child: Text('安全设置')),
-              ComboBoxItem(value: 3, child: Text('职能部门')),
-              ComboBoxItem(value: 4, child: Text('教学单位')),
-              ComboBoxItem(value: 5, child: Text('微信推文')),
+              FluentSelectItem(value: 0, child: Text('常规设置')),
+              FluentSelectItem(value: 1, child: Text('自动刷新设置')),
+              FluentSelectItem(value: 2, child: Text('安全设置')),
+              FluentSelectItem(value: 3, child: Text('职能部门')),
+              FluentSelectItem(value: 4, child: Text('教学单位')),
+              FluentSelectItem(value: 5, child: Text('微信推文')),
             ],
             onChanged: (_) {},
           ),

@@ -6,7 +6,7 @@
  * @Date : 2026-04-30
  */
 
-import 'package:sspu_allinone/widgets/material_compat.dart';
+import 'package:sspu_allinone/design/fluent_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/sports_attendance.dart';

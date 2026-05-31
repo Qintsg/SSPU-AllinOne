@@ -8,14 +8,13 @@
 
 import 'dart:async';
 
-import '../widgets/material_compat.dart';
+import '../design/fluent_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../models/campus_card.dart';
 import '../models/message_item.dart';
 import '../services/campus_card_service.dart';
 import '../services/message_state_service.dart';
 import '../theme/fluent_tokens.dart';
-import '../widgets/fluent_surface.dart';
 import '../utils/webview_env.dart';
 import '../widgets/responsive_layout.dart';
 import 'webview_page.dart';
@@ -144,8 +143,8 @@ class _HomePageState extends State<HomePage> {
           DeviceType.desktop => FluentSpacing.xxl,
         };
 
-        return ScaffoldPage.scrollable(
-          header: const PageHeader(title: Text('主页')),
+        return FluentPage.scrollable(
+          header: const FluentPageHeader(title: Text('主页')),
           padding: EdgeInsets.all(pagePadding),
           children: [
             FluentSurface(
@@ -266,7 +265,7 @@ class _HomePageState extends State<HomePage> {
   /// 构建单条消息项（点击跳转内嵌 WebView）
   Widget _buildMessageItem(BuildContext context, MessageItem msg) {
     final theme = FluentTheme.of(context);
-    return HoverButton(
+    return FluentHoverButton(
       onPressed: () async {
         // 标记已读并跳转内嵌 WebView。
         MessageStateService.instance.markAsRead(msg.id);

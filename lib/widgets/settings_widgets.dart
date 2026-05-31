@@ -6,9 +6,9 @@
  * @Date : 2026-04-17
  */
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../design/fluent_ui.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
@@ -58,11 +58,11 @@ Widget buildIntervalSelector({
             color: enabled ? colorScheme.onSurfaceVariant : disabledColor,
           ),
         ),
-        DropdownButton<int>(
+        FluentSelect<int>(
           value: kIntervalOptions.containsKey(currentValue) ? currentValue : 0,
           items: kIntervalOptions.entries
               .map(
-                (entry) => DropdownMenuItem<int>(
+                (entry) => FluentSelectItem<int>(
                   value: entry.key,
                   child: Text(entry.value),
                 ),
@@ -92,58 +92,142 @@ Widget buildSettingsNavItem({
   final colorScheme = Theme.of(context).colorScheme;
   final textTheme = Theme.of(context).textTheme;
 
-  return Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: AppShapes.md,
-      child: SizedBox(
-        width: double.infinity,
-        child: AnimatedContainer(
-          duration: AppMotion.short,
-          padding: const EdgeInsetsDirectional.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
-          ),
-          decoration: BoxDecoration(
-            color: isSelected ? colorScheme.secondaryContainer : null,
-            borderRadius: AppShapes.md,
-          ),
-          child: Row(
-            children: [
-              AnimatedContainer(
+  return _SettingsNavItem(
+    isSelected: isSelected,
+    icon: icon,
+    label: label,
+    onTap: onTap,
+    colorScheme: colorScheme,
+    textTheme: textTheme,
+  );
+}
+
+class _SettingsNavItem extends StatefulWidget {
+  const _SettingsNavItem({
+    required this.isSelected,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.colorScheme,
+    required this.textTheme,
+  });
+
+  final bool isSelected;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final ColorScheme colorScheme;
+  final TextTheme textTheme;
+
+  @override
+  State<_SettingsNavItem> createState() => _SettingsNavItemState();
+}
+
+class _SettingsNavItemState extends State<_SettingsNavItem> {
+  bool _hovered = false;
+  bool _pressed = false;
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = widget.colorScheme;
+    final textTheme = widget.textTheme;
+    final background = widget.isSelected
+        ? colorScheme.secondaryContainer
+        : _pressed
+        ? colorScheme.surfaceContainerHighest
+        : _hovered || _focused
+        ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.72)
+        : Colors.transparent;
+
+    return Semantics(
+      button: true,
+      selected: widget.isSelected,
+      child: Shortcuts(
+        shortcuts: const <ShortcutActivator, Intent>{
+          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.numpadEnter): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+        },
+        child: FocusableActionDetector(
+          mouseCursor: SystemMouseCursors.click,
+          onShowFocusHighlight: (focused) => setState(() => _focused = focused),
+          onShowHoverHighlight: (hovered) => setState(() {
+            _hovered = hovered;
+            if (!hovered) _pressed = false;
+          }),
+          actions: <Type, Action<Intent>>{
+            ActivateIntent: CallbackAction<ActivateIntent>(
+              onInvoke: (_) {
+                widget.onTap();
+                return null;
+              },
+            ),
+          },
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onTap,
+            onTapDown: (_) => setState(() => _pressed = true),
+            onTapUp: (_) => setState(() => _pressed = false),
+            onTapCancel: () => setState(() => _pressed = false),
+            child: SizedBox(
+              width: double.infinity,
+              child: AnimatedContainer(
                 duration: AppMotion.short,
-                width: 4,
-                height: 24,
-                margin: const EdgeInsetsDirectional.only(end: AppSpacing.sm),
+                padding: const EdgeInsetsDirectional.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
                 decoration: BoxDecoration(
-                  color: isSelected ? colorScheme.primary : Colors.transparent,
-                  borderRadius: AppShapes.xs,
+                  color: background,
+                  borderRadius: AppShapes.md,
+                  border: Border.all(
+                    color: _focused ? colorScheme.primary : Colors.transparent,
+                    width: 2,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    AnimatedContainer(
+                      duration: AppMotion.short,
+                      width: 4,
+                      height: 24,
+                      margin: const EdgeInsetsDirectional.only(
+                        end: AppSpacing.sm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: widget.isSelected
+                            ? colorScheme.primary
+                            : Colors.transparent,
+                        borderRadius: AppShapes.xs,
+                      ),
+                    ),
+                    Icon(
+                      widget.icon,
+                      color: widget.isSelected
+                          ? colorScheme.onSecondaryContainer
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        widget.label,
+                        style: widget.isSelected
+                            ? textTheme.titleSmall?.copyWith(
+                                color: colorScheme.onSecondaryContainer,
+                              )
+                            : textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Icon(
-                icon,
-                color: isSelected
-                    ? colorScheme.onSecondaryContainer
-                    : colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  label,
-                  style: isSelected
-                      ? textTheme.titleSmall?.copyWith(
-                          color: colorScheme.onSecondaryContainer,
-                        )
-                      : textTheme.bodyMedium,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// 构建数值设置框。
@@ -161,29 +245,18 @@ Widget buildCountNumberBox({
       ? colorScheme.onSurfaceVariant
       : colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
 
-  Widget numberField() {
-    return SizedBox(
-      width: 128,
-      child: TextFormField(
-        key: ValueKey('$label-$value-$enabled'),
-        initialValue: value.toString(),
-        enabled: enabled,
-        keyboardType: TextInputType.number,
-        textInputAction: TextInputAction.done,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: const InputDecoration(isDense: true, suffixText: '条'),
-        onChanged: (newValue) {
-          final parsed = int.tryParse(newValue);
-          if (parsed == null) return;
-          onChanged(parsed.clamp(1, 200));
-        },
-        onFieldSubmitted: (newValue) {
-          final parsed = int.tryParse(newValue);
-          onChanged((parsed ?? value).clamp(1, 200));
-        },
-      ),
-    );
-  }
+  Widget numberField() => SizedBox(
+    width: 128,
+    child: FluentNumberBox(
+      value: value,
+      enabled: enabled,
+      suffixText: '条',
+      min: 1,
+      max: 200,
+      onChanged: onChanged,
+      onSubmitted: onChanged,
+    ),
+  );
 
   return LayoutBuilder(
     builder: (context, constraints) {
@@ -297,11 +370,11 @@ Widget buildTimePicker({
     crossAxisAlignment: WrapCrossAlignment.center,
     children: [
       Text('$label ', style: textTheme.bodySmall),
-      DropdownButton<int>(
+      FluentSelect<int>(
         value: hour,
         items: List.generate(
           24,
-          (h) => DropdownMenuItem<int>(
+          (h) => FluentSelectItem<int>(
             value: h,
             child: Text(h.toString().padLeft(2, '0')),
           ),
@@ -311,13 +384,13 @@ Widget buildTimePicker({
         },
       ),
       Text(':', style: textTheme.titleSmall),
-      DropdownButton<int>(
+      FluentSelect<int>(
         value: [0, 15, 30, 45].contains(minute) ? minute : 0,
         items: const [
-          DropdownMenuItem(value: 0, child: Text('00')),
-          DropdownMenuItem(value: 15, child: Text('15')),
-          DropdownMenuItem(value: 30, child: Text('30')),
-          DropdownMenuItem(value: 45, child: Text('45')),
+          FluentSelectItem(value: 0, child: Text('00')),
+          FluentSelectItem(value: 15, child: Text('15')),
+          FluentSelectItem(value: 30, child: Text('30')),
+          FluentSelectItem(value: 45, child: Text('45')),
         ],
         onChanged: (m) {
           if (m != null) onChanged(hour, m);
@@ -358,7 +431,7 @@ Widget buildChannelToggle({
           ],
         ),
       ),
-      Switch(value: value, onChanged: onChanged),
+      FluentSwitch(value: value, onChanged: onChanged),
     ],
   );
 }
@@ -373,20 +446,16 @@ Widget buildNavTab({
   required VoidCallback onTap,
 }) {
   final isSelected = selectedIndex == index;
-  final colorScheme = Theme.of(context).colorScheme;
 
   return Padding(
     padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.xs),
     child: isSelected
-        ? FilledButton.tonalIcon(
+        ? FluentButton.secondaryIcon(
             onPressed: onTap,
             icon: Icon(icon),
             label: Text(label),
           )
-        : TextButton.icon(
-            style: TextButton.styleFrom(
-              foregroundColor: colorScheme.onSurfaceVariant,
-            ),
+        : FluentButton.transparentIcon(
             onPressed: onTap,
             icon: Icon(icon),
             label: Text(label),

@@ -71,16 +71,17 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
   @override
   Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
-    return ScaffoldPage.scrollable(
-      header: PageHeader(
+    return FluentPage.scrollable(
+      header: FluentPageHeader(
         title: const Text('校园卡详情'),
-        commandBar: Button(
+        commandBar: FluentButton.outline(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('返回'),
         ),
       ),
       children: [
-        Card(
+        FluentCard(
+          padding: EdgeInsets.zero,
           child: Padding(
             padding: const EdgeInsets.all(FluentSpacing.l),
             child: Column(
@@ -100,7 +101,8 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
           ),
         ),
         const SizedBox(height: FluentSpacing.m),
-        Card(
+        FluentCard(
+          padding: EdgeInsets.zero,
           child: Padding(
             padding: const EdgeInsets.all(FluentSpacing.l),
             child: Column(
@@ -122,25 +124,25 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
                   children: [
                     SizedBox(
                       width: 160,
-                      child: TextBox(
+                      child: FluentTextField(
                         controller: _startDateController,
                         placeholder: '开始日期',
                       ),
                     ),
                     SizedBox(
                       width: 160,
-                      child: TextBox(
+                      child: FluentTextField(
                         controller: _endDateController,
                         placeholder: '结束日期',
                       ),
                     ),
-                    FilledButton(
+                    FluentButton.primary(
                       onPressed: _isQuerying ? null : _queryTransactions,
                       child: _isQuerying
                           ? const SizedBox(
                               width: 14,
                               height: 14,
-                              child: ProgressRing(strokeWidth: 2),
+                              child: FluentProgressRing(strokeWidth: 2),
                             )
                           : const Text('查询'),
                     ),
@@ -148,11 +150,10 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
                 ),
                 if (_queryResult != null && !_queryResult!.isSuccess) ...[
                   const SizedBox(height: FluentSpacing.m),
-                  InfoBar(
+                  FluentInfoBar(
                     title: Text(_queryResult!.message),
                     content: Text(_queryResult!.detail),
-                    severity: InfoBarSeverity.warning,
-                    isLong: true,
+                    severity: FluentInfoSeverity.warning,
                   ),
                 ],
               ],
@@ -161,11 +162,10 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
         ),
         const SizedBox(height: FluentSpacing.m),
         if (_snapshot.records.isEmpty)
-          const InfoBar(
+          const FluentInfoBar(
             title: Text('暂无交易记录'),
             content: Text('当前查询结果没有可展示的校园卡交易记录。'),
-            severity: InfoBarSeverity.info,
-            isLong: true,
+            severity: FluentInfoSeverity.info,
           )
         else
           ..._snapshot.records.map(_buildRecordCard),
@@ -185,7 +185,8 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: FluentSpacing.s),
-      child: Card(
+      child: FluentCard(
+        padding: EdgeInsets.zero,
         child: Padding(
           padding: const EdgeInsets.all(FluentSpacing.m),
           child: Column(

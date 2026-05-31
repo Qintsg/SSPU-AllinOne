@@ -115,7 +115,7 @@ extension _SettingsAutoRefreshRows on SettingsAutoRefreshSection {
       runSpacing: AppSpacing.sm,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Switch(
+        FluentSwitch(
           value: enabled,
           onChanged: (value) => onEnabledChanged(value),
         ),
@@ -143,12 +143,12 @@ extension _SettingsAutoRefreshRows on SettingsAutoRefreshSection {
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 180),
-      child: DropdownButton<int>(
+      child: FluentSelect<int>(
         isExpanded: true,
         value: selectedValue,
         items: enabledIntervalOptions.entries
             .map(
-              (entry) => DropdownMenuItem<int>(
+              (entry) => FluentSelectItem<int>(
                 value: entry.key,
                 child: Text(entry.value),
               ),

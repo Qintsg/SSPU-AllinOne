@@ -1,5 +1,5 @@
 /*
- * 响应式布局工具组件 — 根据 Material 3 窗口宽度等级切换布局策略
+ * 响应式布局工具组件 — 根据 Fluent 2 窗口宽度等级切换布局策略
  * @Project : SSPU-AllinOne
  * @File : responsive_layout.dart
  * @Author : Qintsg
@@ -54,7 +54,7 @@ class ResponsivePadding extends StatelessWidget {
   }
 }
 
-/// 根据宽度返回兼容设备类型。
+/// 根据宽度返回 Fluent 2 设备类型。
 DeviceType deviceTypeFromWidth(double width) {
   return switch (AppBreakpoints.fromWidth(width)) {
     WindowSizeClass.compact => DeviceType.phone,

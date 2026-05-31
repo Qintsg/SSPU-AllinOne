@@ -1,5 +1,5 @@
 /*
- * Material 3 圆角 Token — 统一组件形状半径
+ * Fluent 2 圆角 Token — 统一组件形状半径
  * @Project : SSPU-AllinOne
  * @File : app_shapes.dart
  * @Author : Qintsg
@@ -8,24 +8,24 @@
 
 import 'package:flutter/material.dart';
 
-/// Material 3 圆角 Token。
+/// Fluent 2 圆角 Token。
 class AppShapes {
   AppShapes._();
 
-  /// Extra small — 4dp。
-  static const BorderRadius xs = BorderRadius.all(Radius.circular(4));
+  /// radiusSmall — 2dp（小控件、标签）。
+  static const BorderRadius xs = BorderRadius.all(Radius.circular(2));
 
-  /// Small — 8dp。
-  static const BorderRadius sm = BorderRadius.all(Radius.circular(8));
+  /// radiusMedium — 4dp（按钮、输入框默认）。
+  static const BorderRadius sm = BorderRadius.all(Radius.circular(4));
 
-  /// Medium — 12dp。
-  static const BorderRadius md = BorderRadius.all(Radius.circular(12));
+  /// radiusLarge — 6dp（卡片）。
+  static const BorderRadius md = BorderRadius.all(Radius.circular(6));
 
-  /// Large — 16dp。
-  static const BorderRadius lg = BorderRadius.all(Radius.circular(16));
+  /// radiusLarge — 6dp（卡片）。
+  static const BorderRadius lg = BorderRadius.all(Radius.circular(6));
 
-  /// Extra large — 28dp。
-  static const BorderRadius xl = BorderRadius.all(Radius.circular(28));
+  /// radiusXLarge — 8dp（弹层、对话框、面板）。
+  static const BorderRadius xl = BorderRadius.all(Radius.circular(8));
 
   /// 卡片默认形状。
   static const ShapeBorder cardShape = RoundedRectangleBorder(

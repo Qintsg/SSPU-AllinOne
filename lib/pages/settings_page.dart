@@ -8,7 +8,7 @@
 
 // ignore_for_file: use_build_context_synchronously
 
-import '../widgets/material_compat.dart';
+import '../design/fluent_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/channel_config.dart';
@@ -26,6 +26,7 @@ import '../services/student_report_service.dart';
 import '../services/system_auth_service.dart';
 import '../theme/fluent_tokens.dart';
 import '../widgets/channel_list_section.dart';
+import '../widgets/app_feedback.dart';
 import '../widgets/password_dialogs.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/settings_auto_refresh_section.dart';
@@ -164,11 +165,11 @@ class _SettingsPageState extends State<SettingsPage>
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const ScaffoldPage(content: Center(child: ProgressRing()));
+      return const FluentPage(content: Center(child: FluentProgressRing()));
     }
 
-    return ScaffoldPage(
-      header: const PageHeader(title: Text('设置')),
+    return FluentPage(
+      header: const FluentPageHeader(title: Text('设置')),
       content: ResponsiveBuilder(
         builder: (context, deviceType, constraints) {
           return deviceType == DeviceType.phone

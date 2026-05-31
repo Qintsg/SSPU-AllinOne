@@ -7,7 +7,7 @@
  * @Date : 2026-04-22
  */
 
-import '../widgets/material_compat.dart';
+import '../design/fluent_ui.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../services/wxmp_article_service.dart';
@@ -257,8 +257,8 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
     final theme = FluentTheme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return ScaffoldPage(
-      header: PageHeader(
+    return FluentPage(
+      header: FluentPageHeader(
         title: Text(_title),
         commandBar: Row(
           mainAxisSize: MainAxisSize.min,
@@ -272,7 +272,7 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
                     SizedBox(
                       width: 16,
                       height: 16,
-                      child: ProgressRing(strokeWidth: 2),
+                      child: FluentProgressRing(strokeWidth: 2),
                     ),
                     SizedBox(width: 8),
                     Text('正在提取认证信息...'),
@@ -287,7 +287,7 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
                   children: [
                     Icon(
                       _result!.success
-                          ? FluentIcons.check_mark
+                          ? FluentIcons.checkMark
                           : FluentIcons.warning,
                       size: 16,
                       color: _result!.success
@@ -306,7 +306,7 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
                   ],
                 ),
               ),
-            Button(
+            FluentButton.outline(
               onPressed: () =>
                   Navigator.of(context).pop(_result?.success ?? false),
               child: Text(_result?.success == true ? '完成' : '返回'),

@@ -71,4 +71,4 @@ Scope: repo
 
 - 遵循 `flutter_lints` 推荐规则。
 - Bugfix 保持最小变更，不夹带无关重构。
-- 前端 UI 使用 Material 3 主题、设计 token 和响应式断点，避免重新引入外部 Fluent UI 依赖。
+- 前端 UI 使用 Fluent 2 主题、设计 token 和响应式断点；Flutter Material 仅作为底座，避免重新引入外部 Fluent UI 依赖。

@@ -6,7 +6,7 @@
  * @Date : 2026-04-23
  */
 
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 
 import '../theme/app_spacing.dart';
 
@@ -46,7 +46,7 @@ class SettingsWechatAuthGuide extends StatelessWidget {
               '个人使用场景通常会先看“公众号 / 订阅号”路线；具体账号能力与限制请以注册页当时显示的官方说明为准。',
               '如果扫码登录时页面提示“该微信还未注册公众平台账号”，说明当前微信下没有可登录的公众号，需要先完成上面的注册流程。',
             ]),
-            OutlinedButton.icon(
+            FluentButton.outlineIcon(
               onPressed: onOpenOfficialSite,
               icon: const Icon(Icons.open_in_new),
               label: const Text('打开微信公众平台官网'),

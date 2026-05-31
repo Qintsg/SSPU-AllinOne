@@ -6,7 +6,7 @@
  * @Date : 2026-04-17
  */
 
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 
 import '../models/message_item.dart';
 import '../theme/app_breakpoints.dart';
@@ -23,7 +23,7 @@ class MessageTile extends StatefulWidget {
   /// 是否已读。
   final bool isRead;
 
-  /// 当前是否暗色主题；迁移期间保留兼容参数，组件实际从 Theme 读取颜色。
+  /// 当前是否暗色主题；组件实际从 Theme 读取颜色。
   final bool isDark;
 
   /// 点击跳转回调。
@@ -60,9 +60,9 @@ class _MessageTileState extends State<MessageTile> {
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      child: InkWell(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,
-        borderRadius: AppShapes.md,
         child: AnimatedContainer(
           duration: AppMotion.short,
           curve: Curves.easeOutCubic,
@@ -191,13 +191,13 @@ class _MessageTileState extends State<MessageTile> {
 
   List<Widget> get _actionButtons {
     return [
-      IconButton(
+      FluentIconButton(
         tooltip: '在浏览器中打开',
         icon: const Icon(Icons.open_in_new),
         onPressed: widget.onTap,
       ),
       if (!widget.isRead)
-        IconButton(
+        FluentIconButton(
           tooltip: '标为已读',
           icon: const Icon(Icons.mark_email_read_outlined),
           onPressed: widget.onMarkRead,

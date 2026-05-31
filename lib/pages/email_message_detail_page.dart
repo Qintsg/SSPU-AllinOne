@@ -18,16 +18,17 @@ class EmailMessageDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
-    return ScaffoldPage.scrollable(
-      header: PageHeader(
+    return FluentPage.scrollable(
+      header: FluentPageHeader(
         title: const Text('邮件正文'),
-        commandBar: Button(
+        commandBar: FluentButton.outline(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('返回'),
         ),
       ),
       children: [
-        Card(
+        FluentCard(
+          padding: EdgeInsets.zero,
           child: Padding(
             padding: const EdgeInsets.all(FluentSpacing.l),
             child: Column(
@@ -42,14 +43,14 @@ class EmailMessageDetailPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: FluentSpacing.m),
-        const InfoBar(
+        const FluentInfoBar(
           title: Text('只读正文快照'),
           content: Text('正文来自本次收信结果，不会执行回复、转发、删除、移动或标记已读操作。'),
-          severity: InfoBarSeverity.info,
-          isLong: true,
+          severity: FluentInfoSeverity.info,
         ),
         const SizedBox(height: FluentSpacing.m),
-        Card(
+        FluentCard(
+          padding: EdgeInsets.zero,
           child: Padding(
             padding: const EdgeInsets.all(FluentSpacing.l),
             child: SelectableText(

@@ -5,8 +5,8 @@ Widget _buildInfoPageView(_InfoPageState state, BuildContext context) {
   final isDark = theme.brightness == Brightness.dark;
   final refreshSnapshot = state._refreshService.snapshot;
 
-  return ScaffoldPage(
-    header: const PageHeader(title: Text('信息中心')),
+  return FluentPage(
+    header: const FluentPageHeader(title: Text('信息中心')),
     content: ResponsiveBuilder(
       builder: (context, deviceType, constraints) => Padding(
         padding: responsivePagePadding(deviceType),
@@ -47,7 +47,7 @@ Widget _buildInfoPageView(_InfoPageState state, BuildContext context) {
               child:
                   refreshSnapshot.isRefreshing &&
                       state._filteredMessages.isEmpty
-                  ? const Center(child: ProgressRing())
+                   ? const Center(child: FluentProgressRing())
                   : state._filteredMessages.isEmpty
                   ? FluentSurface(
                       width: double.infinity,
@@ -101,7 +101,7 @@ Widget _buildInfoActionBar(_InfoPageState state, FluentThemeData theme) {
     spacing: FluentSpacing.s,
     runSpacing: FluentSpacing.s,
     children: [
-      FilledButton(
+      FluentButton.primary(
         onPressed: state._filteredMessages.isEmpty ? null : state._markAllRead,
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -112,7 +112,7 @@ Widget _buildInfoActionBar(_InfoPageState state, FluentThemeData theme) {
           ],
         ),
       ),
-      Button(
+      FluentButton.outline(
         onPressed: state._refreshService.isRefreshing
             ? null
             : () => state._refreshSchoolWebsite(),
@@ -123,7 +123,7 @@ Widget _buildInfoActionBar(_InfoPageState state, FluentThemeData theme) {
               const SizedBox(
                 width: 14,
                 height: 14,
-                child: ProgressRing(strokeWidth: 2),
+                child: FluentProgressRing(strokeWidth: 2),
               )
             else
               const Icon(FluentIcons.refresh, size: 14),
@@ -132,7 +132,7 @@ Widget _buildInfoActionBar(_InfoPageState state, FluentThemeData theme) {
           ],
         ),
       ),
-      Button(
+      FluentButton.outline(
         onPressed:
             state._refreshService.isRefreshing || !state._wechatSourceConfigured
             ? null
@@ -144,7 +144,7 @@ Widget _buildInfoActionBar(_InfoPageState state, FluentThemeData theme) {
               const SizedBox(
                 width: 14,
                 height: 14,
-                child: ProgressRing(strokeWidth: 2),
+                child: FluentProgressRing(strokeWidth: 2),
               )
             else
               const Icon(FluentIcons.refresh, size: 14),
@@ -161,7 +161,7 @@ Widget _buildInfoRefreshProgress(_InfoPageState state, FluentThemeData theme) {
   final snapshot = state._refreshService.snapshot;
   final progressValue = snapshot.total <= 0
       ? null
-      : (snapshot.completed / snapshot.total * 100).clamp(0.0, 100.0);
+      : (snapshot.completed / snapshot.total).clamp(0.0, 1.0);
 
   return Container(
     width: double.infinity,
@@ -173,7 +173,7 @@ Widget _buildInfoRefreshProgress(_InfoPageState state, FluentThemeData theme) {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ProgressBar(value: progressValue),
+        FluentProgressBar(value: progressValue),
         const SizedBox(height: FluentSpacing.xs),
         Text(
           snapshot.text.isEmpty ? '正在刷新...' : snapshot.text,
@@ -185,16 +185,14 @@ Widget _buildInfoRefreshProgress(_InfoPageState state, FluentThemeData theme) {
 }
 
 Widget _buildInfoSearchBar(_InfoPageState state, FluentThemeData theme) {
-  return TextBox(
+  return FluentTextField(
     controller: state._searchController,
     placeholder: '搜索消息标题…',
-    prefix: const Padding(
-      padding: EdgeInsets.only(left: 8.0),
-      child: Icon(FluentIcons.search, size: 14),
-    ),
+    prefixIcon: FluentIcons.search,
     suffix: state._searchQuery.isNotEmpty
-        ? IconButton(
-            icon: const Icon(FluentIcons.clear, size: 12),
+        ? FluentIconButton(
+            icon: const Icon(FluentIcons.clear),
+            iconSize: 12,
             onPressed: () {
               state._searchController.clear();
               state._searchQuery = '';
@@ -277,13 +275,20 @@ Widget _buildInfoFilterBar(
           state._applyFilters();
         },
       ),
-      ToggleSwitch(
-        checked: state._filterUnreadOnly,
-        content: const Text('仅未读'),
-        onChanged: (value) {
-          state._filterUnreadOnly = value;
-          state._applyFilters();
-        },
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FluentSwitch(
+            value: state._filterUnreadOnly,
+            semanticLabel: '仅显示未读消息',
+            onChanged: (value) {
+              state._filterUnreadOnly = value;
+              state._applyFilters();
+            },
+          ),
+          const SizedBox(width: FluentSpacing.xs),
+          const Text('仅未读'),
+        ],
       ),
     ],
   );
@@ -299,14 +304,14 @@ Widget _buildInfoFilterCombo<T>({
 }) {
   return ConstrainedBox(
     constraints: const BoxConstraints(minWidth: 180, maxWidth: 240),
-    child: ComboBox<T?>(
+    child: FluentSelect<T?>(
       isExpanded: true,
       value: value,
       placeholder: Text(label),
       items: [
-        ComboBoxItem<T?>(value: null, child: Text('全部$label')),
+        FluentSelectItem<T?>(value: null, child: Text('全部$label')),
         ...items.map(
-          (item) => ComboBoxItem<T?>(
+          (item) => FluentSelectItem<T?>(
             value: item,
             child: Text(itemLabel(item), overflow: TextOverflow.ellipsis),
           ),
@@ -355,15 +360,16 @@ Widget _buildInfoPagination(_InfoPageState state, FluentThemeData theme) {
     spacing: FluentSpacing.s,
     runSpacing: FluentSpacing.xs,
     children: [
-      IconButton(
-        icon: const Icon(FluentIcons.chevron_left, size: 12),
+      FluentIconButton(
+        icon: const Icon(FluentIcons.chevronLeft),
+        iconSize: 12,
         onPressed: state._currentPage > 0
             ? () => state._setCurrentPage(state._currentPage - 1)
             : null,
       ),
       Tooltip(
         message: '点击跳转到指定页',
-        child: HoverButton(
+        child: FluentHoverButton(
           onPressed: () => state._showPageJumpDialog(),
           builder: (context, states) {
             return ConstrainedBox(
@@ -382,8 +388,9 @@ Widget _buildInfoPagination(_InfoPageState state, FluentThemeData theme) {
           },
         ),
       ),
-      IconButton(
-        icon: const Icon(FluentIcons.chevron_right, size: 12),
+      FluentIconButton(
+        icon: const Icon(FluentIcons.chevronRight),
+        iconSize: 12,
         onPressed: state._currentPage < state._totalPages - 1
             ? () => state._setCurrentPage(state._currentPage + 1)
             : null,
@@ -396,7 +403,7 @@ Future<void> _showInfoPageJumpDialog(_InfoPageState state) async {
   final controller = TextEditingController();
   final result = await showDialog<int>(
     context: state.context,
-    builder: (ctx) => ContentDialog(
+    builder: (ctx) => FluentDialog(
       title: const Text('跳转到指定页'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -404,7 +411,7 @@ Future<void> _showInfoPageJumpDialog(_InfoPageState state) async {
         children: [
           Text('当前第 ${state._currentPage + 1} 页，共 ${state._totalPages} 页'),
           const SizedBox(height: FluentSpacing.s),
-          TextBox(
+          FluentTextField(
             controller: controller,
             placeholder: '输入页码 (1-${state._totalPages})',
             keyboardType: TextInputType.number,
@@ -419,11 +426,11 @@ Future<void> _showInfoPageJumpDialog(_InfoPageState state) async {
         ],
       ),
       actions: [
-        Button(
+        FluentButton.outline(
           child: const Text('取消'),
           onPressed: () => Navigator.of(ctx).pop(),
         ),
-        FilledButton(
+        FluentButton.primary(
           child: const Text('跳转'),
           onPressed: () {
             final page = int.tryParse(controller.text);

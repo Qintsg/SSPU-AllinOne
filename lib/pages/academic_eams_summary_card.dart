@@ -55,7 +55,7 @@ class AcademicEamsSummaryCard extends StatelessWidget {
                 SizedBox(
                   width: 18,
                   height: 18,
-                  child: ProgressRing(strokeWidth: 2),
+                  child: FluentProgressRing(strokeWidth: 2),
                 ),
                 SizedBox(width: FluentSpacing.s),
                 Text('正在读取本专科教务摘要...'),
@@ -74,11 +74,10 @@ class AcademicEamsSummaryCard extends StatelessWidget {
               onOpenCourseSchedule: onOpenCourseSchedule,
             ),
           ] else ...[
-            InfoBar(
+            FluentInfoBar(
               title: Text(result!.message),
               content: Text(result!.detail),
               severity: _academicEamsSeverity(result!.status),
-              isLong: true,
             ),
           ],
           const SizedBox(height: FluentSpacing.m),
@@ -94,19 +93,17 @@ class AcademicEamsSummaryCard extends StatelessWidget {
                     color: theme.resources.textFillColorSecondary,
                   ),
                 ),
-                Tooltip(
-                  message: '手动刷新本专科教务摘要',
-                  child: IconButton(
-                    key: const Key('academic-eams-refresh'),
-                    icon: isLoading
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: ProgressRing(strokeWidth: 2),
-                          )
-                        : const Icon(FluentIcons.refresh, size: 14),
-                    onPressed: isLoading ? null : onRefresh,
-                  ),
+                FluentIconButton(
+                  key: const Key('academic-eams-refresh'),
+                  tooltip: '手动刷新本专科教务摘要',
+                  icon: isLoading
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: FluentProgressRing(strokeWidth: 2),
+                        )
+                      : const Icon(FluentIcons.refresh),
+                  onPressed: isLoading ? null : onRefresh,
                 ),
               ],
             ),
@@ -116,21 +113,21 @@ class AcademicEamsSummaryCard extends StatelessWidget {
     );
   }
 
-  InfoBarSeverity _academicEamsSeverity(AcademicEamsQueryStatus status) {
+  FluentInfoSeverity _academicEamsSeverity(AcademicEamsQueryStatus status) {
     return switch (status) {
-      AcademicEamsQueryStatus.success => InfoBarSeverity.success,
-      AcademicEamsQueryStatus.partialSuccess => InfoBarSeverity.warning,
+      AcademicEamsQueryStatus.success => FluentInfoSeverity.success,
+      AcademicEamsQueryStatus.partialSuccess => FluentInfoSeverity.warning,
       AcademicEamsQueryStatus.missingOaAccount ||
       AcademicEamsQueryStatus.missingOaPassword ||
       AcademicEamsQueryStatus.campusNetworkUnavailable =>
-        InfoBarSeverity.warning,
+        FluentInfoSeverity.warning,
       AcademicEamsQueryStatus.oaLoginRequired ||
       AcademicEamsQueryStatus.systemUnavailable ||
       AcademicEamsQueryStatus.readOnlyEntryUnavailable ||
       AcademicEamsQueryStatus.queryFormUnavailable ||
       AcademicEamsQueryStatus.parseFailed ||
       AcademicEamsQueryStatus.networkError ||
-      AcademicEamsQueryStatus.unexpectedError => InfoBarSeverity.error,
+      AcademicEamsQueryStatus.unexpectedError => FluentInfoSeverity.error,
     };
   }
 
@@ -229,15 +226,14 @@ class _AcademicEamsSnapshotView extends StatelessWidget {
         ),
         if (snapshot.warnings.isNotEmpty) ...[
           const SizedBox(height: FluentSpacing.m),
-          InfoBar(
+          FluentInfoBar(
             title: Text(
               status == AcademicEamsQueryStatus.partialSuccess
                   ? '部分数据已降级展示'
                   : '只读入口状态',
             ),
             content: Text(snapshot.warnings.join('；')),
-            severity: InfoBarSeverity.warning,
-            isLong: true,
+            severity: FluentInfoSeverity.warning,
           ),
         ],
         const SizedBox(height: FluentSpacing.l),
@@ -245,7 +241,7 @@ class _AcademicEamsSnapshotView extends StatelessWidget {
           spacing: FluentSpacing.s,
           runSpacing: FluentSpacing.s,
           children: [
-            FilledButton(
+            FluentButton.primary(
               key: const Key('open-course-schedule'),
               onPressed: onOpenCourseSchedule,
               child: const Row(
@@ -258,18 +254,10 @@ class _AcademicEamsSnapshotView extends StatelessWidget {
               ),
             ),
             if (completion != null)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: FluentSpacing.m,
-                  vertical: FluentSpacing.s,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.resources.controlAltFillColorSecondary,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '已修 ${completion.completedCourseCount} 门，未修 ${completion.pendingCourseCount} 门',
-                ),
+              FluentStatusChip(
+                label:
+                    '已修 ${completion.completedCourseCount} 门，未修 ${completion.pendingCourseCount} 门',
+                icon: FluentIcons.certificate,
               ),
           ],
         ),
@@ -341,18 +329,9 @@ class _AcademicMetricPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: FluentSpacing.m,
-        vertical: FluentSpacing.s,
-      ),
-      decoration: BoxDecoration(
-        color: theme.accentColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: theme.accentColor.withValues(alpha: 0.16)),
-      ),
-      child: Text('$label $value$suffix'),
+    return FluentStatusChip(
+      label: '$label $value$suffix',
+      tone: FluentStatusChipTone.brand,
     );
   }
 }
@@ -370,24 +349,6 @@ class _AcademicCapabilityTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: FluentSpacing.m,
-        vertical: FluentSpacing.s,
-      ),
-      decoration: BoxDecoration(
-        color: theme.resources.controlAltFillColorSecondary,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: theme.resources.textFillColorSecondary),
-          const SizedBox(width: 6),
-          Text('$label：$value'),
-        ],
-      ),
-    );
+    return FluentStatusChip(label: '$label：$value', icon: icon);
   }
 }

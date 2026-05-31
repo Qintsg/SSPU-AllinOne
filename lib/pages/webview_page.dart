@@ -7,8 +7,7 @@
  * @Date : 2026-04-19
  */
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -110,7 +109,7 @@ class _WebViewPageState extends State<WebViewPage> {
           icon: Icons.warning_amber_outlined,
           title: 'WebView 初始化失败',
           message: '已在默认浏览器中打开链接',
-          action: FilledButton(
+          action: FluentButton.primary(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('返回'),
           ),
@@ -126,7 +125,7 @@ class _WebViewPageState extends State<WebViewPage> {
           icon: Icons.link_off_outlined,
           title: '链接无效，无法打开',
           message: _currentUrl,
-          action: FilledButton(
+          action: FluentButton.primary(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('返回'),
           ),
@@ -134,34 +133,37 @@ class _WebViewPageState extends State<WebViewPage> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
+    return FluentPage(
+      header: FluentPageHeader(
         title: Text(_title, overflow: TextOverflow.ellipsis, maxLines: 1),
-        actions: [
-          IconButton(
-            tooltip: '后退',
-            icon: const Icon(Icons.arrow_back),
-            onPressed: _canGoBack ? () => _controller?.goBack() : null,
-          ),
-          IconButton(
-            tooltip: '前进',
-            icon: const Icon(Icons.arrow_forward),
-            onPressed: _canGoForward ? () => _controller?.goForward() : null,
-          ),
-          IconButton(
-            tooltip: '刷新',
-            icon: const Icon(Icons.refresh),
-            onPressed: _isReady ? () => _controller?.reload() : null,
-          ),
-          IconButton(
-            tooltip: '在浏览器中打开',
-            icon: const Icon(Icons.open_in_new),
-            onPressed: _fallbackToExternalBrowser,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-        ],
+        commandBar: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FluentIconButton(
+              tooltip: '后退',
+              icon: const Icon(Icons.arrow_back),
+              onPressed: _canGoBack ? () => _controller?.goBack() : null,
+            ),
+            FluentIconButton(
+              tooltip: '前进',
+              icon: const Icon(Icons.arrow_forward),
+              onPressed: _canGoForward ? () => _controller?.goForward() : null,
+            ),
+            FluentIconButton(
+              tooltip: '刷新',
+              icon: const Icon(Icons.refresh),
+              onPressed: _isReady ? () => _controller?.reload() : null,
+            ),
+            FluentIconButton(
+              tooltip: '在浏览器中打开',
+              icon: const Icon(Icons.open_in_new),
+              onPressed: _fallbackToExternalBrowser,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+          ],
+        ),
       ),
-      body: Stack(
+      content: Stack(
         children: [
           InAppWebView(
             webViewEnvironment: widget.webViewEnvironment,
@@ -213,7 +215,7 @@ class _WebViewPageState extends State<WebViewPage> {
               top: 0,
               start: 0,
               end: 0,
-              child: LinearProgressIndicator(value: _progress),
+              child: FluentProgressBar(value: _progress),
             ),
         ],
       ),
@@ -226,9 +228,9 @@ class _WebViewPageState extends State<WebViewPage> {
     required String title,
     required Widget child,
   }) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: SafeArea(child: child),
+    return FluentPage(
+      header: FluentPageHeader(title: Text(title)),
+      content: child,
     );
   }
 }

@@ -8,7 +8,8 @@
 
 import 'dart:async';
 import 'dart:io';
-import 'widgets/material_compat.dart';
+import 'design/fluent_ui.dart';
+import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'app.dart';
@@ -23,6 +24,8 @@ import 'services/notification_service.dart';
 import 'services/auto_refresh_service.dart';
 
 /// 全局字体族名称
+import 'theme/app_motion.dart';
+import 'theme/app_shapes.dart';
 import 'theme/app_spacing.dart';
 import 'theme/app_theme.dart';
 
@@ -181,7 +184,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (_, setDialogState) {
-            return AlertDialog(
+            return FluentDialog(
               title: const Text('关闭应用'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -189,18 +192,71 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                 children: [
                   const Text('选择点击关闭按钮时的操作：'),
                   const SizedBox(height: AppSpacing.md),
-                  CheckboxListTile(
-                    value: rememberChoice,
-                    onChanged: (value) {
-                      setDialogState(() => rememberChoice = value ?? false);
-                    },
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('以后都使用此选项'),
+                  Semantics(
+                    checked: rememberChoice,
+                    button: true,
+                    label: '以后都使用此选项',
+                    child: FocusableActionDetector(
+                      mouseCursor: SystemMouseCursors.click,
+                      shortcuts: const {
+                        SingleActivator(LogicalKeyboardKey.space):
+                            ActivateIntent(),
+                        SingleActivator(LogicalKeyboardKey.enter):
+                            ActivateIntent(),
+                      },
+                      actions: {
+                        ActivateIntent: CallbackAction<ActivateIntent>(
+                          onInvoke: (_) {
+                            setDialogState(
+                              () => rememberChoice = !rememberChoice,
+                            );
+                            return null;
+                          },
+                        ),
+                      },
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          setDialogState(() => rememberChoice = !rememberChoice);
+                        },
+                        child: Row(
+                          children: [
+                            AnimatedContainer(
+                              duration: AppMotion.short,
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: rememberChoice
+                                    ? Theme.of(dialogContext).colorScheme.primary
+                                    : Colors.transparent,
+                                borderRadius: AppShapes.sm,
+                                border: Border.all(
+                                  color: Theme.of(
+                                    dialogContext,
+                                  ).colorScheme.primary,
+                                ),
+                              ),
+                              child: rememberChoice
+                                  ? Icon(
+                                      Icons.check,
+                                      size: 14,
+                                      color: Theme.of(
+                                        dialogContext,
+                                      ).colorScheme.onPrimary,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            const Expanded(child: Text('以后都使用此选项')),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
               actions: [
-                TextButton(
+                FluentButton.transparent(
                   child: const Text('最小化到托盘'),
                   onPressed: () async {
                     Navigator.pop(dialogContext);
@@ -210,7 +266,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                     await windowManager.hide();
                   },
                 ),
-                FilledButton(
+                FluentButton.primary(
                   child: const Text('退出应用'),
                   onPressed: () async {
                     Navigator.pop(dialogContext);
@@ -277,7 +333,8 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) {
-          return AlertDialog(
+          return FluentDialog(
+            constraints: const BoxConstraints(maxWidth: 720),
             title: const Text('使用协议与隐私协议'),
             content: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 680, maxHeight: 420),
@@ -301,7 +358,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
               ),
             ),
             actions: [
-              TextButton(
+              FluentButton.transparent(
                 child: const Text('不同意'),
                 onPressed: () {
                   Navigator.pop(dialogContext, false);
@@ -309,7 +366,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                   _closeApplication();
                 },
               ),
-              FilledButton(
+              FluentButton.primary(
                 child: const Text('同意'),
                 onPressed: () {
                   Navigator.pop(dialogContext, true);
@@ -353,7 +410,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 根据初始化、协议确认和密码验证状态构建首屏
   Widget _buildHome() {
     if (!_isInitialized) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: Center(child: FluentProgressRing()));
     }
 
     if (_startupErrorMessage != null) {
@@ -373,7 +430,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
         builder: (context) {
           _showAgreementDialog(context);
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            body: Center(child: FluentProgressRing()),
           );
         },
       );

@@ -8,7 +8,7 @@
 
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 
 import '../models/campus_network_status.dart';
 import '../services/campus_network_status_service.dart';
@@ -131,10 +131,10 @@ class _CampusNetworkStatusIndicatorState
           return Semantics(
             button: true,
             label: '校园网状态，${_status.label}，点击重新检测',
-            child: InkWell(
+            child: GestureDetector(
               key: const Key('campus-network-status-indicator'),
+              behavior: HitTestBehavior.opaque,
               onTap: _isChecking ? null : _refreshStatus,
-              borderRadius: const BorderRadius.all(Radius.circular(999)),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                 child: AnimatedContainer(
@@ -181,9 +181,9 @@ class _CampusNetworkStatusIndicatorState
     if (_isChecking) {
       return SizedBox.square(
         dimension: 20,
-        child: CircularProgressIndicator(
+        child: FluentProgressRing(
           strokeWidth: 2,
-          color: foregroundColor,
+          activeColor: foregroundColor,
         ),
       );
     }

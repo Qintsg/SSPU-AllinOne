@@ -149,20 +149,20 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
   Widget _buildSettingsTabCombo(BuildContext context) {
     return Row(
       children: [
-        const Icon(FluentIcons.global_nav_button, size: 16),
+        const Icon(FluentIcons.globalNavButton, size: 16),
         const SizedBox(width: FluentSpacing.s),
         Expanded(
-          child: ComboBox<int>(
+          child: FluentSelect<int>(
             key: const Key('settings-narrow-tab-combo'),
             value: _selectedTab,
             isExpanded: true,
             items: const [
-              ComboBoxItem(value: 0, child: Text('常规设置')),
-              ComboBoxItem(value: 1, child: Text('自动刷新设置')),
-              ComboBoxItem(value: 2, child: Text('安全设置')),
-              ComboBoxItem(value: 3, child: Text('职能部门')),
-              ComboBoxItem(value: 4, child: Text('教学单位')),
-              ComboBoxItem(value: 5, child: Text('微信推文')),
+              FluentSelectItem(value: 0, child: Text('常规设置')),
+              FluentSelectItem(value: 1, child: Text('自动刷新设置')),
+              FluentSelectItem(value: 2, child: Text('安全设置')),
+              FluentSelectItem(value: 3, child: Text('职能部门')),
+              FluentSelectItem(value: 4, child: Text('教学单位')),
+              FluentSelectItem(value: 5, child: Text('微信推文')),
             ],
             onChanged: (value) {
               if (value != null) setState(() => _selectedTab = value);

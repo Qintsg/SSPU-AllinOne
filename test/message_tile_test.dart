@@ -6,8 +6,8 @@
  * @Date : 2026-04-25
  */
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sspu_allinone/design/fluent_ui.dart';
 import 'package:sspu_allinone/models/message_item.dart';
 import 'package:sspu_allinone/theme/app_theme.dart';
 import 'package:sspu_allinone/widgets/message_tile.dart';

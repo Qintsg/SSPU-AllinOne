@@ -59,7 +59,7 @@ flutter pub get
 
 | 包名 | 用途 |
 |------|------|
-| Flutter Material | Material 3 基础组件与图标 |
+| Flutter SDK | 跨平台运行时、渲染基础设施与图标 |
 | `shared_preferences` | 本地键值对存储 |
 | `path_provider` | 平台应用支持目录解析 |
 | `crypto` | SHA-256 哈希 |
@@ -441,7 +441,7 @@ flutter pub get
 flutter run -d windows
 ```
 
-### 10.4 Material 3 组件编译问题
+### 10.4 Fluent 2 组件编译问题
 
 确认 Flutter SDK 版本满足 `pubspec.yaml` 的最低要求，并避免重新引入已移除的外部 Fluent UI 依赖：
 

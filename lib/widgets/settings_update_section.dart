@@ -6,7 +6,7 @@
  * @Date : 2026-05-18
  */
 
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/app_update_service.dart';
@@ -42,7 +42,8 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Card.filled(
+    return FluentCard(
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: AppSpacing.cardPadding,
         child: Column(
@@ -66,28 +67,20 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
                 runSpacing: AppSpacing.sm,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  SegmentedButton<AppUpdateChannel>(
-                    segments: const [
-                      ButtonSegment(
-                        value: AppUpdateChannel.stable,
-                        label: Text('正式版'),
-                      ),
-                      ButtonSegment(
-                        value: AppUpdateChannel.preview,
-                        label: Text('测试版'),
-                      ),
+                  Wrap(
+                    spacing: AppSpacing.xs,
+                    runSpacing: AppSpacing.xs,
+                    children: [
+                      _buildChannelOption(AppUpdateChannel.stable, '正式版'),
+                      _buildChannelOption(AppUpdateChannel.preview, '测试版'),
                     ],
-                    selected: {_channel},
-                    onSelectionChanged: _isChecking
-                        ? null
-                        : (values) => setState(() => _channel = values.first),
                   ),
-                  FilledButton.icon(
+                  FluentButton.primaryIcon(
                     onPressed: _isChecking ? null : _checkForUpdates,
                     icon: _isChecking
                         ? const SizedBox.square(
                             dimension: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: FluentProgressRing(strokeWidth: 2),
                           )
                         : const Icon(Icons.refresh),
                     label: Text(_isChecking ? '检查中' : '检查更新'),
@@ -107,6 +100,17 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
         ),
       ),
     );
+  }
+
+  Widget _buildChannelOption(AppUpdateChannel channel, String label) {
+    final selected = _channel == channel;
+    final onPressed = _isChecking
+        ? null
+        : () => setState(() => _channel = channel);
+    if (selected) {
+      return FluentButton.primary(onPressed: onPressed, child: Text(label));
+    }
+    return FluentButton.outline(onPressed: onPressed, child: Text(label));
   }
 
   Widget _buildErrorMessage(BuildContext context, String message) {
@@ -173,7 +177,7 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
               children: [
-                OutlinedButton.icon(
+                FluentButton.outlineIcon(
                   onPressed: release.htmlUrl.isEmpty
                       ? null
                       : () => _openExternalUrl(release.htmlUrl),
@@ -181,7 +185,7 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
                   label: const Text('打开 Release'),
                 ),
                 if (asset != null)
-                  FilledButton.icon(
+                  FluentButton.primaryIcon(
                     onPressed: asset.downloadUrl.isEmpty
                         ? null
                         : () => _openExternalUrl(asset.downloadUrl),

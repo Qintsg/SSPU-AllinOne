@@ -1,827 +1,649 @@
-# DESIGN.md — Material 3 Design Specification (Flutter)
+# DESIGN.md — Fluent 2 设计系统(Flutter 实现指南)
 
-> **Audience:** AI coding agents and developers building this Flutter project.
-> **Purpose:** A prescriptive, machine-actionable specification. Every UI the agent
-> produces MUST conform to the rules below. When a design choice is not specified
-> here, follow Material Design 3 defaults — do not invent new patterns.
-
----
-
-## How to Use This Document (Agent Instructions)
-
-1. **Read [Hard Rules](#1-hard-rules) first.** These are non-negotiable and apply to every task.
-2. Before writing UI code, locate the relevant section (color, typography, components, etc.) and apply its rules verbatim.
-3. Prefer **copy-pasting the code templates** in [§14](#14-flutter-theme-implementation) over writing equivalents from scratch.
-4. When a value is needed (spacing, radius, duration), use the **named token**, never a literal.
-5. Before marking any UI task complete, run the [Definition of Done](#16-definition-of-done) checklist.
-6. If a requirement here conflicts with a user instruction, surface the conflict instead of silently violating the spec.
-
-### Normative Language
-
-| Term | Meaning |
-|------|---------|
-| **MUST** / **MUST NOT** | Hard requirement. Violations are bugs and must be fixed. |
-| **SHOULD** / **SHOULD NOT** | Strong default. Deviate only with an explicit, stated reason. |
-| **MAY** | Optional, at the agent's discretion. |
+> 本文档定义了在 Flutter 应用中落地 Microsoft **Fluent 2** 设计系统的规范:设计原则、设计令牌(Design Tokens)、Flutter 工程架构、明暗主题、组件规范与无障碍要求。
+>
+> 它既是设计与开发协作的契约,也是代码评审时的依据。所有 UI 改动应可追溯到本文档中的某一条令牌或规范。
 
 ---
 
-## Table of Contents
+## 目录
 
-1. [Hard Rules](#1-hard-rules)
-2. [Design Principles](#2-design-principles)
-3. [Design Tokens](#3-design-tokens)
-4. [Color System](#4-color-system)
-5. [Typography](#5-typography)
-6. [Shape](#6-shape)
-7. [Elevation & Layering](#7-elevation--layering)
-8. [Spacing & Layout Grid](#8-spacing--layout-grid)
-9. [Iconography & Imagery](#9-iconography--imagery)
-10. [Components](#10-components)
-11. [Motion](#11-motion)
-12. [Responsive & Adaptive Design](#12-responsive--adaptive-design)
-13. [Accessibility](#13-accessibility)
-14. [Flutter Theme Implementation](#14-flutter-theme-implementation)
-15. [Code Organization & Naming](#15-code-organization--naming)
-16. [Definition of Done](#16-definition-of-done)
-17. [References](#17-references)
+1. [概述](#1-概述)
+2. [设计原则](#2-设计原则)
+3. [设计令牌体系](#3-设计令牌体系)
+4. [Flutter 架构实现](#4-flutter-架构实现)
+5. [明暗主题](#5-明暗主题)
+6. [组件规范](#6-组件规范)
+7. [无障碍](#7-无障碍)
+8. [工程约定](#8-工程约定)
+9. [与第三方包的关系](#9-与第三方包的关系)
+10. [维护与变更流程](#10-维护与变更流程)
 
 ---
 
-## 1. Hard Rules
+## 1. 概述
 
-These apply to **every** UI change. They are the most common sources of spec violations.
+### 1.1 目标
 
-- **R1.** MUST NOT hardcode color values (`Color(0x...)`, `Colors.blue`, etc.) in feature/widget code. Use `Theme.of(context).colorScheme.*`.
-- **R2.** MUST NOT hardcode `fontSize` or text colors. Use `Theme.of(context).textTheme.*`.
-- **R3.** MUST NOT hardcode spacing, radius, elevation, or motion durations as raw numbers. Use the tokens in [§3](#3-design-tokens).
-- **R4.** Every screen MUST be implemented for **both light and dark themes**. No light-only screens.
-- **R5.** Every screen MUST be usable across **Compact, Medium, and Expanded** window size classes ([§12](#12-responsive--adaptive-design)).
-- **R6.** Every interactive element MUST have a touch target ≥ **48×48 dp** and an accessible label/tooltip ([§13](#13-accessibility)).
-- **R7.** Information MUST NOT be conveyed by color alone. Pair color with text, icon, or shape.
-- **R8.** MUST NOT lock text scaling (no forced `TextScaler.noScaling`). UI MUST survive 200% font scaling.
-- **R9.** MUST set `useMaterial3: true` (Flutter ≥ 3.16 default) and MUST NOT use deprecated `ColorScheme` roles (`background`, `onBackground`, `surfaceVariant`).
-- **R10.** Layout direction MUST use directional APIs (`EdgeInsetsDirectional`, `AlignmentDirectional`, `PositionedDirectional`), never hardcoded `left`/`right`, to keep RTL support viable.
-- **R11.** MUST NOT use fixed pixel widths/heights for content containers where flexible sizing (`Expanded`, `Flexible`, constraints) is appropriate.
-- **R12.** Reusable UI MUST be a shared component. MUST NOT copy-paste styled widgets across screens.
+- 在 Flutter 中以**令牌驱动(token-driven)**的方式实现 Fluent 2,杜绝硬编码的颜色值、像素值与字号。
+- 保证 Light / Dark 主题、品牌换色、密度调整可以**集中修改、全局生效**。
+- 让设计稿(Figma Fluent 2 UI Kit)与代码使用**同一套语义命名**,降低设计-开发的沟通成本。
 
----
+### 1.2 适用范围
 
-## 2. Design Principles
+- 适用于跨平台 Flutter 应用(iOS / Android / Web / Desktop)。
+- 采用 Flutter 主题与渲染基础设施承载运行时,通过 `ThemeExtension` 注入 Fluent 2 令牌,页面直接使用项目 Fluent 2 组件。
+- 移动端字体回退到系统字体(Android 用 Roboto,iOS 用 SF Pro);桌面/Web 优先 Segoe UI,缺失时回退系统字体。
 
-| Principle | Operational meaning for the agent |
-|-----------|-----------------------------------|
-| **Consistency** | Reuse existing components and tokens before creating new ones. Identical semantics → identical implementation. |
-| **Clear hierarchy** | Use color roles, elevation, and the type scale to establish hierarchy. Limit competing emphasis. |
-| **Adaptive by default** | Build for all window size classes from the start, not phone-first with retrofits. |
-| **Accessibility built-in** | Contrast, target size, and semantics are decided while writing the widget, not patched later. |
-| **Restrained motion** | Motion serves feedback and continuity. Respect "reduce motion". No decorative animation. |
-| **Content first** | Whitespace is intentional. Decoration yields to content. |
+### 1.3 术语
+
+| 术语                      | 含义                                                         |
+| ------------------------- | ------------------------------------------------------------ |
+| Global Token(全局令牌)    | 原始值,如 `grey[16]`、`#0F6CBD`、`spacing 12`,无语义。       |
+| Alias Token(别名令牌)     | 带语义的令牌,如 `neutralForeground1`、`brandBackgroundHover`,引用全局令牌。 |
+| Component Token(组件令牌) | 组件维度的映射,如 `button.primary.fill.rest`。               |
+| Type Ramp(字阶)           | Fluent 2 规定的一组带语义角色的文本样式。                    |
+| Ramp(色阶/比例阶梯)       | 一组按规律递进的值序列(颜色、间距、阴影)。                   |
+
+> **取值唯一真源(Source of Truth)**:颜色与令牌的精确数值以官方 `@fluentui/tokens` 包及 Fluent 2 Figma UI Kit 为准。本文给出的十六进制值为**对齐用参考值**,落地前应与官方令牌核对一次并在 `tokens/` 目录固化。
 
 ---
 
-## 3. Design Tokens
+## 2. 设计原则
 
-Tokens are the single source of truth shared between design and code. **Business code references tokens only — never literals** (see R1–R3).
+Fluent 2 围绕五个基础要素构建,Flutter 落地时对应如下:
 
-Maintain tokens centrally:
+| 原则               | 含义                       | Flutter 落地要点                                             |
+| ------------------ | -------------------------- | ------------------------------------------------------------ |
+| **Light(光)**      | 用明暗与高亮引导注意力     | 用 `elevation` 与 `brand` 高亮态区分焦点,避免靠纯色块堆叠。  |
+| **Depth(深度)**    | 通过分层、阴影建立空间层级 | 阴影只走 `FluentElevation` 令牌,禁止自定义 `BoxShadow`。     |
+| **Motion(动效)**   | 转场自然、有目的性         | 时长/曲线只取 `FluentMotion` 令牌,默认 `durationNormal + curveEasyEase`。 |
+| **Material(材质)** | 半透明、亚克力等材质感     | 移动端克制使用模糊;面板/弹层可用低强度遮罩与背景虚化。       |
+| **Scale(适配)**    | 一套设计跨设备一致         | 同一套令牌,通过密度与断点适配不同尺寸,不为单端做特例。       |
+
+通用准则:
+
+- **令牌优先**:任何颜色、间距、圆角、字体都必须来自令牌。代码评审中出现裸值即视为缺陷。
+- **语义优先**:使用 `neutralForeground1` 而非 `grey[16]`;使用别名令牌而非全局令牌。
+- **左对齐为默认**:LTR 语言正文默认左对齐;长段落禁止居中或两端对齐。
+- **克制强调**:一个视图内不堆叠多个高强调元素;一屏一般只有一个主操作(Primary)。
+
+---
+
+## 3. 设计令牌体系
+
+### 3.1 令牌分层
 
 ```
-lib/theme/
-  app_theme.dart        // ThemeData construction (light + dark)
-  app_colors.dart       // seed color, fixed brand colors
-  app_spacing.dart      // spacing constants
-  app_shapes.dart       // corner radius constants
-  app_motion.dart       // durations + curves
-  app_typography.dart   // optional font family overrides
+Global Tokens   →   Alias Tokens   →   Component Tokens
+(原始值)            (语义)             (组件映射)
+grey[16]            neutralForeground1  button.primary.fill.rest
+#0F6CBD             brandBackground     input.border.focus
+spacing 12          spacingHorizontalM  card.padding
 ```
 
-Token layers:
+**规则**:UI 代码只允许引用 **Alias / Component 令牌**;Global 令牌仅在令牌定义文件内部使用。
 
-| Layer | Description | Example |
-|-------|-------------|---------|
-| Reference | Raw palette / base values | seed color, brand palette |
-| System | Semantic, theme-aware roles | `colorScheme.primary`, `textTheme.bodyLarge` |
-| Component | Values consumed inside a component | a button's container = `colorScheme.primary` |
+### 3.2 颜色
 
-Feature code uses **System** and **Component** tokens only.
+Fluent 2 定义三组色板:**Neutral(中性)**、**Brand(品牌)**、**Shared / Status(共享/状态)**。
+
+#### 3.2.1 中性色 — 别名令牌(Light / Dark 参考值)
+
+中性色承载表面、文本与描边,**必须随明暗主题切换**。
+
+| 别名令牌                    | 用途            | Light     | Dark      |
+| --------------------------- | --------------- | --------- | --------- |
+| `neutralBackground1`        | 主表面/页面底色 | `#FFFFFF` | `#292929` |
+| `neutralBackground2`        | 次级表面        | `#FAFAFA` | `#1F1F1F` |
+| `neutralBackground3`        | 卡片/分区底     | `#F5F5F5` | `#141414` |
+| `neutralBackgroundCanvas`   | 应用画布背景    | `#F0F0F0` | `#0A0A0A` |
+| `neutralForeground1`        | 主文本/图标     | `#242424` | `#FFFFFF` |
+| `neutralForeground2`        | 次级文本        | `#424242` | `#D6D6D6` |
+| `neutralForeground3`        | 占位/弱文本     | `#616161` | `#ADADAD` |
+| `neutralForegroundDisabled` | 禁用文本        | `#BDBDBD` | `#5C5C5C` |
+| `neutralStroke1`            | 默认描边        | `#D1D1D1` | `#666666` |
+| `neutralStroke2`            | 弱描边          | `#E0E0E0` | `#525252` |
+| `neutralStrokeDivider`      | 分割线          | `#EBEBEB` | `#3D3D3D` |
+
+#### 3.2.2 品牌色 — Brand Ramp
+
+默认品牌色为 Fluent 通信蓝(Communication Blue),色阶 `brand[10] → brand[160]`,主值 `brand[80] = #0F6CBD`。
+
+参考色阶(换色时通过工具重新生成整条 ramp,不要手改单值):
+
+| 阶          | 值        | 阶           | 值        |
+| ----------- | --------- | ------------ | --------- |
+| `brand[10]` | `#061724` | `brand[90]`  | `#2886DE` |
+| `brand[20]` | `#082338` | `brand[100]` | `#479EF5` |
+| `brand[40]` | `#0C3B5E` | `brand[110]` | `#62ABF5` |
+| `brand[60]` | `#0F548C` | `brand[130]` | `#96C6FA` |
+| `brand[70]` | `#115EA3` | `brand[150]` | `#CFE4FA` |
+| `brand[80]` | `#0F6CBD` | `brand[160]` | `#EBF3FC` |
+
+品牌别名令牌(从 ramp 派生,带交互态):
+
+| 别名令牌                  | Light 取值   | 说明             |
+| ------------------------- | ------------ | ---------------- |
+| `brandBackground`         | `brand[80]`  | 主操作填充(Rest) |
+| `brandBackgroundHover`    | `brand[70]`  | 悬停             |
+| `brandBackgroundPressed`  | `brand[60]`  | 按下             |
+| `brandBackgroundSelected` | `brand[60]`  | 选中             |
+| `brandForeground1`        | `brand[80]`  | 品牌文本/图标    |
+| `brandForeground2`        | `brand[70]`  | 品牌文本悬停     |
+| `brandStroke1`            | `brand[80]`  | 品牌描边         |
+| `brandStroke2`            | `brand[140]` | 弱品牌描边       |
+
+> Dark 主题下品牌别名整体上移约一阶(更亮),由生成器统一产出 light/dark 两套。
+
+#### 3.2.3 状态色 — Shared / Status
+
+| 语义                                      | 角色       | Light 参考值          |
+| ----------------------------------------- | ---------- | --------------------- |
+| `statusSuccessForeground` / `…Background` | 成功(绿)   | `#0E700E` / `#F1FAF1` |
+| `statusWarningForeground` / `…Background` | 警示(黄)   | `#BC4B09` / `#FFF9F5` |
+| `statusDangerForeground` / `…Background`  | 错误(红)   | `#B10E1C` / `#FDF3F4` |
+| `statusSevereForeground` / `…Background`  | 严重(深橙) | `#DA3B01` / `#FDF6F3` |
+
+#### 3.2.4 颜色使用规则
+
+- 文本/图标用 `*Foreground*`,表面用 `*Background*`,边框用 `*Stroke*`,**不可混用**。
+- 状态色仅表达状态语义,不得当作装饰色。
+- 禁用态统一走 `*Disabled` 令牌,不要用透明度临时模拟。
+- 不允许 `Colors.blue`、`Color(0xFF...)` 等裸值出现在组件代码中。
+
+### 3.3 字体排版(Type Ramp)
+
+Fluent 2 字阶(Web,Segoe UI;移动端字号一致、字体回退系统字体):
+
+| 角色名              | 字重           | 字号 / 行高 (px) | 典型用途       |
+| ------------------- | -------------- | ---------------- | -------------- |
+| `caption2`          | Regular (400)  | 10 / 14          | 极小辅助文字   |
+| `caption2Strong`    | Semibold (600) | 10 / 14          | 极小强调       |
+| `caption1`          | Regular (400)  | 12 / 16          | 辅助说明、标签 |
+| `caption1Strong`    | Semibold (600) | 12 / 16          | 辅助强调       |
+| `caption1Stronger`  | Bold (700)     | 12 / 16          | 辅助最强强调   |
+| `body1`             | Regular (400)  | 14 / 20          | **正文默认**   |
+| `body1Strong`       | Semibold (600) | 14 / 20          | 正文强调       |
+| `body1Stronger`     | Bold (700)     | 14 / 20          | 正文最强强调   |
+| `subtitle2`         | Semibold (600) | 16 / 22          | 卡片标题       |
+| `subtitle2Stronger` | Bold (700)     | 16 / 22          | 卡片标题强调   |
+| `subtitle1`         | Semibold (600) | 20 / 26          | 区块标题       |
+| `title3`            | Semibold (600) | 24 / 32          | 页面小标题     |
+| `title2`            | Semibold (600) | 28 / 36          | 页面标题       |
+| `title1`            | Semibold (600) | 32 / 40          | 大标题         |
+| `largeTitle`        | Semibold (600) | 40 / 52          | 着陆页标题     |
+| `display`           | Semibold (600) | 68 / 92          | 营销大字       |
+
+字重映射到 Flutter:`Regular → FontWeight.w400`,`Medium → w500`,`Semibold → w600`,`Bold → w700`。
+
+**规则**:
+
+- 文本样式只能取自字阶令牌;禁止在 `TextStyle` 里直接写 `fontSize`。
+- 需要改颜色时,从字阶样式 `copyWith(color: ...)`,而非新建样式。
+- 整体放大/缩小走"整体提升字阶",不要为单个组件破例。
+- 不用全大写来吸引注意(可读性差)。
+
+### 3.4 间距(Spacing Ramp)
+
+基准单位 **4px** 的 4x 体系;`2 / 6 / 10` 用于补偿图标内边距、对齐 4px 网格。
+
+| 令牌            | 值 (px) | 令牌          | 值 (px) |
+| --------------- | ------- | ------------- | ------- |
+| `spacingNone`   | 0       | `spacingM`    | 12      |
+| `spacingXXS`    | 2       | `spacingL`    | 16      |
+| `spacingXS`     | 4       | `spacingXL`   | 20      |
+| `spacingSNudge` | 6       | `spacingXXL`  | 24      |
+| `spacingS`      | 8       | `spacingXXXL` | 32      |
+| `spacingMNudge` | 10      |               |         |
+
+水平与垂直共用同一比例阶梯。组件内部用较小间距强化关联,区块之间用较大间距区隔。
+
+### 3.5 圆角(Corner Radius)
+
+| 令牌             | 值 (px) | 用途                 |
+| ---------------- | ------- | -------------------- |
+| `radiusNone`     | 0       | 无圆角               |
+| `radiusSmall`    | 2       | 小控件、标签         |
+| `radiusMedium`   | 4       | **按钮、输入框默认** |
+| `radiusLarge`    | 6       | 卡片                 |
+| `radiusXLarge`   | 8       | 弹层、对话框、面板   |
+| `radiusCircular` | 9999    | 头像、胶囊、圆形按钮 |
+
+### 3.6 描边(Stroke Width)
+
+| 令牌                  | 值 (px) | 用途             |
+| --------------------- | ------- | ---------------- |
+| `strokeWidthThin`     | 1       | 默认边框、分割线 |
+| `strokeWidthThick`    | 2       | 焦点环、选中态   |
+| `strokeWidthThicker`  | 3       | 强调态           |
+| `strokeWidthThickest` | 4       | 特殊强调         |
+
+### 3.7 高度与阴影(Elevation)
+
+Fluent 2 提供一组阴影 ramp,数值越大层级越高。每个阴影由环境光层 + 方向光层叠加,**统一封装为令牌**。
+
+| 令牌       | 典型用途           |
+| ---------- | ------------------ |
+| `shadow2`  | 轻浮起(悬停态卡片) |
+| `shadow4`  | 卡片默认           |
+| `shadow8`  | 下拉、菜单         |
+| `shadow16` | 弹出层、Flyout     |
+| `shadow28` | 对话框             |
+| `shadow64` | 全屏覆盖层         |
+
+> 另有品牌阴影(brand shadow)用于品牌色表面,落地后期再引入。当前阶段所有阴影只允许引用上述令牌,**禁止手写 `BoxShadow`**。
+
+### 3.8 动效(Motion)
+
+**时长令牌:**
+
+| 令牌                | 值 (ms) | 用途         |
+| ------------------- | ------- | ------------ |
+| `durationUltraFast` | 50      | 极小状态反馈 |
+| `durationFaster`    | 100     | 悬停、按下   |
+| `durationFast`      | 150     | 小元素进出   |
+| `durationNormal`    | 200     | **默认转场** |
+| `durationSlow`      | 300     | 面板、抽屉   |
+| `durationSlower`    | 400     | 大面积转场   |
+| `durationUltraSlow` | 500     | 全屏转场     |
+
+**缓动曲线令牌(对应 Flutter `Cubic`):**
+
+| 令牌                 | cubic-bezier       | 用途              |
+| -------------------- | ------------------ | ----------------- |
+| `curveEasyEase`      | (0.33, 0, 0.67, 1) | **默认**,进出对称 |
+| `curveDecelerateMid` | (0.1, 0.9, 0.2, 1) | 元素进入          |
+| `curveAccelerateMid` | (0.7, 0, 1, 0.5)   | 元素退出          |
+| `curveLinear`        | (0, 0, 1, 1)       | 进度、加载        |
+
+**规则**:转场默认 `durationNormal + curveEasyEase`;进入用 decelerate,退出用 accelerate;尊重系统"减弱动态效果"(见 [§7](#7-无障碍))。
 
 ---
 
-## 4. Color System
+## 4. Flutter 架构实现
 
-### 4.1 Color Roles
-
-M3 uses a tonal role system, mapped in Flutter to `ColorScheme`. **Container/surface colors are always paired with their `on*` foreground color** — used together they guarantee contrast.
-
-| Role group | Use for |
-|------------|---------|
-| `primary` / `onPrimary` | Primary action (`FilledButton`), key interactive elements |
-| `primaryContainer` / `onPrimaryContainer` | Emphasized container that does not compete with the primary action |
-| `secondary` / `secondaryContainer` | Secondary emphasis, filter chips |
-| `tertiary` / `tertiaryContainer` | Balancing accent, contrast highlights |
-| `error` / `errorContainer` | Errors, destructive actions, validation |
-| `surface` / `onSurface` | Default background and text |
-| `surfaceContainerLowest` … `surfaceContainerHighest` | Surfaces at different elevation levels ([§7](#7-elevation--layering)) |
-| `onSurfaceVariant` | Secondary text, helper text, inactive icons |
-| `outline` / `outlineVariant` | Borders, dividers |
-| `inverseSurface` / `onInverseSurface` / `inversePrimary` | Inverted contexts (e.g. `SnackBar`) |
-| `surfaceTint` | Elevation tint overlay |
-| `scrim` | Modal scrim |
-
-### 4.2 Rules
-
-- **C1.** MUST generate the full `ColorScheme` from a single seed color via `ColorScheme.fromSeed`.
-- **C2.** MUST use paired roles (`primary` + `onPrimary`, etc.). MUST NOT mix unrelated foreground/background colors.
-- **C3.** MUST NOT use deprecated roles (`background`, `onBackground`, `surfaceVariant`).
-- **C4.** Dark theme MUST be a first-class peer of light theme.
-- **C5.** In dark theme, MUST NOT flood large areas with pure black (`#000000`); use `surface`. Express elevation via `surfaceContainer*` brightness + `surfaceTint`, not heavier shadows.
-- **C6.** Fixed brand colors (e.g. logo) are reference tokens, kept separate, and MUST NOT change with theme.
-- **C7.** Any custom color pair MUST be verified for contrast ([§13.2](#132-color--contrast)).
-
-```dart
-const Color kSeedColor = Color(0xFF4A6FA5); // replace with brand seed
-
-ColorScheme lightScheme = ColorScheme.fromSeed(
-  seedColor: kSeedColor,
-  brightness: Brightness.light,
-);
-ColorScheme darkScheme = ColorScheme.fromSeed(
-  seedColor: kSeedColor,
-  brightness: Brightness.dark,
-);
-```
-
----
-
-## 5. Typography
-
-### 5.1 Type Scale
-
-M3 defines 15 levels across 5 groups, mapped to Flutter's `TextTheme`.
-
-| Group | Token | Size (sp) | Line height (sp) | Weight | Typical use |
-|-------|-------|-----------|------------------|--------|-------------|
-| Display | `displayLarge` | 57 | 64 | 400 | Hero text, onboarding |
-| | `displayMedium` | 45 | 52 | 400 | |
-| | `displaySmall` | 36 | 44 | 400 | |
-| Headline | `headlineLarge` | 32 | 40 | 400 | Page-level titles |
-| | `headlineMedium` | 28 | 36 | 400 | |
-| | `headlineSmall` | 24 | 32 | 400 | |
-| Title | `titleLarge` | 22 | 28 | 400 | App bar title, card title |
-| | `titleMedium` | 16 | 24 | 500 | List item primary text |
-| | `titleSmall` | 14 | 20 | 500 | |
-| Body | `bodyLarge` | 16 | 24 | 400 | Primary body text |
-| | `bodyMedium` | 14 | 20 | 400 | Default text |
-| | `bodySmall` | 12 | 16 | 400 | Helper text |
-| Label | `labelLarge` | 14 | 20 | 500 | Button text |
-| | `labelMedium` | 12 | 16 | 500 | Small labels |
-| | `labelSmall` | 11 | 16 | 500 | Smallest labels |
-
-### 5.2 Rules
-
-- **T1.** MUST reference `textTheme.*`. MUST NOT set raw `fontSize`.
-- **T2.** A single screen SHOULD use ≤ 4 distinct type levels.
-- **T3.** Body text line length SHOULD be 40–70 characters; constrain container width when wider.
-- **T4.** Text SHOULD be left-aligned (LTR). MUST NOT use justified alignment.
-- **T5.** MUST support system font scaling up to 200% (see R8, [§13.4](#134-dynamic-type--scaling)).
-
----
-
-## 6. Shape
-
-M3 corner radius scale, mapped to `BorderRadius` / `ShapeBorder`.
-
-| Token | Radius | Typical components |
-|-------|--------|--------------------|
-| None | 0 dp | Full-bleed images |
-| Extra small | 4 dp | Small chip elements, menus |
-| Small | 8 dp | Text fields, small cards |
-| Medium | 12 dp | Cards, dialog inner elements |
-| Large | 16 dp | Cards, large containers |
-| Extra large | 28 dp | Dialogs, bottom sheets, large FAB |
-| Full | pill | Buttons, chips, FAB, search bar |
-
-### 6.1 Rules
-
-- **SH1.** MUST use the radius tokens below; MUST NOT use arbitrary radii.
-- **SH2.** Members of the same component family MUST share a radius.
-
-```dart
-class AppShapes {
-  static const xs = BorderRadius.all(Radius.circular(4));
-  static const sm = BorderRadius.all(Radius.circular(8));
-  static const md = BorderRadius.all(Radius.circular(12));
-  static const lg = BorderRadius.all(Radius.circular(16));
-  static const xl = BorderRadius.all(Radius.circular(28));
-}
-```
-
----
-
-## 7. Elevation & Layering
-
-M3 expresses elevation primarily via **surface tint/color**, not shadows — critically so in dark theme.
-
-| Level | Elevation | Surface role | Typical components |
-|-------|-----------|--------------|--------------------|
-| 0 | 0 dp | `surface` | Page background, resting cards |
-| 1 | 1 dp | `surfaceContainerLow` | Cards, `ElevatedButton` |
-| 2 | 3 dp | `surfaceContainer` | App bar (scrolled), hovered chips |
-| 3 | 6 dp | `surfaceContainerHigh` | FAB, dialogs, menus |
-| 4 | 8 dp | `surfaceContainerHigh` | Navigation drawer |
-| 5 | 12 dp | `surfaceContainerHighest` | Dragged elements |
-
-### 7.1 Rules
-
-- **E1.** Distinguish layers using surface container colors; use large shadows sparingly.
-- **E2.** A single screen SHOULD show ≤ 3 elevation levels.
-- **E3.** App bar MUST transition from Level 0 to Level 2 when content scrolls under it (`scrolledUnderElevation`).
-- **E4.** In dark theme, higher elevation MUST mean a lighter surface, not a darker shadow.
-
----
-
-## 8. Spacing & Layout Grid
-
-### 8.1 Spacing Scale (4 dp base grid)
-
-All spacing MUST be a multiple of 4.
-
-| Token | Value | Use |
-|-------|-------|-----|
-| `xs` | 4 | Tight element gaps |
-| `sm` | 8 | Intra-element spacing, icon padding |
-| `md` | 16 | **Default page margin**, card padding |
-| `lg` | 24 | Section spacing |
-| `xl` | 32 | Large section spacing |
-| `xxl` | 48 | Page-level partitioning |
-
-```dart
-class AppSpacing {
-  static const double xs = 4;
-  static const double sm = 8;
-  static const double md = 16;
-  static const double lg = 24;
-  static const double xl = 32;
-  static const double xxl = 48;
-}
-```
-
-### 8.2 Page Margins
-
-| Window class | Page margin |
-|--------------|-------------|
-| Compact | 16 dp |
-| Medium | 24 dp |
-| Expanded and above | 24 dp + max content width constraint |
-
-### 8.3 Rules
-
-- **SP1.** MUST use `AppSpacing` tokens; MUST NOT use raw spacing literals.
-- **SP2.** Gutters: 16 dp (Compact) / 24 dp (larger).
-- **SP3.** Long-form text and forms MUST set a max width (e.g. 640 dp) to avoid over-wide lines.
-
----
-
-## 9. Iconography & Imagery
-
-### 9.1 Rules — Icons
-
-- **IC1.** MUST use Material Symbols (`Icons.*`) only. MUST NOT mix icon libraries.
-- **IC2.** Standard icon size 24 dp; dense 20 dp; emphasis 40/48 dp.
-- **IC3.** Inactive icons use `onSurfaceVariant`; active icons use `primary`.
-- **IC4.** Every icon button MUST have a ≥ 48×48 dp touch target and a `tooltip` + semantic label (R6).
-
-### 9.2 Rules — Imagery
-
-- **IM1.** Thumbnails MUST use a consistent radius (typically Medium, 12 dp).
-- **IM2.** Images MUST have a loading placeholder (skeleton / low-res preview) and an error fallback.
-- **IM3.** Images MUST declare a fixed aspect ratio (e.g. 16:9, 1:1, 4:3) to prevent layout shift.
-- **IM4.** Decorative images MUST be hidden from semantics; informative images MUST provide a text alternative ([§13.5](#135-semantics--screen-readers)).
-
----
-
-## 10. Components
-
-Use Flutter's built-in M3 components, wrapped into shared project components (R12).
-
-### 10.1 Buttons
-
-| Type | Flutter widget | Use | Per-screen guidance |
-|------|----------------|-----|---------------------|
-| Primary | `FilledButton` | The single most important action | ≤ 1 |
-| Secondary | `FilledButton.tonal` | Important, not top-priority | Few |
-| Emphasized outline | `OutlinedButton` | Alternative beside the primary | Few |
-| Text | `TextButton` | Low-emphasis (e.g. "Cancel") | Unlimited |
-| Icon | `IconButton` | Toolbars, compact actions | Unlimited |
-| Floating | `FloatingActionButton` | Screen-level core action | ≤ 1 |
-
-Rules:
-- **B1.** Button labels MUST be concise verb phrases (e.g. "Save", "Retry").
-- **B2.** Visual button height ~40 dp; touch target MUST be ≥ 48 dp.
-- **B3.** While loading, a button MUST show progress and prevent duplicate taps.
-- **B4.** Destructive actions MUST use the `error` role and MUST require confirmation.
-
-### 10.2 Navigation Components
-
-| Component | Window class | Notes |
-|-----------|--------------|-------|
-| `NavigationBar` (bottom) | Compact | 3–5 top-level destinations |
-| `NavigationRail` | Medium / Expanded | Side navigation |
-| `NavigationDrawer` | Expanded and above | Standard drawer; many destinations |
-| `Drawer` (modal) | Compact | Temporary drawer when destinations exceed 5 |
-
-See [§12.3](#123-adaptive-navigation).
-
-### 10.3 Cards
-
-- **CD1.** Use `Card` (Elevated/Filled/Outlined). A single list MUST use one variant only.
-- **CD2.** Default card padding 16 dp; radius Large/Medium.
-- **CD3.** A fully tappable card MUST make the whole card the touch target with an `InkWell` ripple.
-
-### 10.4 Inputs & Forms
-
-- **F1.** Text fields MUST use one consistent style (outlined or filled) project-wide.
-- **F2.** Labels MUST be persistently visible. MUST NOT use placeholder text as the only label.
-- **F3.** Required fields MUST be marked; validation errors MUST appear below the field with `error`-role text + icon.
-- **F4.** On submit failure, focus MUST move to the first invalid field and the error MUST be announced to screen readers.
-
-### 10.5 Feedback
-
-| Scenario | Component | Notes |
-|----------|-----------|-------|
-| Lightweight notice | `SnackBar` | Brief, ≤ 1 action; never critical-only info |
-| User decision needed | `Dialog` / `AlertDialog` | Blocking; use sparingly |
-| Loading | `CircularProgressIndicator` / skeleton | Any wait > ~300 ms MUST show feedback |
-| Empty state | Shared empty-state component | Illustration + text + optional action |
-| Error | Shared error component | Cause + retry entry point |
-
-### 10.6 Lists
-
-- **L1.** Use `ListTile` for consistent row height and padding.
-- **L2.** Long lists MUST use `ListView.builder` (lazy).
-- **L3.** Separate rows with either `Divider` (`outlineVariant`) or whitespace — not both.
-
----
-
-## 11. Motion
-
-### 11.1 Duration
-
-| Tier | Duration | Use |
-|------|----------|-----|
-| Short | 50–200 ms | Small state changes, ripple, toggles |
-| Medium | 250–400 ms | Component enter/exit, expand/collapse |
-| Long | 450–600 ms | Large transitions, page changes |
-| Extra long | 700–1000 ms | Large expressive transitions (rare) |
-
-### 11.2 Easing
-
-| Curve | Flutter | Use |
-|-------|---------|-----|
-| Standard | `Curves.easeInOutCubicEmphasized` | Most standard transitions |
-| Emphasized decelerate | `Curves.easeOutCubic` (approx.) | Elements entering the screen |
-| Emphasized accelerate | `Curves.easeInCubic` (approx.) | Elements leaving the screen |
-| Linear | `Curves.linear` | Progress, loops |
-
-```dart
-class AppMotion {
-  static const short = Duration(milliseconds: 150);
-  static const medium = Duration(milliseconds: 300);
-  static const long = Duration(milliseconds: 500);
-  static const emphasized = Curves.easeInOutCubicEmphasized;
-}
-```
-
-### 11.3 Rules
-
-- **M1.** Motion MUST serve feedback, spatial continuity, or attention — never pure decoration.
-- **M2.** Entering elements use a decelerate curve; leaving elements use an accelerate curve.
-- **M3.** Page transitions MUST use a single shared route-animation wrapper.
-- **M4.** MUST respect the system "reduce motion" setting:
-  ```dart
-  final reduceMotion = MediaQuery.disableAnimationsOf(context);
-  // When true: use fade or instant swap; disable large translate/scale animations.
-  ```
-
----
-
-## 12. Responsive & Adaptive Design
-
-> **Responsive:** layout scales/reflows continuously with size.
-> **Adaptive:** layout switches structure/components at breakpoints (e.g. bottom nav → side rail).
-> This project requires **both**.
-
-### 12.1 Window Size Classes
-
-Classified by **available window width** (not physical screen size).
-
-| Class | Width (dp) | Typical |
-|-------|------------|---------|
-| **Compact** | 0–599 | Portrait phone, small window |
-| **Medium** | 600–839 | Portrait tablet, unfolded foldable, large phone landscape |
-| **Expanded** | 840–1199 | Landscape tablet, small desktop window |
-| **Large** | 1200–1599 | Desktop |
-| **Extra-large** | ≥ 1600 | Large/ultrawide desktop |
-
-```dart
-enum WindowSizeClass { compact, medium, expanded, large, extraLarge }
-
-WindowSizeClass windowSizeClassOf(BuildContext context) {
-  final w = MediaQuery.sizeOf(context).width;
-  if (w < 600) return WindowSizeClass.compact;
-  if (w < 840) return WindowSizeClass.medium;
-  if (w < 1200) return WindowSizeClass.expanded;
-  if (w < 1600) return WindowSizeClass.large;
-  return WindowSizeClass.extraLarge;
-}
-```
-
-### 12.2 Breakpoint Behavior
-
-| Aspect | Compact | Medium | Expanded and above |
-|--------|---------|--------|---------------------|
-| Columns | 1 | 1–2 | Multi-column / list-detail side-by-side |
-| Navigation | Bottom `NavigationBar` | `NavigationRail` | `NavigationRail` or `NavigationDrawer` |
-| Page margin | 16 dp | 24 dp | 24 dp + max content width |
-| FAB | Standard | Standard / Extended | Extended FAB, often atop the rail |
-| Dialogs | Full-screen dialog / bottom sheet | Centered dialog | Centered dialog |
-
-### 12.3 Adaptive Navigation
-
-Navigation structure MUST switch with window class, and the **selected destination MUST persist across forms**.
-
-- **Compact:** bottom `NavigationBar` (3–5 items). Overflow → "More" or modal `Drawer`.
-- **Medium:** `NavigationRail` (collapsible).
-- **Expanded and above:** expanded `NavigationRail`, or persistent `NavigationDrawer` when destinations are numerous.
-
-Use `flutter_adaptive_scaffold`'s `AdaptiveScaffold`, or a shared `AppShell`:
-
-```dart
-Widget buildShell(BuildContext context, Widget body) {
-  final size = windowSizeClassOf(context);
-  switch (size) {
-    case WindowSizeClass.compact:
-      return Scaffold(
-        body: body,
-        bottomNavigationBar: const AppNavigationBar(),
-      );
-    case WindowSizeClass.medium:
-    case WindowSizeClass.expanded:
-      return Scaffold(
-        body: Row(children: [
-          AppNavigationRail(extended: size == WindowSizeClass.expanded),
-          const VerticalDivider(width: 1),
-          Expanded(child: body),
-        ]),
-      );
-    case WindowSizeClass.large:
-    case WindowSizeClass.extraLarge:
-      return Scaffold(
-        body: Row(children: [
-          const AppNavigationDrawer(),
-          Expanded(child: body),
-        ]),
-      );
-  }
-}
-```
-
-### 12.4 Canonical Layouts
-
-Apply one of M3's four canonical layouts before designing a custom one.
-
-| Layout | Description | Compact | Expanded |
-|--------|-------------|---------|----------|
-| **List-Detail** | Master/detail | Two separate full-screen pages | List left + detail right |
-| **Supporting Pane** | Main content + supporting info | Supporting content collapses to bottom sheet / tab | Main area + right supporting pane |
-| **Feed** | Card grid | Single column | Multi-column grid; columns scale with width |
-| **Single Column** | Forms, reading detail | Full width | Centered, max width (e.g. 640 dp) |
-
-Implementation rules:
-- **RD1.** Use `LayoutBuilder` / `MediaQuery.sizeOf` to choose structure; `Wrap`, `Flex`, `GridView` to reflow.
-- **RD2.** List-Detail MUST keep the selected item when expanding to Expanded; when shrinking to Compact, fall back sensibly to list or detail.
-- **RD3.** Grid column count MUST switch at breakpoints, not at arbitrary pixel values (e.g. 1 / 2 / 3 / 4 columns for Compact / Medium / Expanded / Large).
-
-### 12.5 Input-Mode Adaptation
-
-UI MUST adapt to input method, not only size.
-
-- **Touch:** targets ≥ 48 dp; gestures (swipe, long-press) available.
-- **Mouse:** hover states, appropriate cursors (`MouseRegion`), context menus where relevant.
-- **Keyboard:** every interaction reachable and operable via Tab/arrow keys; visible focus ([§13.6](#136-keyboard--focus)).
-- Desktop/Web MUST reflow live on window resize — no restart/refresh required.
-
-### 12.6 Safe Areas & Non-Rectangular Screens
-
-- **SA1.** MUST use `SafeArea` for notches, status bars, and gesture insets.
-- **SA2.** Foldables: keep key content/actions off the hinge region; use `MediaQuery.displayFeatures` when needed.
-- **SA3.** Orientation changes MUST preserve scroll position and user input.
-
-### 12.7 Responsive Rules
-
-- **RR1.** MUST NOT branch layout on device identity ("is iPad"). Branch on window size class.
-- **RR2.** MUST NOT write per-device duplicate screens. One screen, breakpoint-conditional rendering.
-- **RR3.** Every screen MUST render without horizontal overflow at a minimum width of **320 dp** (unless the region is intentionally horizontally scrollable).
-- **RR4.** Use flexible sizing (`Expanded`, `Flexible`, `FractionallySizedBox`); avoid fixed dimensions (R11).
-
----
-
-## 13. Accessibility
-
-Accessibility is **mandatory**, targeting **WCAG 2.1 AA**. Every screen MUST satisfy this section before completion.
-
-### 13.1 Principles
-
-- Perceivable, Operable, Understandable, Robust.
-- No information conveyed by a single channel (color, shape, position, sound) alone (R7).
-- Accessibility is decided while writing the widget, then self-verified at PR time.
-
-### 13.2 Color & Contrast
-
-| Content type | Minimum contrast (AA) |
-|--------------|------------------------|
-| Body text (< 18.66 px regular / < 24 px) | **4.5 : 1** |
-| Large text (≥ 18.66 px bold or ≥ 24 px) | **3 : 1** |
-| UI component bounds, icons, non-text graphics | **3 : 1** |
-| Decorative elements | None |
-
-- **A1.** M3 `on*` roles meet contrast when used as pairs — using pairs satisfies this by default.
-- **A2.** Any custom color pair MUST be verified with a contrast tool.
-- **A3.** MUST NOT express "secondary" via low-contrast text; use size/weight instead.
-
-### 13.3 Touch Target Size
-
-- **A4.** Every interactive element MUST have a touch target ≥ **48×48 dp**, even if the visual is smaller.
-- **A5.** Adjacent tappable elements MUST have ≥ 8 dp spacing.
-- **A6.** Expand small icons' hit area via `IconButton`, `InkWell` + `SizedBox`, etc.
-- **A7.** List rows SHOULD be fully tappable — do not require precise icon taps.
-
-### 13.4 Dynamic Type & Scaling
-
-- **A8.** MUST support system font scaling to **200%** without loss of content or function.
-- **A9.** Layouts MUST be robust to large text: allow wrapping, expand containers, use `Flexible`/`Expanded` to prevent overflow.
-- **A10.** MUST NOT force `TextScaler.noScaling` (R8). To bound extreme scaling, use `MediaQuery.withClampedTextScaling`, never a hard disable.
-- **A11.** Touch target size MUST NOT shrink with font scaling.
-
-### 13.5 Semantics & Screen Readers
-
-Support TalkBack, VoiceOver, and desktop screen readers.
-
-- **A12.** Every non-text interactive element MUST have a semantic label:
-  ```dart
-  IconButton(
-    icon: const Icon(Icons.favorite),
-    tooltip: 'Add to favorites', // serves as visible hint + semantics
-    onPressed: _toggleFavorite,
-  );
-
-  Semantics(
-    label: 'Profile photo, Jane Doe',
-    image: true,
-    child: avatarWidget,
-  );
-  ```
-- **A13.** Decorative images MUST be hidden via `ExcludeSemantics` / `Semantics(excludeSemantics: true)`.
-- **A14.** Use `MergeSemantics` to merge icon+text into one spoken unit.
-- **A15.** Mark headings with `Semantics(header: true)`.
-- **A16.** Announce dynamic changes (load complete, validation error, new message) via `SemanticsService.announce(...)`.
-- **A17.** Semantic labels MUST NOT include the widget type word ("button", "image") — the type is conveyed by semantic flags.
-
-### 13.6 Keyboard & Focus
-
-For desktop, Web, and external keyboards.
-
-- **A18.** Every interactive element MUST be reachable via Tab / Shift+Tab in visual reading order.
-- **A19.** Focus state MUST be clearly visible — MUST NOT remove M3 focus highlights.
-- **A20.** Use `FocusTraversalGroup` to order traversal in complex layouts.
-- **A21.** Support common shortcuts (`Esc` closes dialogs, `Enter` submits) via `Shortcuts` + `Actions`.
-- **A22.** Open modals MUST trap focus inside; on close, focus MUST return to the trigger element.
-- **A23.** MUST NOT create keyboard traps — any region entered must be exitable via keyboard.
-
-### 13.7 Form Accessibility
-
-- **A24.** Each input MUST have a persistently visible label correctly associated with the control.
-- **A25.** Errors MUST be conveyed by text + icon and announced to screen readers; focus moves to the first invalid field.
-- **A26.** Required fields and format requirements MUST be visible before input.
-
-### 13.8 Motion & Accessibility
-
-- **A27.** MUST respect "reduce motion" (`MediaQuery.disableAnimationsOf(context)`).
-- **A28.** MUST NOT flash content faster than 3 times per second (photosensitivity risk).
-- **A29.** Autoplaying/carousel content MUST offer pause control and MUST NOT steal focus.
-
-### 13.9 Content & Language
-
-- **A30.** Copy MUST be clear and concise; avoid ambiguity and unexplained jargon.
-- **A31.** Link/button text MUST be self-descriptive (avoid "click here").
-- **A32.** Use directional layout APIs to keep RTL viable (R10).
-
-### 13.10 Accessibility Testing
-
-The agent MUST include automated accessibility assertions in widget tests:
-
-```dart
-testWidgets('home screen meets a11y guidelines', (tester) async {
-  final handle = tester.ensureSemantics();
-  await tester.pumpWidget(const App());
-
-  await expectLater(tester, meetsGuideline(textContrastGuideline));
-  await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
-  await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));
-  await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
-
-  handle.dispose();
-});
-```
-
-Manual verification (when feasible): TalkBack/VoiceOver pass of key flows; keyboard-only completion of core tasks; regression at max system font size and with "reduce motion" enabled.
-
----
-
-## 14. Flutter Theme Implementation
-
-Copy these templates directly.
-
-### 14.1 `app_theme.dart`
-
-```dart
-import 'package:flutter/material.dart';
-import 'app_shapes.dart';
-
-const Color kSeedColor = Color(0xFF4A6FA5); // replace with brand seed
-
-ThemeData buildTheme(Brightness brightness) {
-  final colorScheme = ColorScheme.fromSeed(
-    seedColor: kSeedColor,
-    brightness: brightness,
-  );
-
-  return ThemeData(
-    useMaterial3: true,
-    colorScheme: colorScheme,
-    // textTheme: ... // override here if using a custom font
-    appBarTheme: AppBarTheme(
-      centerTitle: false,
-      backgroundColor: colorScheme.surface,
-      scrolledUnderElevation: 3,
-    ),
-    cardTheme: CardThemeData(
-      shape: RoundedRectangleBorder(borderRadius: AppShapes.lg),
-    ),
-    // Centralize all component themes here.
-  );
-}
-```
-
-### 14.2 `main.dart`
-
-```dart
-MaterialApp(
-  theme: buildTheme(Brightness.light),
-  darkTheme: buildTheme(Brightness.dark),
-  themeMode: ThemeMode.system,
-  // ...
-);
-```
-
-### 14.3 Token Reference Pattern
-
-```dart
-// CORRECT — reference theme tokens
-final cs = Theme.of(context).colorScheme;
-final tt = Theme.of(context).textTheme;
-
-Text('Title', style: tt.titleLarge);
-Container(color: cs.surfaceContainer);
-
-// WRONG — hardcoded (violates R1, R2)
-Text('Title', style: const TextStyle(fontSize: 22, color: Colors.black));
-Container(color: const Color(0xFFEEEEEE));
-```
-
-### 14.4 Optional: Dynamic Color (Android 12+)
-
-```dart
-// Requires the `dynamic_color` package.
-DynamicColorBuilder(
-  builder: (lightDynamic, darkDynamic) {
-    final light = lightDynamic ?? ColorScheme.fromSeed(seedColor: kSeedColor);
-    final dark = darkDynamic ??
-        ColorScheme.fromSeed(seedColor: kSeedColor, brightness: Brightness.dark);
-    return MaterialApp(
-      theme: ThemeData(useMaterial3: true, colorScheme: light),
-      darkTheme: ThemeData(useMaterial3: true, colorScheme: dark),
-    );
-  },
-);
-```
-
-### 14.5 Accessible Icon Button Pattern
-
-```dart
-// Reusable, spec-compliant icon button (R6, A4, A12).
-class AppIconButton extends StatelessWidget {
-  const AppIconButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-    this.isActive = false,
-  });
-
-  final IconData icon;
-  final String label;      // semantic label + tooltip
-  final VoidCallback onPressed;
-  final bool isActive;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return IconButton(
-      icon: Icon(icon),
-      tooltip: label,
-      color: isActive ? cs.primary : cs.onSurfaceVariant,
-      onPressed: onPressed,
-      // IconButton already enforces a >= 48dp target by default.
-    );
-  }
-}
-```
-
----
-
-## 15. Code Organization & Naming
-
-### 15.1 Directory Structure
+### 4.1 目录结构
 
 ```
 lib/
-  theme/            // theme + tokens
-  widgets/          // generic reusable components (wrapped M3 widgets)
-  components/       // business components
-  features/         // screens grouped by feature module
-  l10n/             // localized strings
-assets/
-  images/
-  icons/
-  fonts/
+└── design/
+    ├── fluent/
+    │   ├── tokens/
+    │   │   ├── fluent_color_tokens.dart     # 中性/品牌/状态色,light & dark
+    │   │   ├── fluent_typography.dart       # Type ramp → TextStyle
+    │   │   ├── fluent_spacing.dart          # 间距阶梯
+    │   │   ├── fluent_radii.dart            # 圆角
+    │   │   ├── fluent_stroke.dart           # 描边宽度
+    │   │   ├── fluent_elevation.dart        # 阴影
+    │   │   └── fluent_motion.dart           # 时长 & 曲线
+    │   ├── fluent_theme.dart                # 构建 ThemeData + 注入扩展
+    │   └── fluent_context_ext.dart          # BuildContext 便捷访问扩展
+    └── components/
+        ├── fluent_button.dart
+        ├── fluent_text_field.dart
+        ├── fluent_card.dart
+        └── ...
 ```
 
-### 15.2 Rules
+### 4.2 ThemeExtension 方案
 
-- **O1.** Any UI used in more than one place MUST be a shared component (R12).
-- **O2.** Components MUST expose semantic parameters, not style internals; colors/radii are resolved internally from tokens.
-- **O3.** Every generic component MUST support light/dark themes, font scaling, and accessibility semantics.
-- **O4.** Names describe purpose: `PrimaryActionButton`, `SectionCard`, `EmptyStateView`.
-- **O5.** Token names are semantic and stable — `space16`, role names — never visual-appearance names like `blueColor`.
-- **O6.** User-facing strings MUST go through `l10n`, never hardcoded inline.
+每一类令牌实现为一个 `ThemeExtension`,以便参与主题切换与平滑插值。以颜色令牌为例:
+
+```dart
+// fluent_color_tokens.dart
+import 'package:flutter/material.dart';
+
+@immutable
+class FluentColors extends ThemeExtension<FluentColors> {
+  const FluentColors({
+    required this.neutralBackground1,
+    required this.neutralForeground1,
+    required this.neutralForeground2,
+    required this.neutralStroke1,
+    required this.brandBackground,
+    required this.brandBackgroundHover,
+    required this.brandBackgroundPressed,
+    required this.brandForeground1,
+    required this.statusDangerForeground,
+    // …其余令牌
+  });
+
+  final Color neutralBackground1;
+  final Color neutralForeground1;
+  final Color neutralForeground2;
+  final Color neutralStroke1;
+  final Color brandBackground;
+  final Color brandBackgroundHover;
+  final Color brandBackgroundPressed;
+  final Color brandForeground1;
+  final Color statusDangerForeground;
+
+  @override
+  FluentColors copyWith({
+    Color? neutralBackground1,
+    Color? neutralForeground1,
+    Color? brandBackground,
+    // …
+  }) {
+    return FluentColors(
+      neutralBackground1: neutralBackground1 ?? this.neutralBackground1,
+      neutralForeground1: neutralForeground1 ?? this.neutralForeground1,
+      neutralForeground2: neutralForeground2,
+      neutralStroke1: neutralStroke1,
+      brandBackground: brandBackground ?? this.brandBackground,
+      brandBackgroundHover: brandBackgroundHover,
+      brandBackgroundPressed: brandBackgroundPressed,
+      brandForeground1: brandForeground1,
+      statusDangerForeground: statusDangerForeground,
+    );
+  }
+
+  @override
+  FluentColors lerp(ThemeExtension<FluentColors>? other, double t) {
+    if (other is! FluentColors) return this;
+    return FluentColors(
+      neutralBackground1:
+          Color.lerp(neutralBackground1, other.neutralBackground1, t)!,
+      neutralForeground1:
+          Color.lerp(neutralForeground1, other.neutralForeground1, t)!,
+      neutralForeground2:
+          Color.lerp(neutralForeground2, other.neutralForeground2, t)!,
+      neutralStroke1: Color.lerp(neutralStroke1, other.neutralStroke1, t)!,
+      brandBackground: Color.lerp(brandBackground, other.brandBackground, t)!,
+      brandBackgroundHover:
+          Color.lerp(brandBackgroundHover, other.brandBackgroundHover, t)!,
+      brandBackgroundPressed:
+          Color.lerp(brandBackgroundPressed, other.brandBackgroundPressed, t)!,
+      brandForeground1:
+          Color.lerp(brandForeground1, other.brandForeground1, t)!,
+      statusDangerForeground:
+          Color.lerp(statusDangerForeground, other.statusDangerForeground, t)!,
+    );
+  }
+
+  // —— 主题预设:数值固化在此,UI 层不可见 Global Token ——
+  static const light = FluentColors(
+    neutralBackground1: Color(0xFFFFFFFF),
+    neutralForeground1: Color(0xFF242424),
+    neutralForeground2: Color(0xFF424242),
+    neutralStroke1: Color(0xFFD1D1D1),
+    brandBackground: Color(0xFF0F6CBD),
+    brandBackgroundHover: Color(0xFF115EA3),
+    brandBackgroundPressed: Color(0xFF0F548C),
+    brandForeground1: Color(0xFF0F6CBD),
+    statusDangerForeground: Color(0xFFB10E1C),
+  );
+
+  static const dark = FluentColors(
+    neutralBackground1: Color(0xFF292929),
+    neutralForeground1: Color(0xFFFFFFFF),
+    neutralForeground2: Color(0xFFD6D6D6),
+    neutralStroke1: Color(0xFF666666),
+    brandBackground: Color(0xFF115EA3),
+    brandBackgroundHover: Color(0xFF0F6CBD),
+    brandBackgroundPressed: Color(0xFF2886DE),
+    brandForeground1: Color(0xFF479EF5),
+    statusDangerForeground: Color(0xFFDC626D),
+  );
+}
+```
+
+间距、圆角等"与主题无关"的令牌也用 `ThemeExtension`,但 light/dark 用同一份常量实例:
+
+```dart
+// fluent_spacing.dart
+@immutable
+class FluentSpacing extends ThemeExtension<FluentSpacing> {
+  const FluentSpacing();
+
+  double get none => 0;
+  double get xxs => 2;
+  double get xs => 4;
+  double get sNudge => 6;
+  double get s => 8;
+  double get mNudge => 10;
+  double get m => 12;
+  double get l => 16;
+  double get xl => 20;
+  double get xxl => 24;
+  double get xxxl => 32;
+
+  @override
+  FluentSpacing copyWith() => const FluentSpacing();
+
+  @override
+  FluentSpacing lerp(ThemeExtension<FluentSpacing>? other, double t) => this;
+}
+```
+
+字阶令牌产出 `TextStyle`(`height` = 行高 ÷ 字号):
+
+```dart
+// fluent_typography.dart
+@immutable
+class FluentTypography extends ThemeExtension<FluentTypography> {
+  const FluentTypography({this.fontFamily});
+
+  final String? fontFamily;
+
+  TextStyle _style(double size, double lineHeight, FontWeight weight) =>
+      TextStyle(
+        fontFamily: fontFamily,
+        fontSize: size,
+        height: lineHeight / size,
+        fontWeight: weight,
+      );
+
+  TextStyle get caption1 => _style(12, 16, FontWeight.w400);
+  TextStyle get caption1Strong => _style(12, 16, FontWeight.w600);
+  TextStyle get body1 => _style(14, 20, FontWeight.w400);
+  TextStyle get body1Strong => _style(14, 20, FontWeight.w600);
+  TextStyle get subtitle2 => _style(16, 22, FontWeight.w600);
+  TextStyle get subtitle1 => _style(20, 26, FontWeight.w600);
+  TextStyle get title3 => _style(24, 32, FontWeight.w600);
+  TextStyle get title2 => _style(28, 36, FontWeight.w600);
+  TextStyle get title1 => _style(32, 40, FontWeight.w600);
+  TextStyle get largeTitle => _style(40, 52, FontWeight.w600);
+  // …其余角色同理
+
+  @override
+  FluentTypography copyWith({String? fontFamily}) =>
+      FluentTypography(fontFamily: fontFamily ?? this.fontFamily);
+
+  @override
+  FluentTypography lerp(ThemeExtension<FluentTypography>? other, double t) =>
+      this;
+}
+```
+
+### 4.3 主题构建
+
+```dart
+// fluent_theme.dart
+ThemeData buildFluentTheme(Brightness brightness) {
+  final isDark = brightness == Brightness.dark;
+  final colors = isDark ? FluentColors.dark : FluentColors.light;
+
+  return ThemeData(
+    useMaterial3: true,
+    brightness: brightness,
+    scaffoldBackgroundColor: colors.neutralBackground1,
+    fontFamily: _defaultFluentFontFamily, // Segoe UI,缺失回退系统字体
+    extensions: <ThemeExtension<dynamic>>[
+      colors,
+      const FluentSpacing(),
+      const FluentRadii(),
+      const FluentStroke(),
+      const FluentElevation(),
+      const FluentMotion(),
+      FluentTypography(fontFamily: _defaultFluentFontFamily),
+    ],
+  );
+}
+
+// 平台相关字体回退
+const _defaultFluentFontFamily = 'Segoe UI';
+```
+
+```dart
+// main.dart
+MaterialApp(
+  theme: buildFluentTheme(Brightness.light),
+  darkTheme: buildFluentTheme(Brightness.dark),
+  themeMode: ThemeMode.system,
+  // …
+);
+```
+
+### 4.4 令牌访问
+
+提供 `BuildContext` 扩展,让组件内引用令牌简洁且强类型:
+
+```dart
+// fluent_context_ext.dart
+extension FluentThemeX on BuildContext {
+  FluentColors get fluentColors => Theme.of(this).extension<FluentColors>()!;
+  FluentTypography get fluentType =>
+      Theme.of(this).extension<FluentTypography>()!;
+  FluentSpacing get fluentSpacing =>
+      Theme.of(this).extension<FluentSpacing>()!;
+  FluentRadii get fluentRadii => Theme.of(this).extension<FluentRadii>()!;
+  FluentElevation get fluentElevation =>
+      Theme.of(this).extension<FluentElevation>()!;
+  FluentMotion get fluentMotion => Theme.of(this).extension<FluentMotion>()!;
+}
+```
+
+使用示例:
+
+```dart
+Container(
+  padding: EdgeInsets.all(context.fluentSpacing.m),     // 12
+  decoration: BoxDecoration(
+    color: context.fluentColors.neutralBackground1,
+    borderRadius: BorderRadius.circular(context.fluentRadii.large), // 6
+  ),
+  child: Text('标题', style: context.fluentType.subtitle1),
+);
+```
 
 ---
 
-## 16. Definition of Done
+## 5. 明暗主题
 
-Run this checklist before marking any UI task complete. Every item MUST pass.
+- 中性色与品牌色提供 `light` / `dark` 两套预设(见 [§4.2](#42-themeextension-方案));间距、圆角、动效等与主题无关的令牌共用一份。
+- 切换主题靠替换整个 `ThemeExtension` 实例,`lerp` 保证过渡平滑。
+- 颜色对比度在两种主题下都必须满足 [§7](#7-无障碍) 的要求,**不允许只为一种主题达标**。
+- 不要用 `Theme.of(context).brightness` 在组件里做 `if/else` 选色;颜色差异应只存在于令牌预设中。
 
-**Tokens & Theming**
-- [ ] No hardcoded colors; all from `colorScheme` (R1, C-rules).
-- [ ] No hardcoded `fontSize`/text color; all from `textTheme` (R2).
-- [ ] No raw spacing/radius/elevation/duration literals; all from tokens (R3).
-- [ ] Light and dark themes both implemented and verified (R4).
+```dart
+// ✅ 正确:语义令牌自动随主题切换
+color: context.fluentColors.neutralForeground1,
 
-**Responsive / Adaptive**
-- [ ] Usable in Compact, Medium, and Expanded (R5).
-- [ ] Navigation structure switches by window class; selected state persists (12.3).
-- [ ] No horizontal overflow at 320 dp width (RR3).
-- [ ] Reflows live on desktop/Web window resize (12.5).
-- [ ] An appropriate canonical layout is applied (12.4).
-
-**Accessibility**
-- [ ] Text contrast ≥ 4.5:1 (≥ 3:1 for large text) (13.2).
-- [ ] All touch targets ≥ 48×48 dp (R6, A4).
-- [ ] No color-only information (R7).
-- [ ] No overflow/truncation at 200% font scale (R8, A8).
-- [ ] All interactive elements have semantic labels / tooltips (A12).
-- [ ] Core flow completable with keyboard only; focus visible (13.6).
-- [ ] "Reduce motion" respected (A27).
-- [ ] `meetsGuideline` accessibility tests added and passing (13.10).
-
-**Structure**
-- [ ] Reusable UI extracted into shared components (R12, O1).
-- [ ] User-facing strings localized via `l10n` (O6).
+// ❌ 错误:在组件里手动判明暗
+color: isDark ? Colors.white : Colors.black,
+```
 
 ---
 
-## 17. References
+## 6. 组件规范
 
-- Material Design 3: https://m3.material.io
-- Flutter Material 3 support: https://docs.flutter.dev/ui/design/material
-- Flutter adaptive/responsive design: https://docs.flutter.dev/ui/adaptive-responsive
-- Flutter accessibility: https://docs.flutter.dev/accessibility-and-localization/accessibility
-- WCAG 2.1: https://www.w3.org/TR/WCAG21/
-- Packages: `flutter_adaptive_scaffold`, `dynamic_color`
+组件统一封装在 `design/components/`,对外只暴露语义化参数,内部全部走令牌。
+
+### 6.1 按钮(FluentButton)
+
+外观(`appearance`):
+
+| 外观              | 填充                 | 文本/图标            | 边框                 | 适用                |
+| ----------------- | -------------------- | -------------------- | -------------------- | ------------------- |
+| `primary`         | `brandBackground`    | 白色前景             | 无                   | 主操作,一屏至多一个 |
+| `secondary`(默认) | `neutralBackground1` | `neutralForeground1` | `neutralStroke1` 1px | 常规操作            |
+| `outline`         | 透明                 | `neutralForeground1` | `neutralStroke1` 1px | 次要操作            |
+| `subtle`          | 透明                 | `neutralForeground2` | 无                   | 工具栏、低强调      |
+| `transparent`     | 透明                 | `brandForeground1`   | 无                   | 类链接操作          |
+
+尺寸(`size`):
+
+| 尺寸           | 高度 | 水平内边距      | 字阶          |
+| -------------- | ---- | --------------- | ------------- |
+| `small`        | 24   | `spacingS` (8)  | `caption1`    |
+| `medium`(默认) | 32   | `spacingM` (12) | `body1`       |
+| `large`        | 40   | `spacingL` (16) | `body1Strong` |
+
+通用规则:圆角 `radiusMedium` (4);交互态走 `*Hover` / `*Pressed` 颜色令牌;禁用态用 `*Disabled` 令牌;焦点环用 `strokeWidthThick` (2) + `brandStroke1`;过渡 `durationFaster` (100ms)。
+
+### 6.2 输入框(FluentTextField)
+
+- 高度 32(中);圆角 `radiusMedium`;内边距 `spacingM`。
+- 描边:默认 `neutralStroke1` 1px;聚焦时底部强调线 `brandStroke1` 2px。
+- 文本 `body1`,占位 `body1` + `neutralForeground3`;标签 `caption1Strong`。
+- 错误态:描边与辅助文字用 `statusDangerForeground`,辅助文字为 `caption1`。
+
+### 6.3 卡片(FluentCard)
+
+- 表面 `neutralBackground1`;圆角 `radiusLarge` (6);内边距 `spacingL` (16)。
+- 默认阴影 `shadow4`,可悬停卡片 hover 时升至 `shadow8`(过渡 `durationFast`)。
+- 卡片标题 `subtitle2`,正文 `body1`。
+
+### 6.4 通用组件清单(渐进实现)
+
+`FluentAppBar / NavBar`、`FluentDialog`(`radiusXLarge` + `shadow28`)、`FluentMenu`(`shadow8`)、`FluentAvatar`(`radiusCircular`)、`FluentBadge`、`FluentSwitch`、`FluentCheckbox`、`FluentTabs`、`FluentProgress`。每个组件落地时都需在本节补一张令牌映射表。
 
 ---
 
-> Living document. Update as the project evolves. The seed color (`0xFF4A6FA5`)
-> and font choices are placeholders — replace with real brand values before use.
+## 7. 无障碍
+
+- **对比度**:正文文本与背景对比度 ≥ **4.5:1**;大文本(≥ 18.66px 粗体或 24px 常规)≥ **3:1**。图标与可交互边界 ≥ 3:1。
+- **触达区域**:可点击元素最小命中区域 48×48 dp(必要时用透明 padding 扩展,不放大视觉尺寸)。
+- **焦点可见**:键盘/手柄聚焦必须有可见焦点环(`strokeWidthThick` + `brandStroke1`)。
+- **语义标注**:为图标按钮、自定义控件提供 `Semantics` 标签;状态变化通过 `liveRegion` 播报。
+- **不以颜色为唯一信息**:错误/成功等状态需同时辅以图标或文字。
+- **动态字体**:不写死字号,尊重系统 `textScaler`;布局需在放大字号下不溢出。
+- **减弱动态效果**:检测 `MediaQuery.disableAnimations`,为 true 时缩短或跳过非必要动效。
+
+---
+
+## 8. 工程约定
+
+- **裸值零容忍**:`Color(0xFF...)`、`Colors.*`、裸 `EdgeInsets.all(16)`、裸 `fontSize` 一律不进主分支。可在 CI 加 lint/grep 规则拦截。
+- **唯一入口**:UI 只通过 `context.fluent*` 访问令牌;`tokens/` 目录之外不得出现 Global 令牌。
+- **组件优先**:页面优先使用 `design/components/` 下的 Fluent 2 组件,不直接使用 Material 命名的可见控件。
+- **命名一致**:Dart 端令牌命名与 Fluent 2 官方语义保持一致(`neutralForeground1`、`brandBackgroundHover` 等),便于与设计稿对照。
+- **令牌新增流程**:新令牌先加入 `tokens/`,再在组件中引用;禁止"先在组件里写值,以后再抽"。
+- **快照测试**:核心组件在 light/dark 两种主题下做 golden test,防止令牌回归。
+
+---
+
+## 9. 与第三方包的关系
+
+- Microsoft **未发布**官方的 Flutter 版 Fluent 2。可选路线:
+  - **自建(推荐)**:按本文档用 `ThemeExtension` 自建令牌层,可控性与可演进性最佳。
+  - **社区包 `gbt_fluent2_ui`**:基于 Material 的 Fluent 2 组件库,提供 `FluentProvider`、`FluentThemeData`、`FluentSize`、`FluentCornerRadius` 等。可作为参考或加速器,但需评估其维护活跃度与令牌覆盖度。
+  - **社区包 `fluent_ui`**:更偏 WinUI / Windows 11 桌面观感,与 Fluent 2 跨端令牌体系定位不同,移动端慎用。
+- 若引入社区包,**仍以本文档的令牌为单一真源**:用本文档的令牌喂给包的主题配置,而不是反过来让组件代码直接依赖包的内部常量,以保证未来可平滑替换。
+
+---
+
+## 10. 维护与变更流程
+
+1. **设计侧变更**:Fluent 2 Figma UI Kit 更新令牌 → 设计负责人在本文档登记差异。
+2. **令牌同步**:开发侧更新 `tokens/` 中对应常量,运行 golden test。
+3. **评审**:令牌或本文档的改动需经设计 + 前端双方评审合并。
+4. **版本记录**:每次令牌变更在下表追加一行。
+5. **核对官方真源**:颜色等数值定期与 `@fluentui/tokens` / 官方 Figma 核对。
+
+### 变更记录
+
+| 日期       | 版本  | 变更内容                         | 负责人 |
+| ---------- | ----- | -------------------------------- | ------ |
+| 2026-05-18 | 0.1.0 | 初始版本:令牌体系与 Flutter 架构 | Qintsg |
+| 2026-05-19 | 0.2.0 | 落地实现:7 个 ThemeExtension 令牌固化于 `lib/design/fluent/`,ColorScheme/TextTheme 桥接全量传播,核心组件库(Button/Card/TextField/Surface/InfoBar/Dialog/SectionHeader),`lib/theme/` 保留历史主题入口并指向 Fluent 2 主题。**偏离记录**:§1.2 桌面建议 Segoe UI,本项目面向中文用户,主族固定为已内置覆盖 w300–w700 的 MiSans(Segoe UI 缺 CJK 字形必然回退),数值与字阶严格遵循 §3。 | Qintsg |
+
+---
+
+### 参考
+
+- Fluent 2 Design System — 设计令牌 / 排版 / 布局 / 颜色令牌:`fluent2.microsoft.design`
+- Fluent UI 令牌命名规范:`microsoft.github.io/fluentui-token-pipeline`
+- 官方令牌包:`@fluentui/tokens`(npm)

@@ -8,13 +8,12 @@
 
 import 'dart:async';
 
-import '../widgets/material_compat.dart';
+import '../design/fluent_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/email_mailbox.dart';
 import '../services/email_service.dart';
 import '../theme/fluent_tokens.dart';
-import '../widgets/fluent_surface.dart';
 
 part 'email_message_detail_page.dart';
 
@@ -128,8 +127,8 @@ class _EmailPageState extends State<EmailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ScaffoldPage.scrollable(
-      header: const PageHeader(title: Text('学校邮箱')),
+    return FluentPage.scrollable(
+      header: const FluentPageHeader(title: Text('学校邮箱')),
       children: [
         _buildOverviewCard(context)
             .animate()
@@ -170,11 +169,10 @@ class _EmailPageState extends State<EmailPage> {
             icon: FluentIcons.mail,
           ),
           SizedBox(height: FluentSpacing.l),
-          InfoBar(
+          FluentInfoBar(
             title: Text('只读访问边界'),
             content: Text('本页面不会发送邮件、删除邮件、移动邮件或主动标记已读；SMTP 仅用于认证与连通性校验。'),
-            severity: InfoBarSeverity.info,
-            isLong: true,
+            severity: FluentInfoSeverity.info,
           ),
         ],
       ),
@@ -204,14 +202,14 @@ class _EmailPageState extends State<EmailPage> {
             children: [
               SizedBox(
                 width: 160,
-                child: ComboBox<EmailProtocol>(
+                child: FluentSelect<EmailProtocol>(
                   value: _selectedProtocol,
                   items: const [
-                    ComboBoxItem(
+                    FluentSelectItem(
                       value: EmailProtocol.imap,
                       child: Text('IMAP 收信'),
                     ),
-                    ComboBoxItem(
+                    FluentSelectItem(
                       value: EmailProtocol.pop,
                       child: Text('POP 收信'),
                     ),
@@ -224,7 +222,7 @@ class _EmailPageState extends State<EmailPage> {
                         },
                 ),
               ),
-              FilledButton(
+              FluentButton.primary(
                 onPressed: _isFetchingMessages ? null : _fetchMessages,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -233,7 +231,7 @@ class _EmailPageState extends State<EmailPage> {
                       const SizedBox(
                         width: 14,
                         height: 14,
-                        child: ProgressRing(strokeWidth: 2),
+                        child: FluentProgressRing(strokeWidth: 2),
                       ),
                     ] else ...[
                       const Icon(FluentIcons.refresh, size: 14),
@@ -244,7 +242,7 @@ class _EmailPageState extends State<EmailPage> {
                 ),
               ),
               for (final protocol in EmailProtocol.values)
-                Button(
+                FluentButton.outline(
                   onPressed: _validatingProtocol == null && !_isFetchingMessages
                       ? () => _validateLogin(protocol)
                       : null,
@@ -255,10 +253,10 @@ class _EmailPageState extends State<EmailPage> {
                         const SizedBox(
                           width: 14,
                           height: 14,
-                          child: ProgressRing(strokeWidth: 2),
+                          child: FluentProgressRing(strokeWidth: 2),
                         ),
                       ] else ...[
-                        const Icon(FluentIcons.plug_connected, size: 14),
+                        const Icon(FluentIcons.plugConnected, size: 14),
                       ],
                       const SizedBox(width: 6),
                       Text('校验 ${protocol.label}'),
@@ -269,11 +267,10 @@ class _EmailPageState extends State<EmailPage> {
           ),
           if (_validationResult != null) ...[
             const SizedBox(height: FluentSpacing.m),
-            InfoBar(
+            FluentInfoBar(
               title: Text(_validationResult!.message),
               content: Text(_validationResult!.detail),
               severity: _severityOf(_validationResult!.status),
-              isLong: true,
             ),
           ],
         ],
@@ -291,7 +288,7 @@ class _EmailPageState extends State<EmailPage> {
             SizedBox(
               width: 18,
               height: 18,
-              child: ProgressRing(strokeWidth: 2),
+              child: FluentProgressRing(strokeWidth: 2),
             ),
             SizedBox(width: FluentSpacing.s),
             Text('正在读取最近邮件...'),
@@ -301,24 +298,22 @@ class _EmailPageState extends State<EmailPage> {
     }
 
     if (result == null) {
-      return InfoBar(
+      return FluentInfoBar(
         title: const Text('尚未读取邮箱'),
         content: Text(
           _emailAutoRefreshEnabled
               ? '邮箱自动刷新已开启，等待下一次读取；也可点击“读取最近邮件”立即刷新。'
               : '选择 IMAP 或 POP 后点击“读取最近邮件”，也可以先校验各协议登录状态。',
         ),
-        severity: InfoBarSeverity.info,
-        isLong: true,
+        severity: FluentInfoSeverity.info,
       );
     }
 
     if (!result.isSuccess || result.snapshot == null) {
-      return InfoBar(
+      return FluentInfoBar(
         title: Text(result.message),
         content: Text(result.detail),
         severity: _severityOf(result.status),
-        isLong: true,
       );
     }
 
@@ -342,11 +337,10 @@ class _EmailPageState extends State<EmailPage> {
         ),
         const SizedBox(height: FluentSpacing.m),
         if (messages.isEmpty)
-          const InfoBar(
+          const FluentInfoBar(
             title: Text('暂无可展示邮件'),
             content: Text('邮箱协议登录成功，但最近邮件列表为空。'),
-            severity: InfoBarSeverity.info,
-            isLong: true,
+            severity: FluentInfoSeverity.info,
           )
         else
           ...messages.map(_buildMessageCard),
@@ -390,7 +384,7 @@ class _EmailPageState extends State<EmailPage> {
             const SizedBox(height: FluentSpacing.m),
             Align(
               alignment: Alignment.centerRight,
-              child: Button(
+              child: FluentButton.outline(
                 onPressed: () => _openMessageDetail(message),
                 child: const Text('查看正文'),
               ),
@@ -408,15 +402,15 @@ class _EmailPageState extends State<EmailPage> {
     );
   }
 
-  InfoBarSeverity _severityOf(EmailQueryStatus status) {
+  FluentInfoSeverity _severityOf(EmailQueryStatus status) {
     return switch (status) {
-      EmailQueryStatus.success => InfoBarSeverity.success,
+      EmailQueryStatus.success => FluentInfoSeverity.success,
       EmailQueryStatus.missingEmailAccount ||
-      EmailQueryStatus.missingEmailPassword => InfoBarSeverity.warning,
+      EmailQueryStatus.missingEmailPassword => FluentInfoSeverity.warning,
       EmailQueryStatus.loginRejected ||
       EmailQueryStatus.parseFailed ||
       EmailQueryStatus.networkError ||
-      EmailQueryStatus.unexpectedError => InfoBarSeverity.error,
+      EmailQueryStatus.unexpectedError => FluentInfoSeverity.error,
     };
   }
 

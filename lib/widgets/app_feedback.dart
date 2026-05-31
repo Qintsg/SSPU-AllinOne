@@ -1,12 +1,12 @@
 /*
- * Material 3 页面反馈工具 — 统一 SnackBar 反馈入口
+ * Fluent 2 页面反馈工具 — 统一信息条反馈入口
  * @Project : SSPU-AllinOne
  * @File : app_feedback.dart
  * @Author : Qintsg
  * @Date : 2026-05-16
  */
 
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 
 /// 页面反馈级别。
 enum AppFeedbackSeverity {
@@ -23,36 +23,64 @@ enum AppFeedbackSeverity {
   error,
 }
 
-/// 显示 Material 3 SnackBar 反馈。
+/// 显示 Fluent 2 信息条反馈。
 void showAppFeedback(
   BuildContext context, {
   required String message,
   AppFeedbackSeverity severity = AppFeedbackSeverity.info,
 }) {
-  final colorScheme = Theme.of(context).colorScheme;
   final messenger = ScaffoldMessenger.of(context);
-  final backgroundColor = switch (severity) {
-    AppFeedbackSeverity.info => colorScheme.inverseSurface,
-    AppFeedbackSeverity.success => colorScheme.primaryContainer,
-    AppFeedbackSeverity.warning => colorScheme.tertiaryContainer,
-    AppFeedbackSeverity.error => colorScheme.errorContainer,
-  };
-  final foregroundColor = switch (severity) {
-    AppFeedbackSeverity.info => colorScheme.onInverseSurface,
-    AppFeedbackSeverity.success => colorScheme.onPrimaryContainer,
-    AppFeedbackSeverity.warning => colorScheme.onTertiaryContainer,
-    AppFeedbackSeverity.error => colorScheme.onErrorContainer,
+  final infoSeverity = switch (severity) {
+    AppFeedbackSeverity.info => FluentInfoSeverity.info,
+    AppFeedbackSeverity.success => FluentInfoSeverity.success,
+    AppFeedbackSeverity.warning => FluentInfoSeverity.warning,
+    AppFeedbackSeverity.error => FluentInfoSeverity.error,
   };
 
   messenger
     ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: backgroundColor,
+        content: FluentInfoBar(
+          title: Text(message),
+          severity: infoSeverity,
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        padding: EdgeInsets.zero,
+        margin: EdgeInsets.zero,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         behavior: SnackBarBehavior.floating,
-        showCloseIcon: true,
-        closeIconColor: foregroundColor,
       ),
     );
+}
+
+/// 显示自定义 Fluent 2 信息条反馈。
+void showFluentInfoBar(
+  BuildContext context, {
+  required Widget title,
+  Widget? content,
+  FluentInfoSeverity severity = FluentInfoSeverity.info,
+  Widget Function(VoidCallback close)? actionBuilder,
+}) {
+  final messenger = ScaffoldMessenger.of(context);
+  late ScaffoldFeatureController<SnackBar, SnackBarClosedReason> controller;
+  controller = messenger.showSnackBar(
+    SnackBar(
+      content: Builder(
+        builder: (context) => FluentInfoBar(
+          title: title,
+          content: content,
+          severity: severity,
+          action: actionBuilder?.call(() => controller.close()),
+        ),
+      ),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      padding: EdgeInsets.zero,
+      margin: EdgeInsets.zero,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
 }

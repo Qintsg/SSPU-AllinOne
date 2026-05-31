@@ -6,13 +6,14 @@
  * @Date : 2026-04-23
  */
 
-import 'material_compat.dart';
+import '../design/fluent_ui.dart';
 
 import '../models/academic_credentials.dart';
 import '../models/academic_login_validation.dart';
 import '../services/academic_credentials_service.dart';
 import '../services/academic_login_validation_service.dart';
 import '../theme/fluent_tokens.dart';
+import 'app_feedback.dart';
 import 'settings_widgets.dart';
 
 part 'settings_security_credentials_section.dart';
@@ -148,11 +149,11 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
         _credentialsStatus = status;
         _isSavingCredentials = false;
       });
-      _showCredentialInfoBar('教务凭据已保存', InfoBarSeverity.success);
+      _showCredentialInfoBar('教务凭据已保存', FluentInfoSeverity.success);
     } catch (_) {
       if (!mounted) return;
       setState(() => _isSavingCredentials = false);
-      _showCredentialInfoBar('保存失败，请确认系统安全存储可用', InfoBarSeverity.error);
+      _showCredentialInfoBar('保存失败，请确认系统安全存储可用', FluentInfoSeverity.error);
     }
   }
 
@@ -172,12 +173,12 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
       });
       _showCredentialInfoBar(
         '${_secretLabel(secret)}已清除',
-        InfoBarSeverity.info,
+        FluentInfoSeverity.info,
       );
     } catch (_) {
       if (!mounted) return;
       setState(() => _isSavingCredentials = false);
-      _showCredentialInfoBar('清除失败，请确认系统安全存储可用', InfoBarSeverity.error);
+      _showCredentialInfoBar('清除失败，请确认系统安全存储可用', FluentInfoSeverity.error);
     }
   }
 
@@ -209,23 +210,22 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
   }
 
   /// 显示教务凭据操作反馈。
-  void _showCredentialInfoBar(String message, InfoBarSeverity severity) {
-    displayInfoBar(
+  void _showCredentialInfoBar(String message, FluentInfoSeverity severity) {
+    showFluentInfoBar(
       context,
-      builder: (ctx, close) => InfoBar(
-        title: Text(message),
-        severity: severity,
-        action: IconButton(
-          icon: const Icon(FluentIcons.clear),
-          onPressed: close,
-        ),
+      title: Text(message),
+      severity: severity,
+      actionBuilder: (close) => FluentIconButton(
+        icon: const Icon(FluentIcons.clear),
+        onPressed: close,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return FluentCard(
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(FluentSpacing.xl),
         child: Column(
@@ -246,8 +246,8 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
                     : '未开启 — 任何人可直接进入应用',
                 style: FluentTheme.of(context).typography.caption,
               ),
-              trailing: ToggleSwitch(
-                checked: widget.isPasswordEnabled,
+              trailing: FluentSwitch(
+                value: widget.isPasswordEnabled,
                 onChanged: widget.onPasswordProtectionChanged,
               ),
             ),
@@ -273,12 +273,12 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
                       const SizedBox(
                         width: 18,
                         height: 18,
-                        child: ProgressRing(strokeWidth: 2),
+                        child: FluentProgressRing(strokeWidth: 2),
                       ),
                       const SizedBox(width: FluentSpacing.s),
                     ],
-                    ToggleSwitch(
-                      checked: widget.isQuickAuthEnabled,
+                    FluentSwitch(
+                      value: widget.isQuickAuthEnabled,
                       onChanged: widget.isQuickAuthBusy
                           ? null
                           : widget.onQuickAuthChanged,
@@ -308,11 +308,11 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
                 spacing: FluentSpacing.m,
                 runSpacing: FluentSpacing.s,
                 children: [
-                  Button(
+                  FluentButton.outline(
                     onPressed: widget.onChangePassword,
                     child: const Text('修改密码'),
                   ),
-                  FilledButton(
+                  FluentButton.primary(
                     onPressed: widget.onLock,
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
@@ -344,7 +344,7 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
               spacing: FluentSpacing.s,
               runSpacing: FluentSpacing.s,
               children: [
-                Button(
+                FluentButton.outline(
                   onPressed: widget.onClearMessageCache,
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -369,7 +369,7 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
               spacing: FluentSpacing.s,
               runSpacing: FluentSpacing.s,
               children: [
-                Button(
+                FluentButton.outline(
                   onPressed: widget.onClearAllData,
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,

@@ -6,7 +6,7 @@
  * @Date : 2026-04-27
  */
 
-import 'package:flutter/material.dart';
+import '../design/fluent_ui.dart';
 
 import '../theme/app_spacing.dart';
 import 'settings_widgets.dart';
@@ -139,7 +139,8 @@ class SettingsAutoRefreshSection extends StatelessWidget {
 
   Widget _buildCampusNetworkIntervalCard(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Card.filled(
+    return FluentCard(
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: AppSpacing.cardPadding,
         child: Column(
@@ -176,7 +177,8 @@ class SettingsAutoRefreshSection extends StatelessWidget {
   Widget _buildRefreshShortcutCard(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    return Card.filled(
+    return FluentCard(
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: AppSpacing.cardPadding,
         child: Column(
@@ -226,12 +228,12 @@ class SettingsAutoRefreshSection extends StatelessWidget {
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 180),
-      child: DropdownButton<int>(
+      child: FluentSelect<int>(
         isExpanded: true,
         value: selectedValue,
         items: kIntervalOptions.entries
             .map(
-              (entry) => DropdownMenuItem<int>(
+              (entry) => FluentSelectItem<int>(
                 value: entry.key,
                 child: Text(entry.value),
               ),
@@ -259,7 +261,10 @@ class SettingsAutoRefreshSection extends StatelessWidget {
       icon: icon,
       title: Text(title, style: textTheme.titleSmall),
       subtitle: Text(description, style: textTheme.bodySmall),
-      trailing: OutlinedButton(onPressed: onPressed, child: const Text('前往设置')),
+      trailing: FluentButton.outline(
+        onPressed: onPressed,
+        child: const Text('前往设置'),
+      ),
     );
   }
 }
