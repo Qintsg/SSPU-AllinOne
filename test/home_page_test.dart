@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/models/campus_card.dart';
 import 'package:sspu_allinone/pages/home_page.dart';
 import 'package:sspu_allinone/services/campus_card_service.dart';
+import 'package:sspu_allinone/services/campus_network_status_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 
 /// 等待目标组件出现，避免页面异步加载尚未完成时提前断言。
@@ -42,10 +43,12 @@ void main() {
 
   testWidgets('首页校园卡卡片可手动刷新并进入详情页', (tester) async {
     final service = _FakeCampusCardClient(result: _successResult);
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
     await tester.pumpWidget(
       MaterialApp(
         home: HomePage(
           campusCardService: service,
+          campusNetworkStatusService: campusNetworkStatusService,
           campusCardAutoRefreshEnabledOverride: false,
           campusCardAutoRefreshIntervalOverride: 30,
         ),
@@ -75,10 +78,12 @@ void main() {
 
   testWidgets('校园卡自动刷新开启时会主动读取余额', (tester) async {
     final service = _FakeCampusCardClient(result: _successResult);
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
     await tester.pumpWidget(
       MaterialApp(
         home: HomePage(
           campusCardService: service,
+          campusNetworkStatusService: campusNetworkStatusService,
           campusCardAutoRefreshEnabledOverride: true,
           campusCardAutoRefreshIntervalOverride: 30,
         ),
@@ -90,6 +95,40 @@ void main() {
     expect(service.fetchCount, 1);
     await disposeHomePage(tester);
   });
+
+  testWidgets('首页右上角显示小型网络状态指示', (tester) async {
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomePage(
+          campusNetworkStatusService: campusNetworkStatusService,
+          campusCardAutoRefreshEnabledOverride: false,
+          campusCardAutoRefreshIntervalOverride: 30,
+        ),
+      ),
+    );
+
+    await pumpUntilFound(
+      tester,
+      find.byKey(const Key('campus-network-status-home')),
+    );
+
+    expect(find.byKey(const Key('campus-network-status-home')), findsOneWidget);
+    expect(find.text('VPN'), findsOneWidget);
+    await disposeHomePage(tester);
+  });
+}
+
+CampusNetworkStatusService _buildCampusNetworkStatusService() {
+  return CampusNetworkStatusService(
+    probe: (uri, timeout) async {
+      return CampusNetworkProbeResult(
+        reachable: true,
+        statusCode: 200,
+        detail: '已访问 ${uri.host}，HTTP 200',
+      );
+    },
+  );
 }
 
 class _FakeCampusCardClient implements CampusCardBalanceClient {

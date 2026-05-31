@@ -18,10 +18,12 @@ import 'pages/agreement_page.dart';
 import 'pages/privacy_policy_page.dart';
 import 'services/app_exit_service.dart';
 import 'services/password_service.dart';
+import 'services/campus_network_status_service.dart';
 import 'services/storage_service.dart';
 import 'services/tray_service.dart';
 import 'services/notification_service.dart';
 import 'services/auto_refresh_service.dart';
+import 'widgets/desktop_window_frame.dart';
 
 /// 全局字体族名称
 import 'theme/app_motion.dart';
@@ -42,6 +44,10 @@ void main() async {
   if (_supportsDesktopShell) {
     // 桌面端拦截关闭事件并提供系统托盘入口。
     await windowManager.ensureInitialized();
+    await windowManager.setTitleBarStyle(
+      TitleBarStyle.hidden,
+      windowButtonVisibility: false,
+    );
     await windowManager.setPreventClose(true);
     await TrayService.instance.init();
   }
@@ -80,6 +86,10 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
 
   /// MaterialApp 内部导航器 key，用于在 WindowListener 回调中弹出对话框
   final _navigatorKey = GlobalKey<NavigatorState>();
+
+  /// 主界面共享的校园网 / VPN 状态检测服务。
+  final CampusNetworkStatusService _campusNetworkStatusService =
+      CampusNetworkStatusService.instance;
 
   @override
   void initState() {
@@ -217,7 +227,9 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
-                          setDialogState(() => rememberChoice = !rememberChoice);
+                          setDialogState(
+                            () => rememberChoice = !rememberChoice,
+                          );
                         },
                         child: Row(
                           children: [
@@ -227,7 +239,9 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                               height: 20,
                               decoration: BoxDecoration(
                                 color: rememberChoice
-                                    ? Theme.of(dialogContext).colorScheme.primary
+                                    ? Theme.of(
+                                        dialogContext,
+                                      ).colorScheme.primary
                                     : Colors.transparent,
                                 borderRadius: AppShapes.sm,
                                 border: Border.all(
@@ -404,7 +418,26 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
       home: _buildHome(),
+      builder: (context, child) {
+        final content = child ?? const SizedBox.shrink();
+        if (!_supportsDesktopShell) return content;
+
+        return DesktopWindowFrame(
+          campusNetworkStatusService: _shouldShowCampusNetworkStatus
+              ? _campusNetworkStatusService
+              : null,
+          child: content,
+        );
+      },
     );
+  }
+
+  /// 是否允许展示并触发校园网状态检测。
+  bool get _shouldShowCampusNetworkStatus {
+    return _isInitialized &&
+        _startupErrorMessage == null &&
+        _agreementsAccepted &&
+        _isUnlocked;
   }
 
   /// 根据初始化、协议确认和密码验证状态构建首屏
@@ -429,9 +462,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       return Builder(
         builder: (context) {
           _showAgreementDialog(context);
-          return const Scaffold(
-            body: Center(child: FluentProgressRing()),
-          );
+          return const Scaffold(body: Center(child: FluentProgressRing()));
         },
       );
     }
@@ -446,6 +477,9 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     }
 
     // 已解锁，进入主界面
-    return AppShell(onLock: _lockApp);
+    return AppShell(
+      onLock: _lockApp,
+      campusNetworkStatusService: _campusNetworkStatusService,
+    );
   }
 }

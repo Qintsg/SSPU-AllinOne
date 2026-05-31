@@ -16,7 +16,6 @@ import 'http_service.dart';
 import 'storage_service.dart';
 
 /// 校园网检测探针签名。
-/// 后续若需要区分直连校园网与 VPN，只需替换探针实现，不影响调用方。
 typedef CampusNetworkProbe =
     Future<CampusNetworkProbeResult> Function(Uri probeUri, Duration timeout);
 
@@ -43,49 +42,119 @@ class CampusNetworkStatusService extends ChangeNotifier {
   CampusNetworkStatusService({
     CampusNetworkProbe? probe,
     Uri? probeUri,
+    Uri? vpnProbeUri,
     Duration? timeout,
   }) : _probe = probe ?? _defaultProbe,
        probeUri = probeUri ?? defaultProbeUri,
-       timeout = timeout ?? const Duration(seconds: 5);
+       vpnProbeUri = vpnProbeUri ?? defaultVpnProbeUri,
+       timeout = timeout ?? const Duration(seconds: 5) {
+    _currentStatus = CampusNetworkStatus.unknown(
+      probeUri: this.probeUri,
+      vpnProbeUri: this.vpnProbeUri,
+    );
+  }
 
   /// 全局单例，供应用顶栏与后续受限入口共用。
   static final CampusNetworkStatusService instance =
       CampusNetworkStatusService();
 
-  /// 默认检测目标：本专科教务系统域名。
-  static final Uri defaultProbeUri = Uri.parse('https://tygl.sspu.edu.cn/');
+  /// 默认校园受限站点检测目标：体育部查询系统域名。
+  static final Uri defaultProbeUri = defaultCampusProbeUri;
+
+  /// 默认校园受限站点检测目标：体育部查询系统域名。
+  static final Uri defaultCampusProbeUri = Uri.parse(
+    'https://tygl.sspu.edu.cn/',
+  );
+
+  /// 默认 VPN 入口检测目标：学校 VPN 入口域名。
+  static final Uri defaultVpnProbeUri = Uri.parse('https://vpn.sspu.edu.cn/');
 
   /// 默认检测间隔，兼顾状态新鲜度与校园站点访问频率。
   static const int defaultDetectionIntervalMinutes = 15;
 
-  /// 实际检测目标地址。
+  /// 实际校园受限站点检测目标地址。
   final Uri probeUri;
+
+  /// 实际 VPN 入口检测目标地址。
+  final Uri vpnProbeUri;
 
   /// 单次检测超时时间，避免启动后长期占用 UI 状态。
   final Duration timeout;
 
   final CampusNetworkProbe _probe;
 
+  late CampusNetworkStatus _currentStatus;
+
+  /// 当前缓存的校园网 / VPN 状态，供多个入口共享展示。
+  CampusNetworkStatus get currentStatus => _currentStatus;
+
+  /// 当前自动检测间隔；0 表示只允许手动刷新。
+  int get detectionIntervalMinutes => _detectionIntervalMinutes;
+
+  /// 当前是否已有检测任务在执行。
+  bool get isChecking => _isChecking;
+
+  int _detectionIntervalMinutes = defaultDetectionIntervalMinutes;
+  int _activeStatusConsumerCount = 0;
+  bool _isChecking = false;
+  Timer? _refreshTimer;
+  Future<CampusNetworkStatus>? _refreshFuture;
+
+  /// 启动共享状态监听；首次有展示入口挂载时立即刷新一次。
+  Future<void> startStatusMonitoring() async {
+    _activeStatusConsumerCount++;
+    if (_activeStatusConsumerCount > 1) return;
+
+    await _loadDetectionIntervalFromStorage();
+    if (_activeStatusConsumerCount <= 0) return;
+    await refreshStatus();
+  }
+
+  /// 停止共享状态监听；最后一个展示入口卸载时取消自动刷新。
+  void stopStatusMonitoring() {
+    if (_activeStatusConsumerCount <= 0) return;
+
+    _activeStatusConsumerCount--;
+    if (_activeStatusConsumerCount > 0) return;
+
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+  }
+
+  /// 刷新共享校园网 / VPN 状态，并合并同时触发的检测请求。
+  Future<CampusNetworkStatus> refreshStatus() {
+    final pendingRefresh = _refreshFuture;
+    if (pendingRefresh != null) return pendingRefresh;
+
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+    _isChecking = true;
+
+    final refresh = _refreshAndStoreStatus();
+    _refreshFuture = refresh;
+    notifyListeners();
+    return refresh;
+  }
+
   /// 执行一次校园网 / VPN 状态检测。
   Future<CampusNetworkStatus> checkStatus() async {
-    try {
-      final result = await _probe(probeUri, timeout);
-      return CampusNetworkStatus(
-        accessMode: result.reachable
-            ? CampusNetworkAccessMode.campusOrVpn
-            : CampusNetworkAccessMode.unavailable,
-        probeUri: probeUri,
-        checkedAt: DateTime.now(),
-        detail: result.detail,
-      );
-    } catch (error) {
-      return CampusNetworkStatus(
-        accessMode: CampusNetworkAccessMode.unavailable,
-        probeUri: probeUri,
-        checkedAt: DateTime.now(),
-        detail: '校园网检测失败：$error',
-      );
-    }
+    final results = await Future.wait([
+      _safeProbe(vpnProbeUri),
+      _safeProbe(probeUri),
+    ]);
+    final vpnResult = results.first;
+    final campusResult = results.last;
+
+    return CampusNetworkStatus(
+      accessMode: _resolveAccessMode(
+        vpnReachable: vpnResult.reachable,
+        campusReachable: campusResult.reachable,
+      ),
+      probeUri: probeUri,
+      vpnProbeUri: vpnProbeUri,
+      checkedAt: DateTime.now(),
+      detail: 'VPN 入口：${vpnResult.detail}\n校园站点：${campusResult.detail}',
+    );
   }
 
   /// 读取校园网 / VPN 状态自动检测间隔。
@@ -103,12 +172,76 @@ class CampusNetworkStatusService extends ChangeNotifier {
       StorageKeys.campusNetworkDetectionIntervalMinutes,
       normalized,
     );
+    _detectionIntervalMinutes = normalized;
+    _scheduleNextRefresh();
     notifyListeners();
+  }
+
+  Future<void> _loadDetectionIntervalFromStorage() async {
+    _detectionIntervalMinutes = await getDetectionIntervalMinutes();
+    _scheduleNextRefresh();
+    notifyListeners();
+  }
+
+  Future<CampusNetworkStatus> _refreshAndStoreStatus() async {
+    try {
+      final nextStatus = await checkStatus();
+      _currentStatus = nextStatus;
+      return nextStatus;
+    } finally {
+      _isChecking = false;
+      _refreshFuture = null;
+      _scheduleNextRefresh();
+      notifyListeners();
+    }
+  }
+
+  void _scheduleNextRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+    if (_activeStatusConsumerCount <= 0 || _detectionIntervalMinutes <= 0) {
+      return;
+    }
+
+    _refreshTimer = Timer(Duration(minutes: _detectionIntervalMinutes), () {
+      unawaited(refreshStatus());
+    });
   }
 
   /// 间隔只接受非负分钟数；0 表示关闭自动检测但保留手动点击刷新。
   int _normalizeInterval(int minutes) {
     return minutes < 0 ? 0 : minutes;
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  /// 执行单个探针并将异常收敛为不可达结果，避免一次失败中断整体判定。
+  Future<CampusNetworkProbeResult> _safeProbe(Uri uri) async {
+    try {
+      return await _probe(uri, timeout);
+    } catch (error) {
+      return CampusNetworkProbeResult(
+        reachable: false,
+        detail: '访问 ${uri.host} 失败：$error',
+      );
+    }
+  }
+
+  /// 按双探针结果解析当前网络环境。
+  CampusNetworkAccessMode _resolveAccessMode({
+    required bool vpnReachable,
+    required bool campusReachable,
+  }) {
+    if (vpnReachable && campusReachable) return CampusNetworkAccessMode.vpn;
+    if (!vpnReachable && campusReachable) return CampusNetworkAccessMode.campus;
+    if (vpnReachable && !campusReachable) {
+      return CampusNetworkAccessMode.outsideCampus;
+    }
+    return CampusNetworkAccessMode.unknown;
   }
 
   /// 默认探针只发起只读 GET 请求；任何非 5xx HTTP 响应都表示内网域名可达。

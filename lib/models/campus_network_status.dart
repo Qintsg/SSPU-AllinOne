@@ -7,7 +7,8 @@
  */
 
 /// 校园受限服务可访问模式。
-/// 当前默认探针只能确认“校园网或 VPN 可达”，后续可替换为更细粒度检测。
+///
+/// 通过 VPN 入口与体育部站点双探针区分 VPN、校园网、校外网络与未知网络。
 enum CampusNetworkAccessMode {
   /// 尚未完成检测或检测状态不可确定。
   unknown,
@@ -18,11 +19,8 @@ enum CampusNetworkAccessMode {
   /// 已识别为学校 VPN 连接。
   vpn,
 
-  /// 可访问校园内网资源，但暂不能区分校园网直连或 VPN。
-  campusOrVpn,
-
-  /// 无法访问校园内网资源。
-  unavailable,
+  /// 已识别为非校园网环境，受限校园服务暂不可用。
+  outsideCampus,
 }
 
 /// 校园网 / VPN 前置检测结果。
@@ -32,14 +30,19 @@ class CampusNetworkStatus {
     required this.accessMode,
     required this.probeUri,
     required this.detail,
+    this.vpnProbeUri,
     this.checkedAt,
   });
 
   /// 构建初始未知状态，避免 UI 在首次检测前误报未连接。
-  factory CampusNetworkStatus.unknown({required Uri probeUri}) {
+  factory CampusNetworkStatus.unknown({
+    required Uri probeUri,
+    Uri? vpnProbeUri,
+  }) {
     return CampusNetworkStatus(
       accessMode: CampusNetworkAccessMode.unknown,
       probeUri: probeUri,
+      vpnProbeUri: vpnProbeUri,
       detail: '尚未检测校园网 / VPN 状态',
     );
   }
@@ -48,7 +51,12 @@ class CampusNetworkStatus {
   final CampusNetworkAccessMode accessMode;
 
   /// 本次检测使用的目标地址。
+  ///
+  /// 双探针检测中该地址表示校园受限站点探针。
   final Uri probeUri;
+
+  /// 本次检测使用的 VPN 入口探针地址。
+  final Uri? vpnProbeUri;
 
   /// 检测完成时间；未知状态下为空。
   final DateTime? checkedAt;
@@ -59,11 +67,9 @@ class CampusNetworkStatus {
   /// 受限校园查询入口是否可以继续访问。
   bool get canAccessRestrictedServices {
     return switch (accessMode) {
-      CampusNetworkAccessMode.campus ||
-      CampusNetworkAccessMode.vpn ||
-      CampusNetworkAccessMode.campusOrVpn => true,
+      CampusNetworkAccessMode.campus || CampusNetworkAccessMode.vpn => true,
       CampusNetworkAccessMode.unknown ||
-      CampusNetworkAccessMode.unavailable => false,
+      CampusNetworkAccessMode.outsideCampus => false,
     };
   }
 
@@ -71,10 +77,19 @@ class CampusNetworkStatus {
   String get label {
     return switch (accessMode) {
       CampusNetworkAccessMode.campus => '校园网',
-      CampusNetworkAccessMode.vpn => '校园 VPN',
-      CampusNetworkAccessMode.campusOrVpn => '校园网/VPN',
-      CampusNetworkAccessMode.unavailable => '未连接校园网/VPN',
-      CampusNetworkAccessMode.unknown => '校园网检测',
+      CampusNetworkAccessMode.vpn => 'VPN 环境',
+      CampusNetworkAccessMode.outsideCampus => '非校园网',
+      CampusNetworkAccessMode.unknown => '网络未知',
+    };
+  }
+
+  /// 小尺寸状态指示使用的短文案。
+  String get shortLabel {
+    return switch (accessMode) {
+      CampusNetworkAccessMode.campus => '校园网',
+      CampusNetworkAccessMode.vpn => 'VPN',
+      CampusNetworkAccessMode.outsideCampus => '校外',
+      CampusNetworkAccessMode.unknown => '未知',
     };
   }
 
@@ -83,11 +98,9 @@ class CampusNetworkStatus {
     return switch (accessMode) {
       CampusNetworkAccessMode.campus => '当前处于校园网环境，可访问受限查询服务。',
       CampusNetworkAccessMode.vpn => '当前已连接学校 VPN，可访问受限查询服务。',
-      CampusNetworkAccessMode.campusOrVpn =>
-        '已通过 ${probeUri.host} 验证，可访问校园网 / VPN 受限服务。',
-      CampusNetworkAccessMode.unavailable =>
-        '无法访问 ${probeUri.host}，教务等受限查询入口需要先连接校园网或学校 VPN。',
-      CampusNetworkAccessMode.unknown => '正在等待首次校园网 / VPN 状态检测。',
+      CampusNetworkAccessMode.outsideCampus =>
+        '当前处于非校园网环境，教务等受限查询入口需要先连接校园网或学校 VPN。',
+      CampusNetworkAccessMode.unknown => '暂无法确认当前网络环境，请检查网络后重新检测。',
     };
   }
 }
