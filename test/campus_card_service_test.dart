@@ -9,6 +9,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sspu_allinone/models/academic_credentials.dart';
 import 'package:sspu_allinone/models/academic_login_validation.dart';
 import 'package:sspu_allinone/models/campus_card.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
@@ -145,6 +146,111 @@ void main() {
     expect(result.snapshot?.records.length, 2);
     expect(result.snapshot?.records.last.type, '充值');
     expect(result.snapshot?.records.last.amount, 50.00);
+  });
+
+  test('成功查询写入校园卡缓存且失败不会覆盖最近缓存', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final service = _buildService(
+      gateway: _FakeCampusCardGateway(),
+      campusReachable: true,
+    );
+
+    final result = await service.fetchCampusCard();
+    final cachedResult = await service.readLatestCachedCampusCard();
+
+    expect(result.status, CampusCardQueryStatus.success);
+    expect(cachedResult?.snapshot?.balance, 23.45);
+
+    final failedService = _buildService(
+      gateway: _FakeCampusCardGateway(),
+      campusReachable: false,
+    );
+    final failedResult = await failedService.fetchCampusCard();
+    final cachedAfterFailure = await failedService.readLatestCachedCampusCard();
+
+    expect(failedResult.status, CampusCardQueryStatus.campusNetworkUnavailable);
+    expect(cachedAfterFailure?.snapshot?.balance, 23.45);
+  });
+
+  test('查询过程中切换账号时不会把旧账号校园卡写入新账号缓存', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    final service = _buildService(
+      gateway: _FakeCampusCardGateway(),
+      campusReachable: true,
+      refreshOaLogin: () async {
+        await AcademicCredentialsService.instance.saveCredentials(
+          oaAccount: '20260002',
+          oaPassword: 'oa-pass',
+        );
+        await AcademicCredentialsService.instance.saveOaLoginSession(
+          _sessionSnapshot,
+        );
+        return AcademicLoginValidationResult(
+          status: AcademicLoginValidationStatus.success,
+          message: 'OA 登录校验通过',
+          detail: '已刷新 OA 会话',
+          checkedAt: DateTime(2026, 4, 30),
+          entranceUri: _oaEntranceUri,
+          finalUri: _oaEntranceUri,
+          sessionSnapshot: _sessionSnapshot,
+        );
+      },
+    );
+
+    final result = await service.fetchCampusCard();
+    final cachedResult = await service.readLatestCachedCampusCard();
+
+    expect(result.status, CampusCardQueryStatus.unexpectedError);
+    expect(result.snapshot, isNull);
+    expect(
+      (await AcademicCredentialsService.instance.getStatus()).oaAccount,
+      '20260002',
+    );
+    expect(cachedResult, isNull);
+  });
+
+  test('查询过程中清除 OA 密码时不会重新写入校园卡缓存', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    final service = _buildService(
+      gateway: _FakeCampusCardGateway(),
+      campusReachable: true,
+      refreshOaLogin: () async {
+        await AcademicCredentialsService.instance.clearSecret(
+          AcademicCredentialSecret.oaPassword,
+        );
+        await AcademicCredentialsService.instance.saveOaLoginSession(
+          _sessionSnapshot,
+        );
+        return AcademicLoginValidationResult(
+          status: AcademicLoginValidationStatus.success,
+          message: 'OA 登录校验通过',
+          detail: '已刷新 OA 会话',
+          checkedAt: DateTime(2026, 4, 30),
+          entranceUri: _oaEntranceUri,
+          finalUri: _oaEntranceUri,
+          sessionSnapshot: _sessionSnapshot,
+        );
+      },
+    );
+
+    final result = await service.fetchCampusCard();
+    final cachedResult = await service.readLatestCachedCampusCard();
+
+    expect(result.status, CampusCardQueryStatus.unexpectedError);
+    expect(result.snapshot, isNull);
+    expect(cachedResult, isNull);
   });
 }
 

@@ -9,23 +9,39 @@
 part of 'academic_page_test.dart';
 
 class _FakeSportsAttendanceClient implements SportsAttendanceClient {
-  const _FakeSportsAttendanceClient({required this.result});
+  _FakeSportsAttendanceClient({required this.result});
 
   final SportsAttendanceQueryResult result;
+  int fetchCount = 0;
+
+  @override
+  Future<SportsAttendanceQueryResult?>
+  readLatestCachedAttendanceSummary() async {
+    return null;
+  }
 
   @override
   Future<SportsAttendanceQueryResult> fetchAttendanceSummary() async {
+    fetchCount++;
     return result;
   }
 }
 
 class _FakeStudentReportClient implements StudentReportClient {
-  const _FakeStudentReportClient({required this.result});
+  _FakeStudentReportClient({required this.result});
 
   final StudentReportQueryResult result;
+  int fetchCount = 0;
+
+  @override
+  Future<StudentReportQueryResult?>
+  readLatestCachedSecondClassroomCredits() async {
+    return null;
+  }
 
   @override
   Future<StudentReportQueryResult> fetchSecondClassroomCredits() async {
+    fetchCount++;
     return result;
   }
 
@@ -36,17 +52,31 @@ class _FakeStudentReportClient implements StudentReportClient {
 }
 
 class _FakeAcademicEamsClient implements AcademicEamsClient {
-  const _FakeAcademicEamsClient({required this.result});
+  _FakeAcademicEamsClient({required this.result});
 
   final AcademicEamsQueryResult result;
+  int overviewFetchCount = 0;
+  int courseTableFetchCount = 0;
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
+    return null;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedOverview() async {
+    return null;
+  }
 
   @override
   Future<AcademicEamsQueryResult> fetchCourseTable() async {
+    courseTableFetchCount++;
     return result;
   }
 
   @override
   Future<AcademicEamsQueryResult> fetchOverview() async {
+    overviewFetchCount++;
     return result;
   }
 }

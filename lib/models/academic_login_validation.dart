@@ -15,6 +15,8 @@ class AcademicLoginSessionSnapshot {
     required this.authenticatedAt,
     required this.entranceUri,
     required this.finalUri,
+    this.ownerAccount = '',
+    this.ownerCredentialHash = '',
   });
 
   /// 按 Cookie 作用域保存的请求头；值不可展示给用户。
@@ -28,6 +30,12 @@ class AcademicLoginSessionSnapshot {
 
   /// 登录成功后最终停留地址。
   final Uri finalUri;
+
+  /// 产生该登录会话的 OA 账号；用于避免切换账号后复用旧 Cookie。
+  final String ownerAccount;
+
+  /// 产生该登录会话时的 OA 密码指纹；用于避免同账号换密后复用旧 Cookie。
+  final String ownerCredentialHash;
 
   /// 是否获得了后续网页请求可复用的 Cookie。
   bool get hasCookies {
@@ -52,6 +60,21 @@ class AcademicLoginSessionSnapshot {
     return matchingCookieHeaders.join('; ');
   }
 
+  /// 复制会话快照并绑定到指定 OA 账号。
+  AcademicLoginSessionSnapshot withOwnerAccount(
+    String ownerAccount, {
+    String ownerCredentialHash = '',
+  }) {
+    return AcademicLoginSessionSnapshot(
+      cookieHeadersByHost: cookieHeadersByHost,
+      authenticatedAt: authenticatedAt,
+      entranceUri: entranceUri,
+      finalUri: finalUri,
+      ownerAccount: ownerAccount.trim().toLowerCase(),
+      ownerCredentialHash: ownerCredentialHash,
+    );
+  }
+
   /// 序列化为安全存储中的 JSON 结构。
   Map<String, Object> toJson() {
     return {
@@ -59,6 +82,8 @@ class AcademicLoginSessionSnapshot {
       'authenticatedAt': authenticatedAt.toIso8601String(),
       'entranceUri': entranceUri.toString(),
       'finalUri': finalUri.toString(),
+      'ownerAccount': ownerAccount,
+      'ownerCredentialHash': ownerCredentialHash,
     };
   }
 
@@ -85,6 +110,9 @@ class AcademicLoginSessionSnapshot {
       authenticatedAt: authenticatedAt,
       entranceUri: Uri.parse(payload['entranceUri']?.toString() ?? ''),
       finalUri: Uri.parse(payload['finalUri']?.toString() ?? ''),
+      ownerAccount:
+          payload['ownerAccount']?.toString().trim().toLowerCase() ?? '',
+      ownerCredentialHash: payload['ownerCredentialHash']?.toString() ?? '',
     );
   }
 }

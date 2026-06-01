@@ -11,6 +11,7 @@ import 'dart:async';
 import '../design/fluent_ui.dart';
 
 import '../models/academic_eams.dart';
+import '../services/academic_credentials_service.dart';
 import '../services/academic_eams_service.dart';
 import '../theme/fluent_tokens.dart';
 
@@ -47,6 +48,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   int _autoRefreshIntervalMinutes =
       AcademicEamsService.defaultAutoRefreshIntervalMinutes;
   Timer? _autoRefreshTimer;
+  StreamSubscription<int>? _credentialChangeSubscription;
 
   AcademicEamsClient get _academicEamsService {
     return widget.academicEamsService ?? AcademicEamsService.instance;
@@ -55,14 +57,18 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   @override
   void initState() {
     super.initState();
+    _credentialChangeSubscription = AcademicCredentialsService.instance.changes
+        .listen((_) => _clearAuthenticatedState());
     _result = widget.initialResult;
-    _loadAutoRefreshSettings();
+    _loadCacheAndAutoRefreshSettings();
   }
 
-  @override
-  void dispose() {
-    _autoRefreshTimer?.cancel();
-    super.dispose();
+  void _clearAuthenticatedState() {
+    if (!mounted) return;
+    setState(() {
+      _result = null;
+      _isLoading = false;
+    });
   }
 
   Future<void> _loadAutoRefreshSettings() async {
@@ -80,32 +86,62 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
       _autoRefreshEnabled = enabled;
       _autoRefreshIntervalMinutes = interval;
     });
-    _restartAutoRefreshTimer();
-    if (enabled) unawaited(_loadCourseTable());
+    _restartAutoRefreshTimer(enabled, interval);
+    if (enabled && _shouldAutoRefresh(_result?.checkedAt, interval)) {
+      unawaited(_loadCourseTable(silent: true));
+    }
   }
 
-  Future<void> _loadCourseTable() async {
-    if (_isLoading) return;
-    setState(() => _isLoading = true);
-
-    final result = await _academicEamsService.fetchCourseTable();
-    if (!mounted) return;
-    setState(() {
-      _result = result;
-      _isLoading = false;
+  void _restartAutoRefreshTimer(bool enabled, int intervalMinutes) {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = null;
+    if (!enabled || intervalMinutes <= 0) return;
+    _autoRefreshTimer = Timer.periodic(Duration(minutes: intervalMinutes), (_) {
+      if (_shouldAutoRefresh(_result?.checkedAt, intervalMinutes)) {
+        unawaited(_loadCourseTable(silent: true));
+      }
     });
   }
 
-  void _restartAutoRefreshTimer() {
+  Future<void> _loadCacheAndAutoRefreshSettings() async {
+    final cachedResult = await _academicEamsService
+        .readLatestCachedCourseTable();
+    if (mounted && cachedResult != null && !_hasUsableCourseTable(_result)) {
+      setState(() => _result = cachedResult);
+    }
+    await _loadAutoRefreshSettings();
+  }
+
+  bool _hasUsableCourseTable(AcademicEamsQueryResult? result) {
+    final entries = result?.snapshot?.courseTable?.entries;
+    return result?.isSuccess == true && entries != null && entries.isNotEmpty;
+  }
+
+  Future<void> _loadCourseTable({bool silent = false}) async {
+    if (_isLoading) return;
+    if (!silent) setState(() => _isLoading = true);
+
+    final result = await _academicEamsService.fetchCourseTable();
+    if (!mounted) return;
+    if (silent && !result.isSuccess) return;
+    setState(() {
+      _result = result;
+      if (!silent) _isLoading = false;
+    });
+  }
+
+  bool _shouldAutoRefresh(DateTime? fetchedAt, int intervalMinutes) {
+    if (intervalMinutes <= 0) return false;
+    if (fetchedAt == null) return true;
+    return DateTime.now().difference(fetchedAt) >=
+        Duration(minutes: intervalMinutes);
+  }
+
+  @override
+  void dispose() {
+    _credentialChangeSubscription?.cancel();
     _autoRefreshTimer?.cancel();
-    _autoRefreshTimer = null;
-    if (!_autoRefreshEnabled) return;
-    final intervalMinutes = _autoRefreshIntervalMinutes;
-    if (intervalMinutes <= 0) return;
-    _autoRefreshTimer = Timer.periodic(
-      Duration(minutes: intervalMinutes),
-      (_) => _loadCourseTable(),
-    );
+    super.dispose();
   }
 
   @override

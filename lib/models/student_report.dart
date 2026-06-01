@@ -73,6 +73,32 @@ class SecondClassroomCreditRecord {
 
   /// 原始表格单元格，页面变化时用于兜底展示。
   final List<String> rawCells;
+
+  /// 从 JSON 恢复第二课堂学分记录。
+  factory SecondClassroomCreditRecord.fromJson(Map<String, dynamic> json) {
+    return SecondClassroomCreditRecord(
+      category: json['category'] as String? ?? '',
+      itemName: json['itemName'] as String? ?? '',
+      credit: (json['credit'] as num?)?.toDouble() ?? 0,
+      rawCells: (json['rawCells'] as List<dynamic>? ?? const []).cast<String>(),
+      semester: json['semester'] as String?,
+      occurredAt: json['occurredAt'] as String?,
+      status: json['status'] as String?,
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'category': category,
+      'itemName': itemName,
+      'credit': credit,
+      'rawCells': rawCells,
+      'semester': semester,
+      'occurredAt': occurredAt,
+      'status': status,
+    };
+  }
 }
 
 /// 第二课堂学分统计快照。
@@ -91,6 +117,29 @@ class SecondClassroomCreditSummary {
 
   /// 产生该快照的最后一个业务页面地址。
   final Uri sourceUri;
+
+  /// 从 JSON 恢复第二课堂学分统计。
+  factory SecondClassroomCreditSummary.fromJson(Map<String, dynamic> json) {
+    return SecondClassroomCreditSummary(
+      records: (json['records'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(SecondClassroomCreditRecord.fromJson)
+          .toList(),
+      fetchedAt:
+          DateTime.tryParse(json['fetchedAt'] as String? ?? '')?.toLocal() ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      sourceUri: Uri.parse(json['sourceUri'] as String? ?? ''),
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'records': records.map((record) => record.toJson()).toList(),
+      'fetchedAt': fetchedAt.toUtc().toIso8601String(),
+      'sourceUri': sourceUri.toString(),
+    };
+  }
 }
 
 /// 学工报表只读查询或登录校验结果。

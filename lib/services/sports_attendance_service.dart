@@ -18,6 +18,7 @@ import '../models/academic_credentials.dart';
 import '../models/campus_network_status.dart';
 import '../models/sports_attendance.dart';
 import 'academic_credentials_service.dart';
+import 'authenticated_data_cache_service.dart';
 import 'campus_network_status_service.dart';
 import 'http_service.dart';
 import 'storage_service.dart';
@@ -28,6 +29,9 @@ part 'sports_attendance_support.dart';
 
 /// 教务页依赖的体育部考勤读取接口，便于测试中替换实现。
 abstract class SportsAttendanceClient {
+  /// 读取最近一次本地体育部考勤缓存。
+  Future<SportsAttendanceQueryResult?> readLatestCachedAttendanceSummary();
+
   /// 登录体育部查询系统并读取课外活动考勤。
   Future<SportsAttendanceQueryResult> fetchAttendanceSummary();
 }
@@ -155,6 +159,28 @@ class SportsAttendanceService implements SportsAttendanceClient {
     );
   }
 
+  /// 读取最近一次本地体育部考勤缓存。
+  @override
+  Future<SportsAttendanceQueryResult?>
+  readLatestCachedAttendanceSummary() async {
+    final accountKey = (await _credentialsService.getStatus()).oaAccount.trim();
+    if (accountKey.isEmpty) return null;
+    final entry = await AuthenticatedDataCacheService.readLatest(
+      StorageKeys.sportsAttendanceCacheCollection,
+      accountKey: accountKey,
+    );
+    if (entry == null) return null;
+    final summary = SportsAttendanceSummary.fromJson(entry.data);
+    return _buildResult(
+      SportsAttendanceQueryStatus.success,
+      message: '已显示本地体育部考勤缓存',
+      detail: '显示最近一次成功读取并保存的体育部考勤总次数与明细记录。',
+      checkedAt: summary.fetchedAt,
+      finalUri: summary.sourceUri,
+      summary: summary,
+    );
+  }
+
   @override
   Future<SportsAttendanceQueryResult> fetchAttendanceSummary() async {
     CampusNetworkStatus? campusStatus;
@@ -190,11 +216,30 @@ class SportsAttendanceService implements SportsAttendanceClient {
         );
       }
 
-      return await _fetchWithCredentials(
+      final result = await _fetchWithCredentials(
         studentId: studentId,
         sportsPassword: sportsPassword,
         campusNetworkStatus: campusStatus,
       );
+      if (result.isSuccess && result.summary != null) {
+        final currentStudentId = (await _credentialsService.getStatus())
+            .oaAccount
+            .trim();
+        final currentSportsPassword = await _credentialsService.readSecret(
+          AcademicCredentialSecret.sportsQueryPassword,
+        );
+        if (currentStudentId != studentId ||
+            currentSportsPassword != sportsPassword) {
+          return _credentialsChangedResult(campusStatus, result.finalUri);
+        }
+        await AuthenticatedDataCacheService.saveLatest(
+          collection: StorageKeys.sportsAttendanceCacheCollection,
+          accountKey: studentId,
+          fetchedAt: result.summary!.fetchedAt,
+          data: result.summary!.toJson(),
+        );
+      }
+      return result;
     } on TimeoutException {
       return _buildResult(
         SportsAttendanceQueryStatus.networkError,
@@ -218,6 +263,19 @@ class SportsAttendanceService implements SportsAttendanceClient {
         campusNetworkStatus: campusStatus,
       );
     }
+  }
+
+  SportsAttendanceQueryResult _credentialsChangedResult(
+    CampusNetworkStatus? campusStatus,
+    Uri? finalUri,
+  ) {
+    return _buildResult(
+      SportsAttendanceQueryStatus.unexpectedError,
+      message: '体育部考勤查询已取消',
+      detail: '体育部查询凭据已在查询过程中变更，已丢弃本次考勤结果。',
+      finalUri: finalUri,
+      campusNetworkStatus: campusStatus,
+    );
   }
 
   Future<SportsAttendanceQueryResult> _fetchWithCredentials({
@@ -352,6 +410,7 @@ class SportsAttendanceService implements SportsAttendanceClient {
     SportsAttendanceQueryStatus status, {
     required String message,
     required String detail,
+    DateTime? checkedAt,
     Uri? finalUri,
     CampusNetworkStatus? campusNetworkStatus,
     SportsAttendanceSummary? summary,
@@ -360,7 +419,7 @@ class SportsAttendanceService implements SportsAttendanceClient {
       status: status,
       message: message,
       detail: detail,
-      checkedAt: DateTime.now(),
+      checkedAt: checkedAt ?? DateTime.now(),
       entranceUri: entranceUri,
       finalUri: finalUri,
       campusNetworkStatus: campusNetworkStatus,

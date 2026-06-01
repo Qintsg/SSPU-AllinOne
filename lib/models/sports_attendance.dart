@@ -29,6 +29,14 @@ enum SportsAttendanceCategory {
 
   /// 页面展示名称。
   final String label;
+
+  /// 从持久化名称恢复分类。
+  static SportsAttendanceCategory fromName(String? name) {
+    return SportsAttendanceCategory.values.firstWhere(
+      (category) => category.name == name,
+      orElse: () => SportsAttendanceCategory.unknown,
+    );
+  }
 }
 
 /// 体育部考勤查询状态。
@@ -96,6 +104,32 @@ class SportsAttendanceRecord {
 
   /// 备注或状态。
   final String? remark;
+
+  /// 从 JSON 恢复考勤记录。
+  factory SportsAttendanceRecord.fromJson(Map<String, dynamic> json) {
+    return SportsAttendanceRecord(
+      category: SportsAttendanceCategory.fromName(json['category'] as String?),
+      count: (json['count'] as num?)?.toInt() ?? 0,
+      cells: (json['cells'] as List<dynamic>? ?? const []).cast<String>(),
+      occurredAt: json['occurredAt'] as String?,
+      project: json['project'] as String?,
+      location: json['location'] as String?,
+      remark: json['remark'] as String?,
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'category': category.name,
+      'count': count,
+      'cells': cells,
+      'occurredAt': occurredAt,
+      'project': project,
+      'location': location,
+      'remark': remark,
+    };
+  }
 }
 
 /// 体育部课外活动考勤汇总。
@@ -130,6 +164,40 @@ class SportsAttendanceSummary {
 
   /// 明细页来源地址。
   final Uri sourceUri;
+
+  /// 从 JSON 恢复体育部考勤汇总。
+  factory SportsAttendanceSummary.fromJson(Map<String, dynamic> json) {
+    return SportsAttendanceSummary(
+      morningExerciseCount:
+          (json['morningExerciseCount'] as num?)?.toInt() ?? 0,
+      extracurricularActivityCount:
+          (json['extracurricularActivityCount'] as num?)?.toInt() ?? 0,
+      countAdjustmentCount:
+          (json['countAdjustmentCount'] as num?)?.toInt() ?? 0,
+      sportsCorridorCount: (json['sportsCorridorCount'] as num?)?.toInt() ?? 0,
+      records: (json['records'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(SportsAttendanceRecord.fromJson)
+          .toList(),
+      fetchedAt:
+          DateTime.tryParse(json['fetchedAt'] as String? ?? '')?.toLocal() ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      sourceUri: Uri.parse(json['sourceUri'] as String? ?? ''),
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'morningExerciseCount': morningExerciseCount,
+      'extracurricularActivityCount': extracurricularActivityCount,
+      'countAdjustmentCount': countAdjustmentCount,
+      'sportsCorridorCount': sportsCorridorCount,
+      'records': records.map((record) => record.toJson()).toList(),
+      'fetchedAt': fetchedAt.toUtc().toIso8601String(),
+      'sourceUri': sourceUri.toString(),
+    };
+  }
 
   /// issue #112 要求展示的总次数。
   int get totalCount {

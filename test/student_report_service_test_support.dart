@@ -36,6 +36,7 @@ class _FakeStudentReportGateway implements StudentReportGateway {
     StudentReportHttpSnapshot? creditPage,
     StudentReportHttpSnapshot? reportEntryPage,
     this.timeoutReportEntry = false,
+    this.beforeCreditReturn,
   }) : entryPage = entryPage ?? _snapshot(_homeHtml),
        creditPage = creditPage ?? _snapshot(_creditHtml),
        reportEntryPage = reportEntryPage ?? _snapshot(_homeHtml);
@@ -47,6 +48,7 @@ class _FakeStudentReportGateway implements StudentReportGateway {
   final StudentReportHttpSnapshot entryPage;
   final StudentReportHttpSnapshot creditPage;
   final StudentReportHttpSnapshot reportEntryPage;
+  final Future<void> Function()? beforeCreditReturn;
   final List<Map<String, String>> resetCookieHeaders = [];
   final List<Uri> fetchedUris = [];
   int openCount = 0;
@@ -90,6 +92,7 @@ class _FakeStudentReportGateway implements StudentReportGateway {
       if (requireAuthCreditFirst && _creditFetchCount == 1) {
         return _localLoginSnapshot;
       }
+      await beforeCreditReturn?.call();
       return creditPage;
     }
     return StudentReportHttpSnapshot(

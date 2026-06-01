@@ -71,6 +71,61 @@ class AcademicEamsSnapshot {
   /// 空闲教室预览结果；仅在首页探测出结果表格时返回。
   final AcademicFreeClassroomSearchResult? freeClassroomsPreview;
 
+  /// 从 JSON 恢复本专科教务摘要快照。
+  factory AcademicEamsSnapshot.fromJson(Map<String, dynamic> json) {
+    return AcademicEamsSnapshot(
+      fetchedAt:
+          DateTime.tryParse(json['fetchedAt'] as String? ?? '')?.toLocal() ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      sourceUri: Uri.parse(json['sourceUri'] as String? ?? ''),
+      warnings: (json['warnings'] as List<dynamic>? ?? const []).cast<String>(),
+      hasCourseOfferingEntry: json['hasCourseOfferingEntry'] as bool? ?? false,
+      hasFreeClassroomEntry: json['hasFreeClassroomEntry'] as bool? ?? false,
+      profile: _readObject(json['profile'], AcademicEamsProfile.fromJson),
+      courseTable: _readObject(
+        json['courseTable'],
+        AcademicCourseTableSnapshot.fromJson,
+      ),
+      grades: _readObject(json['grades'], AcademicGradeSnapshot.fromJson),
+      programPlan: _readObject(
+        json['programPlan'],
+        AcademicProgramPlanSnapshot.fromJson,
+      ),
+      programCompletion: _readObject(
+        json['programCompletion'],
+        AcademicProgramCompletionSnapshot.fromJson,
+      ),
+      exams: _readObject(json['exams'], AcademicExamSnapshot.fromJson),
+      courseOfferingsPreview: _readObject(
+        json['courseOfferingsPreview'],
+        AcademicCourseOfferingSearchResult.fromJson,
+      ),
+      freeClassroomsPreview: _readObject(
+        json['freeClassroomsPreview'],
+        AcademicFreeClassroomSearchResult.fromJson,
+      ),
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'fetchedAt': fetchedAt.toUtc().toIso8601String(),
+      'sourceUri': sourceUri.toString(),
+      'warnings': warnings,
+      'hasCourseOfferingEntry': hasCourseOfferingEntry,
+      'hasFreeClassroomEntry': hasFreeClassroomEntry,
+      'profile': profile?.toJson(),
+      'courseTable': courseTable?.toJson(),
+      'grades': grades?.toJson(),
+      'programPlan': programPlan?.toJson(),
+      'programCompletion': programCompletion?.toJson(),
+      'exams': exams?.toJson(),
+      'courseOfferingsPreview': courseOfferingsPreview?.toJson(),
+      'freeClassroomsPreview': freeClassroomsPreview?.toJson(),
+    };
+  }
+
   /// 是否至少解析出一个核心模块。
   bool get hasAnyData {
     return profile?.hasAnyValue == true ||
@@ -82,4 +137,9 @@ class AcademicEamsSnapshot {
         (courseOfferingsPreview?.records.isNotEmpty ?? false) ||
         (freeClassroomsPreview?.records.isNotEmpty ?? false);
   }
+}
+
+T? _readObject<T>(Object? value, T Function(Map<String, dynamic>) fromJson) {
+  if (value is Map<String, dynamic>) return fromJson(value);
+  return null;
 }

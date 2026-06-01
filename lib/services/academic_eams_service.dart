@@ -20,6 +20,7 @@ import '../models/academic_login_validation.dart';
 import '../models/campus_network_status.dart';
 import 'academic_credentials_service.dart';
 import 'academic_login_validation_service.dart';
+import 'authenticated_data_cache_service.dart';
 import 'campus_network_status_service.dart';
 import 'http_service.dart';
 import 'storage_service.dart';
@@ -37,6 +38,12 @@ part 'academic_eams_shell_followups.dart';
 
 /// 教务中心与课程表页可依赖的只读接口。
 abstract class AcademicEamsClient {
+  /// 读取最近一次本地本专科教务摘要缓存。
+  Future<AcademicEamsQueryResult?> readLatestCachedOverview();
+
+  /// 读取最近一次本地课表缓存。
+  Future<AcademicEamsQueryResult?> readLatestCachedCourseTable();
+
   /// 读取教务摘要，尽量覆盖个人信息、课表、成绩、考试和培养计划。
   Future<AcademicEamsQueryResult> fetchOverview();
 
@@ -118,7 +125,9 @@ class AcademicEamsService implements AcademicEamsClient {
        _gateway = gateway ?? DioAcademicEamsGateway(),
        _refreshOaLogin =
            refreshOaLogin ??
-           AcademicLoginValidationService.instance.validateSavedCredentials,
+           (() => AcademicLoginValidationService.instance.ensureSavedSession(
+             forceRefresh: true,
+           )),
        entranceUri = entranceUri ?? defaultEntranceUri,
        homeUri = homeUri ?? defaultHomeUri,
        submenuBaseUri = submenuBaseUri ?? defaultSubmenuBaseUri,
@@ -282,6 +291,49 @@ class AcademicEamsService implements AcademicEamsClient {
           freeClassrooms: records,
         );
       },
+    );
+  }
+
+  /// 读取最近一次本地本专科教务摘要缓存。
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedOverview() async {
+    return _readLatestCachedResult(
+      collection: StorageKeys.academicEamsOverviewCacheCollection,
+      message: '已显示本地本专科教务缓存',
+      detail: '显示最近一次成功读取并保存的本专科教务摘要。',
+    );
+  }
+
+  /// 读取最近一次本地课表缓存。
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
+    return _readLatestCachedResult(
+      collection: StorageKeys.academicEamsCourseTableCacheCollection,
+      message: '已显示本地课表缓存',
+      detail: '显示最近一次成功读取并保存的本专科教务课表。',
+    );
+  }
+
+  Future<AcademicEamsQueryResult?> _readLatestCachedResult({
+    required String collection,
+    required String message,
+    required String detail,
+  }) async {
+    final accountKey = (await _credentialsService.getStatus()).oaAccount.trim();
+    if (accountKey.isEmpty) return null;
+    final entry = await AuthenticatedDataCacheService.readLatest(
+      collection,
+      accountKey: accountKey,
+    );
+    if (entry == null) return null;
+    final snapshot = AcademicEamsSnapshot.fromJson(entry.data);
+    return _buildResult(
+      AcademicEamsQueryStatus.success,
+      message: message,
+      detail: detail,
+      checkedAt: snapshot.fetchedAt,
+      finalUri: snapshot.sourceUri,
+      snapshot: snapshot,
     );
   }
 }

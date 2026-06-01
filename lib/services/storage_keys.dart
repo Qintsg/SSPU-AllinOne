@@ -74,4 +74,25 @@ class StorageKeys {
 
   /// 结构化数据前缀（JSON 序列化存储）。
   static const String dataPrefix = 'data_';
+
+  /// 校园卡业务快照缓存集合。
+  static const String campusCardCacheCollection = 'cache_campus_card';
+
+  /// 体育部考勤业务快照缓存集合。
+  static const String sportsAttendanceCacheCollection =
+      'cache_sports_attendance';
+
+  /// 第二课堂学分业务快照缓存集合。
+  static const String studentReportCacheCollection = 'cache_student_report';
+
+  /// 本专科教务摘要业务快照缓存集合。
+  static const String academicEamsOverviewCacheCollection =
+      'cache_academic_eams_overview';
+
+  /// 本专科教务课表业务快照缓存集合。
+  static const String academicEamsCourseTableCacheCollection =
+      'cache_academic_eams_course_table';
+
+  /// 学校邮箱业务快照缓存集合。
+  static const String emailMailboxCacheCollection = 'cache_email_mailbox';
 }

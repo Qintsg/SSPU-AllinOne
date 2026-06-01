@@ -35,6 +35,28 @@ class AcademicEamsProfile {
   /// 原始字段集合，供页面结构变化时回退展示。
   final Map<String, String> rawFields;
 
+  /// 从 JSON 恢复个人基本信息。
+  factory AcademicEamsProfile.fromJson(Map<String, dynamic> json) {
+    return AcademicEamsProfile(
+      name: json['name'] as String?,
+      studentId: null,
+      department: json['department'] as String?,
+      major: json['major'] as String?,
+      className: json['className'] as String?,
+      rawFields: const {},
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'department': department,
+      'major': major,
+      'className': className,
+    };
+  }
+
   /// 是否至少解析出一个核心字段。
   bool get hasAnyValue {
     return [

@@ -19,14 +19,20 @@ Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
   }
 }
 
+Future<void> disposeCourseSchedulePage(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump(const Duration(milliseconds: 120));
+}
+
 void main() {
   testWidgets('课程表页面自动刷新开启时会主动读取课表', (tester) async {
+    final service = _FakeAcademicEamsClient(result: _successResult);
     await tester.pumpWidget(
       MaterialApp(
         home: CourseSchedulePage(
-          academicEamsService: _FakeAcademicEamsClient(result: _successResult),
+          academicEamsService: service,
           autoRefreshEnabledOverride: true,
-          autoRefreshIntervalOverride: 30,
+          autoRefreshIntervalOverride: 1,
         ),
       ),
     );
@@ -38,6 +44,13 @@ void main() {
     expect(find.text('高等数学'), findsOneWidget);
     expect(find.textContaining('周一 第1-2节'), findsOneWidget);
     expect(find.text('返回'), findsNothing);
+    expect(service.courseTableFetchCount, 1);
+
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pump();
+
+    expect(service.courseTableFetchCount, 2);
+    await disposeCourseSchedulePage(tester);
   });
 
   testWidgets('课程表页面展示缺少 OA 密码提示', (tester) async {
@@ -57,6 +70,30 @@ void main() {
 
     expect(find.text('请先保存 OA 账号密码'), findsOneWidget);
     expect(find.textContaining('刷新 OA/CAS 会话'), findsOneWidget);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表页面优先使用可用缓存覆盖无课表初始结果', (tester) async {
+    final service = _FakeAcademicEamsClient(
+      result: _missingPassword,
+      cachedResult: _successResult,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CourseSchedulePage(
+          academicEamsService: service,
+          initialResult: _missingPassword,
+          autoRefreshEnabledOverride: false,
+        ),
+      ),
+    );
+
+    await pumpUntilFound(tester, find.text('高等数学'));
+
+    expect(find.text('高等数学'), findsOneWidget);
+    expect(find.text('请先保存 OA 账号密码'), findsNothing);
+    expect(service.cachedCourseTableReadCount, 1);
+    await disposeCourseSchedulePage(tester);
   });
 
   testWidgets('课程表页面作为二级页面打开时显示返回按钮', (tester) async {
@@ -80,16 +117,32 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('返回'), findsOneWidget);
+    await disposeCourseSchedulePage(tester);
   });
 }
 
 class _FakeAcademicEamsClient implements AcademicEamsClient {
-  const _FakeAcademicEamsClient({required this.result});
+  _FakeAcademicEamsClient({required this.result, this.cachedResult});
 
   final AcademicEamsQueryResult result;
+  final AcademicEamsQueryResult? cachedResult;
+  int courseTableFetchCount = 0;
+  int cachedCourseTableReadCount = 0;
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
+    cachedCourseTableReadCount++;
+    return cachedResult;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedOverview() async {
+    return null;
+  }
 
   @override
   Future<AcademicEamsQueryResult> fetchCourseTable() async {
+    courseTableFetchCount++;
     return result;
   }
 

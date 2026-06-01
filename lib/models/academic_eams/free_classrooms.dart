@@ -30,6 +30,30 @@ class AcademicFreeClassroomSearchCriteria {
 
   /// 结束节次。
   final int? lessonTo;
+
+  /// 从 JSON 恢复空闲教室查询条件。
+  factory AcademicFreeClassroomSearchCriteria.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return AcademicFreeClassroomSearchCriteria(
+      campus: json['campus'] as String?,
+      building: json['building'] as String?,
+      dateText: json['dateText'] as String?,
+      lessonFrom: (json['lessonFrom'] as num?)?.toInt(),
+      lessonTo: (json['lessonTo'] as num?)?.toInt(),
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'campus': campus,
+      'building': building,
+      'dateText': dateText,
+      'lessonFrom': lessonFrom,
+      'lessonTo': lessonTo,
+    };
+  }
 }
 
 /// 单条空闲教室记录。
@@ -68,6 +92,34 @@ class AcademicFreeClassroomRecord {
 
   /// 原始单元格文本。
   final List<String> rawCells;
+
+  /// 从 JSON 恢复空闲教室记录。
+  factory AcademicFreeClassroomRecord.fromJson(Map<String, dynamic> json) {
+    return AcademicFreeClassroomRecord(
+      roomName: json['roomName'] as String? ?? '',
+      rawCells: (json['rawCells'] as List<dynamic>? ?? const []).cast<String>(),
+      campus: json['campus'] as String?,
+      building: json['building'] as String?,
+      location: json['location'] as String?,
+      capacity: (json['capacity'] as num?)?.toInt(),
+      dateText: json['dateText'] as String?,
+      lessonText: json['lessonText'] as String?,
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'roomName': roomName,
+      'rawCells': rawCells,
+      'campus': campus,
+      'building': building,
+      'location': location,
+      'capacity': capacity,
+      'dateText': dateText,
+      'lessonText': lessonText,
+    };
+  }
 }
 
 /// 空闲教室查询结果。
@@ -90,4 +142,33 @@ class AcademicFreeClassroomSearchResult {
 
   /// 来源页面地址。
   final Uri sourceUri;
+
+  /// 从 JSON 恢复空闲教室查询结果。
+  factory AcademicFreeClassroomSearchResult.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return AcademicFreeClassroomSearchResult(
+      criteria: AcademicFreeClassroomSearchCriteria.fromJson(
+        json['criteria'] as Map<String, dynamic>? ?? const {},
+      ),
+      records: (json['records'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(AcademicFreeClassroomRecord.fromJson)
+          .toList(),
+      fetchedAt:
+          DateTime.tryParse(json['fetchedAt'] as String? ?? '')?.toLocal() ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      sourceUri: Uri.parse(json['sourceUri'] as String? ?? ''),
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'criteria': criteria.toJson(),
+      'records': records.map((record) => record.toJson()).toList(),
+      'fetchedAt': fetchedAt.toUtc().toIso8601String(),
+      'sourceUri': sourceUri.toString(),
+    };
+  }
 }

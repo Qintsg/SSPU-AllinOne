@@ -108,19 +108,18 @@ void main() {
   });
 
   testWidgets('教务中心自动刷新开启时会主动读取体育考勤', (tester) async {
+    final sportsService = _FakeSportsAttendanceClient(result: _successResult);
     await tester.pumpWidget(
       MaterialApp(
         home: AcademicPage(
           academicEamsService: _FakeAcademicEamsClient(
             result: _academicEamsResult,
           ),
-          sportsAttendanceService: _FakeSportsAttendanceClient(
-            result: _successResult,
-          ),
+          sportsAttendanceService: sportsService,
           studentReportService: _FakeStudentReportClient(result: _creditResult),
           academicEamsAutoRefreshEnabledOverride: false,
           sportsAttendanceAutoRefreshEnabledOverride: true,
-          sportsAttendanceAutoRefreshIntervalOverride: 30,
+          sportsAttendanceAutoRefreshIntervalOverride: 1,
           studentReportAutoRefreshEnabledOverride: false,
         ),
       ),
@@ -129,6 +128,12 @@ void main() {
     await pumpUntilFound(tester, find.text('8'));
 
     expect(find.text('总次数'), findsOneWidget);
+    expect(sportsService.fetchCount, 1);
+
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pump();
+
+    expect(sportsService.fetchCount, 2);
     await disposeAcademicPage(tester);
   });
 
