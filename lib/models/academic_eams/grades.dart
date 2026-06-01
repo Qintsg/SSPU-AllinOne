@@ -47,6 +47,36 @@ class AcademicGradeRecord {
   /// 原始单元格文本。
   final List<String> rawCells;
 
+  /// 从 JSON 恢复成绩记录。
+  factory AcademicGradeRecord.fromJson(Map<String, dynamic> json) {
+    return AcademicGradeRecord(
+      courseName: json['courseName'] as String? ?? '',
+      scoreText: json['scoreText'] as String? ?? '',
+      rawCells: (json['rawCells'] as List<dynamic>? ?? const []).cast<String>(),
+      courseCode: json['courseCode'] as String?,
+      termName: json['termName'] as String?,
+      credit: (json['credit'] as num?)?.toDouble(),
+      gradePoint: (json['gradePoint'] as num?)?.toDouble(),
+      processScoreText: json['processScoreText'] as String?,
+      totalScoreText: json['totalScoreText'] as String?,
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'courseName': courseName,
+      'scoreText': scoreText,
+      'rawCells': rawCells,
+      'courseCode': courseCode,
+      'termName': termName,
+      'credit': credit,
+      'gradePoint': gradePoint,
+      'processScoreText': processScoreText,
+      'totalScoreText': totalScoreText,
+    };
+  }
+
   /// 是否可视为通过，用于培养计划完成情况的保守统计。
   bool get isPassed {
     final normalized = scoreText.replaceAll(RegExp(r'\s+'), '').toLowerCase();
@@ -80,4 +110,37 @@ class AcademicGradeSnapshot {
 
   /// 产生该快照的最后页面地址。
   final Uri sourceUri;
+
+  /// 从 JSON 恢复成绩快照。
+  factory AcademicGradeSnapshot.fromJson(Map<String, dynamic> json) {
+    return AcademicGradeSnapshot(
+      currentTermRecords:
+          (json['currentTermRecords'] as List<dynamic>? ?? const [])
+              .whereType<Map<String, dynamic>>()
+              .map(AcademicGradeRecord.fromJson)
+              .toList(),
+      historyRecords: (json['historyRecords'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(AcademicGradeRecord.fromJson)
+          .toList(),
+      fetchedAt:
+          DateTime.tryParse(json['fetchedAt'] as String? ?? '')?.toLocal() ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      sourceUri: Uri.parse(json['sourceUri'] as String? ?? ''),
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'currentTermRecords': currentTermRecords
+          .map((record) => record.toJson())
+          .toList(),
+      'historyRecords': historyRecords
+          .map((record) => record.toJson())
+          .toList(),
+      'fetchedAt': fetchedAt.toUtc().toIso8601String(),
+      'sourceUri': sourceUri.toString(),
+    };
+  }
 }

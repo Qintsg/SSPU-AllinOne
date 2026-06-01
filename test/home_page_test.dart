@@ -96,6 +96,81 @@ void main() {
     await disposeHomePage(tester);
   });
 
+  testWidgets('首页进入时优先显示未过期校园卡缓存且不主动刷新', (tester) async {
+    final service = _FakeCampusCardClient(
+      result: _successResult,
+      cachedResult: _freshCachedResult,
+    );
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomePage(
+          campusCardService: service,
+          campusNetworkStatusService: campusNetworkStatusService,
+          campusCardAutoRefreshEnabledOverride: true,
+          campusCardAutoRefreshIntervalOverride: 30,
+        ),
+      ),
+    );
+
+    await pumpUntilFound(tester, find.text('¥88.88'));
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.text('¥88.88'), findsOneWidget);
+    expect(service.fetchCount, 0);
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页静默自动刷新失败时保留已有校园卡缓存', (tester) async {
+    final service = _FakeCampusCardClient(
+      result: _missingAccountResult,
+      cachedResult: _staleCachedResult,
+    );
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomePage(
+          campusCardService: service,
+          campusNetworkStatusService: campusNetworkStatusService,
+          campusCardAutoRefreshEnabledOverride: true,
+          campusCardAutoRefreshIntervalOverride: 30,
+        ),
+      ),
+    );
+
+    await pumpUntilFound(tester, find.text('¥66.66'));
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(service.fetchCount, 1);
+    expect(find.text('¥66.66'), findsOneWidget);
+    expect(find.text('请先保存学工号'), findsNothing);
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页停留期间按自动刷新间隔静默更新校园卡', (tester) async {
+    final service = _FakeCampusCardClient(result: _successResult);
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomePage(
+          campusCardService: service,
+          campusNetworkStatusService: campusNetworkStatusService,
+          campusCardAutoRefreshEnabledOverride: true,
+          campusCardAutoRefreshIntervalOverride: 1,
+        ),
+      ),
+    );
+
+    await pumpUntilFound(tester, find.text('¥23.45'));
+    expect(service.fetchCount, 1);
+
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pump();
+
+    expect(service.fetchCount, 2);
+    await disposeHomePage(tester);
+  });
+
   testWidgets('首页右上角显示小型网络状态指示', (tester) async {
     final campusNetworkStatusService = _buildCampusNetworkStatusService();
     await tester.pumpWidget(
@@ -132,10 +207,16 @@ CampusNetworkStatusService _buildCampusNetworkStatusService() {
 }
 
 class _FakeCampusCardClient implements CampusCardBalanceClient {
-  _FakeCampusCardClient({required this.result});
+  _FakeCampusCardClient({required this.result, this.cachedResult});
 
   final CampusCardQueryResult result;
+  final CampusCardQueryResult? cachedResult;
   int fetchCount = 0;
+
+  @override
+  Future<CampusCardQueryResult?> readLatestCachedCampusCard() async {
+    return cachedResult;
+  }
 
   @override
   Future<CampusCardQueryResult> fetchCampusCard({
@@ -173,3 +254,49 @@ final CampusCardQueryResult _successResult = CampusCardQueryResult(
     ],
   ),
 );
+
+final CampusCardQueryResult _freshCachedResult = _buildCachedResult(
+  balance: 88.88,
+  status: '正常',
+  checkedAt: DateTime.now(),
+);
+
+final CampusCardQueryResult _staleCachedResult = _buildCachedResult(
+  balance: 66.66,
+  status: '正常',
+  checkedAt: DateTime.now().subtract(const Duration(hours: 2)),
+);
+
+final CampusCardQueryResult _missingAccountResult = CampusCardQueryResult(
+  status: CampusCardQueryStatus.missingOaAccount,
+  message: '请先保存学工号',
+  detail: '本地安全存储中没有 OA 账号。',
+  checkedAt: DateTime(2026, 4, 30, 10, 30),
+  entranceUri: Uri.parse(
+    'https://oa.sspu.edu.cn//interface/Entrance.jsp?id=xykxt',
+  ),
+);
+
+CampusCardQueryResult _buildCachedResult({
+  required double balance,
+  required String status,
+  required DateTime checkedAt,
+}) {
+  return CampusCardQueryResult(
+    status: CampusCardQueryStatus.success,
+    message: '已显示本地校园卡缓存',
+    detail: '显示最近一次成功读取并保存的校园卡余额、状态和交易记录。',
+    checkedAt: checkedAt,
+    entranceUri: Uri.parse(
+      'https://oa.sspu.edu.cn//interface/Entrance.jsp?id=xykxt',
+    ),
+    finalUri: Uri.parse('https://card.sspu.edu.cn/epay/'),
+    snapshot: CampusCardSnapshot(
+      balance: balance,
+      status: status,
+      fetchedAt: checkedAt,
+      sourceUri: Uri.parse('https://card.sspu.edu.cn/epay/'),
+      records: const [],
+    ),
+  );
+}

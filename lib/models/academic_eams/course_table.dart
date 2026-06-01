@@ -47,6 +47,36 @@ class AcademicCourseTableEntry {
   /// 单元格原始文本，供解析降级展示。
   final String rawText;
 
+  /// 从 JSON 恢复课表课程记录。
+  factory AcademicCourseTableEntry.fromJson(Map<String, dynamic> json) {
+    return AcademicCourseTableEntry(
+      courseName: json['courseName'] as String? ?? '',
+      weekday: (json['weekday'] as num?)?.toInt() ?? 0,
+      startUnit: (json['startUnit'] as num?)?.toInt() ?? 0,
+      endUnit: (json['endUnit'] as num?)?.toInt() ?? 0,
+      timeText: json['timeText'] as String? ?? '',
+      rawText: json['rawText'] as String? ?? '',
+      teacher: json['teacher'] as String?,
+      location: json['location'] as String?,
+      weekDescription: json['weekDescription'] as String?,
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'courseName': courseName,
+      'weekday': weekday,
+      'startUnit': startUnit,
+      'endUnit': endUnit,
+      'timeText': timeText,
+      'rawText': rawText,
+      'teacher': teacher,
+      'location': location,
+      'weekDescription': weekDescription,
+    };
+  }
+
   /// 友好的星期文案。
   String get weekdayLabel {
     return switch (weekday) {
@@ -82,4 +112,29 @@ class AcademicCourseTableSnapshot {
 
   /// 产生该快照的业务页面地址。
   final Uri sourceUri;
+
+  /// 从 JSON 恢复课表快照。
+  factory AcademicCourseTableSnapshot.fromJson(Map<String, dynamic> json) {
+    return AcademicCourseTableSnapshot(
+      entries: (json['entries'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(AcademicCourseTableEntry.fromJson)
+          .toList(),
+      fetchedAt:
+          DateTime.tryParse(json['fetchedAt'] as String? ?? '')?.toLocal() ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      sourceUri: Uri.parse(json['sourceUri'] as String? ?? ''),
+      termName: json['termName'] as String?,
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'entries': entries.map((entry) => entry.toJson()).toList(),
+      'fetchedAt': fetchedAt.toUtc().toIso8601String(),
+      'sourceUri': sourceUri.toString(),
+      'termName': termName,
+    };
+  }
 }

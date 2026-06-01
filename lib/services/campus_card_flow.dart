@@ -177,6 +177,7 @@ extension _CampusCardFlow on CampusCardService {
     CampusCardQueryStatus status, {
     required String message,
     required String detail,
+    DateTime? checkedAt,
     Uri? finalUri,
     CampusNetworkStatus? campusNetworkStatus,
     CampusCardSnapshot? snapshot,
@@ -185,7 +186,7 @@ extension _CampusCardFlow on CampusCardService {
       status: status,
       message: message,
       detail: detail,
-      checkedAt: DateTime.now(),
+      checkedAt: checkedAt ?? DateTime.now(),
       entranceUri: entranceUri,
       finalUri: finalUri,
       campusNetworkStatus: campusNetworkStatus,

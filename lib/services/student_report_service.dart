@@ -20,6 +20,7 @@ import '../models/campus_network_status.dart';
 import '../models/student_report.dart';
 import 'academic_credentials_service.dart';
 import 'academic_login_validation_service.dart';
+import 'authenticated_data_cache_service.dart';
 import 'campus_network_status_service.dart';
 import 'http_service.dart';
 import 'storage_service.dart';
@@ -30,6 +31,9 @@ part 'student_report_page_parser.dart';
 
 /// 教务页依赖的学工报表接口，便于 widget 测试替换。
 abstract class StudentReportClient {
+  /// 读取最近一次本地第二课堂学分缓存。
+  Future<StudentReportQueryResult?> readLatestCachedSecondClassroomCredits();
+
   /// 校验学工报表系统登录状态，不读取学分明细。
   Future<StudentReportQueryResult> validateLoginStatus();
 
@@ -90,7 +94,9 @@ class StudentReportService implements StudentReportClient {
        _gateway = gateway ?? DioStudentReportGateway(),
        _refreshOaLogin =
            refreshOaLogin ??
-           AcademicLoginValidationService.instance.validateSavedCredentials,
+           (() => AcademicLoginValidationService.instance.ensureSavedSession(
+             forceRefresh: true,
+           )),
        entranceUri = entranceUri ?? defaultEntranceUri,
        homeUri = homeUri ?? defaultHomeUri,
        timeout = timeout ?? const Duration(seconds: 15);
@@ -156,6 +162,28 @@ class StudentReportService implements StudentReportClient {
     );
   }
 
+  /// 读取最近一次本地第二课堂学分缓存。
+  @override
+  Future<StudentReportQueryResult?>
+  readLatestCachedSecondClassroomCredits() async {
+    final accountKey = (await _credentialsService.getStatus()).oaAccount.trim();
+    if (accountKey.isEmpty) return null;
+    final entry = await AuthenticatedDataCacheService.readLatest(
+      StorageKeys.studentReportCacheCollection,
+      accountKey: accountKey,
+    );
+    if (entry == null) return null;
+    final summary = SecondClassroomCreditSummary.fromJson(entry.data);
+    return _buildResult(
+      StudentReportQueryStatus.success,
+      message: '已显示本地第二课堂学分缓存',
+      detail: '显示最近一次成功读取并保存的第二课堂逐项得分明细。',
+      checkedAt: summary.fetchedAt,
+      finalUri: summary.sourceUri,
+      summary: summary,
+    );
+  }
+
   @override
   Future<StudentReportQueryResult> validateLoginStatus() async {
     return _fetchReport(requireCredits: false);
@@ -202,10 +230,28 @@ class StudentReportService implements StudentReportClient {
         );
       }
 
-      return await _fetchWithOaSession(
+      final result = await _fetchWithOaSession(
         requireCredits: requireCredits,
         campusNetworkStatus: campusStatus,
       );
+      if (requireCredits && result.isSuccess && result.summary != null) {
+        final currentStudentId = (await _credentialsService.getStatus())
+            .oaAccount
+            .trim();
+        final currentOaPassword = await _credentialsService.readSecret(
+          AcademicCredentialSecret.oaPassword,
+        );
+        if (currentStudentId != studentId || currentOaPassword != oaPassword) {
+          return _credentialsChangedResult(campusStatus, result.finalUri);
+        }
+        await AuthenticatedDataCacheService.saveLatest(
+          collection: StorageKeys.studentReportCacheCollection,
+          accountKey: studentId,
+          fetchedAt: result.summary!.fetchedAt,
+          data: result.summary!.toJson(),
+        );
+      }
+      return result;
     } on TimeoutException {
       return _buildResult(
         StudentReportQueryStatus.networkError,
@@ -231,22 +277,26 @@ class StudentReportService implements StudentReportClient {
     }
   }
 
+  StudentReportQueryResult _credentialsChangedResult(
+    CampusNetworkStatus? campusStatus,
+    Uri? finalUri,
+  ) {
+    return _buildResult(
+      StudentReportQueryStatus.unexpectedError,
+      message: '学工报表查询已取消',
+      detail: '教务凭据已在查询过程中变更，已丢弃本次学工报表结果。',
+      finalUri: finalUri,
+      campusNetworkStatus: campusStatus,
+    );
+  }
+
   Future<StudentReportQueryResult> _fetchWithOaSession({
     required bool requireCredits,
     required CampusNetworkStatus campusNetworkStatus,
   }) async {
     var sessionSnapshot = await _credentialsService.readOaLoginSession();
-    for (var attempt = 0; attempt < 2; attempt++) {
-      final result = await _fetchWithSessionSnapshot(
-        sessionSnapshot: sessionSnapshot,
-        requireCredits: requireCredits,
-        campusNetworkStatus: campusNetworkStatus,
-      );
-      if (result.status != StudentReportQueryStatus.oaLoginRequired ||
-          attempt == 1) {
-        return result;
-      }
-
+    var refreshedBeforeFetch = false;
+    if (sessionSnapshot == null || !sessionSnapshot.hasCookies) {
       final loginResult = await _refreshOaLogin();
       if (!loginResult.isSuccess) {
         return _buildResult(
@@ -260,6 +310,34 @@ class StudentReportService implements StudentReportClient {
       sessionSnapshot =
           await _credentialsService.readOaLoginSession() ??
           loginResult.sessionSnapshot;
+      refreshedBeforeFetch = true;
+    }
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final result = await _fetchWithSessionSnapshot(
+        sessionSnapshot: sessionSnapshot,
+        requireCredits: requireCredits,
+        campusNetworkStatus: campusNetworkStatus,
+      );
+      if (result.status != StudentReportQueryStatus.oaLoginRequired ||
+          attempt == 1) {
+        return result;
+      }
+
+      if (refreshedBeforeFetch) continue;
+      final loginResult = await _refreshOaLogin();
+      if (!loginResult.isSuccess) {
+        return _buildResult(
+          StudentReportQueryStatus.oaLoginRequired,
+          message: 'OA 登录状态不可用，无法查询学工报表',
+          detail: loginResult.message,
+          finalUri: loginResult.finalUri,
+          campusNetworkStatus: campusNetworkStatus,
+        );
+      }
+      sessionSnapshot =
+          await _credentialsService.readOaLoginSession() ??
+          loginResult.sessionSnapshot;
+      refreshedBeforeFetch = true;
     }
 
     return _buildResult(
@@ -280,7 +358,7 @@ class StudentReportService implements StudentReportClient {
       return _buildResult(
         StudentReportQueryStatus.oaLoginRequired,
         message: 'OA 登录状态不可用，无法进入学工报表系统',
-        detail: '学工报表入口仍返回 CAS 或本地登录页，请先在安全设置中验证 OA 登录。',
+        detail: '学工报表入口仍返回 CAS 或本地登录页，已无法自动刷新 OA 登录会话。',
         finalUri: entrySnapshot.finalUri,
         campusNetworkStatus: campusNetworkStatus,
       );
@@ -452,6 +530,7 @@ class StudentReportService implements StudentReportClient {
     StudentReportQueryStatus status, {
     required String message,
     required String detail,
+    DateTime? checkedAt,
     Uri? finalUri,
     CampusNetworkStatus? campusNetworkStatus,
     SecondClassroomCreditSummary? summary,
@@ -460,7 +539,7 @@ class StudentReportService implements StudentReportClient {
       status: status,
       message: message,
       detail: detail,
-      checkedAt: DateTime.now(),
+      checkedAt: checkedAt ?? DateTime.now(),
       entranceUri: entranceUri,
       finalUri: finalUri,
       campusNetworkStatus: campusNetworkStatus,

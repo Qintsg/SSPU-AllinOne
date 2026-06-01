@@ -70,6 +70,20 @@ class EmailServerEndpoint {
 
   /// 是否从连接建立时即使用 TLS。
   final bool isSecure;
+
+  /// 从 JSON 恢复邮箱服务端点。
+  factory EmailServerEndpoint.fromJson(Map<String, dynamic> json) {
+    return EmailServerEndpoint(
+      host: json['host'] as String? ?? '',
+      port: (json['port'] as num?)?.toInt() ?? 0,
+      isSecure: json['isSecure'] as bool? ?? true,
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {'host': host, 'port': port, 'isSecure': isSecure};
+  }
 }
 
 /// 单封邮件的只读展示快照。
@@ -104,6 +118,34 @@ class EmailMessageSnapshot {
 
   /// 邮件头中的发送时间。
   final DateTime? receivedAt;
+
+  /// 从 JSON 恢复邮件快照。
+  factory EmailMessageSnapshot.fromJson(Map<String, dynamic> json) {
+    return EmailMessageSnapshot(
+      id: json['id'] as String? ?? '',
+      subject: json['subject'] as String? ?? '',
+      senderName: json['senderName'] as String? ?? '',
+      senderAddress: json['senderAddress'] as String? ?? '',
+      preview: json['preview'] as String? ?? '',
+      body: json['body'] as String? ?? '',
+      receivedAt: DateTime.tryParse(
+        json['receivedAt'] as String? ?? '',
+      )?.toLocal(),
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'subject': subject,
+      'senderName': senderName,
+      'senderAddress': senderAddress,
+      'preview': preview,
+      'body': body,
+      'receivedAt': receivedAt?.toUtc().toIso8601String(),
+    };
+  }
 }
 
 /// 邮箱一次只读收信快照。
@@ -130,6 +172,39 @@ class EmailMailboxSnapshot {
 
   /// 本次读取使用的服务端点。
   final EmailServerEndpoint endpoint;
+
+  /// 从 JSON 恢复邮箱快照。
+  factory EmailMailboxSnapshot.fromJson(Map<String, dynamic> json) {
+    final protocolName = json['protocol'] as String?;
+    final protocol = EmailProtocol.values.firstWhere(
+      (value) => value.name == protocolName,
+      orElse: () => EmailProtocol.imap,
+    );
+    return EmailMailboxSnapshot(
+      protocol: protocol,
+      account: '',
+      messages: (json['messages'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(EmailMessageSnapshot.fromJson)
+          .toList(),
+      fetchedAt:
+          DateTime.tryParse(json['fetchedAt'] as String? ?? '')?.toLocal() ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      endpoint: EmailServerEndpoint.fromJson(
+        json['endpoint'] as Map<String, dynamic>? ?? const {},
+      ),
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'protocol': protocol.name,
+      'messages': messages.map((message) => message.toJson()).toList(),
+      'fetchedAt': fetchedAt.toUtc().toIso8601String(),
+      'endpoint': endpoint.toJson(),
+    };
+  }
 }
 
 /// 邮箱只读收信结果。

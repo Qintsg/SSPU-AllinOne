@@ -120,6 +120,32 @@ void main() {
     expect(result.snapshot?.hasFreeClassroomEntry, isTrue);
   });
 
+  test('本专科教务缓存不持久化明文学号或原始个人字段', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final service = buildAcademicEamsServiceForTest(
+      gateway: FakeAcademicEamsGateway(),
+      campusReachable: true,
+    );
+
+    await service.fetchOverview();
+    final storedPayload = (await StorageService.getAllData(
+      StorageKeys.academicEamsOverviewCacheCollection,
+    )).values.single;
+    final cachedResult = await service.readLatestCachedOverview();
+
+    expect(storedPayload.toString(), isNot(contains('20260001')));
+    expect(storedPayload.toString(), isNot(contains('学号')));
+    expect(cachedResult?.snapshot?.profile?.name, '张三');
+    expect(cachedResult?.snapshot?.profile?.studentId, isNull);
+    expect(cachedResult?.snapshot?.profile?.rawFields, isEmpty);
+  });
+
   test('独立课表读取只解析当前学期课表', () async {
     await AcademicCredentialsService.instance.saveCredentials(
       oaAccount: '20260001',
@@ -244,5 +270,45 @@ void main() {
 
     expect(firstResult.snapshot?.hasFreeClassroomEntry, isFalse);
     expect(secondResult.snapshot?.hasFreeClassroomEntry, isTrue);
+  });
+
+  test('查询过程中切换账号时不会把旧账号教务摘要写入新账号缓存', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    final service = buildAcademicEamsServiceForTest(
+      gateway: FakeAcademicEamsGateway(),
+      campusReachable: true,
+      refreshOaLogin: () async {
+        await AcademicCredentialsService.instance.saveCredentials(
+          oaAccount: '20260002',
+          oaPassword: 'oa-pass',
+        );
+        await AcademicCredentialsService.instance.saveOaLoginSession(
+          academicEamsSessionSnapshot,
+        );
+        return AcademicLoginValidationResult(
+          status: AcademicLoginValidationStatus.success,
+          message: 'OA 登录校验通过',
+          detail: '已刷新 OA 会话',
+          checkedAt: DateTime(2026, 5, 2),
+          entranceUri: academicEamsOaEntranceUri,
+          finalUri: academicEamsOaEntranceUri,
+          sessionSnapshot: academicEamsSessionSnapshot,
+        );
+      },
+    );
+
+    final result = await service.fetchOverview();
+    final cachedResult = await service.readLatestCachedOverview();
+
+    expect(result.status, AcademicEamsQueryStatus.unexpectedError);
+    expect(result.snapshot, isNull);
+    expect(
+      (await AcademicCredentialsService.instance.getStatus()).oaAccount,
+      '20260002',
+    );
+    expect(cachedResult, isNull);
   });
 }

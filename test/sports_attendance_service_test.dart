@@ -116,6 +116,57 @@ void main() {
     expect(result.summary?.records.length, 5);
   });
 
+  test('体育部考勤成功查询写入缓存且失败不会覆盖最近缓存', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      sportsQueryPassword: 'sports-pass',
+    );
+    final service = _buildService(
+      gateway: _FakeSportsAttendanceGateway(),
+      campusReachable: true,
+    );
+
+    final result = await service.fetchAttendanceSummary();
+    final cachedResult = await service.readLatestCachedAttendanceSummary();
+
+    expect(result.status, SportsAttendanceQueryStatus.success);
+    expect(cachedResult?.summary?.totalCount, 8);
+
+    final failedService = _buildService(
+      gateway: _FakeSportsAttendanceGateway(),
+      campusReachable: false,
+    );
+    final failedResult = await failedService.fetchAttendanceSummary();
+    final cachedAfterFailure = await failedService
+        .readLatestCachedAttendanceSummary();
+
+    expect(
+      failedResult.status,
+      SportsAttendanceQueryStatus.campusNetworkUnavailable,
+    );
+    expect(cachedAfterFailure?.summary?.totalCount, 8);
+  });
+
+  test('体育部查询过程中清除查询密码时不会重新写入考勤缓存', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      sportsQueryPassword: 'sports-pass',
+    );
+    final gateway = _FakeSportsAttendanceGateway(
+      beforeScoreReturn: () => AcademicCredentialsService.instance.clearSecret(
+        AcademicCredentialSecret.sportsQueryPassword,
+      ),
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final result = await service.fetchAttendanceSummary();
+    final cachedResult = await service.readLatestCachedAttendanceSummary();
+
+    expect(result.status, SportsAttendanceQueryStatus.unexpectedError);
+    expect(result.summary, isNull);
+    expect(cachedResult, isNull);
+  });
+
   test('体育部登录失败时返回凭据未通过', () async {
     await AcademicCredentialsService.instance.saveCredentials(
       oaAccount: '20260001',
@@ -202,6 +253,7 @@ class _FakeSportsAttendanceGateway implements SportsAttendanceGateway {
     SportsAttendanceHttpSnapshot? loginPage,
     SportsAttendanceHttpSnapshot? submitPage,
     SportsAttendanceHttpSnapshot? scorePage,
+    this.beforeScoreReturn,
   }) : loginPage =
            loginPage ??
            _loginSnapshot('''
@@ -225,6 +277,7 @@ class _FakeSportsAttendanceGateway implements SportsAttendanceGateway {
   final SportsAttendanceHttpSnapshot loginPage;
   final SportsAttendanceHttpSnapshot submitPage;
   final SportsAttendanceHttpSnapshot scorePage;
+  final Future<void> Function()? beforeScoreReturn;
   int openCount = 0;
   Map<String, String>? submittedFields;
 
@@ -255,6 +308,7 @@ class _FakeSportsAttendanceGateway implements SportsAttendanceGateway {
     Uri scoreUri,
     Duration timeout,
   ) async {
+    await beforeScoreReturn?.call();
     return scorePage;
   }
 }

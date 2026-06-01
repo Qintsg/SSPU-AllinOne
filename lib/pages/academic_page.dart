@@ -14,6 +14,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../models/academic_eams.dart';
 import '../models/sports_attendance.dart';
 import '../models/student_report.dart';
+import '../services/academic_credentials_service.dart';
 import '../services/academic_eams_service.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/student_report_service.dart';
@@ -83,16 +84,13 @@ class _AcademicPageState extends State<AcademicPage> {
   SportsAttendanceQueryResult? _sportsAttendanceResult;
   bool _isLoadingSportsAttendance = false;
   bool _sportsAttendanceAutoRefreshEnabled = false;
-  int _sportsAttendanceAutoRefreshIntervalMinutes =
-      SportsAttendanceService.defaultAutoRefreshIntervalMinutes;
   Timer? _sportsAttendanceAutoRefreshTimer;
 
   StudentReportQueryResult? _studentReportResult;
   bool _isLoadingStudentReport = false;
   bool _studentReportAutoRefreshEnabled = false;
-  int _studentReportAutoRefreshIntervalMinutes =
-      StudentReportService.defaultAutoRefreshIntervalMinutes;
   Timer? _studentReportAutoRefreshTimer;
+  StreamSubscription<int>? _credentialChangeSubscription;
 
   SportsAttendanceClient get _sportsAttendanceService {
     return widget.sportsAttendanceService ?? SportsAttendanceService.instance;
@@ -109,17 +107,23 @@ class _AcademicPageState extends State<AcademicPage> {
   @override
   void initState() {
     super.initState();
-    _loadAcademicEamsAutoRefreshSettings();
-    _loadSportsAttendanceAutoRefreshSettings();
-    _loadStudentReportAutoRefreshSettings();
+    _credentialChangeSubscription = AcademicCredentialsService.instance.changes
+        .listen((_) => _clearAuthenticatedState());
+    _loadAcademicEamsCacheAndSettings();
+    _loadSportsAttendanceCacheAndSettings();
+    _loadStudentReportCacheAndSettings();
   }
 
-  @override
-  void dispose() {
-    _academicEamsAutoRefreshTimer?.cancel();
-    _sportsAttendanceAutoRefreshTimer?.cancel();
-    _studentReportAutoRefreshTimer?.cancel();
-    super.dispose();
+  void _clearAuthenticatedState() {
+    if (!mounted) return;
+    setState(() {
+      _academicEamsResult = null;
+      _sportsAttendanceResult = null;
+      _studentReportResult = null;
+      _isLoadingAcademicEams = false;
+      _isLoadingSportsAttendance = false;
+      _isLoadingStudentReport = false;
+    });
   }
 
   /// 读取本专科教务自动刷新设置；未启用时不主动访问教务系统。
@@ -138,34 +142,51 @@ class _AcademicPageState extends State<AcademicPage> {
       _academicEamsAutoRefreshEnabled = enabled;
       _academicEamsAutoRefreshIntervalMinutes = interval;
     });
-    _restartAcademicEamsAutoRefreshTimer();
-    if (enabled) unawaited(_loadAcademicEamsOverview());
+    _restartAcademicEamsAutoRefreshTimer(enabled, interval);
+    if (enabled &&
+        _shouldAutoRefresh(_academicEamsResult?.checkedAt, interval)) {
+      unawaited(_loadAcademicEamsOverview(silent: true));
+    }
+  }
+
+  void _restartAcademicEamsAutoRefreshTimer(bool enabled, int intervalMinutes) {
+    _academicEamsAutoRefreshTimer?.cancel();
+    _academicEamsAutoRefreshTimer = null;
+    if (!enabled || intervalMinutes <= 0) return;
+    _academicEamsAutoRefreshTimer = Timer.periodic(
+      Duration(minutes: intervalMinutes),
+      (_) {
+        if (_shouldAutoRefresh(
+          _academicEamsResult?.checkedAt,
+          intervalMinutes,
+        )) {
+          unawaited(_loadAcademicEamsOverview(silent: true));
+        }
+      },
+    );
+  }
+
+  /// 先显示本地本专科教务缓存，再按间隔决定是否静默刷新。
+  Future<void> _loadAcademicEamsCacheAndSettings() async {
+    final cachedResult = await _academicEamsService.readLatestCachedOverview();
+    if (mounted && cachedResult != null) {
+      setState(() => _academicEamsResult = cachedResult);
+    }
+    await _loadAcademicEamsAutoRefreshSettings();
   }
 
   /// 读取本专科教务摘要；失败时在卡片中展示明确状态。
-  Future<void> _loadAcademicEamsOverview() async {
+  Future<void> _loadAcademicEamsOverview({bool silent = false}) async {
     if (_isLoadingAcademicEams) return;
-    setState(() => _isLoadingAcademicEams = true);
+    if (!silent) setState(() => _isLoadingAcademicEams = true);
 
     final result = await _academicEamsService.fetchOverview();
     if (!mounted) return;
+    if (silent && !result.isSuccess) return;
     setState(() {
       _academicEamsResult = result;
-      _isLoadingAcademicEams = false;
+      if (!silent) _isLoadingAcademicEams = false;
     });
-  }
-
-  /// 根据设置重建本专科教务自动刷新定时器。
-  void _restartAcademicEamsAutoRefreshTimer() {
-    _academicEamsAutoRefreshTimer?.cancel();
-    _academicEamsAutoRefreshTimer = null;
-    if (!_academicEamsAutoRefreshEnabled) return;
-    final intervalMinutes = _academicEamsAutoRefreshIntervalMinutes;
-    if (intervalMinutes <= 0) return;
-    _academicEamsAutoRefreshTimer = Timer.periodic(
-      Duration(minutes: intervalMinutes),
-      (_) => _loadAcademicEamsOverview(),
-    );
   }
 
   /// 读取体育部自动刷新设置；未启用时不主动访问体育部系统。
@@ -177,38 +198,56 @@ class _AcademicPageState extends State<AcademicPage> {
         widget.sportsAttendanceAutoRefreshIntervalOverride ??
         await SportsAttendanceService.instance.getAutoRefreshIntervalMinutes();
     if (!mounted) return;
-    setState(() {
-      _sportsAttendanceAutoRefreshEnabled = enabled;
-      _sportsAttendanceAutoRefreshIntervalMinutes = interval;
-    });
-    _restartSportsAttendanceAutoRefreshTimer();
-    if (enabled) unawaited(_loadSportsAttendance());
+    setState(() => _sportsAttendanceAutoRefreshEnabled = enabled);
+    _restartSportsAttendanceAutoRefreshTimer(enabled, interval);
+    if (enabled &&
+        _shouldAutoRefresh(_sportsAttendanceResult?.checkedAt, interval)) {
+      unawaited(_loadSportsAttendance(silent: true));
+    }
+  }
+
+  void _restartSportsAttendanceAutoRefreshTimer(
+    bool enabled,
+    int intervalMinutes,
+  ) {
+    _sportsAttendanceAutoRefreshTimer?.cancel();
+    _sportsAttendanceAutoRefreshTimer = null;
+    if (!enabled || intervalMinutes <= 0) return;
+    _sportsAttendanceAutoRefreshTimer = Timer.periodic(
+      Duration(minutes: intervalMinutes),
+      (_) {
+        if (_shouldAutoRefresh(
+          _sportsAttendanceResult?.checkedAt,
+          intervalMinutes,
+        )) {
+          unawaited(_loadSportsAttendance(silent: true));
+        }
+      },
+    );
+  }
+
+  /// 先显示本地体育部考勤缓存，再按间隔决定是否静默刷新。
+  Future<void> _loadSportsAttendanceCacheAndSettings() async {
+    final cachedResult = await _sportsAttendanceService
+        .readLatestCachedAttendanceSummary();
+    if (mounted && cachedResult != null) {
+      setState(() => _sportsAttendanceResult = cachedResult);
+    }
+    await _loadSportsAttendanceAutoRefreshSettings();
   }
 
   /// 读取体育部课外活动考勤；失败时在卡片内展示明确状态。
-  Future<void> _loadSportsAttendance() async {
+  Future<void> _loadSportsAttendance({bool silent = false}) async {
     if (_isLoadingSportsAttendance) return;
-    setState(() => _isLoadingSportsAttendance = true);
+    if (!silent) setState(() => _isLoadingSportsAttendance = true);
 
     final result = await _sportsAttendanceService.fetchAttendanceSummary();
     if (!mounted) return;
+    if (silent && !result.isSuccess) return;
     setState(() {
       _sportsAttendanceResult = result;
-      _isLoadingSportsAttendance = false;
+      if (!silent) _isLoadingSportsAttendance = false;
     });
-  }
-
-  /// 根据设置重建体育部考勤自动刷新定时器。
-  void _restartSportsAttendanceAutoRefreshTimer() {
-    _sportsAttendanceAutoRefreshTimer?.cancel();
-    _sportsAttendanceAutoRefreshTimer = null;
-    if (!_sportsAttendanceAutoRefreshEnabled) return;
-    final intervalMinutes = _sportsAttendanceAutoRefreshIntervalMinutes;
-    if (intervalMinutes <= 0) return;
-    _sportsAttendanceAutoRefreshTimer = Timer.periodic(
-      Duration(minutes: intervalMinutes),
-      (_) => _loadSportsAttendance(),
-    );
   }
 
   /// 读取第二课堂学分自动刷新设置；未启用时不主动访问学工报表。
@@ -220,38 +259,72 @@ class _AcademicPageState extends State<AcademicPage> {
         widget.studentReportAutoRefreshIntervalOverride ??
         await StudentReportService.instance.getAutoRefreshIntervalMinutes();
     if (!mounted) return;
-    setState(() {
-      _studentReportAutoRefreshEnabled = enabled;
-      _studentReportAutoRefreshIntervalMinutes = interval;
-    });
-    _restartStudentReportAutoRefreshTimer();
-    if (enabled) unawaited(_loadStudentReport());
+    setState(() => _studentReportAutoRefreshEnabled = enabled);
+    _restartStudentReportAutoRefreshTimer(enabled, interval);
+    if (enabled &&
+        _shouldAutoRefresh(_studentReportResult?.checkedAt, interval)) {
+      unawaited(_loadStudentReport(silent: true));
+    }
+  }
+
+  void _restartStudentReportAutoRefreshTimer(
+    bool enabled,
+    int intervalMinutes,
+  ) {
+    _studentReportAutoRefreshTimer?.cancel();
+    _studentReportAutoRefreshTimer = null;
+    if (!enabled || intervalMinutes <= 0) return;
+    _studentReportAutoRefreshTimer = Timer.periodic(
+      Duration(minutes: intervalMinutes),
+      (_) {
+        if (_shouldAutoRefresh(
+          _studentReportResult?.checkedAt,
+          intervalMinutes,
+        )) {
+          unawaited(_loadStudentReport(silent: true));
+        }
+      },
+    );
+  }
+
+  /// 先显示本地第二课堂学分缓存，再按间隔决定是否静默刷新。
+  Future<void> _loadStudentReportCacheAndSettings() async {
+    final cachedResult = await _studentReportService
+        .readLatestCachedSecondClassroomCredits();
+    if (mounted && cachedResult != null) {
+      setState(() => _studentReportResult = cachedResult);
+    }
+    await _loadStudentReportAutoRefreshSettings();
   }
 
   /// 读取第二课堂学分；失败时在卡片内展示明确状态。
-  Future<void> _loadStudentReport() async {
+  Future<void> _loadStudentReport({bool silent = false}) async {
     if (_isLoadingStudentReport) return;
-    setState(() => _isLoadingStudentReport = true);
+    if (!silent) setState(() => _isLoadingStudentReport = true);
 
     final result = await _studentReportService.fetchSecondClassroomCredits();
     if (!mounted) return;
+    if (silent && !result.isSuccess) return;
     setState(() {
       _studentReportResult = result;
-      _isLoadingStudentReport = false;
+      if (!silent) _isLoadingStudentReport = false;
     });
   }
 
-  /// 根据设置重建第二课堂学分自动刷新定时器。
-  void _restartStudentReportAutoRefreshTimer() {
+  bool _shouldAutoRefresh(DateTime? fetchedAt, int intervalMinutes) {
+    if (intervalMinutes <= 0) return false;
+    if (fetchedAt == null) return true;
+    return DateTime.now().difference(fetchedAt) >=
+        Duration(minutes: intervalMinutes);
+  }
+
+  @override
+  void dispose() {
+    _credentialChangeSubscription?.cancel();
+    _academicEamsAutoRefreshTimer?.cancel();
+    _sportsAttendanceAutoRefreshTimer?.cancel();
     _studentReportAutoRefreshTimer?.cancel();
-    _studentReportAutoRefreshTimer = null;
-    if (!_studentReportAutoRefreshEnabled) return;
-    final intervalMinutes = _studentReportAutoRefreshIntervalMinutes;
-    if (intervalMinutes <= 0) return;
-    _studentReportAutoRefreshTimer = Timer.periodic(
-      Duration(minutes: intervalMinutes),
-      (_) => _loadStudentReport(),
-    );
+    super.dispose();
   }
 
   @override

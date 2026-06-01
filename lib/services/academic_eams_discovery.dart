@@ -201,6 +201,7 @@ extension _AcademicEamsDiscovery on AcademicEamsService {
     AcademicEamsQueryStatus status, {
     required String message,
     required String detail,
+    DateTime? checkedAt,
     Uri? finalUri,
     CampusNetworkStatus? campusNetworkStatus,
     AcademicEamsSnapshot? snapshot,
@@ -211,7 +212,7 @@ extension _AcademicEamsDiscovery on AcademicEamsService {
       status: status,
       message: message,
       detail: detail,
-      checkedAt: DateTime.now(),
+      checkedAt: checkedAt ?? DateTime.now(),
       entranceUri: entranceUri,
       finalUri: finalUri,
       campusNetworkStatus: campusNetworkStatus,

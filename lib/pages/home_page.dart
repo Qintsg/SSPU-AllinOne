@@ -12,6 +12,7 @@ import '../design/fluent_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../models/campus_card.dart';
 import '../models/message_item.dart';
+import '../services/academic_credentials_service.dart';
 import '../services/campus_card_service.dart';
 import '../services/campus_network_status_service.dart';
 import '../services/message_state_service.dart';
@@ -58,9 +59,8 @@ class _HomePageState extends State<HomePage> {
   CampusCardQueryResult? _campusCardResult;
   bool _isLoadingCampusCard = false;
   bool _campusCardAutoRefreshEnabled = false;
-  int _campusCardAutoRefreshIntervalMinutes =
-      CampusCardService.defaultAutoRefreshIntervalMinutes;
   Timer? _campusCardAutoRefreshTimer;
+  StreamSubscription<int>? _credentialChangeSubscription;
 
   CampusCardBalanceClient get _campusCardService {
     return widget.campusCardService ?? CampusCardService.instance;
@@ -69,14 +69,18 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _credentialChangeSubscription = AcademicCredentialsService.instance.changes
+        .listen((_) => _clearAuthenticatedState());
     _loadLatestMessages();
-    _loadCampusCardAutoRefreshSettings();
+    _loadCampusCardCacheAndSettings();
   }
 
-  @override
-  void dispose() {
-    _campusCardAutoRefreshTimer?.cancel();
-    super.dispose();
+  void _clearAuthenticatedState() {
+    if (!mounted) return;
+    setState(() {
+      _campusCardResult = null;
+      _isLoadingCampusCard = false;
+    });
   }
 
   /// 从本地存储加载消息并取前 5 条
@@ -98,41 +102,69 @@ class _HomePageState extends State<HomePage> {
         widget.campusCardAutoRefreshIntervalOverride ??
         await CampusCardService.instance.getAutoRefreshIntervalMinutes();
     if (!mounted) return;
-    setState(() {
-      _campusCardAutoRefreshEnabled = enabled;
-      _campusCardAutoRefreshIntervalMinutes = interval;
-    });
-    _restartCampusCardAutoRefreshTimer();
-    if (enabled) unawaited(_loadCampusCard());
+    setState(() => _campusCardAutoRefreshEnabled = enabled);
+    _restartCampusCardAutoRefreshTimer(enabled, interval);
+    if (enabled && _shouldAutoRefresh(_campusCardResult?.checkedAt, interval)) {
+      unawaited(_loadCampusCard(silent: true));
+    }
+  }
+
+  void _restartCampusCardAutoRefreshTimer(bool enabled, int intervalMinutes) {
+    _campusCardAutoRefreshTimer?.cancel();
+    _campusCardAutoRefreshTimer = null;
+    if (!enabled || intervalMinutes <= 0) return;
+    _campusCardAutoRefreshTimer = Timer.periodic(
+      Duration(minutes: intervalMinutes),
+      (_) {
+        if (_shouldAutoRefresh(_campusCardResult?.checkedAt, intervalMinutes)) {
+          unawaited(_loadCampusCard(silent: true));
+        }
+      },
+    );
+  }
+
+  /// 先显示本地校园卡缓存，再根据设置决定是否静默刷新。
+  Future<void> _loadCampusCardCacheAndSettings() async {
+    final cachedResult = await _campusCardService.readLatestCachedCampusCard();
+    if (mounted && cachedResult != null) {
+      setState(() => _campusCardResult = cachedResult);
+    }
+    await _loadCampusCardAutoRefreshSettings();
   }
 
   /// 读取校园卡余额、状态和交易记录。
-  Future<void> _loadCampusCard({DateTime? startDate, DateTime? endDate}) async {
+  Future<void> _loadCampusCard({
+    DateTime? startDate,
+    DateTime? endDate,
+    bool silent = false,
+  }) async {
     if (_isLoadingCampusCard) return;
-    setState(() => _isLoadingCampusCard = true);
+    if (!silent) setState(() => _isLoadingCampusCard = true);
 
     final result = await _campusCardService.fetchCampusCard(
       startDate: startDate,
       endDate: endDate,
     );
     if (!mounted) return;
+    if (silent && !result.isSuccess) return;
     setState(() {
       _campusCardResult = result;
-      _isLoadingCampusCard = false;
+      if (!silent) _isLoadingCampusCard = false;
     });
   }
 
-  /// 根据设置重建校园卡余额自动刷新定时器。
-  void _restartCampusCardAutoRefreshTimer() {
+  bool _shouldAutoRefresh(DateTime? fetchedAt, int intervalMinutes) {
+    if (intervalMinutes <= 0) return false;
+    if (fetchedAt == null) return true;
+    return DateTime.now().difference(fetchedAt) >=
+        Duration(minutes: intervalMinutes);
+  }
+
+  @override
+  void dispose() {
+    _credentialChangeSubscription?.cancel();
     _campusCardAutoRefreshTimer?.cancel();
-    _campusCardAutoRefreshTimer = null;
-    if (!_campusCardAutoRefreshEnabled) return;
-    final intervalMinutes = _campusCardAutoRefreshIntervalMinutes;
-    if (intervalMinutes <= 0) return;
-    _campusCardAutoRefreshTimer = Timer.periodic(
-      Duration(minutes: intervalMinutes),
-      (_) => _loadCampusCard(),
-    );
+    super.dispose();
   }
 
   @override

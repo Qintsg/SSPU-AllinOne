@@ -9,7 +9,9 @@
 import 'package:sspu_allinone/design/fluent_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/widgets/settings_security_section.dart';
 
 /// 等待目标组件出现，覆盖安全存储异步加载后的首帧。
@@ -21,6 +23,17 @@ Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
 }
 
 void main() {
+  setUp(() {
+    FlutterSecureStorage.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+  });
+
+  tearDown(() {
+    StorageService.debugUseSharedPreferencesStorageForTesting(null);
+    SharedPreferences.setMockInitialValues({});
+  });
+
   Future<void> configureNarrowView(WidgetTester tester) async {
     tester.view.physicalSize = const Size(320, 720);
     tester.view.devicePixelRatio = 1.0;

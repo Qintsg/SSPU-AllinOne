@@ -57,8 +57,8 @@ extension _AcademicEamsSearchFlow on AcademicEamsService {
       }
 
       var sessionSnapshot = await _credentialsService.readOaLoginSession();
-      var entrySnapshot = await _openEntryWithSession(sessionSnapshot);
-      if (_isAuthenticationRequired(entrySnapshot)) {
+      var refreshedBeforeEntry = false;
+      if (sessionSnapshot == null || !sessionSnapshot.hasCookies) {
         final loginResult = await _refreshOaLogin();
         if (!loginResult.isSuccess) {
           return _buildResult(
@@ -72,6 +72,25 @@ extension _AcademicEamsSearchFlow on AcademicEamsService {
         sessionSnapshot =
             await _credentialsService.readOaLoginSession() ??
             loginResult.sessionSnapshot;
+        refreshedBeforeEntry = true;
+      }
+      var entrySnapshot = await _openEntryWithSession(sessionSnapshot);
+      if (_isAuthenticationRequired(entrySnapshot)) {
+        if (!refreshedBeforeEntry) {
+          final loginResult = await _refreshOaLogin();
+          if (!loginResult.isSuccess) {
+            return _buildResult(
+              AcademicEamsQueryStatus.oaLoginRequired,
+              message: 'OA 登录状态不可用，无法访问本专科教务',
+              detail: loginResult.message,
+              finalUri: loginResult.finalUri,
+              campusNetworkStatus: campusStatus,
+            );
+          }
+          sessionSnapshot =
+              await _credentialsService.readOaLoginSession() ??
+              loginResult.sessionSnapshot;
+        }
         entrySnapshot = await _openEntryWithSession(sessionSnapshot);
       }
 
@@ -80,7 +99,7 @@ extension _AcademicEamsSearchFlow on AcademicEamsService {
         return _buildResult(
           AcademicEamsQueryStatus.oaLoginRequired,
           message: '本专科教务登录状态不可用',
-          detail: 'EAMS 入口仍返回 CAS 或教务登录页，请先在安全设置中验证 OA 登录。',
+          detail: 'EAMS 入口仍返回 CAS 或教务登录页，已无法自动刷新 OA 登录会话。',
           finalUri: homeSnapshot.finalUri,
           campusNetworkStatus: campusStatus,
         );
@@ -112,7 +131,7 @@ extension _AcademicEamsSearchFlow on AcademicEamsService {
         return _buildResult(
           AcademicEamsQueryStatus.oaLoginRequired,
           message: '本专科教务登录状态已失效',
-          detail: '进入只读查询页时返回了教务登录页，请先重新验证 OA 登录。',
+          detail: '进入只读查询页时返回了教务登录页，已无法自动刷新 OA 登录会话。',
           finalUri: searchEntrySnapshot.finalUri,
           campusNetworkStatus: campusStatus,
         );
@@ -143,7 +162,7 @@ extension _AcademicEamsSearchFlow on AcademicEamsService {
         return _buildResult(
           AcademicEamsQueryStatus.oaLoginRequired,
           message: '本专科教务登录状态已失效',
-          detail: '只读查询提交后返回了教务登录页，请重新验证 OA 登录。',
+          detail: '只读查询提交后返回了教务登录页，已无法自动刷新 OA 登录会话。',
           finalUri: resultSnapshot.finalUri,
           campusNetworkStatus: campusStatus,
         );
@@ -156,6 +175,9 @@ extension _AcademicEamsSearchFlow on AcademicEamsService {
           finalUri: resultSnapshot.finalUri,
           campusNetworkStatus: campusStatus,
         );
+      }
+      if (!await _hasSameOaCredentials(oaAccount, oaPassword)) {
+        return _credentialsChangedResult(campusStatus, resultSnapshot.finalUri);
       }
       return resultBuilder(resultSnapshot, campusStatus);
     } on TimeoutException {

@@ -8,15 +8,25 @@
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/models/academic_credentials.dart';
 import 'package:sspu_allinone/models/academic_login_validation.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/services/authenticated_data_cache_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
 
 void main() {
   final service = AcademicCredentialsService.instance;
 
   setUp(() {
     FlutterSecureStorage.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+  });
+
+  tearDown(() {
+    StorageService.debugUseSharedPreferencesStorageForTesting(null);
+    SharedPreferences.setMockInitialValues({});
   });
 
   test('保存教务凭据后返回账号与密码填写状态', () async {
@@ -117,6 +127,34 @@ void main() {
     expect(await service.readOaLoginSession(), isNull);
   });
 
+  test('同账号更新 OA 密码后旧登录会话不可复用', () async {
+    await service.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'old-pass',
+    );
+    await service.saveOaLoginSession(
+      AcademicLoginSessionSnapshot(
+        cookieHeadersByHost: const {
+          'oa.sspu.edu.cn': 'ecology_JSessionid=fake-session',
+        },
+        authenticatedAt: DateTime(2026, 4, 27),
+        entranceUri: Uri.parse(
+          'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
+        ),
+        finalUri: Uri.parse(
+          'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
+        ),
+      ),
+    );
+
+    await service.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'new-pass',
+    );
+
+    expect(await service.readOaLoginSession(), isNull);
+  });
+
   test('清除所有教务凭据时逐项删除安全存储键', () async {
     await service.saveCredentials(
       oaAccount: '20260001',
@@ -134,5 +172,53 @@ void main() {
     expect(status.hasOaPassword, isFalse);
     expect(status.hasSportsQueryPassword, isFalse);
     expect(status.hasEmailPassword, isFalse);
+  });
+
+  test('切换账号时清理鉴权业务缓存', () async {
+    await service.saveCredentials(oaAccount: '20260001');
+    await AuthenticatedDataCacheService.saveLatest(
+      collection: StorageKeys.campusCardCacheCollection,
+      accountKey: '20260001',
+      fetchedAt: DateTime(2026, 5, 1, 8),
+      data: const {'balance': 23.45},
+    );
+
+    await service.saveCredentials(oaAccount: '20260002');
+
+    expect(
+      await AuthenticatedDataCacheService.readLatest(
+        StorageKeys.campusCardCacheCollection,
+        accountKey: '20260001',
+      ),
+      isNull,
+    );
+  });
+
+  test('同账号更新任一密码时清理鉴权业务缓存', () async {
+    await service.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+      sportsQueryPassword: 'sports-pass',
+      emailPassword: 'mail-pass',
+    );
+    await AuthenticatedDataCacheService.saveLatest(
+      collection: StorageKeys.emailMailboxCacheCollection,
+      accountKey: '20260001@sspu.edu.cn',
+      fetchedAt: DateTime(2026, 5, 1, 8),
+      data: const {'subject': '旧邮件'},
+    );
+
+    await service.saveCredentials(
+      oaAccount: '20260001',
+      emailPassword: 'new-mail-pass',
+    );
+
+    expect(
+      await AuthenticatedDataCacheService.readLatest(
+        StorageKeys.emailMailboxCacheCollection,
+        accountKey: '20260001@sspu.edu.cn',
+      ),
+      isNull,
+    );
   });
 }

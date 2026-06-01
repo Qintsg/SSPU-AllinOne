@@ -12,6 +12,7 @@ import '../design/fluent_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/email_mailbox.dart';
+import '../services/academic_credentials_service.dart';
 import '../services/email_service.dart';
 import '../theme/fluent_tokens.dart';
 
@@ -46,9 +47,8 @@ class _EmailPageState extends State<EmailPage> {
   EmailLoginValidationResult? _validationResult;
   bool _isFetchingMessages = false;
   bool _emailAutoRefreshEnabled = false;
-  int _emailAutoRefreshIntervalMinutes =
-      EmailService.defaultAutoRefreshIntervalMinutes;
   Timer? _emailAutoRefreshTimer;
+  StreamSubscription<int>? _credentialChangeSubscription;
 
   EmailMailboxClient get _emailService {
     return widget.emailService ?? EmailService.instance;
@@ -57,13 +57,19 @@ class _EmailPageState extends State<EmailPage> {
   @override
   void initState() {
     super.initState();
-    _loadEmailAutoRefreshSettings();
+    _credentialChangeSubscription = AcademicCredentialsService.instance.changes
+        .listen((_) => _clearAuthenticatedState());
+    _loadMailboxCacheAndSettings();
   }
 
-  @override
-  void dispose() {
-    _emailAutoRefreshTimer?.cancel();
-    super.dispose();
+  void _clearAuthenticatedState() {
+    if (!mounted) return;
+    setState(() {
+      _mailboxResult = null;
+      _validationResult = null;
+      _isFetchingMessages = false;
+      _validatingProtocol = null;
+    });
   }
 
   /// 读取邮箱自动刷新设置；默认不主动访问邮箱系统。
@@ -75,41 +81,70 @@ class _EmailPageState extends State<EmailPage> {
         widget.emailAutoRefreshIntervalOverride ??
         await EmailService.instance.getAutoRefreshIntervalMinutes();
     if (!mounted) return;
-    setState(() {
-      _emailAutoRefreshEnabled = enabled;
-      _emailAutoRefreshIntervalMinutes = interval;
-    });
-    _restartEmailAutoRefreshTimer();
-    if (enabled) unawaited(_fetchMessages());
+    setState(() => _emailAutoRefreshEnabled = enabled);
+    _restartEmailAutoRefreshTimer(enabled, interval);
+    if (enabled && _shouldAutoRefresh(_mailboxResult?.checkedAt, interval)) {
+      unawaited(_fetchMessages(silent: true));
+    }
+  }
+
+  void _restartEmailAutoRefreshTimer(bool enabled, int intervalMinutes) {
+    _emailAutoRefreshTimer?.cancel();
+    _emailAutoRefreshTimer = null;
+    if (!enabled || intervalMinutes <= 0) return;
+    _emailAutoRefreshTimer = Timer.periodic(
+      Duration(minutes: intervalMinutes),
+      (_) {
+        if (_shouldAutoRefresh(_mailboxResult?.checkedAt, intervalMinutes)) {
+          unawaited(_fetchMessages(silent: true));
+        }
+      },
+    );
+  }
+
+  /// 先显示当前协议的本地邮箱缓存，再按间隔决定是否静默刷新。
+  Future<void> _loadMailboxCacheAndSettings() async {
+    await _loadCachedMessagesForSelectedProtocol();
+    await _loadEmailAutoRefreshSettings();
+  }
+
+  Future<void> _loadCachedMessagesForSelectedProtocol() async {
+    final cachedResult = await _emailService.readLatestCachedMessages(
+      _selectedProtocol,
+    );
+    if (!mounted) return;
+    setState(() => _mailboxResult = cachedResult);
   }
 
   /// 使用当前选择的只读协议读取最近邮件。
-  Future<void> _fetchMessages() async {
+  Future<void> _fetchMessages({bool silent = false}) async {
     if (_isFetchingMessages || _selectedProtocol == EmailProtocol.smtp) return;
-    setState(() => _isFetchingMessages = true);
+    if (!silent) setState(() => _isFetchingMessages = true);
 
     final result = await _emailService.fetchMessages(
       protocol: _selectedProtocol,
       messageCount: 10,
     );
     if (!mounted) return;
+    if (silent && !result.isSuccess) return;
     setState(() {
       _mailboxResult = result;
-      _isFetchingMessages = false;
+      if (!silent) _isFetchingMessages = false;
     });
   }
 
-  /// 根据设置重建邮箱自动刷新定时器。
-  void _restartEmailAutoRefreshTimer() {
+  bool _shouldAutoRefresh(DateTime? fetchedAt, int intervalMinutes) {
+    if (intervalMinutes <= 0) return false;
+    if (fetchedAt == null) return true;
+    return DateTime.now().difference(fetchedAt) >=
+        Duration(minutes: intervalMinutes);
+  }
+
+  @override
+  void dispose() {
+    _credentialChangeSubscription?.cancel();
     _emailAutoRefreshTimer?.cancel();
-    _emailAutoRefreshTimer = null;
-    if (!_emailAutoRefreshEnabled) return;
-    final intervalMinutes = _emailAutoRefreshIntervalMinutes;
-    if (intervalMinutes <= 0) return;
-    _emailAutoRefreshTimer = Timer.periodic(
-      Duration(minutes: intervalMinutes),
-      (_) => _fetchMessages(),
-    );
+    super.dispose();
   }
 
   /// 校验指定协议登录状态；SMTP 只认证，不发送邮件。
@@ -219,6 +254,7 @@ class _EmailPageState extends State<EmailPage> {
                       : (protocol) {
                           if (protocol == null) return;
                           setState(() => _selectedProtocol = protocol);
+                          unawaited(_loadCachedMessagesForSelectedProtocol());
                         },
                 ),
               ),

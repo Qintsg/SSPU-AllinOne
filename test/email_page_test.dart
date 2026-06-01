@@ -85,7 +85,7 @@ void main() {
         home: EmailPage(
           emailService: service,
           emailAutoRefreshEnabledOverride: true,
-          emailAutoRefreshIntervalOverride: 30,
+          emailAutoRefreshIntervalOverride: 1,
         ),
       ),
     );
@@ -93,6 +93,10 @@ void main() {
     await pumpUntilFound(tester, find.text('教务通知'));
 
     expect(service.fetchCount, 1);
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pump();
+
+    expect(service.fetchCount, 2);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 120));
   });
@@ -102,6 +106,13 @@ class _FakeEmailClient implements EmailMailboxClient {
   int fetchCount = 0;
   int validateCount = 0;
   EmailProtocol? lastValidatedProtocol;
+
+  @override
+  Future<EmailMailboxQueryResult?> readLatestCachedMessages(
+    EmailProtocol protocol,
+  ) async {
+    return null;
+  }
 
   @override
   Future<EmailMailboxQueryResult> fetchMessages({

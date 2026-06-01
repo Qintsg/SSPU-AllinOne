@@ -107,6 +107,50 @@ class AcademicLoginValidationService {
   /// 单次网络步骤超时时间。
   final Duration timeout;
 
+  Future<AcademicLoginValidationResult>? _ensureSessionFuture;
+  String? _ensureSessionAccountKey;
+  int? _ensureSessionCredentialMarker;
+
+  /// 确保本地已有可复用 OA 登录会话；缺失或强制刷新时自动执行 OA/CAS 登录。
+  Future<AcademicLoginValidationResult> ensureSavedSession({
+    bool forceRefresh = false,
+  }) async {
+    final accountKey = (await _credentialsService.getStatus()).oaAccount
+        .trim()
+        .toLowerCase();
+    final oaPassword = await _credentialsService.readSecret(
+      AcademicCredentialSecret.oaPassword,
+    );
+    final credentialMarker = Object.hash(accountKey, oaPassword ?? '', forceRefresh);
+    while (true) {
+      final activeFuture = _ensureSessionFuture;
+      if (activeFuture == null) break;
+      if (_ensureSessionAccountKey == accountKey &&
+          _ensureSessionCredentialMarker == credentialMarker) {
+        return activeFuture;
+      }
+      try {
+        await activeFuture;
+      } catch (_) {
+        // Ignore the other account's result; this call will start its own flow.
+      }
+    }
+    final future = _ensureSavedSession(
+      forceRefresh: forceRefresh,
+      accountKey: accountKey,
+    );
+    _ensureSessionFuture = future;
+    _ensureSessionAccountKey = accountKey;
+    _ensureSessionCredentialMarker = credentialMarker;
+    return future.whenComplete(() {
+      if (identical(_ensureSessionFuture, future)) {
+        _ensureSessionFuture = null;
+        _ensureSessionAccountKey = null;
+        _ensureSessionCredentialMarker = null;
+      }
+    });
+  }
+
   /// 使用本地已保存 OA 账号密码执行只读登录校验。
   Future<AcademicLoginValidationResult> validateSavedCredentials() async {
     CampusNetworkStatus? campusStatus;
@@ -149,12 +193,47 @@ class AcademicLoginValidationService {
       );
       if (validationResult.isSuccess &&
           validationResult.sessionSnapshot != null) {
+        final currentStatus = await _credentialsService.getStatus();
+        final currentOaPassword = await _credentialsService.readSecret(
+          AcademicCredentialSecret.oaPassword,
+        );
+        if (currentStatus.oaAccount.trim().toLowerCase() !=
+                oaAccount.toLowerCase() ||
+            currentOaPassword != oaPassword) {
+          return _buildResult(
+            AcademicLoginValidationStatus.unexpectedError,
+            message: 'OA 登录校验已取消',
+            detail: '教务凭据已在校验过程中变更，已丢弃本次登录会话。',
+            finalUri: validationResult.finalUri,
+            campusNetworkStatus: campusStatus,
+          );
+        }
+        final sessionSnapshot = validationResult.sessionSnapshot!
+            .withOwnerAccount(oaAccount);
         await _credentialsService.saveOaLoginSession(
-          validationResult.sessionSnapshot!,
+          sessionSnapshot,
+          ownerAccount: oaAccount,
+        );
+        return _buildResult(
+          AcademicLoginValidationStatus.success,
+          message: validationResult.message,
+          detail: validationResult.detail,
+          finalUri: validationResult.finalUri,
+          campusNetworkStatus: campusStatus,
+          sessionSnapshot: sessionSnapshot,
         );
       } else if (validationResult.status ==
           AcademicLoginValidationStatus.credentialsRejected) {
-        await _credentialsService.clearOaLoginSession();
+        final currentAccount = (await _credentialsService.getStatus()).oaAccount
+            .trim()
+            .toLowerCase();
+        final currentOaPassword = await _credentialsService.readSecret(
+          AcademicCredentialSecret.oaPassword,
+        );
+        if (currentAccount == oaAccount.toLowerCase() &&
+            currentOaPassword == oaPassword) {
+          await _credentialsService.clearOaLoginSession();
+        }
       }
       return validationResult;
     } on TimeoutException {
@@ -180,6 +259,28 @@ class AcademicLoginValidationService {
         campusNetworkStatus: campusStatus,
       );
     }
+  }
+
+  Future<AcademicLoginValidationResult> _ensureSavedSession({
+    required bool forceRefresh,
+    required String accountKey,
+  }) async {
+    if (accountKey.isEmpty) return validateSavedCredentials();
+    if (!forceRefresh) {
+      final sessionSnapshot = await _credentialsService.readOaLoginSession();
+      if (sessionSnapshot != null &&
+          sessionSnapshot.hasCookies &&
+          sessionSnapshot.ownerAccount == accountKey) {
+        return _buildResult(
+          AcademicLoginValidationStatus.success,
+          message: 'OA 登录会话已就绪',
+          detail: '本地已有可复用 OA/CAS Cookie，会在业务读取时自动使用。',
+          finalUri: sessionSnapshot.finalUri,
+          sessionSnapshot: sessionSnapshot,
+        );
+      }
+    }
+    return validateSavedCredentials();
   }
 
   Future<AcademicLoginValidationResult> _validateCredentials({

@@ -20,6 +20,7 @@ import '../models/campus_card.dart';
 import '../models/campus_network_status.dart';
 import 'academic_credentials_service.dart';
 import 'academic_login_validation_service.dart';
+import 'authenticated_data_cache_service.dart';
 import 'campus_network_status_service.dart';
 import 'http_service.dart';
 import 'storage_service.dart';
@@ -30,6 +31,9 @@ part 'campus_card_page_parser.dart';
 
 /// 教务首页依赖的校园卡查询接口，便于 widget 测试替换。
 abstract class CampusCardBalanceClient {
+  /// 读取最近一次本地校园卡业务快照。
+  Future<CampusCardQueryResult?> readLatestCachedCampusCard();
+
   /// 读取校园卡余额、卡状态和交易记录。
   Future<CampusCardQueryResult> fetchCampusCard({
     DateTime? startDate,
@@ -99,7 +103,9 @@ class CampusCardService implements CampusCardBalanceClient {
        _gateway = gateway ?? DioCampusCardGateway(),
        _refreshOaLogin =
            refreshOaLogin ??
-           AcademicLoginValidationService.instance.validateSavedCredentials,
+           (() => AcademicLoginValidationService.instance.ensureSavedSession(
+             forceRefresh: true,
+           )),
        entranceUri = entranceUri ?? defaultEntranceUri,
        homeUri = homeUri ?? defaultHomeUri,
        transactionIndexUri = transactionIndexUri ?? defaultTransactionIndexUri,
@@ -183,6 +189,27 @@ class CampusCardService implements CampusCardBalanceClient {
     );
   }
 
+  /// 读取最近一次本地校园卡业务快照。
+  @override
+  Future<CampusCardQueryResult?> readLatestCachedCampusCard() async {
+    final accountKey = (await _credentialsService.getStatus()).oaAccount.trim();
+    if (accountKey.isEmpty) return null;
+    final entry = await AuthenticatedDataCacheService.readLatest(
+      StorageKeys.campusCardCacheCollection,
+      accountKey: accountKey,
+    );
+    if (entry == null) return null;
+    final snapshot = CampusCardSnapshot.fromJson(entry.data);
+    return _buildResult(
+      CampusCardQueryStatus.success,
+      message: '已显示本地校园卡缓存',
+      detail: '显示最近一次成功读取并保存的校园卡余额、状态和交易记录。',
+      checkedAt: snapshot.fetchedAt,
+      finalUri: snapshot.sourceUri,
+      snapshot: snapshot,
+    );
+  }
+
   @override
   Future<CampusCardQueryResult> fetchCampusCard({
     DateTime? startDate,
@@ -221,11 +248,21 @@ class CampusCardService implements CampusCardBalanceClient {
         );
       }
 
-      return await _fetchWithOaSession(
+      final result = await _fetchWithOaSession(
         startDate: startDate,
         endDate: endDate,
         campusNetworkStatus: campusStatus,
       );
+      if (result.isSuccess && result.snapshot != null) {
+        if (!await _hasSameOaCredentials(studentId, oaPassword)) {
+          return _credentialsChangedResult(campusStatus, result.finalUri);
+        }
+        await _saveCampusCardCache(
+          accountKey: studentId,
+          snapshot: result.snapshot!,
+        );
+      }
+      return result;
     } on TimeoutException {
       return _buildResult(
         CampusCardQueryStatus.networkError,
@@ -251,14 +288,51 @@ class CampusCardService implements CampusCardBalanceClient {
     }
   }
 
+  Future<void> _saveCampusCardCache({
+    required String accountKey,
+    required CampusCardSnapshot snapshot,
+  }) async {
+    await AuthenticatedDataCacheService.saveLatest(
+      collection: StorageKeys.campusCardCacheCollection,
+      accountKey: accountKey,
+      fetchedAt: snapshot.fetchedAt,
+      data: snapshot.toJson(),
+    );
+  }
+
+  Future<bool> _hasSameOaCredentials(
+    String accountKey,
+    String oaPassword,
+  ) async {
+    final currentAccountKey = (await _credentialsService.getStatus()).oaAccount
+        .trim();
+    final currentOaPassword = await _credentialsService.readSecret(
+      AcademicCredentialSecret.oaPassword,
+    );
+    return currentAccountKey == accountKey && currentOaPassword == oaPassword;
+  }
+
+  CampusCardQueryResult _credentialsChangedResult(
+    CampusNetworkStatus? campusStatus,
+    Uri? finalUri,
+  ) {
+    return _buildResult(
+      CampusCardQueryStatus.unexpectedError,
+      message: '校园卡查询已取消',
+      detail: '教务凭据已在查询过程中变更，已丢弃本次校园卡结果。',
+      finalUri: finalUri,
+      campusNetworkStatus: campusStatus,
+    );
+  }
+
   Future<CampusCardQueryResult> _fetchWithOaSession({
     DateTime? startDate,
     DateTime? endDate,
     required CampusNetworkStatus campusNetworkStatus,
   }) async {
     var sessionSnapshot = await _credentialsService.readOaLoginSession();
-    var entrySnapshot = await _openEntryWithSession(sessionSnapshot);
-    if (_isAuthenticationRequired(entrySnapshot)) {
+    var refreshedBeforeEntry = false;
+    if (sessionSnapshot == null || !sessionSnapshot.hasCookies) {
       final loginResult = await _refreshOaLogin();
       if (!loginResult.isSuccess) {
         return _buildResult(
@@ -272,6 +346,25 @@ class CampusCardService implements CampusCardBalanceClient {
       sessionSnapshot =
           await _credentialsService.readOaLoginSession() ??
           loginResult.sessionSnapshot;
+      refreshedBeforeEntry = true;
+    }
+    var entrySnapshot = await _openEntryWithSession(sessionSnapshot);
+    if (_isAuthenticationRequired(entrySnapshot)) {
+      if (!refreshedBeforeEntry) {
+        final loginResult = await _refreshOaLogin();
+        if (!loginResult.isSuccess) {
+          return _buildResult(
+            CampusCardQueryStatus.oaLoginRequired,
+            message: 'OA 登录状态不可用，无法查询校园卡',
+            detail: loginResult.message,
+            finalUri: loginResult.finalUri,
+            campusNetworkStatus: campusNetworkStatus,
+          );
+        }
+        sessionSnapshot =
+            await _credentialsService.readOaLoginSession() ??
+            loginResult.sessionSnapshot;
+      }
       entrySnapshot = await _openEntryWithSession(sessionSnapshot);
     }
     entrySnapshot = await _resolveBusinessEntrySnapshot(entrySnapshot);
@@ -280,7 +373,7 @@ class CampusCardService implements CampusCardBalanceClient {
       return _buildResult(
         CampusCardQueryStatus.oaLoginRequired,
         message: 'OA 登录状态不可用，无法进入校园卡系统',
-        detail: '校园卡入口仍返回 CAS 登录页，请先在安全设置中验证 OA 登录。',
+        detail: '校园卡入口仍返回 CAS 登录页，已无法自动刷新 OA 登录会话。',
         finalUri: entrySnapshot.finalUri,
         campusNetworkStatus: campusNetworkStatus,
       );

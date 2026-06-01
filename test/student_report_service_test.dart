@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sspu_allinone/models/academic_credentials.dart';
 import 'package:sspu_allinone/models/academic_login_validation.dart';
 import 'package:sspu_allinone/models/student_report.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
@@ -331,5 +332,34 @@ void main() {
     expect(records?.single.itemName, '迎新志愿服务');
     expect(records?.single.status, isNull);
     expect(records?.single.credit, 1);
+  });
+
+  test('第二课堂查询过程中清除 OA 密码时不会重新写入学工缓存', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    final gateway = _FakeStudentReportGateway(
+      beforeCreditReturn: () => AcademicCredentialsService.instance.clearSecret(
+        AcademicCredentialSecret.oaPassword,
+      ),
+    );
+    final service = _buildService(
+      gateway: gateway,
+      campusReachable: true,
+      refreshOaLogin: () async {
+        await AcademicCredentialsService.instance.saveOaLoginSession(
+          _sessionSnapshot,
+        );
+        return _loginSuccessResult();
+      },
+    );
+
+    final result = await service.fetchSecondClassroomCredits();
+    final cachedResult = await service.readLatestCachedSecondClassroomCredits();
+
+    expect(result.status, StudentReportQueryStatus.unexpectedError);
+    expect(result.summary, isNull);
+    expect(cachedResult, isNull);
   });
 }

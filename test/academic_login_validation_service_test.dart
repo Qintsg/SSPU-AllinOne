@@ -6,6 +6,8 @@
  * @Date : 2026-04-27
  */
 
+import 'dart:async';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/models/academic_login_validation.dart';
@@ -173,6 +175,108 @@ void main() {
 
     expect(result.status, AcademicLoginValidationStatus.captchaRequired);
   });
+
+  test('自动确保 OA 会话会合并并发登录请求', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    final gateway = _FakeAcademicLoginGateway(
+      loginPage: _casLoginSnapshot(),
+      submitSnapshot: AcademicLoginHttpSnapshot(
+        finalUri: _oaEntranceUri,
+        statusCode: 200,
+        body: '<html>OA</html>',
+      ),
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final results = await Future.wait([
+      service.ensureSavedSession(forceRefresh: true),
+      service.ensureSavedSession(forceRefresh: true),
+    ]);
+
+    expect(results.every((result) => result.isSuccess), isTrue);
+    expect(gateway.openCount, 1);
+    expect(
+      await AcademicCredentialsService.instance.readOaLoginSession(),
+      isNotNull,
+    );
+  });
+
+  test('切换账号后不会复用进行中的旧账号 OA 登录会话', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    final submitGate = Completer<void>();
+    final submitStarted = Completer<void>();
+    final gateway = _FakeAcademicLoginGateway(
+      submitGate: submitGate,
+      submitStarted: submitStarted,
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final firstResultFuture = service.ensureSavedSession(forceRefresh: true);
+    await submitStarted.future;
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260002',
+      oaPassword: 'oa-pass',
+    );
+    final secondResultFuture = service.ensureSavedSession(forceRefresh: true);
+    submitGate.complete();
+
+    final firstResult = await firstResultFuture;
+    final secondResult = await secondResultFuture;
+    final sessionSnapshot = await AcademicCredentialsService.instance
+        .readOaLoginSession();
+
+    expect(firstResult.status, AcademicLoginValidationStatus.unexpectedError);
+    expect(secondResult.status, AcademicLoginValidationStatus.success);
+    expect(gateway.openCount, 2);
+    expect(gateway.submittedFieldsHistory.map((fields) => fields['username']), [
+      '20260001',
+      '20260002',
+    ]);
+    expect(sessionSnapshot?.ownerAccount, '20260002');
+  });
+
+  test('同账号更新 OA 密码后不会复用进行中的旧密码登录会话', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'old-pass',
+    );
+    final submitGate = Completer<void>();
+    final submitStarted = Completer<void>();
+    final gateway = _FakeAcademicLoginGateway(
+      submitGate: submitGate,
+      submitStarted: submitStarted,
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final firstResultFuture = service.ensureSavedSession(forceRefresh: true);
+    await submitStarted.future;
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'new-pass',
+    );
+    final secondResultFuture = service.ensureSavedSession(forceRefresh: true);
+    submitGate.complete();
+
+    final firstResult = await firstResultFuture;
+    final secondResult = await secondResultFuture;
+    final sessionSnapshot = await AcademicCredentialsService.instance
+        .readOaLoginSession();
+
+    expect(firstResult.status, AcademicLoginValidationStatus.unexpectedError);
+    expect(secondResult.status, AcademicLoginValidationStatus.success);
+    expect(gateway.openCount, 2);
+    expect(gateway.submittedFieldsHistory.map((fields) => fields['username']), [
+      '20260001',
+      '20260001',
+    ]);
+    expect(sessionSnapshot?.ownerAccount, '20260001');
+  });
 }
 
 AcademicLoginValidationService _buildService({
@@ -225,6 +329,8 @@ class _FakeAcademicLoginGateway implements AcademicLoginGateway {
     AcademicLoginHttpSnapshot? loginPage,
     AcademicLoginHttpSnapshot? submitSnapshot,
     Map<String, String>? sessionCookieHeadersByHost,
+    this.submitGate,
+    this.submitStarted,
   }) : loginPage = loginPage ?? _casLoginSnapshot(),
        submitSnapshot =
            submitSnapshot ??
@@ -243,8 +349,11 @@ class _FakeAcademicLoginGateway implements AcademicLoginGateway {
   final AcademicLoginHttpSnapshot loginPage;
   final AcademicLoginHttpSnapshot submitSnapshot;
   final Map<String, String> sessionCookieHeadersByHost;
+  final Completer<void>? submitGate;
+  final Completer<void>? submitStarted;
   int openCount = 0;
   Map<String, String>? submittedFields;
+  final List<Map<String, String>> submittedFieldsHistory = [];
 
   @override
   Future<void> resetSession() async {}
@@ -268,6 +377,12 @@ class _FakeAcademicLoginGateway implements AcademicLoginGateway {
     required Duration timeout,
   }) async {
     submittedFields = fields;
+    submittedFieldsHistory.add(Map<String, String>.from(fields));
+    final submitStarted = this.submitStarted;
+    if (submitStarted != null && !submitStarted.isCompleted) {
+      submitStarted.complete();
+    }
+    await submitGate?.future;
     return submitSnapshot;
   }
 

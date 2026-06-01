@@ -15,6 +15,7 @@ import 'package:html/parser.dart' as html_parser;
 import '../models/academic_credentials.dart';
 import '../models/email_mailbox.dart';
 import 'academic_credentials_service.dart';
+import 'authenticated_data_cache_service.dart';
 import 'storage_service.dart';
 
 part 'email_gateway.dart';
@@ -22,6 +23,11 @@ part 'email_support.dart';
 
 /// 邮箱页面依赖的只读查询接口，便于 widget 测试替换。
 abstract class EmailMailboxClient {
+  /// 读取最近一次指定协议的本地邮箱缓存。
+  Future<EmailMailboxQueryResult?> readLatestCachedMessages(
+    EmailProtocol protocol,
+  );
+
   /// 通过 IMAP 或 POP 读取最近邮件；SMTP 不允许用于收信。
   Future<EmailMailboxQueryResult> fetchMessages({
     required EmailProtocol protocol,
@@ -167,6 +173,32 @@ class EmailService implements EmailMailboxClient {
     );
   }
 
+  /// 读取最近一次指定协议的本地邮箱缓存。
+  @override
+  Future<EmailMailboxQueryResult?> readLatestCachedMessages(
+    EmailProtocol protocol,
+  ) async {
+    final accountKey = normalizeEmailAccount(
+      (await _credentialsService.getStatus()).oaAccount,
+    );
+    if (accountKey.isEmpty) return null;
+    final entry = await AuthenticatedDataCacheService.readLatest(
+      _mailboxCacheCollection(protocol),
+      accountKey: accountKey,
+    );
+    if (entry == null) return null;
+    final snapshot = EmailMailboxSnapshot.fromJson(entry.data);
+    return _buildMailboxResult(
+      status: EmailQueryStatus.success,
+      protocol: snapshot.protocol,
+      endpoint: snapshot.endpoint,
+      message: '已显示本地邮箱缓存',
+      detail: '显示最近一次成功读取并保存的 ${snapshot.protocol.label} 邮件快照。',
+      checkedAt: snapshot.fetchedAt,
+      snapshot: snapshot,
+    );
+  }
+
   /// 将学工号规范化为固定学校邮箱地址。
   static String normalizeEmailAccount(String studentId) {
     final trimmedStudentId = studentId.trim();
@@ -224,21 +256,45 @@ class EmailService implements EmailMailboxClient {
         EmailProtocol.smtp => const <EmailMessageSnapshot>[],
       };
       final fetchedAt = DateTime.now();
-      return _buildMailboxResult(
+      final snapshot = EmailMailboxSnapshot(
+        protocol: protocol,
+        account: credentials.account,
+        messages: messages,
+        fetchedAt: fetchedAt,
+        endpoint: endpoint,
+      );
+      final result = _buildMailboxResult(
         status: EmailQueryStatus.success,
         protocol: protocol,
         endpoint: endpoint,
         message: '${protocol.label} 邮件读取完成',
         detail: '已通过只读协议读取最近 ${messages.length} 封邮件。',
         checkedAt: fetchedAt,
-        snapshot: EmailMailboxSnapshot(
-          protocol: protocol,
-          account: credentials.account,
-          messages: messages,
-          fetchedAt: fetchedAt,
-          endpoint: endpoint,
-        ),
+        snapshot: snapshot,
       );
+      final currentAccount = normalizeEmailAccount(
+        (await _credentialsService.getStatus()).oaAccount,
+      );
+      final currentPassword = await _credentialsService.readSecret(
+        AcademicCredentialSecret.emailPassword,
+      );
+      if (currentAccount != credentials.account ||
+          currentPassword != credentials.password) {
+        return _buildMailboxResult(
+          status: EmailQueryStatus.unexpectedError,
+          protocol: protocol,
+          endpoint: endpoint,
+          message: '邮箱读取已取消',
+          detail: '邮箱凭据已在读取过程中变更，已丢弃本次邮箱结果。',
+        );
+      }
+      await AuthenticatedDataCacheService.saveLatest(
+        collection: _mailboxCacheCollection(protocol),
+        accountKey: credentials.account,
+        fetchedAt: snapshot.fetchedAt,
+        data: snapshot.toJson(),
+      );
+      return result;
     } on TimeoutException {
       return _networkFailure(protocol, endpoint, '邮箱服务器响应超时');
     } on SocketException {
@@ -355,6 +411,10 @@ class EmailService implements EmailMailboxClient {
 
   int _normalizeAutoRefreshInterval(int minutes) {
     return minutes <= 0 ? defaultAutoRefreshIntervalMinutes : minutes;
+  }
+
+  String _mailboxCacheCollection(EmailProtocol protocol) {
+    return '${StorageKeys.emailMailboxCacheCollection}_${protocol.name}';
   }
 
   Future<_EmailCredentials> _readCredentials() async {

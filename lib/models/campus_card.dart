@@ -66,6 +66,30 @@ class CampusCardTransactionRecord {
 
   /// 原始表格单元格文本，页面结构变化时用于兜底展示。
   final List<String> rawCells;
+
+  /// 从 JSON 恢复校园卡交易记录。
+  factory CampusCardTransactionRecord.fromJson(Map<String, dynamic> json) {
+    return CampusCardTransactionRecord(
+      occurredAt: json['occurredAt'] as String? ?? '',
+      amount: (json['amount'] as num?)?.toDouble() ?? 0,
+      merchant: json['merchant'] as String?,
+      type: json['type'] as String?,
+      balanceAfter: (json['balanceAfter'] as num?)?.toDouble(),
+      rawCells: (json['rawCells'] as List<dynamic>? ?? const []).cast<String>(),
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'occurredAt': occurredAt,
+      'amount': amount,
+      'merchant': merchant,
+      'type': type,
+      'balanceAfter': balanceAfter,
+      'rawCells': rawCells,
+    };
+  }
 }
 
 /// 校园卡余额与交易记录快照。
@@ -92,6 +116,33 @@ class CampusCardSnapshot {
 
   /// 产生该快照的最后一个业务页面地址。
   final Uri sourceUri;
+
+  /// 从 JSON 恢复校园卡快照。
+  factory CampusCardSnapshot.fromJson(Map<String, dynamic> json) {
+    return CampusCardSnapshot(
+      balance: (json['balance'] as num?)?.toDouble(),
+      status: json['status'] as String? ?? '',
+      records: (json['records'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(CampusCardTransactionRecord.fromJson)
+          .toList(),
+      fetchedAt:
+          DateTime.tryParse(json['fetchedAt'] as String? ?? '')?.toLocal() ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      sourceUri: Uri.parse(json['sourceUri'] as String? ?? ''),
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'balance': balance,
+      'status': status,
+      'records': records.map((record) => record.toJson()).toList(),
+      'fetchedAt': fetchedAt.toUtc().toIso8601String(),
+      'sourceUri': sourceUri.toString(),
+    };
+  }
 
   /// 页面是否明确显示非正常状态。
   bool get hasAbnormalStatus {

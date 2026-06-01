@@ -6,12 +6,15 @@
  * @Date : 2026-04-24
  */
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../models/academic_credentials.dart';
 import '../models/academic_login_validation.dart';
+import 'authenticated_data_cache_service.dart';
+import 'storage_service.dart';
 
 /// 教务凭据安全存储服务。
 /// 使用系统安全存储保存可解密凭据，供后续外部网站登录流程读取。
@@ -46,6 +49,13 @@ class AcademicCredentialsService {
   /// Android 端由 flutter_secure_storage 使用当前默认加密实现托管密钥。
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
+  final StreamController<int> _changeController =
+      StreamController<int>.broadcast();
+  int _changeVersion = 0;
+
+  /// 凭据变化通知；页面据此丢弃已挂载的旧账号业务状态。
+  Stream<int> get changes => _changeController.stream;
+
   /// 获取设置页展示所需的凭据状态。
   Future<AcademicCredentialsStatus> getStatus() async {
     final oaAccount = await _readValue(_oaAccountKey);
@@ -73,16 +83,28 @@ class AcademicCredentialsService {
   }) async {
     final normalizedOaAccount = oaAccount.trim();
     final previousOaAccount = await _readValue(_oaAccountKey) ?? '';
+    final shouldClearForSecretUpdate =
+        (oaPassword != null && oaPassword.isNotEmpty) ||
+        (sportsQueryPassword != null && sportsQueryPassword.isNotEmpty) ||
+        (emailPassword != null && emailPassword.isNotEmpty);
+    final shouldClearAuthenticatedCache =
+        (previousOaAccount.isNotEmpty &&
+            previousOaAccount != normalizedOaAccount) ||
+        shouldClearForSecretUpdate;
     final shouldClearOaSession =
         previousOaAccount != normalizedOaAccount ||
         (oaPassword != null && oaPassword.isNotEmpty);
 
+    if (shouldClearOaSession) await clearOaLoginSession();
     await _writeOrDeleteWhenBlank(_oaAccountKey, normalizedOaAccount);
     await _secureStorage.delete(key: _legacyEmailAccountKey);
     await _writeWhenPresent(_oaPasswordKey, oaPassword);
     await _writeWhenPresent(_sportsQueryPasswordKey, sportsQueryPassword);
     await _writeWhenPresent(_emailPasswordKey, emailPassword);
-    if (shouldClearOaSession) await clearOaLoginSession();
+    if (shouldClearAuthenticatedCache) {
+      await AuthenticatedDataCacheService.clearAll();
+      _notifyChanged();
+    }
   }
 
   /// 读取指定密码字段原文，供后续登录外部网站使用。
@@ -92,12 +114,29 @@ class AcademicCredentialsService {
 
   /// 保存 OA 登录后返回的会话身份信息。
   Future<void> saveOaLoginSession(
-    AcademicLoginSessionSnapshot sessionSnapshot,
-  ) async {
+    AcademicLoginSessionSnapshot sessionSnapshot, {
+    String? ownerAccount,
+  }) async {
     if (!sessionSnapshot.hasCookies) return;
+    final normalizedOwnerAccount = _normalizeAccount(
+      ownerAccount ?? await _readValue(_oaAccountKey) ?? '',
+    );
+    if (normalizedOwnerAccount.isEmpty) return;
+    final ownerCredentialHash = _ownerCredentialHash(
+      normalizedOwnerAccount,
+      await _readValue(_oaPasswordKey) ?? '',
+    );
+    if (ownerCredentialHash.isEmpty) return;
     await _secureStorage.write(
       key: _oaLoginSessionKey,
-      value: jsonEncode(sessionSnapshot.toJson()),
+      value: jsonEncode(
+        sessionSnapshot
+            .withOwnerAccount(
+              normalizedOwnerAccount,
+              ownerCredentialHash: ownerCredentialHash,
+            )
+            .toJson(),
+      ),
     );
   }
 
@@ -107,7 +146,24 @@ class AcademicCredentialsService {
     if (sessionPayload == null || sessionPayload.trim().isEmpty) return null;
     try {
       final decodedPayload = jsonDecode(sessionPayload) as Map<String, dynamic>;
-      return AcademicLoginSessionSnapshot.fromJson(decodedPayload);
+      final sessionSnapshot = AcademicLoginSessionSnapshot.fromJson(
+        decodedPayload,
+      );
+      final currentAccount = _normalizeAccount(
+        await _readValue(_oaAccountKey) ?? '',
+      );
+      final currentCredentialHash = _ownerCredentialHash(
+        currentAccount,
+        await _readValue(_oaPasswordKey) ?? '',
+      );
+      if (currentAccount.isEmpty ||
+          currentCredentialHash.isEmpty ||
+          sessionSnapshot.ownerAccount != currentAccount ||
+          sessionSnapshot.ownerCredentialHash != currentCredentialHash) {
+        await clearOaLoginSession();
+        return null;
+      }
+      return sessionSnapshot;
     } catch (_) {
       await clearOaLoginSession();
       return null;
@@ -129,9 +185,11 @@ class AcademicCredentialsService {
   /// 清除指定密码字段。
   Future<void> clearSecret(AcademicCredentialSecret secret) async {
     await _secureStorage.delete(key: _keyOf(secret));
+    await AuthenticatedDataCacheService.clearAll();
     if (secret == AcademicCredentialSecret.oaPassword) {
       await clearOaLoginSession();
     }
+    _notifyChanged();
   }
 
   /// 清除本服务管理的所有教务凭据。
@@ -139,6 +197,8 @@ class AcademicCredentialsService {
     for (final key in _allKeys) {
       await _secureStorage.delete(key: key);
     }
+    await AuthenticatedDataCacheService.clearAll();
+    _notifyChanged();
   }
 
   /// 当前服务管理的全部安全存储键。
@@ -185,5 +245,22 @@ class AcademicCredentialsService {
     final normalizedOaAccount = oaAccount.trim();
     if (normalizedOaAccount.isEmpty) return '';
     return '$normalizedOaAccount@sspu.edu.cn';
+  }
+
+  String _normalizeAccount(String value) {
+    return value.trim().toLowerCase();
+  }
+
+  String _ownerCredentialHash(String ownerAccount, String oaPassword) {
+    final normalizedOwnerAccount = _normalizeAccount(ownerAccount);
+    if (normalizedOwnerAccount.isEmpty || oaPassword.isEmpty) return '';
+    return StorageService.hashPassword(
+      'academic-login-session:$normalizedOwnerAccount:$oaPassword',
+    );
+  }
+
+  void _notifyChanged() {
+    _changeVersion++;
+    _changeController.add(_changeVersion);
   }
 }

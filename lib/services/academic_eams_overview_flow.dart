@@ -45,7 +45,18 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
         );
       }
 
-      return await _fetchWithOaSession(scope, campusStatus);
+      final result = await _fetchWithOaSession(scope, campusStatus);
+      if (result.isSuccess && result.snapshot != null) {
+        if (!await _hasSameOaCredentials(oaAccount, oaPassword)) {
+          return _credentialsChangedResult(campusStatus, result.finalUri);
+        }
+        await _saveAcademicEamsCache(
+          scope: scope,
+          accountKey: oaAccount,
+          snapshot: result.snapshot!,
+        );
+      }
+      return result;
     } on TimeoutException {
       return _buildResult(
         AcademicEamsQueryStatus.networkError,
@@ -71,13 +82,53 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
     }
   }
 
+  Future<void> _saveAcademicEamsCache({
+    required _AcademicFetchScope scope,
+    required String accountKey,
+    required AcademicEamsSnapshot snapshot,
+  }) async {
+    await AuthenticatedDataCacheService.saveLatest(
+      collection: scope == _AcademicFetchScope.courseTableOnly
+          ? StorageKeys.academicEamsCourseTableCacheCollection
+          : StorageKeys.academicEamsOverviewCacheCollection,
+      accountKey: accountKey,
+      fetchedAt: snapshot.fetchedAt,
+      data: snapshot.toJson(),
+    );
+  }
+
+  Future<bool> _hasSameOaCredentials(
+    String accountKey,
+    String oaPassword,
+  ) async {
+    final currentAccountKey = (await _credentialsService.getStatus()).oaAccount
+        .trim();
+    final currentOaPassword = await _credentialsService.readSecret(
+      AcademicCredentialSecret.oaPassword,
+    );
+    return currentAccountKey == accountKey && currentOaPassword == oaPassword;
+  }
+
+  AcademicEamsQueryResult _credentialsChangedResult(
+    CampusNetworkStatus? campusStatus,
+    Uri? finalUri,
+  ) {
+    return _buildResult(
+      AcademicEamsQueryStatus.unexpectedError,
+      message: '本专科教务查询已取消',
+      detail: '教务凭据已在查询过程中变更，已丢弃本次教务结果。',
+      finalUri: finalUri,
+      campusNetworkStatus: campusStatus,
+    );
+  }
+
   Future<AcademicEamsQueryResult> _fetchWithOaSession(
     _AcademicFetchScope scope,
     CampusNetworkStatus campusNetworkStatus,
   ) async {
     var sessionSnapshot = await _credentialsService.readOaLoginSession();
-    var entrySnapshot = await _openEntryWithSession(sessionSnapshot);
-    if (_isAuthenticationRequired(entrySnapshot)) {
+    var refreshedBeforeEntry = false;
+    if (sessionSnapshot == null || !sessionSnapshot.hasCookies) {
       final loginResult = await _refreshOaLogin();
       if (!loginResult.isSuccess) {
         return _buildResult(
@@ -91,6 +142,25 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
       sessionSnapshot =
           await _credentialsService.readOaLoginSession() ??
           loginResult.sessionSnapshot;
+      refreshedBeforeEntry = true;
+    }
+    var entrySnapshot = await _openEntryWithSession(sessionSnapshot);
+    if (_isAuthenticationRequired(entrySnapshot)) {
+      if (!refreshedBeforeEntry) {
+        final loginResult = await _refreshOaLogin();
+        if (!loginResult.isSuccess) {
+          return _buildResult(
+            AcademicEamsQueryStatus.oaLoginRequired,
+            message: 'OA 登录状态不可用，无法访问本专科教务',
+            detail: loginResult.message,
+            finalUri: loginResult.finalUri,
+            campusNetworkStatus: campusNetworkStatus,
+          );
+        }
+        sessionSnapshot =
+            await _credentialsService.readOaLoginSession() ??
+            loginResult.sessionSnapshot;
+      }
       entrySnapshot = await _openEntryWithSession(sessionSnapshot);
     }
 
@@ -99,7 +169,7 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
       return _buildResult(
         AcademicEamsQueryStatus.oaLoginRequired,
         message: '本专科教务登录状态不可用',
-        detail: 'EAMS 入口仍返回 CAS 或教务登录页，请先在安全设置中验证 OA 登录。',
+        detail: 'EAMS 入口仍返回 CAS 或教务登录页，已无法自动刷新 OA 登录会话。',
         finalUri: homeSnapshot.finalUri,
         campusNetworkStatus: campusNetworkStatus,
       );
