@@ -50,7 +50,7 @@ dependencies:
   crypto: ^3.0.6
 
   # 系统安全存储，用于保存需解密使用的本地教务凭据
-  flutter_secure_storage: ^10.2.0
+  flutter_secure_storage: ^10.3.1
 
   # 系统快速验证，用于可选的本机 PIN/生物识别解锁确认
   local_auth: ^3.0.1
