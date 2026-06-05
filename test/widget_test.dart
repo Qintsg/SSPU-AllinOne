@@ -44,13 +44,27 @@ Future<void> deleteDirectoryWithRetry(Directory directory) async {
 }
 
 void main() {
-  Future<void> configureMobileView(WidgetTester tester) async {
+  Future<void> configureMobileView(
+    WidgetTester tester, {
+    double topPadding = 0,
+    double bottomPadding = 0,
+  }) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
+    tester.view.padding = FakeViewPadding(
+      top: topPadding,
+      bottom: bottomPadding,
+    );
+    tester.view.viewPadding = FakeViewPadding(
+      top: topPadding,
+      bottom: bottomPadding,
+    );
     await tester.binding.setSurfaceSize(const Size(390, 844));
   }
 
   Future<void> resetMobileView(WidgetTester tester) async {
+    tester.view.resetPadding();
+    tester.view.resetViewPadding();
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
     await tester.binding.setSurfaceSize(null);
@@ -125,6 +139,80 @@ void main() {
       debugDefaultTargetPlatformOverride = previousTargetPlatform;
       StorageService.debugUseSharedPreferencesStorageForTesting(null);
       SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await resetMobileView(tester);
+    }
+  });
+
+  Future<void> expectMobileSafeAreaLayout(
+    WidgetTester tester,
+    TargetPlatform platform,
+  ) async {
+    final previousTargetPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = platform;
+    await configureMobileView(tester, topPadding: 44, bottomPadding: 34);
+
+    try {
+      SharedPreferences.setMockInitialValues({});
+      StorageService.debugUseSharedPreferencesStorageForTesting(true);
+      final service = _buildCampusNetworkStatusService();
+      await tester.pumpWidget(
+        FluentApp(home: AppShell(campusNetworkStatusService: service)),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final titleTop = tester.getTopLeft(find.text('主页').first).dy;
+      expect(titleTop, greaterThanOrEqualTo(44));
+
+      final bottomNavigation = find.byKey(
+        const Key('mobile-bottom-navigation'),
+      );
+      expect(bottomNavigation, findsOneWidget);
+      expect(tester.getBottomLeft(bottomNavigation).dy, 844);
+
+      final selectedHomeLabel = find
+          .descendant(of: bottomNavigation, matching: find.text('主页'))
+          .first;
+      expect(tester.getBottomLeft(selectedHomeLabel).dy, lessThanOrEqualTo(810));
+
+      await tester.pump(const Duration(milliseconds: 300));
+    } finally {
+      debugDefaultTargetPlatformOverride = previousTargetPlatform;
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await resetMobileView(tester);
+    }
+  }
+
+  testWidgets('移动端安全区不遮挡页面标题且底部导航贴合手势区', (
+    WidgetTester tester,
+  ) async {
+    await expectMobileSafeAreaLayout(tester, TargetPlatform.android);
+    await expectMobileSafeAreaLayout(tester, TargetPlatform.iOS);
+  });
+
+  testWidgets('移动端安全区保护 FluentPage 标题区域', (tester) async {
+    await configureMobileView(tester, topPadding: 44, bottomPadding: 34);
+
+    try {
+      await tester.pumpWidget(
+        const FluentApp(
+          home: FluentPage.scrollable(
+            header: FluentPageHeader(title: Text('测试页面')),
+            children: [Text('测试内容')],
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        tester.getTopLeft(find.text('测试页面')).dy,
+        greaterThanOrEqualTo(44),
+      );
+    } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
       await resetMobileView(tester);

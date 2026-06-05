@@ -200,10 +200,14 @@ class _CompactNavigationShell extends StatelessWidget {
     return ScaffoldPage(
       content: SafeArea(
         bottom: false,
-        child: _NavigationBody(
-          destinations: destinations,
-          selectedIndex: selectedIndex,
-          visitedIndexes: visitedIndexes,
+        child: MediaQuery.removePadding(
+          context: context,
+          removeBottom: true,
+          child: _NavigationBody(
+            destinations: destinations,
+            selectedIndex: selectedIndex,
+            visitedIndexes: visitedIndexes,
+          ),
         ),
       ),
       bottomBar: Container(
