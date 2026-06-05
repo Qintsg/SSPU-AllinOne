@@ -165,6 +165,8 @@ SSPU-AllinOne-v1.0.0-lts-web-universal-static.zip
 
 Linux 正式发布必须同时覆盖 `x64` 与 `arm64`，并提供 AppImage、deb、rpm、tar.gz 四类产物。
 
+Windows installer 使用 Inno Setup 双模式安装器，x64 与 arm64 行为保持一致：全新安装默认当前用户范围，可在安装向导或命令行显式切换到所有用户范围；安装包文件名和 Release 资产类型仍保持 `windows-{arch}-installer.exe`。
+
 ---
 
 ## 6. Release 附属文件

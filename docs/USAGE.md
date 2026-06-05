@@ -289,6 +289,8 @@ flutter build windows --release
 - 需要连同整个 `Release/` 目录一起分发，不能只拷贝单个 `.exe`
 - 启动入口为 `sspu_allinone.exe`
 - GitHub Release 默认同时提供 x64 / arm64 的 installer 与 portable 产物
+- Windows installer 使用 Inno Setup 双模式安装：全新安装默认选择“仅当前用户”，安装到当前用户程序目录且不需要管理员权限；用户显式选择“所有用户”或使用 `/ALLUSERS` 时安装到系统 Program Files 并按需触发 UAC。升级已存在安装时沿用既有安装范围。
+- 安装目录只保存应用程序文件；应用状态、微信公众号配置和 Windows WebView2 运行态仍保存在用户数据目录 `~/.sspu-aio/` 或移动端系统应用支持目录下的 `.sspu-aio/`。
 
 ### 7.5 macOS 桌面
 
