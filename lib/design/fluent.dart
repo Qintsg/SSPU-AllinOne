@@ -8,7 +8,6 @@
 
 export 'fluent/fluent_context_ext.dart';
 export 'fluent/fluent_theme.dart';
-export 'fluent/fluent_theme_view.dart';
 export 'fluent/tokens/fluent_color_tokens.dart';
 export 'fluent/tokens/fluent_elevation.dart';
 export 'fluent/tokens/fluent_motion.dart';

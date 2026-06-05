@@ -45,10 +45,14 @@ abstract class AcademicEamsClient {
   Future<AcademicEamsQueryResult?> readLatestCachedCourseTable();
 
   /// 读取教务摘要，尽量覆盖个人信息、课表、成绩、考试和培养计划。
-  Future<AcademicEamsQueryResult> fetchOverview();
+  Future<AcademicEamsQueryResult> fetchOverview({
+    bool requireCampusNetwork = true,
+  });
 
   /// 只读取当前学期课表，供独立课程表页面使用。
-  Future<AcademicEamsQueryResult> fetchCourseTable();
+  Future<AcademicEamsQueryResult> fetchCourseTable({
+    bool requireCampusNetwork = true,
+  });
 }
 
 /// 本专科教务系统 HTTP 响应快照。
@@ -93,7 +97,10 @@ abstract class AcademicEamsGateway {
 }
 
 typedef AcademicEamsOaLoginRefresher =
-    Future<AcademicLoginValidationResult> Function();
+    Future<AcademicLoginValidationResult> Function({
+      bool forceRefresh,
+      bool requireCampusNetwork,
+    });
 
 enum _AcademicFetchScope { overview, courseTableOnly }
 
@@ -125,9 +132,11 @@ class AcademicEamsService implements AcademicEamsClient {
        _gateway = gateway ?? DioAcademicEamsGateway(),
        _refreshOaLogin =
            refreshOaLogin ??
-           (() => AcademicLoginValidationService.instance.ensureSavedSession(
-             forceRefresh: true,
-           )),
+           (({bool forceRefresh = false, bool requireCampusNetwork = true}) =>
+               AcademicLoginValidationService.instance.ensureSavedSession(
+                 forceRefresh: forceRefresh,
+                 requireCampusNetwork: requireCampusNetwork,
+               )),
        entranceUri = entranceUri ?? defaultEntranceUri,
        homeUri = homeUri ?? defaultHomeUri,
        submenuBaseUri = submenuBaseUri ?? defaultSubmenuBaseUri,
@@ -205,13 +214,23 @@ class AcademicEamsService implements AcademicEamsClient {
   }
 
   @override
-  Future<AcademicEamsQueryResult> fetchOverview() async {
-    return _fetchSnapshot(_AcademicFetchScope.overview);
+  Future<AcademicEamsQueryResult> fetchOverview({
+    bool requireCampusNetwork = true,
+  }) async {
+    return _fetchSnapshot(
+      _AcademicFetchScope.overview,
+      requireCampusNetwork: requireCampusNetwork,
+    );
   }
 
   @override
-  Future<AcademicEamsQueryResult> fetchCourseTable() async {
-    return _fetchSnapshot(_AcademicFetchScope.courseTableOnly);
+  Future<AcademicEamsQueryResult> fetchCourseTable({
+    bool requireCampusNetwork = true,
+  }) async {
+    return _fetchSnapshot(
+      _AcademicFetchScope.courseTableOnly,
+      requireCampusNetwork: requireCampusNetwork,
+    );
   }
 
   /// 只读查询开课列表；仅提交搜索表单，不执行选课或其它写操作。

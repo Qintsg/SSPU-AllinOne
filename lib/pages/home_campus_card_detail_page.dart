@@ -57,6 +57,7 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
     final result = await widget.campusCardService.fetchCampusCard(
       startDate: _parseDate(_startDateController.text),
       endDate: _parseDate(_endDateController.text),
+      requireCampusNetwork: false,
     );
     if (!mounted) return;
     setState(() {

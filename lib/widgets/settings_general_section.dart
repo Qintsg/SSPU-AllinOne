@@ -77,7 +77,7 @@ class SettingsGeneralSection extends StatelessWidget {
   }
 
   Widget _buildWindowBehaviorSection(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final type = context.fluentType;
     return FluentCard(
       padding: EdgeInsets.zero,
       child: Padding(
@@ -87,14 +87,14 @@ class SettingsGeneralSection extends StatelessWidget {
           children: [
             Semantics(
               header: true,
-              child: Text('窗口行为', style: textTheme.titleMedium),
+              child: Text('窗口行为', style: type.subtitle1),
             ),
             const SizedBox(height: AppSpacing.md),
             buildResponsiveSettingsRow(
               context: context,
-              icon: Icons.close,
-              title: Text('关闭按钮行为', style: textTheme.titleSmall),
-              subtitle: Text('选择点击窗口关闭按钮时的操作', style: textTheme.bodySmall),
+              icon: FluentIcons.clear,
+              title: Text('关闭按钮行为', style: type.body1Strong),
+              subtitle: Text('选择点击窗口关闭按钮时的操作', style: type.caption1),
               trailing: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 220),
                 child: FluentSelect<String>(
@@ -120,9 +120,9 @@ class SettingsGeneralSection extends StatelessWidget {
   }
 
   Widget _buildNotificationSection(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final disabledColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
+    final colors = context.fluentColors;
+    final type = context.fluentType;
+    final disabledColor = colors.neutralForegroundDisabled;
 
     return FluentCard(
       padding: EdgeInsets.zero,
@@ -133,14 +133,14 @@ class SettingsGeneralSection extends StatelessWidget {
           children: [
             Semantics(
               header: true,
-              child: Text('消息推送', style: textTheme.titleMedium),
+              child: Text('消息推送', style: type.subtitle1),
             ),
             const SizedBox(height: AppSpacing.md),
             buildResponsiveSettingsRow(
               context: context,
-              icon: Icons.notifications_outlined,
-              title: Text('启用消息推送', style: textTheme.titleSmall),
-              subtitle: Text('当自动刷新发现新消息时推送系统通知', style: textTheme.bodySmall),
+              icon: FluentIcons.ringer,
+              title: Text('启用消息推送', style: type.body1Strong),
+              subtitle: Text('当自动刷新发现新消息时推送系统通知', style: type.caption1),
               trailing: FluentSwitch(
                 value: notificationEnabled,
                 onChanged: onNotificationChanged,
@@ -149,17 +149,17 @@ class SettingsGeneralSection extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             buildResponsiveSettingsRow(
               context: context,
-              icon: Icons.notifications_off_outlined,
+              icon: FluentIcons.ringerOff,
               iconColor: notificationEnabled ? null : disabledColor,
               title: Text(
                 '勿扰时段',
-                style: textTheme.titleSmall?.copyWith(
+                style: type.body1Strong.copyWith(
                   color: notificationEnabled ? null : disabledColor,
                 ),
               ),
               subtitle: Text(
                 '在指定时间段内不推送通知',
-                style: textTheme.bodySmall?.copyWith(
+                style: type.caption1.copyWith(
                   color: notificationEnabled ? null : disabledColor,
                 ),
               ),
@@ -186,7 +186,7 @@ class SettingsGeneralSection extends StatelessWidget {
                       minute: dndStartMinute,
                       onChanged: onDndStartChanged,
                     ),
-                    Text('—', style: textTheme.titleSmall),
+                    Text('—', style: type.body1Strong),
                     buildTimePicker(
                       context: context,
                       label: '结束',

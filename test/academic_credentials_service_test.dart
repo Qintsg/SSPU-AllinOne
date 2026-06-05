@@ -174,7 +174,7 @@ void main() {
     expect(status.hasEmailPassword, isFalse);
   });
 
-  test('切换账号时清理鉴权业务缓存', () async {
+  test('切换账号时保留鉴权业务缓存并依赖账号隔离读取', () async {
     await service.saveCredentials(oaAccount: '20260001');
     await AuthenticatedDataCacheService.saveLatest(
       collection: StorageKeys.campusCardCacheCollection,
@@ -190,11 +190,18 @@ void main() {
         StorageKeys.campusCardCacheCollection,
         accountKey: '20260001',
       ),
+      isNotNull,
+    );
+    expect(
+      await AuthenticatedDataCacheService.readLatest(
+        StorageKeys.campusCardCacheCollection,
+        accountKey: '20260002',
+      ),
       isNull,
     );
   });
 
-  test('同账号更新任一密码时清理鉴权业务缓存', () async {
+  test('同账号更新任一密码时保留已解析业务缓存', () async {
     await service.saveCredentials(
       oaAccount: '20260001',
       oaPassword: 'oa-pass',
@@ -218,7 +225,7 @@ void main() {
         StorageKeys.emailMailboxCacheCollection,
         accountKey: '20260001@sspu.edu.cn',
       ),
-      isNull,
+      isNotNull,
     );
   });
 }

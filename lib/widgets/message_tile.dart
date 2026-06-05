@@ -23,7 +23,7 @@ class MessageTile extends StatefulWidget {
   /// 是否已读。
   final bool isRead;
 
-  /// 当前是否暗色主题；组件实际从 Theme 读取颜色。
+  /// 当前是否暗色主题；保留历史入参，组件实际从 Fluent 主题读取颜色。
   final bool isDark;
 
   /// 点击跳转回调。
@@ -50,11 +50,11 @@ class _MessageTileState extends State<MessageTile> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.fluentColors;
+    final type = context.fluentType;
     final titleStyle = widget.isRead
-        ? textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)
-        : textTheme.titleSmall;
+        ? type.body1.copyWith(color: colors.neutralForeground2)
+        : type.body1Strong;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -71,7 +71,7 @@ class _MessageTileState extends State<MessageTile> {
             horizontal: AppSpacing.md,
           ),
           decoration: BoxDecoration(
-            color: _isHovered ? colorScheme.surfaceContainerHighest : null,
+            color: _isHovered ? colors.neutralBackground1Hover : null,
             borderRadius: AppShapes.md,
           ),
           child: LayoutBuilder(
@@ -118,7 +118,7 @@ class _MessageTileState extends State<MessageTile> {
 
   /// 构建未读指示点。
   Widget _buildUnreadIndicator(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.fluentColors;
     return Container(
       width: AppSpacing.sm,
       height: AppSpacing.sm,
@@ -128,7 +128,7 @@ class _MessageTileState extends State<MessageTile> {
       ),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: widget.isRead ? null : colorScheme.primary,
+        color: widget.isRead ? null : colors.brandBackground,
       ),
     );
   }
@@ -156,11 +156,11 @@ class _MessageTileState extends State<MessageTile> {
 
   /// 构建日期与操作按钮区域。
   Widget _buildDateAndActions(BuildContext context, {required bool isNarrow}) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.fluentColors;
+    final type = context.fluentType;
     final dateText = Text(
       _formatDisplayDateTime(widget.message),
-      style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+      style: type.caption1.copyWith(color: colors.neutralForeground2),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
     );
@@ -193,13 +193,13 @@ class _MessageTileState extends State<MessageTile> {
     return [
       FluentIconButton(
         tooltip: '在浏览器中打开',
-        icon: const Icon(Icons.open_in_new),
+        icon: const Icon(FluentIcons.openInNewWindow),
         onPressed: widget.onTap,
       ),
       if (!widget.isRead)
         FluentIconButton(
           tooltip: '标为已读',
-          icon: const Icon(Icons.mark_email_read_outlined),
+          icon: const Icon(FluentIcons.read),
           onPressed: widget.onMarkRead,
         ),
     ];
@@ -252,9 +252,9 @@ class _MessageTileState extends State<MessageTile> {
           constraints: const BoxConstraints(maxWidth: 220),
           child: Text(
             text,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: foregroundColor),
+            style: context.fluentType.caption2Strong.copyWith(
+              color: foregroundColor,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -264,7 +264,7 @@ class _MessageTileState extends State<MessageTile> {
   }
 
   List<Widget> _buildMetadataTags(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.fluentColors;
     final tags = <Widget>[];
     final seenSourceLabels = <String>{};
 
@@ -288,37 +288,37 @@ class _MessageTileState extends State<MessageTile> {
     if (_isWechatMessage) {
       addSourceTag(
         widget.message.sourceType.label,
-        backgroundColor: colorScheme.primaryContainer,
-        foregroundColor: colorScheme.onPrimaryContainer,
+        backgroundColor: colors.brandBackgroundSelected.withValues(alpha: 0.12),
+        foregroundColor: colors.brandForeground1,
       );
       addSourceTag(
         _wechatAccountName,
-        backgroundColor: colorScheme.secondaryContainer,
-        foregroundColor: colorScheme.onSecondaryContainer,
+        backgroundColor: colors.neutralBackground2,
+        foregroundColor: colors.neutralForeground2,
       );
     } else {
       addSourceTag(
         widget.message.sourceType.label,
-        backgroundColor: colorScheme.primaryContainer,
-        foregroundColor: colorScheme.onPrimaryContainer,
+        backgroundColor: colors.brandBackgroundSelected.withValues(alpha: 0.12),
+        foregroundColor: colors.brandForeground1,
       );
       addSourceTag(
         widget.message.sourceName.label,
-        backgroundColor: colorScheme.secondaryContainer,
-        foregroundColor: colorScheme.onSecondaryContainer,
+        backgroundColor: colors.neutralBackground2,
+        foregroundColor: colors.neutralForeground2,
       );
       addSourceTag(
         widget.message.category.label,
-        backgroundColor: colorScheme.tertiaryContainer,
-        foregroundColor: colorScheme.onTertiaryContainer,
+        backgroundColor: colors.neutralBackground3,
+        foregroundColor: colors.neutralForeground2,
       );
 
       final mpName = widget.message.mpName?.trim();
       if (mpName != null && mpName.isNotEmpty) {
         addSourceTag(
           mpName,
-          backgroundColor: colorScheme.surfaceContainerHighest,
-          foregroundColor: colorScheme.onSurfaceVariant,
+          backgroundColor: colors.neutralBackground2,
+          foregroundColor: colors.neutralForeground2,
         );
       }
     }

@@ -33,23 +33,46 @@ Future<void> disposeAcademicPage(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 120));
 }
 
+Future<void> pumpAcademicPage(
+  WidgetTester tester, {
+  required AcademicEamsClient academicEamsService,
+  required SportsAttendanceClient sportsAttendanceService,
+  required StudentReportClient studentReportService,
+  bool academicEamsAutoRefreshEnabledOverride = false,
+  bool sportsAttendanceAutoRefreshEnabledOverride = false,
+  int sportsAttendanceAutoRefreshIntervalOverride = 30,
+  bool studentReportAutoRefreshEnabledOverride = false,
+  int studentReportAutoRefreshIntervalOverride = 30,
+}) async {
+  await tester.pumpWidget(
+    FluentApp(
+      home: AcademicPage(
+        academicEamsService: academicEamsService,
+        sportsAttendanceService: sportsAttendanceService,
+        studentReportService: studentReportService,
+        academicEamsAutoRefreshEnabledOverride:
+            academicEamsAutoRefreshEnabledOverride,
+        sportsAttendanceAutoRefreshEnabledOverride:
+            sportsAttendanceAutoRefreshEnabledOverride,
+        sportsAttendanceAutoRefreshIntervalOverride:
+            sportsAttendanceAutoRefreshIntervalOverride,
+        studentReportAutoRefreshEnabledOverride:
+            studentReportAutoRefreshEnabledOverride,
+        studentReportAutoRefreshIntervalOverride:
+            studentReportAutoRefreshIntervalOverride,
+      ),
+    ),
+  );
+}
+
 void main() {
   testWidgets('教务中心展示体育部考勤总次数并可进入明细页', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: AcademicPage(
-          academicEamsService: _FakeAcademicEamsClient(
-            result: _academicEamsResult,
-          ),
-          sportsAttendanceService: _FakeSportsAttendanceClient(
-            result: _successResult,
-          ),
-          studentReportService: _FakeStudentReportClient(result: _creditResult),
-          academicEamsAutoRefreshEnabledOverride: false,
-          sportsAttendanceAutoRefreshEnabledOverride: false,
-          studentReportAutoRefreshEnabledOverride: false,
-        ),
-      ),
+    final sportsService = _FakeSportsAttendanceClient(result: _successResult);
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: sportsService,
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
     );
 
     expect(find.textContaining('自动刷新未开启'), findsWidgets);
@@ -63,6 +86,7 @@ void main() {
     expect(find.text('次数调整 -1 次'), findsOneWidget);
     expect(find.text('体育长廊 4 次'), findsOneWidget);
     expect(find.text('上次刷新：2026-04-30 00:00'), findsOneWidget);
+    expect(sportsService.requireCampusNetworkValues, [false]);
 
     await tester.tap(find.text('查看考勤记录'));
     await tester.pumpAndSettle();
@@ -75,27 +99,19 @@ void main() {
   });
 
   testWidgets('教务中心展示体育部登录失败状态', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: AcademicPage(
-          academicEamsService: _FakeAcademicEamsClient(
-            result: _academicEamsResult,
-          ),
-          sportsAttendanceService: _FakeSportsAttendanceClient(
-            result: SportsAttendanceQueryResult(
-              status: SportsAttendanceQueryStatus.missingSportsPassword,
-              message: '请先保存体育部查询密码',
-              detail: '体育部查询系统密码与 OA 密码不同，需单独配置。',
-              checkedAt: DateTime(2026, 4, 30),
-              entranceUri: Uri.parse('https://tygl.sspu.edu.cn/sportscore/'),
-            ),
-          ),
-          studentReportService: _FakeStudentReportClient(result: _creditResult),
-          academicEamsAutoRefreshEnabledOverride: false,
-          sportsAttendanceAutoRefreshEnabledOverride: false,
-          studentReportAutoRefreshEnabledOverride: false,
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: SportsAttendanceQueryResult(
+          status: SportsAttendanceQueryStatus.missingSportsPassword,
+          message: '请先保存体育部查询密码',
+          detail: '体育部查询系统密码与 OA 密码不同，需单独配置。',
+          checkedAt: DateTime(2026, 4, 30),
+          entranceUri: Uri.parse('https://tygl.sspu.edu.cn/sportscore/'),
         ),
       ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
     );
 
     await tester.tap(find.byKey(const Key('academic-sports-refresh')));
@@ -109,26 +125,20 @@ void main() {
 
   testWidgets('教务中心自动刷新开启时会主动读取体育考勤', (tester) async {
     final sportsService = _FakeSportsAttendanceClient(result: _successResult);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: AcademicPage(
-          academicEamsService: _FakeAcademicEamsClient(
-            result: _academicEamsResult,
-          ),
-          sportsAttendanceService: sportsService,
-          studentReportService: _FakeStudentReportClient(result: _creditResult),
-          academicEamsAutoRefreshEnabledOverride: false,
-          sportsAttendanceAutoRefreshEnabledOverride: true,
-          sportsAttendanceAutoRefreshIntervalOverride: 1,
-          studentReportAutoRefreshEnabledOverride: false,
-        ),
-      ),
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: sportsService,
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+      sportsAttendanceAutoRefreshEnabledOverride: true,
+      sportsAttendanceAutoRefreshIntervalOverride: 1,
     );
 
     await pumpUntilFound(tester, find.text('8'));
 
     expect(find.text('总次数'), findsOneWidget);
     expect(sportsService.fetchCount, 1);
+    expect(sportsService.requireCampusNetworkValues, [true]);
 
     await tester.pump(const Duration(minutes: 1));
     await tester.pump();
@@ -138,27 +148,19 @@ void main() {
   });
 
   testWidgets('教务中心展示校园网或 VPN 不可用状态', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: AcademicPage(
-          academicEamsService: _FakeAcademicEamsClient(
-            result: _academicEamsResult,
-          ),
-          sportsAttendanceService: _FakeSportsAttendanceClient(
-            result: SportsAttendanceQueryResult(
-              status: SportsAttendanceQueryStatus.campusNetworkUnavailable,
-              message: '校园网 / VPN 不可用，无法访问体育部查询系统',
-              detail: '无法访问 tygl.sspu.edu.cn',
-              checkedAt: DateTime(2026, 4, 30),
-              entranceUri: Uri.parse('https://tygl.sspu.edu.cn/sportscore/'),
-            ),
-          ),
-          studentReportService: _FakeStudentReportClient(result: _creditResult),
-          academicEamsAutoRefreshEnabledOverride: false,
-          sportsAttendanceAutoRefreshEnabledOverride: false,
-          studentReportAutoRefreshEnabledOverride: false,
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: SportsAttendanceQueryResult(
+          status: SportsAttendanceQueryStatus.campusNetworkUnavailable,
+          message: '校园网 / VPN 不可用，无法访问体育部查询系统',
+          detail: '无法访问 tygl.sspu.edu.cn',
+          checkedAt: DateTime(2026, 4, 30),
+          entranceUri: Uri.parse('https://tygl.sspu.edu.cn/sportscore/'),
         ),
       ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
     );
 
     await tester.tap(find.byKey(const Key('academic-sports-refresh')));
@@ -172,21 +174,13 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1000, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: AcademicPage(
-          academicEamsService: _FakeAcademicEamsClient(
-            result: _academicEamsResult,
-          ),
-          sportsAttendanceService: _FakeSportsAttendanceClient(
-            result: _successResult,
-          ),
-          studentReportService: _FakeStudentReportClient(result: _creditResult),
-          academicEamsAutoRefreshEnabledOverride: false,
-          sportsAttendanceAutoRefreshEnabledOverride: false,
-          studentReportAutoRefreshEnabledOverride: false,
-        ),
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
       ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
     );
 
     final studentReportRefresh = find.byKey(
@@ -225,22 +219,14 @@ void main() {
   });
 
   testWidgets('教务中心自动刷新开启时会主动读取第二课堂学分', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: AcademicPage(
-          academicEamsService: _FakeAcademicEamsClient(
-            result: _academicEamsResult,
-          ),
-          sportsAttendanceService: _FakeSportsAttendanceClient(
-            result: _successResult,
-          ),
-          studentReportService: _FakeStudentReportClient(result: _creditResult),
-          academicEamsAutoRefreshEnabledOverride: false,
-          sportsAttendanceAutoRefreshEnabledOverride: false,
-          studentReportAutoRefreshEnabledOverride: true,
-          studentReportAutoRefreshIntervalOverride: 30,
-        ),
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
       ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+      studentReportAutoRefreshEnabledOverride: true,
     );
 
     await pumpUntilFound(tester, find.text('2'));
@@ -250,21 +236,13 @@ void main() {
   });
 
   testWidgets('教务中心展示本专科教务摘要并可进入课程表页', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: AcademicPage(
-          academicEamsService: _FakeAcademicEamsClient(
-            result: _academicEamsResult,
-          ),
-          sportsAttendanceService: _FakeSportsAttendanceClient(
-            result: _successResult,
-          ),
-          studentReportService: _FakeStudentReportClient(result: _creditResult),
-          academicEamsAutoRefreshEnabledOverride: false,
-          sportsAttendanceAutoRefreshEnabledOverride: false,
-          studentReportAutoRefreshEnabledOverride: false,
-        ),
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
       ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
     );
 
     await tester.tap(find.byKey(const Key('academic-eams-refresh')));

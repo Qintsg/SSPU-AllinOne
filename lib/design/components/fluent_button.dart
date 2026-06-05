@@ -1,50 +1,47 @@
 /*
- * Fluent 2 按钮 — 5 外观 × 3 尺寸，交互态 / 禁用态 / 焦点环全走令牌
+ * Fluent 按钮兼容层 — 旧项目 API 包装外部 fluent_ui 按钮控件
  * @Project : SSPU-AllinOne
  * @File : fluent_button.dart
  * @Author : Qintsg
  * @Date : 2026-05-18
- *
- * 令牌映射见 DESIGN.md §6.1。
  */
 
-import 'package:flutter/material.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 
 import '../fluent/fluent_context_ext.dart';
-import '../fluent/tokens/fluent_color_tokens.dart';
 
 /// 按钮外观。
 enum FluentButtonAppearance {
-  /// 主操作，一屏至多一个：brandBackground 填充 + 白前景。
+  /// 主操作。
   primary,
 
-  /// 常规操作（默认）：neutralBackground1 + neutralStroke1 1px。
+  /// 常规操作。
   secondary,
 
-  /// 次要操作：透明 + neutralStroke1 1px。
+  /// 描边操作。
   outline,
 
-  /// 工具栏 / 低强调：透明无边框 + neutralForeground2。
+  /// 低强调操作。
   subtle,
 
-  /// 类链接操作：透明无边框 + brandForeground1。
+  /// 链接/透明操作。
   transparent,
 }
 
 /// 按钮尺寸。
 enum FluentButtonSize {
-  /// 24 高 / 内边距 spacingS / caption1。
+  /// 小按钮。
   small,
 
-  /// 32 高 / 内边距 spacingM / body1（默认）。
+  /// 默认按钮。
   medium,
 
-  /// 40 高 / 内边距 spacingL / body1Strong。
+  /// 大按钮。
   large,
 }
 
-/// Fluent 2 按钮。
-class FluentButton extends StatefulWidget {
+/// Fluent 按钮兼容组件，内部统一使用外部 `fluent_ui` 按钮控件。
+class FluentButton extends StatelessWidget {
   const FluentButton({
     super.key,
     required this.child,
@@ -185,206 +182,119 @@ class FluentButton extends StatefulWidget {
   final String? semanticLabel;
 
   @override
-  State<FluentButton> createState() => _FluentButtonState();
-}
-
-class _FluentButtonState extends State<FluentButton> {
-  bool _hovered = false;
-  bool _pressed = false;
-  bool _focused = false;
-
-  bool get _enabled => widget.onPressed != null;
-
-  @override
   Widget build(BuildContext context) {
+    final button = ButtonTheme.merge(
+      data: ButtonThemeData.all(_styleFor(context)),
+      child: _buildButton(_contentFor(context)),
+    );
+
+    final result = Semantics(
+      button: true,
+      enabled: onPressed != null,
+      label: semanticLabel,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 48),
+        child: Center(
+          widthFactor: expand ? null : 1,
+          child: SizedBox(width: expand ? double.infinity : null, child: button),
+        ),
+      ),
+    );
+    return result;
+  }
+
+  Widget _buildButton(Widget content) {
+    return switch (appearance) {
+      FluentButtonAppearance.primary => FilledButton(
+        onPressed: onPressed,
+        child: content,
+      ),
+      FluentButtonAppearance.secondary => Button(
+        onPressed: onPressed,
+        child: content,
+      ),
+      FluentButtonAppearance.outline => OutlinedButton(
+        onPressed: onPressed,
+        child: content,
+      ),
+      FluentButtonAppearance.subtle => Button(
+        onPressed: onPressed,
+        child: content,
+      ),
+      FluentButtonAppearance.transparent => HyperlinkButton(
+        onPressed: onPressed,
+        child: content,
+      ),
+    };
+  }
+
+  Widget _contentFor(BuildContext context) {
+    if (icon == null) return child;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon),
+        SizedBox(width: context.fluentSpacing.s),
+        Flexible(child: child),
+      ],
+    );
+  }
+
+  ButtonStyle _styleFor(BuildContext context) {
+    final type = context.fluentType;
     final colors = context.fluentColors;
     final radii = context.fluentRadii;
     final spacing = context.fluentSpacing;
-    final stroke = context.fluentStroke;
-    final type = context.fluentType;
-    final motion = context.fluentMotion;
 
-    final double height;
-    final double padH;
+    final EdgeInsetsGeometry padding;
     final TextStyle textStyle;
-    switch (widget.size) {
+    switch (size) {
       case FluentButtonSize.small:
-        height = 24;
-        padH = spacing.s;
+        padding = EdgeInsetsDirectional.symmetric(
+          horizontal: spacing.s,
+          vertical: 3,
+        );
         textStyle = type.caption1;
       case FluentButtonSize.medium:
-        height = 32;
-        padH = spacing.m;
+        padding = EdgeInsetsDirectional.symmetric(
+          horizontal: spacing.m,
+          vertical: 5,
+        );
         textStyle = type.body1;
       case FluentButtonSize.large:
-        height = 40;
-        padH = spacing.l;
+        padding = EdgeInsetsDirectional.symmetric(
+          horizontal: spacing.l,
+          vertical: 8,
+        );
         textStyle = type.body1Strong;
     }
 
-    final _Visual v = _resolveVisual(colors);
-
-    final Widget label = DefaultTextStyle.merge(
-      style: textStyle.copyWith(color: v.foreground),
-      child: IconTheme.merge(
-        data: IconThemeData(color: v.foreground, size: 16),
-        child: Row(
-          mainAxisSize: widget.expand ? MainAxisSize.max : MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (widget.icon != null) ...[
-              Icon(widget.icon),
-              SizedBox(width: spacing.s),
-            ],
-            Flexible(child: widget.child),
-          ],
-        ),
+    return ButtonStyle(
+      padding: WidgetStatePropertyAll(padding),
+      textStyle: WidgetStatePropertyAll(textStyle),
+      iconSize: const WidgetStatePropertyAll(16),
+      shape: WidgetStatePropertyAll(
+        RoundedRectangleBorder(borderRadius: radii.mediumBorder),
       ),
-    );
-
-    final Widget visual = AnimatedContainer(
-      duration: motion.durationFaster,
-      curve: motion.curveEasyEase,
-      height: height,
-      padding: EdgeInsets.symmetric(horizontal: padH),
-      decoration: BoxDecoration(
-        color: v.background,
-        borderRadius: radii.mediumBorder,
-        border: v.border == null
-            ? null
-            : Border.all(color: v.border!, width: stroke.thin),
-      ),
-      child: Center(widthFactor: widget.expand ? null : 1, child: label),
-    );
-
-    // 焦点环：strokeWidthThick + brandStroke1（DESIGN.md §6.1 / §7）。
-    final Widget focusable = AnimatedContainer(
-      duration: motion.durationFaster,
-      curve: motion.curveEasyEase,
-      padding: EdgeInsets.all(_focused ? stroke.thick : 0),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(
-          radii.medium + (_focused ? stroke.thick : 0),
-        ),
-        border: _focused
-            ? Border.all(color: colors.brandStroke1, width: stroke.thick)
-            : null,
-      ),
-      child: visual,
-    );
-
-    return Semantics(
-      button: true,
-      enabled: _enabled,
-      label: widget.semanticLabel,
-      // FocusableActionDetector 统一焦点 / 悬停 / 键盘激活：
-      // ActivateIntent 由 Flutter 默认快捷键映射 Enter / Space（DESIGN.md §7）。
-      child: FocusableActionDetector(
-        enabled: _enabled,
-        mouseCursor: _enabled
-            ? SystemMouseCursors.click
-            : SystemMouseCursors.basic,
-        onShowFocusHighlight: (f) => setState(() => _focused = f),
-        onShowHoverHighlight: (h) => setState(() {
-          _hovered = h;
-          if (!h) _pressed = false;
-        }),
-        actions: <Type, Action<Intent>>{
-          ActivateIntent: CallbackAction<ActivateIntent>(
-            onInvoke: (_) {
-              widget.onPressed?.call();
-              return null;
-            },
-          ),
-        },
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onPressed,
-          onTapDown: _enabled
-              ? (_) => setState(() => _pressed = true)
-              : null,
-          onTapUp: _enabled
-              ? (_) => setState(() => _pressed = false)
-              : null,
-          onTapCancel: _enabled
-              ? () => setState(() => _pressed = false)
-              : null,
-          // 命中区域最小 48dp（DESIGN.md §7）。
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 48),
-            child: Center(
-              heightFactor: 1,
-              widthFactor: widget.expand ? null : 1,
-              child: focusable,
-            ),
-          ),
-        ),
-      ),
+      backgroundColor: appearance == FluentButtonAppearance.subtle
+          ? WidgetStateProperty.resolveWith((states) {
+              if (states.isDisabled) return Colors.transparent;
+              if (states.isPressed) return colors.subtleBackgroundPressed;
+              if (states.isHovered || states.isFocused) {
+                return colors.subtleBackgroundHover;
+              }
+              return Colors.transparent;
+            })
+          : null,
+      foregroundColor: appearance == FluentButtonAppearance.subtle
+          ? WidgetStateProperty.resolveWith((states) {
+              if (states.isDisabled) return colors.neutralForegroundDisabled;
+              return colors.neutralForeground2;
+            })
+          : null,
     );
   }
-
-  _Visual _resolveVisual(FluentColors c) {
-    if (!_enabled) {
-      final Color disabledFg = c.neutralForegroundDisabled;
-      switch (widget.appearance) {
-        case FluentButtonAppearance.primary:
-        case FluentButtonAppearance.secondary:
-          return _Visual(c.neutralBackground3, disabledFg, c.neutralStroke2);
-        case FluentButtonAppearance.outline:
-          return _Visual(Colors.transparent, disabledFg, c.neutralStroke2);
-        case FluentButtonAppearance.subtle:
-        case FluentButtonAppearance.transparent:
-          return _Visual(Colors.transparent, disabledFg, null);
-      }
-    }
-
-    switch (widget.appearance) {
-      case FluentButtonAppearance.primary:
-        final Color bg = _pressed
-            ? c.brandBackgroundPressed
-            : _hovered
-            ? c.brandBackgroundHover
-            : c.brandBackground;
-        return _Visual(bg, c.neutralForegroundOnBrand, null);
-      case FluentButtonAppearance.secondary:
-        final Color bg = _pressed
-            ? c.neutralBackground1Pressed
-            : _hovered
-            ? c.neutralBackground1Hover
-            : c.neutralBackground1;
-        return _Visual(bg, c.neutralForeground1, c.neutralStroke1);
-      case FluentButtonAppearance.outline:
-        final Color bg = _pressed
-            ? c.subtleBackgroundPressed
-            : _hovered
-            ? c.subtleBackgroundHover
-            : Colors.transparent;
-        return _Visual(bg, c.neutralForeground1, c.neutralStroke1);
-      case FluentButtonAppearance.subtle:
-        final Color bg = _pressed
-            ? c.subtleBackgroundPressed
-            : _hovered
-            ? c.subtleBackgroundHover
-            : Colors.transparent;
-        return _Visual(bg, c.neutralForeground2, null);
-      case FluentButtonAppearance.transparent:
-        final Color fg = _pressed
-            ? c.brandForeground2
-            : c.brandForeground1;
-        final Color bg = _hovered
-            ? c.subtleBackgroundHover
-            : Colors.transparent;
-        return _Visual(bg, fg, null);
-    }
-  }
-}
-
-class _Visual {
-  const _Visual(this.background, this.foreground, this.border);
-
-  final Color background;
-  final Color foreground;
-  final Color? border;
 }
 
 class _FluentInlineButtonContent extends StatelessWidget {

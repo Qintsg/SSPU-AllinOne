@@ -6,7 +6,9 @@
  * @Date : 2025-04-17
  */
 
-import 'package:flutter/material.dart';
+import 'package:fluent_ui/fluent_ui.dart' show IconData;
+
+import '../design/components/fluent_icons.dart';
 import 'message_item.dart';
 
 part 'channel_config_department.dart';

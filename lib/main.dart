@@ -1,5 +1,5 @@
 /*
- * 应用入口 — 初始化 MaterialApp 并处理协议确认、密码保护、窗口关闭与托盘逻辑
+ * 应用入口 — 初始化 FluentApp 并处理协议确认、密码保护、窗口关闭与托盘逻辑
  * @Project : SSPU-AllinOne
  * @File : main.dart
  * @Author : Qintsg
@@ -9,7 +9,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'design/fluent_ui.dart';
-import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'app.dart';
@@ -23,11 +22,9 @@ import 'services/storage_service.dart';
 import 'services/tray_service.dart';
 import 'services/notification_service.dart';
 import 'services/auto_refresh_service.dart';
+import 'services/academic_oa_session_prewarm_service.dart';
 import 'widgets/desktop_window_frame.dart';
 
-/// 全局字体族名称
-import 'theme/app_motion.dart';
-import 'theme/app_shapes.dart';
 import 'theme/app_spacing.dart';
 import 'theme/app_theme.dart';
 
@@ -84,7 +81,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 启动初始化失败时显示明确错误，避免长期停留在加载状态。
   String? _startupErrorMessage;
 
-  /// MaterialApp 内部导航器 key，用于在 WindowListener 回调中弹出对话框
+  /// FluentApp 内部导航器 key，用于在 WindowListener 回调中弹出对话框
   final _navigatorKey = GlobalKey<NavigatorState>();
 
   /// 主界面共享的校园网 / VPN 状态检测服务。
@@ -134,6 +131,12 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
 
   /// 初始化后台能力，不阻塞首屏渲染和用户进入主页。
   Future<void> _initBackgroundServices() async {
+    unawaited(
+      AcademicOaSessionPrewarmService.instance.prewarm(
+        forceRefresh: true,
+        requireCampusNetwork: false,
+      ),
+    );
     try {
       await NotificationService.instance.init();
       await AutoRefreshService.instance.init();
@@ -202,70 +205,13 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                 children: [
                   const Text('选择点击关闭按钮时的操作：'),
                   const SizedBox(height: AppSpacing.md),
-                  Semantics(
+                  Checkbox(
                     checked: rememberChoice,
-                    button: true,
-                    label: '以后都使用此选项',
-                    child: FocusableActionDetector(
-                      mouseCursor: SystemMouseCursors.click,
-                      shortcuts: const {
-                        SingleActivator(LogicalKeyboardKey.space):
-                            ActivateIntent(),
-                        SingleActivator(LogicalKeyboardKey.enter):
-                            ActivateIntent(),
-                      },
-                      actions: {
-                        ActivateIntent: CallbackAction<ActivateIntent>(
-                          onInvoke: (_) {
-                            setDialogState(
-                              () => rememberChoice = !rememberChoice,
-                            );
-                            return null;
-                          },
-                        ),
-                      },
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          setDialogState(
-                            () => rememberChoice = !rememberChoice,
-                          );
-                        },
-                        child: Row(
-                          children: [
-                            AnimatedContainer(
-                              duration: AppMotion.short,
-                              width: 20,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                color: rememberChoice
-                                    ? Theme.of(
-                                        dialogContext,
-                                      ).colorScheme.primary
-                                    : Colors.transparent,
-                                borderRadius: AppShapes.sm,
-                                border: Border.all(
-                                  color: Theme.of(
-                                    dialogContext,
-                                  ).colorScheme.primary,
-                                ),
-                              ),
-                              child: rememberChoice
-                                  ? Icon(
-                                      Icons.check,
-                                      size: 14,
-                                      color: Theme.of(
-                                        dialogContext,
-                                      ).colorScheme.onPrimary,
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            const Expanded(child: Text('以后都使用此选项')),
-                          ],
-                        ),
-                      ),
-                    ),
+                    semanticLabel: '以后都使用此选项',
+                    content: const Text('以后都使用此选项'),
+                    onChanged: (value) {
+                      setDialogState(() => rememberChoice = value ?? false);
+                    },
                   ),
                 ],
               ),
@@ -358,14 +304,14 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                   children: [
                     SelectableText(
                       kAgreementText.trim(),
-                      style: Theme.of(dialogContext).textTheme.bodyMedium,
+                      style: FluentTheme.of(dialogContext).typography.body,
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     const Divider(),
                     const SizedBox(height: AppSpacing.md),
                     SelectableText(
                       kPrivacyPolicyText.trim(),
-                      style: Theme.of(dialogContext).textTheme.bodyMedium,
+                      style: FluentTheme.of(dialogContext).typography.body,
                     ),
                   ],
                 ),
@@ -410,7 +356,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return FluentApp(
       navigatorKey: _navigatorKey,
       title: 'SSPU-AllinOne',
       theme: AppTheme.build(Brightness.light),
@@ -443,12 +389,12 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 根据初始化、协议确认和密码验证状态构建首屏
   Widget _buildHome() {
     if (!_isInitialized) {
-      return const Scaffold(body: Center(child: FluentProgressRing()));
+      return const ScaffoldPage(content: Center(child: FluentProgressRing()));
     }
 
     if (_startupErrorMessage != null) {
-      return Scaffold(
-        body: Center(
+      return ScaffoldPage(
+        content: Center(
           child: Padding(
             padding: AppSpacing.regularPagePadding,
             child: Text(_startupErrorMessage!),
@@ -462,7 +408,9 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       return Builder(
         builder: (context) {
           _showAgreementDialog(context);
-          return const Scaffold(body: Center(child: FluentProgressRing()));
+          return const ScaffoldPage(
+            content: Center(child: FluentProgressRing()),
+          );
         },
       );
     }

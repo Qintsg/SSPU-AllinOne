@@ -72,17 +72,21 @@ void main() {
     );
   });
 
-  test('每个账号独立保留最近三条，同获取时间不会互相覆盖', () async {
-    const collection = 'test_owner_scoped_authenticated_cache';
+  test('每类数据全局只保留最近三条，仍支持按账号过滤读取', () async {
+    const collection = 'test_collection_scoped_authenticated_cache';
     for (var index = 0; index < 5; index++) {
-      for (final account in ['20260001', '20260002']) {
-        await AuthenticatedDataCacheService.saveLatest(
-          collection: collection,
-          accountKey: account,
-          fetchedAt: DateTime(2026, 5, 1, 8, index),
-          data: {'value': index},
-        );
-      }
+      await AuthenticatedDataCacheService.saveLatest(
+        collection: collection,
+        accountKey: '20260001',
+        fetchedAt: DateTime(2026, 5, 1, 8, index),
+        data: {'account': 'first', 'value': index},
+      );
+      await AuthenticatedDataCacheService.saveLatest(
+        collection: collection,
+        accountKey: '20260002',
+        fetchedAt: DateTime(2026, 5, 1, 9, index),
+        data: {'account': 'second', 'value': index},
+      );
     }
 
     final firstAccountEntries =
@@ -96,11 +100,13 @@ void main() {
           accountKey: '20260002',
         );
 
-    expect(firstAccountEntries, hasLength(3));
+    expect(firstAccountEntries, isEmpty);
     expect(secondAccountEntries, hasLength(3));
-    expect(firstAccountEntries.map((entry) => entry.data['value']), [4, 3, 2]);
+    expect(secondAccountEntries.map((entry) => entry.data['account']).toSet(), {
+      'second',
+    });
     expect(secondAccountEntries.map((entry) => entry.data['value']), [4, 3, 2]);
-    expect(await StorageService.getCollectionCount(collection), 6);
+    expect(await StorageService.getCollectionCount(collection), 3);
   });
 
   test('缓存持久化 owner 使用不可逆标识，不写入明文学工号', () async {
@@ -170,5 +176,24 @@ void main() {
 
     expect(entry.isStaleFor(30), isTrue);
     expect(entry.isStaleFor(0), isFalse);
+  });
+
+  test('缓存可在存储服务重新初始化后继续读取', () async {
+    const collection = 'test_reinitialized_authenticated_cache';
+    await AuthenticatedDataCacheService.saveLatest(
+      collection: collection,
+      accountKey: '20260001',
+      fetchedAt: DateTime(2026, 5, 1, 8),
+      data: const {'value': 'persisted'},
+    );
+
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+
+    final cachedEntry = await AuthenticatedDataCacheService.readLatest(
+      collection,
+      accountKey: '20260001',
+    );
+
+    expect(cachedEntry?.data['value'], 'persisted');
   });
 }

@@ -9,7 +9,7 @@ const List<ChannelConfig> wechatChannels = [
     id: 'wechat_public',
     name: '微信公众号',
     description: '通过公众号平台获取已关注公众号的推文',
-    icon: Icons.chat_outlined,
+    icon: FluentIcons.chat,
     group: ChannelGroup.wechat,
     implemented: true,
     defaultInterval: 120,

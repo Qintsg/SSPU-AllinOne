@@ -32,7 +32,7 @@
 ### 1.2 适用范围
 
 - 适用于跨平台 Flutter 应用(iOS / Android / Web / Desktop)。
-- 采用 Flutter 主题与渲染基础设施承载运行时,通过 `ThemeExtension` 注入 Fluent 2 令牌,页面直接使用项目 Fluent 2 组件。
+- 采用外部 `fluent_ui` 承载可见 Fluent 控件与主题运行时,通过 `FluentThemeData.extensions` 注入兼容 Fluent 2 令牌,页面统一从 `lib/design/fluent_ui.dart` 使用外部 Fluent 控件、语义图标 facade 和项目业务组合组件。
 - 移动端字体回退到系统字体(Android 用 Roboto,iOS 用 SF Pro);桌面/Web 优先 Segoe UI,缺失时回退系统字体。
 
 ### 1.3 术语
@@ -277,7 +277,7 @@ lib/
     │   │   ├── fluent_stroke.dart           # 描边宽度
     │   │   ├── fluent_elevation.dart        # 阴影
     │   │   └── fluent_motion.dart           # 时长 & 曲线
-    │   ├── fluent_theme.dart                # 构建 ThemeData + 注入扩展
+    │   ├── fluent_theme.dart                # 构建 FluentThemeData + 注入扩展
     │   └── fluent_context_ext.dart          # BuildContext 便捷访问扩展
     └── components/
         ├── fluent_button.dart
@@ -461,12 +461,11 @@ class FluentTypography extends ThemeExtension<FluentTypography> {
 
 ```dart
 // fluent_theme.dart
-ThemeData buildFluentTheme(Brightness brightness) {
+FluentThemeData buildFluentTheme(Brightness brightness) {
   final isDark = brightness == Brightness.dark;
   final colors = isDark ? FluentColors.dark : FluentColors.light;
 
-  return ThemeData(
-    useMaterial3: true,
+  return FluentThemeData(
     brightness: brightness,
     scaffoldBackgroundColor: colors.neutralBackground1,
     fontFamily: _defaultFluentFontFamily, // Segoe UI,缺失回退系统字体
@@ -488,7 +487,7 @@ const _defaultFluentFontFamily = 'Segoe UI';
 
 ```dart
 // main.dart
-MaterialApp(
+FluentApp(
   theme: buildFluentTheme(Brightness.light),
   darkTheme: buildFluentTheme(Brightness.dark),
   themeMode: ThemeMode.system,
@@ -503,15 +502,15 @@ MaterialApp(
 ```dart
 // fluent_context_ext.dart
 extension FluentThemeX on BuildContext {
-  FluentColors get fluentColors => Theme.of(this).extension<FluentColors>()!;
+  FluentColors get fluentColors => FluentTheme.of(this).extension<FluentColors>()!;
   FluentTypography get fluentType =>
-      Theme.of(this).extension<FluentTypography>()!;
+      FluentTheme.of(this).extension<FluentTypography>()!;
   FluentSpacing get fluentSpacing =>
-      Theme.of(this).extension<FluentSpacing>()!;
-  FluentRadii get fluentRadii => Theme.of(this).extension<FluentRadii>()!;
+      FluentTheme.of(this).extension<FluentSpacing>()!;
+  FluentRadii get fluentRadii => FluentTheme.of(this).extension<FluentRadii>()!;
   FluentElevation get fluentElevation =>
-      Theme.of(this).extension<FluentElevation>()!;
-  FluentMotion get fluentMotion => Theme.of(this).extension<FluentMotion>()!;
+      FluentTheme.of(this).extension<FluentElevation>()!;
+  FluentMotion get fluentMotion => FluentTheme.of(this).extension<FluentMotion>()!;
 }
 ```
 
@@ -608,7 +607,7 @@ color: isDark ? Colors.white : Colors.black,
 
 - **裸值零容忍**:`Color(0xFF...)`、`Colors.*`、裸 `EdgeInsets.all(16)`、裸 `fontSize` 一律不进主分支。可在 CI 加 lint/grep 规则拦截。
 - **唯一入口**:UI 只通过 `context.fluent*` 访问令牌;`tokens/` 目录之外不得出现 Global 令牌。
-- **组件优先**:页面优先使用 `design/components/` 下的 Fluent 2 组件,不直接使用 Material 命名的可见控件。
+- **组件优先**:页面优先使用 `lib/design/fluent_ui.dart` 导出的外部 Fluent 控件、语义 `FluentIcons` 与 `design/components/` 业务组合组件,不直接使用 Material 命名的可见控件或 Material 图标。
 - **命名一致**:Dart 端令牌命名与 Fluent 2 官方语义保持一致(`neutralForeground1`、`brandBackgroundHover` 等),便于与设计稿对照。
 - **令牌新增流程**:新令牌先加入 `tokens/`,再在组件中引用;禁止"先在组件里写值,以后再抽"。
 - **快照测试**:核心组件在 light/dark 两种主题下做 golden test,防止令牌回归。
@@ -617,11 +616,9 @@ color: isDark ? Colors.white : Colors.black,
 
 ## 9. 与第三方包的关系
 
-- Microsoft **未发布**官方的 Flutter 版 Fluent 2。可选路线:
-  - **自建(推荐)**:按本文档用 `ThemeExtension` 自建令牌层,可控性与可演进性最佳。
-  - **社区包 `gbt_fluent2_ui`**:基于 Material 的 Fluent 2 组件库,提供 `FluentProvider`、`FluentThemeData`、`FluentSize`、`FluentCornerRadius` 等。可作为参考或加速器,但需评估其维护活跃度与令牌覆盖度。
-  - **社区包 `fluent_ui`**:更偏 WinUI / Windows 11 桌面观感,与 Fluent 2 跨端令牌体系定位不同,移动端慎用。
-- 若引入社区包,**仍以本文档的令牌为单一真源**:用本文档的令牌喂给包的主题配置,而不是反过来让组件代码直接依赖包的内部常量,以保证未来可平滑替换。
+- 当前实现采用外部 `fluent_ui` 作为 Fluent 控件与 `FluentApp` / `NavigationView` / `ScaffoldPage` / `ContentDialog` / `InfoBar` / `TextBox` 等可见 UI 的主要来源。
+- 当前实现采用外部 `fluentui_system_icons` 作为图标唯一来源;页面层通过项目语义 `FluentIcons` facade 引用图标,避免直接依赖 Material `Icons.*` 或外部包的原始图标名。
+- 项目仍保留 `lib/design/fluent/` 兼容 token 与 `design/components/` 业务组合组件,用于跨页面语义、历史 API 兼容和统一间距/圆角/动效;这些组件内部应优先委托外部 Fluent 控件实现。
 
 ---
 

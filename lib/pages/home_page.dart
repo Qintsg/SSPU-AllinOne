@@ -144,6 +144,7 @@ class _HomePageState extends State<HomePage> {
     final result = await _campusCardService.fetchCampusCard(
       startDate: startDate,
       endDate: endDate,
+      requireCampusNetwork: silent,
     );
     if (!mounted) return;
     if (silent && !result.isSuccess) return;

@@ -10,7 +10,9 @@ import 'package:sspu_allinone/design/fluent_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sspu_allinone/models/academic_login_validation.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/services/academic_login_validation_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/widgets/settings_security_section.dart';
 
@@ -46,6 +48,37 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   }
 
+  Future<void> pumpSecuritySection(
+    WidgetTester tester, {
+    required bool isPasswordEnabled,
+    required bool isQuickAuthEnabled,
+    required bool isQuickAuthAvailable,
+    bool isQuickAuthBusy = false,
+    AcademicLoginValidationService? academicLoginValidationService,
+  }) async {
+    await tester.pumpWidget(
+      FluentApp(
+        home: ScaffoldPage(
+          content: SingleChildScrollView(
+            child: SettingsSecuritySection(
+              isPasswordEnabled: isPasswordEnabled,
+              onPasswordProtectionChanged: (_) {},
+              onChangePassword: () {},
+              isQuickAuthEnabled: isQuickAuthEnabled,
+              isQuickAuthAvailable: isQuickAuthAvailable,
+              isQuickAuthBusy: isQuickAuthBusy,
+              onQuickAuthChanged: (_) {},
+              onLock: null,
+              onClearMessageCache: () {},
+              onClearAllData: () {},
+              academicLoginValidationService: academicLoginValidationService,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   testWidgets('安全设置页显示教务凭据状态但不回填密码', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});
     await AcademicCredentialsService.instance.saveCredentials(
@@ -55,25 +88,11 @@ void main() {
       emailPassword: 'mail-pass',
     );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: SettingsSecuritySection(
-              isPasswordEnabled: false,
-              onPasswordProtectionChanged: (_) {},
-              onChangePassword: () {},
-              isQuickAuthEnabled: false,
-              isQuickAuthAvailable: false,
-              isQuickAuthBusy: false,
-              onQuickAuthChanged: (_) {},
-              onLock: null,
-              onClearMessageCache: () {},
-              onClearAllData: () {},
-            ),
-          ),
-        ),
-      ),
+    await pumpSecuritySection(
+      tester,
+      isPasswordEnabled: false,
+      isQuickAuthEnabled: false,
+      isQuickAuthAvailable: false,
     );
     await pumpUntilFound(tester, find.text('学工号（OA账号）'));
 
@@ -91,25 +110,11 @@ void main() {
   testWidgets('安全设置页可触发 OA 登录校验并展示缺少账号提示', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: SettingsSecuritySection(
-              isPasswordEnabled: false,
-              onPasswordProtectionChanged: (_) {},
-              onChangePassword: () {},
-              isQuickAuthEnabled: false,
-              isQuickAuthAvailable: false,
-              isQuickAuthBusy: false,
-              onQuickAuthChanged: (_) {},
-              onLock: null,
-              onClearMessageCache: () {},
-              onClearAllData: () {},
-            ),
-          ),
-        ),
-      ),
+    await pumpSecuritySection(
+      tester,
+      isPasswordEnabled: false,
+      isQuickAuthEnabled: false,
+      isQuickAuthAvailable: false,
     );
     await pumpUntilFound(tester, find.text('验证 OA 登录'));
 
@@ -121,77 +126,67 @@ void main() {
     expect(find.text('请先保存学工号（OA账号）'), findsOneWidget);
   });
 
+  testWidgets('保存 OA 凭据后自动静默预热登录会话', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final validationService = _RecordingAcademicLoginValidationService();
+
+    await pumpSecuritySection(
+      tester,
+      isPasswordEnabled: false,
+      isQuickAuthEnabled: false,
+      isQuickAuthAvailable: false,
+      academicLoginValidationService: validationService,
+    );
+    await pumpUntilFound(tester, find.text('保存教务凭据'));
+
+    await tester.enterText(find.byType(EditableText).at(0), '20260001');
+    await tester.enterText(find.byType(EditableText).at(1), 'oa-pass');
+    await tester.ensureVisible(find.text('保存教务凭据'));
+    await tester.tap(find.text('保存教务凭据'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(validationService.forceRefreshValues, [true]);
+    expect(validationService.requireCampusNetworkValues, [false]);
+    expect(
+      await AcademicCredentialsService.instance.readOaLoginSession(),
+      isNull,
+      reason: '设置页只负责触发预热，实际会话保存由登录校验服务完成。',
+    );
+
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump();
+  });
+
   testWidgets('系统快速验证在可用时显示开关，不可用时显示密码兜底提示', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: SettingsSecuritySection(
-              isPasswordEnabled: false,
-              onPasswordProtectionChanged: (_) {},
-              onChangePassword: () {},
-              isQuickAuthEnabled: false,
-              isQuickAuthAvailable: true,
-              isQuickAuthBusy: false,
-              onQuickAuthChanged: (_) {},
-              onLock: null,
-              onClearMessageCache: () {},
-              onClearAllData: () {},
-            ),
-          ),
-        ),
-      ),
+    await pumpSecuritySection(
+      tester,
+      isPasswordEnabled: false,
+      isQuickAuthEnabled: false,
+      isQuickAuthAvailable: true,
     );
     await pumpUntilFound(tester, find.text('学工号（OA账号）'));
 
     expect(find.text('系统快速验证'), findsNothing);
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: SettingsSecuritySection(
-              isPasswordEnabled: true,
-              onPasswordProtectionChanged: (_) {},
-              onChangePassword: () {},
-              isQuickAuthEnabled: true,
-              isQuickAuthAvailable: false,
-              isQuickAuthBusy: false,
-              onQuickAuthChanged: (_) {},
-              onLock: null,
-              onClearMessageCache: () {},
-              onClearAllData: () {},
-            ),
-          ),
-        ),
-      ),
+    await pumpSecuritySection(
+      tester,
+      isPasswordEnabled: true,
+      isQuickAuthEnabled: true,
+      isQuickAuthAvailable: false,
     );
     await pumpUntilFound(tester, find.text('学工号（OA账号）'));
 
     expect(find.text('系统快速验证不可用'), findsOneWidget);
     expect(find.textContaining('仍可使用应用密码手动解锁'), findsOneWidget);
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: SettingsSecuritySection(
-              isPasswordEnabled: true,
-              onPasswordProtectionChanged: (_) {},
-              onChangePassword: () {},
-              isQuickAuthEnabled: true,
-              isQuickAuthAvailable: true,
-              isQuickAuthBusy: false,
-              onQuickAuthChanged: (_) {},
-              onLock: null,
-              onClearMessageCache: () {},
-              onClearAllData: () {},
-            ),
-          ),
-        ),
-      ),
+    await pumpSecuritySection(
+      tester,
+      isPasswordEnabled: true,
+      isQuickAuthEnabled: true,
+      isQuickAuthAvailable: true,
     );
     await pumpUntilFound(tester, find.text('系统快速验证'));
 
@@ -204,25 +199,12 @@ void main() {
     await configureNarrowView(tester);
 
     try {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: SettingsSecuritySection(
-                isPasswordEnabled: true,
-                onPasswordProtectionChanged: (_) {},
-                onChangePassword: () {},
-                isQuickAuthEnabled: true,
-                isQuickAuthAvailable: true,
-                isQuickAuthBusy: true,
-                onQuickAuthChanged: (_) {},
-                onLock: null,
-                onClearMessageCache: () {},
-                onClearAllData: () {},
-              ),
-            ),
-          ),
-        ),
+      await pumpSecuritySection(
+        tester,
+        isPasswordEnabled: true,
+        isQuickAuthEnabled: true,
+        isQuickAuthAvailable: true,
+        isQuickAuthBusy: true,
       );
       await pumpUntilFound(tester, find.text('系统快速验证'));
 
@@ -236,4 +218,69 @@ void main() {
       await resetView(tester);
     }
   });
+}
+
+class _RecordingAcademicLoginValidationService
+    extends AcademicLoginValidationService {
+  _RecordingAcademicLoginValidationService()
+    : super(gateway: _UnusedAcademicLoginGateway());
+
+  final List<bool> forceRefreshValues = [];
+  final List<bool> requireCampusNetworkValues = [];
+
+  @override
+  Future<AcademicLoginValidationResult> ensureSavedSession({
+    bool forceRefresh = false,
+    bool requireCampusNetwork = true,
+  }) async {
+    forceRefreshValues.add(forceRefresh);
+    requireCampusNetworkValues.add(requireCampusNetwork);
+    return _successResult();
+  }
+
+  @override
+  Future<AcademicLoginValidationResult> validateSavedCredentials({
+    bool requireCampusNetwork = true,
+  }) async {
+    return _successResult();
+  }
+}
+
+class _UnusedAcademicLoginGateway implements AcademicLoginGateway {
+  @override
+  AcademicLoginSessionSnapshot currentSessionSnapshot({
+    required Uri entranceUri,
+    required Uri finalUri,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<String> fetchPublicKey(Duration timeout) => throw UnimplementedError();
+
+  @override
+  Future<AcademicLoginHttpSnapshot> openLoginPage(
+    Uri entranceUri,
+    Duration timeout,
+  ) => throw UnimplementedError();
+
+  @override
+  Future<void> resetSession() async {}
+
+  @override
+  Future<AcademicLoginHttpSnapshot> submitLogin({
+    required Uri loginUri,
+    required Map<String, String> fields,
+    required Duration timeout,
+  }) => throw UnimplementedError();
+}
+
+AcademicLoginValidationResult _successResult() {
+  return AcademicLoginValidationResult(
+    status: AcademicLoginValidationStatus.success,
+    message: 'OA 登录会话已就绪',
+    detail: '测试会话',
+    checkedAt: DateTime(2026, 6, 4),
+    entranceUri: Uri.parse(
+      'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
+    ),
+  );
 }

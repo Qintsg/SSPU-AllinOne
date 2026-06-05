@@ -148,8 +148,8 @@ class SettingsWechatMatrixCard extends StatelessWidget {
 
   /// 构建卡片简介。
   Widget _buildIntro(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.fluentColors;
+    final type = context.fluentType;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,12 +161,12 @@ class SettingsWechatMatrixCard extends StatelessWidget {
           children: [
             Semantics(
               header: true,
-              child: Text('SSPU 微信矩阵', style: textTheme.titleMedium),
+              child: Text('SSPU 微信矩阵', style: type.subtitle1),
             ),
             Text(
               '来源：校园+微信矩阵 · 共 ${sspuWechatAccounts.length} 个',
-              style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
+              style: type.caption1.copyWith(
+                color: colors.neutralForeground2,
               ),
             ),
           ],
@@ -174,12 +174,12 @@ class SettingsWechatMatrixCard extends StatelessWidget {
         const SizedBox(height: AppSpacing.sm),
         Text(
           '以下为上海第二工业大学官方认可的微信公众号',
-          style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+          style: type.caption1.copyWith(color: colors.neutralForeground2),
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
           '已关注的公众号可在此直接控制是否获取推文；未关注项仅展示状态。',
-          style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+          style: type.caption1.copyWith(color: colors.neutralForeground2),
         ),
       ],
     );
@@ -189,7 +189,7 @@ class SettingsWechatMatrixCard extends StatelessWidget {
     BuildContext context, {
     required bool alignEnd,
   }) {
-    final textTheme = Theme.of(context).textTheme;
+    final type = context.fluentType;
 
     return Column(
       crossAxisAlignment: alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -201,7 +201,7 @@ class SettingsWechatMatrixCard extends StatelessWidget {
                   dimension: 20,
                   child: FluentProgressRing(strokeWidth: 2),
                 )
-              : const Icon(Icons.group_add_outlined),
+              : const Icon(FluentIcons.peopleAdd),
           label: const Text('一键全部关注'),
         ),
         if (batchFollowing && batchProgress.isNotEmpty) ...[
@@ -210,7 +210,7 @@ class SettingsWechatMatrixCard extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 220),
             child: Text(
               batchProgress,
-              style: textTheme.bodySmall,
+              style: type.caption1,
               textAlign: alignEnd ? TextAlign.right : TextAlign.left,
               overflow: TextOverflow.ellipsis,
             ),
@@ -242,12 +242,12 @@ class _WechatAccountTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.fluentColors;
+    final type = context.fluentType;
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
+        color: colors.neutralBackground2,
         borderRadius: AppShapes.md,
       ),
       child: Padding(
@@ -262,9 +262,9 @@ class _WechatAccountTile extends StatelessWidget {
                 height: 40,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => Icon(
-                  Icons.chat_outlined,
+                  FluentIcons.chat,
                   size: 32,
-                  color: colorScheme.primary,
+                  color: colors.brandForeground1,
                 ),
               ),
             ),
@@ -275,14 +275,14 @@ class _WechatAccountTile extends StatelessWidget {
                 children: [
                   Text(
                     account.name,
-                    style: textTheme.titleSmall,
+                    style: type.body1Strong,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     account.wxAccount,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                    style: type.caption1.copyWith(
+                      color: colors.neutralForeground2,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -293,8 +293,8 @@ class _WechatAccountTile extends StatelessWidget {
             if (!authenticated)
               Text(
                 '未认证',
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+                style: type.caption1.copyWith(
+                  color: colors.neutralForeground2,
                 ),
               )
             else if (!followed)

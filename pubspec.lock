@@ -193,6 +193,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
+  fluent_ui:
+    dependency: "direct main"
+    description:
+      name: fluent_ui
+      sha256: ccddccb8256f2d7c93838be8e01021cfe337070bb6b880d0f005c137d3e29224
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.15.1"
+  fluentui_system_icons:
+    dependency: "direct main"
+    description:
+      name: fluentui_system_icons
+      sha256: "1592ae32dae75fb66741ab2c0607bc6554ef086f1c457e27ef937fb4901d33da"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.273"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -278,6 +294,11 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.0.0"
+  flutter_localizations:
+    dependency: "direct main"
+    description: flutter
+    source: sdk
+    version: "0.0.0"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:
@@ -536,6 +557,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.13.0"
+  math_expressions:
+    dependency: transitive
+    description:
+      name: math_expressions
+      sha256: "2e1ceb974c2b1893c809a68c7005f1b63f7324db0add800a0e792b1ac8ff9f03"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.0"
   menu_base:
     dependency: transitive
     description:
@@ -548,10 +577,10 @@ packages:
     dependency: transitive
     description:
       name: meta
-      sha256: "23f08335362185a5ea2ad3a4e597f1375e78bce8a040df5c600c8d3552ef2394"
+      sha256: "1741988757a65eb6b36abe716829688cf01910bbf91c34354ff7ec1c3de2b349"
       url: "https://pub.dev"
     source: hosted
-    version: "1.17.0"
+    version: "1.18.0"
   mime:
     dependency: transitive
     description:
@@ -704,6 +733,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
+  recase:
+    dependency: transitive
+    description:
+      name: recase
+      sha256: e4eb4ec2dcdee52dcf99cb4ceabaffc631d7424ee55e56f280bc039737f89213
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.1.0"
   record_use:
     dependency: transitive
     description:
@@ -752,6 +789,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.0"
+  scroll_pos:
+    dependency: transitive
+    description:
+      name: scroll_pos
+      sha256: cebf602b2dd939de6832bb902ffefb574608d1b84f420b82b381a4007d3c1e1b
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.0"
   shared_preferences:
     dependency: "direct main"
     description:
@@ -873,10 +918,10 @@ packages:
     dependency: transitive
     description:
       name: test_api
-      sha256: "8161c84903fd860b26bfdefb7963b3f0b68fee7adea0f59ef805ecca346f0c7a"
+      sha256: "949a932224383300f01be9221c39180316445ecb8e7547f70a41a35bf421fb9e"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.10"
+    version: "0.7.11"
   tray_manager:
     dependency: "direct main"
     description:

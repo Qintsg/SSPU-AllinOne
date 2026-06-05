@@ -199,8 +199,7 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final theme = FluentTheme.of(context);
 
     return AnimatedBuilder(
       animation: Listenable.merge([_unlockScale, _unlockOpacity]),
@@ -210,8 +209,8 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
           child: Transform.scale(scale: _unlockScale.value, child: child),
         );
       },
-      child: Scaffold(
-        body: SafeArea(
+      child: ScaffoldPage(
+        content: SafeArea(
           child: Center(
             child: SingleChildScrollView(
               padding: AppSpacing.regularPagePadding,
@@ -224,13 +223,16 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
                     const SizedBox(height: AppSpacing.lg),
                     Semantics(
                       header: true,
-                      child: Text('SSPU-AllinOne', style: textTheme.titleLarge),
+                      child: Text(
+                        'SSPU-AllinOne',
+                        style: theme.typography.titleLarge,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
                       '应用已锁定',
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
+                      style: theme.typography.bodyLarge?.copyWith(
+                        color: theme.resources.textFillColorSecondary,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xl),
@@ -247,8 +249,7 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
 
   /// 构建密码输入和解锁操作区。
   Widget _buildPasswordForm(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final theme = FluentTheme.of(context);
 
     return AnimatedBuilder(
       animation: _shakeAnimation,
@@ -266,7 +267,7 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
             obscureText: true,
             label: '密码',
             placeholder: '输入密码以解锁',
-            prefixIcon: Icons.lock_outline,
+            prefixIcon: FluentIcons.lock,
             errorText: _errorMessage,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _handleUnlock(),
@@ -275,13 +276,17 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
-                Icon(Icons.error_outline, color: colorScheme.error, size: 20),
+                Icon(
+                  FluentIcons.warning,
+                  color: theme.resources.systemFillColorCritical,
+                  size: 20,
+                ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
                     _errorMessage!,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.error,
+                    style: theme.typography.caption?.copyWith(
+                      color: theme.resources.systemFillColorCritical,
                     ),
                   ),
                 ),
@@ -315,7 +320,7 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
                         dimension: 20,
                         child: FluentProgressRing(strokeWidth: 2),
                       )
-                    : const Icon(Icons.fingerprint),
+                    : const Icon(FluentIcons.fingerprint),
                 expand: true,
                 label: Text(_isSystemAuthenticating ? '等待系统认证' : '使用系统认证'),
               ),

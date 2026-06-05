@@ -106,7 +106,7 @@ class _CampusNetworkStatusIndicatorState
       message: _tooltipMessage,
       child: Semantics(
         button: true,
-        label: '校园网状态，${_status.label}，点击重新检测',
+        label: '校园网状态，$_displayLabel，点击重新检测',
         child: FluentHoverButton(
           onPressed: _isChecking ? null : _refreshStatus,
           builder: (context, states) => _buildContent(
@@ -134,6 +134,16 @@ class _CampusNetworkStatusIndicatorState
     final radii = context.fluentRadii;
     final motion = context.fluentMotion;
     final type = context.fluentType;
+    if (widget.variant == CampusNetworkStatusIndicatorVariant.titleBar) {
+      return _buildTitleBarContent(
+        context,
+        palette: palette,
+        config: config,
+        hovered: hovered,
+        pressed: pressed,
+      );
+    }
+
     final background = pressed
         ? palette.backgroundPressed
         : hovered
@@ -193,6 +203,69 @@ class _CampusNetworkStatusIndicatorState
     );
   }
 
+  /// 构建桌面标题栏状态入口。
+  Widget _buildTitleBarContent(
+    BuildContext context, {
+    required _StatusPalette palette,
+    required _IndicatorVariantConfig config,
+    required bool hovered,
+    required bool pressed,
+  }) {
+    final colors = context.fluentColors;
+    final motion = context.fluentMotion;
+    final type = context.fluentType;
+    final foreground = hovered || pressed
+        ? palette.foreground
+        : palette.foreground.withValues(alpha: 0.88);
+
+    return AnimatedContainer(
+      key: widget.indicatorKey,
+      duration: motion.durationFast,
+      curve: motion.curveDecelerateMid,
+      width: config.width,
+      height: config.height,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedContainer(
+            duration: motion.durationFast,
+            curve: motion.curveDecelerateMid,
+            width: config.labelWidth,
+            height: config.height,
+            alignment: Alignment.center,
+            padding: const EdgeInsetsDirectional.symmetric(horizontal: 8),
+            child: Text(
+              _titleBarLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: type.caption1Strong.copyWith(
+                color: colors.neutralForeground1,
+              ),
+            ),
+          ),
+          SizedBox(width: config.segmentGap),
+          AnimatedContainer(
+            duration: motion.durationFast,
+            curve: motion.curveDecelerateMid,
+            width: config.iconBoxWidth,
+            height: config.height,
+            alignment: Alignment.center,
+            child: _buildStaticStatusIcon(foreground, config.iconSize),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建不会因检测中切换成进度点的标题栏图标。
+  Widget _buildStaticStatusIcon(Color foregroundColor, double size) {
+    if (_status.accessMode == CampusNetworkAccessMode.campus) {
+      return _TitleBarWifiIcon(color: foregroundColor, size: size);
+    }
+
+    return Icon(_statusIcon, size: size, color: foregroundColor);
+  }
+
   /// 构建当前状态图标。
   Widget _buildStatusIcon(Color foregroundColor, double size) {
     if (_isChecking) {
@@ -234,10 +307,29 @@ class _CampusNetworkStatusIndicatorState
 
   IconData get _statusIcon {
     return switch (_status.accessMode) {
-      CampusNetworkAccessMode.campus => FluentIcons.plugConnected,
-      CampusNetworkAccessMode.vpn => FluentIcons.shield,
-      CampusNetworkAccessMode.outsideCampus => FluentIcons.globe,
-      CampusNetworkAccessMode.unknown => FluentIcons.syncStatus,
+      CampusNetworkAccessMode.campus => FluentIcons.networkWifi,
+      CampusNetworkAccessMode.vpn => FluentIcons.networkVpn,
+      CampusNetworkAccessMode.outsideCampus => FluentIcons.networkOff,
+      CampusNetworkAccessMode.unknown => FluentIcons.networkUnknown,
+    };
+  }
+
+  /// 当前样式应展示的状态文案。
+  String get _displayLabel {
+    return switch (widget.variant) {
+      CampusNetworkStatusIndicatorVariant.titleBar => _titleBarLabel,
+      CampusNetworkStatusIndicatorVariant.home => _status.shortLabel,
+      CampusNetworkStatusIndicatorVariant.standard => _status.label,
+    };
+  }
+
+  /// 桌面标题栏按 issue #155 约定展示的固定文案。
+  String get _titleBarLabel {
+    return switch (_status.accessMode) {
+      CampusNetworkAccessMode.vpn => 'VPN网络环境',
+      CampusNetworkAccessMode.campus => '校园网环境',
+      CampusNetworkAccessMode.outsideCampus => '校外网络环境',
+      CampusNetworkAccessMode.unknown => '未知网络环境',
     };
   }
 
@@ -255,18 +347,16 @@ class _CampusNetworkStatusIndicatorState
         border: colors.statusSuccessForeground.withValues(alpha: 0.22),
       ),
       CampusNetworkAccessMode.outsideCampus => _StatusPalette(
-        foreground: widget.variant == CampusNetworkStatusIndicatorVariant.home
+        foreground: _usesMutedStatusColor
             ? colors.neutralForeground3
             : colors.statusWarningForeground,
-        background: widget.variant == CampusNetworkStatusIndicatorVariant.home
+        background: _usesMutedStatusColor
             ? colors.neutralBackground3
             : colors.statusWarningBackground,
-        backgroundHover:
-            widget.variant == CampusNetworkStatusIndicatorVariant.home
+        backgroundHover: _usesMutedStatusColor
             ? colors.neutralBackground2
             : colors.statusWarningBackground.withValues(alpha: 0.86),
-        backgroundPressed:
-            widget.variant == CampusNetworkStatusIndicatorVariant.home
+        backgroundPressed: _usesMutedStatusColor
             ? colors.neutralBackground1Pressed
             : colors.statusWarningBackground.withValues(alpha: 0.72),
         border: colors.neutralStroke2,
@@ -281,6 +371,12 @@ class _CampusNetworkStatusIndicatorState
     };
   }
 
+  /// 首页和标题栏中的非校园状态按需求使用灰色弱化展示。
+  bool get _usesMutedStatusColor {
+    return widget.variant == CampusNetworkStatusIndicatorVariant.home ||
+        widget.variant == CampusNetworkStatusIndicatorVariant.titleBar;
+  }
+
   _IndicatorVariantConfig get _variantConfig {
     return switch (widget.variant) {
       CampusNetworkStatusIndicatorVariant.standard =>
@@ -292,11 +388,14 @@ class _CampusNetworkStatusIndicatorState
         ),
       CampusNetworkStatusIndicatorVariant.titleBar =>
         const _IndicatorVariantConfig(
-          width: 152,
+          width: 142,
           height: 30,
-          horizontalPadding: 12,
+          horizontalPadding: 0,
           verticalPadding: 4,
-          iconSize: 16,
+          iconSize: 20,
+          labelWidth: 106,
+          iconBoxWidth: 32,
+          segmentGap: 4,
           compactText: true,
         ),
       CampusNetworkStatusIndicatorVariant.home => const _IndicatorVariantConfig(
@@ -313,6 +412,10 @@ class _CampusNetworkStatusIndicatorState
   }
 
   String get _tooltipMessage {
+    if (widget.variant == CampusNetworkStatusIndicatorVariant.titleBar) {
+      return _titleBarTooltipMessage;
+    }
+
     final checkedAt = _status.checkedAt;
     final checkedAtLabel = checkedAt == null
         ? '尚未完成检测'
@@ -325,6 +428,18 @@ class _CampusNetworkStatusIndicatorState
         : '自动检测：每 $_detectionIntervalMinutes 分钟';
 
     return '${_status.description}\n${_status.detail}\n$checkedAtLabel\n$intervalLabel\n点击可重新检测';
+  }
+
+  /// 桌面标题栏按 issue #155 约定展示的悬停说明。
+  String get _titleBarTooltipMessage {
+    return switch (_status.accessMode) {
+      CampusNetworkAccessMode.vpn => '当前处于VPN网络环境下，部分校园内部服务可能无法访问',
+      CampusNetworkAccessMode.campus => '当前处于校园非VPN网络环境下',
+      CampusNetworkAccessMode.outsideCampus =>
+        '当前处于非校园网络环境，访问校内服务需要连接校园网或打开VPN',
+      CampusNetworkAccessMode.unknown =>
+        '当前网络环境未知，可能是由于当前设备没有连接到网络、校园网内部错误、设备内部错误或网络波动等问题',
+    };
   }
 }
 
@@ -351,6 +466,9 @@ class _IndicatorVariantConfig {
     required this.horizontalPadding,
     required this.verticalPadding,
     required this.iconSize,
+    this.labelWidth = 0,
+    this.iconBoxWidth = 0,
+    this.segmentGap = 0,
     this.compactText = false,
     this.useShortLabel = false,
     this.useStatusLight = false,
@@ -362,8 +480,71 @@ class _IndicatorVariantConfig {
   final double horizontalPadding;
   final double verticalPadding;
   final double iconSize;
+  final double labelWidth;
+  final double iconBoxWidth;
+  final double segmentGap;
   final bool compactText;
   final bool useShortLabel;
   final bool useStatusLight;
   final bool elevated;
+}
+
+class _TitleBarWifiIcon extends StatelessWidget {
+  const _TitleBarWifiIcon({required this.color, required this.size});
+
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: size,
+      child: CustomPaint(painter: _TitleBarWifiIconPainter(color)),
+    );
+  }
+}
+
+class _TitleBarWifiIconPainter extends CustomPainter {
+  const _TitleBarWifiIconPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = (size.shortestSide * 0.1).clamp(1.6, 2.2).toDouble();
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    Path arc(double left, double top, double right, double bottom) {
+      final path = Path()..moveTo(size.width * left, size.height * bottom);
+      path.quadraticBezierTo(
+        size.width * 0.5,
+        size.height * top,
+        size.width * right,
+        size.height * bottom,
+      );
+      return path;
+    }
+
+    canvas.drawPath(arc(0.18, 0.16, 0.82, 0.48), paint);
+    canvas.drawPath(arc(0.32, 0.38, 0.68, 0.61), paint);
+    canvas.drawPath(arc(0.43, 0.58, 0.57, 0.72), paint);
+
+    canvas.drawCircle(
+      Offset(size.width * 0.5, size.height * 0.82),
+      size.shortestSide * 0.075,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.fill,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _TitleBarWifiIconPainter oldDelegate) {
+    return oldDelegate.color != color;
+  }
 }

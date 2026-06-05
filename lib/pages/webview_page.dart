@@ -102,11 +102,11 @@ class _WebViewPageState extends State<WebViewPage> {
   @override
   Widget build(BuildContext context) {
     if (_initFailed) {
-      return _buildStateScaffold(
+      return _buildStatePage(
         context,
         title: widget.initialTitle,
         child: EmptyStateView(
-          icon: Icons.warning_amber_outlined,
+          icon: FluentIcons.warning,
           title: 'WebView 初始化失败',
           message: '已在默认浏览器中打开链接',
           action: FluentButton.primary(
@@ -118,11 +118,11 @@ class _WebViewPageState extends State<WebViewPage> {
     }
 
     if (!_isSupportedWebUrl(_currentUrl)) {
-      return _buildStateScaffold(
+      return _buildStatePage(
         context,
         title: widget.initialTitle,
         child: EmptyStateView(
-          icon: Icons.link_off_outlined,
+          icon: FluentIcons.linkDismiss,
           title: '链接无效，无法打开',
           message: _currentUrl,
           action: FluentButton.primary(
@@ -141,22 +141,22 @@ class _WebViewPageState extends State<WebViewPage> {
           children: [
             FluentIconButton(
               tooltip: '后退',
-              icon: const Icon(Icons.arrow_back),
+              icon: const Icon(FluentIcons.back),
               onPressed: _canGoBack ? () => _controller?.goBack() : null,
             ),
             FluentIconButton(
               tooltip: '前进',
-              icon: const Icon(Icons.arrow_forward),
+              icon: const Icon(FluentIcons.forward),
               onPressed: _canGoForward ? () => _controller?.goForward() : null,
             ),
             FluentIconButton(
               tooltip: '刷新',
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(FluentIcons.refresh),
               onPressed: _isReady ? () => _controller?.reload() : null,
             ),
             FluentIconButton(
               tooltip: '在浏览器中打开',
-              icon: const Icon(Icons.open_in_new),
+              icon: const Icon(FluentIcons.openInNewWindow),
               onPressed: _fallbackToExternalBrowser,
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -223,7 +223,7 @@ class _WebViewPageState extends State<WebViewPage> {
   }
 
   /// 构建异常状态页面外壳。
-  Widget _buildStateScaffold(
+  Widget _buildStatePage(
     BuildContext context, {
     required String title,
     required Widget child,

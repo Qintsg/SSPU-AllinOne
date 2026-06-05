@@ -1,21 +1,17 @@
 /*
- * Fluent 2 信息条 — 状态语义 + 图标，不以颜色为唯一信息
+ * Fluent 信息条兼容层 — 包装外部 fluent_ui InfoBar
  * @Project : SSPU-AllinOne
  * @File : fluent_info_bar.dart
  * @Author : Qintsg
  * @Date : 2026-05-18
- *
- * DESIGN.md §3.2.4 / §7：状态色只表达状态语义，并同时辅以图标。
  */
 
-import 'package:flutter/material.dart';
-
-import '../fluent/fluent_context_ext.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 
 /// 信息条严重级别。
 enum FluentInfoSeverity { info, success, warning, error }
 
-/// Fluent 2 信息条。
+/// Fluent 信息条。
 class FluentInfoBar extends StatelessWidget {
   const FluentInfoBar({
     super.key,
@@ -39,72 +35,21 @@ class FluentInfoBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final radii = context.fluentRadii;
-    final spacing = context.fluentSpacing;
-    final stroke = context.fluentStroke;
-    final type = context.fluentType;
-
-    final (Color fg, Color bg, IconData icon) = switch (severity) {
-      FluentInfoSeverity.info => (
-          colors.brandForeground1,
-          colors.neutralBackground3,
-          Icons.info_outline,
-        ),
-      FluentInfoSeverity.success => (
-          colors.statusSuccessForeground,
-          colors.statusSuccessBackground,
-          Icons.check_circle_outline,
-        ),
-      FluentInfoSeverity.warning => (
-          colors.statusWarningForeground,
-          colors.statusWarningBackground,
-          Icons.warning_amber_outlined,
-        ),
-      FluentInfoSeverity.error => (
-          colors.statusDangerForeground,
-          colors.statusDangerBackground,
-          Icons.error_outline,
-        ),
-    };
-
-    return Container(
-      padding: EdgeInsets.all(spacing.m),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: radii.mediumBorder,
-        border: Border.all(color: fg, width: stroke.thin),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: fg, size: 18),
-          SizedBox(width: spacing.s),
-          Expanded(
-            child: DefaultTextStyle.merge(
-              style: type.body1.copyWith(color: colors.neutralForeground1),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DefaultTextStyle.merge(
-                    style: type.body1Strong.copyWith(color: fg),
-                    child: title,
-                  ),
-                  if (content != null) ...[
-                    SizedBox(height: spacing.xxs),
-                    content!,
-                  ],
-                ],
-              ),
-            ),
-          ),
-          if (action != null) ...[
-            SizedBox(width: spacing.s),
-            action!,
-          ],
-        ],
-      ),
+    return InfoBar(
+      title: title,
+      content: content,
+      action: action,
+      severity: _severity,
+      isLong: content != null,
     );
+  }
+
+  InfoBarSeverity get _severity {
+    return switch (severity) {
+      FluentInfoSeverity.info => InfoBarSeverity.info,
+      FluentInfoSeverity.success => InfoBarSeverity.success,
+      FluentInfoSeverity.warning => InfoBarSeverity.warning,
+      FluentInfoSeverity.error => InfoBarSeverity.error,
+    };
   }
 }

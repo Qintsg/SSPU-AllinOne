@@ -6,7 +6,7 @@
  * @Date : 2026-05-18
  */
 
-import 'package:flutter/material.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 
 import '../fluent/fluent_context_ext.dart';
 import 'fluent_surface.dart';

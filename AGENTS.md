@@ -4,7 +4,7 @@
 
 - Flutter 应用包名 `sspu_allinone`，最低工具链以 `pubspec.yaml` / CI 为准：Flutter `3.41.7`，Dart `3.11.5`。
 - 入口是 `lib/main.dart`：初始化存储、协议/隐私确认、密码锁、桌面窗口关闭拦截、系统托盘、通知与自动刷新；主导航在 `lib/app.dart`。
-- 当前 UI 不是外部 `fluent_ui` 包：直接使用 `lib/design/fluent/` token 与 `lib/design/components/` 自建 Fluent 2 组件；`lib/theme/` 仅保留历史主题入口，页面不要再引入 Material 命名包装 API。
+- 当前 UI 使用外部 `fluent_ui` 与 `fluentui_system_icons`：页面统一从 `lib/design/fluent_ui.dart` 导入外部 Fluent 控件、项目语义图标 facade 与兼容 token/组件；`lib/theme/` 仅保留历史主题入口，页面不要再引入 Material 命名可见控件。
 - 没有 `build_runner` / `freezed` / `json_serializable` 代码生成；仓库使用手写模型和 Dart `part` 拆分大型页面/服务。
 - 新增 Dart 文件沿用现有块注释文件头和中文 DartDoc；大文件优先按现有 `part` 风格拆分，不新增生成器。
 
@@ -39,8 +39,8 @@
 
 ## UI 与平台注意
 
-- UI 改动优先使用 `lib/design/fluent.dart` 导出的 token/组件，或现有 `AppSpacing`、`AppBreakpoints`、`AppTheme`；不要新增裸 `Color(0x...)`、`Colors.*`、硬编码间距/字号作为组件样式来源。
-- 新增/迁移页面时保留自适应导航约束：窄屏底部 Fluent 导航，中屏紧凑/扩展侧栏，大屏 Fluent 抽屉式侧栏；至少自查桌面宽屏、平板/中屏、移动窄屏。
+- UI 改动优先使用 `lib/design/fluent_ui.dart` 导出的外部 Fluent 控件、语义 `FluentIcons` 和项目兼容组件/token，或现有 `AppSpacing`、`AppBreakpoints`、`AppTheme`；不要新增裸 `Color(0x...)`、`Colors.*`、硬编码间距/字号作为组件样式来源。
+- 新增/迁移页面时保留自适应导航约束：窄屏底部 Fluent 导航，中屏/大屏使用 `fluent_ui` `NavigationView` / `NavigationPane`；至少自查桌面宽屏、平板/中屏、移动窄屏。
 - 桌面插件调用必须先判断平台；`window_manager`、`tray_manager` 只在 Windows/Linux/macOS 注册，Web/移动端不能直接调用桌面通道。
 - Web 不支持本地文件目录和 `local_auth`；Linux 当前没有官方 `local_auth` 实现，仍走手动密码解锁。
 - Android `applicationId` / namespace 是 `cn.qintsg.sspu_allinone`，release 签名读取 `android/key.properties`，CI 可用 `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD` 注入；不要提交 `.jks` 或真实 `key.properties`。

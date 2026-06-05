@@ -33,9 +33,9 @@ Widget buildIntervalSelector({
   required bool enabled,
   required Future<void> Function(int minutes) onChanged,
 }) {
-  final colorScheme = Theme.of(context).colorScheme;
-  final textTheme = Theme.of(context).textTheme;
-  final disabledColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
+  final colors = context.fluentColors;
+  final type = context.fluentType;
+  final disabledColor = colors.neutralForegroundDisabled;
 
   return Padding(
     padding: const EdgeInsetsDirectional.only(
@@ -48,14 +48,14 @@ Widget buildIntervalSelector({
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Icon(
-          Icons.sync,
+          FluentIcons.sync,
           size: 20,
-          color: enabled ? colorScheme.onSurfaceVariant : disabledColor,
+          color: enabled ? colors.neutralForeground2 : disabledColor,
         ),
         Text(
           '自动刷新：',
-          style: textTheme.bodySmall?.copyWith(
-            color: enabled ? colorScheme.onSurfaceVariant : disabledColor,
+          style: type.caption1.copyWith(
+            color: enabled ? colors.neutralForeground2 : disabledColor,
           ),
         ),
         FluentSelect<int>(
@@ -89,16 +89,16 @@ Widget buildSettingsNavItem({
   required VoidCallback onTap,
 }) {
   final isSelected = index == selectedIndex;
-  final colorScheme = Theme.of(context).colorScheme;
-  final textTheme = Theme.of(context).textTheme;
+  final colors = context.fluentColors;
+  final type = context.fluentType;
 
   return _SettingsNavItem(
     isSelected: isSelected,
     icon: icon,
     label: label,
     onTap: onTap,
-    colorScheme: colorScheme,
-    textTheme: textTheme,
+    colors: colors,
+    type: type,
   );
 }
 
@@ -108,16 +108,16 @@ class _SettingsNavItem extends StatefulWidget {
     required this.icon,
     required this.label,
     required this.onTap,
-    required this.colorScheme,
-    required this.textTheme,
+    required this.colors,
+    required this.type,
   });
 
   final bool isSelected;
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final ColorScheme colorScheme;
-  final TextTheme textTheme;
+  final FluentColors colors;
+  final FluentTypography type;
 
   @override
   State<_SettingsNavItem> createState() => _SettingsNavItemState();
@@ -130,14 +130,14 @@ class _SettingsNavItemState extends State<_SettingsNavItem> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = widget.colorScheme;
-    final textTheme = widget.textTheme;
+    final colors = widget.colors;
+    final type = widget.type;
     final background = widget.isSelected
-        ? colorScheme.secondaryContainer
+        ? colors.brandBackgroundSelected.withValues(alpha: 0.12)
         : _pressed
-        ? colorScheme.surfaceContainerHighest
+        ? colors.neutralBackground1Pressed
         : _hovered || _focused
-        ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.72)
+        ? colors.neutralBackground1Hover
         : Colors.transparent;
 
     return Semantics(
@@ -182,7 +182,7 @@ class _SettingsNavItemState extends State<_SettingsNavItem> {
                   color: background,
                   borderRadius: AppShapes.md,
                   border: Border.all(
-                    color: _focused ? colorScheme.primary : Colors.transparent,
+                    color: _focused ? colors.brandStroke1 : Colors.transparent,
                     width: 2,
                   ),
                 ),
@@ -197,7 +197,7 @@ class _SettingsNavItemState extends State<_SettingsNavItem> {
                       ),
                       decoration: BoxDecoration(
                         color: widget.isSelected
-                            ? colorScheme.primary
+                            ? colors.brandBackground
                             : Colors.transparent,
                         borderRadius: AppShapes.xs,
                       ),
@@ -205,18 +205,18 @@ class _SettingsNavItemState extends State<_SettingsNavItem> {
                     Icon(
                       widget.icon,
                       color: widget.isSelected
-                          ? colorScheme.onSecondaryContainer
-                          : colorScheme.onSurfaceVariant,
+                          ? colors.brandForeground1
+                          : colors.neutralForeground2,
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
                         widget.label,
                         style: widget.isSelected
-                            ? textTheme.titleSmall?.copyWith(
-                                color: colorScheme.onSecondaryContainer,
+                            ? type.body1Strong.copyWith(
+                                color: colors.brandForeground1,
                               )
-                            : textTheme.bodyMedium,
+                            : type.body1,
                       ),
                     ),
                   ],
@@ -239,11 +239,11 @@ Widget buildCountNumberBox({
   required bool enabled,
   required ValueChanged<int> onChanged,
 }) {
-  final colorScheme = Theme.of(context).colorScheme;
-  final textTheme = Theme.of(context).textTheme;
+  final colors = context.fluentColors;
+  final type = context.fluentType;
   final foreground = enabled
-      ? colorScheme.onSurfaceVariant
-      : colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
+      ? colors.neutralForeground2
+      : colors.neutralForegroundDisabled;
 
   Widget numberField() => SizedBox(
     width: 128,
@@ -269,7 +269,7 @@ Widget buildCountNumberBox({
             children: [
               Text(
                 '$label：',
-                style: textTheme.bodySmall?.copyWith(color: foreground),
+                style: type.caption1.copyWith(color: foreground),
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: AppSpacing.xs),
@@ -286,7 +286,7 @@ Widget buildCountNumberBox({
             Expanded(
               child: Text(
                 '$label：',
-                style: textTheme.bodySmall?.copyWith(color: foreground),
+                style: type.caption1.copyWith(color: foreground),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -308,13 +308,14 @@ Widget buildResponsiveSettingsRow({
   required Widget trailing,
   Color? iconColor,
 }) {
+  final colors = context.fluentColors;
   return LayoutBuilder(
     builder: (context, constraints) {
       final shouldStack = shouldStackSettingsControls(constraints);
       final leading = Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: iconColor ?? Theme.of(context).colorScheme.primary),
+          Icon(icon, color: iconColor ?? colors.brandForeground1),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
@@ -362,14 +363,14 @@ Widget buildTimePicker({
   required int minute,
   required Future<void> Function(int h, int m) onChanged,
 }) {
-  final textTheme = Theme.of(context).textTheme;
+  final type = context.fluentType;
 
   return Wrap(
     spacing: AppSpacing.xs,
     runSpacing: AppSpacing.xs,
     crossAxisAlignment: WrapCrossAlignment.center,
     children: [
-      Text('$label ', style: textTheme.bodySmall),
+      Text('$label ', style: type.caption1),
       FluentSelect<int>(
         value: hour,
         items: List.generate(
@@ -383,7 +384,7 @@ Widget buildTimePicker({
           if (h != null) onChanged(h, minute);
         },
       ),
-      Text(':', style: textTheme.titleSmall),
+      Text(':', style: type.body1Strong),
       FluentSelect<int>(
         value: [0, 15, 30, 45].contains(minute) ? minute : 0,
         items: const [
@@ -409,24 +410,22 @@ Widget buildChannelToggle({
   required bool value,
   required ValueChanged<bool> onChanged,
 }) {
-  final textTheme = Theme.of(context).textTheme;
-  final colorScheme = Theme.of(context).colorScheme;
+  final colors = context.fluentColors;
+  final type = context.fluentType;
 
   return Row(
     children: [
-      Icon(icon, color: colorScheme.primary),
+      Icon(icon, color: colors.brandForeground1),
       const SizedBox(width: AppSpacing.md),
       Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: textTheme.titleSmall),
+            Text(title, style: type.body1Strong),
             const SizedBox(height: AppSpacing.xs),
             Text(
               subtitle,
-              style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
+              style: type.caption1.copyWith(color: colors.neutralForeground2),
             ),
           ],
         ),

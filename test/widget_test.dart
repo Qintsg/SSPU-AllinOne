@@ -17,6 +17,7 @@ import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/services/campus_network_status_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/services/wxmp_config_service.dart';
+import 'package:sspu_allinone/widgets/app_feedback.dart';
 import 'package:sspu_allinone/widgets/campus_network_status_indicator.dart';
 import 'package:sspu_allinone/widgets/settings_auto_refresh_section.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_section.dart';
@@ -65,7 +66,7 @@ void main() {
       StorageService.debugUseSharedPreferencesStorageForTesting(true);
       final service = _buildCampusNetworkStatusService();
       await tester.pumpWidget(
-        MaterialApp(home: AppShell(campusNetworkStatusService: service)),
+        FluentApp(home: AppShell(campusNetworkStatusService: service)),
       );
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -92,6 +93,23 @@ void main() {
       expect(
         find.descendant(of: bottomNavigation, matching: find.text('更多')),
         findsOneWidget,
+      );
+      expect(
+        tester.getSemantics(
+          find
+              .descendant(
+                of: bottomNavigation,
+                matching: find.bySemanticsLabel('主页'),
+              )
+              .first,
+        ),
+        matchesSemantics(
+          label: '主页',
+          isButton: true,
+          hasSelectedState: true,
+          isSelected: true,
+          hasTapAction: true,
+        ),
       );
 
       await tester.tap(find.text('更多'));
@@ -125,7 +143,7 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        MaterialApp(home: AppShell(campusNetworkStatusService: service)),
+        FluentApp(home: AppShell(campusNetworkStatusService: service)),
       );
       await tester.pump(const Duration(milliseconds: 100));
       await pumpUntilFound(tester, find.text('VPN'));
@@ -173,7 +191,7 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        MaterialApp(
+        FluentApp(
           home: Row(
             children: [
               CampusNetworkStatusIndicator(
@@ -209,15 +227,109 @@ void main() {
     }
   });
 
+  testWidgets('桌面标题栏网络状态按固定尺寸展示指定文案和图标', (tester) async {
+    await _expectTitleBarStatus(
+      tester,
+      vpnReachable: true,
+      campusReachable: true,
+      label: 'VPN网络环境',
+      icon: FluentIcons.networkVpn,
+      tooltip: '当前处于VPN网络环境下，部分校园内部服务可能无法访问',
+    );
+    await _expectTitleBarStatus(
+      tester,
+      vpnReachable: false,
+      campusReachable: true,
+      label: '校园网环境',
+      icon: null,
+      tooltip: '当前处于校园非VPN网络环境下',
+      usesCustomWifiIcon: true,
+    );
+    await _expectTitleBarStatus(
+      tester,
+      vpnReachable: true,
+      campusReachable: false,
+      label: '校外网络环境',
+      icon: FluentIcons.networkOff,
+      tooltip: '当前处于非校园网络环境，访问校内服务需要连接校园网或打开VPN',
+    );
+    await _expectTitleBarStatus(
+      tester,
+      vpnReachable: false,
+      campusReachable: false,
+      label: '未知网络环境',
+      icon: FluentIcons.networkUnknown,
+      tooltip: '当前网络环境未知，可能是由于当前设备没有连接到网络、校园网内部错误、设备内部错误或网络波动等问题',
+    );
+  });
+
+  testWidgets('桌面标题栏网络状态点击后重新探查', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+    var probeCount = 0;
+    final service = _buildCampusNetworkStatusService(
+      onProbe: (_) => probeCount++,
+      probeDelay: const Duration(milliseconds: 100),
+    );
+
+    try {
+      await tester.pumpWidget(
+        FluentApp(
+          home: Center(
+            child: CampusNetworkStatusIndicator(
+              service: service,
+              variant: CampusNetworkStatusIndicatorVariant.titleBar,
+              indicatorKey: const Key('campus-network-status-titlebar-test'),
+            ),
+          ),
+        ),
+      );
+
+      await pumpUntilFound(tester, find.text('VPN网络环境'));
+      expect(find.text('VPN网络环境'), findsOneWidget);
+      expect(probeCount, 2);
+
+      await tester.tap(
+        find.byKey(const Key('campus-network-status-titlebar-test')),
+      );
+      await tester.pump(const Duration(milliseconds: 20));
+
+      expect(probeCount, 4);
+      final indicator = find.byKey(
+        const Key('campus-network-status-titlebar-test'),
+      );
+      expect(
+        find.descendant(
+          of: indicator,
+          matching: find.byIcon(FluentIcons.networkVpn),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: indicator,
+          matching: find.byType(FluentProgressRing),
+        ),
+        findsNothing,
+      );
+      await tester.pump(const Duration(milliseconds: 120));
+    } finally {
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    }
+  });
+
   testWidgets('自动刷新设置分区显示校园网检测和快捷入口', (WidgetTester tester) async {
     var selectedShortcut = 0;
     await tester.binding.setSurfaceSize(const Size(1000, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
+      FluentApp(
+        home: ScaffoldPage(
+          content: SingleChildScrollView(
             child: SettingsAutoRefreshSection(
               campusNetworkDetectionIntervalMinutes: 15,
               sportsAttendanceAutoRefreshEnabled: true,
@@ -269,9 +381,36 @@ void main() {
     expect(selectedShortcut, 3);
   });
 
+  testWidgets('页面反馈连续显示时替换上一条信息条', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      FluentApp(
+        home: ScaffoldPage(
+          content: Builder(
+            builder: (context) => Button(
+              onPressed: () {
+                showAppFeedback(context, message: '第一条反馈');
+                showAppFeedback(context, message: '第二条反馈');
+              },
+              child: const Text('显示反馈'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('显示反馈'));
+    await tester.pump();
+
+    expect(find.text('第一条反馈'), findsNothing);
+    expect(find.text('第二条反馈'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump();
+  });
+
   testWidgets('WebView 遇到无效链接时显示错误页', (WidgetTester tester) async {
     await tester.pumpWidget(
-      const MaterialApp(
+      const FluentApp(
         home: WebViewPage(
           url: 'https://wywh.sspu.edu.cnjavascript:void(0);',
           initialTitle: '无效链接',
@@ -290,7 +429,7 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        const MaterialApp(home: _SettingsNavigationLayoutHarness()),
+        const FluentApp(home: _SettingsNavigationLayoutHarness()),
       );
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -332,9 +471,9 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
+        FluentApp(
+          home: ScaffoldPage(
+            content: SingleChildScrollView(
               child: SettingsWechatSection(controller: controller),
             ),
           ),
@@ -360,13 +499,99 @@ void main() {
   });
 }
 
-CampusNetworkStatusService _buildCampusNetworkStatusService() {
+Future<void> _expectTitleBarStatus(
+  WidgetTester tester, {
+  required bool vpnReachable,
+  required bool campusReachable,
+  required String label,
+  required IconData? icon,
+  required String tooltip,
+  bool usesCustomWifiIcon = false,
+}) async {
+  SharedPreferences.setMockInitialValues({});
+  StorageService.debugUseSharedPreferencesStorageForTesting(true);
+  final service = _buildCampusNetworkStatusService(
+    vpnReachable: vpnReachable,
+    campusReachable: campusReachable,
+  );
+
+  try {
+    await tester.pumpWidget(
+      FluentApp(
+        home: Center(
+          child: CampusNetworkStatusIndicator(
+            service: service,
+            variant: CampusNetworkStatusIndicatorVariant.titleBar,
+            indicatorKey: const Key('campus-network-status-titlebar-test'),
+          ),
+        ),
+      ),
+    );
+
+    await pumpUntilFound(tester, find.text(label));
+    expect(find.text(label), findsOneWidget);
+
+    final indicator = find.byKey(
+      const Key('campus-network-status-titlebar-test'),
+    );
+    expect(indicator, findsOneWidget);
+    expect(tester.getSize(indicator), const Size(142, 30));
+    expect(
+      find.descendant(of: indicator, matching: find.byType(DecoratedBox)),
+      findsNothing,
+    );
+    if (usesCustomWifiIcon) {
+      expect(
+        find.descendant(of: indicator, matching: find.byType(CustomPaint)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: indicator,
+          matching: find.byIcon(FluentIcons.networkWifi),
+        ),
+        findsNothing,
+      );
+    } else {
+      expect(
+        find.descendant(of: indicator, matching: find.byIcon(icon!)),
+        findsOneWidget,
+      );
+    }
+    expect(
+      find.byWidgetPredicate((widget) {
+        return widget is Tooltip && widget.message == tooltip;
+      }),
+      findsOneWidget,
+    );
+  } finally {
+    StorageService.debugUseSharedPreferencesStorageForTesting(null);
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  }
+}
+
+CampusNetworkStatusService _buildCampusNetworkStatusService({
+  bool vpnReachable = true,
+  bool campusReachable = true,
+  void Function(Uri uri)? onProbe,
+  Duration probeDelay = Duration.zero,
+}) {
   return CampusNetworkStatusService(
     probe: (uri, timeout) async {
+      onProbe?.call(uri);
+      if (probeDelay > Duration.zero) {
+        await Future<void>.delayed(probeDelay);
+      }
+      final reachable =
+          uri.host == CampusNetworkStatusService.defaultVpnProbeUri.host
+          ? vpnReachable
+          : campusReachable;
       return CampusNetworkProbeResult(
-        reachable: true,
-        statusCode: 200,
-        detail: '已访问 ${uri.host}，HTTP 200',
+        reachable: reachable,
+        statusCode: reachable ? 200 : null,
+        detail: reachable ? '已访问 ${uri.host}，HTTP 200' : '访问 ${uri.host} 超时',
       );
     },
   );
@@ -377,8 +602,8 @@ class _SettingsNavigationLayoutHarness extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: LayoutBuilder(
+    return ScaffoldPage(
+      content: LayoutBuilder(
         builder: (context, constraints) {
           final isNarrow = constraints.maxWidth < 720;
           return isNarrow

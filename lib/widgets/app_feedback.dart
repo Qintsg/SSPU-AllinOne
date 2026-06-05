@@ -8,6 +8,8 @@
 
 import '../design/fluent_ui.dart';
 
+OverlayEntry? _activeFeedbackEntry;
+
 /// 页面反馈级别。
 enum AppFeedbackSeverity {
   /// 普通信息。
@@ -29,7 +31,6 @@ void showAppFeedback(
   required String message,
   AppFeedbackSeverity severity = AppFeedbackSeverity.info,
 }) {
-  final messenger = ScaffoldMessenger.of(context);
   final infoSeverity = switch (severity) {
     AppFeedbackSeverity.info => FluentInfoSeverity.info,
     AppFeedbackSeverity.success => FluentInfoSeverity.success,
@@ -37,22 +38,7 @@ void showAppFeedback(
     AppFeedbackSeverity.error => FluentInfoSeverity.error,
   };
 
-  messenger
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        content: FluentInfoBar(
-          title: Text(message),
-          severity: infoSeverity,
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        padding: EdgeInsets.zero,
-        margin: EdgeInsets.zero,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+  showFluentInfoBar(context, title: Text(message), severity: infoSeverity);
 }
 
 /// 显示自定义 Fluent 2 信息条反馈。
@@ -63,24 +49,45 @@ void showFluentInfoBar(
   FluentInfoSeverity severity = FluentInfoSeverity.info,
   Widget Function(VoidCallback close)? actionBuilder,
 }) {
-  final messenger = ScaffoldMessenger.of(context);
-  late ScaffoldFeatureController<SnackBar, SnackBarClosedReason> controller;
-  controller = messenger.showSnackBar(
-    SnackBar(
-      content: Builder(
-        builder: (context) => FluentInfoBar(
-          title: title,
-          content: content,
-          severity: severity,
-          action: actionBuilder?.call(() => controller.close()),
+  _activeFeedbackEntry?.remove();
+  _activeFeedbackEntry = null;
+
+  late OverlayEntry entry;
+  void close() {
+    if (!entry.mounted) return;
+    entry.remove();
+    if (identical(_activeFeedbackEntry, entry)) {
+      _activeFeedbackEntry = null;
+    }
+  }
+
+  entry = OverlayEntry(
+    builder: (context) => SafeArea(
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
+          child: PhysicalModel(
+            color: Colors.transparent,
+            elevation: 8,
+            child: FluentInfoBar(
+              title: title,
+              content: content,
+              severity: severity,
+              action: actionBuilder?.call(close),
+            ),
+          ),
         ),
       ),
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      padding: EdgeInsets.zero,
-      margin: EdgeInsets.zero,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      behavior: SnackBarBehavior.floating,
     ),
   );
+
+  _activeFeedbackEntry = entry;
+  Overlay.of(context).insert(entry);
+  Future<void>.delayed(const Duration(seconds: 3), () {
+    if (identical(_activeFeedbackEntry, entry)) close();
+  });
 }

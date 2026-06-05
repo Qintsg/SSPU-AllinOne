@@ -83,17 +83,9 @@ class AcademicCredentialsService {
   }) async {
     final normalizedOaAccount = oaAccount.trim();
     final previousOaAccount = await _readValue(_oaAccountKey) ?? '';
-    final shouldClearForSecretUpdate =
-        (oaPassword != null && oaPassword.isNotEmpty) ||
-        (sportsQueryPassword != null && sportsQueryPassword.isNotEmpty) ||
-        (emailPassword != null && emailPassword.isNotEmpty);
-    final shouldClearAuthenticatedCache =
-        (previousOaAccount.isNotEmpty &&
-            previousOaAccount != normalizedOaAccount) ||
-        shouldClearForSecretUpdate;
+    final hasOaAccountChanged = previousOaAccount != normalizedOaAccount;
     final shouldClearOaSession =
-        previousOaAccount != normalizedOaAccount ||
-        (oaPassword != null && oaPassword.isNotEmpty);
+        hasOaAccountChanged || (oaPassword != null && oaPassword.isNotEmpty);
 
     if (shouldClearOaSession) await clearOaLoginSession();
     await _writeOrDeleteWhenBlank(_oaAccountKey, normalizedOaAccount);
@@ -101,10 +93,7 @@ class AcademicCredentialsService {
     await _writeWhenPresent(_oaPasswordKey, oaPassword);
     await _writeWhenPresent(_sportsQueryPasswordKey, sportsQueryPassword);
     await _writeWhenPresent(_emailPasswordKey, emailPassword);
-    if (shouldClearAuthenticatedCache) {
-      await AuthenticatedDataCacheService.clearAll();
-      _notifyChanged();
-    }
+    if (hasOaAccountChanged) _notifyChanged();
   }
 
   /// 读取指定密码字段原文，供后续登录外部网站使用。
@@ -185,11 +174,9 @@ class AcademicCredentialsService {
   /// 清除指定密码字段。
   Future<void> clearSecret(AcademicCredentialSecret secret) async {
     await _secureStorage.delete(key: _keyOf(secret));
-    await AuthenticatedDataCacheService.clearAll();
     if (secret == AcademicCredentialSecret.oaPassword) {
       await clearOaLoginSession();
     }
-    _notifyChanged();
   }
 
   /// 清除本服务管理的所有教务凭据。

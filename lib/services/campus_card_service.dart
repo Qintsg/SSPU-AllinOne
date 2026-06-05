@@ -38,6 +38,7 @@ abstract class CampusCardBalanceClient {
   Future<CampusCardQueryResult> fetchCampusCard({
     DateTime? startDate,
     DateTime? endDate,
+    bool requireCampusNetwork = true,
   });
 }
 
@@ -82,7 +83,10 @@ abstract class CampusCardGateway {
 }
 
 typedef CampusCardOaLoginRefresher =
-    Future<AcademicLoginValidationResult> Function();
+    Future<AcademicLoginValidationResult> Function({
+      bool forceRefresh,
+      bool requireCampusNetwork,
+    });
 
 /// 校园卡余额、状态和交易记录只读查询服务。
 class CampusCardService implements CampusCardBalanceClient {
@@ -103,9 +107,11 @@ class CampusCardService implements CampusCardBalanceClient {
        _gateway = gateway ?? DioCampusCardGateway(),
        _refreshOaLogin =
            refreshOaLogin ??
-           (() => AcademicLoginValidationService.instance.ensureSavedSession(
-             forceRefresh: true,
-           )),
+           (({bool forceRefresh = false, bool requireCampusNetwork = true}) =>
+               AcademicLoginValidationService.instance.ensureSavedSession(
+                 forceRefresh: forceRefresh,
+                 requireCampusNetwork: requireCampusNetwork,
+               )),
        entranceUri = entranceUri ?? defaultEntranceUri,
        homeUri = homeUri ?? defaultHomeUri,
        transactionIndexUri = transactionIndexUri ?? defaultTransactionIndexUri,
@@ -214,6 +220,7 @@ class CampusCardService implements CampusCardBalanceClient {
   Future<CampusCardQueryResult> fetchCampusCard({
     DateTime? startDate,
     DateTime? endDate,
+    bool requireCampusNetwork = true,
   }) async {
     CampusNetworkStatus? campusStatus;
     try {
@@ -239,11 +246,28 @@ class CampusCardService implements CampusCardBalanceClient {
       }
 
       campusStatus = await _campusNetworkStatusService.checkStatus();
-      if (!campusStatus.canAccessRestrictedServices) {
+      if (requireCampusNetwork && !campusStatus.canAccessRestrictedServices) {
+        final loginResult = await _refreshOaLogin(
+          forceRefresh: true,
+          requireCampusNetwork: false,
+        );
+        if (!loginResult.isSuccess) {
+          return _buildResult(
+            CampusCardQueryStatus.oaLoginRequired,
+            message: 'OA 登录状态不可用，无法查询校园卡',
+            detail: _campusCardDetailWithNetworkHint(
+              loginResult.message,
+              campusStatus,
+            ),
+            finalUri: loginResult.finalUri,
+            campusNetworkStatus: campusStatus,
+          );
+        }
         return _buildResult(
           CampusCardQueryStatus.campusNetworkUnavailable,
           message: '校园网 / VPN 不可用，无法访问校园卡系统',
-          detail: campusStatus.detail,
+          detail:
+              '${campusStatus.detail}\nOA 登录会话已刷新；校园卡系统可能仍需要连接校园网或 VPN 后才能访问。',
           campusNetworkStatus: campusStatus,
         );
       }
@@ -252,6 +276,7 @@ class CampusCardService implements CampusCardBalanceClient {
         startDate: startDate,
         endDate: endDate,
         campusNetworkStatus: campusStatus,
+        requireCampusNetwork: requireCampusNetwork,
       );
       if (result.isSuccess && result.snapshot != null) {
         if (!await _hasSameOaCredentials(studentId, oaPassword)) {
@@ -328,17 +353,21 @@ class CampusCardService implements CampusCardBalanceClient {
   Future<CampusCardQueryResult> _fetchWithOaSession({
     DateTime? startDate,
     DateTime? endDate,
-    required CampusNetworkStatus campusNetworkStatus,
+    required CampusNetworkStatus? campusNetworkStatus,
+    required bool requireCampusNetwork,
   }) async {
     var sessionSnapshot = await _credentialsService.readOaLoginSession();
     var refreshedBeforeEntry = false;
     if (sessionSnapshot == null || !sessionSnapshot.hasCookies) {
-      final loginResult = await _refreshOaLogin();
+      final loginResult = await _refreshOaLogin(requireCampusNetwork: false);
       if (!loginResult.isSuccess) {
         return _buildResult(
           CampusCardQueryStatus.oaLoginRequired,
           message: 'OA 登录状态不可用，无法查询校园卡',
-          detail: loginResult.message,
+          detail: _campusCardDetailWithNetworkHint(
+            loginResult.message,
+            campusNetworkStatus,
+          ),
           finalUri: loginResult.finalUri,
           campusNetworkStatus: campusNetworkStatus,
         );
@@ -351,12 +380,18 @@ class CampusCardService implements CampusCardBalanceClient {
     var entrySnapshot = await _openEntryWithSession(sessionSnapshot);
     if (_isAuthenticationRequired(entrySnapshot)) {
       if (!refreshedBeforeEntry) {
-        final loginResult = await _refreshOaLogin();
+        final loginResult = await _refreshOaLogin(
+          forceRefresh: true,
+          requireCampusNetwork: false,
+        );
         if (!loginResult.isSuccess) {
           return _buildResult(
             CampusCardQueryStatus.oaLoginRequired,
             message: 'OA 登录状态不可用，无法查询校园卡',
-            detail: loginResult.message,
+            detail: _campusCardDetailWithNetworkHint(
+              loginResult.message,
+              campusNetworkStatus,
+            ),
             finalUri: loginResult.finalUri,
             campusNetworkStatus: campusNetworkStatus,
           );
@@ -364,16 +399,45 @@ class CampusCardService implements CampusCardBalanceClient {
         sessionSnapshot =
             await _credentialsService.readOaLoginSession() ??
             loginResult.sessionSnapshot;
+        refreshedBeforeEntry = true;
       }
       entrySnapshot = await _openEntryWithSession(sessionSnapshot);
     }
     entrySnapshot = await _resolveBusinessEntrySnapshot(entrySnapshot);
 
+    if (_isAuthenticationRequired(entrySnapshot) && !refreshedBeforeEntry) {
+      final loginResult = await _refreshOaLogin(
+        forceRefresh: true,
+        requireCampusNetwork: false,
+      );
+      if (!loginResult.isSuccess) {
+        return _buildResult(
+          CampusCardQueryStatus.oaLoginRequired,
+          message: 'OA 登录状态不可用，无法查询校园卡',
+          detail: _campusCardDetailWithNetworkHint(
+            loginResult.message,
+            campusNetworkStatus,
+          ),
+          finalUri: loginResult.finalUri,
+          campusNetworkStatus: campusNetworkStatus,
+        );
+      }
+      sessionSnapshot =
+          await _credentialsService.readOaLoginSession() ??
+          loginResult.sessionSnapshot;
+      refreshedBeforeEntry = true;
+      entrySnapshot = await _openEntryWithSession(sessionSnapshot);
+      entrySnapshot = await _resolveBusinessEntrySnapshot(entrySnapshot);
+    }
+
     if (_isAuthenticationRequired(entrySnapshot)) {
       return _buildResult(
         CampusCardQueryStatus.oaLoginRequired,
         message: 'OA 登录状态不可用，无法进入校园卡系统',
-        detail: '校园卡入口仍返回 CAS 登录页，已无法自动刷新 OA 登录会话。',
+        detail: _campusCardDetailWithNetworkHint(
+          '已强制刷新 OA/CAS 会话并重试，但校园卡入口仍返回登录页。',
+          campusNetworkStatus,
+        ),
         finalUri: entrySnapshot.finalUri,
         campusNetworkStatus: campusNetworkStatus,
       );
@@ -424,5 +488,16 @@ class CampusCardService implements CampusCardBalanceClient {
       campusNetworkStatus: campusNetworkStatus,
       snapshot: snapshot,
     );
+  }
+
+  String _campusCardDetailWithNetworkHint(
+    String detail,
+    CampusNetworkStatus? campusNetworkStatus,
+  ) {
+    if (campusNetworkStatus == null ||
+        campusNetworkStatus.canAccessRestrictedServices) {
+      return detail;
+    }
+    return '$detail\n当前网络环境不是校园网或 VPN；OA 登录可在当前网络下刷新，但校园卡系统可能仍需要连接校园网或 VPN 后才能访问。';
   }
 }

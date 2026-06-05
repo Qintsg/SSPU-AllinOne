@@ -58,18 +58,89 @@ void main() {
     expect(gateway.openCount, 0);
   });
 
-  test('校园网或 VPN 不可达时停止校园卡查询', () async {
+  test('校园网或 VPN 不可达时先刷新 OA 会话再停止校园卡查询', () async {
     await AcademicCredentialsService.instance.saveCredentials(
       oaAccount: '20260001',
       oaPassword: 'oa-pass',
     );
     final gateway = _FakeCampusCardGateway();
-    final service = _buildService(gateway: gateway, campusReachable: false);
+    final calls = <Map<String, bool>>[];
+    final service = _buildService(
+      gateway: gateway,
+      campusReachable: false,
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            calls.add({
+              'forceRefresh': forceRefresh,
+              'requireCampusNetwork': requireCampusNetwork,
+            });
+            await AcademicCredentialsService.instance.saveOaLoginSession(
+              _sessionSnapshot,
+            );
+            return _loginSuccessResult();
+          },
+    );
 
     final result = await service.fetchCampusCard();
 
     expect(result.status, CampusCardQueryStatus.campusNetworkUnavailable);
+    expect(result.detail, contains('OA 登录会话已刷新'));
     expect(gateway.openCount, 0);
+    expect(calls, [
+      {'forceRefresh': true, 'requireCampusNetwork': false},
+    ]);
+  });
+
+  test('校园网或 VPN 不可达且 OA 刷新失败时提示网络环境', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    final gateway = _FakeCampusCardGateway();
+    final service = _buildService(
+      gateway: gateway,
+      campusReachable: false,
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            return AcademicLoginValidationResult(
+              status: AcademicLoginValidationStatus.networkError,
+              message: 'OA 登录网络失败',
+              detail: '无法连接 OA 登录页',
+              checkedAt: DateTime(2026, 4, 30),
+              entranceUri: _oaEntranceUri,
+            );
+          },
+    );
+
+    final result = await service.fetchCampusCard();
+
+    expect(result.status, CampusCardQueryStatus.oaLoginRequired);
+    expect(result.detail, contains('当前网络环境不是校园网或 VPN'));
+    expect(result.detail, contains('OA 登录可在当前网络下刷新'));
+    expect(gateway.openCount, 0);
+  });
+
+  test('手动刷新可绕过校园网前置检测并尝试查询', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final gateway = _FakeCampusCardGateway();
+    final service = _buildService(gateway: gateway, campusReachable: false);
+
+    final result = await service.fetchCampusCard(requireCampusNetwork: false);
+
+    expect(result.status, CampusCardQueryStatus.success);
+    expect(gateway.openCount, 1);
   });
 
   test('OA 会话失效时刷新登录态后解析余额状态和记录', () async {
@@ -82,21 +153,25 @@ void main() {
     final service = _buildService(
       gateway: gateway,
       campusReachable: true,
-      refreshOaLogin: () async {
-        refreshCount++;
-        await AcademicCredentialsService.instance.saveOaLoginSession(
-          _sessionSnapshot,
-        );
-        return AcademicLoginValidationResult(
-          status: AcademicLoginValidationStatus.success,
-          message: 'OA 登录校验通过',
-          detail: '已刷新 OA 会话',
-          checkedAt: DateTime(2026, 4, 30),
-          entranceUri: _oaEntranceUri,
-          finalUri: _oaEntranceUri,
-          sessionSnapshot: _sessionSnapshot,
-        );
-      },
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            refreshCount++;
+            await AcademicCredentialsService.instance.saveOaLoginSession(
+              _sessionSnapshot,
+            );
+            return AcademicLoginValidationResult(
+              status: AcademicLoginValidationStatus.success,
+              message: 'OA 登录校验通过',
+              detail: '已刷新 OA 会话',
+              checkedAt: DateTime(2026, 4, 30),
+              entranceUri: _oaEntranceUri,
+              finalUri: _oaEntranceUri,
+              sessionSnapshot: _sessionSnapshot,
+            );
+          },
     );
 
     final result = await service.fetchCampusCard();
@@ -109,6 +184,65 @@ void main() {
     expect(result.snapshot?.status, '正常');
     expect(result.snapshot?.records.length, 1);
     expect(result.snapshot?.records.single.merchant, '一食堂');
+  });
+
+  test('已有可用 OA 会话时不会重新获取登录凭证', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    var refreshCount = 0;
+    final service = _buildService(
+      gateway: _FakeCampusCardGateway(),
+      campusReachable: true,
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            refreshCount++;
+            return _loginSuccessResult();
+          },
+    );
+
+    final result = await service.fetchCampusCard();
+
+    expect(result.status, CampusCardQueryStatus.success);
+    expect(refreshCount, 0);
+  });
+
+  test('已有 OA 会话失效时强制刷新登录凭证', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final forceRefreshValues = <bool>[];
+    final service = _buildService(
+      gateway: _FakeCampusCardGateway(requireAuthFirst: true),
+      campusReachable: true,
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            forceRefreshValues.add(forceRefresh);
+            await AcademicCredentialsService.instance.saveOaLoginSession(
+              _sessionSnapshot,
+            );
+            return _loginSuccessResult();
+          },
+    );
+
+    final result = await service.fetchCampusCard();
+
+    expect(result.status, CampusCardQueryStatus.success);
+    expect(forceRefreshValues, [true]);
   });
 
   test('交易记录查询会携带日期范围和 CSRF 并解析 XML 表格', () async {
@@ -170,6 +304,16 @@ void main() {
     final failedService = _buildService(
       gateway: _FakeCampusCardGateway(),
       campusReachable: false,
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            await AcademicCredentialsService.instance.saveOaLoginSession(
+              _sessionSnapshot,
+            );
+            return _loginSuccessResult();
+          },
     );
     final failedResult = await failedService.fetchCampusCard();
     final cachedAfterFailure = await failedService.readLatestCachedCampusCard();
@@ -186,24 +330,28 @@ void main() {
     final service = _buildService(
       gateway: _FakeCampusCardGateway(),
       campusReachable: true,
-      refreshOaLogin: () async {
-        await AcademicCredentialsService.instance.saveCredentials(
-          oaAccount: '20260002',
-          oaPassword: 'oa-pass',
-        );
-        await AcademicCredentialsService.instance.saveOaLoginSession(
-          _sessionSnapshot,
-        );
-        return AcademicLoginValidationResult(
-          status: AcademicLoginValidationStatus.success,
-          message: 'OA 登录校验通过',
-          detail: '已刷新 OA 会话',
-          checkedAt: DateTime(2026, 4, 30),
-          entranceUri: _oaEntranceUri,
-          finalUri: _oaEntranceUri,
-          sessionSnapshot: _sessionSnapshot,
-        );
-      },
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            await AcademicCredentialsService.instance.saveCredentials(
+              oaAccount: '20260002',
+              oaPassword: 'oa-pass',
+            );
+            await AcademicCredentialsService.instance.saveOaLoginSession(
+              _sessionSnapshot,
+            );
+            return AcademicLoginValidationResult(
+              status: AcademicLoginValidationStatus.success,
+              message: 'OA 登录校验通过',
+              detail: '已刷新 OA 会话',
+              checkedAt: DateTime(2026, 4, 30),
+              entranceUri: _oaEntranceUri,
+              finalUri: _oaEntranceUri,
+              sessionSnapshot: _sessionSnapshot,
+            );
+          },
     );
 
     final result = await service.fetchCampusCard();
@@ -226,23 +374,27 @@ void main() {
     final service = _buildService(
       gateway: _FakeCampusCardGateway(),
       campusReachable: true,
-      refreshOaLogin: () async {
-        await AcademicCredentialsService.instance.clearSecret(
-          AcademicCredentialSecret.oaPassword,
-        );
-        await AcademicCredentialsService.instance.saveOaLoginSession(
-          _sessionSnapshot,
-        );
-        return AcademicLoginValidationResult(
-          status: AcademicLoginValidationStatus.success,
-          message: 'OA 登录校验通过',
-          detail: '已刷新 OA 会话',
-          checkedAt: DateTime(2026, 4, 30),
-          entranceUri: _oaEntranceUri,
-          finalUri: _oaEntranceUri,
-          sessionSnapshot: _sessionSnapshot,
-        );
-      },
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            await AcademicCredentialsService.instance.clearSecret(
+              AcademicCredentialSecret.oaPassword,
+            );
+            await AcademicCredentialsService.instance.saveOaLoginSession(
+              _sessionSnapshot,
+            );
+            return AcademicLoginValidationResult(
+              status: AcademicLoginValidationStatus.success,
+              message: 'OA 登录校验通过',
+              detail: '已刷新 OA 会话',
+              checkedAt: DateTime(2026, 4, 30),
+              entranceUri: _oaEntranceUri,
+              finalUri: _oaEntranceUri,
+              sessionSnapshot: _sessionSnapshot,
+            );
+          },
     );
 
     final result = await service.fetchCampusCard();
@@ -364,6 +516,18 @@ final AcademicLoginSessionSnapshot _sessionSnapshot =
       entranceUri: _oaEntranceUri,
       finalUri: _oaEntranceUri,
     );
+
+AcademicLoginValidationResult _loginSuccessResult() {
+  return AcademicLoginValidationResult(
+    status: AcademicLoginValidationStatus.success,
+    message: 'OA 登录校验通过',
+    detail: '已刷新 OA 会话',
+    checkedAt: DateTime(2026, 4, 30),
+    entranceUri: _oaEntranceUri,
+    finalUri: _oaEntranceUri,
+    sessionSnapshot: _sessionSnapshot,
+  );
+}
 
 final Uri _oaEntranceUri = Uri.parse(
   'https://oa.sspu.edu.cn//interface/Entrance.jsp?id=xykxt',

@@ -1,26 +1,26 @@
 /*
- * Fluent 2 图标按钮 — 工具栏与轻量操作的无涟漪图标按钮
+ * Fluent 图标按钮兼容层 — 包装外部 fluent_ui IconButton / Tooltip
  * @Project : SSPU-AllinOne
  * @File : fluent_icon_button.dart
  * @Author : Qintsg
  * @Date : 2026-05-30
  */
 
-import 'package:flutter/material.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 
 import '../fluent/fluent_context_ext.dart';
 
-/// Fluent 2 图标按钮外观。
+/// Fluent 图标按钮外观。
 enum FluentIconButtonAppearance {
-  /// 透明背景，悬停时显示 subtle 背景。
+  /// 透明背景。
   transparent,
 
-  /// 描边背景，用于更明确的边界。
+  /// 描边背景。
   outline,
 }
 
-/// Fluent 2 图标按钮。
-class FluentIconButton extends StatefulWidget {
+/// Fluent 图标按钮。
+class FluentIconButton extends StatelessWidget {
   const FluentIconButton({
     super.key,
     required this.icon,
@@ -54,98 +54,54 @@ class FluentIconButton extends StatefulWidget {
   final String? semanticLabel;
 
   @override
-  State<FluentIconButton> createState() => _FluentIconButtonState();
-}
-
-class _FluentIconButtonState extends State<FluentIconButton> {
-  bool _hovered = false;
-  bool _pressed = false;
-  bool _focused = false;
-
-  bool get _enabled => widget.onPressed != null;
-
-  @override
   Widget build(BuildContext context) {
     final colors = context.fluentColors;
     final radii = context.fluentRadii;
-    final stroke = context.fluentStroke;
-    final motion = context.fluentMotion;
-
-    final Color foreground = _enabled
-        ? colors.neutralForeground2
-        : colors.neutralForegroundDisabled;
-    final Color background = !_enabled
-        ? Colors.transparent
-        : _pressed
-        ? colors.subtleBackgroundPressed
-        : _hovered
-        ? colors.subtleBackgroundHover
-        : widget.appearance == FluentIconButtonAppearance.outline
-        ? colors.neutralBackground1
-        : Colors.transparent;
-    final Color? border = widget.appearance == FluentIconButtonAppearance.outline
-        ? (_focused ? colors.brandStroke1 : colors.neutralStroke1)
-        : (_focused ? colors.brandStroke1 : null);
+    final style = ButtonStyle(
+      padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+      iconSize: WidgetStatePropertyAll(iconSize),
+      shape: WidgetStatePropertyAll(
+        RoundedRectangleBorder(borderRadius: radii.mediumBorder),
+      ),
+      backgroundColor: appearance == FluentIconButtonAppearance.outline
+          ? WidgetStateProperty.resolveWith((states) {
+              if (states.isPressed) return colors.subtleBackgroundPressed;
+              if (states.isHovered || states.isFocused) {
+                return colors.subtleBackgroundHover;
+              }
+              return FluentTheme.of(context).cardColor;
+            })
+          : null,
+      foregroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.isDisabled) return colors.neutralForegroundDisabled;
+        return colors.neutralForeground2;
+      }),
+    );
 
     Widget result = Semantics(
       button: true,
-      enabled: _enabled,
-      label: widget.semanticLabel ?? widget.tooltip,
-      child: FocusableActionDetector(
-        enabled: _enabled,
-        mouseCursor: _enabled
-            ? SystemMouseCursors.click
-            : SystemMouseCursors.basic,
-        onShowFocusHighlight: (focused) => setState(() => _focused = focused),
-        onShowHoverHighlight: (hovered) => setState(() {
-          _hovered = hovered;
-          if (!hovered) _pressed = false;
-        }),
-        actions: <Type, Action<Intent>>{
-          ActivateIntent: CallbackAction<ActivateIntent>(
-            onInvoke: (_) {
-              widget.onPressed?.call();
-              return null;
-            },
-          ),
-        },
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onPressed,
-          onTapDown: _enabled ? (_) => setState(() => _pressed = true) : null,
-          onTapUp: _enabled ? (_) => setState(() => _pressed = false) : null,
-          onTapCancel: _enabled ? () => setState(() => _pressed = false) : null,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-            child: Center(
-              child: AnimatedContainer(
-                duration: motion.durationFaster,
-                curve: motion.curveEasyEase,
-                width: widget.size,
-                height: widget.size,
-                decoration: BoxDecoration(
-                  color: background,
-                  borderRadius: radii.mediumBorder,
-                  border: border == null
-                      ? null
-                      : Border.all(
-                          color: border,
-                          width: _focused ? stroke.thick : stroke.thin,
-                        ),
-                ),
-                child: IconTheme.merge(
-                  data: IconThemeData(color: foreground, size: widget.iconSize),
-                  child: Center(child: widget.icon),
-                ),
+      enabled: onPressed != null,
+      label: semanticLabel ?? tooltip,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+        child: Center(
+          child: SizedBox.square(
+            dimension: size,
+            child: IconButton(
+              icon: IconTheme.merge(
+                data: IconThemeData(size: iconSize),
+                child: icon,
               ),
+              onPressed: onPressed,
+              style: style,
             ),
           ),
         ),
       ),
     );
 
-    if (widget.tooltip != null) {
-      result = Tooltip(message: widget.tooltip!, child: result);
+    if (tooltip != null) {
+      result = Tooltip(message: tooltip!, child: result);
     }
     return result;
   }

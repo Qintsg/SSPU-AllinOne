@@ -9,7 +9,7 @@
  * tokens/ 目录之外不得出现 Global 令牌。
  */
 
-import 'package:flutter/material.dart';
+import 'package:fluent_ui/fluent_ui.dart';
 
 import 'tokens/fluent_color_tokens.dart';
 import 'tokens/fluent_elevation.dart';
@@ -23,30 +23,30 @@ import 'tokens/fluent_typography.dart';
 extension FluentThemeX on BuildContext {
   /// 颜色令牌（随明暗主题切换）。
   FluentColors get fluentColors =>
-      Theme.of(this).extension<FluentColors>() ?? FluentColors.light;
+      FluentTheme.of(this).extension<FluentColors>() ?? FluentColors.light;
 
   /// 字阶令牌。
   FluentTypography get fluentType =>
-      Theme.of(this).extension<FluentTypography>() ??
+      FluentTheme.of(this).extension<FluentTypography>() ??
       const FluentTypography();
 
   /// 间距令牌。
   FluentSpacing get fluentSpacing =>
-      Theme.of(this).extension<FluentSpacing>() ?? const FluentSpacing();
+      FluentTheme.of(this).extension<FluentSpacing>() ?? const FluentSpacing();
 
   /// 圆角令牌。
   FluentRadii get fluentRadii =>
-      Theme.of(this).extension<FluentRadii>() ?? const FluentRadii();
+      FluentTheme.of(this).extension<FluentRadii>() ?? const FluentRadii();
 
   /// 描边宽度令牌。
   FluentStroke get fluentStroke =>
-      Theme.of(this).extension<FluentStroke>() ?? const FluentStroke();
+      FluentTheme.of(this).extension<FluentStroke>() ?? const FluentStroke();
 
   /// 阴影令牌（随明暗主题切换）。
   FluentElevation get fluentElevation =>
-      Theme.of(this).extension<FluentElevation>() ?? FluentElevation.light;
+      FluentTheme.of(this).extension<FluentElevation>() ?? FluentElevation.light;
 
   /// 动效令牌。
   FluentMotion get fluentMotion =>
-      Theme.of(this).extension<FluentMotion>() ?? const FluentMotion();
+      FluentTheme.of(this).extension<FluentMotion>() ?? const FluentMotion();
 }

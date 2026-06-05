@@ -48,10 +48,27 @@ extension _AcademicEamsSearchFlow on AcademicEamsService {
 
       campusStatus = await _campusNetworkStatusService.checkStatus();
       if (!campusStatus.canAccessRestrictedServices) {
+        final loginResult = await _refreshOaLogin(
+          forceRefresh: true,
+          requireCampusNetwork: false,
+        );
+        if (!loginResult.isSuccess) {
+          return _buildResult(
+            AcademicEamsQueryStatus.oaLoginRequired,
+            message: 'OA 登录状态不可用，无法访问本专科教务',
+            detail: _academicEamsSearchDetailWithNetworkHint(
+              loginResult.message,
+              campusStatus,
+            ),
+            finalUri: loginResult.finalUri,
+            campusNetworkStatus: campusStatus,
+          );
+        }
         return _buildResult(
           AcademicEamsQueryStatus.campusNetworkUnavailable,
           message: '校园网 / VPN 不可用，无法访问本专科教务系统',
-          detail: campusStatus.detail,
+          detail:
+              '${campusStatus.detail}\nOA 登录会话已刷新；本专科教务系统可能仍需要连接校园网或 VPN 后才能访问。',
           campusNetworkStatus: campusStatus,
         );
       }
@@ -59,12 +76,15 @@ extension _AcademicEamsSearchFlow on AcademicEamsService {
       var sessionSnapshot = await _credentialsService.readOaLoginSession();
       var refreshedBeforeEntry = false;
       if (sessionSnapshot == null || !sessionSnapshot.hasCookies) {
-        final loginResult = await _refreshOaLogin();
+        final loginResult = await _refreshOaLogin(requireCampusNetwork: false);
         if (!loginResult.isSuccess) {
           return _buildResult(
             AcademicEamsQueryStatus.oaLoginRequired,
             message: 'OA 登录状态不可用，无法访问本专科教务',
-            detail: loginResult.message,
+            detail: _academicEamsSearchDetailWithNetworkHint(
+              loginResult.message,
+              campusStatus,
+            ),
             finalUri: loginResult.finalUri,
             campusNetworkStatus: campusStatus,
           );
@@ -77,12 +97,18 @@ extension _AcademicEamsSearchFlow on AcademicEamsService {
       var entrySnapshot = await _openEntryWithSession(sessionSnapshot);
       if (_isAuthenticationRequired(entrySnapshot)) {
         if (!refreshedBeforeEntry) {
-          final loginResult = await _refreshOaLogin();
+          final loginResult = await _refreshOaLogin(
+            forceRefresh: true,
+            requireCampusNetwork: false,
+          );
           if (!loginResult.isSuccess) {
             return _buildResult(
               AcademicEamsQueryStatus.oaLoginRequired,
               message: 'OA 登录状态不可用，无法访问本专科教务',
-              detail: loginResult.message,
+              detail: _academicEamsSearchDetailWithNetworkHint(
+                loginResult.message,
+                campusStatus,
+              ),
               finalUri: loginResult.finalUri,
               campusNetworkStatus: campusStatus,
             );
@@ -90,16 +116,49 @@ extension _AcademicEamsSearchFlow on AcademicEamsService {
           sessionSnapshot =
               await _credentialsService.readOaLoginSession() ??
               loginResult.sessionSnapshot;
+          refreshedBeforeEntry = true;
         }
         entrySnapshot = await _openEntryWithSession(sessionSnapshot);
       }
 
-      final homeSnapshot = await _ensureHomeSnapshot(entrySnapshot);
+      var homeSnapshot = await _ensureHomeSnapshot(entrySnapshot);
+      if (_isAuthenticationRequired(homeSnapshot)) {
+        if (!refreshedBeforeEntry) {
+          final loginResult = await _refreshOaLogin(
+            forceRefresh: true,
+            requireCampusNetwork: false,
+          );
+          if (!loginResult.isSuccess) {
+            return _buildResult(
+              AcademicEamsQueryStatus.oaLoginRequired,
+              message: 'OA 登录状态不可用，无法访问本专科教务',
+              detail: _academicEamsSearchDetailWithNetworkHint(
+                loginResult.message,
+                campusStatus,
+              ),
+              finalUri: loginResult.finalUri,
+              campusNetworkStatus: campusStatus,
+            );
+          }
+          sessionSnapshot =
+              await _credentialsService.readOaLoginSession() ??
+              loginResult.sessionSnapshot;
+          refreshedBeforeEntry = true;
+          entrySnapshot = await _openEntryWithSession(sessionSnapshot);
+          homeSnapshot = await _ensureHomeSnapshot(entrySnapshot);
+          if (!_isAuthenticationRequired(homeSnapshot)) {
+            // Continue below with the refreshed home page.
+          }
+        }
+      }
       if (_isAuthenticationRequired(homeSnapshot)) {
         return _buildResult(
           AcademicEamsQueryStatus.oaLoginRequired,
           message: '本专科教务登录状态不可用',
-          detail: 'EAMS 入口仍返回 CAS 或教务登录页，已无法自动刷新 OA 登录会话。',
+          detail: _academicEamsSearchDetailWithNetworkHint(
+            '已强制刷新 OA/CAS 会话并重试，但 EAMS 入口仍返回登录页。',
+            campusStatus,
+          ),
           finalUri: homeSnapshot.finalUri,
           campusNetworkStatus: campusStatus,
         );
@@ -126,12 +185,37 @@ extension _AcademicEamsSearchFlow on AcademicEamsService {
         );
       }
 
-      final searchEntrySnapshot = await _gateway.fetchPage(entryUri, timeout);
+      var searchEntrySnapshot = await _gateway.fetchPage(entryUri, timeout);
+      if (_isAuthenticationRequired(searchEntrySnapshot)) {
+        if (!refreshedBeforeEntry) {
+          final loginResult = await _refreshOaLogin(
+            forceRefresh: true,
+            requireCampusNetwork: false,
+          );
+          if (!loginResult.isSuccess) {
+            return _buildResult(
+              AcademicEamsQueryStatus.oaLoginRequired,
+              message: 'OA 登录状态不可用，无法访问本专科教务',
+              detail: _academicEamsSearchDetailWithNetworkHint(
+                loginResult.message,
+                campusStatus,
+              ),
+              finalUri: loginResult.finalUri,
+              campusNetworkStatus: campusStatus,
+            );
+          }
+          refreshedBeforeEntry = true;
+          searchEntrySnapshot = await _gateway.fetchPage(entryUri, timeout);
+        }
+      }
       if (_isAuthenticationRequired(searchEntrySnapshot)) {
         return _buildResult(
           AcademicEamsQueryStatus.oaLoginRequired,
           message: '本专科教务登录状态已失效',
-          detail: '进入只读查询页时返回了教务登录页，已无法自动刷新 OA 登录会话。',
+          detail: _academicEamsSearchDetailWithNetworkHint(
+            '已强制刷新 OA/CAS 会话并重试，但进入只读查询页时仍返回教务登录页。',
+            campusStatus,
+          ),
           finalUri: searchEntrySnapshot.finalUri,
           campusNetworkStatus: campusStatus,
         );
@@ -157,12 +241,37 @@ extension _AcademicEamsSearchFlow on AcademicEamsService {
         );
       }
 
-      final resultSnapshot = await searchExecutor(queryForm);
+      var resultSnapshot = await searchExecutor(queryForm);
+      if (_isAuthenticationRequired(resultSnapshot)) {
+        if (!refreshedBeforeEntry) {
+          final loginResult = await _refreshOaLogin(
+            forceRefresh: true,
+            requireCampusNetwork: false,
+          );
+          if (!loginResult.isSuccess) {
+            return _buildResult(
+              AcademicEamsQueryStatus.oaLoginRequired,
+              message: 'OA 登录状态不可用，无法访问本专科教务',
+              detail: _academicEamsSearchDetailWithNetworkHint(
+                loginResult.message,
+                campusStatus,
+              ),
+              finalUri: loginResult.finalUri,
+              campusNetworkStatus: campusStatus,
+            );
+          }
+          refreshedBeforeEntry = true;
+          resultSnapshot = await searchExecutor(queryForm);
+        }
+      }
       if (_isAuthenticationRequired(resultSnapshot)) {
         return _buildResult(
           AcademicEamsQueryStatus.oaLoginRequired,
           message: '本专科教务登录状态已失效',
-          detail: '只读查询提交后返回了教务登录页，已无法自动刷新 OA 登录会话。',
+          detail: _academicEamsSearchDetailWithNetworkHint(
+            '已强制刷新 OA/CAS 会话并重试，但只读查询提交后仍返回教务登录页。',
+            campusStatus,
+          ),
           finalUri: resultSnapshot.finalUri,
           campusNetworkStatus: campusStatus,
         );
@@ -203,5 +312,16 @@ extension _AcademicEamsSearchFlow on AcademicEamsService {
         campusNetworkStatus: campusStatus,
       );
     }
+  }
+
+  String _academicEamsSearchDetailWithNetworkHint(
+    String detail,
+    CampusNetworkStatus? campusNetworkStatus,
+  ) {
+    if (campusNetworkStatus == null ||
+        campusNetworkStatus.canAccessRestrictedServices) {
+      return detail;
+    }
+    return '$detail\n当前网络环境不是校园网或 VPN；OA 登录可在当前网络下刷新，但本专科教务系统可能仍需要连接校园网或 VPN 后才能访问。';
   }
 }

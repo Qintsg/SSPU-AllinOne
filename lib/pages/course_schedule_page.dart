@@ -121,7 +121,9 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     if (_isLoading) return;
     if (!silent) setState(() => _isLoading = true);
 
-    final result = await _academicEamsService.fetchCourseTable();
+    final result = await _academicEamsService.fetchCourseTable(
+      requireCampusNetwork: silent,
+    );
     if (!mounted) return;
     if (silent && !result.isSuccess) return;
     setState(() {

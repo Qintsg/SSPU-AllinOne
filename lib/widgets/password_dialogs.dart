@@ -335,7 +335,7 @@ class _PasswordField extends StatelessWidget {
       obscureText: true,
       label: label,
       placeholder: hintText,
-      prefixIcon: Icons.lock_outline,
+      prefixIcon: FluentIcons.lock,
     );
   }
 }
@@ -347,17 +347,17 @@ class _PasswordDialogError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.fluentColors;
+    final type = context.fluentType;
 
     return Row(
       children: [
-        Icon(Icons.error_outline, color: colorScheme.error),
+        Icon(FluentIcons.warning, color: colors.statusDangerForeground),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: Text(
             message,
-            style: textTheme.bodySmall?.copyWith(color: colorScheme.error),
+            style: type.caption1.copyWith(color: colors.statusDangerForeground),
           ),
         ),
       ],
