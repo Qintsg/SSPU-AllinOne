@@ -72,6 +72,9 @@ class FluentPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.fluentSpacing;
+    final safeHeader = header == null
+        ? null
+        : SafeArea(bottom: false, child: header!);
     final body = scrollable
         ? SingleChildScrollView(
             padding: padding ?? EdgeInsets.all(spacing.xxl),
@@ -83,8 +86,8 @@ class FluentPage extends StatelessWidget {
         : content ?? const SizedBox.shrink();
 
     return fluent.ScaffoldPage(
-      header: header,
-      content: SafeArea(child: body),
+      header: safeHeader,
+      content: SafeArea(top: header == null, child: body),
     );
   }
 }
