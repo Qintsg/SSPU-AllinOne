@@ -120,7 +120,7 @@ class WxmpConfig {
     return '''
 # SSPU-AllinOne 微信公众号平台配置
 # 空字符串表示使用扫码登录保存的 Cookie / Token。
-# 文件位于 ~/.sspu-all-in/，扫码登录成功后会自动更新 Cookie / Token。
+# 文件位于 ~/.sspu-aio/，扫码登录成功后会自动更新 Cookie / Token。
 # 保存后可回到设置页点击“重新加载配置”立即生效。
 
 [wxmp]
