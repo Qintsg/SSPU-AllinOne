@@ -17,7 +17,7 @@ class AppDataDirectoryService {
   AppDataDirectoryService._();
 
   /// 统一目录名，保持桌面端和移动端逻辑一致。
-  static const String directoryName = '.sspu-all-in';
+  static const String directoryName = '.sspu-aio';
 
   /// 测试专用目录覆盖，避免单元测试读写真实用户目录。
   static String? _debugDirectoryOverride;

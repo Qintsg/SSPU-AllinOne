@@ -29,7 +29,7 @@ void main() {
 
     expect(find.text('隐私协议'), findsOneWidget);
     expect(find.textContaining('开发者不会主动收集、上传'), findsOneWidget);
-    expect(find.textContaining('~/.sspu-all-in/'), findsOneWidget);
+    expect(find.textContaining('~/.sspu-aio/'), findsOneWidget);
     expect(find.textContaining('系统安全存储'), findsOneWidget);
     expect(find.textContaining('WebView2'), findsOneWidget);
   });

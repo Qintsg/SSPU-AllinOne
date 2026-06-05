@@ -31,7 +31,7 @@
 ## 代码边界
 
 - `lib/services/` 放外部站点、存储、通知、自动刷新等业务服务；网络请求优先经 `HttpService` / 可注入 gateway，测试中用 fake，避免命中真实校园系统。
-- `StorageService` 保存统一应用状态：桌面端 `~/.sspu-all-in/app_state.json`，移动端系统应用支持目录，Web 端 `SharedPreferences:sspu_app_state_json`。
+- `StorageService` 保存统一应用状态：桌面端 `~/.sspu-aio/app_state.json`，移动端系统应用支持目录下的 `.sspu-aio/app_state.json`，Web 端 `SharedPreferences:sspu_app_state_json`。
 - OA 账号、OA 密码、体育部查询密码、邮箱密码和 OA Cookie 会话由 `AcademicCredentialsService` 写入 `flutter_secure_storage`；不要把这些值写进 `app_state.json`、日志、PR、Release notes 或测试 fixture。
 - 微信公众号平台配置在本地 `wxmp_config.toml`，包含 cookie/token 覆盖能力；不要提交真实配置或认证材料。
 - 受限校园服务先走 `CampusNetworkStatusService` 校园网/VPN 检测；OA/CAS、体育部、校园卡、学工报表、本专科教务、学校邮箱均按只读能力实现，不新增选课、退课、充值、发送邮件、删除邮件等写入操作。
