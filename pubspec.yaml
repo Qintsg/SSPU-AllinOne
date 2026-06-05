@@ -31,6 +31,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # 外部 Fluent UI 控件、主题与导航体系
+  fluent_ui: ^4.15.1
+
+  # Microsoft Fluent System Icons 图标库
+  fluentui_system_icons: ^1.1.273
 
   # 本地持久化存储，用于密码保护等设置
   shared_preferences: ^2.5.3

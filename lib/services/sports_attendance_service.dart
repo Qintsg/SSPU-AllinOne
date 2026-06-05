@@ -33,7 +33,9 @@ abstract class SportsAttendanceClient {
   Future<SportsAttendanceQueryResult?> readLatestCachedAttendanceSummary();
 
   /// 登录体育部查询系统并读取课外活动考勤。
-  Future<SportsAttendanceQueryResult> fetchAttendanceSummary();
+  Future<SportsAttendanceQueryResult> fetchAttendanceSummary({
+    bool requireCampusNetwork = true,
+  });
 }
 
 /// 体育部查询系统 HTTP 响应快照。
@@ -182,7 +184,9 @@ class SportsAttendanceService implements SportsAttendanceClient {
   }
 
   @override
-  Future<SportsAttendanceQueryResult> fetchAttendanceSummary() async {
+  Future<SportsAttendanceQueryResult> fetchAttendanceSummary({
+    bool requireCampusNetwork = true,
+  }) async {
     CampusNetworkStatus? campusStatus;
     try {
       final credentialsStatus = await _credentialsService.getStatus();
@@ -206,8 +210,10 @@ class SportsAttendanceService implements SportsAttendanceClient {
         );
       }
 
-      campusStatus = await _campusNetworkStatusService.checkStatus();
-      if (!campusStatus.canAccessRestrictedServices) {
+      if (requireCampusNetwork) {
+        campusStatus = await _campusNetworkStatusService.checkStatus();
+      }
+      if (campusStatus != null && !campusStatus.canAccessRestrictedServices) {
         return _buildResult(
           SportsAttendanceQueryStatus.campusNetworkUnavailable,
           message: '校园网 / VPN 不可用，无法访问体育部查询系统',
@@ -281,7 +287,7 @@ class SportsAttendanceService implements SportsAttendanceClient {
   Future<SportsAttendanceQueryResult> _fetchWithCredentials({
     required String studentId,
     required String sportsPassword,
-    required CampusNetworkStatus campusNetworkStatus,
+    required CampusNetworkStatus? campusNetworkStatus,
   }) async {
     await _gateway.resetSession();
     final loginPage = await _gateway.openLoginPage(entranceUri, timeout);

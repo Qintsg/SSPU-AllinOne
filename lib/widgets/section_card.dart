@@ -42,8 +42,8 @@ class SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.fluentColors;
+    final type = context.fluentType;
     final hasHeader = title != null || subtitle != null || trailing != null;
 
     return FluentCard(
@@ -58,7 +58,7 @@ class SectionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (icon != null) ...[
-                    Icon(icon, color: colorScheme.primary),
+                    Icon(icon, color: colors.brandForeground1),
                     const SizedBox(width: AppSpacing.sm),
                   ],
                   Expanded(
@@ -68,14 +68,14 @@ class SectionCard extends StatelessWidget {
                         if (title != null)
                           Semantics(
                             header: true,
-                            child: Text(title!, style: textTheme.titleMedium),
+                            child: Text(title!, style: type.subtitle1),
                           ),
                         if (subtitle != null) ...[
                           const SizedBox(height: AppSpacing.xs),
                           Text(
                             subtitle!,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
+                            style: type.caption1.copyWith(
+                              color: colors.neutralForeground2,
                             ),
                           ),
                         ],

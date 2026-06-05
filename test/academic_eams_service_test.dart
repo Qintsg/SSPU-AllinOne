@@ -61,7 +61,51 @@ void main() {
     expect(gateway.openCount, 0);
   });
 
-  test('校园网或 VPN 不可达时停止本专科教务查询', () async {
+  test('校园网或 VPN 不可达时先刷新 OA 会话再停止本专科教务查询', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    final gateway = FakeAcademicEamsGateway();
+    final calls = <Map<String, bool>>[];
+    final service = buildAcademicEamsServiceForTest(
+      gateway: gateway,
+      campusReachable: false,
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            calls.add({
+              'forceRefresh': forceRefresh,
+              'requireCampusNetwork': requireCampusNetwork,
+            });
+            await AcademicCredentialsService.instance.saveOaLoginSession(
+              academicEamsSessionSnapshot,
+            );
+            return AcademicLoginValidationResult(
+              status: AcademicLoginValidationStatus.success,
+              message: 'OA 登录校验通过',
+              detail: '已刷新 OA 会话',
+              checkedAt: DateTime(2026, 5, 2),
+              entranceUri: academicEamsOaEntranceUri,
+              finalUri: academicEamsOaEntranceUri,
+              sessionSnapshot: academicEamsSessionSnapshot,
+            );
+          },
+    );
+
+    final result = await service.fetchOverview();
+
+    expect(result.status, AcademicEamsQueryStatus.campusNetworkUnavailable);
+    expect(result.detail, contains('OA 登录会话已刷新'));
+    expect(gateway.openCount, 0);
+    expect(calls, [
+      {'forceRefresh': true, 'requireCampusNetwork': false},
+    ]);
+  });
+
+  test('校园网或 VPN 不可达且 OA 刷新失败时提示网络环境', () async {
     await AcademicCredentialsService.instance.saveCredentials(
       oaAccount: '20260001',
       oaPassword: 'oa-pass',
@@ -70,11 +114,26 @@ void main() {
     final service = buildAcademicEamsServiceForTest(
       gateway: gateway,
       campusReachable: false,
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            return AcademicLoginValidationResult(
+              status: AcademicLoginValidationStatus.networkError,
+              message: 'OA 登录网络失败',
+              detail: '无法连接 OA 登录页',
+              checkedAt: DateTime(2026, 5, 2),
+              entranceUri: academicEamsOaEntranceUri,
+            );
+          },
     );
 
     final result = await service.fetchOverview();
 
-    expect(result.status, AcademicEamsQueryStatus.campusNetworkUnavailable);
+    expect(result.status, AcademicEamsQueryStatus.oaLoginRequired);
+    expect(result.detail, contains('当前网络环境不是校园网或 VPN'));
+    expect(result.detail, contains('OA 登录可在当前网络下刷新'));
     expect(gateway.openCount, 0);
   });
 
@@ -88,21 +147,25 @@ void main() {
     final service = buildAcademicEamsServiceForTest(
       gateway: gateway,
       campusReachable: true,
-      refreshOaLogin: () async {
-        refreshCount++;
-        await AcademicCredentialsService.instance.saveOaLoginSession(
-          academicEamsSessionSnapshot,
-        );
-        return AcademicLoginValidationResult(
-          status: AcademicLoginValidationStatus.success,
-          message: 'OA 登录校验通过',
-          detail: '已刷新 OA 会话',
-          checkedAt: DateTime(2026, 5, 2),
-          entranceUri: academicEamsOaEntranceUri,
-          finalUri: academicEamsOaEntranceUri,
-          sessionSnapshot: academicEamsSessionSnapshot,
-        );
-      },
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            refreshCount++;
+            await AcademicCredentialsService.instance.saveOaLoginSession(
+              academicEamsSessionSnapshot,
+            );
+            return AcademicLoginValidationResult(
+              status: AcademicLoginValidationStatus.success,
+              message: 'OA 登录校验通过',
+              detail: '已刷新 OA 会话',
+              checkedAt: DateTime(2026, 5, 2),
+              entranceUri: academicEamsOaEntranceUri,
+              finalUri: academicEamsOaEntranceUri,
+              sessionSnapshot: academicEamsSessionSnapshot,
+            );
+          },
     );
 
     final result = await service.fetchOverview();
@@ -197,6 +260,49 @@ void main() {
     expect(result.courseOfferings?.records.single.locationText, '综合楼 A101');
   });
 
+  test('开课检索遇到旧 OA 会话失效时强制刷新登录凭证', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final forceRefreshValues = <bool>[];
+    final gateway = FakeAcademicEamsGateway(requireAuthFirst: true);
+    final service = buildAcademicEamsServiceForTest(
+      gateway: gateway,
+      campusReachable: true,
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            forceRefreshValues.add(forceRefresh);
+            await AcademicCredentialsService.instance.saveOaLoginSession(
+              academicEamsSessionSnapshot,
+            );
+            return AcademicLoginValidationResult(
+              status: AcademicLoginValidationStatus.success,
+              message: 'OA 登录校验通过',
+              detail: '已刷新 OA 会话',
+              checkedAt: DateTime(2026, 5, 2),
+              entranceUri: academicEamsOaEntranceUri,
+              finalUri: academicEamsOaEntranceUri,
+              sessionSnapshot: academicEamsSessionSnapshot,
+            );
+          },
+    );
+
+    final result = await service.searchCourseOfferings(
+      const AcademicCourseOfferingSearchCriteria(courseName: '高等数学'),
+    );
+
+    expect(result.status, AcademicEamsQueryStatus.success);
+    expect(forceRefreshValues, [true]);
+    expect(gateway.openCount, 2);
+  });
+
   test('未指定学期时不会把开课检索默认收窄到首个下拉选项', () async {
     await AcademicCredentialsService.instance.saveCredentials(
       oaAccount: '20260001',
@@ -280,24 +386,28 @@ void main() {
     final service = buildAcademicEamsServiceForTest(
       gateway: FakeAcademicEamsGateway(),
       campusReachable: true,
-      refreshOaLogin: () async {
-        await AcademicCredentialsService.instance.saveCredentials(
-          oaAccount: '20260002',
-          oaPassword: 'oa-pass',
-        );
-        await AcademicCredentialsService.instance.saveOaLoginSession(
-          academicEamsSessionSnapshot,
-        );
-        return AcademicLoginValidationResult(
-          status: AcademicLoginValidationStatus.success,
-          message: 'OA 登录校验通过',
-          detail: '已刷新 OA 会话',
-          checkedAt: DateTime(2026, 5, 2),
-          entranceUri: academicEamsOaEntranceUri,
-          finalUri: academicEamsOaEntranceUri,
-          sessionSnapshot: academicEamsSessionSnapshot,
-        );
-      },
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            await AcademicCredentialsService.instance.saveCredentials(
+              oaAccount: '20260002',
+              oaPassword: 'oa-pass',
+            );
+            await AcademicCredentialsService.instance.saveOaLoginSession(
+              academicEamsSessionSnapshot,
+            );
+            return AcademicLoginValidationResult(
+              status: AcademicLoginValidationStatus.success,
+              message: 'OA 登录校验通过',
+              detail: '已刷新 OA 会话',
+              checkedAt: DateTime(2026, 5, 2),
+              entranceUri: academicEamsOaEntranceUri,
+              finalUri: academicEamsOaEntranceUri,
+              sessionSnapshot: academicEamsSessionSnapshot,
+            );
+          },
     );
 
     final result = await service.fetchOverview();

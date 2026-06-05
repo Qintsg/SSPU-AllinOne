@@ -44,15 +44,15 @@ class ChannelGroupRefreshPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.fluentColors;
+    final type = context.fluentType;
     final foreground = enabled
-        ? colorScheme.onSurfaceVariant
-        : colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
+        ? colors.neutralForeground2
+        : colors.neutralForegroundDisabled;
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
+        color: colors.neutralBackground2,
         borderRadius: AppShapes.md,
       ),
       child: Padding(
@@ -62,12 +62,12 @@ class ChannelGroupRefreshPanel extends StatelessWidget {
           children: [
             Semantics(
               header: true,
-              child: Text('刷新设置', style: textTheme.titleSmall),
+              child: Text('刷新设置', style: type.body1Strong),
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               '这些设置会应用到本分区内每个已接入的内容渠道。',
-              style: textTheme.bodySmall?.copyWith(color: foreground),
+              style: type.caption1.copyWith(color: foreground),
             ),
             const SizedBox(height: AppSpacing.sm),
             Wrap(
@@ -89,9 +89,7 @@ class ChannelGroupRefreshPanel extends StatelessWidget {
                   children: [
                     Text(
                       '自动刷新：',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: hasImplementedChannel ? foreground : foreground,
-                      ),
+                      style: type.caption1.copyWith(color: foreground),
                     ),
                     FluentSwitch(
                       value: groupAutoRefreshEnabled,
@@ -108,7 +106,7 @@ class ChannelGroupRefreshPanel extends StatelessWidget {
                   children: [
                     Text(
                       '自动刷新间隔：',
-                      style: textTheme.bodySmall?.copyWith(color: foreground),
+                      style: type.caption1.copyWith(color: foreground),
                     ),
                     FluentSelect<int>(
                       value: kIntervalOptions.containsKey(groupInterval)
@@ -168,8 +166,8 @@ class ChannelListItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.fluentColors;
+    final type = context.fluentType;
     final subtitle = channel.implemented
         ? channel.description
         : '${channel.description}（暂未接入）';
@@ -178,7 +176,7 @@ class ChannelListItemCard extends StatelessWidget {
       padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.sm),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHigh,
+          color: colors.neutralBackground2,
           borderRadius: AppShapes.md,
         ),
         child: Padding(
@@ -192,7 +190,7 @@ class ChannelListItemCard extends StatelessWidget {
                   final description = Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(channel.icon, color: colorScheme.primary),
+                      Icon(channel.icon, color: colors.brandForeground1),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
@@ -200,19 +198,17 @@ class ChannelListItemCard extends StatelessWidget {
                           children: [
                             Text(
                               channel.name,
-                              style: textTheme.titleSmall,
+                              style: type.body1Strong,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: AppSpacing.xs),
                             Text(
                               subtitle,
-                              style: textTheme.bodySmall?.copyWith(
+                              style: type.caption1.copyWith(
                                 color: enabled
-                                    ? colorScheme.onSurfaceVariant
-                                    : colorScheme.onSurfaceVariant.withValues(
-                                        alpha: 0.6,
-                                      ),
+                                    ? colors.neutralForeground2
+                                    : colors.neutralForegroundDisabled,
                               ),
                             ),
                           ],
@@ -263,8 +259,8 @@ class ChannelListItemCard extends StatelessWidget {
                   padding: const EdgeInsetsDirectional.only(start: AppSpacing.xxl),
                   child: Text(
                     '此渠道数据源尚未接入，开关仅作为预配置使用。',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                    style: type.caption1.copyWith(
+                      color: colors.neutralForeground2,
                     ),
                   ),
                 ),
@@ -292,12 +288,12 @@ class _ChannelSubcategoryButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.fluentColors;
+    final type = context.fluentType;
     final subcategories = channelSubcategories[channelId]!;
     final labelColor = channelEnabled
-        ? colorScheme.onSurfaceVariant
-        : colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
+        ? colors.neutralForeground2
+        : colors.neutralForegroundDisabled;
 
     return Padding(
       padding: const EdgeInsetsDirectional.only(start: AppSpacing.xxl),
@@ -306,7 +302,7 @@ class _ChannelSubcategoryButtons extends StatelessWidget {
         children: [
           Text(
             '内容分类',
-            style: textTheme.bodySmall?.copyWith(color: labelColor),
+            style: type.caption1.copyWith(color: labelColor),
           ),
           const SizedBox(height: AppSpacing.xs),
           Wrap(

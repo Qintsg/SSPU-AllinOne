@@ -138,7 +138,7 @@ class SettingsAutoRefreshSection extends StatelessWidget {
   }
 
   Widget _buildCampusNetworkIntervalCard(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final type = context.fluentType;
     return FluentCard(
       padding: EdgeInsets.zero,
       child: Padding(
@@ -146,15 +146,15 @@ class SettingsAutoRefreshSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Semantics(header: true, child: Text('自动刷新设置', style: textTheme.titleMedium)),
+            Semantics(header: true, child: Text('自动刷新设置', style: type.subtitle1)),
             const SizedBox(height: AppSpacing.md),
             buildResponsiveSettingsRow(
               context: context,
-              icon: Icons.power_outlined,
-              title: Text('校园网 / VPN 状态检测', style: textTheme.titleSmall),
+              icon: FluentIcons.power,
+              title: Text('校园网 / VPN 状态检测', style: type.body1Strong),
               subtitle: Text(
                 '控制导航栏状态徽标的自动检测频率；关闭后仍可点击徽标手动检测',
-                style: textTheme.bodySmall,
+                style: type.caption1,
               ),
               trailing: _buildIntervalComboBox(),
             ),
@@ -175,8 +175,8 @@ class SettingsAutoRefreshSection extends StatelessWidget {
   }
 
   Widget _buildRefreshShortcutCard(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.fluentColors;
+    final type = context.fluentType;
     return FluentCard(
       padding: EdgeInsets.zero,
       child: Padding(
@@ -184,16 +184,16 @@ class SettingsAutoRefreshSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Semantics(header: true, child: Text('消息自动刷新快捷入口', style: textTheme.titleMedium)),
+            Semantics(header: true, child: Text('消息自动刷新快捷入口', style: type.subtitle1)),
             const SizedBox(height: AppSpacing.sm),
             Text(
               '以下入口会跳转到对应分区顶部的自动刷新设置面板。',
-              style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+              style: type.caption1.copyWith(color: colors.neutralForeground2),
             ),
             const SizedBox(height: AppSpacing.md),
             _buildShortcutRow(
               context: context,
-              icon: Icons.school_outlined,
+              icon: FluentIcons.education,
               title: '职能部门',
               description: '配置职能部门官网消息的自动刷新频率和抓取条数',
               onPressed: onOpenDepartmentRefreshSettings,
@@ -201,7 +201,7 @@ class SettingsAutoRefreshSection extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             _buildShortcutRow(
               context: context,
-              icon: Icons.local_library_outlined,
+              icon: FluentIcons.library,
               title: '教学单位',
               description: '配置学院、中心等教学单位消息的自动刷新频率和抓取条数',
               onPressed: onOpenTeachingRefreshSettings,
@@ -209,7 +209,7 @@ class SettingsAutoRefreshSection extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             _buildShortcutRow(
               context: context,
-              icon: Icons.chat_outlined,
+              icon: FluentIcons.chat,
               title: '微信推文',
               description: '配置公众号平台推文的自动刷新频率和抓取条数',
               onPressed: onOpenWechatRefreshSettings,
@@ -255,12 +255,12 @@ class SettingsAutoRefreshSection extends StatelessWidget {
     required String description,
     required VoidCallback onPressed,
   }) {
-    final textTheme = Theme.of(context).textTheme;
+    final type = context.fluentType;
     return buildResponsiveSettingsRow(
       context: context,
       icon: icon,
-      title: Text(title, style: textTheme.titleSmall),
-      subtitle: Text(description, style: textTheme.bodySmall),
+      title: Text(title, style: type.body1Strong),
+      subtitle: Text(description, style: type.caption1),
       trailing: FluentButton.outline(
         onPressed: onPressed,
         child: const Text('前往设置'),

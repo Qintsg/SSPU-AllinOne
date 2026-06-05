@@ -125,21 +125,15 @@ class _AppShellState extends State<AppShell> {
       );
     }
 
-    if (sizeClass == WindowSizeClass.large ||
-        sizeClass == WindowSizeClass.extraLarge) {
-      return _DrawerNavigationShell(
-        destinations: destinations,
-        selectedIndex: _selectedIndex,
-        visitedIndexes: _visitedDestinationIndexes,
-        onChanged: _selectDestination,
-      );
-    }
-
-    return _RailNavigationShell(
+    return _FluentNavigationShell(
       destinations: destinations,
       selectedIndex: _selectedIndex,
       visitedIndexes: _visitedDestinationIndexes,
-      extended: sizeClass == WindowSizeClass.expanded,
+      displayMode:
+          (sizeClass == WindowSizeClass.large ||
+              sizeClass == WindowSizeClass.extraLarge)
+          ? PaneDisplayMode.expanded
+          : PaneDisplayMode.compact,
       onChanged: _selectDestination,
     );
   }
@@ -203,8 +197,8 @@ class _CompactNavigationShell extends StatelessWidget {
     ];
     final moreSelected = hiddenIndexes.contains(selectedIndex);
 
-    return Scaffold(
-      body: SafeArea(
+    return ScaffoldPage(
+      content: SafeArea(
         bottom: false,
         child: _NavigationBody(
           destinations: destinations,
@@ -212,7 +206,7 @@ class _CompactNavigationShell extends StatelessWidget {
           visitedIndexes: visitedIndexes,
         ),
       ),
-      bottomNavigationBar: Container(
+      bottomBar: Container(
         key: const Key('mobile-bottom-navigation'),
         decoration: BoxDecoration(
           color: colors.neutralBackground2,
@@ -307,129 +301,52 @@ class _CompactNavigationShell extends StatelessWidget {
   }
 }
 
-class _RailNavigationShell extends StatelessWidget {
+class _FluentNavigationShell extends StatelessWidget {
   final List<_AppDestination> destinations;
   final int selectedIndex;
   final Set<int> visitedIndexes;
-  final bool extended;
+  final PaneDisplayMode displayMode;
   final ValueChanged<int> onChanged;
 
-  const _RailNavigationShell({
+  const _FluentNavigationShell({
     required this.destinations,
     required this.selectedIndex,
     required this.visitedIndexes,
-    required this.extended,
+    required this.displayMode,
     required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    return Scaffold(
-      body: SafeArea(
-        child: Row(
-          children: [
-            Container(
-              width: extended ? 176 : 72,
-              decoration: BoxDecoration(
-                color: colors.neutralBackground2,
-                border: BorderDirectional(
-                  end: BorderSide(color: colors.neutralStrokeDivider),
-                ),
-              ),
-              child: Column(
-                children: [
-                  const SizedBox(height: AppSpacing.sm),
-                  for (var i = 0; i < destinations.length; i++)
-                    _FluentSideNavigationItem(
-                      destination: destinations[i],
-                      selected: selectedIndex == i,
-                      extended: extended,
-                      onTap: () => onChanged(i),
-                    ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: _NavigationBody(
-                destinations: destinations,
-                selectedIndex: selectedIndex,
-                visitedIndexes: visitedIndexes,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DrawerNavigationShell extends StatelessWidget {
-  final List<_AppDestination> destinations;
-  final int selectedIndex;
-  final Set<int> visitedIndexes;
-  final ValueChanged<int> onChanged;
-
-  const _DrawerNavigationShell({
-    required this.destinations,
-    required this.selectedIndex,
-    required this.visitedIndexes,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.fluentColors;
     final type = context.fluentType;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Row(
-          children: [
-            Container(
-              width: 280,
-              decoration: BoxDecoration(
-                color: colors.neutralBackground2,
-                border: BorderDirectional(
-                  end: BorderSide(color: colors.neutralStrokeDivider),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: const EdgeInsetsDirectional.fromSTEB(
-                      AppSpacing.lg,
-                      AppSpacing.lg,
-                      AppSpacing.lg,
-                      AppSpacing.md,
-                    ),
-                    child: Text(
-                      'SSPU-AllinOne',
-                      style: type.title2.copyWith(
-                        color: colors.neutralForeground1,
-                      ),
-                    ),
-                  ),
-                  for (var i = 0; i < destinations.length; i++)
-                    _FluentSideNavigationItem(
-                      destination: destinations[i],
-                      selected: selectedIndex == i,
-                      extended: true,
-                      onTap: () => onChanged(i),
-                    ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: _NavigationBody(
-                destinations: destinations,
-                selectedIndex: selectedIndex,
-                visitedIndexes: visitedIndexes,
-              ),
-            ),
-          ],
+    return NavigationView(
+      pane: NavigationPane(
+        selected: selectedIndex,
+        onChanged: onChanged,
+        displayMode: displayMode,
+        header: Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(
+            AppSpacing.lg,
+            AppSpacing.lg,
+            AppSpacing.lg,
+            AppSpacing.md,
+          ),
+          child: Text('SSPU-AllinOne', style: type.title2),
         ),
+        items: [
+          for (final destination in destinations)
+            PaneItem(
+              icon: Icon(destination.icon),
+              title: Text(destination.title),
+              body: const SizedBox.shrink(),
+            ),
+        ],
+      ),
+      paneBodyBuilder: (_, _) => _NavigationBody(
+        destinations: destinations,
+        selectedIndex: selectedIndex,
+        visitedIndexes: visitedIndexes,
       ),
     );
   }

@@ -20,17 +20,30 @@ Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
   }
 }
 
+Future<void> pumpEmailPage(
+  WidgetTester tester, {
+  required EmailMailboxClient emailService,
+  required bool emailAutoRefreshEnabledOverride,
+  int emailAutoRefreshIntervalOverride = 30,
+}) async {
+  await tester.pumpWidget(
+    FluentApp(
+      home: EmailPage(
+        emailService: emailService,
+        emailAutoRefreshEnabledOverride: emailAutoRefreshEnabledOverride,
+        emailAutoRefreshIntervalOverride: emailAutoRefreshIntervalOverride,
+      ),
+    ),
+  );
+}
+
 void main() {
   testWidgets('邮箱页面可读取 IMAP 邮件并进入正文详情', (tester) async {
     final service = _FakeEmailClient();
-    await tester.pumpWidget(
-      MaterialApp(
-        home: EmailPage(
-          emailService: service,
-          emailAutoRefreshEnabledOverride: false,
-          emailAutoRefreshIntervalOverride: 30,
-        ),
-      ),
+    await pumpEmailPage(
+      tester,
+      emailService: service,
+      emailAutoRefreshEnabledOverride: false,
     );
     await tester.pump(const Duration(milliseconds: 100));
 
@@ -57,14 +70,10 @@ void main() {
 
   testWidgets('邮箱页面可触发 SMTP 登录校验但不读取邮件', (tester) async {
     final service = _FakeEmailClient();
-    await tester.pumpWidget(
-      MaterialApp(
-        home: EmailPage(
-          emailService: service,
-          emailAutoRefreshEnabledOverride: false,
-          emailAutoRefreshIntervalOverride: 30,
-        ),
-      ),
+    await pumpEmailPage(
+      tester,
+      emailService: service,
+      emailAutoRefreshEnabledOverride: false,
     );
     await tester.pump(const Duration(milliseconds: 100));
 
@@ -80,14 +89,11 @@ void main() {
 
   testWidgets('邮箱自动刷新开启时会主动读取 IMAP 邮件', (tester) async {
     final service = _FakeEmailClient();
-    await tester.pumpWidget(
-      MaterialApp(
-        home: EmailPage(
-          emailService: service,
-          emailAutoRefreshEnabledOverride: true,
-          emailAutoRefreshIntervalOverride: 1,
-        ),
-      ),
+    await pumpEmailPage(
+      tester,
+      emailService: service,
+      emailAutoRefreshEnabledOverride: true,
+      emailAutoRefreshIntervalOverride: 1,
     );
 
     await pumpUntilFound(tester, find.text('教务通知'));
@@ -100,9 +106,30 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 120));
   });
+
+  testWidgets('邮箱页面进入时优先展示本地邮件缓存', (tester) async {
+    final service = _FakeEmailClient(cachedResult: _cachedMailboxResult);
+    await pumpEmailPage(
+      tester,
+      emailService: service,
+      emailAutoRefreshEnabledOverride: true,
+      emailAutoRefreshIntervalOverride: 30,
+    );
+
+    await pumpUntilFound(tester, find.text('缓存通知'));
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.text('IMAP 最近邮件：1 封'), findsOneWidget);
+    expect(service.fetchCount, 0);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 120));
+  });
 }
 
 class _FakeEmailClient implements EmailMailboxClient {
+  _FakeEmailClient({this.cachedResult});
+
+  final EmailMailboxQueryResult? cachedResult;
   int fetchCount = 0;
   int validateCount = 0;
   EmailProtocol? lastValidatedProtocol;
@@ -111,7 +138,7 @@ class _FakeEmailClient implements EmailMailboxClient {
   Future<EmailMailboxQueryResult?> readLatestCachedMessages(
     EmailProtocol protocol,
   ) async {
-    return null;
+    return cachedResult;
   }
 
   @override
@@ -170,4 +197,30 @@ const EmailMessageSnapshot _message = EmailMessageSnapshot(
   preview: '请查看最新通知。',
   body: '请查看最新通知。',
   receivedAt: null,
+);
+
+final EmailMailboxQueryResult _cachedMailboxResult = EmailMailboxQueryResult(
+  status: EmailQueryStatus.success,
+  protocol: EmailProtocol.imap,
+  message: '已显示本地邮箱缓存',
+  detail: '显示最近一次成功读取并保存的 IMAP 邮件快照。',
+  checkedAt: DateTime.now(),
+  endpoint: _endpoint,
+  snapshot: EmailMailboxSnapshot(
+    protocol: EmailProtocol.imap,
+    account: 'student@sspu.edu.cn',
+    messages: const [
+      EmailMessageSnapshot(
+        id: 'IMAP:cached',
+        subject: '缓存通知',
+        senderName: '教务处',
+        senderAddress: 'notice@sspu.edu.cn',
+        preview: '缓存邮件内容。',
+        body: '缓存邮件内容。',
+        receivedAt: null,
+      ),
+    ],
+    fetchedAt: DateTime.now(),
+    endpoint: _endpoint,
+  ),
 );

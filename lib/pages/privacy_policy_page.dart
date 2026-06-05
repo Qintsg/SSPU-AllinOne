@@ -116,7 +116,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                 padding: AppSpacing.cardPadding,
                 child: SelectableText(
                   kPrivacyPolicyText.trim(),
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: FluentTheme.of(context).typography.body,
                 ),
               ),
             ),

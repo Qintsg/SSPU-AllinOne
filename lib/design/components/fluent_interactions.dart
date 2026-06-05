@@ -6,7 +6,7 @@
  * @Date : 2026-05-30
  */
 
-import 'package:flutter/material.dart';
+import 'package:fluent_ui/fluent_ui.dart' as fluent hide FluentIcons;
 
 /// Fluent 2 悬停按钮状态。
 class FluentHoverButtonStates {
@@ -23,7 +23,7 @@ class FluentHoverButtonStates {
 }
 
 /// Fluent 2 无默认视觉的悬停按钮。
-class FluentHoverButton extends StatefulWidget {
+class FluentHoverButton extends fluent.StatelessWidget {
   const FluentHoverButton({
     super.key,
     required this.onPressed,
@@ -31,46 +31,24 @@ class FluentHoverButton extends StatefulWidget {
   });
 
   /// 点击回调。
-  final VoidCallback? onPressed;
+  final fluent.VoidCallback? onPressed;
 
   /// 状态构建器。
-  final Widget Function(BuildContext context, FluentHoverButtonStates states)
+  final fluent.Widget Function(
+    fluent.BuildContext context,
+    FluentHoverButtonStates states,
+  )
   builder;
 
   @override
-  State<FluentHoverButton> createState() => _FluentHoverButtonState();
-}
-
-class _FluentHoverButtonState extends State<FluentHoverButton> {
-  bool _hovered = false;
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: widget.onPressed == null
-          ? MouseCursor.defer
-          : SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() {
-        _hovered = false;
-        _pressed = false;
-      }),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onPressed,
-        onTapDown: widget.onPressed == null
-            ? null
-            : (_) => setState(() => _pressed = true),
-        onTapUp: widget.onPressed == null
-            ? null
-            : (_) => setState(() => _pressed = false),
-        onTapCancel: widget.onPressed == null
-            ? null
-            : () => setState(() => _pressed = false),
-        child: widget.builder(
-          context,
-          FluentHoverButtonStates(isHovered: _hovered, isPressed: _pressed),
+  fluent.Widget build(fluent.BuildContext context) {
+    return fluent.HoverButton(
+      onPressed: onPressed,
+      builder: (context, states) => builder(
+        context,
+        FluentHoverButtonStates(
+          isHovered: states.contains(fluent.WidgetState.hovered),
+          isPressed: states.contains(fluent.WidgetState.pressed),
         ),
       ),
     );

@@ -13,6 +13,7 @@ class _FakeSportsAttendanceClient implements SportsAttendanceClient {
 
   final SportsAttendanceQueryResult result;
   int fetchCount = 0;
+  final List<bool> requireCampusNetworkValues = [];
 
   @override
   Future<SportsAttendanceQueryResult?>
@@ -21,8 +22,11 @@ class _FakeSportsAttendanceClient implements SportsAttendanceClient {
   }
 
   @override
-  Future<SportsAttendanceQueryResult> fetchAttendanceSummary() async {
+  Future<SportsAttendanceQueryResult> fetchAttendanceSummary({
+    bool requireCampusNetwork = true,
+  }) async {
     fetchCount++;
+    requireCampusNetworkValues.add(requireCampusNetwork);
     return result;
   }
 }
@@ -32,6 +36,7 @@ class _FakeStudentReportClient implements StudentReportClient {
 
   final StudentReportQueryResult result;
   int fetchCount = 0;
+  final List<bool> requireCampusNetworkValues = [];
 
   @override
   Future<StudentReportQueryResult?>
@@ -40,8 +45,11 @@ class _FakeStudentReportClient implements StudentReportClient {
   }
 
   @override
-  Future<StudentReportQueryResult> fetchSecondClassroomCredits() async {
+  Future<StudentReportQueryResult> fetchSecondClassroomCredits({
+    bool requireCampusNetwork = true,
+  }) async {
     fetchCount++;
+    requireCampusNetworkValues.add(requireCampusNetwork);
     return result;
   }
 
@@ -57,6 +65,8 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   final AcademicEamsQueryResult result;
   int overviewFetchCount = 0;
   int courseTableFetchCount = 0;
+  final List<bool> overviewRequireCampusNetworkValues = [];
+  final List<bool> courseTableRequireCampusNetworkValues = [];
 
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
@@ -69,14 +79,20 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   }
 
   @override
-  Future<AcademicEamsQueryResult> fetchCourseTable() async {
+  Future<AcademicEamsQueryResult> fetchCourseTable({
+    bool requireCampusNetwork = true,
+  }) async {
     courseTableFetchCount++;
+    courseTableRequireCampusNetworkValues.add(requireCampusNetwork);
     return result;
   }
 
   @override
-  Future<AcademicEamsQueryResult> fetchOverview() async {
+  Future<AcademicEamsQueryResult> fetchOverview({
+    bool requireCampusNetwork = true,
+  }) async {
     overviewFetchCount++;
+    overviewRequireCampusNetworkValues.add(requireCampusNetwork);
     return result;
   }
 }

@@ -72,7 +72,7 @@ class AgreementPage extends StatelessWidget {
                 padding: AppSpacing.cardPadding,
                 child: SelectableText(
                   kAgreementText.trim(),
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: FluentTheme.of(context).typography.body,
                 ),
               ),
             ),

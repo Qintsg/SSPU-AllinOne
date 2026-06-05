@@ -9,7 +9,7 @@
  * 仅因 static const 上下文无法引用 ThemeExtension 而镜像固化。
  */
 
-import 'package:flutter/material.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 
 import 'app_motion.dart';
 import 'app_shapes.dart';
@@ -175,7 +175,7 @@ class FluentTokenTheme {
 
   static const String fontFamily = AppTheme.fontFamily;
 
-  static ThemeData light() => AppTheme.build(Brightness.light);
+  static FluentThemeData light() => AppTheme.build(Brightness.light);
 
-  static ThemeData dark() => AppTheme.build(Brightness.dark);
+  static FluentThemeData dark() => AppTheme.build(Brightness.dark);
 }

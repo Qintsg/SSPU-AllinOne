@@ -1,5 +1,5 @@
 /*
- * Fluent 2 UI 出口 — 页面层统一使用的 Flutter 基础类型与 Fluent 组件
+ * Fluent UI 出口 — 页面层统一使用的 Flutter 基础类型与外部 Fluent 控件
  * @Project : SSPU-AllinOne
  * @File : fluent_ui.dart
  * @Author : Qintsg
@@ -7,16 +7,6 @@
  */
 
 export 'package:flutter/foundation.dart';
-export 'package:flutter/material.dart'
-    hide
-        AlertDialog,
-        Card,
-        CircularProgressIndicator,
-        DropdownButton,
-        FilledButton,
-        LinearProgressIndicator,
-        OutlinedButton,
-        Switch,
-        TextButton;
+export 'package:fluent_ui/fluent_ui.dart' hide FluentIcons, FluentPage, FluentPageRoute;
 
 export 'fluent.dart' hide FluentElevation, FluentSpacing;

@@ -123,8 +123,8 @@ class _ChannelListSectionState extends State<ChannelListSection> {
       return const Center(child: FluentProgressRing());
     }
 
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.fluentColors;
+    final type = context.fluentType;
     final enabledCount = _enabledMap.values.where((enabled) => enabled).length;
     final autoEnabledCount = widget.channels
         .where(
@@ -150,16 +150,16 @@ class _ChannelListSectionState extends State<ChannelListSection> {
           children: [
             Semantics(
               header: true,
-              child: Text(widget.title, style: textTheme.titleMedium),
+              child: Text(widget.title, style: type.subtitle1),
             ),
             FluentButton.primaryIcon(
               onPressed: () => _setAllChannelsEnabled(true),
-              icon: const Icon(Icons.check),
+              icon: const Icon(FluentIcons.checkMark),
               label: const Text('一键全开'),
             ),
             FluentButton.outlineIcon(
               onPressed: () => _setAllChannelsEnabled(false),
-              icon: const Icon(Icons.block),
+              icon: const Icon(FluentIcons.blocked),
               label: const Text('一键全关'),
             ),
           ],
@@ -167,9 +167,7 @@ class _ChannelListSectionState extends State<ChannelListSection> {
         const SizedBox(height: AppSpacing.xs),
         Text(
           '共 ${widget.channels.length} 个渠道，已启用 $enabledCount 个，自动刷新开启 $autoEnabledCount 个。',
-          style: textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
+          style: type.caption1.copyWith(color: colors.neutralForeground2),
         ),
         const SizedBox(height: AppSpacing.md),
         ChannelGroupRefreshPanel(

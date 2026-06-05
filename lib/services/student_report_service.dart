@@ -38,7 +38,9 @@ abstract class StudentReportClient {
   Future<StudentReportQueryResult> validateLoginStatus();
 
   /// 读取第二课堂逐项得分明细。
-  Future<StudentReportQueryResult> fetchSecondClassroomCredits();
+  Future<StudentReportQueryResult> fetchSecondClassroomCredits({
+    bool requireCampusNetwork = true,
+  });
 }
 
 /// 学工报表 HTTP 响应快照。
@@ -75,7 +77,10 @@ abstract class StudentReportGateway {
 }
 
 typedef StudentReportOaLoginRefresher =
-    Future<AcademicLoginValidationResult> Function();
+    Future<AcademicLoginValidationResult> Function({
+      bool forceRefresh,
+      bool requireCampusNetwork,
+    });
 
 /// 学工报表第二课堂学分只读查询服务。
 class StudentReportService implements StudentReportClient {
@@ -94,9 +99,11 @@ class StudentReportService implements StudentReportClient {
        _gateway = gateway ?? DioStudentReportGateway(),
        _refreshOaLogin =
            refreshOaLogin ??
-           (() => AcademicLoginValidationService.instance.ensureSavedSession(
-             forceRefresh: true,
-           )),
+           (({bool forceRefresh = false, bool requireCampusNetwork = true}) =>
+               AcademicLoginValidationService.instance.ensureSavedSession(
+                 forceRefresh: forceRefresh,
+                 requireCampusNetwork: requireCampusNetwork,
+               )),
        entranceUri = entranceUri ?? defaultEntranceUri,
        homeUri = homeUri ?? defaultHomeUri,
        timeout = timeout ?? const Duration(seconds: 15);
@@ -190,12 +197,18 @@ class StudentReportService implements StudentReportClient {
   }
 
   @override
-  Future<StudentReportQueryResult> fetchSecondClassroomCredits() async {
-    return _fetchReport(requireCredits: true);
+  Future<StudentReportQueryResult> fetchSecondClassroomCredits({
+    bool requireCampusNetwork = true,
+  }) async {
+    return _fetchReport(
+      requireCredits: true,
+      requireCampusNetwork: requireCampusNetwork,
+    );
   }
 
   Future<StudentReportQueryResult> _fetchReport({
     required bool requireCredits,
+    bool requireCampusNetwork = true,
   }) async {
     CampusNetworkStatus? campusStatus;
     try {
@@ -221,11 +234,28 @@ class StudentReportService implements StudentReportClient {
       }
 
       campusStatus = await _campusNetworkStatusService.checkStatus();
-      if (!campusStatus.canAccessRestrictedServices) {
+      if (requireCampusNetwork && !campusStatus.canAccessRestrictedServices) {
+        final loginResult = await _refreshOaLogin(
+          forceRefresh: true,
+          requireCampusNetwork: false,
+        );
+        if (!loginResult.isSuccess) {
+          return _buildResult(
+            StudentReportQueryStatus.oaLoginRequired,
+            message: 'OA 登录状态不可用，无法查询学工报表',
+            detail: _studentReportDetailWithNetworkHint(
+              loginResult.message,
+              campusStatus,
+            ),
+            finalUri: loginResult.finalUri,
+            campusNetworkStatus: campusStatus,
+          );
+        }
         return _buildResult(
           StudentReportQueryStatus.campusNetworkUnavailable,
           message: '校园网 / VPN 不可用，无法访问学工报表系统',
-          detail: campusStatus.detail,
+          detail:
+              '${campusStatus.detail}\nOA 登录会话已刷新；学工报表系统可能仍需要连接校园网或 VPN 后才能访问。',
           campusNetworkStatus: campusStatus,
         );
       }
@@ -233,6 +263,7 @@ class StudentReportService implements StudentReportClient {
       final result = await _fetchWithOaSession(
         requireCredits: requireCredits,
         campusNetworkStatus: campusStatus,
+        requireCampusNetwork: requireCampusNetwork,
       );
       if (requireCredits && result.isSuccess && result.summary != null) {
         final currentStudentId = (await _credentialsService.getStatus())
@@ -292,17 +323,21 @@ class StudentReportService implements StudentReportClient {
 
   Future<StudentReportQueryResult> _fetchWithOaSession({
     required bool requireCredits,
-    required CampusNetworkStatus campusNetworkStatus,
+    required CampusNetworkStatus? campusNetworkStatus,
+    required bool requireCampusNetwork,
   }) async {
     var sessionSnapshot = await _credentialsService.readOaLoginSession();
     var refreshedBeforeFetch = false;
     if (sessionSnapshot == null || !sessionSnapshot.hasCookies) {
-      final loginResult = await _refreshOaLogin();
+      final loginResult = await _refreshOaLogin(requireCampusNetwork: false);
       if (!loginResult.isSuccess) {
         return _buildResult(
           StudentReportQueryStatus.oaLoginRequired,
           message: 'OA 登录状态不可用，无法查询学工报表',
-          detail: loginResult.message,
+          detail: _studentReportDetailWithNetworkHint(
+            loginResult.message,
+            campusNetworkStatus,
+          ),
           finalUri: loginResult.finalUri,
           campusNetworkStatus: campusNetworkStatus,
         );
@@ -318,18 +353,24 @@ class StudentReportService implements StudentReportClient {
         requireCredits: requireCredits,
         campusNetworkStatus: campusNetworkStatus,
       );
-      if (result.status != StudentReportQueryStatus.oaLoginRequired ||
-          attempt == 1) {
+      if (result.status != StudentReportQueryStatus.oaLoginRequired) {
         return result;
       }
+      if (attempt == 1) return _studentReportResultWithNetworkHint(result);
 
       if (refreshedBeforeFetch) continue;
-      final loginResult = await _refreshOaLogin();
+      final loginResult = await _refreshOaLogin(
+        forceRefresh: true,
+        requireCampusNetwork: false,
+      );
       if (!loginResult.isSuccess) {
         return _buildResult(
           StudentReportQueryStatus.oaLoginRequired,
           message: 'OA 登录状态不可用，无法查询学工报表',
-          detail: loginResult.message,
+          detail: _studentReportDetailWithNetworkHint(
+            loginResult.message,
+            campusNetworkStatus,
+          ),
           finalUri: loginResult.finalUri,
           campusNetworkStatus: campusNetworkStatus,
         );
@@ -343,15 +384,46 @@ class StudentReportService implements StudentReportClient {
     return _buildResult(
       StudentReportQueryStatus.oaLoginRequired,
       message: 'OA 登录状态不可用，无法查询学工报表',
-      detail: '已尝试刷新 OA/CAS 会话，但学工报表仍要求登录。',
+      detail: _studentReportDetailWithNetworkHint(
+        '已强制刷新 OA/CAS 会话并重试，但学工报表仍要求登录。',
+        campusNetworkStatus,
+      ),
       campusNetworkStatus: campusNetworkStatus,
     );
+  }
+
+  StudentReportQueryResult _studentReportResultWithNetworkHint(
+    StudentReportQueryResult result,
+  ) {
+    return _buildResult(
+      result.status,
+      message: result.message,
+      detail: _studentReportDetailWithNetworkHint(
+        result.detail,
+        result.campusNetworkStatus,
+      ),
+      checkedAt: result.checkedAt,
+      finalUri: result.finalUri,
+      campusNetworkStatus: result.campusNetworkStatus,
+      summary: result.summary,
+    );
+  }
+
+  String _studentReportDetailWithNetworkHint(
+    String detail,
+    CampusNetworkStatus? campusNetworkStatus,
+  ) {
+    if (campusNetworkStatus == null ||
+        campusNetworkStatus.canAccessRestrictedServices) {
+      return detail;
+    }
+    return '$detail\n当前网络环境不是校园网或 VPN；OA 登录可在当前网络下刷新，但学工报表系统可能仍需要连接校园网或 VPN 后才能访问。';
   }
 
   Future<StudentReportQueryResult> _fetchWithSessionSnapshot({
     required AcademicLoginSessionSnapshot? sessionSnapshot,
     required bool requireCredits,
-    required CampusNetworkStatus campusNetworkStatus,
+    required CampusNetworkStatus? campusNetworkStatus,
   }) async {
     final entrySnapshot = await _openEntryWithSession(sessionSnapshot);
     if (_isAuthenticationRequired(entrySnapshot)) {

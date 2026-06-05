@@ -72,20 +72,27 @@ class _DesktopWindowFrameState extends State<DesktopWindowFrame>
   Widget build(BuildContext context) {
     final colors = context.fluentColors;
 
-    return VirtualWindowFrame(
-      child: ColoredBox(
-        color: colors.neutralBackground1,
-        child: Column(
-          children: [
-            _DesktopWindowTitleBar(
-              isMaximized: _isMaximized,
-              campusNetworkStatusService: widget.campusNetworkStatusService,
-              onToggleMaximized: _toggleMaximized,
+    return Overlay(
+      initialEntries: [
+        OverlayEntry(
+          builder: (context) => VirtualWindowFrame(
+            child: ColoredBox(
+              color: colors.neutralBackground1,
+              child: Column(
+                children: [
+                  _DesktopWindowTitleBar(
+                    isMaximized: _isMaximized,
+                    campusNetworkStatusService:
+                        widget.campusNetworkStatusService,
+                    onToggleMaximized: _toggleMaximized,
+                  ),
+                  Expanded(child: widget.child),
+                ],
+              ),
             ),
-            Expanded(child: widget.child),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -119,7 +126,7 @@ class _DesktopWindowTitleBar extends StatelessWidget {
     final colors = context.fluentColors;
     final spacing = context.fluentSpacing;
     final type = context.fluentType;
-    final brightness = Theme.of(context).brightness;
+    final brightness = FluentTheme.of(context).brightness;
 
     return DecoratedBox(
       decoration: BoxDecoration(

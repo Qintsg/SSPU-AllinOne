@@ -62,17 +62,71 @@ void main() {
     expect(gateway.openCount, 0);
   });
 
-  test('校园网或 VPN 不可达时停止学工报表查询', () async {
+  test('校园网或 VPN 不可达时先刷新 OA 会话再停止学工报表查询', () async {
     await AcademicCredentialsService.instance.saveCredentials(
       oaAccount: '20260001',
       oaPassword: 'oa-pass',
     );
     final gateway = _FakeStudentReportGateway();
-    final service = _buildService(gateway: gateway, campusReachable: false);
+    final calls = <Map<String, bool>>[];
+    final service = _buildService(
+      gateway: gateway,
+      campusReachable: false,
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            calls.add({
+              'forceRefresh': forceRefresh,
+              'requireCampusNetwork': requireCampusNetwork,
+            });
+            await AcademicCredentialsService.instance.saveOaLoginSession(
+              _sessionSnapshot,
+            );
+            return _loginSuccessResult();
+          },
+    );
 
     final result = await service.fetchSecondClassroomCredits();
 
     expect(result.status, StudentReportQueryStatus.campusNetworkUnavailable);
+    expect(result.detail, contains('OA 登录会话已刷新'));
+    expect(gateway.openCount, 0);
+    expect(calls, [
+      {'forceRefresh': true, 'requireCampusNetwork': false},
+    ]);
+  });
+
+  test('校园网或 VPN 不可达且 OA 刷新失败时提示网络环境', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    final gateway = _FakeStudentReportGateway();
+    final service = _buildService(
+      gateway: gateway,
+      campusReachable: false,
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            return AcademicLoginValidationResult(
+              status: AcademicLoginValidationStatus.networkError,
+              message: 'OA 登录网络失败',
+              detail: '无法连接 OA 登录页',
+              checkedAt: DateTime(2026, 5, 1),
+              entranceUri: _oaEntranceUri,
+            );
+          },
+    );
+
+    final result = await service.fetchSecondClassroomCredits();
+
+    expect(result.status, StudentReportQueryStatus.oaLoginRequired);
+    expect(result.detail, contains('当前网络环境不是校园网或 VPN'));
+    expect(result.detail, contains('OA 登录可在当前网络下刷新'));
     expect(gateway.openCount, 0);
   });
 
@@ -86,21 +140,25 @@ void main() {
     final service = _buildService(
       gateway: gateway,
       campusReachable: true,
-      refreshOaLogin: () async {
-        refreshCount++;
-        await AcademicCredentialsService.instance.saveOaLoginSession(
-          _sessionSnapshot,
-        );
-        return AcademicLoginValidationResult(
-          status: AcademicLoginValidationStatus.success,
-          message: 'OA 登录校验通过',
-          detail: '已刷新 OA 会话',
-          checkedAt: DateTime(2026, 5, 1),
-          entranceUri: _oaEntranceUri,
-          finalUri: _oaEntranceUri,
-          sessionSnapshot: _sessionSnapshot,
-        );
-      },
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            refreshCount++;
+            await AcademicCredentialsService.instance.saveOaLoginSession(
+              _sessionSnapshot,
+            );
+            return AcademicLoginValidationResult(
+              status: AcademicLoginValidationStatus.success,
+              message: 'OA 登录校验通过',
+              detail: '已刷新 OA 会话',
+              checkedAt: DateTime(2026, 5, 1),
+              entranceUri: _oaEntranceUri,
+              finalUri: _oaEntranceUri,
+              sessionSnapshot: _sessionSnapshot,
+            );
+          },
     );
 
     final result = await service.fetchSecondClassroomCredits();
@@ -166,13 +224,17 @@ void main() {
     final service = _buildService(
       gateway: gateway,
       campusReachable: true,
-      refreshOaLogin: () async {
-        refreshCount++;
-        await AcademicCredentialsService.instance.saveOaLoginSession(
-          _sessionSnapshot,
-        );
-        return _loginSuccessResult();
-      },
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            refreshCount++;
+            await AcademicCredentialsService.instance.saveOaLoginSession(
+              _sessionSnapshot,
+            );
+            return _loginSuccessResult();
+          },
     );
 
     final result = await service.fetchSecondClassroomCredits();
@@ -260,13 +322,17 @@ void main() {
     final service = _buildService(
       gateway: gateway,
       campusReachable: true,
-      refreshOaLogin: () async {
-        refreshCount++;
-        await AcademicCredentialsService.instance.saveOaLoginSession(
-          _sessionSnapshot,
-        );
-        return _loginSuccessResult();
-      },
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            refreshCount++;
+            await AcademicCredentialsService.instance.saveOaLoginSession(
+              _sessionSnapshot,
+            );
+            return _loginSuccessResult();
+          },
     );
 
     final result = await service.fetchSecondClassroomCredits();
@@ -347,12 +413,16 @@ void main() {
     final service = _buildService(
       gateway: gateway,
       campusReachable: true,
-      refreshOaLogin: () async {
-        await AcademicCredentialsService.instance.saveOaLoginSession(
-          _sessionSnapshot,
-        );
-        return _loginSuccessResult();
-      },
+      refreshOaLogin:
+          ({
+            bool forceRefresh = false,
+            bool requireCampusNetwork = true,
+          }) async {
+            await AcademicCredentialsService.instance.saveOaLoginSession(
+              _sessionSnapshot,
+            );
+            return _loginSuccessResult();
+          },
     );
 
     final result = await service.fetchSecondClassroomCredits();

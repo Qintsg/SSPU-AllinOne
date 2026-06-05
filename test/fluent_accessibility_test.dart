@@ -16,9 +16,9 @@ void main() {
     var selectedValue = 0;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: StatefulBuilder(
+      FluentApp(
+        home: ScaffoldPage(
+          content: StatefulBuilder(
             builder: (context, setState) {
               return Center(
                 child: FluentSelect<int>(
@@ -59,9 +59,9 @@ void main() {
     var selectedIndex = 0;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: StatefulBuilder(
+      FluentApp(
+        home: ScaffoldPage(
+          content: StatefulBuilder(
             builder: (context, setState) {
               return Column(
                 children: [
@@ -69,7 +69,7 @@ void main() {
                     context: context,
                     index: 0,
                     selectedIndex: selectedIndex,
-                    icon: Icons.settings_outlined,
+                    icon: FluentIcons.settings,
                     label: '常规设置',
                     onTap: () => setState(() => selectedIndex = 0),
                   ),
@@ -77,7 +77,7 @@ void main() {
                     context: context,
                     index: 1,
                     selectedIndex: selectedIndex,
-                    icon: Icons.sync,
+                    icon: FluentIcons.sync,
                     label: '自动刷新设置',
                     onTap: () => setState(() => selectedIndex = 1),
                   ),
@@ -104,9 +104,9 @@ void main() {
     var activatedCard = false;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Column(
+      FluentApp(
+        home: ScaffoldPage(
+          content: Column(
             children: [
               FluentSurface(
                 onPressed: () => activatedSurface = true,
@@ -131,7 +131,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
     expect(activatedCard, isTrue);
   });
 }

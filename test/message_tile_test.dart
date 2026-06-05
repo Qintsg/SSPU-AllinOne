@@ -19,10 +19,10 @@ void main() {
     double width = 900,
   }) async {
     await tester.pumpWidget(
-      MaterialApp(
+      FluentApp(
         theme: AppTheme.build(Brightness.light),
-        home: Scaffold(
-          body: SizedBox(
+        home: ScaffoldPage(
+          content: SizedBox(
             width: width,
             child: MessageTile(
               message: message,
@@ -112,7 +112,7 @@ void main() {
 
     expect(find.text('微信推文'), findsOneWidget);
     expect(find.text('青春二工大'), findsOneWidget);
-    expect(find.byIcon(Icons.open_in_new), findsOneWidget);
-    expect(find.byIcon(Icons.mark_email_read_outlined), findsOneWidget);
+    expect(find.byIcon(FluentIcons.openInNewWindow), findsOneWidget);
+    expect(find.byIcon(FluentIcons.read), findsOneWidget);
   });
 }

@@ -63,7 +63,7 @@ class AuthenticatedDataCacheService {
     payload['fetchedAt'] = normalizedFetchedAt.toIso8601String();
 
     await StorageService.saveData(collection, key, payload);
-    await _trimCollection(collection, ownerAccount);
+    await _trimCollection(collection);
   }
 
   /// 读取指定集合中最新一条业务快照。
@@ -111,13 +111,8 @@ class AuthenticatedDataCacheService {
     }
   }
 
-  static Future<void> _trimCollection(
-    String collection,
-    String ownerAccount,
-  ) async {
-    final entries = (await readLatestRecords(
-      collection,
-    )).where((entry) => entry.data[_ownerAccountKey] == ownerAccount).toList();
+  static Future<void> _trimCollection(String collection) async {
+    final entries = await readLatestRecords(collection);
     if (entries.length <= maxRecordsPerType) return;
     for (final entry in entries.skip(maxRecordsPerType)) {
       await StorageService.removeData(collection, entry.key);

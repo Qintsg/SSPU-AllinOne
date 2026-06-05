@@ -40,7 +40,7 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final type = context.fluentType;
 
     return FluentCard(
       padding: EdgeInsets.zero,
@@ -51,16 +51,16 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
           children: [
             Semantics(
               header: true,
-              child: Text('应用更新', style: textTheme.titleMedium),
+              child: Text('应用更新', style: type.subtitle1),
             ),
             const SizedBox(height: AppSpacing.md),
             buildResponsiveSettingsRow(
               context: context,
-              icon: Icons.system_update_alt_outlined,
-              title: Text('检查更新', style: textTheme.titleSmall),
+              icon: FluentIcons.download,
+              title: Text('检查更新', style: type.body1Strong),
               subtitle: Text(
                 '从 GitHub Release 查询正式版或测试版更新，不会在启动时自动联网',
-                style: textTheme.bodySmall,
+                style: type.caption1,
               ),
               trailing: Wrap(
                 spacing: AppSpacing.sm,
@@ -82,7 +82,7 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
                             dimension: 16,
                             child: FluentProgressRing(strokeWidth: 2),
                           )
-                        : const Icon(Icons.refresh),
+                        : const Icon(FluentIcons.refresh),
                     label: Text(_isChecking ? '检查中' : '检查更新'),
                   ),
                 ],
@@ -114,26 +114,25 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
   }
 
   Widget _buildErrorMessage(BuildContext context, String message) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.fluentColors;
+    final type = context.fluentType;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: colorScheme.errorContainer,
+        color: colors.statusDangerBackground,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         message,
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(color: colorScheme.onErrorContainer),
+        style: type.caption1.copyWith(color: colors.statusDangerForeground),
       ),
     );
   }
 
   Widget _buildResult(BuildContext context, AppUpdateCheckResult result) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colors = context.fluentColors;
+    final type = context.fluentType;
     final release = result.release;
     final asset = result.recommendedAsset;
 
@@ -141,7 +140,7 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
+        color: colors.neutralBackground2,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -150,20 +149,20 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(_resultIcon(result.status), color: colorScheme.primary),
+              Icon(_resultIcon(result.status), color: colors.brandForeground1),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(result.message, style: textTheme.titleSmall),
+                    Text(result.message, style: type.body1Strong),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
                       release == null
                           ? '当前版本：${result.currentVersion}'
                           : '当前版本：${result.currentVersion} · 最新版本：${release.version}',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
+                      style: type.caption1.copyWith(
+                        color: colors.neutralForeground2,
                       ),
                     ),
                   ],
@@ -181,7 +180,7 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
                   onPressed: release.htmlUrl.isEmpty
                       ? null
                       : () => _openExternalUrl(release.htmlUrl),
-                  icon: const Icon(Icons.open_in_new),
+                  icon: const Icon(FluentIcons.openInNewWindow),
                   label: const Text('打开 Release'),
                 ),
                 if (asset != null)
@@ -189,7 +188,7 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
                     onPressed: asset.downloadUrl.isEmpty
                         ? null
                         : () => _openExternalUrl(asset.downloadUrl),
-                    icon: const Icon(Icons.download),
+                    icon: const Icon(FluentIcons.download),
                     label: Text('下载 ${asset.displaySize}'),
                   ),
               ],
@@ -198,8 +197,8 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
               const SizedBox(height: AppSpacing.sm),
               Text(
                 '推荐资产：${asset.name}',
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+                style: type.caption1.copyWith(
+                  color: colors.neutralForeground2,
                 ),
               ),
             ],
@@ -211,9 +210,9 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
 
   IconData _resultIcon(AppUpdateStatus status) {
     return switch (status) {
-      AppUpdateStatus.available => Icons.system_update_alt,
-      AppUpdateStatus.upToDate => Icons.check_circle_outline,
-      AppUpdateStatus.unavailable => Icons.info_outline,
+      AppUpdateStatus.available => FluentIcons.download,
+      AppUpdateStatus.upToDate => FluentIcons.checkMark,
+      AppUpdateStatus.unavailable => FluentIcons.info,
     };
   }
 

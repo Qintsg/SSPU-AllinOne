@@ -1,15 +1,14 @@
 /*
- * 应用主题 — 委托至 Fluent 2 令牌驱动主题
+ * 应用主题 — 委托至外部 fluent_ui 主题
  * @Project : SSPU-AllinOne
  * @File : app_theme.dart
  * @Author : Qintsg
  * @Date : 2026-05-18
  *
- * 历史 AppTheme 入口保留，内部统一委托给 design/fluent 的 buildFluentTheme，
- * 使全应用未封装的 Flutter 底层控件也呈现 Fluent 2 视觉。
+ * 历史 AppTheme 入口保留，内部统一委托给 design/fluent 的 buildFluentTheme。
  */
 
-import 'package:flutter/material.dart';
+import 'package:fluent_ui/fluent_ui.dart';
 
 import '../design/fluent/fluent_theme.dart';
 
@@ -20,7 +19,7 @@ class AppTheme {
   /// 全局字体族。
   static const String fontFamily = kFluentFontFamily;
 
-  /// 构建指定亮度的 Fluent 2 主题。
-  static ThemeData build(Brightness brightness) =>
+  /// 构建指定亮度的外部 Fluent 主题。
+  static FluentThemeData build(Brightness brightness) =>
       buildFluentTheme(brightness);
 }

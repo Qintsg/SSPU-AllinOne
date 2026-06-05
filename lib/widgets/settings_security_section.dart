@@ -6,6 +6,8 @@
  * @Date : 2026-04-23
  */
 
+import 'dart:async';
+
 import '../design/fluent_ui.dart';
 
 import '../models/academic_credentials.dart';
@@ -149,6 +151,7 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
         _credentialsStatus = status;
         _isSavingCredentials = false;
       });
+      unawaited(_prewarmAcademicLoginSession(status));
       _showCredentialInfoBar('教务凭据已保存', FluentInfoSeverity.success);
     } catch (_) {
       if (!mounted) return;
@@ -191,12 +194,27 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
     });
 
     final result = await _academicLoginValidationService
-        .validateSavedCredentials();
+        .validateSavedCredentials(requireCampusNetwork: false);
     if (!mounted) return;
     setState(() {
       _loginValidationResult = result;
       _isValidatingAcademicLogin = false;
     });
+  }
+
+  /// 保存凭据后静默准备 OA 会话，避免用户必须手动点击“验证 OA 登录”。
+  Future<void> _prewarmAcademicLoginSession(
+    AcademicCredentialsStatus status,
+  ) async {
+    if (status.oaAccount.trim().isEmpty || !status.hasOaPassword) return;
+    try {
+      await _academicLoginValidationService.ensureSavedSession(
+        forceRefresh: true,
+        requireCampusNetwork: false,
+      );
+    } catch (_) {
+      // 静默预热失败不打断保存流程；用户仍可手动验证查看具体原因。
+    }
   }
 
   /// 空输入表示不修改当前密码。

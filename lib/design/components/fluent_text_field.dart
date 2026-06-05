@@ -1,22 +1,18 @@
 /*
- * Fluent 2 输入框 — 描边 / 聚焦强调线 / 错误态全走令牌
+ * Fluent 输入框兼容层 — 包装外部 fluent_ui TextBox / InfoLabel
  * @Project : SSPU-AllinOne
  * @File : fluent_text_field.dart
  * @Author : Qintsg
  * @Date : 2026-05-18
- *
- * 令牌映射见 DESIGN.md §6.2：高度 32；圆角 radiusMedium；内边距 spacingM；
- * 默认描边 neutralStroke1 1px，聚焦底部强调线 brandStroke1 2px；
- * 错误态描边与辅助文字 statusDangerForeground。
  */
 
-import 'package:flutter/material.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:flutter/services.dart';
 
 import '../fluent/fluent_context_ext.dart';
 
-/// Fluent 2 输入框。
-class FluentTextField extends StatelessWidget {
+/// Fluent 输入框。
+class FluentTextField extends StatefulWidget {
   const FluentTextField({
     super.key,
     this.controller,
@@ -48,7 +44,7 @@ class FluentTextField extends StatelessWidget {
   /// 无控制器时的初始值。
   final String? initialValue;
 
-  /// 顶部标签（caption1Strong）。
+  /// 顶部标签。
   final String? label;
 
   /// 占位文本。
@@ -106,111 +102,92 @@ class FluentTextField extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
 
   @override
+  State<FluentTextField> createState() => _FluentTextFieldState();
+}
+
+class _FluentTextFieldState extends State<FluentTextField> {
+  TextEditingController? _localController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.controller == null && widget.initialValue != null) {
+      _localController = TextEditingController(text: widget.initialValue);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant FluentTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller == null && _localController == null && widget.initialValue != null) {
+      _localController = TextEditingController(text: widget.initialValue);
+    }
+  }
+
+  @override
+  void dispose() {
+    _localController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.fluentColors;
-    final radii = context.fluentRadii;
     final spacing = context.fluentSpacing;
-    final stroke = context.fluentStroke;
     final type = context.fluentType;
-    final bool hasError = errorText != null && errorText!.isNotEmpty;
+    final hasError = widget.errorText != null && widget.errorText!.isNotEmpty;
+
+    Widget field = TextBox(
+      controller: widget.controller ?? _localController,
+      focusNode: widget.focusNode,
+      placeholder: widget.placeholder,
+      prefix: widget.prefixIcon == null
+          ? null
+          : Padding(
+              padding: EdgeInsetsDirectional.only(start: spacing.s),
+              child: Icon(
+                widget.prefixIcon,
+                size: 18,
+                color: colors.neutralForeground3,
+              ),
+            ),
+      suffix: widget.suffix,
+      keyboardType: widget.keyboardType,
+      autofocus: widget.autofocus,
+      enabled: widget.enabled,
+      obscureText: widget.obscureText,
+      maxLines: widget.expands ? null : (widget.obscureText ? 1 : widget.maxLines),
+      expands: widget.expands,
+      textAlignVertical: widget.textAlignVertical,
+      inputFormatters: widget.inputFormatters,
+      textInputAction: widget.textInputAction,
+      onChanged: widget.onChanged,
+      onSubmitted: widget.onSubmitted,
+      style: widget.style ?? type.body1,
+      highlightColor: hasError ? colors.statusDangerForeground : null,
+      unfocusedColor: hasError ? colors.statusDangerForeground : null,
+    );
+
+    if (widget.label != null) {
+      field = InfoLabel(label: widget.label!, child: field);
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (label != null) ...[
-          Text(
-            label!,
-            style: type.caption1Strong.copyWith(
-              color: colors.neutralForeground1,
-            ),
-          ),
-          SizedBox(height: spacing.xs),
-        ],
-        TextFormField(
-          controller: controller,
-          initialValue: controller == null ? initialValue : null,
-          focusNode: focusNode,
-          autofocus: autofocus,
-          enabled: enabled,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          maxLines: expands ? null : (obscureText ? 1 : maxLines),
-          expands: expands,
-          textAlignVertical: textAlignVertical,
-          inputFormatters: inputFormatters,
-          textInputAction: textInputAction,
-          onChanged: onChanged,
-          onFieldSubmitted: onSubmitted,
-          style:
-              style ?? type.body1.copyWith(color: colors.neutralForeground1),
-          cursorColor: colors.brandStroke1,
-          decoration: InputDecoration(
-            isDense: true,
-            filled: true,
-            fillColor: enabled
-                ? colors.neutralBackground1
-                : colors.neutralBackground3,
-            hintText: placeholder,
-            hintStyle: type.body1.copyWith(
-              color: colors.neutralForeground3,
-            ),
-            prefixIcon: prefixIcon == null
-                ? null
-                : Icon(
-                    prefixIcon,
-                    size: 18,
-                    color: colors.neutralForeground3,
-                  ),
-            suffixIcon: suffix,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: spacing.m,
-              vertical: spacing.s,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: radii.mediumBorder,
-              borderSide: BorderSide(
-                color: hasError
-                    ? colors.statusDangerForeground
-                    : enabled
-                    ? colors.neutralStroke1
-                    : colors.neutralStroke2,
-                width: stroke.thin,
-              ),
-            ),
-            disabledBorder: OutlineInputBorder(
-              borderRadius: radii.mediumBorder,
-              borderSide: BorderSide(
-                color: colors.neutralStroke2,
-                width: stroke.thin,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: radii.mediumBorder,
-              borderSide: BorderSide(
-                color: hasError
-                    ? colors.statusDangerForeground
-                    : colors.brandStroke1,
-                width: stroke.thick,
-              ),
-            ),
-          ),
-        ),
+        field,
         if (hasError) ...[
           SizedBox(height: spacing.xs),
           Text(
-            errorText!,
-            style: type.caption1.copyWith(
-              color: colors.statusDangerForeground,
-            ),
+            widget.errorText!,
+            style: type.caption1.copyWith(color: colors.statusDangerForeground),
           ),
-        ] else if (helperText != null) ...[
+        ] else if (widget.helperText != null) ...[
           SizedBox(height: spacing.xs),
           Text(
-            helperText!,
-            style: type.caption1.copyWith(
-              color: colors.neutralForeground3,
-            ),
+            widget.helperText!,
+            style: type.caption1.copyWith(color: colors.neutralForeground3),
           ),
         ],
       ],

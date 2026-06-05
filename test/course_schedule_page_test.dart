@@ -24,17 +24,33 @@ Future<void> disposeCourseSchedulePage(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 120));
 }
 
+Future<void> pumpCourseSchedulePage(
+  WidgetTester tester, {
+  required AcademicEamsClient academicEamsService,
+  AcademicEamsQueryResult? initialResult,
+  bool autoRefreshEnabledOverride = false,
+  int autoRefreshIntervalOverride = 30,
+}) async {
+  await tester.pumpWidget(
+    FluentApp(
+      home: CourseSchedulePage(
+        academicEamsService: academicEamsService,
+        initialResult: initialResult,
+        autoRefreshEnabledOverride: autoRefreshEnabledOverride,
+        autoRefreshIntervalOverride: autoRefreshIntervalOverride,
+      ),
+    ),
+  );
+}
+
 void main() {
   testWidgets('课程表页面自动刷新开启时会主动读取课表', (tester) async {
     final service = _FakeAcademicEamsClient(result: _successResult);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: CourseSchedulePage(
-          academicEamsService: service,
-          autoRefreshEnabledOverride: true,
-          autoRefreshIntervalOverride: 1,
-        ),
-      ),
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      autoRefreshEnabledOverride: true,
+      autoRefreshIntervalOverride: 1,
     );
 
     await pumpUntilFound(tester, find.text('高等数学'));
@@ -54,15 +70,10 @@ void main() {
   });
 
   testWidgets('课程表页面展示缺少 OA 密码提示', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: CourseSchedulePage(
-          academicEamsService: _FakeAcademicEamsClient(
-            result: _missingPassword,
-          ),
-          autoRefreshEnabledOverride: false,
-        ),
-      ),
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _missingPassword),
+      autoRefreshEnabledOverride: false,
     );
 
     await tester.tap(find.byKey(const Key('course-schedule-refresh')));
@@ -78,14 +89,11 @@ void main() {
       result: _missingPassword,
       cachedResult: _successResult,
     );
-    await tester.pumpWidget(
-      MaterialApp(
-        home: CourseSchedulePage(
-          academicEamsService: service,
-          initialResult: _missingPassword,
-          autoRefreshEnabledOverride: false,
-        ),
-      ),
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      initialResult: _missingPassword,
+      autoRefreshEnabledOverride: false,
     );
 
     await pumpUntilFound(tester, find.text('高等数学'));
@@ -98,7 +106,7 @@ void main() {
 
   testWidgets('课程表页面作为二级页面打开时显示返回按钮', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
+      FluentApp(
         home: Navigator(
           onGenerateRoute: (_) =>
               FluentPageRoute(builder: (_) => const SizedBox.shrink()),
@@ -141,13 +149,17 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   }
 
   @override
-  Future<AcademicEamsQueryResult> fetchCourseTable() async {
+  Future<AcademicEamsQueryResult> fetchCourseTable({
+    bool requireCampusNetwork = true,
+  }) async {
     courseTableFetchCount++;
     return result;
   }
 
   @override
-  Future<AcademicEamsQueryResult> fetchOverview() async {
+  Future<AcademicEamsQueryResult> fetchOverview({
+    bool requireCampusNetwork = true,
+  }) async {
     return result;
   }
 }

@@ -116,7 +116,7 @@ class AboutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final typography = FluentTheme.of(context).typography;
 
     return FluentPage.scrollable(
       header: const FluentPageHeader(title: Text('关于')),
@@ -146,7 +146,7 @@ class AboutPage extends StatelessWidget {
                 const SizedBox(height: AppSpacing.lg),
                 Semantics(
                   header: true,
-                  child: Text('使用/参考的开源项目', style: textTheme.titleMedium),
+                  child: Text('使用/参考的开源项目', style: typography.subtitle),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 _buildOpenSourceCard(context)
@@ -166,8 +166,9 @@ class AboutPage extends StatelessWidget {
 
   /// 构建应用信息卡片。
   Widget _buildAppInfoCard(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final theme = FluentTheme.of(context);
+    final typography = theme.typography;
+    final resources = theme.resources;
 
     return FluentCard(
       padding: EdgeInsets.zero,
@@ -178,7 +179,7 @@ class AboutPage extends StatelessWidget {
           children: [
             DecoratedBox(
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest,
+                color: resources.controlFillColorSecondary,
                 borderRadius: AppShapes.lg,
               ),
               child: Padding(
@@ -201,13 +202,16 @@ class AboutPage extends StatelessWidget {
                     children: [
                       Semantics(
                         header: true,
-                        child: Text('SSPU-AllinOne', style: textTheme.titleLarge),
+                        child: Text(
+                          'SSPU-AllinOne',
+                          style: typography.titleLarge,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
                         versionText,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                        style: typography.caption?.copyWith(
+                          color: resources.textFillColorSecondary,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
@@ -233,25 +237,25 @@ class AboutPage extends StatelessWidget {
         children: [
           _buildActionTile(
             context,
-            icon: Icons.code,
+            icon: FluentIcons.code,
             title: 'GitHub 仓库',
             subtitle: 'Qintsg/SSPU-AllinOne',
             onTap: () => _openUrl('https://github.com/Qintsg/SSPU-AllinOne'),
           ),
-          const Divider(height: 1),
+          const Divider(),
           _buildActionTile(
             context,
-            icon: Icons.description_outlined,
+            icon: FluentIcons.documentText,
             title: '使用协议',
             subtitle: '查看完整使用协议条款',
             onTap: () => Navigator.of(context).push(
               FluentPageRoute(builder: (_) => const AgreementPage()),
             ),
           ),
-          const Divider(height: 1),
+          const Divider(),
           _buildActionTile(
             context,
-            icon: Icons.shield_outlined,
+            icon: FluentIcons.shield,
             title: '隐私协议',
             subtitle: '查看本地数据、凭据和网络访问说明',
             onTap: () => Navigator.of(context).push(
@@ -275,12 +279,12 @@ class AboutPage extends StatelessWidget {
             children: [
               _buildActionTile(
                 context,
-                icon: Icons.integration_instructions_outlined,
+                icon: FluentIcons.openSource,
                 title: project.name,
                 subtitle: '${project.description} · ${project.license}',
                 onTap: () => _openUrl(project.url),
               ),
-              if (!isLast) const Divider(height: 1),
+              if (!isLast) const Divider(),
             ],
           );
         }).toList(),
@@ -290,11 +294,11 @@ class AboutPage extends StatelessWidget {
 
   /// 构建信息行。
   Widget _buildInfoRow(BuildContext context, String label, String value) {
-    final textTheme = Theme.of(context).textTheme;
+    final typography = FluentTheme.of(context).typography;
     return Row(
       children: [
-        Text('$label：', style: textTheme.bodyMedium),
-        Flexible(child: Text(value, style: textTheme.titleSmall)),
+        Text('$label：', style: typography.body),
+        Flexible(child: Text(value, style: typography.bodyStrong)),
       ],
     );
   }
@@ -307,8 +311,10 @@ class AboutPage extends StatelessWidget {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final theme = FluentTheme.of(context);
+    final typography = theme.typography;
+    final resources = theme.resources;
+    final accent = theme.accentColor.defaultBrushFor(theme.brightness);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -320,25 +326,25 @@ class AboutPage extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, color: colorScheme.primary),
+            Icon(icon, color: accent),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: textTheme.titleSmall),
+                  Text(title, style: typography.bodyStrong),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     subtitle,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                    style: typography.caption?.copyWith(
+                      color: resources.textFillColorSecondary,
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
+            Icon(FluentIcons.chevronRight, color: resources.textFillColorSecondary),
           ],
         ),
       ),

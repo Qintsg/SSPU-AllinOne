@@ -180,7 +180,9 @@ class _AcademicPageState extends State<AcademicPage> {
     if (_isLoadingAcademicEams) return;
     if (!silent) setState(() => _isLoadingAcademicEams = true);
 
-    final result = await _academicEamsService.fetchOverview();
+    final result = await _academicEamsService.fetchOverview(
+      requireCampusNetwork: silent,
+    );
     if (!mounted) return;
     if (silent && !result.isSuccess) return;
     setState(() {
@@ -241,7 +243,9 @@ class _AcademicPageState extends State<AcademicPage> {
     if (_isLoadingSportsAttendance) return;
     if (!silent) setState(() => _isLoadingSportsAttendance = true);
 
-    final result = await _sportsAttendanceService.fetchAttendanceSummary();
+    final result = await _sportsAttendanceService.fetchAttendanceSummary(
+      requireCampusNetwork: silent,
+    );
     if (!mounted) return;
     if (silent && !result.isSuccess) return;
     setState(() {
@@ -302,7 +306,9 @@ class _AcademicPageState extends State<AcademicPage> {
     if (_isLoadingStudentReport) return;
     if (!silent) setState(() => _isLoadingStudentReport = true);
 
-    final result = await _studentReportService.fetchSecondClassroomCredits();
+    final result = await _studentReportService.fetchSecondClassroomCredits(
+      requireCampusNetwork: silent,
+    );
     if (!mounted) return;
     if (silent && !result.isSuccess) return;
     setState(() {

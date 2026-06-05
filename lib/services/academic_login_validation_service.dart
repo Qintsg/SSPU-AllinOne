@@ -114,6 +114,7 @@ class AcademicLoginValidationService {
   /// 确保本地已有可复用 OA 登录会话；缺失或强制刷新时自动执行 OA/CAS 登录。
   Future<AcademicLoginValidationResult> ensureSavedSession({
     bool forceRefresh = false,
+    bool requireCampusNetwork = true,
   }) async {
     final accountKey = (await _credentialsService.getStatus()).oaAccount
         .trim()
@@ -121,7 +122,12 @@ class AcademicLoginValidationService {
     final oaPassword = await _credentialsService.readSecret(
       AcademicCredentialSecret.oaPassword,
     );
-    final credentialMarker = Object.hash(accountKey, oaPassword ?? '', forceRefresh);
+    final credentialMarker = Object.hash(
+      accountKey,
+      oaPassword ?? '',
+      forceRefresh,
+      requireCampusNetwork,
+    );
     while (true) {
       final activeFuture = _ensureSessionFuture;
       if (activeFuture == null) break;
@@ -137,6 +143,7 @@ class AcademicLoginValidationService {
     }
     final future = _ensureSavedSession(
       forceRefresh: forceRefresh,
+      requireCampusNetwork: requireCampusNetwork,
       accountKey: accountKey,
     );
     _ensureSessionFuture = future;
@@ -152,7 +159,9 @@ class AcademicLoginValidationService {
   }
 
   /// 使用本地已保存 OA 账号密码执行只读登录校验。
-  Future<AcademicLoginValidationResult> validateSavedCredentials() async {
+  Future<AcademicLoginValidationResult> validateSavedCredentials({
+    bool requireCampusNetwork = true,
+  }) async {
     CampusNetworkStatus? campusStatus;
     try {
       final credentialsStatus = await _credentialsService.getStatus();
@@ -176,8 +185,10 @@ class AcademicLoginValidationService {
         );
       }
 
-      campusStatus = await _campusNetworkStatusService.checkStatus();
-      if (!campusStatus.canAccessRestrictedServices) {
+      if (requireCampusNetwork) {
+        campusStatus = await _campusNetworkStatusService.checkStatus();
+      }
+      if (campusStatus != null && !campusStatus.canAccessRestrictedServices) {
         return _buildResult(
           AcademicLoginValidationStatus.campusNetworkUnavailable,
           message: '校园网 / VPN 不可用，无法验证 OA 登录',
@@ -263,9 +274,14 @@ class AcademicLoginValidationService {
 
   Future<AcademicLoginValidationResult> _ensureSavedSession({
     required bool forceRefresh,
+    required bool requireCampusNetwork,
     required String accountKey,
   }) async {
-    if (accountKey.isEmpty) return validateSavedCredentials();
+    if (accountKey.isEmpty) {
+      return validateSavedCredentials(
+        requireCampusNetwork: requireCampusNetwork,
+      );
+    }
     if (!forceRefresh) {
       final sessionSnapshot = await _credentialsService.readOaLoginSession();
       if (sessionSnapshot != null &&
@@ -280,13 +296,13 @@ class AcademicLoginValidationService {
         );
       }
     }
-    return validateSavedCredentials();
+    return validateSavedCredentials(requireCampusNetwork: requireCampusNetwork);
   }
 
   Future<AcademicLoginValidationResult> _validateCredentials({
     required String oaAccount,
     required String oaPassword,
-    required CampusNetworkStatus campusNetworkStatus,
+    required CampusNetworkStatus? campusNetworkStatus,
   }) async {
     await _gateway.resetSession();
     final loginPage = await _gateway.openLoginPage(entranceUri, timeout);
@@ -331,7 +347,7 @@ class AcademicLoginValidationService {
 
   AcademicLoginValidationResult _classifySubmitSnapshot(
     AcademicLoginHttpSnapshot snapshot, {
-    required CampusNetworkStatus campusNetworkStatus,
+    required CampusNetworkStatus? campusNetworkStatus,
   }) {
     if (_hasReachedOa(snapshot)) {
       return _buildSuccessResult(
@@ -446,7 +462,7 @@ class AcademicLoginValidationService {
     required String message,
     required String detail,
     required Uri successUri,
-    required CampusNetworkStatus campusNetworkStatus,
+    required CampusNetworkStatus? campusNetworkStatus,
   }) {
     final sessionSnapshot = _gateway.currentSessionSnapshot(
       entranceUri: entranceUri,

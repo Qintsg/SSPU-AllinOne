@@ -1,18 +1,14 @@
 /*
- * Fluent 2 对话框 — radiusXLarge + shadow28，令牌驱动
+ * Fluent 对话框兼容层 — 包装外部 fluent_ui ContentDialog
  * @Project : SSPU-AllinOne
  * @File : fluent_dialog.dart
  * @Author : Qintsg
  * @Date : 2026-05-18
- *
- * DESIGN.md §6.4：FluentDialog（radiusXLarge + shadow28）。
  */
 
-import 'package:flutter/material.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 
-import '../fluent/fluent_context_ext.dart';
-
-/// Fluent 2 对话框容器。
+/// Fluent 对话框容器。
 class FluentDialog extends StatelessWidget {
   const FluentDialog({
     super.key,
@@ -36,64 +32,12 @@ class FluentDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final radii = context.fluentRadii;
-    final spacing = context.fluentSpacing;
-    final elevation = context.fluentElevation;
-    final type = context.fluentType;
-
-    return Center(
-      child: Material(
-        color: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: constraints,
-          child: Container(
-            margin: EdgeInsets.all(spacing.xxl),
-            decoration: BoxDecoration(
-              color: colors.neutralBackground1,
-              borderRadius: radii.xLargeBorder,
-              boxShadow: elevation.shadow28,
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(spacing.xxl),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (title != null) ...[
-                    DefaultTextStyle.merge(
-                      style: type.subtitle1.copyWith(
-                        color: colors.neutralForeground1,
-                      ),
-                      child: title!,
-                    ),
-                    SizedBox(height: spacing.m),
-                  ],
-                  Flexible(
-                    child: DefaultTextStyle.merge(
-                      style: type.body1.copyWith(
-                        color: colors.neutralForeground2,
-                      ),
-                      child: SingleChildScrollView(child: content),
-                    ),
-                  ),
-                  if (actions != null && actions!.isNotEmpty) ...[
-                    SizedBox(height: spacing.xxl),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        for (int i = 0; i < actions!.length; i++) ...[
-                          if (i > 0) SizedBox(width: spacing.s),
-                          actions![i],
-                        ],
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
+    return ConstrainedBox(
+      constraints: constraints,
+      child: ContentDialog(
+        title: title,
+        content: SingleChildScrollView(child: content),
+        actions: actions,
       ),
     );
   }
@@ -108,7 +52,6 @@ Future<T?> showFluentDialog<T>({
   return showDialog<T>(
     context: context,
     barrierDismissible: barrierDismissible,
-    barrierColor: const Color(0x99000000),
     builder: builder,
   );
 }

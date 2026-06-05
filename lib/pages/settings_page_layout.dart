@@ -29,7 +29,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
         ),
         const Padding(
           padding: EdgeInsets.symmetric(vertical: FluentSpacing.s),
-          child: VerticalDivider(width: 1),
+          child: Divider(direction: Axis.vertical),
         ),
         Expanded(
           child: _buildScrollableContent(

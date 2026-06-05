@@ -1,16 +1,17 @@
 /*
- * Fluent 2 页面容器 — 页面标题、内容安全区与滚动布局
+ * Fluent 页面兼容层 — 包装外部 fluent_ui ScaffoldPage / PageHeader
  * @Project : SSPU-AllinOne
  * @File : fluent_page.dart
  * @Author : Qintsg
  * @Date : 2026-05-30
  */
 
-import 'package:flutter/material.dart';
+import 'package:fluent_ui/fluent_ui.dart' as fluent hide FluentIcons;
+import 'package:flutter/widgets.dart';
 
 import '../fluent/fluent_context_ext.dart';
 
-/// Fluent 2 页面标题。
+/// Fluent 页面标题。
 class FluentPageHeader extends StatelessWidget {
   const FluentPageHeader({
     super.key,
@@ -30,28 +31,15 @@ class FluentPageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final spacing = context.fluentSpacing;
-    final type = context.fluentType;
-    final colors = context.fluentColors;
-    final children = <Widget>[
-      if (leading != null) ...[leading!, SizedBox(width: spacing.s)],
-      Expanded(
-        child: DefaultTextStyle.merge(
-          style: type.title3.copyWith(color: colors.neutralForeground1),
-          child: title,
-        ),
-      ),
-      if (commandBar != null) ...[SizedBox(width: spacing.s), commandBar!],
-    ];
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: spacing.xxl, vertical: spacing.m),
-      child: Row(children: children),
+    return fluent.PageHeader(
+      leading: leading,
+      title: title,
+      commandBar: commandBar,
     );
   }
 }
 
-/// Fluent 2 页面容器。
+/// Fluent 页面容器。
 class FluentPage extends StatelessWidget {
   const FluentPage({super.key, this.header, this.content})
     : children = null,
@@ -94,19 +82,14 @@ class FluentPage extends StatelessWidget {
           )
         : content ?? const SizedBox.shrink();
 
-    return Scaffold(
-      appBar: header == null
-          ? null
-          : PreferredSize(
-              preferredSize: const Size.fromHeight(72),
-              child: SafeArea(bottom: false, child: header!),
-            ),
-      body: SafeArea(child: body),
+    return fluent.ScaffoldPage(
+      header: header,
+      content: SafeArea(child: body),
     );
   }
 }
 
-/// Fluent 2 页面路由。
-class FluentPageRoute<T> extends MaterialPageRoute<T> {
+/// Fluent 页面路由。
+class FluentPageRoute<T> extends fluent.FluentPageRoute<T> {
   FluentPageRoute({required super.builder});
 }

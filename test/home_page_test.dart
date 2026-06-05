@@ -30,6 +30,27 @@ Future<void> disposeHomePage(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 120));
 }
 
+Future<void> pumpHomePage(
+  WidgetTester tester, {
+  CampusCardBalanceClient? campusCardService,
+  required CampusNetworkStatusService campusNetworkStatusService,
+  required bool campusCardAutoRefreshEnabledOverride,
+  int campusCardAutoRefreshIntervalOverride = 30,
+}) async {
+  await tester.pumpWidget(
+    FluentApp(
+      home: HomePage(
+        campusCardService: campusCardService,
+        campusNetworkStatusService: campusNetworkStatusService,
+        campusCardAutoRefreshEnabledOverride:
+            campusCardAutoRefreshEnabledOverride,
+        campusCardAutoRefreshIntervalOverride:
+            campusCardAutoRefreshIntervalOverride,
+      ),
+    ),
+  );
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -44,15 +65,11 @@ void main() {
   testWidgets('首页校园卡卡片可手动刷新并进入详情页', (tester) async {
     final service = _FakeCampusCardClient(result: _successResult);
     final campusNetworkStatusService = _buildCampusNetworkStatusService();
-    await tester.pumpWidget(
-      MaterialApp(
-        home: HomePage(
-          campusCardService: service,
-          campusNetworkStatusService: campusNetworkStatusService,
-          campusCardAutoRefreshEnabledOverride: false,
-          campusCardAutoRefreshIntervalOverride: 30,
-        ),
-      ),
+    await pumpHomePage(
+      tester,
+      campusCardService: service,
+      campusNetworkStatusService: campusNetworkStatusService,
+      campusCardAutoRefreshEnabledOverride: false,
     );
 
     expect(find.text('校园卡余额'), findsOneWidget);
@@ -62,6 +79,7 @@ void main() {
     await pumpUntilFound(tester, find.text('¥23.45'));
 
     expect(service.fetchCount, 1);
+    expect(service.requireCampusNetworkValues, [false]);
     expect(find.text('账户余额'), findsOneWidget);
     expect(find.text('卡状态：冻结'), findsOneWidget);
     expect(find.textContaining('2026-04-29'), findsOneWidget);
@@ -79,20 +97,17 @@ void main() {
   testWidgets('校园卡自动刷新开启时会主动读取余额', (tester) async {
     final service = _FakeCampusCardClient(result: _successResult);
     final campusNetworkStatusService = _buildCampusNetworkStatusService();
-    await tester.pumpWidget(
-      MaterialApp(
-        home: HomePage(
-          campusCardService: service,
-          campusNetworkStatusService: campusNetworkStatusService,
-          campusCardAutoRefreshEnabledOverride: true,
-          campusCardAutoRefreshIntervalOverride: 30,
-        ),
-      ),
+    await pumpHomePage(
+      tester,
+      campusCardService: service,
+      campusNetworkStatusService: campusNetworkStatusService,
+      campusCardAutoRefreshEnabledOverride: true,
     );
 
     await pumpUntilFound(tester, find.text('¥23.45'));
 
     expect(service.fetchCount, 1);
+    expect(service.requireCampusNetworkValues, [true]);
     await disposeHomePage(tester);
   });
 
@@ -102,15 +117,11 @@ void main() {
       cachedResult: _freshCachedResult,
     );
     final campusNetworkStatusService = _buildCampusNetworkStatusService();
-    await tester.pumpWidget(
-      MaterialApp(
-        home: HomePage(
-          campusCardService: service,
-          campusNetworkStatusService: campusNetworkStatusService,
-          campusCardAutoRefreshEnabledOverride: true,
-          campusCardAutoRefreshIntervalOverride: 30,
-        ),
-      ),
+    await pumpHomePage(
+      tester,
+      campusCardService: service,
+      campusNetworkStatusService: campusNetworkStatusService,
+      campusCardAutoRefreshEnabledOverride: true,
     );
 
     await pumpUntilFound(tester, find.text('¥88.88'));
@@ -127,15 +138,11 @@ void main() {
       cachedResult: _staleCachedResult,
     );
     final campusNetworkStatusService = _buildCampusNetworkStatusService();
-    await tester.pumpWidget(
-      MaterialApp(
-        home: HomePage(
-          campusCardService: service,
-          campusNetworkStatusService: campusNetworkStatusService,
-          campusCardAutoRefreshEnabledOverride: true,
-          campusCardAutoRefreshIntervalOverride: 30,
-        ),
-      ),
+    await pumpHomePage(
+      tester,
+      campusCardService: service,
+      campusNetworkStatusService: campusNetworkStatusService,
+      campusCardAutoRefreshEnabledOverride: true,
     );
 
     await pumpUntilFound(tester, find.text('¥66.66'));
@@ -150,15 +157,12 @@ void main() {
   testWidgets('首页停留期间按自动刷新间隔静默更新校园卡', (tester) async {
     final service = _FakeCampusCardClient(result: _successResult);
     final campusNetworkStatusService = _buildCampusNetworkStatusService();
-    await tester.pumpWidget(
-      MaterialApp(
-        home: HomePage(
-          campusCardService: service,
-          campusNetworkStatusService: campusNetworkStatusService,
-          campusCardAutoRefreshEnabledOverride: true,
-          campusCardAutoRefreshIntervalOverride: 1,
-        ),
-      ),
+    await pumpHomePage(
+      tester,
+      campusCardService: service,
+      campusNetworkStatusService: campusNetworkStatusService,
+      campusCardAutoRefreshEnabledOverride: true,
+      campusCardAutoRefreshIntervalOverride: 1,
     );
 
     await pumpUntilFound(tester, find.text('¥23.45'));
@@ -173,14 +177,10 @@ void main() {
 
   testWidgets('首页右上角显示小型网络状态指示', (tester) async {
     final campusNetworkStatusService = _buildCampusNetworkStatusService();
-    await tester.pumpWidget(
-      MaterialApp(
-        home: HomePage(
-          campusNetworkStatusService: campusNetworkStatusService,
-          campusCardAutoRefreshEnabledOverride: false,
-          campusCardAutoRefreshIntervalOverride: 30,
-        ),
-      ),
+    await pumpHomePage(
+      tester,
+      campusNetworkStatusService: campusNetworkStatusService,
+      campusCardAutoRefreshEnabledOverride: false,
     );
 
     await pumpUntilFound(
@@ -212,6 +212,7 @@ class _FakeCampusCardClient implements CampusCardBalanceClient {
   final CampusCardQueryResult result;
   final CampusCardQueryResult? cachedResult;
   int fetchCount = 0;
+  final List<bool> requireCampusNetworkValues = [];
 
   @override
   Future<CampusCardQueryResult?> readLatestCachedCampusCard() async {
@@ -222,8 +223,10 @@ class _FakeCampusCardClient implements CampusCardBalanceClient {
   Future<CampusCardQueryResult> fetchCampusCard({
     DateTime? startDate,
     DateTime? endDate,
+    bool requireCampusNetwork = true,
   }) async {
     fetchCount++;
+    requireCampusNetworkValues.add(requireCampusNetwork);
     return result;
   }
 }
