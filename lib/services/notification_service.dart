@@ -12,6 +12,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:local_notifier/local_notifier.dart';
 
+import 'app_display_name_service.dart';
+
 /// 系统通知服务（单例）
 /// 通过 Windows 系统通知中心发送本地通知
 /// 使用前需调用 init() 完成初始化
@@ -33,7 +35,7 @@ class NotificationService {
 
     // 设置应用名称，用于 Windows 通知中心显示
     await localNotifier.setup(
-      appName: 'SSPU-AllinOne',
+      appName: AppDisplayName.currentPlatformName,
       shortcutPolicy: ShortcutPolicy.requireCreate,
     );
 

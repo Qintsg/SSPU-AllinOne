@@ -47,7 +47,7 @@ void main() {
     await tester.tap(find.text('隐私协议').first);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('SSPU-AllinOne 隐私协议'), findsOneWidget);
+    expect(find.textContaining('工大聚合（SSPU-AllinOne）隐私协议'), findsOneWidget);
     expect(find.textContaining('清除所有本地数据'), findsOneWidget);
   });
 

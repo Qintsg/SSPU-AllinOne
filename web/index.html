@@ -30,7 +30,25 @@
   <link rel="icon" type="image/png" href="favicon.png"/>
 
   <title>SSPU-AllinOne</title>
-  <link rel="manifest" href="manifest.json">
+  <script>
+    (function () {
+      const languages = navigator.languages || [navigator.language || ''];
+      const isChinese = languages.some((language) =>
+        language.toLowerCase().startsWith('zh')
+      );
+      const appName = isChinese ? '工大聚合' : 'SSPU-AllinOne';
+      const manifestHref = isChinese ? 'manifest.zh.json' : 'manifest.json';
+      document.title = appName;
+      document
+        .querySelector('meta[name="apple-mobile-web-app-title"]')
+        ?.setAttribute('content', appName);
+
+      const manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      manifestLink.href = manifestHref;
+      document.head.appendChild(manifestLink);
+    })();
+  </script>
 </head>
 <body>
   <!--

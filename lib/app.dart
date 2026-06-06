@@ -15,6 +15,7 @@ import 'pages/home_page.dart';
 import 'pages/info_page.dart';
 import 'pages/quick_links_page.dart';
 import 'pages/settings_page.dart';
+import 'services/app_display_name_service.dart';
 import 'services/campus_network_status_service.dart';
 import 'theme/app_breakpoints.dart';
 import 'theme/app_spacing.dart';
@@ -336,7 +337,7 @@ class _FluentNavigationShell extends StatelessWidget {
             AppSpacing.lg,
             AppSpacing.md,
           ),
-          child: Text('SSPU-AllinOne', style: type.title2),
+          child: Text(AppDisplayName.of(context), style: type.title2),
         ),
         items: [
           for (final destination in destinations)

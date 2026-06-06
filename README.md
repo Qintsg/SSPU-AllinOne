@@ -1,4 +1,4 @@
-# SSPU-AllinOne
+# SSPU-AllinOne（工大聚合）
 
 > 上海第二工业大学校园综合服务应用
 
@@ -8,7 +8,9 @@
 
 ## 简介
 
-SSPU-AllinOne 是面向上海第二工业大学师生的校园综合服务应用，基于 Flutter + Fluent UI 构建，支持 Android / iOS / macOS / Linux / Windows / Web 全平台。所有数据仅保留在本地，不上传至任何云端服务。
+工大聚合（SSPU-AllinOne）是面向上海第二工业大学师生的校园综合服务应用，基于 Flutter + Fluent UI 构建，支持 Android / iOS / macOS / Linux / Windows / Web 全平台。所有数据仅保留在本地，不上传至任何云端服务。
+
+中文语言环境下，应用窗口、启动器、安装器和关于页默认显示为“工大聚合”；英文语言环境和技术标识仍使用 `SSPU-AllinOne`。包名、Bundle ID、可执行文件名、仓库名与 GitHub Release 资产命名不随显示名变化。
 
 ## 快速开始
 

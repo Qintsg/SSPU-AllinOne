@@ -10,6 +10,7 @@ import '../design/fluent_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../services/app_display_name_service.dart';
 import '../services/app_info_service.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
@@ -203,7 +204,7 @@ class AboutPage extends StatelessWidget {
                       Semantics(
                         header: true,
                         child: Text(
-                          'SSPU-AllinOne',
+                          AppDisplayName.of(context),
                           style: typography.titleLarge,
                         ),
                       ),
@@ -248,9 +249,9 @@ class AboutPage extends StatelessWidget {
             icon: FluentIcons.documentText,
             title: '使用协议',
             subtitle: '查看完整使用协议条款',
-            onTap: () => Navigator.of(context).push(
-              FluentPageRoute(builder: (_) => const AgreementPage()),
-            ),
+            onTap: () => Navigator.of(
+              context,
+            ).push(FluentPageRoute(builder: (_) => const AgreementPage())),
           ),
           const Divider(),
           _buildActionTile(
@@ -258,9 +259,9 @@ class AboutPage extends StatelessWidget {
             icon: FluentIcons.shield,
             title: '隐私协议',
             subtitle: '查看本地数据、凭据和网络访问说明',
-            onTap: () => Navigator.of(context).push(
-              FluentPageRoute(builder: (_) => const PrivacyPolicyPage()),
-            ),
+            onTap: () => Navigator.of(
+              context,
+            ).push(FluentPageRoute(builder: (_) => const PrivacyPolicyPage())),
           ),
         ],
       ),
@@ -344,7 +345,10 @@ class AboutPage extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            Icon(FluentIcons.chevronRight, color: resources.textFillColorSecondary),
+            Icon(
+              FluentIcons.chevronRight,
+              color: resources.textFillColorSecondary,
+            ),
           ],
         ),
       ),

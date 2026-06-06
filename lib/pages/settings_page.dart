@@ -13,6 +13,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/channel_config.dart';
 import '../services/academic_eams_service.dart';
+import '../services/app_display_name_service.dart';
 import '../services/app_exit_service.dart';
 import '../services/academic_credentials_service.dart';
 import '../services/campus_card_service.dart';

@@ -5,6 +5,19 @@
 #include "flutter_window.h"
 #include "utils.h"
 
+namespace {
+
+bool IsChineseUserInterfaceLanguage() {
+  return PRIMARYLANGID(::GetUserDefaultUILanguage()) == LANG_CHINESE;
+}
+
+const wchar_t* GetAppDisplayName() {
+  return IsChineseUserInterfaceLanguage() ? L"\u5de5\u5927\u805a\u5408"
+                                          : L"SSPU-AllinOne";
+}
+
+}  // namespace
+
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
   // Attach to console when present (e.g., 'flutter run') or create a
@@ -27,7 +40,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"SSPU-AllinOne", origin, size)) {
+  if (!window.Create(GetAppDisplayName(), origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

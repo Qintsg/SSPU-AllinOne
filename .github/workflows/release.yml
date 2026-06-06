@@ -446,6 +446,11 @@ jobs:
           Version=1.0
           Type=Application
           Name=SSPU-AllinOne
+          Name[zh]=工大聚合
+          Name[zh_CN]=工大聚合
+          Name[zh_SG]=工大聚合
+          Name[zh_TW]=工大聚合
+          Name[zh_HK]=工大聚合
           Comment=上海第二工业大学校园综合服务应用
           Exec=/usr/lib/sspu-allinone/sspu_allinone
           Icon=sspu-allinone
@@ -632,6 +637,11 @@ jobs:
           Version=1.0
           Type=Application
           Name=SSPU-AllinOne
+          Name[zh]=工大聚合
+          Name[zh_CN]=工大聚合
+          Name[zh_SG]=工大聚合
+          Name[zh_TW]=工大聚合
+          Name[zh_HK]=工大聚合
           Comment=上海第二工业大学校园综合服务应用
           Exec=/usr/lib/sspu-allinone/sspu_allinone
           Icon=sspu-allinone

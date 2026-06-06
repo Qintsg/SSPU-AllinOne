@@ -10,6 +10,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:tray_manager/tray_manager.dart';
 
+import 'app_display_name_service.dart';
+
 /// 构建不同平台下托盘图标候选路径（按优先级排序）。
 /// [executableDir] 当前运行可执行文件所在目录。
 /// [isWindows] 是否为 Windows 平台，用于拼接 `data/flutter_assets` 图标路径。
@@ -26,10 +28,16 @@ List<String> buildTrayIconCandidates({
   final candidates = <String>[];
 
   if (isWindows) {
-    candidates.add('$executableDir\\data\\flutter_assets\\assets\\images\\app_icon.ico');
-    candidates.add('$executableDir\\data\\flutter_assets\\assets\\images\\app_icon.png');
+    candidates.add(
+      '$executableDir\\data\\flutter_assets\\assets\\images\\app_icon.ico',
+    );
+    candidates.add(
+      '$executableDir\\data\\flutter_assets\\assets\\images\\app_icon.png',
+    );
   } else if (isLinux) {
-    candidates.add('$executableDir/data/flutter_assets/assets/images/app_icon.png');
+    candidates.add(
+      '$executableDir/data/flutter_assets/assets/images/app_icon.png',
+    );
   } else if (isMacOS) {
     candidates.add(
       '$executableDir/../Frameworks/App.framework/Resources/flutter_assets/assets/images/app_icon.png',
@@ -61,7 +69,7 @@ class TrayService {
     try {
       final iconPath = _resolveIconPath();
       await trayManager.setIcon(iconPath);
-      await trayManager.setToolTip('SSPU-AllinOne');
+      await trayManager.setToolTip(AppDisplayName.currentPlatformName);
 
       // 右键菜单：显示主窗口 / 退出
       final menu = Menu(

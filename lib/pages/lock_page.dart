@@ -11,6 +11,7 @@ import 'dart:async';
 
 import '../design/fluent_ui.dart';
 
+import '../services/app_display_name_service.dart';
 import '../services/password_service.dart';
 import '../services/system_auth_service.dart';
 import '../theme/app_motion.dart';
@@ -70,15 +71,16 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
       duration: AppMotion.long,
       vsync: this,
     );
-    _shakeAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 0, end: -10), weight: 1),
-      TweenSequenceItem(tween: Tween(begin: -10, end: 10), weight: 2),
-      TweenSequenceItem(tween: Tween(begin: 10, end: -10), weight: 2),
-      TweenSequenceItem(tween: Tween(begin: -10, end: 10), weight: 2),
-      TweenSequenceItem(tween: Tween(begin: 10, end: 0), weight: 1),
-    ]).animate(
-      CurvedAnimation(parent: _shakeController, curve: Curves.easeInOut),
-    );
+    _shakeAnimation =
+        TweenSequence<double>([
+          TweenSequenceItem(tween: Tween(begin: 0, end: -10), weight: 1),
+          TweenSequenceItem(tween: Tween(begin: -10, end: 10), weight: 2),
+          TweenSequenceItem(tween: Tween(begin: 10, end: -10), weight: 2),
+          TweenSequenceItem(tween: Tween(begin: -10, end: 10), weight: 2),
+          TweenSequenceItem(tween: Tween(begin: 10, end: 0), weight: 1),
+        ]).animate(
+          CurvedAnimation(parent: _shakeController, curve: Curves.easeInOut),
+        );
 
     _unlockController = AnimationController(
       duration: AppMotion.long,
@@ -164,7 +166,7 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
     });
 
     final result = await SystemAuthService.instance.authenticate(
-      localizedReason: '验证身份以解锁 SSPU-AllinOne',
+      localizedReason: '验证身份以解锁 ${AppDisplayName.of(context)}',
     );
 
     if (!mounted || _hasCompletedUnlock) return;
@@ -219,12 +221,16 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset('assets/images/logo.png', width: 80, height: 80),
+                    Image.asset(
+                      'assets/images/logo.png',
+                      width: 80,
+                      height: 80,
+                    ),
                     const SizedBox(height: AppSpacing.lg),
                     Semantics(
                       header: true,
                       child: Text(
-                        'SSPU-AllinOne',
+                        AppDisplayName.of(context),
                         style: theme.typography.titleLarge,
                       ),
                     ),

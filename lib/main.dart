@@ -16,6 +16,7 @@ import 'pages/lock_page.dart';
 import 'pages/agreement_page.dart';
 import 'pages/privacy_policy_page.dart';
 import 'services/app_exit_service.dart';
+import 'services/app_display_name_service.dart';
 import 'services/password_service.dart';
 import 'services/campus_network_status_service.dart';
 import 'services/storage_service.dart';
@@ -46,6 +47,7 @@ void main() async {
       windowButtonVisibility: false,
     );
     await windowManager.setPreventClose(true);
+    await windowManager.setTitle(AppDisplayName.currentPlatformName);
     await TrayService.instance.init();
   }
 
@@ -358,7 +360,8 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   Widget build(BuildContext context) {
     return FluentApp(
       navigatorKey: _navigatorKey,
-      title: 'SSPU-AllinOne',
+      title: AppDisplayName.english,
+      onGenerateTitle: AppDisplayName.of,
       theme: AppTheme.build(Brightness.light),
       darkTheme: AppTheme.build(Brightness.dark),
       themeMode: ThemeMode.system,
