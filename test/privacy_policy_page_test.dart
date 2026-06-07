@@ -173,4 +173,37 @@ void main() {
     expect(find.text('同意全部协议并继续'), findsOneWidget);
     expect(find.text('不同意并退出'), findsOneWidget);
   });
+
+  testWidgets('协议正文加载失败时不能同意协议', (tester) async {
+    var accepted = false;
+    var declined = false;
+
+    await tester.pumpWidget(
+      zhFluentApp(
+        home: LegalConsentDialog(
+          onAccept: () => accepted = true,
+          onDecline: () => declined = true,
+          loadLegalNotice: (_) => Future<String>.error(StateError('missing')),
+        ),
+      ),
+    );
+    await pumpPageAnimations(tester);
+
+    expect(find.text('无法加载协议正文'), findsOneWidget);
+    expect(find.text('协议正文加载完成后才可继续。'), findsOneWidget);
+
+    final acceptButton = tester.widget<FluentButton>(
+      find.byKey(const Key('legal-consent-accept')),
+    );
+    expect(acceptButton.onPressed, isNull);
+
+    await tester.tap(
+      find.byKey(const Key('legal-consent-accept')),
+      warnIfMissed: false,
+    );
+    await tester.pump();
+
+    expect(accepted, isFalse);
+    expect(declined, isFalse);
+  });
 }

@@ -80,7 +80,6 @@ documentation:
       - any-glob-to-any-file:
           - 'docs/**'
           - 'README.md'
-          - 'CLAUDE.md'
 
 dependencies:
   - changed-files:

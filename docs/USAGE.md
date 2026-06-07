@@ -412,7 +412,6 @@ SSPU-AllinOne/
 │   ├── workflows/                 # CI 与 Release 工作流
 │   ├── ISSUE_TEMPLATE/            # Issue 模板
 │   └── PULL_REQUEST_TEMPLATE/     # PR 模板
-├── CLAUDE.md                      # 仓库级代理与工作流规范
 ├── LICENSE                      # Artistic License 2.0 许可证
 ├── pubspec.yaml                 # 项目配置与依赖
 ├── pubspec.lock                 # 依赖锁定文件
