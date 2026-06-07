@@ -11,8 +11,8 @@ import '../design/fluent_ui.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../theme/app_spacing.dart';
 import '../widgets/empty_state_view.dart';
+import '../widgets/webview_compact_toolbar.dart';
 
 /// 内嵌 WebView 页面。
 /// 在应用内打开网页链接，提供导航栏（返回/前进/刷新/外部浏览器）。
@@ -47,9 +47,6 @@ class _WebViewPageState extends State<WebViewPage> {
   /// 当前加载的 URL。
   String _currentUrl = '';
 
-  /// 是否可后退。
-  bool _canGoBack = false;
-
   /// 是否可前进。
   bool _canGoForward = false;
 
@@ -79,13 +76,9 @@ class _WebViewPageState extends State<WebViewPage> {
   /// 更新导航按钮状态（前进/后退可用性）。
   Future<void> _updateNavigationState() async {
     if (_controller == null) return;
-    final canBack = await _controller!.canGoBack();
     final canForward = await _controller!.canGoForward();
     if (mounted) {
-      setState(() {
-        _canGoBack = canBack;
-        _canGoForward = canForward;
-      });
+      setState(() => _canGoForward = canForward);
     }
   }
 
@@ -97,6 +90,18 @@ class _WebViewPageState extends State<WebViewPage> {
         (uri.scheme == 'http' || uri.scheme == 'https')) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
+  }
+
+  /// WebView 返回按钮行为：有网页历史时后退网页，否则退出当前路由。
+  Future<void> _handleBackOrClose() async {
+    final controller = _controller;
+    if (controller != null && await controller.canGoBack()) {
+      await controller.goBack();
+      await _updateNavigationState();
+      return;
+    }
+    if (!mounted) return;
+    await Navigator.of(context).maybePop();
   }
 
   @override
@@ -134,89 +139,95 @@ class _WebViewPageState extends State<WebViewPage> {
     }
 
     return FluentPage(
-      header: FluentPageHeader(
-        title: Text(_title, overflow: TextOverflow.ellipsis, maxLines: 1),
-        commandBar: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            FluentIconButton(
-              tooltip: '后退',
-              icon: const Icon(FluentIcons.back),
-              onPressed: _canGoBack ? () => _controller?.goBack() : null,
-            ),
-            FluentIconButton(
-              tooltip: '前进',
-              icon: const Icon(FluentIcons.forward),
-              onPressed: _canGoForward ? () => _controller?.goForward() : null,
-            ),
-            FluentIconButton(
-              tooltip: '刷新',
-              icon: const Icon(FluentIcons.refresh),
-              onPressed: _isReady ? () => _controller?.reload() : null,
-            ),
-            FluentIconButton(
-              tooltip: '在浏览器中打开',
-              icon: const Icon(FluentIcons.openInNewWindow),
-              onPressed: _fallbackToExternalBrowser,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-          ],
-        ),
-      ),
-      content: Stack(
+      content: Column(
         children: [
-          InAppWebView(
-            webViewEnvironment: widget.webViewEnvironment,
-            initialUrlRequest: URLRequest(url: WebUri(widget.url)),
-            initialSettings: InAppWebViewSettings(
-              javaScriptEnabled: true,
-              isInspectable: kDebugMode,
-              userAgent:
-                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-                  '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            ),
-            onWebViewCreated: (controller) {
-              _controller = controller;
-              if (mounted) {
-                setState(() => _isReady = true);
-              }
-            },
-            onTitleChanged: (controller, title) {
-              if (mounted && title != null && title.isNotEmpty) {
-                setState(() => _title = title);
-              }
-            },
-            onUpdateVisitedHistory: (controller, url, isReload) {
-              if (url != null && mounted) {
-                setState(() => _currentUrl = url.toString());
-                _updateNavigationState();
-              }
-            },
-            onLoadStop: (controller, url) {
-              if (url != null && mounted) {
-                setState(() => _currentUrl = url.toString());
-                _updateNavigationState();
-              }
-            },
-            onProgressChanged: (controller, progress) {
-              if (mounted) {
-                setState(() => _progress = progress / 100.0);
-              }
-            },
-            onReceivedError: (controller, request, error) {
-              if (request.isForMainFrame == true && mounted) {
-                setState(() => _initFailed = true);
-                _fallbackToExternalBrowser();
-              }
-            },
+          WebViewCompactToolbar(
+            title: _title,
+            onBackPressed: _handleBackOrClose,
+            actions: [
+              FluentIconButton(
+                tooltip: '前进',
+                semanticLabel: '前进',
+                icon: const Icon(FluentIcons.forward),
+                onPressed: _canGoForward
+                    ? () => _controller?.goForward()
+                    : null,
+                size: 32,
+              ),
+              FluentIconButton(
+                tooltip: '刷新',
+                semanticLabel: '刷新',
+                icon: const Icon(FluentIcons.refresh),
+                onPressed: _isReady ? () => _controller?.reload() : null,
+                size: 32,
+              ),
+              FluentIconButton(
+                tooltip: '在浏览器中打开',
+                semanticLabel: '在浏览器中打开',
+                icon: const Icon(FluentIcons.openInNewWindow),
+                onPressed: _fallbackToExternalBrowser,
+                size: 32,
+              ),
+            ],
           ),
-          if (_progress > 0 && _progress < 1.0)
-            PositionedDirectional(
-              top: 0,
-              start: 0,
-              end: 0,
-              child: FluentProgressBar(value: _progress),
+          Expanded(
+            child: Stack(
+              children: [
+                InAppWebView(
+                  webViewEnvironment: widget.webViewEnvironment,
+                  initialUrlRequest: URLRequest(url: WebUri(widget.url)),
+                  initialSettings: InAppWebViewSettings(
+                    javaScriptEnabled: true,
+                    isInspectable: kDebugMode,
+                    userAgent:
+                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                        '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                  ),
+                  onWebViewCreated: (controller) {
+                    _controller = controller;
+                    if (mounted) {
+                      setState(() => _isReady = true);
+                    }
+                  },
+                  onTitleChanged: (controller, title) {
+                    if (mounted && title != null && title.isNotEmpty) {
+                      setState(() => _title = title);
+                    }
+                  },
+                  onUpdateVisitedHistory: (controller, url, isReload) {
+                    if (url != null && mounted) {
+                      setState(() => _currentUrl = url.toString());
+                      _updateNavigationState();
+                    }
+                  },
+                  onLoadStop: (controller, url) {
+                    if (url != null && mounted) {
+                      setState(() => _currentUrl = url.toString());
+                      _updateNavigationState();
+                    }
+                  },
+                  onProgressChanged: (controller, progress) {
+                    if (mounted) {
+                      setState(() => _progress = progress / 100.0);
+                    }
+                  },
+                  onReceivedError: (controller, request, error) {
+                    if (request.isForMainFrame == true && mounted) {
+                      setState(() => _initFailed = true);
+                      _fallbackToExternalBrowser();
+                    }
+                  },
+                ),
+                if (_progress > 0 && _progress < 1.0)
+                  PositionedDirectional(
+                    top: 0,
+                    start: 0,
+                    end: 0,
+                    child: FluentProgressBar(value: _progress),
+                  ),
+              ],
             ),
+          ),
         ],
       ),
     );
@@ -229,8 +240,15 @@ class _WebViewPageState extends State<WebViewPage> {
     required Widget child,
   }) {
     return FluentPage(
-      header: FluentPageHeader(title: Text(title)),
-      content: child,
+      content: Column(
+        children: [
+          WebViewCompactToolbar(
+            title: title,
+            onBackPressed: () => Navigator.of(context).maybePop(),
+          ),
+          Expanded(child: child),
+        ],
+      ),
     );
   }
 }
