@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "工大聚合";
+"CFBundleName" = "工大聚合";
+"NSFaceIDUsageDescription" = "用于在启用密码保护后，通过系统认证快速解锁工大聚合。";

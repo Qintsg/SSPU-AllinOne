@@ -90,18 +90,29 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "cn.qintsg" "\0"
-            VALUE "FileDescription", "sspu_allinone" "\0"
+            VALUE "FileDescription", "SSPU-AllinOne" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "sspu_allinone" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 cn.qintsg. All rights reserved." "\0"
             VALUE "OriginalFilename", "sspu_allinone.exe" "\0"
-            VALUE "ProductName", "sspu_allinone" "\0"
+            VALUE "ProductName", "SSPU-AllinOne" "\0"
+            VALUE "ProductVersion", VERSION_AS_STRING "\0"
+        END
+        BLOCK "080404b0"
+        BEGIN
+            VALUE "CompanyName", "cn.qintsg" "\0"
+            VALUE "FileDescription", "工大聚合" "\0"
+            VALUE "FileVersion", VERSION_AS_STRING "\0"
+            VALUE "InternalName", "sspu_allinone" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 cn.qintsg. All rights reserved." "\0"
+            VALUE "OriginalFilename", "sspu_allinone.exe" "\0"
+            VALUE "ProductName", "工大聚合" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
     BLOCK "VarFileInfo"
     BEGIN
-        VALUE "Translation", 0x409, 1252
+        VALUE "Translation", 0x409, 1252, 0x804, 1200
     END
 END
 

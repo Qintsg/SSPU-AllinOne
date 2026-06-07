@@ -134,6 +134,8 @@ v1.0.0.1-hotfix
 SSPU-AllinOne-v{public_version}-{platform}-{arch}-{kind}.{ext}
 ```
 
+应用显示名可以按语言环境显示为“工大聚合”或 `SSPU-AllinOne`，但 Release 资产文件名始终使用 `SSPU-AllinOne-v...` 规则，不使用中文显示名。
+
 Android universal APK 使用固定短名：
 
 ```text

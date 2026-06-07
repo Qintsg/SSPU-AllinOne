@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:window_manager/window_manager.dart';
 
 import '../design/fluent_ui.dart';
+import '../services/app_display_name_service.dart';
 import '../services/campus_network_status_service.dart';
 import 'campus_network_status_indicator.dart';
 
@@ -150,7 +151,7 @@ class _DesktopWindowTitleBar extends StatelessWidget {
                       ),
                       SizedBox(width: spacing.s),
                       Text(
-                        'SSPU-AllinOne',
+                        AppDisplayName.of(context),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: type.caption1Strong.copyWith(

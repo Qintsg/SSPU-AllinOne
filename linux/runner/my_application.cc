@@ -14,6 +14,20 @@ struct _MyApplication {
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
+static gboolean is_chinese_locale() {
+  const gchar* const* language_names = g_get_language_names();
+  for (guint index = 0; language_names[index] != nullptr; index++) {
+    if (g_str_has_prefix(language_names[index], "zh")) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+static const gchar* app_display_name() {
+  return is_chinese_locale() ? "工大聚合" : "SSPU-AllinOne";
+}
+
 // Called when first Flutter frame received.
 static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
@@ -45,11 +59,11 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "SSPU-AllinOne");
+    gtk_header_bar_set_title(header_bar, app_display_name());
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   } else {
-    gtk_window_set_title(window, "SSPU-AllinOne");
+    gtk_window_set_title(window, app_display_name());
   }
 
   gtk_window_set_default_size(window, 1280, 720);

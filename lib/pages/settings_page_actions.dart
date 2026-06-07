@@ -360,7 +360,7 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
     setState(() => _isQuickAuthBusy = true);
     final authResult = await SystemAuthService.instance.authenticate(
-      localizedReason: '验证身份以启用 SSPU-AllinOne 系统快速解锁',
+      localizedReason: '验证身份以启用 ${AppDisplayName.of(context)} 系统快速解锁',
     );
     if (!mounted) return;
 

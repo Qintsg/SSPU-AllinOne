@@ -13,6 +13,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../models/campus_card.dart';
 import '../models/message_item.dart';
 import '../services/academic_credentials_service.dart';
+import '../services/app_display_name_service.dart';
 import '../services/campus_card_service.dart';
 import '../services/campus_network_status_service.dart';
 import '../services/message_state_service.dart';
@@ -223,7 +224,7 @@ class _HomePageState extends State<HomePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '欢迎使用 SSPU-AllinOne',
+                              '欢迎使用 ${AppDisplayName.of(context)}',
                               style: theme.typography.subtitle,
                             ),
                             const SizedBox(height: FluentSpacing.s),
