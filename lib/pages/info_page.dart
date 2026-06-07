@@ -107,9 +107,12 @@ class _InfoPageState extends State<InfoPage> {
   /// 初始化状态服务，从本地存储加载消息并根据渠道开关过滤显示
   Future<void> _initAndLoad() async {
     await _stateService.init();
-    _wechatSourceConfigured = await WechatArticleService.instance
-        .hasConfiguredSource();
     await _loadPersistedMessages();
+
+    final wechatSourceConfigured = await WechatArticleService.instance
+        .hasConfiguredSource();
+    if (!mounted) return;
+    setState(() => _wechatSourceConfigured = wechatSourceConfigured);
   }
 
   /// 刷新官网消息：抓取所有已启用渠道的新数据并与已有数据合并持久化
