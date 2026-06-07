@@ -13,6 +13,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../services/wxmp_article_service.dart';
 import '../services/wxmp_auth_service.dart';
 import '../theme/fluent_tokens.dart';
+import '../widgets/webview_compact_toolbar.dart';
 
 /// 公众号平台登录 URL
 const String _wxmpLoginUrl = 'https://mp.weixin.qq.com/';
@@ -258,38 +259,33 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return FluentPage(
-      header: FluentPageHeader(
-        title: Text(_title),
-        commandBar: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_extracting)
-              const Padding(
-                padding: EdgeInsets.only(right: 12),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
+      content: Column(
+        children: [
+          WebViewCompactToolbar(
+            title: _title,
+            backSemanticLabel: _result?.success == true ? '完成' : '返回',
+            onBackPressed: () =>
+                Navigator.of(context).pop(_result?.success ?? false),
+            actions: [
+              if (_extracting)
+                const SizedBox.square(
+                  dimension: 48,
+                  child: Center(
+                    child: SizedBox.square(
+                      dimension: 16,
                       child: FluentProgressRing(strokeWidth: 2),
                     ),
-                    SizedBox(width: 8),
-                    Text('正在提取认证信息...'),
-                  ],
+                  ),
                 ),
-              ),
-            if (_result != null)
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
+              if (_result != null)
+                SizedBox.square(
+                  dimension: 48,
+                  child: Center(
+                    child: Icon(
                       _result!.success
                           ? FluentIcons.checkMark
                           : FluentIcons.warning,
-                      size: 16,
+                      size: 18,
                       color: _result!.success
                           ? (isDark
                                 ? FluentDarkColors.statusSuccess
@@ -298,23 +294,13 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
                                 ? FluentDarkColors.statusError
                                 : FluentLightColors.statusError),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _result!.success ? '登录成功' : '提取失败',
-                      style: theme.typography.body,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            FluentButton.outline(
-              onPressed: () =>
-                  Navigator.of(context).pop(_result?.success ?? false),
-              child: Text(_result?.success == true ? '完成' : '返回'),
-            ),
-          ],
-        ),
+            ],
+          ),
+          Expanded(child: _buildContent(context)),
+        ],
       ),
-      content: _buildContent(context),
     );
   }
 
