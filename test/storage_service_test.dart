@@ -8,6 +8,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sspu_allinone/legal/legal_documents.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 
 void main() {
@@ -69,6 +70,27 @@ void main() {
     await StorageService.init();
 
     expect(await StorageService.getBool(StorageKeys.eulaAccepted), isTrue);
+    expect(await StorageService.areCurrentAgreementsAccepted(), isFalse);
+  });
+
+  test('当前协议确认键绑定完整法律说明版本', () {
+    expect(StorageKeys.agreementAccepted, kLegalAgreementAcceptedKey);
+    expect(StorageKeys.agreementAccepted, contains(kLegalAgreementVersion));
+    expect(StorageKeys.agreementAccepted, contains('combined'));
+  });
+
+  test('仅有旧版 Artistic License 2.0 协议键时需要重新确认当前协议', () async {
+    SharedPreferences.setMockInitialValues({
+      'agreement_20260515_artistic20_accepted': true,
+    });
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+
+    await StorageService.init();
+
+    expect(
+      await StorageService.getBool('agreement_20260515_artistic20_accepted'),
+      isTrue,
+    );
     expect(await StorageService.areCurrentAgreementsAccepted(), isFalse);
   });
 

@@ -1,0 +1,114 @@
+SSPU-AllinOne Legal and Privacy Notice
+
+Developer: Qintsg
+Agreement version: 20260607_artistic20_combined
+Last updated: June 7, 2026
+
+Please carefully read this notice before installing, launching, or using this software. This notice combines the Disclaimer, Terms of Use, Privacy Policy, and Open Source License and Third-Party Notices. This single confirmation confirms all of the above agreements. By clicking "Agree", continuing installation, launching the app for the first time, or continuing to use an updated version, you acknowledge that you have read, understood, and agreed to all terms below. If you do not agree, please stop installing or using the software and clear local data through the app settings, system uninstallation, or manual data deletion where applicable.
+
+This notice does not constitute legal advice. If you have questions about account authorization, personal information, third-party service terms, or university rules, you should consult the relevant service provider, university department, or a qualified professional.
+
+
+1. Disclaimer
+
+1. SSPU-AllinOne is an independently developed open-source campus information aggregation tool. It is not an official product of Shanghai Polytechnic University, Tencent, WeChat, WeChat Official Accounts Platform, or any other third-party service provider. This software is not officially authorized, certified, endorsed, commissioned, or represented by any of the above parties.
+
+2. The information displayed by this software may come from public web pages, user-configured information sources, or third-party systems accessed with the user's authorization. All course, grade, exam, notice, email, campus card, sports attendance, student affairs report, WeChat article, and other information shall be subject to the corresponding official website, system page, or service provider.
+
+3. This software does not guarantee the accuracy, completeness, timeliness, continuous availability, or fitness for a particular purpose of any information. Users should independently verify important information through official channels.
+
+4. Users are responsible for ensuring that any account, password, Cookie, Token, email credential, WeChat Official Account configuration, or other authentication material used with this software is lawful, valid, and properly authorized.
+
+5. Third-party services may record, restrict, reject, or interrupt access due to login behavior, session refresh, risk control, CAPTCHA, MFA, interface changes, network conditions, or service rules. This software cannot control the availability, logs, risk-control rules, privacy policies, or account handling rules of third-party services.
+
+6. This software is designed to remain within a read-only information query boundary where possible. It does not intentionally provide course enrollment, course withdrawal, payment, top-up, email sending, email deletion, content publishing, external account modification, CAPTCHA bypass, security verification bypass, or similar write or circumvention capabilities.
+
+7. Users must not use this software for unlawful activities, rights infringement, attacks, system interference, excessive automated access, commercial account agency, account custody, or unauthorized data extraction.
+
+8. To the maximum extent permitted by applicable law, the developer shall not be liable for losses arising from installation, use, inability to use, reliance on displayed information, external service changes, network failures, system compatibility issues, user error, or third-party causes. Nothing in this disclaimer excludes or limits liability that cannot be excluded or limited by law.
+
+
+2. Terms of Use
+
+1. Nature of the Software
+This software is an independent open-source project intended to aggregate and display campus-related information and information accessed with user authorization. It is not an official client of the university or any third-party platform, and it does not provide official identity verification, official notice confirmation, or official transaction handling.
+
+2. Accounts and Authorization
+You may only use accounts, passwords, Cookies, Tokens, email credentials, and configuration files that you lawfully own or are expressly authorized to use. You must not enter, store, use, or distribute authentication materials belonging to others. You are responsible for risks arising from account permissions, authentication materials, third-party service rules, or defects in authorization.
+
+3. Acceptable Use
+You must not use this software for unlawful activities, attacks, interference, scanning, circumvention, cracking, excessive automated access, unauthorized data extraction, commercial account agency, account custody, or any activity that infringes the rights of others or violates third-party service rules.
+
+4. Changes to Functionality
+This software depends on external websites, protocols, system components, and third-party services. Features may become unavailable, unstable, or discontinued if external pages, interfaces, authentication rules, network environments, or platform policies change. The developer may modify, suspend, or remove features according to project maintenance conditions.
+
+5. Consent Flow
+On platforms where this repository controls a graphical pre-installation confirmation step, the installer will display this notice and require user consent during installation. On distribution channels or platforms where pre-installation confirmation is not controlled by this repository, this notice will be displayed on first launch and require user consent. On first launch, after material changes, or after an agreement version change, users must agree to the current version before continuing to use this software.
+
+6. Updates to These Terms
+The developer may update this notice due to functional changes, compliance requirements, license adjustments, or third-party service changes. Material updates may be presented through installer license pages, first-launch dialogs, the About page, the Settings page, or the project repository, and may require renewed consent. If you refuse to agree to updated terms, you may be unable to continue using the software or related features.
+
+7. Governing Law
+These terms are governed by the laws of the People's Republic of China. If any provision is found invalid or unenforceable, the remaining provisions shall remain effective. If any provision conflicts with mandatory legal requirements, the mandatory legal requirements shall prevail.
+
+
+3. Privacy Policy
+
+1. Processing Principles
+The current version primarily processes data locally and does not provide developer-operated cloud synchronization. Unless you voluntarily submit feedback, logs, screenshots, or other materials, the developer does not actively collect, upload, sell, rent, share, or disclose your account credentials, campus data, email content, business cache, or personal information.
+
+2. Purposes of Processing
+This software processes necessary data only for local functions such as campus information aggregation, login state retention, local caching, notifications, app lock, WebView browsing, and user settings. Personal information processing follows the principles of lawfulness, legitimacy, necessity, minimization, and transparency.
+
+3. Locally Stored Data
+This software may locally store app settings, read status, message cache, followed items, auto-refresh settings, app lock configuration, campus card, academic, sports, and email summary cache, WebView runtime data, and WeChat Official Account configuration entered by the user. Student IDs, OA passwords, sports query passwords, email passwords, OA sessions, and other decryptable credentials required for login are stored in the operating system's secure storage.
+
+4. Storage Locations
+Desktop app data is stored by default under `.sspu-aio` in the user's directory. Android and iOS data is stored in the app support directory assigned by the operating system. The Web version uses browser local storage. On Windows, embedded WebView capabilities may store WebView2 runtime data, Cookies, cache, and site data locally.
+
+5. Sensitive Information Notice
+Account passwords, Cookies, Tokens, email credentials, course grades, campus card information, email content, identity-related information, and similar data may be sensitive or important information. Please use this software only on trusted devices and properly protect your device unlock password, system account, and app lock.
+
+6. Network Access
+To provide its functions, this software may access university websites, OA/CAS, academic systems, campus card systems, sports query systems, student affairs report systems, school email services through IMAP/POP/SMTP, WeChat Official Accounts Platform, WeChat article links, user-configured information sources, system browsers, or WebView components. Logs, Cookies, risk control, privacy policies, and data processing rules of external services are controlled by their respective providers.
+
+7. Permissions and Platform Capabilities
+This software may use network access, local files, secure storage, local authentication, desktop window and tray features, system notifications, WebView, and external browser launching. Biometric or PIN verification is performed by the operating system. This software does not read or store raw biometric templates or system PINs.
+
+8. User Controls
+You may clear information cache, clear all local data, remove academic, sports, or email credentials, clear WeChat Official Account authentication information, uninstall the app, or delete the app data directory where applicable. After you withdraw consent or clear local data, login records, access logs, risk-control records, or server-side data already processed by external services are not controlled by this software.
+
+9. Feedback Safety
+If you report issues through GitHub Issues, email, screenshots, logs, or other channels, please mask student IDs, names, account numbers, passwords, Cookies, Tokens, email content, grades, QR codes, personal pages, and other sensitive information before submission. Information voluntarily submitted to public platforms may be stored or displayed by those platforms.
+
+10. Minors
+Minors, especially children under the age threshold defined by applicable law, should use this software only with the consent and guidance of their guardians. If a guardian does not agree, the minor should stop using the software and clear local data.
+
+11. Retention
+Local data is retained only as long as necessary for the relevant functions, usually until the user clears data, removes credentials, uninstalls the app, deletes the app data directory, or the relevant cache expires.
+
+
+4. Open Source License and Third-Party Notices
+
+1. Project License
+The source code of SSPU-AllinOne is licensed under the Artistic License 2.0. Any use, copying, modification, distribution, redistribution, or distribution of compiled forms of this software must comply with the full text of the Artistic License 2.0 and the LICENSE file in the project repository.
+
+2. Copyright Notice
+The copyright of this software belongs to the project author and contributors. The Artistic License 2.0 does not grant any right to use the trademarks, service marks, names, logos, or branding of the project author, contributors, the university, or any third-party rights holder unless separately authorized by the relevant rights holder.
+
+3. Modified Versions and Distribution
+If you distribute a modified version of this software, you must comply with the Artistic License 2.0, retain copyright notices and disclaimers, clearly document the modifications, and provide the applicable license text and valid instructions for obtaining the corresponding source code where required. You must not falsely imply that a modified version is officially released, certified, endorsed, or maintained by the original author, the university, or any third-party service provider.
+
+4. Third-Party Open-Source Components
+This software uses Flutter, Dart, and third-party open-source dependencies, including but not limited to fluent_ui, fluentui_system_icons, shared_preferences, path_provider, crypto, flutter_secure_storage, local_auth, url_launcher, window_manager, tray_manager, dio, local_notifier, html, gbk_codec, flutter_animate, flutter_inappwebview, package_info_plus, and enough_mail. Copyright and license terms for third-party components belong to their respective authors or rights holders. The authoritative references are pubspec.yaml, pubspec.lock, official package pages, source repositories, and license files.
+
+5. Third-Party Services
+This software may access or display content or capabilities from Shanghai Polytechnic University websites, OA/CAS, academic systems, campus card systems, sports query systems, student affairs report systems, school email services, WeChat Official Accounts Platform, WeChat articles, system browsers, Edge WebView2, operating system secure storage, and system notification services. These services are operated by their respective providers, and users are also bound by the corresponding service terms, privacy policies, account rules, and platform rules.
+
+6. Fonts and Assets
+This software may include MiSans fonts, app icons, interface icons, design system references, or other assets. The terms governing such fonts, icons, design systems, and assets are subject to the licenses, EULAs, or usage rules published by their respective rights holders. Except as permitted by the applicable license, users must not extract, sublicense, or reuse such materials for unrelated purposes.
+
+7. Conflicts
+If this notice conflicts with the license or service terms of a third-party component or service, the applicable third-party license or service terms shall prevail for that component or service. If any provision conflicts with mandatory legal requirements, the mandatory legal requirements shall prevail.
+
+In case of any inconsistency between this English version and the Simplified Chinese version, the Simplified Chinese version shall prevail to the extent permitted by law.

@@ -9,6 +9,7 @@ AppId={{3657CB2B-B935-4DE9-A7F2-FFA5E5FB1C8E}
 AppName={code:GetAppDisplayName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
+LicenseFile={#WorkspaceDir}\assets\legal\legal_zh.txt
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog commandline
 DefaultDirName={autopf}\{code:GetAppDisplayName}

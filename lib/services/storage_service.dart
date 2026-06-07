@@ -15,6 +15,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_data_directory_service.dart';
+import '../legal/legal_documents.dart';
 
 part 'storage_keys.dart';
 
@@ -313,12 +314,12 @@ class StorageService {
 
   // ==================== 协议相关 ====================
 
-  /// 检查是否已接受当前版本的使用协议与隐私协议。
+  /// 检查是否已接受当前版本的完整法律与隐私说明。
   static Future<bool> areCurrentAgreementsAccepted() async {
     return getBool(StorageKeys.agreementAccepted);
   }
 
-  /// 标记当前版本的使用协议与隐私协议已接受。
+  /// 标记当前版本的完整法律与隐私说明已接受。
   static Future<void> acceptCurrentAgreements() async {
     await setBool(StorageKeys.agreementAccepted, true);
     await setBool(StorageKeys.eulaAccepted, true);

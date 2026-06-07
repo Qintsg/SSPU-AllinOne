@@ -15,8 +15,7 @@ import '../services/app_info_service.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
-import 'agreement_page.dart';
-import 'privacy_policy_page.dart';
+import 'legal_notice_page.dart';
 
 /// 使用/参考的开源项目列表。
 /// 若后续用户没有明确说明，不得修改此内容。
@@ -34,28 +33,52 @@ const List<_OpenSourceProject> _openSourceProjects = [
     url: 'https://fluent2.microsoft.design/',
   ),
   _OpenSourceProject(
+    name: 'fluent_ui',
+    description: 'Fluent 风格桌面与跨平台控件',
+    license: 'BSD-3-Clause',
+    url: 'https://pub.dev/packages/fluent_ui',
+  ),
+  _OpenSourceProject(
+    name: 'fluentui_system_icons',
+    description: 'Microsoft Fluent System Icons 图标库',
+    license: 'MIT',
+    url: 'https://pub.dev/packages/fluentui_system_icons',
+  ),
+  _OpenSourceProject(
     name: 'shared_preferences',
     description: '本地持久化存储',
     license: 'BSD-3-Clause',
     url: 'https://pub.dev/packages/shared_preferences',
   ),
   _OpenSourceProject(
+    name: 'path_provider',
+    description: '平台应用支持目录解析',
+    license: 'BSD-3-Clause',
+    url: 'https://pub.dev/packages/path_provider',
+  ),
+  _OpenSourceProject(
     name: 'crypto',
-    description: '加密算法库',
+    description: 'SHA-256 等哈希算法',
     license: 'BSD-3-Clause',
     url: 'https://pub.dev/packages/crypto',
+  ),
+  _OpenSourceProject(
+    name: 'flutter_secure_storage',
+    description: '系统安全存储凭据保存',
+    license: 'BSD-3-Clause',
+    url: 'https://pub.dev/packages/flutter_secure_storage',
+  ),
+  _OpenSourceProject(
+    name: 'local_auth',
+    description: '系统 PIN / 生物识别快速验证',
+    license: 'BSD-3-Clause',
+    url: 'https://pub.dev/packages/local_auth',
   ),
   _OpenSourceProject(
     name: 'url_launcher',
     description: '打开外部链接',
     license: 'BSD-3-Clause',
     url: 'https://pub.dev/packages/url_launcher',
-  ),
-  _OpenSourceProject(
-    name: 'MiSans',
-    description: '小米全新系统字体，数字等宽',
-    license: 'MiSans EULA',
-    url: 'https://hyperos.mi.com/font/zh',
   ),
   _OpenSourceProject(
     name: 'window_manager',
@@ -86,6 +109,42 @@ const List<_OpenSourceProject> _openSourceProjects = [
     description: 'HTML 解析库',
     license: 'MIT',
     url: 'https://pub.dev/packages/html',
+  ),
+  _OpenSourceProject(
+    name: 'gbk_codec',
+    description: 'GBK / GB2312 页面解码',
+    license: 'MIT',
+    url: 'https://pub.dev/packages/gbk_codec',
+  ),
+  _OpenSourceProject(
+    name: 'flutter_animate',
+    description: '页面入场与微交互动效',
+    license: 'BSD-3-Clause',
+    url: 'https://pub.dev/packages/flutter_animate',
+  ),
+  _OpenSourceProject(
+    name: 'flutter_inappwebview',
+    description: '内嵌 WebView 与 WebView2 能力',
+    license: 'Apache-2.0',
+    url: 'https://pub.dev/packages/flutter_inappwebview',
+  ),
+  _OpenSourceProject(
+    name: 'package_info_plus',
+    description: '应用版本与包信息读取',
+    license: 'BSD-3-Clause',
+    url: 'https://pub.dev/packages/package_info_plus',
+  ),
+  _OpenSourceProject(
+    name: 'enough_mail',
+    description: '学校邮箱 IMAP / POP / SMTP 协议客户端',
+    license: 'MPL-2.0',
+    url: 'https://pub.dev/packages/enough_mail',
+  ),
+  _OpenSourceProject(
+    name: 'MiSans',
+    description: '小米系统字体，数字等宽',
+    license: 'MiSans EULA',
+    url: 'https://hyperos.mi.com/font/zh',
   ),
 ];
 
@@ -247,21 +306,11 @@ class AboutPage extends StatelessWidget {
           _buildActionTile(
             context,
             icon: FluentIcons.documentText,
-            title: '使用协议',
-            subtitle: '查看完整使用协议条款',
+            title: '法律与隐私说明',
+            subtitle: '查看免责声明、用户协议、隐私协议和第三方协议',
             onTap: () => Navigator.of(
               context,
-            ).push(FluentPageRoute(builder: (_) => const AgreementPage())),
-          ),
-          const Divider(),
-          _buildActionTile(
-            context,
-            icon: FluentIcons.shield,
-            title: '隐私协议',
-            subtitle: '查看本地数据、凭据和网络访问说明',
-            onTap: () => Navigator.of(
-              context,
-            ).push(FluentPageRoute(builder: (_) => const PrivacyPolicyPage())),
+            ).push(FluentPageRoute(builder: (_) => const LegalNoticePage())),
           ),
         ],
       ),

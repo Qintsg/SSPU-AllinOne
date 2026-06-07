@@ -168,7 +168,9 @@ SSPU-AllinOne-v1.0.0-lts-web-universal-static.zip
 
 Linux 正式发布必须同时覆盖 `x64` 与 `arm64`，并提供 AppImage、deb、rpm、tar.gz 四类产物。
 
-Windows installer 使用 Inno Setup 双模式安装器，x64 与 arm64 行为保持一致：全新安装默认当前用户范围，可在安装向导或命令行显式切换到所有用户范围；安装包文件名和 Release 资产类型仍保持 `windows-{arch}-installer.exe`。
+Windows installer 使用 Inno Setup 双模式安装器，x64 与 arm64 行为保持一致：全新安装默认当前用户范围，可在安装向导或命令行显式切换到所有用户范围；安装包文件名和 Release 资产类型仍保持 `windows-{arch}-installer.exe`。安装器许可页使用 `assets/legal/legal_zh.txt`，需要与应用首次启动展示的完整法律与隐私说明保持同步。
+
+Android、iOS、macOS、Linux、Web、portable 与压缩包等当前没有仓库统一控制的安装前 GUI 或 CLI 协议确认页；这些渠道依赖应用首次启动的完整法律与隐私说明弹窗完成一次性确认。
 
 品牌图标与应用徽章的源文件和生成规则见 `docs/BRAND_ASSETS.md`。更换图标时应先更新 `assets/brand/` 源图，再运行 `python scripts/assets/generate_brand_icons.py` 生成平台资源，避免手工只替换单个平台图标导致 Release 展示不一致。
 
