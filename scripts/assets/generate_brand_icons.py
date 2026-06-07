@@ -244,6 +244,12 @@ def generate_icons() -> None:
             size,
             flatten_background=(255, 255, 255),
         )
+        _write_png(
+            app_icon,
+            android_root / folder / 'ic_launcher_round.png',
+            size,
+            flatten_background=(255, 255, 255),
+        )
     for folder, size in ANDROID_ADAPTIVE_FOREGROUND_SIZES.items():
         _write_padded_png(
             app_icon,

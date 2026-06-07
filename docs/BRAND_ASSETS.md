@@ -24,6 +24,7 @@ python scripts/assets/generate_brand_icons.py
 - `assets/images/app_icon.ico`
 - `windows/runner/resources/app_icon.ico`
 - `android/app/src/main/res/mipmap-*/ic_launcher.png`
+- `android/app/src/main/res/mipmap-*/ic_launcher_round.png`
 - `android/app/src/main/res/mipmap-*/ic_launcher_foreground.png`（Android 8+ adaptive icon 前景，108dp 画布内使用 72dp 安全区）
 - `ios/Runner/Assets.xcassets/AppIcon.appiconset/*.png`
 - `macos/Runner/Assets.xcassets/AppIcon.appiconset/*.png`
