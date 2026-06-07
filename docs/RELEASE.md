@@ -170,6 +170,8 @@ Linux 正式发布必须同时覆盖 `x64` 与 `arm64`，并提供 AppImage、de
 
 Windows installer 使用 Inno Setup 双模式安装器，x64 与 arm64 行为保持一致：全新安装默认当前用户范围，可在安装向导或命令行显式切换到所有用户范围；安装包文件名和 Release 资产类型仍保持 `windows-{arch}-installer.exe`。
 
+品牌图标与应用徽章的源文件和生成规则见 `docs/BRAND_ASSETS.md`。更换图标时应先更新 `assets/brand/` 源图，再运行 `python scripts/assets/generate_brand_icons.py` 生成平台资源，避免手工只替换单个平台图标导致 Release 展示不一致。
+
 ---
 
 ## 6. Release 附属文件
