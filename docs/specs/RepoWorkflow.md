@@ -19,8 +19,9 @@ Scope: repo
 1. 从 `develop` 同步最新代码。
 2. 根据 `.github/分支命名规范.md` 签出任务分支，例如 `feature/<topic>`、`fix/<topic>`、`refactor/<topic>`、`docs/<topic>`。
 3. 完成开发、测试、文档和模板更新。
-4. 按仓库 PR 模板创建合并到 `develop` 的 PR。
+4. 按仓库 PR 模板创建合并到 `develop` 的 PR；关联 Issue 必须在 PR 正文保留 `Closes #123` / `Fixes #123` / `Resolves #123` 等关闭关键字。
 5. PR 中写明变更说明、验证记录、影响范围和回滚方式。
+6. PR 合并入 `develop` 后，`Close Linked Issues` workflow 会关闭同仓库内通过关闭关键字或 GitHub 关联关系识别到的 Issue。
 
 ## Release 流程
 
