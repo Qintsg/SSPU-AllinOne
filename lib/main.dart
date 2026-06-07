@@ -13,8 +13,6 @@ import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'app.dart';
 import 'pages/lock_page.dart';
-import 'pages/agreement_page.dart';
-import 'pages/privacy_policy_page.dart';
 import 'services/app_exit_service.dart';
 import 'services/app_display_name_service.dart';
 import 'services/password_service.dart';
@@ -25,6 +23,7 @@ import 'services/notification_service.dart';
 import 'services/auto_refresh_service.dart';
 import 'services/academic_oa_session_prewarm_service.dart';
 import 'widgets/desktop_window_frame.dart';
+import 'widgets/legal_consent_dialog.dart';
 
 import 'theme/app_spacing.dart';
 import 'theme/app_theme.dart';
@@ -71,7 +70,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 初始化检查是否已完成
   bool _isInitialized = false;
 
-  /// 是否已接受使用协议与隐私协议。
+  /// 是否已接受当前完整法律与隐私说明。
   bool _agreementsAccepted = false;
 
   /// 防止协议弹窗重复弹出。
@@ -291,59 +290,16 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     _agreementDialogShowing = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) {
-          return FluentDialog(
-            constraints: const BoxConstraints(maxWidth: 720),
-            title: const Text('使用协议与隐私协议'),
-            content: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 680, maxHeight: 420),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SelectableText(
-                      kAgreementText.trim(),
-                      style: FluentTheme.of(dialogContext).typography.body,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    const Divider(),
-                    const SizedBox(height: AppSpacing.md),
-                    SelectableText(
-                      kPrivacyPolicyText.trim(),
-                      style: FluentTheme.of(dialogContext).typography.body,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              FluentButton.transparent(
-                child: const Text('不同意'),
-                onPressed: () {
-                  Navigator.pop(dialogContext, false);
-                  // 不同意协议时按平台能力关闭应用入口。
-                  _closeApplication();
-                },
-              ),
-              FluentButton.primary(
-                child: const Text('同意'),
-                onPressed: () {
-                  Navigator.pop(dialogContext, true);
-                },
-              ),
-            ],
-          );
-        },
-      ).then((accepted) async {
+      showLegalConsentDialog(context: context).then((accepted) async {
         _agreementDialogShowing = false;
         if (accepted == true) {
           await StorageService.acceptCurrentAgreements();
           if (mounted) {
             setState(() => _agreementsAccepted = true);
           }
+        } else if (accepted == false) {
+          // 不同意协议时按平台能力关闭应用入口。
+          await _closeApplication();
         }
       });
     });

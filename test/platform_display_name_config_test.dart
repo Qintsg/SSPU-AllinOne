@@ -95,7 +95,15 @@ void main() {
         contains('UninstallDisplayName={code:GetAppDisplayName}'),
       );
       expect(content, contains("Result := '工大聚合'"));
+      expect(content, contains(r'DefaultDirName={autopf}\{#AppTechnicalName}'));
+      expect(
+        content,
+        isNot(contains(r'DefaultDirName={autopf}\{code:GetAppDisplayName}')),
+      );
       expect(content, contains('OutputBaseFilename=SSPU-AllinOne-v'));
+      expect(content, contains('UsePreviousPrivileges=yes'));
+      expect(content, contains('Select install scope / 选择安装范围'));
+      expect(content, contains('Install for &me only / 仅为当前用户安装'));
     }
 
     final linuxRunner = _read('linux/runner/my_application.cc');

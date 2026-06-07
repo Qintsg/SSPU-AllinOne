@@ -92,7 +92,7 @@ _initApp()
   ├── 检查密码是否已设置
   └── 后台启动 NotificationService / AutoRefreshService
   │
-  ├── 未同意当前协议 ──▶ 使用协议与隐私协议弹窗
+  ├── 未同意当前协议 ──▶ 完整法律与隐私说明确认弹窗
   ├── 未设密码 ─────▶ AppShell（主界面）
   └── 已设密码 ─────▶ LockPage（锁定页）
                            │
@@ -263,8 +263,8 @@ _initApp()
 **已实现能力**：
 - 运行时读取 `PackageInfo` 展示版本号
 - 展示作者与许可证
-- 提供 GitHub 仓库、使用协议与隐私协议入口
-- 展示使用/参考的开源项目列表
+- 提供 GitHub 仓库与完整法律与隐私说明入口
+- 展示当前项目许可证和主要第三方组件列表
 
 ### 4.7 锁定页（LockPage）
 
@@ -513,4 +513,4 @@ ContentDialog: 输入当前密码
 8. **调试日志脱敏**：HTTP Debug 日志仅输出 scheme、host 和 path，不输出 query、fragment 或 userInfo
 9. **发布签名不入库**：Android release keystore 通过本地文件或 CI Secrets 注入
 10. **无敏感信息调试日志**：密码、教务凭据与微信认证敏感字段不输出到控制台
-11. **协议版本确认**：首次启动弹窗同时展示使用协议与隐私协议，当前确认状态使用 `agreement_20260515_artistic20_accepted` 保存，旧版协议键仅作为历史状态保留
+11. **协议版本确认**：首次启动弹窗在同一篇文档中展示免责声明、用户协议、隐私协议、开源许可证与第三方协议说明，当前确认状态使用 `agreement_20260607_artistic20_combined_accepted` 保存，旧版协议键仅作为历史状态保留；Windows Inno Setup 安装器使用同一份法律资产展示安装阶段许可页

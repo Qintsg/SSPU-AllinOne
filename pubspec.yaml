@@ -110,6 +110,7 @@ flutter:
     - assets/images/app_icon.png
     - assets/images/app_icon.ico
     - assets/config/quick_links.yaml
+    - assets/legal/
 
   fonts:
     - family: MiSans
