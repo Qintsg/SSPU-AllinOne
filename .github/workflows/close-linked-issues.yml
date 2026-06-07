@@ -1,0 +1,141 @@
+# 自动关闭关联 Issue — 补齐 develop 集成分支的关闭规则
+name: Close Linked Issues
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [develop]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  close-linked-issues:
+    name: Close linked issues after develop merge
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = context.payload.pull_request;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issueNumbers = new Set();
+
+            function escapeRegExp(value) {
+              return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            }
+
+            function addIssue(number) {
+              const parsed = Number(number);
+              if (!Number.isInteger(parsed) || parsed <= 0) return;
+              issueNumbers.add(parsed);
+            }
+
+            function collectClosingKeywordIssues(text) {
+              if (!text) return;
+
+              const ownerPattern = escapeRegExp(owner);
+              const repoPattern = escapeRegExp(repo);
+              const sameRepoRefPattern =
+                `(?:#(\\d+)|${ownerPattern}\\/${repoPattern}#(\\d+)|https:\\/\\/github\\.com\\/${ownerPattern}\\/${repoPattern}\\/issues\\/(\\d+))`;
+              const closingPattern = new RegExp(
+                `\\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\\s*:?\\s+${sameRepoRefPattern}\\b`,
+                'gi',
+              );
+
+              for (const match of text.matchAll(closingPattern)) {
+                addIssue(match[1] || match[2] || match[3]);
+              }
+            }
+
+            async function collectManuallyLinkedIssues() {
+              try {
+                const result = await github.graphql(
+                  `query($owner: String!, $repo: String!, $number: Int!) {
+                    repository(owner: $owner, name: $repo) {
+                      pullRequest(number: $number) {
+                        closingIssuesReferences(first: 100) {
+                          nodes {
+                            number
+                            repository {
+                              name
+                              owner {
+                                login
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }`,
+                  {
+                    owner,
+                    repo,
+                    number: pr.number,
+                  },
+                );
+
+                const nodes =
+                  result.repository?.pullRequest?.closingIssuesReferences?.nodes || [];
+                for (const node of nodes) {
+                  const linkedOwner = node.repository?.owner?.login;
+                  const linkedRepo = node.repository?.name;
+                  if (
+                    linkedOwner?.toLowerCase() === owner.toLowerCase() &&
+                    linkedRepo?.toLowerCase() === repo.toLowerCase()
+                  ) {
+                    addIssue(node.number);
+                  }
+                }
+              } catch (error) {
+                core.warning(`Unable to read linked issues via GraphQL: ${error.message}`);
+              }
+            }
+
+            collectClosingKeywordIssues(pr.body || '');
+            await collectManuallyLinkedIssues();
+
+            if (issueNumbers.size === 0) {
+              core.info('No same-repository closing issue references detected.');
+              return;
+            }
+
+            for (const issueNumber of [...issueNumbers].sort((left, right) => left - right)) {
+              const { data: issue } = await github.rest.issues.get({
+                owner,
+                repo,
+                issue_number: issueNumber,
+              });
+
+              if (issue.pull_request) {
+                core.info(`#${issueNumber} is a pull request, skip.`);
+                continue;
+              }
+
+              if (issue.state === 'closed') {
+                core.info(`#${issueNumber} is already closed, skip.`);
+                continue;
+              }
+
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                body: `已随 PR #${pr.number} 合并到 \`develop\` 自动关闭。`,
+              });
+
+              core.info(`Closed issue #${issueNumber}.`);
+            }

@@ -86,8 +86,9 @@ version: 1.0.0.1-hotfix+12
 1. 默认从 `develop` 签出新分支。
 2. 按 `.github/分支命名规范.md` 选择分支名，例如 `feature/<topic>`、`fix/<topic>`、`refactor/<topic>`、`docs/<topic>`、`ci/<topic>`。
 3. 完成开发、测试与文档同步后，创建 PR 合并回 `develop`。
-4. PR 必须使用仓库模板填写变更说明、验证记录、影响范围和风险；修改 `.github/`、发布、构建或依赖时必须写明回滚方式。
-5. 禁止直接向 `develop` 或 `main` 推送未审查提交。
+4. PR 必须使用仓库模板填写变更说明、验证记录、影响范围和风险；关联 Issue 保留 `Closes #123` / `Fixes #123` / `Resolves #123` 等关闭关键字。
+5. PR 合并入 `develop` 后，`Close Linked Issues` workflow 会自动关闭同仓库内通过关闭关键字或 GitHub 关联关系识别到的 Issue。
+6. 禁止直接向 `develop` 或 `main` 推送未审查提交。
 
 ### 3.2 alpha / beta / rc 发布工作流
 
