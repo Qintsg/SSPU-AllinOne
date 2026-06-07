@@ -10,6 +10,7 @@
 
 ### 修复
 
+- 更换应用徽章、系统应用图标与 Web favicon，覆盖 Windows、Android、iOS、macOS、Linux 打包和应用内品牌位，并新增可复现图标生成脚本。
 - 将中文语言环境下的应用显示名定为“工大聚合”，覆盖应用内标题、系统启动器/窗口标题、安装器展示名、Web title/manifest 和平台元数据，并保留 `SSPU-AllinOne` 作为英文显示名与 Release 资产命名。
 - 统一本地数据目录为 `.sspu-aio`，同步状态文件、微信公众号配置、Windows WebView2 运行态目录、隐私协议、设置页文案和相关测试，避免新运行继续创建旧目录。
 - 将 Windows x64 / arm64 Inno Setup 安装器改为双模式安装，全新安装默认当前用户范围，并保留用户显式选择所有用户安装的能力。
