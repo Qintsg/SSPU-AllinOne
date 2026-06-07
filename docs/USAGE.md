@@ -295,7 +295,9 @@ flutter build windows --release
 - 需要连同整个 `Release/` 目录一起分发，不能只拷贝单个 `.exe`
 - 启动入口为 `sspu_allinone.exe`
 - GitHub Release 默认同时提供 x64 / arm64 的 installer 与 portable 产物
-- Windows installer 使用 Inno Setup 双模式安装：全新安装默认选择“仅当前用户”，安装到当前用户程序目录且不需要管理员权限；用户显式选择“所有用户”或使用 `/ALLUSERS` 时安装到系统 Program Files 并按需触发 UAC。升级已存在安装时沿用既有安装范围。
+- Windows installer 使用 Inno Setup 双模式安装：全新安装默认选择“仅当前用户”，安装到当前用户程序目录且不需要管理员权限；用户显式选择“所有用户”或使用 `/ALLUSERS` 时安装到系统 Program Files 并按需触发 UAC。升级已存在安装时会先检测既有安装版本，版本不同时进入升级安装并沿用既有安装范围和目录，不再让用户重新选择路径。
+- Windows installer 检测到已安装相同版本时，会询问是否重新安装；确认后先调用既有卸载器，卸载器会询问是否保留用户目录下的 `.sspu-aio/` 应用数据，完成卸载后再回到全新安装流程并重新显示当前用户 / 所有用户安装范围选择。静默同版本重装需显式传入 `/SSPUREINSTALL=1`，此时默认保留应用数据。
+- Windows installer 的应用显示名可按系统语言显示为“工大聚合”或 `SSPU-AllinOne`，但默认安装目录固定使用英文技术名 `SSPU-AllinOne`，避免不同语言环境生成不同安装路径。
 - 安装目录只保存应用程序文件；应用状态、微信公众号配置和 Windows WebView2 运行态仍保存在用户数据目录 `~/.sspu-aio/` 或移动端系统应用支持目录下的 `.sspu-aio/`。
 
 ### 7.5 macOS 桌面

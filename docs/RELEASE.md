@@ -135,7 +135,7 @@ v1.0.0.1-hotfix
 SSPU-AllinOne-v{public_version}-{platform}-{arch}-{kind}.{ext}
 ```
 
-应用显示名可以按语言环境显示为“工大聚合”或 `SSPU-AllinOne`，但 Release 资产文件名始终使用 `SSPU-AllinOne-v...` 规则，不使用中文显示名。
+应用显示名可以按语言环境显示为“工大聚合”或 `SSPU-AllinOne`，但 Release 资产文件名始终使用 `SSPU-AllinOne-v...` 规则，不使用中文显示名。Windows installer 默认安装目录也必须固定使用英文技术名 `SSPU-AllinOne`，不得随显示语言变为中文目录。
 
 Android universal APK 使用固定短名：
 
@@ -168,7 +168,7 @@ SSPU-AllinOne-v1.0.0-lts-web-universal-static.zip
 
 Linux 正式发布必须同时覆盖 `x64` 与 `arm64`，并提供 AppImage、deb、rpm、tar.gz 四类产物。
 
-Windows installer 使用 Inno Setup 双模式安装器，x64 与 arm64 行为保持一致：全新安装默认当前用户范围，可在安装向导或命令行显式切换到所有用户范围；安装包文件名和 Release 资产类型仍保持 `windows-{arch}-installer.exe`。安装器许可页使用 `assets/legal/legal_zh.txt`，需要与应用首次启动展示的完整法律与隐私说明保持同步。
+Windows installer 使用 Inno Setup 双模式安装器，x64 与 arm64 行为保持一致：全新安装默认当前用户范围，可在安装向导或命令行显式切换到所有用户范围；安装包文件名和 Release 资产类型仍保持 `windows-{arch}-installer.exe`。安装器可本地化展示应用名，但默认安装路径固定为 `SSPU-AllinOne`。安装器启动时会检测既有安装：不同版本进入升级安装，沿用既有当前用户 / 所有用户范围和目录并跳过目录选择；相同版本会询问是否重装，确认后先调用既有卸载器，卸载器负责询问是否保留用户目录下的 `.sspu-aio/` 应用数据，再回到正常安装流程。安装器许可页使用 `assets/legal/legal_zh.txt`，需要与应用首次启动展示的完整法律与隐私说明保持同步。
 
 Android、iOS、macOS、Linux、Web、portable 与压缩包等当前没有仓库统一控制的安装前 GUI 或 CLI 协议确认页；这些渠道依赖应用首次启动的完整法律与隐私说明弹窗完成一次性确认。
 
