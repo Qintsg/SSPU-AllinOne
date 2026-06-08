@@ -31,15 +31,30 @@ void main() {
     );
   });
 
-  Future<void> configureView(WidgetTester tester, {required Size size}) async {
+  Future<void> configureView(
+    WidgetTester tester, {
+    required Size size,
+    double topPadding = 0,
+    double bottomPadding = 0,
+  }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
+    tester.view.padding = FakeViewPadding(
+      top: topPadding,
+      bottom: bottomPadding,
+    );
+    tester.view.viewPadding = FakeViewPadding(
+      top: topPadding,
+      bottom: bottomPadding,
+    );
     await tester.binding.setSurfaceSize(size);
   }
 
   Future<void> resetView(WidgetTester tester) async {
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
+    tester.view.resetPadding();
+    tester.view.resetViewPadding();
     await tester.binding.setSurfaceSize(null);
   }
 
@@ -47,8 +62,15 @@ void main() {
     WidgetTester tester, {
     required Size size,
     int messageCount = 45,
+    double topPadding = 0,
+    double bottomPadding = 0,
   }) async {
-    await configureView(tester, size: size);
+    await configureView(
+      tester,
+      size: size,
+      topPadding: topPadding,
+      bottomPadding: bottomPadding,
+    );
     SharedPreferences.setMockInitialValues({});
     StorageService.debugUseSharedPreferencesStorageForTesting(true);
     final messageStateService = MessageStateService.instance;
@@ -73,6 +95,7 @@ void main() {
     );
 
     await _pumpUntilFound(tester, find.byKey(const Key('info-message-list')));
+    expect(tester.takeException(), isNull);
   }
 
   tearDown(() async {
@@ -94,10 +117,11 @@ void main() {
       expect(list, findsOneWidget);
       expect(pagination, findsOneWidget);
       expect(find.text('消息操作'), findsNothing);
+      expect(tester.widget<Padding>(controls).padding, isA<EdgeInsets>());
 
-      expect(tester.getSize(controls).height, lessThanOrEqualTo(144));
-      expect(tester.getSize(pagination).height, lessThanOrEqualTo(56));
-      expect(tester.getSize(list).height, greaterThanOrEqualTo(430));
+      expect(tester.getSize(controls).height, lessThanOrEqualTo(112));
+      expect(tester.getSize(pagination).height, lessThanOrEqualTo(40));
+      expect(tester.getSize(list).height, greaterThanOrEqualTo(500));
       expect(find.byType(MessageTile), findsAtLeastNWidgets(5));
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
@@ -110,13 +134,60 @@ void main() {
     try {
       await pumpInfoPage(tester, size: const Size(1200, 900));
 
-      expect(find.text('消息操作'), findsOneWidget);
+      final controls = find.byKey(const Key('info-regular-controls'));
+      final list = find.byKey(const Key('info-message-list'));
+      final pagination = find.byKey(const Key('info-regular-pagination'));
+
+      final title = find.text('信息中心');
+      final markReadButton = find.textContaining('全部标为已读');
+
+      expect(title, findsOneWidget);
+      expect(markReadButton, findsOneWidget);
+      expect(find.text('消息操作'), findsNothing);
+      expect(controls, findsOneWidget);
+      expect(pagination, findsOneWidget);
       expect(find.byKey(const Key('info-mobile-controls')), findsNothing);
       expect(find.byKey(const Key('info-mobile-pagination')), findsNothing);
-      expect(find.byKey(const Key('info-message-list')), findsOneWidget);
+      expect(list, findsOneWidget);
+      expect(tester.widget<Column>(controls).mainAxisSize, MainAxisSize.min);
+      expect(tester.getSize(controls).height, lessThanOrEqualTo(136));
+      expect(tester.getSize(pagination).height, lessThanOrEqualTo(40));
+      expect(tester.getSize(list).height, greaterThanOrEqualTo(560));
+      expect(tester.getTopLeft(pagination).dy, greaterThan(820));
+      expect(
+        (tester.getCenter(markReadButton).dy - tester.getCenter(title).dy)
+            .abs(),
+        lessThanOrEqualTo(20),
+      );
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
+      await resetView(tester);
+    }
+  });
+
+  testWidgets('信息页移动端筛选弹窗不会触发滚动条控制器异常', (tester) async {
+    final previousTargetPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+
+    try {
+      await pumpInfoPage(
+        tester,
+        size: const Size(390, 844),
+        topPadding: 44,
+        bottomPadding: 34,
+      );
+
+      await tester.tap(find.byKey(const Key('info-mobile-filter-button')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      expect(find.text('筛选消息'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      debugDefaultTargetPlatformOverride = previousTargetPlatform;
       await resetView(tester);
     }
   });
