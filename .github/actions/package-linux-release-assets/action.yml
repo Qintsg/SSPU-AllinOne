@@ -1,0 +1,177 @@
+name: package-linux-release-assets
+description: 从 Linux Flutter bundle 生成 AppImage、deb、rpm 与便携 tar.gz
+
+inputs:
+  version:
+    description: 公开版本号，不含 +build
+    required: true
+  channel:
+    description: 发布通道
+    required: true
+  build-number:
+    description: 构建号
+    required: true
+  bundle-dir:
+    description: Linux Flutter Release bundle 目录
+    required: true
+  arch-label:
+    description: Release 资产文件名中的架构标签，例如 x64 或 arm64
+    required: true
+  deb-architecture:
+    description: deb control 文件中的架构名
+    required: true
+  rpm-architecture:
+    description: rpm 包架构名
+    required: true
+  appimagetool-architecture:
+    description: appimagetool 下载资产架构名
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: 生成 Linux Release 产物
+      shell: bash
+      env:
+        RELEASE_VERSION: ${{ inputs.version }}
+        RELEASE_CHANNEL: ${{ inputs.channel }}
+        RELEASE_BUILD_NUMBER: ${{ inputs.build-number }}
+        BUNDLE_DIR: ${{ inputs.bundle-dir }}
+        ARCH_LABEL: ${{ inputs.arch-label }}
+        DEB_ARCHITECTURE: ${{ inputs.deb-architecture }}
+        RPM_ARCHITECTURE: ${{ inputs.rpm-architecture }}
+        APPIMAGETOOL_ARCHITECTURE: ${{ inputs.appimagetool-architecture }}
+      run: |
+        set -euo pipefail
+
+        bundle_dir="$BUNDLE_DIR"
+        stage_dir="$GITHUB_WORKSPACE/dist/stage"
+        package_name='sspu-allinone'
+        asset_prefix="SSPU-AllinOne-v${RELEASE_VERSION}-linux-${ARCH_LABEL}"
+        numeric_version="$(printf '%s' "$RELEASE_VERSION" | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
+        rpm_release="$RELEASE_BUILD_NUMBER"
+
+        if [[ "$RELEASE_CHANNEL" != "stable" ]]; then
+          rpm_release="0.${RELEASE_CHANNEL}.${RELEASE_BUILD_NUMBER}"
+        fi
+
+        [[ -f "$bundle_dir/sspu_allinone" ]] || {
+          echo "未找到 Linux 主程序：$bundle_dir/sspu_allinone" >&2
+          exit 1
+        }
+
+        chmod +x "$bundle_dir/sspu_allinone"
+        [[ -x "$bundle_dir/sspu_allinone" ]] || {
+          echo "Linux 主程序缺少可执行权限：$bundle_dir/sspu_allinone" >&2
+          exit 1
+        }
+
+        rm -rf "$stage_dir"
+        mkdir -p "$stage_dir" "$GITHUB_WORKSPACE/dist"
+
+        portable_root="$stage_dir/portable/SSPU-AllinOne"
+        mkdir -p "$portable_root"
+        cp -a "$bundle_dir/." "$portable_root/"
+        tar -C "$stage_dir/portable" \
+          -czf "$GITHUB_WORKSPACE/dist/${asset_prefix}-portable.tar.gz" \
+          SSPU-AllinOne
+
+        deb_root="$stage_dir/deb"
+        install_root="$deb_root/usr/lib/sspu-allinone"
+        desktop_root="$deb_root/usr/share/applications"
+        icon_root="$deb_root/usr/share/icons/hicolor/256x256/apps"
+        bin_root="$deb_root/usr/bin"
+        control_root="$deb_root/DEBIAN"
+
+        mkdir -p "$install_root" "$desktop_root" "$icon_root" "$bin_root" "$control_root"
+        cp -a "$bundle_dir/." "$install_root/"
+        install -Dm644 assets/images/app_icon.png "$icon_root/sspu-allinone.png"
+
+        cat > "$desktop_root/cn.qintsg.sspu_allinone.desktop" <<'EOF'
+        [Desktop Entry]
+        Version=1.0
+        Type=Application
+        Name=SSPU-AllinOne
+        Name[zh]=工大聚合
+        Name[zh_CN]=工大聚合
+        Name[zh_SG]=工大聚合
+        Name[zh_TW]=工大聚合
+        Name[zh_HK]=工大聚合
+        Comment=上海第二工业大学校园综合服务应用
+        Exec=/usr/lib/sspu-allinone/sspu_allinone
+        Icon=sspu-allinone
+        Terminal=false
+        Categories=Education;Utility;
+        StartupNotify=true
+        EOF
+
+        ln -sf ../lib/sspu-allinone/sspu_allinone "$bin_root/sspu-allinone"
+
+        cat > "$control_root/control" <<EOF
+        Package: sspu-allinone
+        Version: ${RELEASE_VERSION}
+        Section: education
+        Priority: optional
+        Architecture: ${DEB_ARCHITECTURE}
+        Maintainer: Qintsg
+        Depends: libgtk-3-0, libblkid1, liblzma5
+        Description: 上海第二工业大学校园综合服务应用
+         聚合学校官网、教学单位、职能部门与微信公众号信息的 Flutter 客户端。
+        EOF
+
+        dpkg-deb --build --root-owner-group \
+          "$deb_root" \
+          "$GITHUB_WORKSPACE/dist/${asset_prefix}-deb.deb"
+
+        rpm_root="$stage_dir/rpm"
+        rpm_install_root="$rpm_root/usr/lib/sspu-allinone"
+        rpm_desktop_root="$rpm_root/usr/share/applications"
+        rpm_icon_root="$rpm_root/usr/share/icons/hicolor/256x256/apps"
+        rpm_bin_root="$rpm_root/usr/bin"
+
+        mkdir -p "$rpm_install_root" "$rpm_desktop_root" "$rpm_icon_root" "$rpm_bin_root"
+        cp -a "$bundle_dir/." "$rpm_install_root/"
+        install -Dm644 assets/images/app_icon.png "$rpm_icon_root/sspu-allinone.png"
+        cp "$desktop_root/cn.qintsg.sspu_allinone.desktop" "$rpm_desktop_root/cn.qintsg.sspu_allinone.desktop"
+        ln -sf ../lib/sspu-allinone/sspu_allinone "$rpm_bin_root/sspu-allinone"
+
+        fpm -s dir -t rpm \
+          -n "$package_name" \
+          -v "$numeric_version" \
+          --iteration "$rpm_release" \
+          --architecture "$RPM_ARCHITECTURE" \
+          --description '上海第二工业大学校园综合服务应用' \
+          --url 'https://github.com/Qintsg/SSPU-AllinOne' \
+          --package "$GITHUB_WORKSPACE/dist/${asset_prefix}-rpm.rpm" \
+          -C "$rpm_root" .
+
+        appdir_root="$stage_dir/AppDir"
+        mkdir -p \
+          "$appdir_root/usr/lib/sspu-allinone" \
+          "$appdir_root/usr/share/applications" \
+          "$appdir_root/usr/share/icons/hicolor/256x256/apps"
+        cp -a "$bundle_dir/." "$appdir_root/usr/lib/sspu-allinone/"
+        cp "$desktop_root/cn.qintsg.sspu_allinone.desktop" \
+          "$appdir_root/usr/share/applications/cn.qintsg.sspu_allinone.desktop"
+        cp assets/images/app_icon.png \
+          "$appdir_root/usr/share/icons/hicolor/256x256/apps/sspu-allinone.png"
+
+        cat > "$appdir_root/AppRun" <<'EOF'
+        #!/usr/bin/env bash
+        set -euo pipefail
+        APPDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        export LD_LIBRARY_PATH="$APPDIR/usr/lib/sspu-allinone:${LD_LIBRARY_PATH:-}"
+        exec "$APPDIR/usr/lib/sspu-allinone/sspu_allinone" "$@"
+        EOF
+
+        chmod +x "$appdir_root/AppRun"
+        ln -sf usr/share/applications/cn.qintsg.sspu_allinone.desktop "$appdir_root/sspu-allinone.desktop"
+        ln -sf usr/share/icons/hicolor/256x256/apps/sspu-allinone.png "$appdir_root/sspu-allinone.png"
+
+        wget -q \
+          "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-${APPIMAGETOOL_ARCHITECTURE}.AppImage" \
+          -O "$stage_dir/appimagetool.AppImage"
+        chmod +x "$stage_dir/appimagetool.AppImage"
+        ARCH="$APPIMAGETOOL_ARCHITECTURE" "$stage_dir/appimagetool.AppImage" --appimage-extract-and-run \
+          "$appdir_root" \
+          "$GITHUB_WORKSPACE/dist/${asset_prefix}-appimage.AppImage"

@@ -1,0 +1,42 @@
+name: package-windows-portable
+description: 从 Windows Flutter bundle 生成便携 ZIP
+
+inputs:
+  bundle-dir:
+    description: Windows Flutter Release bundle 目录
+    required: true
+  output-path:
+    description: 便携 ZIP 输出路径
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: 生成 Windows Portable ZIP
+      shell: pwsh
+      run: |
+        $bundleDir = '${{ inputs.bundle-dir }}'
+        $outputPath = '${{ inputs.output-path }}'
+        $portableRoot = Join-Path $env:RUNNER_TEMP 'SSPU-AllinOne'
+        $outputParent = Split-Path -Parent $outputPath
+
+        if (-not (Test-Path $bundleDir)) {
+          throw "未找到 Windows bundle 目录：$bundleDir"
+        }
+
+        if ($outputParent -and -not (Test-Path $outputParent)) {
+          New-Item -ItemType Directory -Force -Path $outputParent | Out-Null
+        }
+
+        if (Test-Path $portableRoot) {
+          Remove-Item -LiteralPath $portableRoot -Recurse -Force
+        }
+
+        New-Item -ItemType Directory -Path $portableRoot | Out-Null
+        Copy-Item -Path (Join-Path $bundleDir '*') -Destination $portableRoot -Recurse
+
+        if (Test-Path $outputPath) {
+          Remove-Item -LiteralPath $outputPath -Force
+        }
+
+        Compress-Archive -Path $portableRoot -DestinationPath $outputPath

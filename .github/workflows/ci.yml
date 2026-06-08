@@ -167,32 +167,32 @@ jobs:
 
       - name: 校验 Release PR 目标分支
         shell: bash
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          RELEASE_CHANNEL: ${{ steps.release.outputs.channel }}
         run: |
           set -euo pipefail
 
-          base_ref='${{ github.event.pull_request.base.ref }}'
-          head_ref='${{ github.event.pull_request.head.ref }}'
-          channel='${{ steps.release.outputs.channel }}'
-
-          if [[ "$channel" == "stable" || "$channel" == "lts" || "$channel" == "hotfix" ]]; then
-            [[ "$base_ref" == "main" ]] || {
-              echo "stable / lts / hotfix Release PR 只能合并到 main，当前目标分支为 $base_ref。" >&2
+          if [[ "$RELEASE_CHANNEL" == "stable" || "$RELEASE_CHANNEL" == "lts" || "$RELEASE_CHANNEL" == "hotfix" ]]; then
+            [[ "$BASE_REF" == "main" ]] || {
+              echo "stable / lts / hotfix Release PR 只能合并到 main，当前目标分支为 $BASE_REF。" >&2
               exit 1
             }
-            [[ "$head_ref" == "develop" ]] || {
-              echo "stable / lts / hotfix Release PR 只能使用 develop -> main 晋级流程，当前源分支为 $head_ref。" >&2
+            [[ "$HEAD_REF" == "develop" ]] || {
+              echo "stable / lts / hotfix Release PR 只能使用 develop -> main 晋级流程，当前源分支为 $HEAD_REF。" >&2
               exit 1
             }
             exit 0
           fi
 
-          [[ "$base_ref" == "develop" ]] || {
-            echo "alpha / beta / rc Release PR 只能合并到 develop，当前目标分支为 $base_ref。" >&2
+          [[ "$BASE_REF" == "develop" ]] || {
+            echo "alpha / beta / rc Release PR 只能合并到 develop，当前目标分支为 $BASE_REF。" >&2
             exit 1
           }
 
-          [[ "$head_ref" =~ ^release/v[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?-(alpha|beta|rc)$ ]] || {
-            echo "alpha / beta / rc Release PR 源分支必须是 release/v...-$channel，当前源分支为 $head_ref。" >&2
+          [[ "$HEAD_REF" =~ ^release/v[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?-(alpha|beta|rc)$ ]] || {
+            echo "alpha / beta / rc Release PR 源分支必须是 release/v...-$RELEASE_CHANNEL，当前源分支为 $HEAD_REF。" >&2
             exit 1
           }
 

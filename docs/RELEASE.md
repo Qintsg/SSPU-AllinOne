@@ -112,6 +112,10 @@ alpha、beta、rc 属于预发布，直接由 `release/vX.X.X-channel` 分支合
 5. `develop -> main` 的 Release PR 必须携带 `release` label。
 6. PR merge 后由 `Build & Release` workflow 自动构建并创建普通 GitHub Release；工作流会检查目标 Tag 不存在、并发发布不互相取消、资产矩阵完整且 manifest / SHA256SUMS 与公开版本一致。
 
+### 3.4 Release workflow 维护边界
+
+`Build & Release` workflow 中跨平台重复的 Flutter 初始化、arm64 SDK 安装、Windows portable 打包、Linux 多格式产物整理和 Release 元数据生成逻辑必须优先放入 `.github/actions/` 下的 composite actions。修改这些 action 时，需要同步运行 GitHub 治理配置校验，确保 Release workflow 仍引用必要 action，且每个 action 保持 `runs.using: composite`。
+
 ---
 
 ## 4. Tag 与命名

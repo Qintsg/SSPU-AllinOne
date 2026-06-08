@@ -72,6 +72,7 @@ Scope: repo
 ## 验证规则
 
 - CI 对非草稿 PR 默认校验 PR 标题格式、分支命名、目标分支、release label 使用、GitHub 治理文件、变更 Dart 文件格式、`flutter analyze --no-fatal-infos` 与 `flutter test`。
+- Release workflow 复用逻辑放在 `.github/actions/` composite actions 中，覆盖 Flutter 初始化、arm64 SDK 安装、Windows portable 打包、Linux 多格式产物整理和 Release 元数据生成；治理校验会检查这些 action 存在且被 Release workflow 引用。
 - 本地 Dart/Flutter 静态分析：优先运行 `flutter analyze`，期望 `No issues found!`。
 - 本地测试：优先运行 `flutter test`；若耗时或平台限制导致无法全量运行，应至少运行受影响测试并说明限制。
 - 修改依赖、lockfile、Gradle、Podfile、GitHub Actions 或 composite action 时，Dependency Review workflow 会检查已知漏洞风险。

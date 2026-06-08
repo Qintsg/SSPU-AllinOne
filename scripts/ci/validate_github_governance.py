@@ -22,6 +22,15 @@ ISSUE_TEMPLATE_DIR = GITHUB_DIR / "ISSUE_TEMPLATE"
 PR_TEMPLATE_DIR = GITHUB_DIR / "PULL_REQUEST_TEMPLATE"
 LABELER_PATH = GITHUB_DIR / "labeler.yml"
 
+REQUIRED_COMPOSITE_ACTIONS = {
+    "generate-release-metadata",
+    "package-linux-release-assets",
+    "package-windows-portable",
+    "release-context",
+    "setup-flutter",
+    "setup-flutter-arm64",
+}
+
 REQUIRED_LABELER_LABELS = {
     "frontend",
     "services",
@@ -171,6 +180,45 @@ def validate_labeler() -> None:
         )
 
 
+def validate_composite_actions() -> None:
+    """
+    校验 Release workflow 依赖的 composite actions 存在并保持 composite 类型。
+
+    :return: None。
+    :raises GovernanceValidationError: action 缺失或类型不符合约束时抛出。
+    """
+    actions_dir = GITHUB_DIR / "actions"
+    action_names = {
+        action_path.parent.name
+        for action_path in actions_dir.glob("*/action.yml")
+    }
+    missing_actions = sorted(REQUIRED_COMPOSITE_ACTIONS - action_names)
+    if missing_actions:
+        raise GovernanceValidationError(
+            ".github/actions/ 缺少必要 composite action："
+            + ", ".join(missing_actions),
+        )
+
+    for action_name in sorted(REQUIRED_COMPOSITE_ACTIONS):
+        action_path = actions_dir / action_name / "action.yml"
+        action = load_yaml_file(action_path)
+        runs = action.get("runs")
+        if not isinstance(runs, dict) or runs.get("using") != "composite":
+            raise GovernanceValidationError(f"{action_path} 必须声明 runs.using: composite。")
+
+    release_workflow = (GITHUB_DIR / "workflows" / "release.yml").read_text(encoding="utf-8")
+    missing_uses = sorted(
+        action_name
+        for action_name in REQUIRED_COMPOSITE_ACTIONS
+        if f"./.github/actions/{action_name}" not in release_workflow
+    )
+    if missing_uses:
+        raise GovernanceValidationError(
+            ".github/workflows/release.yml 未引用必要 composite action："
+            + ", ".join(missing_uses),
+        )
+
+
 def main() -> int:
     """
     程序主入口。
@@ -183,6 +231,7 @@ def main() -> int:
     validate_issue_forms()
     validate_pr_templates()
     validate_labeler()
+    validate_composite_actions()
     print("GitHub governance files are valid.")
     return 0
 
