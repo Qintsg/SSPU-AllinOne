@@ -94,8 +94,8 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           context: context,
           index: 1,
           selectedIndex: _selectedTab,
-          icon: FluentIcons.sync,
-          label: '自动刷新设置',
+          icon: FluentIcons.calendar,
+          label: '学期设置',
           onTap: () => setState(() => _selectedTab = 1),
         ),
         const SizedBox(height: FluentSpacing.xxs),
@@ -103,9 +103,18 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           context: context,
           index: 2,
           selectedIndex: _selectedTab,
+          icon: FluentIcons.sync,
+          label: '自动刷新设置',
+          onTap: () => setState(() => _selectedTab = 2),
+        ),
+        const SizedBox(height: FluentSpacing.xxs),
+        buildSettingsNavItem(
+          context: context,
+          index: 3,
+          selectedIndex: _selectedTab,
           icon: FluentIcons.lock,
           label: '安全设置',
-          onTap: () => setState(() => _selectedTab = 2),
+          onTap: () => setState(() => _selectedTab = 3),
         ),
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -117,19 +126,10 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
         ),
         buildSettingsNavItem(
           context: context,
-          index: 3,
+          index: 4,
           selectedIndex: _selectedTab,
           icon: FluentIcons.education,
           label: '职能部门',
-          onTap: () => setState(() => _selectedTab = 3),
-        ),
-        const SizedBox(height: FluentSpacing.xxs),
-        buildSettingsNavItem(
-          context: context,
-          index: 4,
-          selectedIndex: _selectedTab,
-          icon: FluentIcons.library,
-          label: '教学单位',
           onTap: () => setState(() => _selectedTab = 4),
         ),
         const SizedBox(height: FluentSpacing.xxs),
@@ -137,9 +137,18 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           context: context,
           index: 5,
           selectedIndex: _selectedTab,
+          icon: FluentIcons.library,
+          label: '教学单位',
+          onTap: () => setState(() => _selectedTab = 5),
+        ),
+        const SizedBox(height: FluentSpacing.xxs),
+        buildSettingsNavItem(
+          context: context,
+          index: 6,
+          selectedIndex: _selectedTab,
           icon: FluentIcons.chat,
           label: '微信推文',
-          onTap: () => setState(() => _selectedTab = 5),
+          onTap: () => setState(() => _selectedTab = 6),
         ),
       ],
     );
@@ -158,11 +167,12 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
             isExpanded: true,
             items: const [
               FluentSelectItem(value: 0, child: Text('常规设置')),
-              FluentSelectItem(value: 1, child: Text('自动刷新设置')),
-              FluentSelectItem(value: 2, child: Text('安全设置')),
-              FluentSelectItem(value: 3, child: Text('职能部门')),
-              FluentSelectItem(value: 4, child: Text('教学单位')),
-              FluentSelectItem(value: 5, child: Text('微信推文')),
+              FluentSelectItem(value: 1, child: Text('学期设置')),
+              FluentSelectItem(value: 2, child: Text('自动刷新设置')),
+              FluentSelectItem(value: 3, child: Text('安全设置')),
+              FluentSelectItem(value: 4, child: Text('职能部门')),
+              FluentSelectItem(value: 5, child: Text('教学单位')),
+              FluentSelectItem(value: 6, child: Text('微信推文')),
             ],
             onChanged: (value) {
               if (value != null) setState(() => _selectedTab = value);
@@ -203,6 +213,8 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           onDndEndChanged: _onDndEndChanged,
         );
       case 1:
+        return SettingsAcademicTermSection(now: widget.academicTermNow);
+      case 2:
         return SettingsAutoRefreshSection(
           campusNetworkDetectionIntervalMinutes:
               _campusNetworkDetectionIntervalMinutes,
@@ -239,11 +251,11 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           onAcademicEamsAutoRefreshIntervalChanged:
               _onAcademicEamsAutoRefreshIntervalChanged,
           onOpenDepartmentRefreshSettings: () =>
-              setState(() => _selectedTab = 3),
-          onOpenTeachingRefreshSettings: () => setState(() => _selectedTab = 4),
-          onOpenWechatRefreshSettings: () => setState(() => _selectedTab = 5),
+              setState(() => _selectedTab = 4),
+          onOpenTeachingRefreshSettings: () => setState(() => _selectedTab = 5),
+          onOpenWechatRefreshSettings: () => setState(() => _selectedTab = 6),
         );
-      case 2:
+      case 3:
         return SettingsSecuritySection(
           isPasswordEnabled: _isPasswordEnabled,
           onPasswordProtectionChanged: _onPasswordProtectionChanged,
@@ -256,19 +268,19 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           onClearMessageCache: _showClearMessageCacheDialog,
           onClearAllData: _showClearAllDataDialog,
         );
-      case 3:
+      case 4:
         return ChannelListSection(
           key: const ValueKey('department'),
           title: '职能部门',
           channels: departmentChannels,
         );
-      case 4:
+      case 5:
         return ChannelListSection(
           key: const ValueKey('teaching'),
           title: '教学单位',
           channels: teachingChannels,
         );
-      case 5:
+      case 6:
         return const SettingsWechatSection();
       default:
         return const SizedBox.shrink();
