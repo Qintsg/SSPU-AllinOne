@@ -8,8 +8,11 @@
 
 import 'package:sspu_allinone/design/fluent_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sspu_allinone/models/academic_calendar.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
+import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/pages/course_schedule_page.dart';
+import 'package:sspu_allinone/services/academic_calendar_service.dart';
 import 'package:sspu_allinone/services/academic_eams_service.dart';
 
 Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
@@ -30,6 +33,7 @@ Future<void> pumpCourseSchedulePage(
   AcademicEamsQueryResult? initialResult,
   bool autoRefreshEnabledOverride = false,
   int autoRefreshIntervalOverride = 30,
+  AcademicCalendarClient? academicCalendarService,
 }) async {
   await tester.pumpWidget(
     FluentApp(
@@ -38,6 +42,7 @@ Future<void> pumpCourseSchedulePage(
         initialResult: initialResult,
         autoRefreshEnabledOverride: autoRefreshEnabledOverride,
         autoRefreshIntervalOverride: autoRefreshIntervalOverride,
+        academicCalendarService: academicCalendarService,
       ),
     ),
   );
@@ -127,6 +132,26 @@ void main() {
     expect(find.text('返回'), findsOneWidget);
     await disposeCourseSchedulePage(tester);
   });
+
+  testWidgets('课程表页面显示校历入口并可进入校历页', (tester) async {
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _successResult),
+      academicCalendarService: _FakeAcademicCalendarClient(
+        entries: [_calendarEntry()],
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('open-academic-calendar')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await pumpUntilFound(tester, find.text('校历已就绪'));
+
+    expect(find.text('校历'), findsWidgets);
+    expect(find.text('2025-2026学年'), findsWidgets);
+    expect(find.text('秋季学期'), findsOneWidget);
+    await disposeCourseSchedulePage(tester);
+  });
 }
 
 class _FakeAcademicEamsClient implements AcademicEamsClient {
@@ -162,6 +187,103 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   }) async {
     return result;
   }
+}
+
+class _FakeAcademicCalendarClient implements AcademicCalendarClient {
+  _FakeAcademicCalendarClient({required this.entries});
+
+  final List<AcademicCalendarCacheEntry> entries;
+
+  @override
+  Future<AcademicCalendarSyncResult> ensureCalendarsForDate({
+    DateTime? now,
+  }) async {
+    return AcademicCalendarSyncResult(
+      entries: entries,
+      loadedFromCache: entries.isNotEmpty,
+      refreshed: false,
+    );
+  }
+
+  @override
+  Future<List<AcademicCalendarCacheEntry>> readCachedCalendars() async {
+    return entries;
+  }
+
+  @override
+  Future<List<AcademicTermDefinition>> readCachedTermDefinitions() async {
+    return AcademicCalendarService.termDefinitionsFromEntries(entries);
+  }
+
+  @override
+  Future<AcademicCalendarCacheEntry?> readCachedCalendar(int schoolYear) async {
+    for (final entry in entries) {
+      if (entry.schoolYearStart == schoolYear) return entry;
+    }
+    return null;
+  }
+
+  @override
+  Future<List<AcademicCalendarCacheEntry>> refreshCalendars({
+    List<int>? targetYears,
+  }) async {
+    return entries;
+  }
+}
+
+AcademicCalendarCacheEntry _calendarEntry() {
+  final schedule = AcademicCalendarTermSchedule(
+    schoolYearStart: 2025,
+    fallStart: DateTime(2025, 9, 22),
+    fallEnd: DateTime(2026, 1, 18),
+    springStart: DateTime(2026, 3, 2),
+    springEnd: DateTime(2026, 6, 28),
+    summerStart: DateTime(2026, 6, 29),
+    summerEnd: DateTime(2026, 9, 20),
+    summerSegments: [
+      AcademicTermTeachingSegment(
+        startDate: DateTime(2026, 6, 29),
+        endDate: DateTime(2026, 7, 12),
+        startWeek: 1,
+        endWeek: 2,
+      ),
+      AcademicTermTeachingSegment(
+        startDate: DateTime(2026, 8, 31),
+        endDate: DateTime(2026, 9, 20),
+        startWeek: 3,
+        endWeek: 5,
+      ),
+    ],
+    dayTags: [
+      AcademicCalendarDayTag(
+        date: DateTime(2025, 11, 7),
+        type: AcademicCalendarDayTagType.sportsDay,
+        label: '校运会停课一天',
+        sourceText: '校运会：11月7日（周五）停课一天',
+      ),
+    ],
+    pendingHolidayNotices: const [
+      AcademicCalendarPendingHolidayNotice(sourceText: '国庆节、元旦放假安排另行通知'),
+    ],
+    parseWarnings: const [],
+  );
+  return AcademicCalendarCacheEntry(
+    schoolYearStart: 2025,
+    title: '2025-2026学年校历',
+    detailUrl: 'https://jwc.sspu.edu.cn/detail.htm',
+    publishDate: '2025-04-24',
+    pdfUrl: 'https://jwc.sspu.edu.cn/calendar.pdf',
+    imageUrls: const [],
+    sourceType: AcademicCalendarSourceType.pdf,
+    fetchedAt: DateTime(2026),
+    parseVersion: AcademicCalendarService.parseVersion,
+    pdfFilePath: null,
+    rawTextFilePath: null,
+    rawExtractedText: null,
+    schedule: schedule,
+    warnings: const [],
+    errorMessage: null,
+  );
 }
 
 final AcademicEamsQueryResult _successResult = AcademicEamsQueryResult(

@@ -105,6 +105,9 @@ class StorageKeys {
   static const String academicEamsCourseTableCacheCollection =
       'cache_academic_eams_course_table';
 
+  /// 教务处校历缓存集合。
+  static const String academicCalendarCollection = 'cache_academic_calendar';
+
   /// 学校邮箱业务快照缓存集合。
   static const String emailMailboxCacheCollection = 'cache_email_mailbox';
 }
