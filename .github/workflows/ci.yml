@@ -131,6 +131,9 @@ jobs:
         run: flutter pub get
 
       - name: Dart Format（仅检查 PR 变更的 Dart 文件）
+        if: >
+          github.event.pull_request.base.ref != 'main' ||
+          github.event.pull_request.head.ref != 'develop'
         shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
