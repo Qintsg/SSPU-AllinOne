@@ -9,7 +9,6 @@
 
 import 'dart:math';
 import '../design/fluent_ui.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/message_item.dart';
 import '../models/channel_config.dart';
@@ -24,6 +23,10 @@ import '../utils/webview_env.dart';
 import 'webview_page.dart';
 
 part 'info_page_filters.dart';
+part 'info_page_controls.dart';
+part 'info_page_mobile_controls.dart';
+part 'info_page_filter_dialog.dart';
+part 'info_page_pagination.dart';
 part 'info_page_widgets.dart';
 
 /// 信息中心页面
@@ -72,6 +75,9 @@ class _InfoPageState extends State<InfoPage> {
   /// 搜索框控制器
   final TextEditingController _searchController = TextEditingController();
 
+  /// 消息列表滚动控制器，避免移动端自动滚动条误用外层 PrimaryScrollController。
+  final ScrollController _messageListController = ScrollController();
+
   /// 消息状态服务
   final MessageStateService _stateService = MessageStateService.instance;
 
@@ -89,6 +95,7 @@ class _InfoPageState extends State<InfoPage> {
   void dispose() {
     _refreshService.removeListener(_onRefreshServiceChanged);
     _searchController.dispose();
+    _messageListController.dispose();
     super.dispose();
   }
 
@@ -222,10 +229,6 @@ class _InfoPageState extends State<InfoPage> {
   @override
   Widget build(BuildContext context) => _buildInfoPageView(this, context);
 
-  /// 构建操作栏：全部标为已读 + 刷新官网消息 + 刷新微信消息（占位）
-  Widget _buildActionBar(FluentThemeData theme) =>
-      _buildInfoActionBar(this, theme);
-
   /// 构建刷新进度条。
   Widget _buildRefreshProgress(FluentThemeData theme) =>
       _buildInfoRefreshProgress(this, theme);
@@ -233,10 +236,6 @@ class _InfoPageState extends State<InfoPage> {
   /// 构建搜索栏
   Widget _buildSearchBar(FluentThemeData theme) =>
       _buildInfoSearchBar(this, theme);
-
-  /// 构建筛选栏：来源类型 + 来源名称（级联） + 内容分类（级联） + 未读筛选
-  Widget _buildFilterBar(FluentThemeData theme, bool isDark) =>
-      _buildInfoFilterBar(this, theme, isDark);
 
   /// 根据当前来源类型获取可选的来源名称列表
   List<MessageSourceName> _getAvailableSourceNames() =>
@@ -258,6 +257,8 @@ class _InfoPageState extends State<InfoPage> {
     required String Function(T) itemLabel,
     required void Function(T?) onChanged,
     bool enabled = true,
+    double minWidth = 180,
+    double maxWidth = 240,
   }) => _buildInfoFilterCombo(
     label: label,
     value: value,
@@ -265,6 +266,8 @@ class _InfoPageState extends State<InfoPage> {
     itemLabel: itemLabel,
     onChanged: onChanged,
     enabled: enabled,
+    minWidth: minWidth,
+    maxWidth: maxWidth,
   );
 
   /// 构建消息列表

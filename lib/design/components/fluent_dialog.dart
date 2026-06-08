@@ -36,8 +36,43 @@ class FluentDialog extends StatelessWidget {
       constraints: constraints,
       child: ContentDialog(
         title: title,
-        content: SingleChildScrollView(child: content),
+        content: _FluentDialogScrollableContent(child: content),
         actions: actions,
+      ),
+    );
+  }
+}
+
+/// 对话框内容滚动区，显式共享控制器给滚动视图和滚动条。
+class _FluentDialogScrollableContent extends StatefulWidget {
+  const _FluentDialogScrollableContent({required this.child});
+
+  /// 主体内容。
+  final Widget child;
+
+  @override
+  State<_FluentDialogScrollableContent> createState() =>
+      _FluentDialogScrollableContentState();
+}
+
+class _FluentDialogScrollableContentState
+    extends State<_FluentDialogScrollableContent> {
+  late final ScrollController _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scrollbar(
+      controller: _controller,
+      child: SingleChildScrollView(
+        controller: _controller,
+        primary: false,
+        child: widget.child,
       ),
     );
   }
