@@ -199,16 +199,14 @@ class _CompactNavigationShell extends StatelessWidget {
     final moreSelected = hiddenIndexes.contains(selectedIndex);
 
     return ScaffoldPage(
-      content: SafeArea(
-        bottom: false,
-        child: MediaQuery.removePadding(
-          context: context,
-          removeBottom: true,
-          child: _NavigationBody(
-            destinations: destinations,
-            selectedIndex: selectedIndex,
-            visitedIndexes: visitedIndexes,
-          ),
+      padding: EdgeInsets.zero,
+      content: MediaQuery.removePadding(
+        context: context,
+        removeBottom: true,
+        child: _NavigationBody(
+          destinations: destinations,
+          selectedIndex: selectedIndex,
+          visitedIndexes: visitedIndexes,
         ),
       ),
       bottomBar: Container(
