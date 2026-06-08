@@ -23,6 +23,7 @@ Scope: repo
 5. 关联 Issue 默认使用 `Refs #123`；需要合并后自动关闭时，必须在 PR 正文保留 `Closes #123` / `Fixes #123` / `Resolves #123` 等关闭关键字。
 6. PR 中写明变更说明、验证记录、影响范围和回滚方式。
 7. PR 合并入 `develop` 后，`Close Linked Issues` workflow 会关闭同仓库内通过关闭关键字或 GitHub closing reference 识别到的 Issue。
+8. `develop -> main` 可用于默认分支治理配置同步；只有明确发版时才添加 `release` label。
 
 ## Issue 与 PR 模板
 

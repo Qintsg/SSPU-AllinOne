@@ -76,9 +76,9 @@ jobs:
               release_channel = (release_branch.group(3) or "stable").lstrip("-")
 
           if base_ref == "main":
-              if head_ref != "develop" or not has_release_label:
+              if head_ref != "develop":
                   print(
-                      "main 只接收 develop -> main 且带 release label 的稳定发布 PR。",
+                      "main 只接收 develop -> main 同步 PR。",
                       file=sys.stderr,
                   )
                   sys.exit(1)
