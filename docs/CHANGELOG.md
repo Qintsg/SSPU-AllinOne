@@ -10,6 +10,7 @@
 
 ### 变更
 
+- 完善 CI/CD 与仓库治理门禁：普通 PR 增加标题/分支/base 校验、变更 Dart 文件格式检查、`flutter test`、GitHub 治理配置校验、Dependency Review、PR Metadata 与 Issue Triage 自动化，并补齐标签字典与文档说明。
 - 收敛 PR 模板为默认通用模板与 Release 专项模板，并完善 Issue 表单的多选平台、影响模块、优先级建议、敏感信息提醒和验收字段。
 
 ### 修复

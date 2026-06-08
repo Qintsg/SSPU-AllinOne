@@ -26,6 +26,10 @@ env:
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}-${{ github.event.inputs.base_ref || github.event.pull_request.base.ref }}
+  cancel-in-progress: false
+
 jobs:
   prepare:
     if: >
@@ -58,6 +62,11 @@ jobs:
 
           if [[ '${{ github.event_name }}' == 'workflow_dispatch' ]]; then
             base_ref='${{ github.event.inputs.base_ref }}'
+            current_ref='${{ github.ref_name }}'
+            if [[ "$current_ref" != "$base_ref" ]]; then
+              echo "手动发布的当前 ref 必须与 base_ref 一致：current_ref=$current_ref, base_ref=$base_ref。" >&2
+              exit 1
+            fi
           else
             base_ref='${{ github.event.pull_request.base.ref }}'
           fi
@@ -76,6 +85,16 @@ jobs:
             echo "alpha / beta / rc Release 必须由 release/v... -> develop 的 release PR merge 触发，当前目标分支为 $base_ref。" >&2
             exit 1
           }
+
+      - name: 校验 Release Tag 不存在
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          if git rev-parse --verify --quiet "refs/tags/${{ steps.release.outputs.tag }}" >/dev/null; then
+            echo "Release Tag ${{ steps.release.outputs.tag }} 已存在。重发同一公开版本时必须递增 pubspec.yaml 的 +build 并重新走发版流程。" >&2
+            exit 1
+          fi
 
   build-android:
     needs: prepare
@@ -107,20 +126,30 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ -n "${ANDROID_KEYSTORE_BASE64:-}" && \
-                -n "${ANDROID_KEYSTORE_PASSWORD:-}" && \
-                -n "${ANDROID_KEY_ALIAS:-}" && \
-                -n "${ANDROID_KEY_PASSWORD:-}" ]]; then
-            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/ci-release.jks
-            {
-              printf 'storePassword=%s\n' "$ANDROID_KEYSTORE_PASSWORD"
-              printf 'keyPassword=%s\n' "$ANDROID_KEY_PASSWORD"
-              printf 'keyAlias=%s\n' "$ANDROID_KEY_ALIAS"
-              printf 'storeFile=%s\n' 'app/ci-release.jks'
-            } > android/key.properties
-          else
-            echo "未配置 Android Release 签名 Secrets，当前将退回到仓库中的 debug 签名策略。"
+          missing_secrets=()
+          for secret_name in \
+            ANDROID_KEYSTORE_BASE64 \
+            ANDROID_KEYSTORE_PASSWORD \
+            ANDROID_KEY_ALIAS \
+            ANDROID_KEY_PASSWORD; do
+            if [[ -z "${!secret_name:-}" ]]; then
+              missing_secrets+=("$secret_name")
+            fi
+          done
+
+          if [[ "${#missing_secrets[@]}" -gt 0 ]]; then
+            printf 'Android Release 签名 Secrets 缺失：%s\n' "${missing_secrets[*]}" >&2
+            echo "正式发布不得回退到 debug 签名策略。" >&2
+            exit 1
           fi
+
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/ci-release.jks
+          {
+            printf 'storePassword=%s\n' "$ANDROID_KEYSTORE_PASSWORD"
+            printf 'keyPassword=%s\n' "$ANDROID_KEY_PASSWORD"
+            printf 'keyAlias=%s\n' "$ANDROID_KEY_ALIAS"
+            printf 'storeFile=%s\n' 'app/ci-release.jks'
+          } > android/key.properties
 
       - name: 构建 Android Universal APK
         run: flutter build apk --release

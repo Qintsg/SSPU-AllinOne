@@ -4,7 +4,8 @@
 
 ## 关联 Issue
 
-<!-- 保留 Closes / Fixes / Resolves 关键字，合并到 develop 后会自动关闭关联 Issue。 -->
+<!-- 需要关闭 Issue 时保留 Closes / Fixes / Resolves；仅引用请写 Refs #123。 -->
+<!-- 合并到 develop 后，只有关闭关键字或 GitHub closing reference 会自动关闭 Issue。 -->
 Closes #
 
 ## 变更类型
@@ -56,6 +57,7 @@ Closes #
 - [ ] 没有引入账号、密码、Cookie、Token、私钥、keystore 或真实用户数据
 - [ ] 已更新相关文档 / Changelog，或说明无需更新
 - [ ] 若修改版本 / Release / CI，已遵循 `docs/RELEASE.md`
+- [ ] 若无需关联 Issue，确认本 PR 属于 docs/chore/dependencies/release 等豁免场景
 - [ ] 用户可见文件名、Release 标题和说明中未显式写出 `+build`
 
 <!-- Release PR 请改用 release 模板：?template=release.md -->

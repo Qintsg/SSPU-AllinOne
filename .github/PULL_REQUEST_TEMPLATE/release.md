@@ -4,7 +4,7 @@
 <!-- 说明本次发布的背景、目标公开版本、发布原因 -->
 
 ## 关联事项
-<!-- 关联当前仓库内的 Issue / 任务 -->
+<!-- 需要关闭 Issue 时保留 Closes / Fixes / Resolves；仅引用请写 Refs #123。 -->
 Closes #
 
 <!-- Release PR 是唯一专项 PR 模板；其它 PR 默认使用 .github/pull_request_template.md。 -->

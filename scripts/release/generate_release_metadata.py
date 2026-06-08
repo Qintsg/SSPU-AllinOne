@@ -15,7 +15,7 @@ import hashlib
 import json
 import re
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 
 FILENAME_PATTERN = re.compile(
@@ -25,6 +25,24 @@ FILENAME_PATTERN = re.compile(
     r"(?:-(?P<kind>installer|portable|bundle|static|unsigned|appimage|deb|rpm))?"
     r"(?P<ext>\.AppImage|\.tar\.gz|\.zip|\.exe|\.dmg|\.deb|\.rpm|\.apk)$"
 )
+
+EXPECTED_PRODUCT_ASSETS = {
+    ("android", "universal", "bundle"),
+    ("windows", "x64", "installer"),
+    ("windows", "x64", "portable"),
+    ("windows", "arm64", "installer"),
+    ("windows", "arm64", "portable"),
+    ("macos", "universal", "unsigned"),
+    ("linux", "x64", "appimage"),
+    ("linux", "x64", "deb"),
+    ("linux", "x64", "rpm"),
+    ("linux", "x64", "portable"),
+    ("linux", "arm64", "appimage"),
+    ("linux", "arm64", "deb"),
+    ("linux", "arm64", "rpm"),
+    ("linux", "arm64", "portable"),
+    ("web", "universal", "static"),
+}
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -151,6 +169,41 @@ def render_manifest(
     }
 
 
+def validate_release_matrix(platform_entries: List[Dict[str, str]]) -> None:
+    """
+    校验 Release 资产矩阵完整性
+    :param platform_entries: 已解析的产物条目
+    :return: None
+    :raises ValueError: 资产缺失、重复或超出发布矩阵时抛出异常
+    """
+    actual_assets: List[Tuple[str, str, str]] = [
+        (entry["platform"], entry["arch"], entry["kind"])
+        for entry in platform_entries
+    ]
+    actual_asset_set = set(actual_assets)
+
+    if len(actual_asset_set) != len(actual_assets):
+        duplicate_assets = sorted(
+            {
+                asset
+                for asset in actual_assets
+                if actual_assets.count(asset) > 1
+            },
+        )
+        raise ValueError(f"Release 资产存在重复平台条目：{duplicate_assets}")
+
+    missing_assets = sorted(EXPECTED_PRODUCT_ASSETS - actual_asset_set)
+    unexpected_assets = sorted(actual_asset_set - EXPECTED_PRODUCT_ASSETS)
+
+    if missing_assets or unexpected_assets:
+        message_lines: List[str] = ["Release 资产矩阵不完整或包含未知产物："]
+        if missing_assets:
+            message_lines.append(f"- 缺失：{missing_assets}")
+        if unexpected_assets:
+            message_lines.append(f"- 未知：{unexpected_assets}")
+        raise ValueError("\n".join(message_lines))
+
+
 def write_sha256_sums(asset_directory: Path, asset_files: List[Path]) -> None:
     """
     写入 SHA256SUMS.txt
@@ -190,6 +243,7 @@ def main() -> int:
         build_platform_entry(asset_file=asset_file, expected_version=arguments.version)
         for asset_file in product_asset_files
     ]
+    validate_release_matrix(platform_entries=platform_entries)
 
     manifest_path = asset_directory / "manifest.json"
     manifest_payload = render_manifest(platform_entries=platform_entries, arguments=arguments)

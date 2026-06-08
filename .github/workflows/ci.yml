@@ -1,5 +1,6 @@
 # CI 工作流
-# 普通 PR 负责 analyze；带 release 标签的 PR 额外校验发布分支与发布说明模板。
+# 普通 PR 负责标题/分支、Dart 格式、analyze、test 与治理文件校验；
+# 带 release 标签的 PR 额外校验发布分支与发布说明模板。
 name: CI
 
 on:
@@ -13,11 +14,112 @@ permissions:
   contents: read
 
 jobs:
+  pr-policy:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: 校验 PR 标题、分支与目标分支
+        shell: bash
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import re
+          import sys
+
+          title = os.environ["PR_TITLE"]
+          head_ref = os.environ["HEAD_REF"]
+          base_ref = os.environ["BASE_REF"]
+          author = os.environ["PR_AUTHOR"]
+          labels = set(json.loads(os.environ["PR_LABELS"]))
+
+          title_pattern = re.compile(
+              r"^(feat|fix|docs|style|refactor|test|chore|ci|build|perf|deps|release)"
+              r"(\([a-z0-9-]+\))?: .+"
+          )
+          if title_pattern.fullmatch(title) is None:
+              print(
+                  "PR 标题必须符合 type(scope): 中文摘要，例如 "
+                  "fix(auth): 修复登录状态回退。",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+
+          if author != "dependabot[bot]" and re.search(r"[\u4e00-\u9fff]", title) is None:
+              print("PR 标题摘要必须包含中文说明。", file=sys.stderr)
+              sys.exit(1)
+
+          branch_pattern = re.compile(
+              r"^((qintsg/)?(feature|fix|docs|chore|refactor|test|ci)/[a-z0-9][a-z0-9-]*"
+              r"|(qintsg/)?hotfix/[a-z0-9][a-z0-9-]*"
+              r"|release/v\d+\.\d+\.\d+(\.\d+)?(-(alpha|beta|rc|lts|hotfix))?"
+              r"|dependabot/.+|develop)$"
+          )
+          if branch_pattern.fullmatch(head_ref) is None:
+              print(f"分支名不符合规范：{head_ref}", file=sys.stderr)
+              sys.exit(1)
+
+          has_release_label = "release" in labels
+          release_branch = re.fullmatch(
+              r"release/v\d+\.\d+\.\d+(\.\d+)?(-(alpha|beta|rc|lts|hotfix))?",
+              head_ref,
+          )
+          release_channel = None
+          if release_branch is not None:
+              release_channel = (release_branch.group(3) or "stable").lstrip("-")
+
+          if base_ref == "main":
+              if head_ref != "develop" or not has_release_label:
+                  print(
+                      "main 只接收 develop -> main 且带 release label 的稳定发布 PR。",
+                      file=sys.stderr,
+                  )
+                  sys.exit(1)
+          elif base_ref != "develop":
+              print(f"常规 PR 只能合入 develop，当前目标分支为 {base_ref}。", file=sys.stderr)
+              sys.exit(1)
+
+          if has_release_label:
+              valid_prerelease = (
+                  base_ref == "develop"
+                  and release_channel in {"alpha", "beta", "rc"}
+              )
+              valid_stable_promotion = base_ref == "main" and head_ref == "develop"
+              if not (valid_prerelease or valid_stable_promotion):
+                  print(
+                      "release label 只能用于 release/v*-alpha|beta|rc -> develop "
+                      "或 develop -> main 的发布 PR。",
+                      file=sys.stderr,
+                  )
+                  sys.exit(1)
+          PY
+
+  governance-gate:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: 安装 YAML 校验依赖
+        run: python -m pip install --disable-pip-version-check pyyaml
+
+      - name: 校验 GitHub 治理配置
+        run: python scripts/ci/validate_github_governance.py
+
   quality-gate:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.3
+        with:
+          fetch-depth: 0
 
       - uses: subosito/flutter-action@v2.23.0
         with:
@@ -28,8 +130,29 @@ jobs:
       - name: 安装依赖
         run: flutter pub get
 
+      - name: Dart Format（仅检查 PR 变更的 Dart 文件）
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+
+          mapfile -t dart_files < <(
+            git diff --name-only --diff-filter=ACMR "$BASE_SHA" HEAD -- '*.dart'
+          )
+
+          if [[ "${#dart_files[@]}" -eq 0 ]]; then
+            echo "No changed Dart files."
+            exit 0
+          fi
+
+          dart format --set-exit-if-changed "${dart_files[@]}"
+
       - name: Flutter Analyze
         run: flutter analyze --no-fatal-infos
+
+      - name: Flutter Test
+        run: flutter test
 
   release-policy:
     if: >
@@ -48,6 +171,7 @@ jobs:
           set -euo pipefail
 
           base_ref='${{ github.event.pull_request.base.ref }}'
+          head_ref='${{ github.event.pull_request.head.ref }}'
           channel='${{ steps.release.outputs.channel }}'
 
           if [[ "$channel" == "stable" || "$channel" == "lts" || "$channel" == "hotfix" ]]; then
@@ -55,11 +179,20 @@ jobs:
               echo "stable / lts / hotfix Release PR 只能合并到 main，当前目标分支为 $base_ref。" >&2
               exit 1
             }
+            [[ "$head_ref" == "develop" ]] || {
+              echo "stable / lts / hotfix Release PR 只能使用 develop -> main 晋级流程，当前源分支为 $head_ref。" >&2
+              exit 1
+            }
             exit 0
           fi
 
           [[ "$base_ref" == "develop" ]] || {
             echo "alpha / beta / rc Release PR 只能合并到 develop，当前目标分支为 $base_ref。" >&2
+            exit 1
+          }
+
+          [[ "$head_ref" =~ ^release/v[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?-(alpha|beta|rc)$ ]] || {
+            echo "alpha / beta / rc Release PR 源分支必须是 release/v...-$channel，当前源分支为 $head_ref。" >&2
             exit 1
           }
 

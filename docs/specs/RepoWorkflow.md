@@ -20,9 +20,9 @@ Scope: repo
 2. 根据 `.github/分支命名规范.md` 签出任务分支，例如 `feature/<topic>`、`fix/<topic>`、`refactor/<topic>`、`docs/<topic>`。
 3. 完成开发、测试、文档和模板更新。
 4. 默认使用 `.github/pull_request_template.md` 通用 PR 模板创建合并到 `develop` 的 PR；Release PR 使用 `.github/PULL_REQUEST_TEMPLATE/release.md`，也可在创建 PR URL 中指定 `?template=release.md`。
-5. 关联 Issue 必须在 PR 正文保留 `Closes #123` / `Fixes #123` / `Resolves #123` 等关闭关键字。
+5. 关联 Issue 默认使用 `Refs #123`；需要合并后自动关闭时，必须在 PR 正文保留 `Closes #123` / `Fixes #123` / `Resolves #123` 等关闭关键字。
 6. PR 中写明变更说明、验证记录、影响范围和回滚方式。
-7. PR 合并入 `develop` 后，`Close Linked Issues` workflow 会关闭同仓库内通过关闭关键字或 GitHub 关联关系识别到的 Issue。
+7. PR 合并入 `develop` 后，`Close Linked Issues` workflow 会关闭同仓库内通过关闭关键字或 GitHub closing reference 识别到的 Issue。
 
 ## Issue 与 PR 模板
 
@@ -30,7 +30,19 @@ Scope: repo
 - Release PR 只使用 Release 专项模板，并保持发布说明章节与 `docs/RELEASE.md` 的校验规则一致。
 - Issue 表单优先使用结构化字段描述优先级、目标平台、影响模块和验证/验收标准；可多选字段用于平台、模块、任务类型、影响范围等天然多值信息。
 - Issue 表单中的优先级建议与 `P0` / `P1` / `P2` / `P3` 标签语义对齐，最终优先级仍由维护者确认。
+- Issue Triage workflow 会从 Issue Form 结构化字段同步类型、优先级、平台、模块和状态标签；新 Issue 默认进入 `needs-triage`，任务型 Issue 在待办与验收标准完整时可进入 `ready`。
+- PR Metadata workflow 会根据 PR 标题 / 分支添加类型标签，从关联 Issue 继承最高优先级、平台和模块标签，并在缺少关联 Issue 且不属于 docs/chore/dependencies/release 豁免时添加 `needs-issue`。
+- PR Metadata workflow 会收集 PR commit author / committer 对应的 GitHub 用户，自动把可识别且有仓库权限的非 bot 用户加入 Assignees，不移除人工分配人员。
 - 日志、截图、录屏和补充信息不得包含账号、密码、Cookie、Token、验证码、私钥、keystore 或真实用户隐私数据。
+
+## Labels
+
+- 类型标签：`bug`、`enhancement`、`documentation`、`dependencies`、`task`、`refactor`、`chore`、`question`。
+- 优先级标签：`P0` 阻塞 / 紧急，`P1` 高优先级，`P2` 中优先级，`P3` 低优先级。
+- 模块标签：`frontend`、`services`、`models`、`storage`、`installer`、`update`、`auth`、`notification`、`ci`、`governance`、`release-files`。
+- 平台标签：`windows`、`macos`、`linux`、`android`、`ios`、`web`。
+- 状态标签：`needs-triage`、`needs-info`、`blocked`、`ready`、`needs-issue`。
+- `release` 仅作为人工触发公开 Release workflow 的标签，任何 labeler / triage 自动化都不得自动添加。
 
 ## Release 流程
 
@@ -59,8 +71,11 @@ Scope: repo
 
 ## 验证规则
 
-- Dart/Flutter 静态分析：优先运行 `flutter analyze`，期望 `No issues found!`。
-- 测试：优先运行 `flutter test`；若耗时或平台限制导致无法全量运行，应至少运行受影响测试并说明限制。
+- CI 对非草稿 PR 默认校验 PR 标题格式、分支命名、目标分支、release label 使用、GitHub 治理文件、变更 Dart 文件格式、`flutter analyze --no-fatal-infos` 与 `flutter test`。
+- 本地 Dart/Flutter 静态分析：优先运行 `flutter analyze`，期望 `No issues found!`。
+- 本地测试：优先运行 `flutter test`；若耗时或平台限制导致无法全量运行，应至少运行受影响测试并说明限制。
+- 修改依赖、lockfile、Gradle、Podfile、GitHub Actions 或 composite action 时，Dependency Review workflow 会检查已知漏洞风险。
+- GitHub Actions 固定策略：发布、供应链和会写入仓库元数据的高风险 action 优先固定到 SHA 并保留版本注释；普通工具类 action 可固定到明确版本 tag，并交由 Dependabot 分组升级。
 - UI/响应式改动应至少覆盖桌面宽屏、平板/中屏、移动窄屏的布局自查；不可出现非预期横向滚动、遮挡、溢出。
 - 安全/密码保护改动必须验证：启用、禁用、修改密码、失败/取消回退、清除本地状态等路径。
 

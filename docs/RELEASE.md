@@ -86,8 +86,8 @@ version: 1.0.0.1-hotfix+12
 1. 默认从 `develop` 签出新分支。
 2. 按 `.github/分支命名规范.md` 选择分支名，例如 `feature/<topic>`、`fix/<topic>`、`refactor/<topic>`、`docs/<topic>`、`ci/<topic>`。
 3. 完成开发、测试与文档同步后，创建 PR 合并回 `develop`。
-4. 常规 PR 默认使用 `.github/pull_request_template.md` 通用模板；Release PR 使用 `.github/PULL_REQUEST_TEMPLATE/release.md`，并填写变更说明、验证记录、影响范围和风险。关联 Issue 保留 `Closes #123` / `Fixes #123` / `Resolves #123` 等关闭关键字。
-5. PR 合并入 `develop` 后，`Close Linked Issues` workflow 会自动关闭同仓库内通过关闭关键字或 GitHub 关联关系识别到的 Issue。
+4. 常规 PR 默认使用 `.github/pull_request_template.md` 通用模板；Release PR 使用 `.github/PULL_REQUEST_TEMPLATE/release.md`，并填写变更说明、验证记录、影响范围和风险。关联 Issue 默认写 `Refs #123`；需要合并后关闭时保留 `Closes #123` / `Fixes #123` / `Resolves #123` 等关闭关键字。
+5. PR 合并入 `develop` 后，`Close Linked Issues` workflow 会自动关闭同仓库内通过关闭关键字或 GitHub closing reference 识别到的 Issue。
 6. 禁止直接向 `develop` 或 `main` 推送未审查提交。
 
 ### 3.2 alpha / beta / rc 发布工作流
@@ -99,7 +99,7 @@ alpha、beta、rc 属于预发布，直接由 `release/vX.X.X-channel` 分支合
 3. `pubspec.yaml` 使用 `X.X.X-channel+build`，且 `build` 必须在上一次 `pubspec.yaml` 的基础上自动加一；`docs/CHANGELOG.md` 使用 `[X.X.X-channel]`。
 4. 创建 `release/v... -> develop` 的 Release PR。
 5. PR 必须使用 Release 模板（`?template=release.md`），完整填写发布说明，并携带 `release` label。
-6. PR merge 后由 `Build & Release` workflow 自动构建并创建 GitHub Pre-release。
+6. PR merge 后由 `Build & Release` workflow 自动构建并创建 GitHub Pre-release；工作流会检查目标 Tag 不存在、并发发布不互相取消、资产矩阵完整且 manifest / SHA256SUMS 与公开版本一致。
 
 ### 3.3 stable / lts / hotfix 发布工作流
 
@@ -110,7 +110,7 @@ alpha、beta、rc 属于预发布，直接由 `release/vX.X.X-channel` 分支合
 3. 创建 `release/v... -> develop` 的 Release PR，但不得携带 `release` label。
 4. 合并到 `develop` 后，再创建 `develop -> main` 的 Release PR。
 5. `develop -> main` 的 Release PR 必须携带 `release` label。
-6. PR merge 后由 `Build & Release` workflow 自动构建并创建普通 GitHub Release。
+6. PR merge 后由 `Build & Release` workflow 自动构建并创建普通 GitHub Release；工作流会检查目标 Tag 不存在、并发发布不互相取消、资产矩阵完整且 manifest / SHA256SUMS 与公开版本一致。
 
 ---
 
@@ -168,7 +168,7 @@ SSPU-AllinOne-v1.0.0-lts-web-universal-static.zip
 
 Linux 正式发布必须同时覆盖 `x64` 与 `arm64`，并提供 AppImage、deb、rpm、tar.gz 四类产物。
 
-Windows installer 使用 Inno Setup 双模式安装器，x64 与 arm64 行为保持一致：全新安装默认当前用户范围，可在安装向导或命令行显式切换到所有用户范围；安装包文件名和 Release 资产类型仍保持 `windows-{arch}-installer.exe`。安装器可本地化展示应用名，但默认安装路径固定为 `SSPU-AllinOne`。安装器启动时会检测既有安装：不同版本进入升级安装，沿用既有当前用户 / 所有用户范围和目录并跳过目录选择；相同版本会询问是否重装，确认后先调用既有卸载器，卸载器负责询问是否保留用户目录下的 `.sspu-aio/` 应用数据，再回到正常安装流程。安装器许可页使用 `assets/legal/legal_zh.txt`，需要与应用首次启动展示的完整法律与隐私说明保持同步。
+Windows installer 使用 Inno Setup 双模式安装器，x64 与 arm64 行为保持一致：全新安装默认当前用户范围，可在安装向导或命令行显式切换到所有用户范围；安装包文件名和 Release 资产类型仍保持 `windows-{arch}-installer.exe`。安装器可本地化展示应用名，但默认安装路径固定为 `SSPU-AllinOne`。安装器启动时会检测既有安装：不同版本进入升级安装，沿用既有当前用户 / 所有用户范围和目录并跳过目录选择；相同版本会询问是否重装，确认后先调用既有卸载器，卸载器负责询问是否保留用户目录下的 `.sspu-aio/` 应用数据，再回到正常安装流程。安装器许可页使用 `assets/legal/legal_zh.txt`，需要与应用首次启动展示的完整法律与隐私说明保持同步。Android 正式 Release 构建必须提供 `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`，缺少任一签名 Secret 都会直接失败，不允许回退到 debug 签名。
 
 Android、iOS、macOS、Linux、Web、portable 与压缩包等当前没有仓库统一控制的安装前 GUI 或 CLI 协议确认页；这些渠道依赖应用首次启动的完整法律与隐私说明弹窗完成一次性确认。
 
@@ -225,12 +225,14 @@ Android、iOS、macOS、Linux、Web、portable 与压缩包等当前没有仓库
 
 进入 Release PR 前至少满足：
 
-1. `flutter analyze` 通过。
-2. `flutter test` 通过。
-3. 版本号只在 `pubspec.yaml` 与 `docs/CHANGELOG.md` 中维护。
-4. Release PR 的目标分支、`release` label 使用方式与本规则一致。
-5. 构建产物文件名不包含 `+build`。
-6. 发布说明列明支持平台、已知问题、安装方式和校验方式。
+1. CI 对非草稿 PR 会校验标题格式、分支命名、目标分支和 `release` label 使用方式。
+2. `flutter analyze --no-fatal-infos` 通过。
+3. `flutter test` 通过。
+4. 变更 Dart 文件通过 `dart format --set-exit-if-changed` 检查。
+5. 版本号只在 `pubspec.yaml` 与 `docs/CHANGELOG.md` 中维护。
+6. Release PR 的目标分支、`release` label 使用方式与本规则一致。
+7. 构建产物文件名不包含 `+build`。
+8. 发布说明列明支持平台、已知问题、安装方式和校验方式。
 
 ---
 
@@ -240,6 +242,7 @@ Android、iOS、macOS、Linux、Web、portable 与压缩包等当前没有仓库
 2. 需要重发同一公开版本时，只递增 `pubspec.yaml` 中的 `+build`，并重新走对应 Release PR 流程；需要发布新的公开版本时，也必须在上一次 `pubspec.yaml` build 号基础上继续递增，不得重置。
 3. 若发现产物命名、校验或版本错误，应撤回或标记失效后重新发版。
 4. 不允许静默替换同名产物而不更新校验与说明。
+5. Release workflow 在发布前会校验目标 Tag 不存在；若同一公开版本需要重发，不能复用既有 Tag 覆盖发布，必须递增 `+build` 后重新创建 Release PR。
 
 ---
 
