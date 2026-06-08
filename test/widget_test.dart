@@ -151,7 +151,13 @@ void main() {
   ) async {
     final previousTargetPlatform = debugDefaultTargetPlatformOverride;
     debugDefaultTargetPlatformOverride = platform;
-    await configureMobileView(tester, topPadding: 44, bottomPadding: 34);
+    final topPadding = platform == TargetPlatform.iOS ? 59.0 : 24.0;
+    final bottomPadding = platform == TargetPlatform.iOS ? 34.0 : 24.0;
+    await configureMobileView(
+      tester,
+      topPadding: topPadding,
+      bottomPadding: bottomPadding,
+    );
 
     try {
       SharedPreferences.setMockInitialValues({});
@@ -162,8 +168,15 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 100));
 
-      final titleTop = tester.getTopLeft(find.text('主页').first).dy;
-      expect(titleTop, greaterThanOrEqualTo(44));
+      final pageTitle = find
+          .descendant(
+            of: find.byType(FluentPageHeader),
+            matching: find.text('主页'),
+          )
+          .first;
+      final titleTop = tester.getTopLeft(pageTitle).dy;
+      expect(titleTop, greaterThanOrEqualTo(topPadding));
+      expect(titleTop, lessThanOrEqualTo(topPadding + 40));
 
       final bottomNavigation = find.byKey(
         const Key('mobile-bottom-navigation'),
@@ -174,7 +187,24 @@ void main() {
       final selectedHomeLabel = find
           .descendant(of: bottomNavigation, matching: find.text('主页'))
           .first;
-      expect(tester.getBottomLeft(selectedHomeLabel).dy, lessThanOrEqualTo(810));
+      expect(
+        tester.getBottomLeft(selectedHomeLabel).dy,
+        lessThanOrEqualTo(844 - bottomPadding),
+      );
+
+      await tester.tap(
+        find.descendant(of: bottomNavigation, matching: find.text('信息')).first,
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await pumpUntilFound(
+        tester,
+        find.byKey(const Key('info-mobile-controls')),
+      );
+      final infoControlsTop = tester
+          .getTopLeft(find.byKey(const Key('info-mobile-controls')))
+          .dy;
+      expect(infoControlsTop, greaterThanOrEqualTo(topPadding));
+      expect(infoControlsTop, lessThanOrEqualTo(topPadding + 40));
 
       await tester.pump(const Duration(milliseconds: 300));
     } finally {
@@ -187,9 +217,7 @@ void main() {
     }
   }
 
-  testWidgets('移动端安全区不遮挡页面标题且底部导航贴合手势区', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('移动端安全区不遮挡页面标题且底部导航贴合手势区', (WidgetTester tester) async {
     await expectMobileSafeAreaLayout(tester, TargetPlatform.android);
     await expectMobileSafeAreaLayout(tester, TargetPlatform.iOS);
   });
@@ -208,10 +236,8 @@ void main() {
       );
       await tester.pump();
 
-      expect(
-        tester.getTopLeft(find.text('测试页面')).dy,
-        greaterThanOrEqualTo(44),
-      );
+      expect(tester.getTopLeft(find.text('测试页面')).dy, greaterThanOrEqualTo(44));
+      expect(tester.getTopLeft(find.text('测试页面')).dy, lessThanOrEqualTo(84));
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
