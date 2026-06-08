@@ -19,9 +19,18 @@ Scope: repo
 1. 从 `develop` 同步最新代码。
 2. 根据 `.github/分支命名规范.md` 签出任务分支，例如 `feature/<topic>`、`fix/<topic>`、`refactor/<topic>`、`docs/<topic>`。
 3. 完成开发、测试、文档和模板更新。
-4. 按仓库 PR 模板创建合并到 `develop` 的 PR；关联 Issue 必须在 PR 正文保留 `Closes #123` / `Fixes #123` / `Resolves #123` 等关闭关键字。
-5. PR 中写明变更说明、验证记录、影响范围和回滚方式。
-6. PR 合并入 `develop` 后，`Close Linked Issues` workflow 会关闭同仓库内通过关闭关键字或 GitHub 关联关系识别到的 Issue。
+4. 默认使用 `.github/pull_request_template.md` 通用 PR 模板创建合并到 `develop` 的 PR；Release PR 使用 `.github/PULL_REQUEST_TEMPLATE/release.md`，也可在创建 PR URL 中指定 `?template=release.md`。
+5. 关联 Issue 必须在 PR 正文保留 `Closes #123` / `Fixes #123` / `Resolves #123` 等关闭关键字。
+6. PR 中写明变更说明、验证记录、影响范围和回滚方式。
+7. PR 合并入 `develop` 后，`Close Linked Issues` workflow 会关闭同仓库内通过关闭关键字或 GitHub 关联关系识别到的 Issue。
+
+## Issue 与 PR 模板
+
+- 普通 PR 只保留一个默认通用模板，覆盖 bugfix、feature、docs、refactor、chore、CI / 依赖 / 仓库治理等常规改动。
+- Release PR 只使用 Release 专项模板，并保持发布说明章节与 `docs/RELEASE.md` 的校验规则一致。
+- Issue 表单优先使用结构化字段描述优先级、目标平台、影响模块和验证/验收标准；可多选字段用于平台、模块、任务类型、影响范围等天然多值信息。
+- Issue 表单中的优先级建议与 `P0` / `P1` / `P2` / `P3` 标签语义对齐，最终优先级仍由维护者确认。
+- 日志、截图、录屏和补充信息不得包含账号、密码、Cookie、Token、验证码、私钥、keystore 或真实用户隐私数据。
 
 ## Release 流程
 

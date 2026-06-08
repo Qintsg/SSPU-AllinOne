@@ -86,7 +86,7 @@ version: 1.0.0.1-hotfix+12
 1. 默认从 `develop` 签出新分支。
 2. 按 `.github/分支命名规范.md` 选择分支名，例如 `feature/<topic>`、`fix/<topic>`、`refactor/<topic>`、`docs/<topic>`、`ci/<topic>`。
 3. 完成开发、测试与文档同步后，创建 PR 合并回 `develop`。
-4. PR 必须使用仓库模板填写变更说明、验证记录、影响范围和风险；关联 Issue 保留 `Closes #123` / `Fixes #123` / `Resolves #123` 等关闭关键字。
+4. 常规 PR 默认使用 `.github/pull_request_template.md` 通用模板；Release PR 使用 `.github/PULL_REQUEST_TEMPLATE/release.md`，并填写变更说明、验证记录、影响范围和风险。关联 Issue 保留 `Closes #123` / `Fixes #123` / `Resolves #123` 等关闭关键字。
 5. PR 合并入 `develop` 后，`Close Linked Issues` workflow 会自动关闭同仓库内通过关闭关键字或 GitHub 关联关系识别到的 Issue。
 6. 禁止直接向 `develop` 或 `main` 推送未审查提交。
 
@@ -98,7 +98,7 @@ alpha、beta、rc 属于预发布，直接由 `release/vX.X.X-channel` 分支合
 2. 只修改 `pubspec.yaml` 与 `docs/CHANGELOG.md` 中的版本号。
 3. `pubspec.yaml` 使用 `X.X.X-channel+build`，且 `build` 必须在上一次 `pubspec.yaml` 的基础上自动加一；`docs/CHANGELOG.md` 使用 `[X.X.X-channel]`。
 4. 创建 `release/v... -> develop` 的 Release PR。
-5. PR 必须使用 Release 模板，完整填写发布说明，并携带 `release` label。
+5. PR 必须使用 Release 模板（`?template=release.md`），完整填写发布说明，并携带 `release` label。
 6. PR merge 后由 `Build & Release` workflow 自动构建并创建 GitHub Pre-release。
 
 ### 3.3 stable / lts / hotfix 发布工作流

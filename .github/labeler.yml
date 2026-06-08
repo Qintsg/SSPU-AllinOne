@@ -8,6 +8,7 @@ frontend:
           - 'lib/main.dart'
           - 'lib/pages/**'
           - 'lib/widgets/**'
+          - 'lib/design/**'
           - 'lib/theme/**'
 
 services:
@@ -69,6 +70,7 @@ governance:
   - changed-files:
       - any-glob-to-any-file:
           - '.github/ISSUE_TEMPLATE/**'
+          - '.github/PULL_REQUEST_TEMPLATE/**'
           - '.github/pull_request_template.md'
           - '.github/CODEOWNERS'
           - '.github/dependabot.yml'

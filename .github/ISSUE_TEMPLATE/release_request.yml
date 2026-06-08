@@ -1,15 +1,16 @@
 name: Release 申请
 description: 为预发布、稳定版、lts 或 hotfix 发布准备版本、平台清单与发布说明
 title: "[Release] "
-labels: []
+labels: ["task", "release-files"]
 body:
   - type: markdown
     attributes:
       value: |
-        公开 Release 由带 `release` label 的 PR merge 自动触发。
-        alpha / beta / rc 使用 `release/v... -> develop` 并携带 `release` label。
-        stable / lts / hotfix 先走 `release/v... -> develop` 且不携带 `release` label，再走 `develop -> main` 并携带 `release` label。
-        版本号只维护 `pubspec.yaml` 与 `docs/CHANGELOG.md`；安装包文件名和 Release 描述不得显式写出 `+build`。
+        公开 Release 由带 `release` label 的 PR merge 自动触发，但本 Issue 模板不会自动添加 `release` label。
+        alpha / beta / rc 使用 `release/v... -> develop` 并在 Release PR 上人工添加 `release` label。
+        stable / lts / hotfix 先走 `release/v... -> develop` 且不携带 `release` label，再走 `develop -> main` 并在第二段 PR 上人工添加 `release` label。
+        版本号只维护 `pubspec.yaml` 与 `docs/CHANGELOG.md`；安装包文件名、Release 标题和 Release 描述不得显式写出 `+build`。
+
   - type: input
     id: public_version
     attributes:
@@ -18,6 +19,7 @@ body:
       placeholder: 例如：1.0.0-alpha
     validations:
       required: true
+
   - type: input
     id: pubspec_version
     attributes:
@@ -26,6 +28,7 @@ body:
       placeholder: 例如：1.0.0-alpha+1
     validations:
       required: true
+
   - type: dropdown
     id: channel
     attributes:
@@ -39,16 +42,29 @@ body:
         - hotfix
     validations:
       required: true
+
+  - type: dropdown
+    id: release_type
+    attributes:
+      label: 发布类型
+      options:
+        - Pre-release（alpha / beta / rc）
+        - 普通 Release（stable / lts / hotfix）
+        - 重新发布（同一公开版本，仅递增 +build）
+    validations:
+      required: true
+
   - type: dropdown
     id: release_flow
     attributes:
       label: 发布 PR 流程
       options:
-        - alpha/beta/rc：release/v... -> develop，携带 release label
+        - alpha/beta/rc：release/v... -> develop，Release PR 携带 release label
         - stable/lts/hotfix 第一段：release/v... -> develop，不携带 release label
         - stable/lts/hotfix 第二段：develop -> main，携带 release label
     validations:
       required: true
+
   - type: dropdown
     id: platforms
     attributes:
@@ -72,6 +88,24 @@ body:
         - Web static.zip
     validations:
       required: true
+
+  - type: dropdown
+    id: changed_areas
+    attributes:
+      label: 发布准备影响范围
+      multiple: true
+      options:
+        - 版本号 / Changelog
+        - Release notes
+        - GitHub Actions / Release workflow
+        - Windows 安装器
+        - Android 签名 / 构建
+        - 平台元数据
+        - 文档
+        - 其它
+    validations:
+      required: true
+
   - type: textarea
     id: highlights
     attributes:
@@ -83,33 +117,52 @@ body:
         - 优化 ...
     validations:
       required: true
+
   - type: textarea
     id: missing_platforms
     attributes:
       label: 缺失或异常平台说明
-      description: 若某些平台本次不发布或存在限制，请写明原因。
+      description: 若某些平台本次不发布或存在限制，请写明原因；若无请写“无”。
       placeholder: 例如：macOS 当前未完成签名，仅提供 unsigned DMG。
+    validations:
+      required: true
+
   - type: textarea
     id: known_issues
     attributes:
       label: 已知问题
-      description: 发布后仍存在但可接受的问题。
+      description: 发布后仍存在但可接受的问题；若无请写“无已知问题”。
     validations:
       required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 优先级建议
+      options:
+        - P1 高优先级：近期版本发版准备
+        - P0 阻塞 / 紧急：当前发布被阻塞
+        - P2 中优先级：排入后续发版计划
+        - P3 低优先级：长期发布治理优化
+    validations:
+      required: true
+
   - type: checkboxes
     id: checklist
     attributes:
       label: 发布前检查
       options:
-        - label: 我已确认 `flutter analyze` 通过
+        - label: 我已确认本 Issue 不会自动添加 `release` label，实际触发发布需在对应 PR 人工添加
           required: true
-        - label: 我已确认 `flutter test` 通过
+        - label: 我已确认 `flutter analyze` 通过，或会在 PR 中说明未执行原因
+          required: true
+        - label: 我已确认 `flutter test` 通过，或会在 PR 中说明未执行原因
           required: true
         - label: 我已确认版本号只修改 `pubspec.yaml` 与 `docs/CHANGELOG.md`
           required: true
         - label: 我已确认 Tag、Release 标题和资产命名使用公开版本且不包含 `+build`
           required: true
-        - label: 我已确认 PR 正文将按发布说明模板填写
+        - label: 我已确认 PR 正文将按 Release 模板填写
           required: true
         - label: 我已确认 `docs/CHANGELOG.md` 和 `docs/RELEASE.md` 已同步
           required: true

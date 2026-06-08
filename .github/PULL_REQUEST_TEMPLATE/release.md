@@ -7,6 +7,8 @@
 <!-- 关联当前仓库内的 Issue / 任务 -->
 Closes #
 
+<!-- Release PR 是唯一专项 PR 模板；其它 PR 默认使用 .github/pull_request_template.md。 -->
+
 ## 发布信息
 - 公开版本（不含 `+build`）：
 - `pubspec.yaml` 完整版本（含 `+build`）：
@@ -58,6 +60,11 @@ Closes #
 - [ ] Web 构建验证
 - [ ] 手动验证（请补充关键路径）
 - [ ] 未执行部分验证（请说明原因）
+
+## 安全与发布门槛
+- [ ] 未提交签名密钥、keystore、token、Cookie 或真实用户数据
+- [ ] Android 正式发布签名材料通过本地文件或 CI Secrets 注入，不回退提交到仓库
+- [ ] 已确认 `release` label 仅在应触发公开 Release 的 PR 上人工添加
 
 ## 截图 / 录屏（如涉及 UI）
 <!-- 若无，可写“无” -->
