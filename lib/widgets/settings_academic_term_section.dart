@@ -54,13 +54,8 @@ class _SettingsAcademicTermSectionState
     });
   }
 
-  Future<void> _setAutoSwitchEnabled(bool enabled) async {
-    await widget.service.setAutoSwitchEnabled(enabled);
-    await _loadTermSettings();
-  }
-
-  Future<void> _setManualSelection(AcademicTermSelection selection) async {
-    await widget.service.setManualSelection(selection);
+  Future<void> _setSelectedTerm(AcademicTermChoice selection) async {
+    await widget.service.setSelectedTerm(selection);
     await _loadTermSettings();
   }
 
@@ -74,7 +69,11 @@ class _SettingsAcademicTermSectionState
     }
 
     final contextSummary = _context;
-    final stateMessage = contextSummary?.message ?? '当前学期设置已加载。';
+    final stateMessage = contextSummary?.message ?? '当前全局学期已加载。';
+    final selectedTerm =
+        _settings!.selectedTerm ??
+        contextSummary?.term ??
+        AcademicTermService.defaultTerm;
 
     return Column(
       key: const Key('settings-academic-term-section'),
@@ -93,18 +92,17 @@ class _SettingsAcademicTermSectionState
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  '当前学年、学期和周数会作为课表、成绩、考试等详情页的统一默认上下文。',
+                  '当前全局学期会作为课表、成绩、考试等详情页的统一默认上下文；周数由内置校历按周一自动计算。',
                   style: type.caption1.copyWith(
                     color: colors.neutralForeground2,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AcademicTermSelector(
-                  selection: _settings!.manualSelection,
+                  selection: selectedTerm,
+                  availableTerms: widget.service.availableTerms,
                   contextSummary: contextSummary,
-                  autoSwitchEnabled: _settings!.autoSwitchEnabled,
-                  onAutoSwitchChanged: _setAutoSwitchEnabled,
-                  onChanged: _setManualSelection,
+                  onChanged: _setSelectedTerm,
                 ),
               ],
             ),
@@ -127,7 +125,7 @@ class _SettingsAcademicTermSectionState
                 Text('规则说明', style: type.body1Strong),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  '秋季学期和春季学期各 17 周，其中第 17 周为考试周；夏季学期共 5 周，允许按校历拆分为春季结束后的前 2 周和秋季开学前的后 3 周。',
+                  '秋季学期和春季学期各 17 周，其中第 17 周为考试周；夏季学期按官网校历视为一个长学期，教学周段逐年内置，可能是 2+3 或 3+2，中间区间显示为暑假。2023 年以前学期仅保留选择项，暂不提供日期定位。',
                   style: type.caption1.copyWith(
                     color: colors.neutralForeground2,
                   ),
@@ -141,19 +139,21 @@ class _SettingsAcademicTermSectionState
   }
 
   String _statusTitle(AcademicTermContext? context) {
-    return switch (context?.source) {
-      AcademicTermContextSource.automatic => '已自动计算当前学期',
-      AcademicTermContextSource.unresolved => '当前日期未命中内置校历',
-      AcademicTermContextSource.manual => '当前使用手动学期设置',
+    return switch (context?.dateStatus) {
+      AcademicTermDateStatus.teaching => '已定位当前教学周',
+      AcademicTermDateStatus.summerVacation => '当前处于暑假',
+      AcademicTermDateStatus.winterVacation => '当前处于寒假',
+      AcademicTermDateStatus.unsupported => '该学期暂无日期定位',
       null => '学期设置已加载',
     };
   }
 
   FluentInfoSeverity _statusSeverity(AcademicTermContext? context) {
-    return switch (context?.source) {
-      AcademicTermContextSource.automatic => FluentInfoSeverity.success,
-      AcademicTermContextSource.unresolved => FluentInfoSeverity.warning,
-      AcademicTermContextSource.manual => FluentInfoSeverity.info,
+    return switch (context?.dateStatus) {
+      AcademicTermDateStatus.teaching => FluentInfoSeverity.success,
+      AcademicTermDateStatus.summerVacation => FluentInfoSeverity.info,
+      AcademicTermDateStatus.winterVacation => FluentInfoSeverity.info,
+      AcademicTermDateStatus.unsupported => FluentInfoSeverity.warning,
       null => FluentInfoSeverity.info,
     };
   }

@@ -1,5 +1,5 @@
 /*
- * 学期选择组件 — 可复用的学年、学期和周数切换控件
+ * 学期选择组件 — 可复用的全局学年与学期切换控件
  * @Project : SSPU-AllinOne
  * @File : academic_term_selector.dart
  * @Author : Qintsg
@@ -25,27 +25,23 @@ class AcademicTermSelector extends StatelessWidget {
     super.key,
     required this.selection,
     required this.onChanged,
+    required this.availableTerms,
     this.contextSummary,
-    this.autoSwitchEnabled = false,
-    this.onAutoSwitchChanged,
     this.enabled = true,
     this.variant = AcademicTermSelectorVariant.settings,
   });
 
   /// 当前选择。
-  final AcademicTermSelection selection;
+  final AcademicTermChoice selection;
 
   /// 选择变化回调。
-  final ValueChanged<AcademicTermSelection> onChanged;
+  final ValueChanged<AcademicTermChoice> onChanged;
+
+  /// 可选学期。
+  final List<AcademicTermChoice> availableTerms;
 
   /// 当前生效上下文，用于设置页展示自动计算结果。
   final AcademicTermContext? contextSummary;
-
-  /// 是否启用自动切换。
-  final bool autoSwitchEnabled;
-
-  /// 自动切换开关变化回调。
-  final ValueChanged<bool>? onAutoSwitchChanged;
 
   /// 控件是否可操作。
   final bool enabled;
@@ -53,26 +49,19 @@ class AcademicTermSelector extends StatelessWidget {
   /// 展示模式。
   final AcademicTermSelectorVariant variant;
 
-  bool get _showAutoSwitch => variant == AcademicTermSelectorVariant.settings;
-
   @override
   Widget build(BuildContext context) {
     final type = context.fluentType;
     final colors = context.fluentColors;
-    final effectiveSelection = selection.normalized();
-    final effectiveContext = contextSummary;
-    final summaryText = effectiveContext == null
-        ? effectiveSelection.weekLabel
-        : effectiveContext.selection.weekLabel;
-    final sourceText = _sourceText(effectiveContext);
+    final sourceText = _sourceText(contextSummary);
+    final summaryText = contextSummary?.summaryLabel ?? selection.label;
 
     final form = LayoutBuilder(
       builder: (context, constraints) {
-        final stack = constraints.maxWidth < 560;
+        final stack = constraints.maxWidth < 520;
         final controls = [
-          _buildYearSelector(effectiveSelection),
-          _buildSeasonSelector(effectiveSelection),
-          _buildWeekSelector(effectiveSelection),
+          _buildYearSelector(selection),
+          _buildSeasonSelector(selection),
         ];
 
         if (stack) {
@@ -101,23 +90,6 @@ class AcademicTermSelector extends StatelessWidget {
       key: const Key('academic-term-selector'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (_showAutoSwitch) ...[
-          Row(
-            children: [
-              Expanded(child: Text('自动切换当前学期与周数', style: type.body1Strong)),
-              FluentSwitch(
-                value: autoSwitchEnabled,
-                onChanged: enabled ? onAutoSwitchChanged : null,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            '启用后优先按内置校历计算；未命中校历时使用下方手动设置。',
-            style: type.caption1.copyWith(color: colors.neutralForeground2),
-          ),
-          const SizedBox(height: AppSpacing.md),
-        ],
         form,
         const SizedBox(height: AppSpacing.sm),
         Wrap(
@@ -126,7 +98,7 @@ class AcademicTermSelector extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Icon(
-              autoSwitchEnabled ? FluentIcons.syncStatus : FluentIcons.edit,
+              FluentIcons.calendarWeek,
               size: 16,
               color: colors.neutralForeground2,
             ),
@@ -134,7 +106,7 @@ class AcademicTermSelector extends StatelessWidget {
             Text(
               sourceText,
               style: type.caption1.copyWith(
-                color: effectiveContext?.isUnresolved == true
+                color: contextSummary?.isUnsupported == true
                     ? colors.statusWarningForeground
                     : colors.neutralForeground2,
               ),
@@ -145,11 +117,10 @@ class AcademicTermSelector extends StatelessWidget {
     );
   }
 
-  Widget _buildYearSelector(AcademicTermSelection current) {
-    final years = List<int>.generate(
-      9,
-      (index) => current.academicYear - 4 + index,
-    );
+  Widget _buildYearSelector(AcademicTermChoice current) {
+    final years =
+        availableTerms.map((term) => term.academicYear).toSet().toList()
+          ..sort();
     return _TermFieldShell(
       label: '学年',
       child: FluentSelect<int>(
@@ -158,8 +129,10 @@ class AcademicTermSelector extends StatelessWidget {
         isExpanded: true,
         items: years
             .map(
-              (year) =>
-                  FluentSelectItem<int>(value: year, child: Text('$year 学年')),
+              (year) => FluentSelectItem<int>(
+                value: year,
+                child: Text('$year-${year + 1} 学年'),
+              ),
             )
             .toList(),
         onChanged: enabled
@@ -173,7 +146,7 @@ class AcademicTermSelector extends StatelessWidget {
     );
   }
 
-  Widget _buildSeasonSelector(AcademicTermSelection current) {
+  Widget _buildSeasonSelector(AcademicTermChoice current) {
     return _TermFieldShell(
       label: '学期',
       child: FluentSelect<AcademicTermSeason>(
@@ -197,28 +170,12 @@ class AcademicTermSelector extends StatelessWidget {
     );
   }
 
-  Widget _buildWeekSelector(AcademicTermSelection current) {
-    return _TermFieldShell(
-      label: '周数',
-      child: FluentNumberBox(
-        key: const Key('academic-term-week-box'),
-        value: current.week,
-        min: 1,
-        max: current.totalWeeks,
-        suffixText: '/ ${current.totalWeeks} 周',
-        enabled: enabled,
-        onChanged: (week) => onChanged(current.copyWith(week: week)),
-        onSubmitted: (week) => onChanged(current.copyWith(week: week)),
-      ),
-    );
-  }
-
   String _sourceText(AcademicTermContext? context) {
-    if (context == null) return autoSwitchEnabled ? '等待校历解析' : '手动设置';
+    if (context == null) return '等待校历定位';
     return switch (context.source) {
-      AcademicTermContextSource.manual => '手动设置',
-      AcademicTermContextSource.automatic => '内置校历自动计算',
-      AcademicTermContextSource.unresolved => '自动计算未命中，已回退手动值',
+      AcademicTermContextSource.selected => '全局学期',
+      AcademicTermContextSource.automatic => '自动匹配',
+      AcademicTermContextSource.unsupported => '暂无内置定位',
     };
   }
 }
@@ -233,7 +190,7 @@ class _TermFieldShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final type = context.fluentType;
     return SizedBox(
-      width: 180,
+      width: 210,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

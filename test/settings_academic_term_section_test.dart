@@ -24,7 +24,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('设置页学期分区展示自动计算结果', (tester) async {
+  testWidgets('设置页学期分区展示内置校历定位结果', (tester) async {
     await tester.pumpWidget(
       FluentApp(
         theme: AppTheme.build(Brightness.light),
@@ -45,14 +45,14 @@ void main() {
       find.byKey(const Key('settings-academic-term-section')),
       findsOneWidget,
     );
-    expect(find.text('已自动计算当前学期'), findsOneWidget);
-    expect(find.text('2025 学年春季学期 第 1 / 17 周'), findsOneWidget);
+    expect(find.text('已定位当前教学周'), findsOneWidget);
+    expect(find.text('2025-2026 学年春季学期 第 1 / 17 周'), findsOneWidget);
     expect(find.byKey(const Key('academic-term-year-select')), findsOneWidget);
     expect(
       find.byKey(const Key('academic-term-season-select')),
       findsOneWidget,
     );
-    expect(find.byKey(const Key('academic-term-week-box')), findsOneWidget);
+    expect(find.byKey(const Key('academic-term-week-box')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

@@ -1,5 +1,5 @@
 /*
- * 全局学期服务 — 统一维护当前学年、学期与周数设置
+ * 全局学期服务 — 维护当前全局学期与内置校历周数定位
  * @Project : SSPU-AllinOne
  * @File : academic_term_service.dart
  * @Author : Qintsg
@@ -11,58 +11,178 @@ import 'package:flutter/foundation.dart';
 import '../models/academic_term.dart';
 import 'storage_service.dart';
 
-/// 校历解析器。
+/// 内置校历解析器。
 class AcademicCalendarResolver {
-  AcademicCalendarResolver({List<AcademicTermCalendarSegment>? segments})
-    : _segments = segments ?? defaultSegments;
+  AcademicCalendarResolver({List<AcademicTermDefinition>? definitions})
+    : _definitions = definitions ?? defaultDefinitions;
 
-  /// #172 已明确的内置校历段。
-  static final List<AcademicTermCalendarSegment> defaultSegments = [
-    AcademicTermCalendarSegment(
-      academicYear: 2024,
-      season: AcademicTermSeason.summer,
-      startDate: DateTime(2025, 9, 1),
+  /// 官网校历栏目当前可选择的已知学年。
+  static const List<int> knownAcademicYears = [
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026,
+  ];
+
+  /// 具备可定位日期的内置校历定义。
+  static final List<AcademicTermDefinition> defaultDefinitions = [
+    _fall(2023, DateTime(2023, 9, 25)),
+    _spring(2023, DateTime(2024, 2, 26)),
+    _summer(
+      2023,
+      startDate: DateTime(2024, 6, 24),
+      endDate: DateTime(2024, 9, 15),
+      segments: [
+        _segment(DateTime(2024, 6, 24), DateTime(2024, 7, 14), 1, 3),
+        _segment(DateTime(2024, 9, 2), DateTime(2024, 9, 15), 4, 5),
+      ],
+    ),
+    _fall(2024, DateTime(2024, 9, 16)),
+    _spring(2024, DateTime(2025, 2, 17)),
+    _summer(
+      2024,
+      startDate: DateTime(2025, 6, 16),
       endDate: DateTime(2025, 9, 21),
-      startWeek: 3,
+      segments: [
+        _segment(DateTime(2025, 6, 16), DateTime(2025, 6, 29), 1, 2),
+        _segment(DateTime(2025, 9, 1), DateTime(2025, 9, 21), 3, 5),
+      ],
     ),
-    AcademicTermCalendarSegment(
-      academicYear: 2025,
-      season: AcademicTermSeason.fall,
-      startDate: DateTime(2025, 9, 22),
-      endDate: DateTime(2026, 1, 18),
-      startWeek: 1,
-    ),
-    AcademicTermCalendarSegment(
-      academicYear: 2025,
-      season: AcademicTermSeason.spring,
-      startDate: DateTime(2026, 3, 2),
-      endDate: DateTime(2026, 6, 28),
-      startWeek: 1,
-    ),
-    AcademicTermCalendarSegment(
-      academicYear: 2025,
-      season: AcademicTermSeason.summer,
+    _fall(2025, DateTime(2025, 9, 22)),
+    _spring(2025, DateTime(2026, 3, 2)),
+    _summer(
+      2025,
       startDate: DateTime(2026, 6, 29),
-      endDate: DateTime(2026, 7, 12),
-      startWeek: 1,
-    ),
-    AcademicTermCalendarSegment(
-      academicYear: 2025,
-      season: AcademicTermSeason.summer,
-      startDate: DateTime(2026, 8, 31),
       endDate: DateTime(2026, 9, 20),
-      startWeek: 3,
+      segments: [
+        _segment(DateTime(2026, 6, 29), DateTime(2026, 7, 12), 1, 2),
+        _segment(DateTime(2026, 8, 31), DateTime(2026, 9, 20), 3, 5),
+      ],
+    ),
+    _fall(2026, DateTime(2026, 9, 21)),
+    _spring(2026, DateTime(2027, 2, 22)),
+    _summer(
+      2026,
+      startDate: DateTime(2027, 6, 21),
+      endDate: DateTime(2027, 9, 19),
+      segments: [
+        _segment(DateTime(2027, 6, 21), DateTime(2027, 7, 4), 1, 2),
+        _segment(DateTime(2027, 8, 30), DateTime(2027, 9, 19), 3, 5),
+      ],
     ),
   ];
 
-  final List<AcademicTermCalendarSegment> _segments;
+  final List<AcademicTermDefinition> _definitions;
 
-  /// 尝试按内置校历解析日期。
-  AcademicTermSelection? resolve(DateTime date) {
-    for (final segment in _segments) {
-      if (segment.contains(date)) return segment.resolve(date);
+  /// 所有可选学期。
+  List<AcademicTermChoice> get availableTerms {
+    return [
+      for (final year in knownAcademicYears)
+        for (final season in AcademicTermSeason.values)
+          AcademicTermChoice(academicYear: year, season: season),
+    ];
+  }
+
+  /// 按学期查找内置定义。
+  AcademicTermDefinition? definitionFor(AcademicTermChoice choice) {
+    for (final definition in _definitions) {
+      if (definition.choice == choice) return definition;
     }
     return null;
+  }
+
+  /// 按日期自动匹配内置学期。
+  AcademicTermDefinition? definitionForDate(DateTime date) {
+    for (final definition in _definitions) {
+      if (definition.contains(date)) return definition;
+    }
+    return null;
+  }
+
+  /// 按日期匹配当前上下文；寒假等空档优先指向下一个已知学期。
+  AcademicTermDefinition? definitionForContext(DateTime date) {
+    final direct = definitionForDate(date);
+    if (direct != null) return direct;
+
+    final target = AcademicTermDefinition.dateOnly(date);
+    final sortedDefinitions = [..._definitions]
+      ..sort((a, b) => a.startDate.compareTo(b.startDate));
+    for (var index = 0; index < sortedDefinitions.length - 1; index++) {
+      final current = sortedDefinitions[index];
+      final next = sortedDefinitions[index + 1];
+      if (target.isAfter(current.endDate) && target.isBefore(next.startDate)) {
+        return next;
+      }
+    }
+
+    return null;
+  }
+
+  /// 判断某学期是否为官网已知学期。
+  bool isKnownTerm(AcademicTermChoice choice) {
+    return knownAcademicYears.contains(choice.academicYear);
+  }
+
+  static AcademicTermDefinition _fall(int year, DateTime startDate) {
+    return _continuous(year, AcademicTermSeason.fall, startDate, 17);
+  }
+
+  static AcademicTermDefinition _spring(int year, DateTime startDate) {
+    return _continuous(year, AcademicTermSeason.spring, startDate, 17);
+  }
+
+  static AcademicTermDefinition _continuous(
+    int year,
+    AcademicTermSeason season,
+    DateTime startDate,
+    int weeks,
+  ) {
+    final endDate = startDate.add(Duration(days: weeks * 7 - 1));
+    return AcademicTermDefinition(
+      choice: AcademicTermChoice(academicYear: year, season: season),
+      startDate: startDate,
+      endDate: endDate,
+      teachingSegments: [_segment(startDate, endDate, 1, weeks)],
+    );
+  }
+
+  static AcademicTermDefinition _summer(
+    int year, {
+    required DateTime startDate,
+    required DateTime endDate,
+    required List<AcademicTermTeachingSegment> segments,
+  }) {
+    return AcademicTermDefinition(
+      choice: AcademicTermChoice(
+        academicYear: year,
+        season: AcademicTermSeason.summer,
+      ),
+      startDate: startDate,
+      endDate: endDate,
+      teachingSegments: segments,
+    );
+  }
+
+  static AcademicTermTeachingSegment _segment(
+    DateTime startDate,
+    DateTime endDate,
+    int startWeek,
+    int endWeek,
+  ) {
+    return AcademicTermTeachingSegment(
+      startDate: startDate,
+      endDate: endDate,
+      startWeek: startWeek,
+      endWeek: endWeek,
+    );
   }
 }
 
@@ -74,49 +194,40 @@ class AcademicTermService extends ChangeNotifier {
   /// 全局单例。
   static final AcademicTermService instance = AcademicTermService();
 
-  /// 默认手动设置。
-  static final AcademicTermSelection defaultManualSelection =
-      AcademicTermSelection(
-        academicYear: 2025,
-        season: AcademicTermSeason.fall,
-        week: 1,
-      );
+  /// 默认学期。
+  static const AcademicTermChoice defaultTerm = AcademicTermChoice(
+    academicYear: 2025,
+    season: AcademicTermSeason.fall,
+  );
 
   final AcademicCalendarResolver _calendarResolver;
 
   AcademicTermSettings? _settings;
 
+  /// 可选学期列表。
+  List<AcademicTermChoice> get availableTerms =>
+      _calendarResolver.availableTerms;
+
   /// 当前缓存设置。
   AcademicTermSettings get settings =>
-      _settings ??
-      AcademicTermSettings(
-        autoSwitchEnabled: true,
-        manualSelection: defaultManualSelection,
-      );
+      _settings ?? const AcademicTermSettings();
 
   /// 加载设置。
   Future<AcademicTermSettings> loadSettings() async {
-    final autoSwitchEnabled = await StorageService.getBool(
-      StorageKeys.academicTermAutoSwitchEnabled,
-      defaultValue: true,
+    final storedAcademicYear = await StorageService.getInt(
+      StorageKeys.academicTermManualYear,
     );
-    final academicYear =
-        await StorageService.getInt(StorageKeys.academicTermManualYear) ??
-        defaultManualSelection.academicYear;
-    final season = AcademicTermSeason.fromCode(
-      await StorageService.getString(StorageKeys.academicTermManualSeason),
+    final storedSeason = await StorageService.getString(
+      StorageKeys.academicTermManualSeason,
     );
-    final week =
-        await StorageService.getInt(StorageKeys.academicTermManualWeek) ??
-        defaultManualSelection.week;
 
     _settings = AcademicTermSettings(
-      autoSwitchEnabled: autoSwitchEnabled,
-      manualSelection: AcademicTermSelection(
-        academicYear: academicYear,
-        season: season,
-        week: week,
-      ).normalized(),
+      selectedTerm: storedAcademicYear == null || storedSeason == null
+          ? null
+          : AcademicTermChoice(
+              academicYear: storedAcademicYear,
+              season: AcademicTermSeason.fromCode(storedSeason),
+            ),
     );
     notifyListeners();
     return settings;
@@ -134,68 +245,88 @@ class AcademicTermService extends ChangeNotifier {
     DateTime? now,
   }) {
     final resolvedAt = now ?? DateTime.now();
-    final manualSelection = settings.manualSelection.normalized();
-
-    if (!settings.autoSwitchEnabled) {
+    final selectedTerm = settings.selectedTerm;
+    final automaticDefinition = _calendarResolver.definitionForContext(
+      resolvedAt,
+    );
+    if (selectedTerm == null && automaticDefinition == null) {
       return AcademicTermContext(
-        selection: manualSelection,
-        manualSelection: manualSelection,
-        autoSwitchEnabled: false,
-        source: AcademicTermContextSource.manual,
+        term: defaultTerm,
+        source: AcademicTermContextSource.unsupported,
+        dateStatus: AcademicTermDateStatus.unsupported,
         resolvedAt: resolvedAt,
-        message: '当前使用手动学期设置。',
+        isTeachingWeek: false,
+        message: '当前日期不在已内置的校历定位范围内。',
       );
     }
 
-    final automaticSelection = _calendarResolver.resolve(resolvedAt);
-    if (automaticSelection != null) {
+    final term = selectedTerm ?? automaticDefinition?.choice ?? defaultTerm;
+    final source = selectedTerm == null
+        ? AcademicTermContextSource.automatic
+        : AcademicTermContextSource.selected;
+    final definition = _calendarResolver.definitionFor(term);
+
+    if (definition == null) {
       return AcademicTermContext(
-        selection: automaticSelection,
-        manualSelection: manualSelection,
-        autoSwitchEnabled: true,
-        source: AcademicTermContextSource.automatic,
+        term: term,
+        source: AcademicTermContextSource.unsupported,
+        dateStatus: AcademicTermDateStatus.unsupported,
         resolvedAt: resolvedAt,
-        message: '已根据内置校历自动计算当前学期与周数。',
+        isTeachingWeek: false,
+        message: _calendarResolver.isKnownTerm(term)
+            ? '该学期保留为可选择项，但暂无可定位的内置校历。'
+            : '该学期不在官网已知校历范围内。',
       );
     }
 
+    final teachingSegment = definition.teachingSegmentFor(resolvedAt);
+    if (teachingSegment != null) {
+      final week = teachingSegment.resolveWeek(resolvedAt);
+      return AcademicTermContext(
+        term: term,
+        selection: definition.selectionFor(resolvedAt, week: week),
+        definition: definition,
+        source: source,
+        dateStatus: AcademicTermDateStatus.teaching,
+        resolvedAt: resolvedAt,
+        isTeachingWeek: true,
+        message: '已根据内置校历计算当前教学周。',
+      );
+    }
+
+    final dateStatus =
+        definition.choice.season == AcademicTermSeason.summer &&
+            definition.contains(resolvedAt)
+        ? AcademicTermDateStatus.summerVacation
+        : AcademicTermDateStatus.winterVacation;
+    final selection = definition.selectionFor(resolvedAt);
     return AcademicTermContext(
-      selection: manualSelection,
-      manualSelection: manualSelection,
-      autoSwitchEnabled: true,
-      source: AcademicTermContextSource.unresolved,
+      term: term,
+      selection: selection,
+      definition: definition,
+      source: source,
+      dateStatus: dateStatus,
       resolvedAt: resolvedAt,
-      message: '当前日期未命中内置校历，已暂时使用手动学期设置。',
+      isTeachingWeek: false,
+      message: dateStatus == AcademicTermDateStatus.summerVacation
+          ? '当前日期处于该夏季学期的暑假区间。'
+          : '当前日期未落在该学期教学周内，按寒假处理。',
     );
   }
 
-  /// 保存自动切换开关。
-  Future<void> setAutoSwitchEnabled(bool enabled) async {
-    final current = settings;
-    await StorageService.setBool(
-      StorageKeys.academicTermAutoSwitchEnabled,
-      enabled,
-    );
-    _settings = current.copyWith(autoSwitchEnabled: enabled);
-    notifyListeners();
-  }
-
-  /// 保存手动学期设置。
-  Future<void> setManualSelection(AcademicTermSelection selection) async {
-    final normalized = selection.normalized();
+  /// 保存全局学期选择。
+  Future<void> setSelectedTerm(AcademicTermChoice term) async {
     await StorageService.setInt(
       StorageKeys.academicTermManualYear,
-      normalized.academicYear,
+      term.academicYear,
     );
     await StorageService.setString(
       StorageKeys.academicTermManualSeason,
-      normalized.season.code,
+      term.season.code,
     );
-    await StorageService.setInt(
-      StorageKeys.academicTermManualWeek,
-      normalized.week,
-    );
-    _settings = settings.copyWith(manualSelection: normalized);
+    await StorageService.remove(StorageKeys.academicTermManualWeek);
+    await StorageService.remove(StorageKeys.academicTermAutoSwitchEnabled);
+    _settings = AcademicTermSettings(selectedTerm: term);
     notifyListeners();
   }
 }

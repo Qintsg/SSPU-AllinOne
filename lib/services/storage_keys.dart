@@ -71,17 +71,17 @@ class StorageKeys {
   static const String academicEamsAutoRefreshIntervalMinutes =
       'academic_eams_auto_refresh_interval_minutes';
 
-  /// 全局学期自动切换开关。
+  /// 历史全局学期自动切换开关，保留用于迁移清理。
   static const String academicTermAutoSwitchEnabled =
       'academic_term_auto_switch_enabled';
 
-  /// 全局手动学年。
+  /// 全局学期选择的学年。
   static const String academicTermManualYear = 'academic_term_manual_year';
 
-  /// 全局手动学期。
+  /// 全局学期选择的季节。
   static const String academicTermManualSeason = 'academic_term_manual_season';
 
-  /// 全局手动周数。
+  /// 历史全局手动周数，保留用于迁移清理。
   static const String academicTermManualWeek = 'academic_term_manual_week';
 
   /// 结构化数据前缀（JSON 序列化存储）。
