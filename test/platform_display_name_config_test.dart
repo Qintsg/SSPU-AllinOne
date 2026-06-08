@@ -111,9 +111,19 @@ void main() {
     expect(linuxRunner, contains('"工大聚合"'));
 
     final releaseWorkflow = _read('.github/workflows/release.yml');
-    expect(releaseWorkflow, contains('Name=SSPU-AllinOne'));
-    expect(releaseWorkflow, contains('Name[zh_CN]=工大聚合'));
-    expect(releaseWorkflow, contains(r'SSPU-AllinOne-v${RELEASE_VERSION}'));
+    final linuxReleaseAssetsAction = _read(
+      '.github/actions/package-linux-release-assets/action.yml',
+    );
+    expect(
+      releaseWorkflow,
+      contains('./.github/actions/package-linux-release-assets'),
+    );
+    expect(linuxReleaseAssetsAction, contains('Name=SSPU-AllinOne'));
+    expect(linuxReleaseAssetsAction, contains('Name[zh_CN]=工大聚合'));
+    expect(
+      linuxReleaseAssetsAction,
+      contains(r'SSPU-AllinOne-v${RELEASE_VERSION}'),
+    );
   });
 
   test('Web title 与 manifest 支持中英文显示名', () {
