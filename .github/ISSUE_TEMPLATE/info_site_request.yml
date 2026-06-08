@@ -8,6 +8,8 @@ body:
       value: |
         请尽量一次性补齐站点名称、官网地址、栏目列表页 URL 和页面结构特征，便于直接进入解析与联调阶段。
         如果这是对已有来源的优化，请明确写出当前来源名称或渠道 ID。
+        请勿提交后台 Cookie、账号密码、验证码、内网私有地址或未公开页面内容。
+
   - type: dropdown
     id: request_type
     attributes:
@@ -19,6 +21,7 @@ body:
         - 修复已有官网解析问题
     validations:
       required: true
+
   - type: input
     id: unit_name
     attributes:
@@ -27,6 +30,7 @@ body:
       placeholder: 例如：资源与环境工程学院 / 图书馆（档案馆）
     validations:
       required: true
+
   - type: dropdown
     id: unit_type
     attributes:
@@ -35,23 +39,26 @@ body:
         - 教学单位
         - 职能部门
         - 中心 / 场馆
-        - 其他
+        - 其它
     validations:
       required: true
+
   - type: input
     id: homepage_url
     attributes:
       label: 官网首页 URL
-      description: 填写站点首页地址，使用完整 https 链接。
+      description: 填写公开可访问的站点首页地址，使用完整 https 链接。
       placeholder: https://example.sspu.edu.cn/
     validations:
       required: true
+
   - type: input
     id: existing_channel
     attributes:
       label: 现有来源名称 / 渠道 ID（可选）
       description: 如果这是优化或修复已有来源，请填写应用内来源名称或 `channel_config.dart` 中的渠道 ID。
       placeholder: 例如：college_re / 图书馆
+
   - type: textarea
     id: category_pages
     attributes:
@@ -63,17 +70,21 @@ body:
         学术活动 | https://example.sspu.edu.cn/125/list.htm
     validations:
       required: true
+
   - type: textarea
     id: page_structure
     attributes:
       label: 页面结构特征
-      description: 如果已知，请填写列表页的关键结构、选择器或 HTML 特征，帮助快速定位解析模板。
+      description: 如果已知，请填写列表页的关键结构、选择器或 HTML 特征；没有把握可写“不确定”。
       placeholder: |
         例如：
         - 列表容器：ul.news_list.list2
         - 标题：span.news_title a
         - 日期：span.news_meta
         - 链接可能存在绝对 URL 或 javascript:void(0)
+    validations:
+      required: true
+
   - type: dropdown
     id: detail_time
     attributes:
@@ -85,6 +96,24 @@ body:
         - 不确定，需先调研
     validations:
       required: true
+
+  - type: dropdown
+    id: target_platforms
+    attributes:
+      label: 目标平台
+      multiple: true
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Android
+        - iOS
+        - Web
+        - 全平台
+        - 暂不确定
+    validations:
+      required: true
+
   - type: dropdown
     id: impact_scope
     attributes:
@@ -95,10 +124,24 @@ body:
         - 快速跳转
         - 设置
         - 通知 / 后台刷新
+        - 本地存储 / 缓存
         - 文档
         - 不确定
     validations:
       required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 优先级建议
+      options:
+        - P2 中优先级：排入计划
+        - P0 阻塞 / 紧急：现有核心来源不可用
+        - P1 高优先级：主要信息来源受影响
+        - P3 低优先级：后续补充或优化
+    validations:
+      required: true
+
   - type: textarea
     id: acceptance
     attributes:
@@ -111,11 +154,13 @@ body:
         - 如有既有来源，信息中心筛选与快速跳转保持一致
     validations:
       required: true
+
   - type: textarea
     id: constraints
     attributes:
       label: 约束与补充信息
       description: 填写是否需要补齐快速跳转、是否已有相关 PR/Issue、是否存在认证限制、反爬限制或外链跳转等情况。
+
   - type: checkboxes
     id: checklist
     attributes:
@@ -126,4 +171,6 @@ body:
         - label: 我已提供官网地址、栏目列表页 URL 和可验证的验收标准
           required: true
         - label: 我已说明这是新增、优化还是修复已有来源
+          required: true
+        - label: 我没有提交后台 Cookie、账号密码、验证码或其它敏感信息
           required: true

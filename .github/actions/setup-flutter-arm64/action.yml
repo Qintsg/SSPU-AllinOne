@@ -1,0 +1,81 @@
+name: setup-flutter-arm64
+description: 在 arm64 Runner 上安装固定版本 Flutter SDK 并执行依赖安装
+
+inputs:
+  flutter-version:
+    description: Flutter SDK 版本
+    required: true
+  flutter-git-url:
+    description: Flutter SDK Git 仓库地址
+    required: true
+  desktop-target:
+    description: 需要启用并预缓存的桌面目标，支持 windows 或 linux
+    required: true
+  run-pub-get:
+    description: 是否执行 flutter pub get
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: 安装 Flutter arm64 SDK（Windows）
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $flutterRoot = Join-Path $env:RUNNER_TEMP 'flutter-sdk'
+        if (Test-Path $flutterRoot) {
+          Remove-Item -LiteralPath $flutterRoot -Recurse -Force
+        }
+
+        git clone --filter=blob:none --branch stable '${{ inputs.flutter-git-url }}' $flutterRoot
+        git -C $flutterRoot fetch --depth 1 origin 'refs/tags/${{ inputs.flutter-version }}:refs/tags/${{ inputs.flutter-version }}'
+        git -C $flutterRoot checkout 'tags/${{ inputs.flutter-version }}'
+
+        "$($flutterRoot)\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+        switch ('${{ inputs.desktop-target }}') {
+          'windows' {
+            & "$flutterRoot\bin\flutter.bat" config --enable-windows-desktop
+            & "$flutterRoot\bin\flutter.bat" precache --windows
+          }
+          Default {
+            throw "不支持的 Flutter arm64 桌面目标：${{ inputs.desktop-target }}"
+          }
+        }
+
+    - name: 安装 Flutter arm64 SDK（Unix）
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        flutter_root="$RUNNER_TEMP/flutter-sdk"
+        rm -rf "$flutter_root"
+
+        git clone --filter=blob:none --branch stable '${{ inputs.flutter-git-url }}' "$flutter_root"
+        git -C "$flutter_root" fetch --depth 1 origin 'refs/tags/${{ inputs.flutter-version }}:refs/tags/${{ inputs.flutter-version }}'
+        git -C "$flutter_root" checkout 'tags/${{ inputs.flutter-version }}'
+
+        echo "$flutter_root/bin" >> "$GITHUB_PATH"
+
+        case '${{ inputs.desktop-target }}' in
+          linux)
+            "$flutter_root/bin/flutter" config --enable-linux-desktop
+            "$flutter_root/bin/flutter" precache --linux
+            ;;
+          *)
+            echo "不支持的 Flutter arm64 桌面目标：${{ inputs.desktop-target }}" >&2
+            exit 1
+            ;;
+        esac
+
+    - name: 安装 Flutter 依赖（Windows）
+      if: runner.os == 'Windows' && inputs.run-pub-get == 'true'
+      shell: pwsh
+      run: flutter pub get
+
+    - name: 安装 Flutter 依赖（Unix）
+      if: runner.os != 'Windows' && inputs.run-pub-get == 'true'
+      shell: bash
+      run: flutter pub get

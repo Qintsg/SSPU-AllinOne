@@ -11,6 +11,7 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
+      - "P2"
     rebase-strategy: "auto"
     commit-message:
       prefix: "deps(flutter)"
@@ -29,6 +30,7 @@ updates:
     labels:
       - "ci"
       - "dependencies"
+      - "P2"
     rebase-strategy: "auto"
     commit-message:
       prefix: "deps(actions)"

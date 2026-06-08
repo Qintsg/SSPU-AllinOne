@@ -1,0 +1,188 @@
+# Issue Triage — 从 Issue Form 结构化字段同步标签
+name: Issue Triage
+
+on:
+  issues:
+    types: [opened, reopened, edited]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@373c709c69115d41ff229c7e5df9f8788daa9553 # v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            if (issue.pull_request) return;
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const currentLabels = new Set((issue.labels || []).map((label) => label.name));
+            const labelsToAdd = new Set();
+
+            const STATUS_LABELS = new Set([
+              'needs-triage',
+              'needs-info',
+              'blocked',
+              'ready',
+            ]);
+            const PLATFORM_LABELS = new Map([
+              ['Windows', 'windows'],
+              ['macOS', 'macos'],
+              ['Linux', 'linux'],
+              ['Android', 'android'],
+              ['iOS', 'ios'],
+              ['Web', 'web'],
+            ]);
+            const SCOPE_LABELS = new Map([
+              ['前端界面 / 交互', ['frontend']],
+              ['服务层 / 外部站点', ['services']],
+              ['数据模型', ['models']],
+              ['本地存储 / 缓存 / 加密', ['storage']],
+              ['本地存储 / 缓存', ['storage']],
+              ['安装器 / 更新 / Release', ['installer', 'update', 'release-files']],
+              ['Release / 安装器', ['installer', 'release-files']],
+              ['Windows 安装器', ['installer', 'windows']],
+              ['通知 / 后台刷新', ['notification']],
+              ['CI / 仓库治理', ['ci', 'governance']],
+              ['文档', ['documentation']],
+              ['测试', ['test']],
+              ['依赖治理', ['dependencies']],
+              ['Android 签名 / 构建', ['android', 'release-files']],
+              ['GitHub Actions / Release', ['ci', 'release-files']],
+              ['安装包 / 构建产物', ['release-files']],
+              ['平台工程', []],
+              ['不确定', []],
+            ]);
+
+            function add(label) {
+              if (!label || label === 'release') return;
+              labelsToAdd.add(label);
+            }
+
+            function collectSections(body) {
+              const sections = new Map();
+              let currentTitle = null;
+              let currentLines = [];
+
+              function commitSection() {
+                if (currentTitle) {
+                  sections.set(currentTitle, currentLines.join('\n').trim());
+                }
+              }
+
+              for (const line of (body || '').split(/\r?\n/)) {
+                const heading = line.match(/^###\s+(.+?)\s*$/);
+                if (heading) {
+                  commitSection();
+                  currentTitle = heading[1].trim();
+                  currentLines = [];
+                  continue;
+                }
+                if (currentTitle) currentLines.push(line);
+              }
+              commitSection();
+              return sections;
+            }
+
+            function sectionContains(sections, sectionNames, value) {
+              for (const sectionName of sectionNames) {
+                const section = sections.get(sectionName) || '';
+                if (section.includes(value)) return true;
+              }
+              return false;
+            }
+
+            function detectTemplateType() {
+              const title = issue.title || '';
+              if (title.startsWith('[Bug]')) return 'bug';
+              if (title.startsWith('[Feature]')) return 'feature';
+              if (title.startsWith('[Task]')) return 'task';
+              if (title.startsWith('[Docs]')) return 'docs';
+              if (title.startsWith('[Release]')) return 'release';
+              if (title.startsWith('[Info Site]')) return 'info-site';
+
+              if (currentLabels.has('bug')) return 'bug';
+              if (currentLabels.has('enhancement')) return 'feature';
+              if (currentLabels.has('task')) return 'task';
+              if (currentLabels.has('documentation')) return 'docs';
+              return 'unknown';
+            }
+
+            const sections = collectSections(issue.body || '');
+            const templateType = detectTemplateType();
+
+            if (templateType === 'bug') add('bug');
+            if (templateType === 'feature' || templateType === 'info-site') add('enhancement');
+            if (templateType === 'task') add('task');
+            if (templateType === 'docs') add('documentation');
+            if (templateType === 'release') {
+              add('task');
+              add('release-files');
+            }
+
+            const prioritySource = `${issue.title}\n${sections.get('优先级建议') || ''}`;
+            const priorityMatch = prioritySource.match(/\b(P[0-3])\b/);
+            if (priorityMatch) add(priorityMatch[1]);
+
+            for (const [value, label] of PLATFORM_LABELS.entries()) {
+              if (
+                sectionContains(
+                  sections,
+                  ['受影响平台', '目标平台', '本次计划发布平台'],
+                  value,
+                )
+              ) {
+                add(label);
+              }
+            }
+
+            for (const [value, labels] of SCOPE_LABELS.entries()) {
+              if (
+                sectionContains(
+                  sections,
+                  ['影响模块 / 范围', '影响范围', '发布准备影响范围', '任务类型'],
+                  value,
+                )
+              ) {
+                for (const label of labels) add(label);
+              }
+            }
+
+            const hasStatusLabel = [...STATUS_LABELS].some((label) => currentLabels.has(label));
+            if (!hasStatusLabel) {
+              const hasRequiredPlan =
+                (sections.get('待办清单') || '').replace(/-\s*\[\s*\]\s*/g, '').trim() &&
+                (sections.get('验收标准') || '').trim();
+              if (templateType === 'task' && hasRequiredPlan) {
+                add('ready');
+              } else {
+                add('needs-triage');
+              }
+            }
+
+            const missingLabels = [...labelsToAdd].filter((label) => !currentLabels.has(label));
+            if (missingLabels.length === 0) {
+              core.info('No new issue labels needed.');
+              return;
+            }
+
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number: issue.number,
+              labels: missingLabels,
+            });
+
+            await core.summary
+              .addHeading('Issue Triage')
+              .addList([
+                `Template type: ${templateType}`,
+                `Added labels: ${missingLabels.join(', ')}`,
+              ])
+              .write();
