@@ -30,6 +30,7 @@ import '../widgets/channel_list_section.dart';
 import '../widgets/app_feedback.dart';
 import '../widgets/password_dialogs.dart';
 import '../widgets/responsive_layout.dart';
+import '../widgets/settings_academic_term_section.dart';
 import '../widgets/settings_auto_refresh_section.dart';
 import '../widgets/settings_general_section.dart';
 import '../widgets/settings_security_section.dart';
@@ -46,7 +47,10 @@ class SettingsPage extends StatefulWidget {
   /// 手动上锁回调。
   final VoidCallback? onLock;
 
-  const SettingsPage({super.key, this.onLock});
+  /// 测试专用：覆盖学期设置页当前日期。
+  final DateTime? academicTermNow;
+
+  const SettingsPage({super.key, this.onLock, this.academicTermNow});
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -149,7 +153,7 @@ class _SettingsPageState extends State<SettingsPage>
       AcademicEamsService.defaultAutoRefreshIntervalMinutes;
 
   /// 当前选中的设置分区索引。
-  /// 0=常规设置 1=自动刷新设置 2=安全设置 3=职能部门 4=教学单位 5=微信推文
+  /// 0=常规设置 1=学期设置 2=自动刷新设置 3=安全设置 4=职能部门 5=教学单位 6=微信推文
   @override
   int _selectedTab = 0;
 

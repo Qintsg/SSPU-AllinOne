@@ -1,5 +1,5 @@
 # CI 工作流
-# 普通 PR 负责标题/分支、Dart 格式、analyze、test 与治理文件校验；
+# 普通 PR 负责标题、目标分支、Dart 格式、analyze、test 与治理文件校验；
 # 带 release 标签的 PR 额外校验发布分支与发布说明模板。
 name: CI
 
@@ -18,7 +18,7 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - name: 校验 PR 标题、分支与目标分支
+      - name: 校验 PR 标题与目标分支
         shell: bash
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
@@ -54,16 +54,6 @@ jobs:
 
           if author != "dependabot[bot]" and re.search(r"[\u4e00-\u9fff]", title) is None:
               print("PR 标题摘要必须包含中文说明。", file=sys.stderr)
-              sys.exit(1)
-
-          branch_pattern = re.compile(
-              r"^((qintsg/)?(feature|fix|docs|chore|refactor|test|ci)/[a-z0-9][a-z0-9-]*"
-              r"|(qintsg/)?hotfix/[a-z0-9][a-z0-9-]*"
-              r"|release/v\d+\.\d+\.\d+(\.\d+)?(-(alpha|beta|rc|lts|hotfix))?"
-              r"|dependabot/.+|develop)$"
-          )
-          if branch_pattern.fullmatch(head_ref) is None:
-              print(f"分支名不符合规范：{head_ref}", file=sys.stderr)
               sys.exit(1)
 
           has_release_label = "release" in labels

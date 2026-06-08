@@ -229,7 +229,7 @@ Android、iOS、macOS、Linux、Web、portable 与压缩包等当前没有仓库
 
 进入 Release PR 前至少满足：
 
-1. CI 对非草稿 PR 会校验标题格式、分支命名、目标分支和 `release` label 使用方式。
+1. CI 对非草稿 PR 会校验标题格式、目标分支和 `release` label 使用方式；分支命名按规范推荐但不阻断普通 PR。
 2. `flutter analyze --no-fatal-infos` 通过。
 3. `flutter test` 通过。
 4. 变更 Dart 文件通过 `dart format --set-exit-if-changed` 检查。
