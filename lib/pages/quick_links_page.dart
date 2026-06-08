@@ -1,12 +1,12 @@
 /*
  * 快速跳转 — 从 YAML 配置读取常用校园链接与服务入口
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : quick_links_page.dart
  * @Author : Qintsg
  * @Date : 2026-04-23
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import '../design/fluent_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -14,6 +14,8 @@ import '../services/quick_links_config_service.dart';
 import '../services/quick_links_search_service.dart';
 import '../theme/fluent_tokens.dart';
 import '../widgets/responsive_layout.dart';
+
+part 'quick_links_widgets.dart';
 
 /// 快速跳转页面
 /// 通过仓库内 YAML 配置生成分组与链接，便于后续维护简称和新增站点。
@@ -34,20 +36,20 @@ class QuickLinksPage extends StatelessWidget {
       future: QuickLinksConfigService.instance.loadGroups(),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const ScaffoldPage(
-            header: PageHeader(title: Text('快速跳转')),
-            content: Center(child: ProgressRing()),
+          return const FluentPage(
+            header: FluentPageHeader(title: Text('快速跳转')),
+            content: Center(child: FluentProgressRing()),
           );
         }
 
         if (snapshot.hasError || snapshot.data == null) {
-          return ScaffoldPage(
-            header: const PageHeader(title: Text('快速跳转')),
+          return FluentPage(
+            header: const FluentPageHeader(title: Text('快速跳转')),
             content: Center(
-              child: InfoBar(
+              child: FluentInfoBar(
                 title: const Text('快捷跳转配置加载失败'),
                 content: Text('${snapshot.error ?? '配置为空'}'),
-                severity: InfoBarSeverity.error,
+                severity: FluentInfoSeverity.error,
               ),
             ),
           );
@@ -78,14 +80,14 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
 
   String _searchQuery = '';
 
-  static final List<AccentColor> _groupColors = [
-    Colors.blue,
-    Colors.teal,
-    Colors.green,
-    Colors.orange,
-    Colors.purple,
-    Colors.magenta,
-    Colors.red,
+  static const List<_QuickLinkColorRole> _groupColorRoles = [
+    _QuickLinkColorRole.brand,
+    _QuickLinkColorRole.info,
+    _QuickLinkColorRole.success,
+    _QuickLinkColorRole.caution,
+    _QuickLinkColorRole.neutral,
+    _QuickLinkColorRole.brandAlt,
+    _QuickLinkColorRole.critical,
   ];
 
   static const Map<String, IconData> _iconByKey = {
@@ -138,8 +140,8 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
           DeviceType.desktop => FluentSpacing.xxl,
         };
 
-        return ScaffoldPage.scrollable(
-          header: const PageHeader(title: Text('快速跳转')),
+        return FluentPage.scrollable(
+          header: const FluentPageHeader(title: Text('快速跳转')),
           padding: EdgeInsets.all(pagePadding),
           children: [
             _buildSearchBar(theme, hasSearchQuery, searchResults),
@@ -170,41 +172,42 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
     bool hasSearchQuery,
     List<QuickLinkSearchResult> searchResults,
   ) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: TextBox(
-            controller: _searchController,
-            placeholder: '搜索快捷入口或网址',
-            prefix: const Padding(
-              padding: EdgeInsets.only(left: 8.0),
-              child: Icon(FluentIcons.search, size: 14),
+    return FluentSurface(
+      padding: const EdgeInsets.all(FluentSpacing.m),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: FluentTextField(
+              controller: _searchController,
+              placeholder: '搜索快捷入口或网址',
+              prefixIcon: FluentIcons.search,
+              suffix: hasSearchQuery
+                  ? FluentIconButton(
+                      icon: const Icon(FluentIcons.clear),
+                      iconSize: 12,
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    )
+                  : null,
+              onChanged: (value) => setState(() => _searchQuery = value),
+              onSubmitted: (_) => _openBestMatch(searchResults),
             ),
-            suffix: hasSearchQuery
-                ? IconButton(
-                    icon: const Icon(FluentIcons.clear, size: 12),
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() => _searchQuery = '');
-                    },
-                  )
-                : null,
-            onChanged: (value) => setState(() => _searchQuery = value),
-            onSubmitted: (_) => _openBestMatch(searchResults),
           ),
-        ),
-        const SizedBox(width: FluentSpacing.s),
-        Tooltip(
-          message: '打开最佳匹配',
-          child: FilledButton(
-            onPressed: searchResults.isEmpty
-                ? null
-                : () => _openBestMatch(searchResults),
-            child: const Icon(FluentIcons.open_in_new_window, size: 14),
+          const SizedBox(width: FluentSpacing.s),
+          Tooltip(
+            message: '打开最佳匹配',
+            child: FluentButton.primary(
+              onPressed: searchResults.isEmpty
+                  ? null
+                  : () => _openBestMatch(searchResults),
+              child: const Icon(FluentIcons.openInNewWindow, size: 14),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -222,7 +225,7 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  FluentIcons.search_issue,
+                  FluentIcons.searchIssue,
                   size: 42,
                   color: theme.resources.textFillColorSecondary,
                 ),
@@ -255,10 +258,11 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
                 label: result.item.name,
                 subtitle: result.group.category,
                 color: _resolveColor(
+                  theme,
                   result.group.category,
                   result.item,
-                  _groupColors[widget.groups.indexOf(result.group) %
-                      _groupColors.length],
+                  _groupColorRoles[widget.groups.indexOf(result.group) %
+                      _groupColorRoles.length],
                 ),
                 url: result.item.url,
                 onTap: widget.onOpenUrl,
@@ -279,7 +283,8 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
     int groupIndex,
     double tileWidth,
   ) {
-    final groupColor = _groupColors[groupIndex % _groupColors.length];
+    final groupColorRole =
+        _groupColorRoles[groupIndex % _groupColorRoles.length];
     return [
       if (groupIndex > 0) const SizedBox(height: FluentSpacing.l),
       Text(group.category, style: theme.typography.bodyStrong),
@@ -291,7 +296,12 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
               return _LinkTile(
                 icon: _resolveIcon(group.category, item),
                 label: item.name,
-                color: _resolveColor(group.category, item, groupColor),
+                color: _resolveColor(
+                  theme,
+                  group.category,
+                  item,
+                  groupColorRole,
+                ),
                 url: item.url,
                 onTap: widget.onOpenUrl,
                 width: tileWidth,
@@ -361,115 +371,46 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
     return FluentIcons.globe;
   }
 
-  AccentColor _resolveColor(
+  Color _resolveColor(
+    FluentThemeData theme,
     String category,
     QuickLinkItemConfig item,
-    AccentColor fallback,
+    _QuickLinkColorRole fallback,
   ) {
     final searchableText = '${item.name} $category';
     if (searchableText.contains('财务') || searchableText.contains('保卫')) {
-      return Colors.red;
+      return _resolveColorRole(theme, _QuickLinkColorRole.critical);
     }
     if (searchableText.contains('国际') || searchableText.contains('留学生')) {
-      return Colors.teal;
+      return _resolveColorRole(theme, _QuickLinkColorRole.info);
     }
     if (searchableText.contains('学习') || searchableText.contains('教学')) {
-      return Colors.blue;
+      return _resolveColorRole(theme, _QuickLinkColorRole.brand);
     }
     if (searchableText.contains('图书') || searchableText.contains('档案')) {
-      return Colors.orange;
+      return _resolveColorRole(theme, _QuickLinkColorRole.caution);
     }
     if (searchableText.contains('党') ||
         searchableText.contains('团') ||
         searchableText.contains('工会')) {
-      return Colors.magenta;
+      return _resolveColorRole(theme, _QuickLinkColorRole.brandAlt);
     }
-    return fallback;
+    return _resolveColorRole(theme, fallback);
   }
-}
 
-/// 快捷链接砖块组件。
-class _LinkTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String? subtitle;
-  final AccentColor color;
-  final String url;
-  final Future<void> Function(String) onTap;
-
-  /// 磁贴宽度（响应式调整）。
-  final double width;
-
-  const _LinkTile({
-    required this.icon,
-    required this.label,
-    this.subtitle,
-    required this.color,
-    required this.url,
-    required this.onTap,
-    this.width = 140,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+  Color _resolveColorRole(FluentThemeData theme, _QuickLinkColorRole role) {
     final isDark = theme.brightness == Brightness.dark;
-
-    return HoverButton(
-      onPressed: () => onTap(url),
-      builder: (context, states) {
-        final isHovered = states.isHovered;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          width: width,
-          constraints: const BoxConstraints(minHeight: 122),
-          padding: const EdgeInsets.all(FluentSpacing.l),
-          decoration: BoxDecoration(
-            color: isHovered
-                ? color.withValues(alpha: isDark ? 0.15 : 0.08)
-                : isDark
-                ? FluentDarkColors.hoverFill
-                : Colors.white,
-            borderRadius: BorderRadius.circular(FluentRadius.xLarge),
-            border: Border.all(
-              color: isHovered
-                  ? color.withValues(alpha: 0.3)
-                  : isDark
-                  ? FluentDarkColors.borderSubtle
-                  : FluentLightColors.borderSubtle,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 28, color: color),
-              const SizedBox(height: FluentSpacing.s),
-              Text(
-                label,
-                style: theme.typography.body?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: subtitle == null ? 3 : 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (subtitle != null) ...[
-                const SizedBox(height: FluentSpacing.xs),
-                Text(
-                  subtitle!,
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ],
-          ),
-        );
-      },
-    );
+    return switch (role) {
+      _QuickLinkColorRole.brand => theme.accentColor,
+      _QuickLinkColorRole.brandAlt =>
+        isDark ? FluentDarkColors.brandHover : FluentLightColors.brandHover,
+      _QuickLinkColorRole.info =>
+        isDark ? FluentDarkColors.statusInfo : FluentLightColors.statusInfo,
+      _QuickLinkColorRole.success => theme.resources.systemFillColorSuccess,
+      _QuickLinkColorRole.caution => theme.resources.systemFillColorCaution,
+      _QuickLinkColorRole.neutral =>
+        theme.resources.systemFillColorSolidNeutral,
+      _QuickLinkColorRole.critical => theme.resources.systemFillColorCritical,
+    };
   }
 }

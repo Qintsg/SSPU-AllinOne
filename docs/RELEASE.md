@@ -1,658 +1,255 @@
-# SSPU-all-in-one 发布规则
+# SSPU-AllinOne 发布规则
 
-> 适用范围：本规则基于仓库当前代码结构制定，忽略历史 workflow 与既有 release 实现。
-> 目标：统一版本、命名、打包、发布矩阵、校验与说明，确保产物可追踪、可下载、可验证。
-> 当前自动化约定：公开 Release 仍然通过带 `release` 标签的 PR merge 触发；正式版要求合并到 `main`，预发布版允许合并到 `main`、`develop` 或 `release/*`。
+> 适用范围：本规则约束仓库版本号、发版分支、Release PR、构建产物命名、GitHub Release 标记与发布说明。
+> 目标：让版本事实来源、公开版本、内部构建号和用户可下载资产保持一致。
 
 ---
 
 ## 1. 总体原则
 
-1. 发布规则以仓库源码结构与实际可构建产物为准。
-2. `pubspec.yaml` 中的版本号是唯一版本事实来源。
-3. Git Tag、Release 标题、Release 资产命名、校验文件、元数据文件必须互相对应。
-4. GitHub Release 只放最终用户可直接消费的产物，不放中间构建文件。
-5. 默认优先保证 Android、Windows、macOS、Linux、Web 五类产物质量；iOS 默认不进入公开 Release。
-6. Linux 平台除通用压缩包外，应额外提供主流发行版可直接安装的软件包。
+1. `pubspec.yaml` 与 `docs/CHANGELOG.md` 是唯一需要人工维护版本号的文件。
+2. `pubspec.yaml` 保存 Flutter 可识别的完整版本：`X.X.X[-channel]+build` 或 `X.X.X.X[-channel]+build`。
+3. `docs/CHANGELOG.md` 章节标题保存公开版本，不写 `+build`，例如 `[1.0.0-alpha]`。
+4. `+build` 只作为内部构建号，每次发新版本或重发同一公开版本时，都必须在上一次 `pubspec.yaml` build 号基础上自动递增；安装包文件名、系统内部展示、Release 标题和 Release 描述均不得显式写出 `+build`。
+5. Git Tag、release 分支名、Release 标题、安装包文件名、`manifest.json` 的公开版本必须一致。
+6. 公开 Release 只放终端用户可直接消费的产物，不放中间构建目录、缓存或调试产物。
 
 ---
 
-## 2. 版本规则
+## 2. 版本号规则
 
-### 2.1 版本来源
+### 2.1 公开版本格式
 
-版本号统一读取自 `pubspec.yaml`：
+公开版本统一使用：
+
+```text
+X.X.X[-channel]
+X.X.X.X[-channel]
+```
+
+字段说明：
+
+- `X`：数字，至少三段，例如 `1.0.0`。
+- 第四段数字仅用于 hotfix 或其它特殊情况，例如 `1.0.0.1-hotfix`。
+- `channel` 可选；不写时表示稳定版通道。
+- `channel` 仅允许：`alpha`、`beta`、`hotfix`、`rc`、`lts`。
+
+示例：
+
+```text
+1.0.0
+1.0.0-alpha
+1.0.0-beta
+1.0.0-rc
+1.0.0-lts
+1.0.0.1-hotfix
+```
+
+### 2.2 `pubspec.yaml` 版本格式
+
+`pubspec.yaml` 中的 `version` 字段必须使用 Flutter 合法格式：
 
 ```yaml
-version: MAJOR.MINOR.PATCH[-CHANNEL]+BUILD
+version: X.X.X[-channel]+build
+version: X.X.X.X[-channel]+build
 ```
 
 示例：
 
-- `0.2.0-alpha+3`
-- `0.2.0-beta+1`
-- `0.2.0-rc+2`
-- `0.2.0+1`
+```yaml
+version: 1.0.0-alpha+1
+version: 1.0.0+7
+version: 1.0.0.1-hotfix+12
+```
 
-### 2.2 版本字段含义
+> 注意：`pubspec.yaml` 不写 `v` 前缀；`v` 前缀只用于 Git Tag 与 `release/v...` 分支名。
 
-- `MAJOR`：不兼容变更
-- `MINOR`：向后兼容的新功能
-- `PATCH`：向后兼容的问题修复
-- `CHANNEL`：预发布通道，可选值：
-  - `alpha`
-  - `beta`
-  - `rc`
-- `BUILD`：构建序号，仅用于区分同版本的构建批次
+### 2.3 Release 类型
 
-### 2.3 版本约束
+| 公开版本 | 通道 | GitHub Release 类型 |
+|---|---|---|
+| `1.0.0` | stable | 普通 Release |
+| `1.0.0-lts` | lts | 普通 Release |
+| `1.0.0.1-hotfix` | hotfix | 普通 Release |
+| `1.0.0-alpha` | alpha | Pre-release |
+| `1.0.0-beta` | beta | Pre-release |
+| `1.0.0-rc` | rc | Pre-release |
 
-1. 正式版不带预发布后缀，例如：`1.0.0+1`
-2. 预发布版必须带通道后缀，例如：`1.0.0-beta+2`
-3. `BUILD` 必须为正整数
-4. 发布时不得手工在多个文件中分别维护版本，统一以 `pubspec.yaml` 为准
+除稳定版、`lts`、`hotfix` 外，其它 Release 均必须标记为 Pre-release。
 
 ---
 
-## 3. 分支与发版流
+## 3. 分支与 PR 工作流
 
-### 3.1 分支约定
+### 3.1 日常代码工作流
 
-- `main`：可发布分支
-- `develop`：集成开发分支
-- `feature/*`：功能开发分支
-- `hotfix/*`：线上修复分支
+1. 默认从 `develop` 签出新分支。
+2. 按 `.github/分支命名规范.md` 选择分支名，例如 `feature/<topic>`、`fix/<topic>`、`refactor/<topic>`、`docs/<topic>`、`ci/<topic>`。
+3. 完成开发、测试与文档同步后，创建 PR 合并回 `develop`。
+4. 常规 PR 默认使用 `.github/pull_request_template.md` 通用模板；Release PR 使用 `.github/PULL_REQUEST_TEMPLATE/release.md`，并填写变更说明、验证记录、影响范围和风险。关联 Issue 默认写 `Refs #123`；需要合并后关闭时保留 `Closes #123` / `Fixes #123` / `Resolves #123` 等关闭关键字。
+5. PR 合并入 `develop` 后，`Close Linked Issues` workflow 会自动关闭同仓库内通过关闭关键字或 GitHub closing reference 识别到的 Issue。
+6. 禁止直接向 `develop` 或 `main` 推送未审查提交。
 
-### 3.2 发版约定
+### 3.2 alpha / beta / rc 发布工作流
 
-1. 正式 Release 只能从 `main` 发出
-2. 预发布版本可从 `main`、`develop` 或 `release/*` 预发布稳定分支生成，但最终必须回到 `main`
-3. 不允许直接从 `feature/*` 创建正式 Release
-4. 紧急修复优先使用 `hotfix/*`，修复完成后同时回合到 `main` 与 `develop`
-5. 公开 Release 由目标分支满足上述规则、且带 `release` 标签的 PR merge 自动触发
+alpha、beta、rc 属于预发布，直接由 `release/vX.X.X-channel` 分支合入 `develop` 后触发构建：
+
+1. 从 `develop` 签出 `release/vX.X.X-channel` 分支，例如 `release/v1.0.0-alpha`。
+2. 只修改 `pubspec.yaml` 与 `docs/CHANGELOG.md` 中的版本号。
+3. `pubspec.yaml` 使用 `X.X.X-channel+build`，且 `build` 必须在上一次 `pubspec.yaml` 的基础上自动加一；`docs/CHANGELOG.md` 使用 `[X.X.X-channel]`。
+4. 创建 `release/v... -> develop` 的 Release PR。
+5. PR 必须使用 Release 模板（`?template=release.md`），完整填写发布说明，并携带 `release` label。
+6. PR merge 后由 `Build & Release` workflow 自动构建并创建 GitHub Pre-release；工作流会检查目标 Tag 不存在、并发发布不互相取消、资产矩阵完整且 manifest / SHA256SUMS 与公开版本一致。
+
+### 3.3 stable / lts / hotfix 发布工作流
+
+稳定版、lts、hotfix 需要两段 PR，确保版本先进入 `develop`，再由 `develop` 晋级到 `main`：
+
+1. 从 `develop` 签出 `release/vX.X.X[-lts|-hotfix]` 分支。
+2. 只修改 `pubspec.yaml` 与 `docs/CHANGELOG.md` 中的版本号。
+3. 创建 `release/v... -> develop` 的 Release PR，但不得携带 `release` label。
+4. 合并到 `develop` 后，再创建 `develop -> main` 的 Release PR。
+5. `develop -> main` 的 Release PR 必须携带 `release` label。
+6. PR merge 后由 `Build & Release` workflow 自动构建并创建普通 GitHub Release；工作流会检查目标 Tag 不存在、并发发布不互相取消、资产矩阵完整且 manifest / SHA256SUMS 与公开版本一致。
+
+### 3.4 Release workflow 维护边界
+
+`Build & Release` workflow 中跨平台重复的 Flutter 初始化、arm64 SDK 安装、Windows portable 打包、Linux 多格式产物整理和 Release 元数据生成逻辑必须优先放入 `.github/actions/` 下的 composite actions。修改这些 action 时，需要同步运行 GitHub 治理配置校验，确保 Release workflow 仍引用必要 action，且每个 action 保持 `runs.using: composite`。
 
 ---
 
-## 4. 发布类型
+## 4. Tag 与命名
 
-### 4.1 预发布
+### 4.1 Tag 规则
 
-适用于：
+Tag 使用公开版本并加 `v` 前缀，不包含 `+build`：
 
-- 新功能初测
-- 架构改动验证
-- 跨平台兼容性验证
+```text
+v1.0.0
+v1.0.0-alpha
+v1.0.0-lts
+v1.0.0.1-hotfix
+```
 
-通道：
+### 4.2 安装包文件名规则
 
-- `alpha`
-- `beta`
-- `rc`
+所有安装包和归档文件名均使用公开版本，不包含 `+build`：
 
-要求：
+```text
+SSPU-AllinOne-v{public_version}-{platform}-{arch}-{kind}.{ext}
+```
 
-- GitHub Release 必须标记为 Pre-release
-- Release 标题中必须体现通道信息
-- 允许仅发布部分平台，但必须在说明中明确列出缺失平台
+应用显示名可以按语言环境显示为“工大聚合”或 `SSPU-AllinOne`，但 Release 资产文件名始终使用 `SSPU-AllinOne-v...` 规则，不使用中文显示名。Windows installer 默认安装目录也必须固定使用英文技术名 `SSPU-AllinOne`，不得随显示语言变为中文目录。
 
-### 4.2 正式发布
+Android universal APK 使用固定短名：
 
-适用于：
+```text
+SSPU-AllinOne-v{public_version}-android-universal.apk
+```
 
-- 面向普通用户分发
-- 具备完整发布说明
-- 所有正式支持平台构建通过
+示例：
 
-要求：
-
-- GitHub Release 不标记为 Pre-release
-- 必须附带校验文件与元数据文件
-- 必须包含安装/升级说明与已知问题
+```text
+SSPU-AllinOne-v1.0.0-alpha-android-universal.apk
+SSPU-AllinOne-v1.0.0-windows-x64-installer.exe
+SSPU-AllinOne-v1.0.0.1-hotfix-linux-x64-appimage.AppImage
+SSPU-AllinOne-v1.0.0-lts-web-universal-static.zip
+```
 
 ---
 
 ## 5. 平台支持矩阵
 
-### 5.1 正式支持平台
-
-以下平台属于默认正式发布范围：
-
-| 平台 | 架构 | 发布形式 | 必须进入公开 Release |
+| 平台 | 架构 | 发布形式 | 默认进入公开 Release |
 |---|---|---|---|
 | Android | universal | APK | 是 |
 | Windows | x64 | installer / portable | 是 |
 | Windows | arm64 | installer / portable | 是 |
-| macOS | universal | DMG | 是 |
+| macOS | universal | unsigned DMG | 是 |
 | Linux | x64 | AppImage / deb / rpm / tar.gz | 是 |
 | Linux | arm64 | AppImage / deb / rpm / tar.gz | 是 |
 | Web | universal | static.zip | 是 |
 
-### 5.2 实验性平台
+Linux 正式发布必须同时覆盖 `x64` 与 `arm64`，并提供 AppImage、deb、rpm、tar.gz 四类产物。
 
-以下平台默认不纳入正式支持承诺：
+Windows installer 使用 Inno Setup 双模式安装器，x64 与 arm64 行为保持一致：全新安装默认当前用户范围，可在安装向导或命令行显式切换到所有用户范围；安装包文件名和 Release 资产类型仍保持 `windows-{arch}-installer.exe`。安装器可本地化展示应用名，但默认安装路径固定为 `SSPU-AllinOne`。安装器启动时会检测既有安装：不同版本进入升级安装，沿用既有当前用户 / 所有用户范围和目录并跳过目录选择；相同版本会询问是否重装，确认后先调用既有卸载器，卸载器负责询问是否保留用户目录下的 `.sspu-aio/` 应用数据，再回到正常安装流程。安装器许可页使用 `assets/legal/legal_zh.txt`，需要与应用首次启动展示的完整法律与隐私说明保持同步。Android 正式 Release 构建必须提供 `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`，缺少任一签名 Secret 都会直接失败，不允许回退到 debug 签名。
 
-| 平台 | 架构 | 发布形式 | 默认策略 |
-|---|---|---|---|
-| Android | split ABI | APK / AAB | 可选，预发布可提供 |
-| iOS | device / archive | IPA / archive | 默认不公开发布 |
+Android、iOS、macOS、Linux、Web、portable 与压缩包等当前没有仓库统一控制的安装前 GUI 或 CLI 协议确认页；这些渠道依赖应用首次启动的完整法律与隐私说明弹窗完成一次性确认。
 
-### 5.3 iOS 特别规则
-
-1. iOS 默认不进入 GitHub 公开 Release
-2. 除非签名、分发方式、安装说明均已明确，否则只允许作为内部测试产物
-3. 若未来需要公开分发，必须单独补充 iOS 发布与安装文档
+品牌图标与应用徽章的源文件和生成规则见 `docs/BRAND_ASSETS.md`。更换图标时应先更新 `assets/brand/` 源图，再运行 `python scripts/assets/generate_brand_icons.py` 生成平台资源，避免手工只替换单个平台图标导致 Release 展示不一致。
 
 ---
 
-## 6. 产物命名规范
+## 6. Release 附属文件
 
-### 6.1 统一命名格式
+每次 Release 必须附带：
 
-除 Android 通用 APK 外，所有发布资产统一命名为：
+- `SHA256SUMS.txt`：列出所有发布资产的 SHA-256。
+- `manifest.json`：记录公开版本、`pubspec_version`、构建号、通道、Tag、工具链版本和资产清单。
+- `release-notes.md`：由 Release PR 正文生成，与 GitHub Release 正文一致或基本一致。
 
-```text
-SSPU-All-in-One-v{version}-{platform}-{arch}-{kind}.{ext}
-```
-
-Android 通用 APK 采用以下固定短名：
-
-```text
-SSPU-All-in-One-v{version}-android-universal.apk
-```
-
-字段说明：
-
-- `{version}`：来自 `pubspec.yaml`，完整保留
-- `{platform}`：平台标识
-- `{arch}`：架构标识
-- `{kind}`：产物类型
-- `{ext}`：文件扩展名
-
-### 6.2 平台字段取值
-
-#### platform
-
-仅允许以下值：
-
-- `android`
-- `ios`
-- `windows`
-- `macos`
-- `linux`
-- `web`
-
-#### arch
-
-仅允许以下值：
-
-- `universal`
-- `x64`
-- `arm64`
-- `armv7`
-
-#### kind
-
-仅允许以下值：
-
-- `installer`
-- `portable`
-- `bundle`
-- `static`
-- `unsigned`
-- `appimage`
-- `deb`
-- `rpm`
-
-### 6.3 推荐命名示例
-
-```text
-SSPU-All-in-One-v0.2.0-alpha+3-android-universal.apk
-SSPU-All-in-One-v0.2.0+1-windows-x64-installer.exe
-SSPU-All-in-One-v0.2.0+1-windows-x64-portable.zip
-SSPU-All-in-One-v0.2.0+1-windows-arm64-installer.exe
-SSPU-All-in-One-v0.2.0+1-windows-arm64-portable.zip
-SSPU-All-in-One-v0.2.0+1-macos-universal-installer.dmg
-SSPU-All-in-One-v0.2.0+1-macos-universal-unsigned.dmg
-SSPU-All-in-One-v0.2.0+1-linux-x64-appimage.AppImage
-SSPU-All-in-One-v0.2.0+1-linux-x64-deb.deb
-SSPU-All-in-One-v0.2.0+1-linux-x64-rpm.rpm
-SSPU-All-in-One-v0.2.0+1-linux-x64-portable.tar.gz
-SSPU-All-in-One-v0.2.0+1-linux-arm64-appimage.AppImage
-SSPU-All-in-One-v0.2.0+1-linux-arm64-deb.deb
-SSPU-All-in-One-v0.2.0+1-linux-arm64-rpm.rpm
-SSPU-All-in-One-v0.2.0+1-linux-arm64-portable.tar.gz
-SSPU-All-in-One-v0.2.0+1-web-universal-static.zip
-```
-
-### 6.4 命名约束
-
-1. 文件名中必须包含版本、平台、架构与类型信息；Android 通用 APK 使用固定短名但仍必须包含版本与平台/架构语义
-2. 不允许使用含糊命名，例如：
-   - `app.apk`
-   - `release.zip`
-   - `windows-build.zip`
-3. 不允许在文件名中混入时间戳、随机字符串、构建机器信息
-4. 不允许使用中文文件名
+`manifest.json` 中允许记录 `build_number` 便于追踪，但用户可见标题、文件名和说明不得显式展示 `+build`。
 
 ---
 
-## 7. 各平台发布产物规则
+## 7. Release PR 发布说明模板
 
-### 7.1 Android
-
-公开 Release 默认只上传：
-
-- `SSPU-All-in-One-v{version}-android-universal.apk`
-
-可选附加产物（非默认）：
-
-- ABI 分包 APK
-- `.aab`
-
-约束：
-
-1. 默认优先提供 `universal.apk`
-2. `.aab` 不作为普通用户首选下载项
-3. 若提供 ABI 分包，必须明确标注架构并保留 `universal.apk`
-
-### 7.2 Windows
-
-公开 Release 默认上传：
-
-- `SSPU-All-in-One-v{version}-windows-x64-installer.exe`
-- `SSPU-All-in-One-v{version}-windows-x64-portable.zip`
-- `SSPU-All-in-One-v{version}-windows-arm64-installer.exe`
-- `SSPU-All-in-One-v{version}-windows-arm64-portable.zip`
-
-约束：
-
-1. 安装版与便携版可同时存在
-2. 压缩包内根目录应直接包含应用目录，不应多包一层杂乱结构
-3. `x64` 与 `arm64` 应保持同级发布，不允许只补其中一个架构
-4. 若单架构仅提供一种形式，优先 installer
-
-### 7.3 macOS
-
-公开 Release 默认上传：
-
-- `SSPU-All-in-One-v{version}-macos-universal-installer.dmg`
-
-约束：
-
-1. 默认只提供 DMG
-2. 未签名或未公证时，必须在发布说明中明确标注
-3. 若必须提供未签名产物，命名应使用 `unsigned`
-4. 当前仓库自动化默认产出未签名 DMG，因此公开 Release 资产使用：
-   `SSPU-All-in-One-v{version}-macos-universal-unsigned.dmg`
-
-### 7.4 Linux
-
-公开 Release 默认上传以下 Linux 资产：
-
-- `SSPU-All-in-One-v{version}-linux-x64-appimage.AppImage`
-- `SSPU-All-in-One-v{version}-linux-x64-deb.deb`
-- `SSPU-All-in-One-v{version}-linux-x64-rpm.rpm`
-- `SSPU-All-in-One-v{version}-linux-x64-portable.tar.gz`
-- `SSPU-All-in-One-v{version}-linux-arm64-appimage.AppImage`
-- `SSPU-All-in-One-v{version}-linux-arm64-deb.deb`
-- `SSPU-All-in-One-v{version}-linux-arm64-rpm.rpm`
-- `SSPU-All-in-One-v{version}-linux-arm64-portable.tar.gz`
-
-#### 7.4.1 Linux 包类型与适用发行版
-
-| 包类型 | 适用发行版 | 说明 |
-|---|---|---|
-| AppImage | 通用 | 免安装，适合绝大多数桌面发行版 |
-| deb | Debian / Ubuntu / Linux Mint / Deepin / UOS 等 | 适合 Debian 系主流桌面用户 |
-| rpm | Fedora / RHEL / CentOS Stream / openSUSE 等 | 适合 RPM 系发行版 |
-| tar.gz | 通用 | 兜底便携包，适合手工解压运行 |
-
-#### 7.4.2 Linux 正式发布最低要求
-
-正式 Release 时，Linux 平台至少应满足以下要求：
-
-1. `x64` 必须提供 `AppImage`、`deb`、`rpm`、`tar.gz`
-2. `arm64` 必须提供 `AppImage`、`deb`、`rpm`、`tar.gz`
-3. 两个架构的命名风格、校验文件与发布说明必须保持一致
-
-#### 7.4.3 Linux 预发布最低要求
-
-预发布时至少应提供以下两类之一：
-
-- `x64 AppImage`
-- `x64 tar.gz`
-- `arm64 AppImage`
-- `arm64 tar.gz`
-
-建议仍尽量附带 `deb` 与 `rpm`
-
-#### 7.4.4 Linux 打包约束
-
-1. 正式公开 Release 必须同时覆盖 `x64` 与 `arm64`
-2. 压缩包解压后目录结构应清晰，不应包含构建缓存或临时目录
-3. `deb` 包应尽量遵循 Debian 系安装约定
-4. `rpm` 包应尽量遵循 RPM 系安装约定
-5. `AppImage` 应保证双击或加执行权限后可直接运行
-6. 如依赖额外系统库，必须在 Release 说明中列出
-
-#### 7.4.5 Linux 包命名补充要求
-
-1. Linux 文件名中必须明确写出包类型，不允许只写 `linux-x64.zip`
-2. 对同一版本，`x64` 与 `arm64` 的 `AppImage`、`deb`、`rpm`、`tar.gz` 必须并列存在且命名风格一致
-3. 不允许把 `.deb`、`.rpm` 作为压缩包内附件二次打包上传
-
-### 7.5 Web
-
-公开 Release 默认上传：
-
-- `SSPU-All-in-One-v{version}-web-universal-static.zip`
-
-约束：
-
-1. 必须打包完整静态站点目录
-2. 不直接上传零散静态文件
-3. 若存在部署要求，需在 Release 中注明基础路径、反向代理或静态服务器要求
-
-### 7.6 iOS
-
-默认不进入公开 Release。
-
-如确需提供：
-
-1. 必须明确分发方式
-2. 必须明确安装前置条件
-3. 必须单独说明签名状态、适配设备与测试方式
-
----
-
-## 8. 不得进入 Release 的内容
-
-以下内容一律不得上传到 GitHub Release：
-
-- 构建缓存目录
-- 临时中间产物
-- 调试版产物
-- 未压缩的 `build/web/` 散文件树
-- 日志文件
-- 本地测试报告原始目录
-- 构建脚本临时输出
-- 符号文件（除非单独定义开发者下载区）
-- 无说明的 `.aab`、`.app`、`.xcarchive`、`intermediates` 等中间件
-
-原则：Release 面向终端用户，不面向构建排错。
-
----
-
-## 9. 必备附属文件
-
-每次 Release 必须额外附带以下文件：
-
-### 9.1 `SHA256SUMS.txt`
-
-内容要求：
-
-- 列出所有发布资产的 SHA-256
-- 一行一个文件
-- 格式统一为：
-
-```text
-<sha256>  <filename>
-```
-
-### 9.2 `manifest.json`
-
-用于机器读取的元数据，至少包含：
-
-```json
-{
-  "name": "SSPU-all-in-one",
-  "version": "0.2.0+1",
-  "channel": "stable",
-  "build_number": 1,
-  "tag": "v0.2.0",
-  "platforms": [
-    {
-      "platform": "linux",
-      "arch": "x64",
-      "kind": "appimage",
-      "filename": "SSPU-All-in-One-v0.2.0+1-linux-x64-appimage.AppImage",
-      "sha256": "..."
-    },
-    {
-      "platform": "linux",
-      "arch": "x64",
-      "kind": "deb",
-      "filename": "SSPU-All-in-One-v0.2.0+1-linux-x64-deb.deb",
-      "sha256": "..."
-    },
-    {
-      "platform": "linux",
-      "arch": "x64",
-      "kind": "rpm",
-      "filename": "SSPU-All-in-One-v0.2.0+1-linux-x64-rpm.rpm",
-      "sha256": "..."
-    }
-  ]
-}
-```
-
-建议字段：
-
-- `name`
-- `version`
-- `channel`
-- `build_number`
-- `tag`
-- `release_date`
-- `flutter_version`
-- `dart_version`
-- `platforms`
-
-### 9.3 `release-notes.md`
-
-要求：
-
-- 与 GitHub Release 正文内容一致或基本一致
-- 可直接作为归档文档保存
-- 自动化从 Release PR 正文中提取并生成，因此带 `release` 标签的 PR 必须提供完整发布说明章节
-
----
-
-## 10. Tag 规则
-
-### 10.1 Tag 格式
-
-统一使用：
-
-```text
-vMAJOR.MINOR.PATCH
-vMAJOR.MINOR.PATCH-alpha
-vMAJOR.MINOR.PATCH-beta
-vMAJOR.MINOR.PATCH-rc
-```
-
-示例：
-
-- `v0.2.0-alpha`
-- `v0.2.0-beta`
-- `v0.2.0-rc`
-- `v0.2.0`
-
-### 10.2 Tag 约束
-
-1. Tag 不包含 `+BUILD`
-2. `+BUILD` 只体现在版本号和产物元数据中
-3. 同一源码版本允许重新构建，但不建议重复覆盖同名 Release 资产
-4. 如需重发产物，优先增加 `BUILD` 并重新创建对应版本
-
----
-
-## 11. 发布说明模板
-
-每次 Release 正文必须至少包含以下章节：
+带 `release` label 的 PR 正文必须包含以下章节，并替换为真实内容：
 
 ```markdown
 ## 亮点
-- 新增了什么
-- 修复了什么
-- 优化了什么
+- 本次发布最重要的变化
+
+## 新增
+- 新增能力
+
+## 修复
+- 修复问题
+
+## 优化
+- 优化内容
 
 ## 破坏性变更
-- 是否存在配置、数据、行为不兼容
-
-## 平台清单
-- Android
-- Windows x64 / arm64
-- macOS universal
-- Linux x64 / arm64（AppImage / deb / rpm / tar.gz）
-- Web
+- 无破坏性变更
 
 ## 安装 / 升级说明
-- 新装用户怎么用
-- 老用户怎么升级
-- 是否需要清理旧配置
-
-## Linux 安装说明
-- Debian / Ubuntu / Linux Mint 用户优先使用 `.deb`
-- Fedora / openSUSE / RHEL 系用户优先使用 `.rpm`
-- 需要免安装时使用 `.AppImage`
-- 无法直接安装时使用 `.tar.gz`
+- 新装用户：
+- 升级用户：
+- 是否需要清理旧配置：
 
 ## 已知问题
-- 当前存在但未修复的问题
-- 哪些平台受影响
-
-## 校验信息
-- 提供 SHA256SUMS.txt
-- 提供 manifest.json
+- 无已知问题
 ```
 
-### 说明要求
-
-1. 不允许只写“修复若干问题”
-2. 必须说明缺失平台或异常平台
-3. 如存在签名、公证、权限限制，必须明确写出
-4. 如是预发布，必须说明测试性质与风险
-5. Linux 若未提供某种包型，必须说明原因
+不允许保留“待补充”“请填写”等模板占位文本。
 
 ---
 
-## 12. 质量门槛
+## 8. 质量门槛
 
-### 12.1 合并门槛
+进入 Release PR 前至少满足：
 
-进入可发布分支前，至少满足：
-
-- 代码格式正常
-- `flutter analyze` 通过
-- `flutter test` 通过
-
-### 12.2 发版门槛
-
-创建 Release 前，至少满足：
-
-1. 所有正式支持平台 release build 通过
-2. 产物命名符合规范
-3. `pubspec.yaml` 版本与 Tag 一致
-4. `SHA256SUMS.txt` 已生成
-5. `manifest.json` 已生成
-6. `release-notes.md` 已准备
-7. 发布说明已明确：
-   - 支持平台
-   - 已知问题
-   - 安装方式
-   - 校验方式
-
-### 12.3 Linux 发版附加门槛
-
-正式 Release 时，Linux 额外要求：
-
-1. `x64` 与 `arm64` 的 `AppImage` 均可直接运行
-2. `x64` 与 `arm64` 的 `deb` 均可被 Debian/Ubuntu 系正常安装
-3. `x64` 与 `arm64` 的 `rpm` 均可被 Fedora/openSUSE/RHEL 系正常安装
-4. `x64` 与 `arm64` 的 `tar.gz` 解压后均可直接运行
-5. 八类 Linux 产物的校验值必须全部写入 `SHA256SUMS.txt`
-
-### 12.4 可选增强门槛
-
-后续可逐步补充：
-
-- 多平台冒烟启动验证
-- 产物体积变化阈值检查
-- Android 安装校验
-- Windows/macOS/Linux 启动可用性校验
-- Web 页面加载与路由校验
+1. CI 对非草稿 PR 会校验标题格式、分支命名、目标分支和 `release` label 使用方式。
+2. `flutter analyze --no-fatal-infos` 通过。
+3. `flutter test` 通过。
+4. 变更 Dart 文件通过 `dart format --set-exit-if-changed` 检查。
+5. 版本号只在 `pubspec.yaml` 与 `docs/CHANGELOG.md` 中维护。
+6. Release PR 的目标分支、`release` label 使用方式与本规则一致。
+7. 构建产物文件名不包含 `+build`。
+8. 发布说明列明支持平台、已知问题、安装方式和校验方式。
 
 ---
 
-## 13. 发布资产清单建议
+## 9. 失败与重发
 
-### 13.1 预发布建议最小清单
-
-```text
-SSPU-All-in-One-v{version}-android-universal.apk
-SSPU-All-in-One-v{version}-windows-x64-portable.zip
-SSPU-All-in-One-v{version}-windows-arm64-portable.zip
-SSPU-All-in-One-v{version}-linux-x64-appimage.AppImage
-SSPU-All-in-One-v{version}-linux-x64-portable.tar.gz
-SSPU-All-in-One-v{version}-linux-arm64-appimage.AppImage
-SSPU-All-in-One-v{version}-linux-arm64-portable.tar.gz
-SSPU-All-in-One-v{version}-web-universal-static.zip
-SHA256SUMS.txt
-manifest.json
-release-notes.md
-```
-
-### 13.2 正式发布建议完整清单
-
-```text
-SSPU-All-in-One-v{version}-android-universal.apk
-SSPU-All-in-One-v{version}-windows-x64-installer.exe
-SSPU-All-in-One-v{version}-windows-x64-portable.zip
-SSPU-All-in-One-v{version}-windows-arm64-installer.exe
-SSPU-All-in-One-v{version}-windows-arm64-portable.zip
-SSPU-All-in-One-v{version}-macos-universal-unsigned.dmg
-SSPU-All-in-One-v{version}-linux-x64-appimage.AppImage
-SSPU-All-in-One-v{version}-linux-x64-deb.deb
-SSPU-All-in-One-v{version}-linux-x64-rpm.rpm
-SSPU-All-in-One-v{version}-linux-x64-portable.tar.gz
-SSPU-All-in-One-v{version}-linux-arm64-appimage.AppImage
-SSPU-All-in-One-v{version}-linux-arm64-deb.deb
-SSPU-All-in-One-v{version}-linux-arm64-rpm.rpm
-SSPU-All-in-One-v{version}-linux-arm64-portable.tar.gz
-SSPU-All-in-One-v{version}-web-universal-static.zip
-SHA256SUMS.txt
-manifest.json
-release-notes.md
-```
+1. 构建失败时不得手工上传不完整产物冒充 Release。
+2. 需要重发同一公开版本时，只递增 `pubspec.yaml` 中的 `+build`，并重新走对应 Release PR 流程；需要发布新的公开版本时，也必须在上一次 `pubspec.yaml` build 号基础上继续递增，不得重置。
+3. 若发现产物命名、校验或版本错误，应撤回或标记失效后重新发版。
+4. 不允许静默替换同名产物而不更新校验与说明。
+5. Release workflow 在发布前会校验目标 Tag 不存在；若同一公开版本需要重发，不能复用既有 Tag 覆盖发布，必须递增 `+build` 后重新创建 Release PR。
 
 ---
 
-## 14. 失败与回滚规则
+## 10. 一句话执行标准
 
-1. 若正式支持平台有任意一个构建失败，则不得创建正式 Release
-2. 若发布后发现产物命名错误、校验错误、版本错误，应立即撤回或标记为失效
-3. 若发布后发现严重功能问题：
-   - 预发布：可直接废弃并重发
-   - 正式版：必须走 `hotfix/*` 流程修复后重新发布
-4. 不允许悄悄替换同名产物而不更新校验与说明
-
----
-
-## 15. 后续扩展建议
-
-未来如需增强发布体系，可在不破坏本规则前提下增加：
-
-- 自动更新清单文件
-- 渠道分发配置（stable / beta）
-- 桌面端签名与公证规范
-- iOS 专项分发规范
-- Linux 仓库源分发规范（APT / YUM / DNF / Zypper）
-- 产物下载统计与镜像规则
-
----
-
-## 16. 一句话执行标准
-
-> 每次发布都必须做到：版本唯一、命名统一、平台清晰、产物可用、校验完整、说明明确。
-> 对 Linux 平台，正式发布必须同时兼顾通用运行与主流发行版原生安装。
+> 版本只维护两处，公开版本不带 `+build`，预发布进 `develop` 触发，稳定 / lts / hotfix 经 `develop` 晋级 `main` 触发。

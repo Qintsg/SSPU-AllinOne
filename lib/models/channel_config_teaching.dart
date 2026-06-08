@@ -78,7 +78,7 @@ const List<ChannelConfig> teachingChannels = [
     id: 'college_lang',
     name: '语言与文化传播学院',
     description: '新闻动态、学院公告、学生活动与讲座信息',
-    icon: FluentIcons.read,
+    icon: FluentIcons.library,
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,

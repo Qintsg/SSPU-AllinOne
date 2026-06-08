@@ -1,6 +1,6 @@
 /*
  * 应用数据目录服务 — 统一解析用户级配置、缓存与运行态文件目录
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : app_data_directory_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-23
@@ -17,7 +17,7 @@ class AppDataDirectoryService {
   AppDataDirectoryService._();
 
   /// 统一目录名，保持桌面端和移动端逻辑一致。
-  static const String directoryName = '.sspu-all-in-one';
+  static const String directoryName = '.sspu-aio';
 
   /// 测试专用目录覆盖，避免单元测试读写真实用户目录。
   static String? _debugDirectoryOverride;

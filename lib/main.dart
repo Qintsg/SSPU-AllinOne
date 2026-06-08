@@ -1,6 +1,6 @@
 /*
- * 应用入口 — 初始化 FluentApp 并处理 EULA、密码保护、窗口关闭与托盘逻辑
- * @Project : SSPU-all-in-one
+ * 应用入口 — 初始化 FluentApp 并处理协议确认、密码保护、窗口关闭与托盘逻辑
+ * @Project : SSPU-AllinOne
  * @File : main.dart
  * @Author : Qintsg
  * @Date : 2026-04-18
@@ -8,57 +8,45 @@
 
 import 'dart:async';
 import 'dart:io';
-import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'design/fluent_ui.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'app.dart';
 import 'pages/lock_page.dart';
-import 'pages/agreement_page.dart';
 import 'services/app_exit_service.dart';
-import 'services/app_data_directory_service.dart';
+import 'services/app_display_name_service.dart';
 import 'services/password_service.dart';
+import 'services/campus_network_status_service.dart';
 import 'services/storage_service.dart';
 import 'services/tray_service.dart';
 import 'services/notification_service.dart';
 import 'services/auto_refresh_service.dart';
-import 'utils/webview_env.dart';
+import 'services/academic_oa_session_prewarm_service.dart';
+import 'widgets/desktop_window_frame.dart';
+import 'widgets/legal_consent_dialog.dart';
 
-/// 全局字体族名称
-import 'theme/fluent_tokens.dart';
+import 'theme/app_spacing.dart';
+import 'theme/app_theme.dart';
 
-/// 字体族常量（已迁移至 FluentTokenTheme.fontFamily，保留兼容引用）
-const String kFontFamily = FluentTokenTheme.fontFamily;
+/// 字体族常量（已迁移至 AppTheme.fontFamily，保留兼容引用）
+const String kFontFamily = AppTheme.fontFamily;
 
 /// 桌面窗口插件仅在 Flutter 桌面平台注册。
 bool get _supportsDesktopShell =>
     !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
 
-/// WebView2 和本地通知当前只面向 Windows 发行包启用。
-bool get _supportsWindowsServices => !kIsWeb && Platform.isWindows;
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Windows 平台：在 runApp() 前初始化 WebView2 环境
-  // 必须在任何 WebView 实例创建前完成，否则会触发 RPC_E_DISCONNECTED (-2147417848)
-  if (_supportsWindowsServices) {
-    final availableVersion = await WebViewEnvironment.getAvailableVersion();
-    if (availableVersion != null) {
-      // WebView2 运行态同样放入统一应用数据目录，便于用户定位和清理。
-      final webViewDataFolder =
-          await AppDataDirectoryService.ensureDirectoryPath('webview2');
-      globalWebViewEnvironment = await WebViewEnvironment.create(
-        settings: WebViewEnvironmentSettings(userDataFolder: webViewDataFolder),
-      );
-    }
-  }
 
   if (_supportsDesktopShell) {
     // 桌面端拦截关闭事件并提供系统托盘入口。
     await windowManager.ensureInitialized();
+    await windowManager.setTitleBarStyle(
+      TitleBarStyle.hidden,
+      windowButtonVisibility: false,
+    );
     await windowManager.setPreventClose(true);
+    await windowManager.setTitle(AppDisplayName.currentPlatformName);
     await TrayService.instance.init();
   }
 
@@ -82,11 +70,11 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 初始化检查是否已完成
   bool _isInitialized = false;
 
-  /// 是否已接受 EULA
-  bool _eulaAccepted = false;
+  /// 是否已接受当前完整法律与隐私说明。
+  bool _agreementsAccepted = false;
 
-  /// 防止 EULA 弹窗重复弹出
-  bool _eulaDialogShowing = false;
+  /// 防止协议弹窗重复弹出。
+  bool _agreementDialogShowing = false;
 
   /// 防止关闭确认弹窗重复弹出
   bool _closeDialogShowing = false;
@@ -96,6 +84,10 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
 
   /// FluentApp 内部导航器 key，用于在 WindowListener 回调中弹出对话框
   final _navigatorKey = GlobalKey<NavigatorState>();
+
+  /// 主界面共享的校园网 / VPN 状态检测服务。
+  final CampusNetworkStatusService _campusNetworkStatusService =
+      CampusNetworkStatusService.instance;
 
   @override
   void initState() {
@@ -116,15 +108,15 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     super.dispose();
   }
 
-  /// 初始化应用状态：先检查 EULA，再检查密码
+  /// 初始化应用状态：先检查协议确认状态，再检查密码。
   Future<void> _initApp() async {
     try {
       await StorageService.init();
-      final eulaOk = await StorageService.isEulaAccepted();
+      final agreementsOk = await StorageService.areCurrentAgreementsAccepted();
       final hasPassword = await PasswordService.isPasswordSet();
       if (!mounted) return;
       setState(() {
-        _eulaAccepted = eulaOk;
+        _agreementsAccepted = agreementsOk;
         _isUnlocked = !hasPassword;
         _isInitialized = true;
       });
@@ -140,6 +132,12 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
 
   /// 初始化后台能力，不阻塞首屏渲染和用户进入主页。
   Future<void> _initBackgroundServices() async {
+    unawaited(
+      AcademicOaSessionPrewarmService.instance.prewarm(
+        forceRefresh: true,
+        requireCampusNetwork: false,
+      ),
+    );
     try {
       await NotificationService.instance.init();
       await AutoRefreshService.instance.init();
@@ -200,25 +198,26 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (_, setDialogState) {
-            return ContentDialog(
+            return FluentDialog(
               title: const Text('关闭应用'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('选择点击关闭按钮时的操作：'),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Checkbox(
                     checked: rememberChoice,
+                    semanticLabel: '以后都使用此选项',
+                    content: const Text('以后都使用此选项'),
                     onChanged: (value) {
                       setDialogState(() => rememberChoice = value ?? false);
                     },
-                    content: const Text('以后都使用此选项'),
                   ),
                 ],
               ),
               actions: [
-                Button(
+                FluentButton.transparent(
                   child: const Text('最小化到托盘'),
                   onPressed: () async {
                     Navigator.pop(dialogContext);
@@ -228,7 +227,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                     await windowManager.hide();
                   },
                 ),
-                FilledButton(
+                FluentButton.primary(
                   child: const Text('退出应用'),
                   onPressed: () async {
                     Navigator.pop(dialogContext);
@@ -283,55 +282,24 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     }
   }
 
-  // ==================== EULA 弹窗 ====================
+  // ==================== 协议弹窗 ====================
 
-  /// 显示首次启动的 EULA 弹窗（仅弹出一次）
-  void _showEulaDialog(BuildContext context) {
-    if (_eulaDialogShowing) return;
-    _eulaDialogShowing = true;
+  /// 显示首次启动的协议弹窗（仅弹出一次）。
+  void _showAgreementDialog(BuildContext context) {
+    if (_agreementDialogShowing) return;
+    _agreementDialogShowing = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) {
-          return ContentDialog(
-            title: const Text('使用协议'),
-            constraints: const BoxConstraints(maxWidth: 680),
-            content: SizedBox(
-              height: 420,
-              child: SingleChildScrollView(
-                child: SelectableText(
-                  kAgreementText.trim(),
-                  style: FluentTheme.of(dialogContext).typography.body,
-                ),
-              ),
-            ),
-            actions: [
-              Button(
-                child: const Text('不同意'),
-                onPressed: () {
-                  Navigator.pop(dialogContext, false);
-                  // 不同意 EULA 时按平台能力关闭应用入口。
-                  _closeApplication();
-                },
-              ),
-              FilledButton(
-                child: const Text('同意'),
-                onPressed: () {
-                  Navigator.pop(dialogContext, true);
-                },
-              ),
-            ],
-          );
-        },
-      ).then((accepted) async {
-        _eulaDialogShowing = false;
+      showLegalConsentDialog(context: context).then((accepted) async {
+        _agreementDialogShowing = false;
         if (accepted == true) {
-          await StorageService.acceptEula();
+          await StorageService.acceptCurrentAgreements();
           if (mounted) {
-            setState(() => _eulaAccepted = true);
+            setState(() => _agreementsAccepted = true);
           }
+        } else if (accepted == false) {
+          // 不同意协议时按平台能力关闭应用入口。
+          await _closeApplication();
         }
       });
     });
@@ -348,40 +316,60 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   Widget build(BuildContext context) {
     return FluentApp(
       navigatorKey: _navigatorKey,
-      title: 'SSPU All-in-One',
-      theme: FluentTokenTheme.light(),
-      darkTheme: FluentTokenTheme.dark(),
+      title: AppDisplayName.english,
+      onGenerateTitle: AppDisplayName.of,
+      theme: AppTheme.build(Brightness.light),
+      darkTheme: AppTheme.build(Brightness.dark),
       themeMode: ThemeMode.system,
-      localizationsDelegates: FluentLocalizations.localizationsDelegates,
-      supportedLocales: FluentLocalizations.supportedLocales,
       debugShowCheckedModeBanner: false,
       home: _buildHome(),
+      builder: (context, child) {
+        final content = child ?? const SizedBox.shrink();
+        if (!_supportsDesktopShell) return content;
+
+        return DesktopWindowFrame(
+          campusNetworkStatusService: _shouldShowCampusNetworkStatus
+              ? _campusNetworkStatusService
+              : null,
+          child: content,
+        );
+      },
     );
   }
 
-  /// 根据初始化、EULA 和密码验证状态构建首屏
+  /// 是否允许展示并触发校园网状态检测。
+  bool get _shouldShowCampusNetworkStatus {
+    return _isInitialized &&
+        _startupErrorMessage == null &&
+        _agreementsAccepted &&
+        _isUnlocked;
+  }
+
+  /// 根据初始化、协议确认和密码验证状态构建首屏
   Widget _buildHome() {
     if (!_isInitialized) {
-      return const ScaffoldPage(content: Center(child: ProgressRing()));
+      return const ScaffoldPage(content: Center(child: FluentProgressRing()));
     }
 
     if (_startupErrorMessage != null) {
       return ScaffoldPage(
         content: Center(
           child: Padding(
-            padding: const EdgeInsets.all(FluentSpacing.xxl),
+            padding: AppSpacing.regularPagePadding,
             child: Text(_startupErrorMessage!),
           ),
         ),
       );
     }
 
-    // 未接受 EULA 时显示空白页并弹出协议对话框
-    if (!_eulaAccepted) {
+    // 未接受协议时显示空白页并弹出协议对话框。
+    if (!_agreementsAccepted) {
       return Builder(
         builder: (context) {
-          _showEulaDialog(context);
-          return const ScaffoldPage(content: Center(child: ProgressRing()));
+          _showAgreementDialog(context);
+          return const ScaffoldPage(
+            content: Center(child: FluentProgressRing()),
+          );
         },
       );
     }
@@ -396,6 +384,9 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     }
 
     // 已解锁，进入主界面
-    return AppShell(onLock: _lockApp);
+    return AppShell(
+      onLock: _lockApp,
+      campusNetworkStatusService: _campusNetworkStatusService,
+    );
   }
 }

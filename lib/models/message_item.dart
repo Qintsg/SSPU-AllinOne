@@ -1,11 +1,13 @@
 /*
  * 消息数据模型 — 信息中心统一消息结构
  * 定义消息项、消息来源类型、来源名称和内容分类
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : message_item.dart
  * @Author : Qintsg
  * @Date : 2026-04-19
  */
+
+part 'message_source_name.dart';
 
 /// 消息来源类型（tag1）
 enum MessageSourceType {
@@ -19,143 +21,6 @@ enum MessageSourceType {
   wechatService('微信服务号');
 
   const MessageSourceType(this.label);
-
-  /// 显示名称
-  final String label;
-}
-
-/// 消息来源名称（tag2）
-enum MessageSourceName {
-  /// 信息公开网
-  infoDisclosure('信息公开网'),
-
-  /// 教务处
-  jwc('教务处'),
-
-  /// 信息技术中心
-  itc('信息技术中心'),
-
-  /// 学校官网（通知公告/学术活动）
-  sspuOfficial('学校官网'),
-
-  /// 体育部
-  sports('体育部'),
-
-  /// 保卫处
-  securityDept('保卫处'),
-
-  /// 基建处
-  construction('基建处'),
-
-  /// 新闻网
-  newsCenter('新闻网'),
-
-  /// 学生处
-  studentAffairs('学生处'),
-
-  /// 后勤服务中心
-  logisticsCenter('后勤服务中心'),
-
-  /// 外国留学生事务办公室
-  foreignStudentOffice('外国留学生事务办公室'),
-
-  /// 国际交流处
-  intlExchangeOffice('国际交流处'),
-
-  /// 招生办
-  admissionsOffice('招生办'),
-
-  /// 人事处
-  hrOffice('人事处'),
-
-  /// 科研处
-  researchOffice('科研处'),
-
-  /// 校工会
-  union('校工会'),
-
-  /// 党委组织部
-  partyOrgDept('党委组织部'),
-
-  /// 党委统战部
-  unitedFrontDept('党委统战部'),
-
-  /// 党委办公室
-  partyOffice('党委办公室'),
-
-  /// 校团委
-  youthLeague('校团委'),
-
-  /// 资产与实验管理处
-  assetsLabOffice('资产与实验管理处'),
-
-  /// 计算机与信息工程学院
-  collegeCs('计算机与信息工程学院'),
-
-  /// 智能制造与控制工程学院
-  collegeIm('智能制造与控制工程学院'),
-
-  /// 资源与环境工程学院
-  collegeRe('资源与环境工程学院'),
-
-  /// 能源与材料学院
-  collegeEm('能源与材料学院'),
-
-  /// 集成电路学院
-  collegeIc('集成电路学院'),
-
-  /// 智能医学与健康工程学院
-  collegeImhe('智能医学与健康工程学院'),
-
-  /// 经济与管理学院
-  collegeEcon('经济与管理学院'),
-
-  /// 语言与文化传播学院
-  collegeLang('语言与文化传播学院'),
-
-  /// 数理与统计学院
-  collegeMath('数理与统计学院'),
-
-  /// 艺术与设计学院
-  collegeArt('艺术与设计学院'),
-
-  /// 职业技术教师教育学院
-  collegeVte('职业技术教师教育学院'),
-
-  /// 职业技术学院
-  collegeVt('职业技术学院'),
-
-  /// 马克思主义学院
-  collegeMarx('马克思主义学院'),
-
-  /// 继续教育学院
-  collegeCe('继续教育学院'),
-
-  /// 艺术教育中心
-  centerArtEdu('艺术教育中心'),
-
-  /// 国际教育中心
-  centerIntl('国际教育中心'),
-
-  /// 创新创业教育中心
-  centerInnov('创新创业教育中心'),
-
-  /// 工程训练与创新教育中心
-  centerTraining('工程训练与创新教育中心'),
-
-  /// 研究生处
-  graduate('研究生处'),
-
-  /// 图书馆
-  libCenter('图书馆'),
-
-  /// 微信推文占位
-  wechatPublicPlaceholder('微信推文'),
-
-  /// 微信服务号占位
-  wechatServicePlaceholder('微信服务号');
-
-  const MessageSourceName(this.label);
 
   /// 显示名称
   final String label;
@@ -507,6 +372,9 @@ class MessageItem {
   /// 微信公众号名称（仅微信渠道有值，用于来源显示）
   final String? mpName;
 
+  /// 微信公众号展示 ID（优先微信号/别名；仅微信渠道有值，用于来源显示）
+  final String? mpDisplayId;
+
   /// 精确时间戳（毫秒，可选；用于显示精确到分钟的时间）
   final int? timestamp;
 
@@ -520,10 +388,11 @@ class MessageItem {
     required this.category,
     this.mpBookId,
     this.mpName,
+    this.mpDisplayId,
     this.timestamp,
   });
 
-  /// 从 JSON 反序列化（兼容旧数据中无 mpBookId/mpName 的情况）
+  /// 从 JSON 反序列化（兼容旧数据中无 mpBookId/mpName/mpDisplayId 的情况）
   factory MessageItem.fromJson(Map<String, dynamic> json) {
     return MessageItem(
       id: json['id'] as String,
@@ -541,6 +410,7 @@ class MessageItem {
       ),
       mpBookId: json['mpBookId'] as String?,
       mpName: json['mpName'] as String?,
+      mpDisplayId: json['mpDisplayId'] as String?,
       timestamp: json['timestamp'] as int?,
     );
   }
@@ -556,6 +426,7 @@ class MessageItem {
     'category': category.name,
     if (mpBookId != null) 'mpBookId': mpBookId,
     if (mpName != null) 'mpName': mpName,
+    if (mpDisplayId != null) 'mpDisplayId': mpDisplayId,
     if (timestamp != null) 'timestamp': timestamp,
   };
 

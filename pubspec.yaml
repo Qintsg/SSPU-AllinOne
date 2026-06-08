@@ -1,5 +1,5 @@
-name: sspu_all_in_one
-description: "SSPU All-in-One — 上海第二工业大学校园综合服务应用"
+name: sspu_allinone
+description: "SSPU-AllinOne — 上海第二工业大学校园综合服务应用"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.2.1-alpha.2+2
+version: 0.2.7-alpha+3
 
 environment:
   sdk: ^3.11.5
@@ -31,9 +31,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
-  # Fluent UI — 微软 Fluent 设计风格组件库
-  fluent_ui: ^4.11.1
+  # 外部 Fluent UI 控件、主题与导航体系
+  fluent_ui: ^4.15.1
+
+  # Microsoft Fluent System Icons 图标库
+  fluentui_system_icons: ^1.1.273
 
   # 本地持久化存储，用于密码保护等设置
   shared_preferences: ^2.5.3
@@ -43,6 +48,13 @@ dependencies:
 
   # SHA-256 哈希，用于密码安全存储
   crypto: ^3.0.6
+
+  # 系统安全存储，用于保存需解密使用的本地教务凭据
+  flutter_secure_storage: ^10.3.1
+
+  # 系统快速验证，用于可选的本机 PIN/生物识别解锁确认
+  local_auth: ^3.0.1
+
   url_launcher: ^6.3.2
   window_manager: ^0.5.1
   tray_manager: ^0.5.1
@@ -56,6 +68,9 @@ dependencies:
   # HTML 解析，用于网页内容提取
   html: ^0.15.5
 
+  # GBK / GB2312 解码，用于体育部查询系统旧版页面
+  gbk_codec: ^0.4.0
+
   # 声明式动画，用于页面入场与交互微动效
   flutter_animate: ^4.5.2
 
@@ -64,6 +79,9 @@ dependencies:
 
   # 读取应用版本号与包信息，避免关于页手写版本常量
   package_info_plus: ^10.1.0
+
+  # 邮箱协议客户端，用于学校邮箱 IMAP / POP 只读收信和 SMTP 认证校验
+  enough_mail: ^2.1.7
 
 dev_dependencies:
   flutter_test:
@@ -92,6 +110,7 @@ flutter:
     - assets/images/app_icon.png
     - assets/images/app_icon.ico
     - assets/config/quick_links.yaml
+    - assets/legal/
 
   fonts:
     - family: MiSans

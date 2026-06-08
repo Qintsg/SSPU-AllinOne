@@ -1,12 +1,14 @@
-﻿/*
+/*
  * 信息渠道配置模型 — 定义所有数据源渠道的元数据与分组
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : channel_config.dart
  * @Author : Qintsg
  * @Date : 2025-04-17
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:fluent_ui/fluent_ui.dart' show IconData;
+
+import '../design/components/fluent_icons.dart';
 import 'message_item.dart';
 
 part 'channel_config_department.dart';

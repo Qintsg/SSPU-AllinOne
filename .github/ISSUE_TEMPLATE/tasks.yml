@@ -1,13 +1,68 @@
 name: 开发任务
-description: 创建一个明确的开发、重构或维护任务
+description: 创建明确的开发、重构、测试、CI 或仓库治理任务
 title: "[Task] "
 labels: ["task"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        任务型 Issue 用于已有方向明确、可以拆解执行的维护事项。若只是问题咨询，请使用 Question 或其它更合适的模板。
+
   - type: textarea
     id: goal
     attributes:
       label: 任务目标
-      placeholder: 这个任务要完成什么？
+      description: 用 1-3 句话说明完成后应达到的状态。
+      placeholder: 例如：完善 PR label 自动化，让路径标签与结构化 issue 字段保持一致。
+    validations:
+      required: true
+
+  - type: dropdown
+    id: task_type
+    attributes:
+      label: 任务类型
+      multiple: true
+      options:
+        - 功能实现
+        - Bug 修复
+        - 重构
+        - 测试补充
+        - 文档
+        - CI / 自动化
+        - Release / 安装器
+        - 依赖治理
+        - 仓库治理
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected_scope
+    attributes:
+      label: 影响模块 / 范围
+      multiple: true
+      options:
+        - 前端界面 / 交互
+        - 服务层 / 外部站点
+        - 数据模型
+        - 本地存储 / 缓存 / 加密
+        - 平台工程
+        - 安装器 / 更新 / Release
+        - CI / 仓库治理
+        - 文档
+        - 测试
+        - 不确定
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 优先级建议
+      options:
+        - P2 中优先级：排入计划
+        - P0 阻塞 / 紧急：必须优先处理
+        - P1 高优先级：近期版本应优先处理
+        - P3 低优先级：后续优化或有空处理
     validations:
       required: true
 
@@ -15,6 +70,7 @@ body:
     id: checklist
     attributes:
       label: 待办清单
+      description: 保留可执行、可验证的任务项即可，避免复制完整背景描述。
       value: |
         - [ ] 
         - [ ] 
@@ -23,10 +79,21 @@ body:
       required: true
 
   - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      placeholder: |
+        - ... 通过
+        - ... 有文档说明
+        - ... 不影响既有流程
+    validations:
+      required: true
+
+  - type: textarea
     id: context
     attributes:
-      label: 背景说明
-      placeholder: 为什么需要做这个任务？涉及哪些模块？
+      label: 背景与约束
+      description: 补充为什么需要做、哪些内容不在范围内、是否依赖其它任务。
     validations:
       required: false
 
@@ -34,6 +101,6 @@ body:
     id: related
     attributes:
       label: 相关 Issue / PR
-      placeholder: "#123"
+      placeholder: "#123 / #123, #124"
     validations:
       required: false

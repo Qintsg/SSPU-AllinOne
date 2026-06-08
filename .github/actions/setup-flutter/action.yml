@@ -1,0 +1,38 @@
+name: setup-flutter
+description: 安装 Flutter SDK 并按需执行 flutter pub get
+
+inputs:
+  flutter-version:
+    description: Flutter SDK 版本
+    required: true
+  channel:
+    description: Flutter channel
+    required: false
+    default: stable
+  cache:
+    description: 是否启用 subosito/flutter-action 缓存
+    required: false
+    default: 'true'
+  run-pub-get:
+    description: 是否执行 flutter pub get
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - uses: subosito/flutter-action@v2.23.0
+      with:
+        flutter-version: ${{ inputs.flutter-version }}
+        channel: ${{ inputs.channel }}
+        cache: ${{ inputs.cache }}
+
+    - name: 安装 Flutter 依赖（Windows）
+      if: runner.os == 'Windows' && inputs.run-pub-get == 'true'
+      shell: pwsh
+      run: flutter pub get
+
+    - name: 安装 Flutter 依赖（Unix）
+      if: runner.os != 'Windows' && inputs.run-pub-get == 'true'
+      shell: bash
+      run: flutter pub get

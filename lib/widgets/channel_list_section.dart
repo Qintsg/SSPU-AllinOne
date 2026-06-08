@@ -1,18 +1,19 @@
 /*
  * 渠道列表组件 — 分区级渠道状态与刷新配置入口
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : channel_list_section.dart
  * @Author : Qintsg
  * @Date : 2026-04-22
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import '../design/fluent_ui.dart';
 
 import '../models/channel_config.dart';
 import '../models/message_item.dart';
 import '../services/auto_refresh_service.dart';
 import '../services/message_state_service.dart';
-import '../theme/fluent_tokens.dart';
+import '../theme/app_spacing.dart';
+import 'app_feedback.dart';
 import 'channel_list_panels.dart';
 
 /// 渠道列表组件。
@@ -57,6 +58,7 @@ class _ChannelListSectionState extends State<ChannelListSection> {
     _loadChannelStates();
   }
 
+  /// 加载当前分区所有渠道状态。
   Future<void> _loadChannelStates() async {
     for (final channel in widget.channels) {
       _enabledMap[channel.id] = await _messageState.isChannelEnabled(
@@ -91,6 +93,7 @@ class _ChannelListSectionState extends State<ChannelListSection> {
     setState(() => _isLoading = false);
   }
 
+  /// 同步分区级刷新设置的展示状态。
   void _syncGroupRefreshState() {
     ChannelConfig? sourceChannel;
     for (final channel in widget.channels) {
@@ -117,10 +120,11 @@ class _ChannelListSectionState extends State<ChannelListSection> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: ProgressRing());
+      return const Center(child: FluentProgressRing());
     }
 
-    final theme = FluentTheme.of(context);
+    final colors = context.fluentColors;
+    final type = context.fluentType;
     final enabledCount = _enabledMap.values.where((enabled) => enabled).length;
     final autoEnabledCount = widget.channels
         .where(
@@ -140,41 +144,32 @@ class _ChannelListSectionState extends State<ChannelListSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Wrap(
-          spacing: FluentSpacing.s,
-          runSpacing: FluentSpacing.s,
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text(widget.title, style: theme.typography.subtitle),
-            FilledButton(
-              onPressed: () => _setAllChannelsEnabled(true),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(FluentIcons.check_mark, size: 14),
-                  SizedBox(width: 6),
-                  Text('一键全开'),
-                ],
-              ),
+            Semantics(
+              header: true,
+              child: Text(widget.title, style: type.subtitle1),
             ),
-            Button(
+            FluentButton.primaryIcon(
+              onPressed: () => _setAllChannelsEnabled(true),
+              icon: const Icon(FluentIcons.checkMark),
+              label: const Text('一键全开'),
+            ),
+            FluentButton.outlineIcon(
               onPressed: () => _setAllChannelsEnabled(false),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(FluentIcons.blocked, size: 14),
-                  SizedBox(width: 6),
-                  Text('一键全关'),
-                ],
-              ),
+              icon: const Icon(FluentIcons.blocked),
+              label: const Text('一键全关'),
             ),
           ],
         ),
-        const SizedBox(height: FluentSpacing.xxs),
+        const SizedBox(height: AppSpacing.xs),
         Text(
           '共 ${widget.channels.length} 个渠道，已启用 $enabledCount 个，自动刷新开启 $autoEnabledCount 个。',
-          style: theme.typography.caption,
+          style: type.caption1.copyWith(color: colors.neutralForeground2),
         ),
-        const SizedBox(height: FluentSpacing.m),
+        const SizedBox(height: AppSpacing.md),
         ChannelGroupRefreshPanel(
           enabled: hasEnabledImplementedChannel,
           hasImplementedChannel: implementedChannels.isNotEmpty,
@@ -182,14 +177,13 @@ class _ChannelListSectionState extends State<ChannelListSection> {
           groupInterval: _groupInterval,
           groupManualCount: _groupManualCount,
           groupAutoCount: _groupAutoCount,
-          onGroupManualCountChanged: (value) =>
-              _onGroupManualCountChanged(value),
+          onGroupManualCountChanged: (value) => _onGroupManualCountChanged(value),
           onGroupAutoRefreshToggled: (value) =>
               _onGroupAutoRefreshToggled(value),
           onGroupIntervalChanged: (value) => _onGroupIntervalChanged(value),
           onGroupAutoCountChanged: (value) => _onGroupAutoCountChanged(value),
         ),
-        const SizedBox(height: FluentSpacing.m),
+        const SizedBox(height: AppSpacing.md),
         ...widget.channels.map(
           (channel) => ChannelListItemCard(
             channel: channel,
@@ -206,6 +200,7 @@ class _ChannelListSectionState extends State<ChannelListSection> {
     );
   }
 
+  /// 切换单个渠道启用状态。
   Future<void> _onChannelToggled(ChannelConfig channel, bool enabled) async {
     await _messageState.setChannelEnabled(channel.id, enabled);
     setState(() => _enabledMap[channel.id] = enabled);
@@ -218,19 +213,14 @@ class _ChannelListSectionState extends State<ChannelListSection> {
     final message = enabled
         ? '已启用「${channel.name}」，请到信息中心刷新获取该渠道消息'
         : '已关闭「${channel.name}」，该渠道消息将不再显示';
-    displayInfoBar(
+    showAppFeedback(
       context,
-      builder: (ctx, close) => InfoBar(
-        title: Text(message),
-        severity: enabled ? InfoBarSeverity.success : InfoBarSeverity.warning,
-        action: IconButton(
-          icon: const Icon(FluentIcons.clear),
-          onPressed: close,
-        ),
-      ),
+      message: message,
+      severity: enabled ? AppFeedbackSeverity.success : AppFeedbackSeverity.warning,
     );
   }
 
+  /// 批量切换当前分区全部渠道。
   Future<void> _setAllChannelsEnabled(bool enabled) async {
     for (final channel in widget.channels) {
       await _messageState.setChannelEnabled(channel.id, enabled);
@@ -254,16 +244,10 @@ class _ChannelListSectionState extends State<ChannelListSection> {
 
     if (!mounted) return;
     setState(() {});
-    displayInfoBar(
+    showAppFeedback(
       context,
-      builder: (ctx, close) => InfoBar(
-        title: Text(enabled ? '已启用当前分区全部渠道' : '已关闭当前分区全部渠道'),
-        severity: enabled ? InfoBarSeverity.success : InfoBarSeverity.info,
-        action: IconButton(
-          icon: const Icon(FluentIcons.clear),
-          onPressed: close,
-        ),
-      ),
+      message: enabled ? '已启用当前分区全部渠道' : '已关闭当前分区全部渠道',
+      severity: enabled ? AppFeedbackSeverity.success : AppFeedbackSeverity.info,
     );
   }
 
@@ -320,10 +304,7 @@ class _ChannelListSectionState extends State<ChannelListSection> {
     setState(() => _groupAutoCount = normalized);
   }
 
-  Future<void> _onCategoryToggled(
-    MessageCategory category,
-    bool enabled,
-  ) async {
+  Future<void> _onCategoryToggled(MessageCategory category, bool enabled) async {
     await _messageState.setCategoryEnabled(category.name, enabled);
     setState(() => _categoryEnabledMap[category.name] = enabled);
   }

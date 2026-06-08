@@ -1,13 +1,13 @@
 /*
  * 自动刷新服务测试 — 校验设置页渠道 ID 与内部定时器 key 的映射
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : auto_refresh_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-22
  */
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/services/auto_refresh_service.dart';
+import 'package:sspu_allinone/services/auto_refresh_service.dart';
 
 void main() {
   test('设置页渠道 ID 可以映射到对应的自动刷新定时器', () {

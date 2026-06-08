@@ -2,7 +2,7 @@
  * 自动刷新服务 — 定时抓取各渠道消息并推送新消息通知
  * 每个渠道独立 Timer.periodic，间隔可在设置中分别调整
  * 后台运行（最小化到托盘时 Timer 继续执行）
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : auto_refresh_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

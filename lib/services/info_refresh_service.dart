@@ -1,12 +1,12 @@
 /*
  * 信息中心刷新服务 — 保持官网与微信推文刷新进度和后台任务
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : info_refresh_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-23
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/message_item.dart';
 import 'auto_refresh_service.dart';

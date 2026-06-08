@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2026-04-18T23:30:00.000Z" agent="SSPU-all-in-one" version="24.0.0" etag="sspu-logo-v13" type="device">
+<mxfile host="app.diagrams.net" modified="2026-04-18T23:30:00.000Z" agent="SSPU-AllinOne" version="24.0.0" etag="sspu-logo-v13" type="device">
   <diagram name="SSPU-AIO-Fluent-v9" id="sspu-fluent-v13">
     <mxGraphModel dx="900" dy="900" grid="1" gridSize="5" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="600" pageHeight="600" math="0" shadow="0" background="none">
       <root>
@@ -30,8 +30,8 @@
           <mxGeometry x="60" y="105" width="480" height="160" as="geometry"/>
         </mxCell>
 
-        <!-- All-in-One 文字 -->
-        <mxCell id="text-aio" value="All-in-One" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=88;fontFamily=Playfair Display,Georgia,serif;fontStyle=3;fontColor=#1A1A1A;" vertex="1" parent="1">
+        <!-- AllinOne 文字 -->
+        <mxCell id="text-aio" value="AllinOne" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=88;fontFamily=Playfair Display,Georgia,serif;fontStyle=3;fontColor=#1A1A1A;" vertex="1" parent="1">
           <mxGeometry x="45" y="305" width="510" height="145" as="geometry"/>
         </mxCell>
 

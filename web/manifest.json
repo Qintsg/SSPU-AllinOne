@@ -1,6 +1,6 @@
 {
-    "name": "SSPU All-in-One",
-    "short_name": "SSPU",
+    "name": "SSPU-AllinOne",
+    "short_name": "SSPU-AllinOne",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

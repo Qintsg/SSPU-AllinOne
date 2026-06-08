@@ -1,0 +1,222 @@
+/*
+ * 课程表页面测试 — 校验独立课表页展示、自动刷新与错误状态
+ * @Project : SSPU-AllinOne
+ * @File : course_schedule_page_test.dart
+ * @Author : Qintsg
+ * @Date : 2026-05-02
+ */
+
+import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sspu_allinone/models/academic_eams.dart';
+import 'package:sspu_allinone/pages/course_schedule_page.dart';
+import 'package:sspu_allinone/services/academic_eams_service.dart';
+
+Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
+  for (var attempt = 0; attempt < 40; attempt++) {
+    await tester.pump(const Duration(milliseconds: 50));
+    if (finder.evaluate().isNotEmpty) return;
+  }
+}
+
+Future<void> disposeCourseSchedulePage(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump(const Duration(milliseconds: 120));
+}
+
+Future<void> pumpCourseSchedulePage(
+  WidgetTester tester, {
+  required AcademicEamsClient academicEamsService,
+  AcademicEamsQueryResult? initialResult,
+  bool autoRefreshEnabledOverride = false,
+  int autoRefreshIntervalOverride = 30,
+}) async {
+  await tester.pumpWidget(
+    FluentApp(
+      home: CourseSchedulePage(
+        academicEamsService: academicEamsService,
+        initialResult: initialResult,
+        autoRefreshEnabledOverride: autoRefreshEnabledOverride,
+        autoRefreshIntervalOverride: autoRefreshIntervalOverride,
+      ),
+    ),
+  );
+}
+
+void main() {
+  testWidgets('课程表页面自动刷新开启时会主动读取课表', (tester) async {
+    final service = _FakeAcademicEamsClient(result: _successResult);
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      autoRefreshEnabledOverride: true,
+      autoRefreshIntervalOverride: 1,
+    );
+
+    await pumpUntilFound(tester, find.text('高等数学'));
+
+    expect(find.text('课程表'), findsOneWidget);
+    expect(find.textContaining('自动刷新已开启'), findsOneWidget);
+    expect(find.text('高等数学'), findsOneWidget);
+    expect(find.textContaining('周一 第1-2节'), findsOneWidget);
+    expect(find.text('返回'), findsNothing);
+    expect(service.courseTableFetchCount, 1);
+
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pump();
+
+    expect(service.courseTableFetchCount, 2);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表页面展示缺少 OA 密码提示', (tester) async {
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _missingPassword),
+      autoRefreshEnabledOverride: false,
+    );
+
+    await tester.tap(find.byKey(const Key('course-schedule-refresh')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('请先保存 OA 账号密码'), findsOneWidget);
+    expect(find.textContaining('刷新 OA/CAS 会话'), findsOneWidget);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表页面优先使用可用缓存覆盖无课表初始结果', (tester) async {
+    final service = _FakeAcademicEamsClient(
+      result: _missingPassword,
+      cachedResult: _successResult,
+    );
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      initialResult: _missingPassword,
+      autoRefreshEnabledOverride: false,
+    );
+
+    await pumpUntilFound(tester, find.text('高等数学'));
+
+    expect(find.text('高等数学'), findsOneWidget);
+    expect(find.text('请先保存 OA 账号密码'), findsNothing);
+    expect(service.cachedCourseTableReadCount, 1);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表页面作为二级页面打开时显示返回按钮', (tester) async {
+    await tester.pumpWidget(
+      FluentApp(
+        home: Navigator(
+          onGenerateRoute: (_) =>
+              FluentPageRoute(builder: (_) => const SizedBox.shrink()),
+        ),
+      ),
+    );
+
+    final context = tester.element(find.byType(SizedBox));
+    Navigator.of(context).push(
+      FluentPageRoute(
+        builder: (_) => CourseSchedulePage(
+          academicEamsService: _FakeAcademicEamsClient(result: _successResult),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('返回'), findsOneWidget);
+    await disposeCourseSchedulePage(tester);
+  });
+}
+
+class _FakeAcademicEamsClient implements AcademicEamsClient {
+  _FakeAcademicEamsClient({required this.result, this.cachedResult});
+
+  final AcademicEamsQueryResult result;
+  final AcademicEamsQueryResult? cachedResult;
+  int courseTableFetchCount = 0;
+  int cachedCourseTableReadCount = 0;
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
+    cachedCourseTableReadCount++;
+    return cachedResult;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedOverview() async {
+    return null;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult> fetchCourseTable({
+    bool requireCampusNetwork = true,
+  }) async {
+    courseTableFetchCount++;
+    return result;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult> fetchOverview({
+    bool requireCampusNetwork = true,
+  }) async {
+    return result;
+  }
+}
+
+final AcademicEamsQueryResult _successResult = AcademicEamsQueryResult(
+  status: AcademicEamsQueryStatus.success,
+  message: '本专科教务只读查询成功',
+  detail: '已读取当前学期课表。',
+  checkedAt: DateTime(2026, 5, 2, 10, 0),
+  entranceUri: Uri.parse(
+    'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
+  ),
+  snapshot: AcademicEamsSnapshot(
+    fetchedAt: DateTime(2026, 5, 2, 10, 0),
+    sourceUri: Uri.parse(
+      'https://jx.sspu.edu.cn/eams/courseTableForStd.action',
+    ),
+    warnings: const [],
+    hasCourseOfferingEntry: true,
+    hasFreeClassroomEntry: true,
+    profile: const AcademicEamsProfile(
+      name: '张三',
+      studentId: '20260001',
+      department: '计算机与信息工程学院',
+      major: '软件工程',
+      className: '软件 241',
+      rawFields: {'姓名': '张三'},
+    ),
+    courseTable: AcademicCourseTableSnapshot(
+      termName: '2025-2026 第2学期',
+      entries: const [
+        AcademicCourseTableEntry(
+          courseName: '高等数学',
+          weekday: 1,
+          startUnit: 1,
+          endUnit: 2,
+          timeText: '周一 第1-2节',
+          teacher: '张老师',
+          location: '综合楼 A101',
+          weekDescription: '1-16周',
+          rawText: '高等数学 张老师 综合楼 A101 1-16周',
+        ),
+      ],
+      fetchedAt: DateTime(2026, 5, 2, 10, 0),
+      sourceUri: Uri.parse(
+        'https://jx.sspu.edu.cn/eams/courseTableForStd.action',
+      ),
+    ),
+  ),
+);
+
+final AcademicEamsQueryResult _missingPassword = AcademicEamsQueryResult(
+  status: AcademicEamsQueryStatus.missingOaPassword,
+  message: '请先保存 OA 账号密码',
+  detail: '本专科教务查询需要在登录态失效时刷新 OA/CAS 会话。',
+  checkedAt: DateTime(2026, 5, 2, 10, 0),
+  entranceUri: Uri.parse(
+    'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
+  ),
+);

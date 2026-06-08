@@ -1,22 +1,35 @@
 /*
  * 微信公众号平台扫码登录页 — 内嵌 WebView 加载 mp.weixin.qq.com
  * 用户扫码登录后自动提取 Cookie 和 Token
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : wxmp_login_page.dart
  * @Author : Qintsg
  * @Date : 2026-04-22
  */
 
-import 'package:flutter/foundation.dart';
-import 'package:fluent_ui/fluent_ui.dart';
+import '../design/fluent_ui.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../services/wxmp_article_service.dart';
 import '../services/wxmp_auth_service.dart';
 import '../theme/fluent_tokens.dart';
+import '../widgets/webview_compact_toolbar.dart';
 
 /// 公众号平台登录 URL
 const String _wxmpLoginUrl = 'https://mp.weixin.qq.com/';
+
+/// 测试入口：创建与登录 WebView 绑定到同一存储环境的 CookieManager。
+@visibleForTesting
+CookieManager debugCreateWxmpCookieManager(
+  WebViewEnvironment? webViewEnvironment,
+) {
+  return _createWxmpCookieManager(webViewEnvironment);
+}
+
+/// Windows 自定义 WebView2 用户数据目录时，CookieManager 也必须使用同一环境。
+CookieManager _createWxmpCookieManager(WebViewEnvironment? webViewEnvironment) {
+  return CookieManager.instance(webViewEnvironment: webViewEnvironment);
+}
 
 /// 微信公众号平台扫码登录页
 /// 加载 mp.weixin.qq.com，用户扫码后从 URL 提取 token，从 CookieManager 提取 Cookie
@@ -185,7 +198,7 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
   }
 
   Future<_CookieReadResult> _readWxmpCookies(String successUrl) async {
-    final cookieManager = CookieManager.instance();
+    final cookieManager = _createWxmpCookieManager(widget.webViewEnvironment);
     final cookieMap = <String, String>{};
     final cookieNames = <String>{};
     final currentUrl = await _controller?.getUrl();
@@ -245,39 +258,34 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
     final theme = FluentTheme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return ScaffoldPage(
-      header: PageHeader(
-        title: Text(_title),
-        commandBar: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_extracting)
-              const Padding(
-                padding: EdgeInsets.only(right: 12),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: ProgressRing(strokeWidth: 2),
+    return FluentPage(
+      content: Column(
+        children: [
+          WebViewCompactToolbar(
+            title: _title,
+            backSemanticLabel: _result?.success == true ? '完成' : '返回',
+            onBackPressed: () =>
+                Navigator.of(context).pop(_result?.success ?? false),
+            actions: [
+              if (_extracting)
+                const SizedBox.square(
+                  dimension: 48,
+                  child: Center(
+                    child: SizedBox.square(
+                      dimension: 16,
+                      child: FluentProgressRing(strokeWidth: 2),
                     ),
-                    SizedBox(width: 8),
-                    Text('正在提取认证信息...'),
-                  ],
+                  ),
                 ),
-              ),
-            if (_result != null)
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
+              if (_result != null)
+                SizedBox.square(
+                  dimension: 48,
+                  child: Center(
+                    child: Icon(
                       _result!.success
-                          ? FluentIcons.check_mark
+                          ? FluentIcons.checkMark
                           : FluentIcons.warning,
-                      size: 16,
+                      size: 18,
                       color: _result!.success
                           ? (isDark
                                 ? FluentDarkColors.statusSuccess
@@ -286,28 +294,29 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
                                 ? FluentDarkColors.statusError
                                 : FluentLightColors.statusError),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _result!.success ? '登录成功' : '提取失败',
-                      style: theme.typography.body,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            Button(
-              onPressed: () =>
-                  Navigator.of(context).pop(_result?.success ?? false),
-              child: Text(_result?.success == true ? '完成' : '返回'),
-            ),
-          ],
-        ),
+            ],
+          ),
+          Expanded(child: _buildContent(context)),
+        ],
       ),
-      content: _buildContent(context),
     );
   }
 
   Widget _buildContent(BuildContext context) {
     final theme = FluentTheme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final successColor = isDark
+        ? FluentDarkColors.statusSuccess
+        : FluentLightColors.statusSuccess;
+    final errorColor = isDark
+        ? FluentDarkColors.statusError
+        : FluentLightColors.statusError;
+    final infoColor = isDark
+        ? FluentDarkColors.statusInfo
+        : FluentLightColors.statusInfo;
+    final resultColor = _result?.success == true ? successColor : errorColor;
 
     if (_initFailed) {
       return Center(
@@ -337,16 +346,10 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
               horizontal: FluentSpacing.l,
               vertical: FluentSpacing.s,
             ),
-            color: _result!.success
-                ? FluentLightColors.statusSuccess.withValues(alpha: 0.12)
-                : FluentLightColors.statusError.withValues(alpha: 0.12),
+            color: resultColor.withValues(alpha: isDark ? 0.18 : 0.12),
             child: Text(
               _result!.message,
-              style: theme.typography.body?.copyWith(
-                color: _result!.success
-                    ? FluentLightColors.statusSuccess
-                    : FluentLightColors.statusError,
-              ),
+              style: theme.typography.body?.copyWith(color: resultColor),
             ),
           ),
         // 提示信息
@@ -357,11 +360,11 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
               horizontal: FluentSpacing.l,
               vertical: FluentSpacing.s,
             ),
-            color: FluentLightColors.statusInfo.withValues(alpha: 0.08),
+            color: infoColor.withValues(alpha: isDark ? 0.14 : 0.08),
             child: Text(
               '请使用拥有公众号的微信账号扫码登录。'
               '个人订阅号即可（mp.weixin.qq.com 免费注册）。',
-              style: theme.typography.caption,
+              style: theme.typography.caption?.copyWith(color: infoColor),
             ),
           ),
         // WebView

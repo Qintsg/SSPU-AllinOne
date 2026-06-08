@@ -2,7 +2,7 @@
  * 密码管理服务 — 本地密码保护功能的核心逻辑
  * 委托 StorageService 进行数据持久化
  * 所有数据仅保留在设备本地，不上传至任何云端
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : password_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-18
@@ -27,4 +27,15 @@ class PasswordService {
 
   /// 移除密码保护
   static Future<void> removePassword() => StorageService.removePassword();
+
+  /// 检查是否已启用系统快速验证。
+  static Future<bool> isQuickAuthEnabled() =>
+      StorageService.isQuickAuthEnabled();
+
+  /// 设置系统快速验证开关。
+  static Future<void> setQuickAuthEnabled(bool enabled) =>
+      StorageService.setQuickAuthEnabled(enabled);
+
+  /// 清除系统快速验证配置。
+  static Future<void> clearQuickAuth() => StorageService.clearQuickAuth();
 }

@@ -1,6 +1,6 @@
 # API 文档
 
-> SSPU All-in-One 接口文档
+> SSPU-AllinOne 接口文档
 
 ## 概述
 

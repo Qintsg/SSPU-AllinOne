@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 '''
 Release 资产元数据生成脚本
-@Project : SSPU-all-in-one
+@Project : SSPU-AllinOne
 @File : generate_release_metadata.py
 @Author : Qintsg
 @Date : 2026-04-23 23:20
@@ -15,16 +15,34 @@ import hashlib
 import json
 import re
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 
 FILENAME_PATTERN = re.compile(
-    r"^SSPU-All-in-One-v(?P<version>.+?)-"
+    r"^SSPU-AllinOne-v(?P<version>.+?)-"
     r"(?P<platform>android|ios|windows|macos|linux|web)-"
     r"(?P<arch>universal|x64|arm64|armv7)"
     r"(?:-(?P<kind>installer|portable|bundle|static|unsigned|appimage|deb|rpm))?"
     r"(?P<ext>\.AppImage|\.tar\.gz|\.zip|\.exe|\.dmg|\.deb|\.rpm|\.apk)$"
 )
+
+EXPECTED_PRODUCT_ASSETS = {
+    ("android", "universal", "bundle"),
+    ("windows", "x64", "installer"),
+    ("windows", "x64", "portable"),
+    ("windows", "arm64", "installer"),
+    ("windows", "arm64", "portable"),
+    ("macos", "universal", "unsigned"),
+    ("linux", "x64", "appimage"),
+    ("linux", "x64", "deb"),
+    ("linux", "x64", "rpm"),
+    ("linux", "x64", "portable"),
+    ("linux", "arm64", "appimage"),
+    ("linux", "arm64", "deb"),
+    ("linux", "arm64", "rpm"),
+    ("linux", "arm64", "portable"),
+    ("web", "universal", "static"),
+}
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -35,7 +53,12 @@ def parse_arguments() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(description="生成 Release 元数据与校验文件。")
     parser.add_argument("--asset-dir", required=True, help="Release 资产目录。")
-    parser.add_argument("--version", required=True, help="完整版本号，例如 0.2.0-alpha+1。")
+    parser.add_argument("--version", required=True, help="公开版本号，例如 1.0.0-alpha。")
+    parser.add_argument(
+        "--pubspec-version",
+        required=True,
+        help="pubspec.yaml 完整版本号，例如 1.0.0-alpha+1。",
+    )
     parser.add_argument("--channel", required=True, help="版本通道，例如 stable 或 beta。")
     parser.add_argument("--build-number", required=True, type=int, help="构建序号。")
     parser.add_argument("--tag", required=True, help="Release Tag，例如 v0.2.0-alpha。")
@@ -78,7 +101,7 @@ def build_platform_entry(asset_file: Path, expected_version: str) -> Dict[str, s
     """
     解析单个产物文件并生成 manifest 平台条目
     :param asset_file: 产物文件路径
-    :param expected_version: 应与文件名严格匹配的完整版本号
+    :param expected_version: 应与文件名严格匹配的公开版本号
     :return: manifest.json 中的单个平台信息
     :raises ValueError: 文件名不符合命名规范时抛出异常
     """
@@ -89,7 +112,7 @@ def build_platform_entry(asset_file: Path, expected_version: str) -> Dict[str, s
     parsed_data = match.groupdict()
     if parsed_data["version"] != expected_version:
         raise ValueError(
-            f"资产文件版本与 pubspec.yaml 不一致：{asset_file.name} != {expected_version}",
+            f"资产文件版本与公开版本不一致：{asset_file.name} != {expected_version}",
         )
 
     inferred_kind = parsed_data["kind"] or infer_kind(
@@ -133,8 +156,9 @@ def render_manifest(
     :return: manifest.json 对应的数据结构
     """
     return {
-        "name": "SSPU-all-in-one",
+        "name": "SSPU-AllinOne",
         "version": arguments.version,
+        "pubspec_version": arguments.pubspec_version,
         "channel": arguments.channel,
         "build_number": arguments.build_number,
         "tag": arguments.tag,
@@ -143,6 +167,41 @@ def render_manifest(
         "dart_version": arguments.dart_version,
         "platforms": platform_entries,
     }
+
+
+def validate_release_matrix(platform_entries: List[Dict[str, str]]) -> None:
+    """
+    校验 Release 资产矩阵完整性
+    :param platform_entries: 已解析的产物条目
+    :return: None
+    :raises ValueError: 资产缺失、重复或超出发布矩阵时抛出异常
+    """
+    actual_assets: List[Tuple[str, str, str]] = [
+        (entry["platform"], entry["arch"], entry["kind"])
+        for entry in platform_entries
+    ]
+    actual_asset_set = set(actual_assets)
+
+    if len(actual_asset_set) != len(actual_assets):
+        duplicate_assets = sorted(
+            {
+                asset
+                for asset in actual_assets
+                if actual_assets.count(asset) > 1
+            },
+        )
+        raise ValueError(f"Release 资产存在重复平台条目：{duplicate_assets}")
+
+    missing_assets = sorted(EXPECTED_PRODUCT_ASSETS - actual_asset_set)
+    unexpected_assets = sorted(actual_asset_set - EXPECTED_PRODUCT_ASSETS)
+
+    if missing_assets or unexpected_assets:
+        message_lines: List[str] = ["Release 资产矩阵不完整或包含未知产物："]
+        if missing_assets:
+            message_lines.append(f"- 缺失：{missing_assets}")
+        if unexpected_assets:
+            message_lines.append(f"- 未知：{unexpected_assets}")
+        raise ValueError("\n".join(message_lines))
 
 
 def write_sha256_sums(asset_directory: Path, asset_files: List[Path]) -> None:
@@ -184,6 +243,7 @@ def main() -> int:
         build_platform_entry(asset_file=asset_file, expected_version=arguments.version)
         for asset_file in product_asset_files
     ]
+    validate_release_matrix(platform_entries=platform_entries)
 
     manifest_path = asset_directory / "manifest.json"
     manifest_payload = render_manifest(platform_entries=platform_entries, arguments=arguments)

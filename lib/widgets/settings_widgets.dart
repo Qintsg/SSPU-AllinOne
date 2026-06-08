@@ -1,14 +1,20 @@
 /*
  * 设置页公用组件 — 间隔选择器、时间选择器、渠道开关行、导航标签
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : settings_widgets.dart
  * @Author : Qintsg
  * @Date : 2026-04-17
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/services.dart';
 
-/// 可选的自动刷新间隔（分钟 => 显示文本）
+import '../design/fluent_ui.dart';
+import '../theme/app_motion.dart';
+import '../theme/app_shapes.dart';
+import '../theme/app_spacing.dart';
+import 'responsive_layout.dart';
+
+/// 可选的自动刷新间隔（分钟 => 显示文本）。
 const Map<int, String> kIntervalOptions = {
   0: '关闭',
   15: '15 分钟',
@@ -20,42 +26,43 @@ const Map<int, String> kIntervalOptions = {
   1440: '24 小时',
 };
 
-/// 构建自动刷新间隔选择器
-/// [currentValue] 当前间隔（分钟）
-/// [enabled] 渠道是否启用（未启用时灰色不可点）
-/// [onChanged] 选中新值后回调
+/// 构建自动刷新间隔选择器。
 Widget buildIntervalSelector({
   required BuildContext context,
   required int currentValue,
   required bool enabled,
   required Future<void> Function(int minutes) onChanged,
 }) {
+  final colors = context.fluentColors;
+  final type = context.fluentType;
+  final disabledColor = colors.neutralForegroundDisabled;
+
   return Padding(
-    padding: const EdgeInsets.only(left: 32, top: 6),
-    child: Row(
+    padding: const EdgeInsetsDirectional.only(
+      start: AppSpacing.xl,
+      top: AppSpacing.sm,
+    ),
+    child: Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Icon(
           FluentIcons.sync,
-          size: 14,
-          color: enabled
-              ? FluentTheme.of(context).inactiveColor
-              : FluentTheme.of(context).inactiveColor.withValues(alpha: 0.4),
+          size: 20,
+          color: enabled ? colors.neutralForeground2 : disabledColor,
         ),
-        const SizedBox(width: 8),
         Text(
           '自动刷新：',
-          style: FluentTheme.of(context).typography.caption?.copyWith(
-            color: enabled
-                ? null
-                : FluentTheme.of(context).inactiveColor.withValues(alpha: 0.4),
+          style: type.caption1.copyWith(
+            color: enabled ? colors.neutralForeground2 : disabledColor,
           ),
         ),
-        const SizedBox(width: 4),
-        ComboBox<int>(
+        FluentSelect<int>(
           value: kIntervalOptions.containsKey(currentValue) ? currentValue : 0,
           items: kIntervalOptions.entries
               .map(
-                (entry) => ComboBoxItem<int>(
+                (entry) => FluentSelectItem<int>(
                   value: entry.key,
                   child: Text(entry.value),
                 ),
@@ -72,12 +79,7 @@ Widget buildIntervalSelector({
   );
 }
 
-/// 构建左侧垂直导航项目
-/// [index] 当前导航项索引
-/// [selectedIndex] 当前选中的索引
-/// [icon] 导航图标
-/// [label] 导航文本
-/// [onTap] 点击回调
+/// 构建左侧垂直导航项目。
 Widget buildSettingsNavItem({
   required BuildContext context,
   required int index,
@@ -87,52 +89,145 @@ Widget buildSettingsNavItem({
   required VoidCallback onTap,
 }) {
   final isSelected = index == selectedIndex;
-  final theme = FluentTheme.of(context);
+  final colors = context.fluentColors;
+  final type = context.fluentType;
 
-  return HoverButton(
-    onPressed: onTap,
-    builder: (context, states) {
-      final hovered = states.isHovered || states.isPressed;
-      return AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? theme.accentColor.withValues(alpha: 0.1)
-              : hovered
-              ? theme.inactiveColor.withValues(alpha: 0.06)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Row(
-          children: [
-            // 选中指示条
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              width: 3,
-              height: 16,
-              margin: const EdgeInsets.only(right: 10),
-              decoration: BoxDecoration(
-                color: isSelected ? theme.accentColor : Colors.transparent,
-                borderRadius: BorderRadius.circular(2),
+  return _SettingsNavItem(
+    isSelected: isSelected,
+    icon: icon,
+    label: label,
+    onTap: onTap,
+    colors: colors,
+    type: type,
+  );
+}
+
+class _SettingsNavItem extends StatefulWidget {
+  const _SettingsNavItem({
+    required this.isSelected,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.colors,
+    required this.type,
+  });
+
+  final bool isSelected;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final FluentColors colors;
+  final FluentTypography type;
+
+  @override
+  State<_SettingsNavItem> createState() => _SettingsNavItemState();
+}
+
+class _SettingsNavItemState extends State<_SettingsNavItem> {
+  bool _hovered = false;
+  bool _pressed = false;
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = widget.colors;
+    final type = widget.type;
+    final background = widget.isSelected
+        ? colors.brandBackgroundSelected.withValues(alpha: 0.12)
+        : _pressed
+        ? colors.neutralBackground1Pressed
+        : _hovered || _focused
+        ? colors.neutralBackground1Hover
+        : Colors.transparent;
+
+    return Semantics(
+      button: true,
+      selected: widget.isSelected,
+      child: Shortcuts(
+        shortcuts: const <ShortcutActivator, Intent>{
+          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.numpadEnter): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+        },
+        child: FocusableActionDetector(
+          mouseCursor: SystemMouseCursors.click,
+          onShowFocusHighlight: (focused) => setState(() => _focused = focused),
+          onShowHoverHighlight: (hovered) => setState(() {
+            _hovered = hovered;
+            if (!hovered) _pressed = false;
+          }),
+          actions: <Type, Action<Intent>>{
+            ActivateIntent: CallbackAction<ActivateIntent>(
+              onInvoke: (_) {
+                widget.onTap();
+                return null;
+              },
+            ),
+          },
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onTap,
+            onTapDown: (_) => setState(() => _pressed = true),
+            onTapUp: (_) => setState(() => _pressed = false),
+            onTapCancel: () => setState(() => _pressed = false),
+            child: SizedBox(
+              width: double.infinity,
+              child: AnimatedContainer(
+                duration: AppMotion.short,
+                padding: const EdgeInsetsDirectional.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: background,
+                  borderRadius: AppShapes.md,
+                  border: Border.all(
+                    color: _focused ? colors.brandStroke1 : Colors.transparent,
+                    width: 2,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    AnimatedContainer(
+                      duration: AppMotion.short,
+                      width: 4,
+                      height: 24,
+                      margin: const EdgeInsetsDirectional.only(
+                        end: AppSpacing.sm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: widget.isSelected
+                            ? colors.brandBackground
+                            : Colors.transparent,
+                        borderRadius: AppShapes.xs,
+                      ),
+                    ),
+                    Icon(
+                      widget.icon,
+                      color: widget.isSelected
+                          ? colors.brandForeground1
+                          : colors.neutralForeground2,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        widget.label,
+                        style: widget.isSelected
+                            ? type.body1Strong.copyWith(
+                                color: colors.brandForeground1,
+                              )
+                            : type.body1,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            Icon(icon, size: 16, color: isSelected ? theme.accentColor : null),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: isSelected
-                  ? theme.typography.bodyStrong?.copyWith(
-                      color: theme.accentColor,
-                    )
-                  : theme.typography.body,
-            ),
-          ],
+          ),
         ),
-      );
-    },
-  );
+      ),
+    );
+  }
 }
 
 /// 构建数值设置框。
@@ -144,50 +239,123 @@ Widget buildCountNumberBox({
   required bool enabled,
   required ValueChanged<int> onChanged,
 }) {
-  final theme = FluentTheme.of(context);
+  final colors = context.fluentColors;
+  final type = context.fluentType;
   final foreground = enabled
-      ? theme.typography.caption?.color
-      : theme.inactiveColor.withValues(alpha: 0.4);
+      ? colors.neutralForeground2
+      : colors.neutralForegroundDisabled;
 
-  return ConstrainedBox(
-    constraints: const BoxConstraints(minWidth: 280, maxWidth: 340),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            '$label：',
-            style: theme.typography.caption?.copyWith(color: foreground),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 128,
-          child: NumberBox(
-            value: value,
-            min: 1,
-            max: 200,
-            mode: SpinButtonPlacementMode.inline,
-            smallChange: 1,
-            onChanged: enabled
-                ? (newValue) {
-                    final parsed = num.tryParse('${newValue ?? value}');
-                    final normalized = (parsed?.round() ?? value).clamp(1, 200);
-                    onChanged(normalized);
-                  }
-                : null,
-          ),
-        ),
-      ],
+  Widget numberField() => SizedBox(
+    width: 128,
+    child: FluentNumberBox(
+      value: value,
+      enabled: enabled,
+      suffixText: '条',
+      min: 1,
+      max: 200,
+      onChanged: onChanged,
+      onSubmitted: onChanged,
     ),
+  );
+
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final shouldStack = shouldStackSettingsControls(constraints);
+      if (shouldStack) {
+        return ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 340),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$label：',
+                style: type.caption1.copyWith(color: foreground),
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              numberField(),
+            ],
+          ),
+        );
+      }
+
+      return ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 340),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                '$label：',
+                style: type.caption1.copyWith(color: foreground),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            numberField(),
+          ],
+        ),
+      );
+    },
   );
 }
 
-/// 构建时间选择器（小时 + 分钟 ComboBox）
-/// [label] 标签（如"开始""结束"）
-/// [hour] 当前小时（0–23）
-/// [minute] 当前分钟（0/15/30/45）
-/// [onChanged] 选中新值后回调
+/// 构建可在窄屏自动堆叠尾部控件的设置行。
+Widget buildResponsiveSettingsRow({
+  required BuildContext context,
+  required IconData icon,
+  required Widget title,
+  required Widget subtitle,
+  required Widget trailing,
+  Color? iconColor,
+}) {
+  final colors = context.fluentColors;
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final shouldStack = shouldStackSettingsControls(constraints);
+      final leading = Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: iconColor ?? colors.brandForeground1),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                title,
+                const SizedBox(height: AppSpacing.xs),
+                subtitle,
+              ],
+            ),
+          ),
+        ],
+      );
+
+      if (shouldStack) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            leading,
+            const SizedBox(height: AppSpacing.sm),
+            Padding(
+              padding: const EdgeInsetsDirectional.only(start: AppSpacing.xxl),
+              child: trailing,
+            ),
+          ],
+        );
+      }
+
+      return Row(
+        children: [
+          Expanded(child: leading),
+          const SizedBox(width: AppSpacing.md),
+          trailing,
+        ],
+      );
+    },
+  );
+}
+
+/// 构建时间选择器（小时 + 分钟下拉框）。
 Widget buildTimePicker({
   required BuildContext context,
   required String label,
@@ -195,15 +363,19 @@ Widget buildTimePicker({
   required int minute,
   required Future<void> Function(int h, int m) onChanged,
 }) {
-  return Row(
-    mainAxisSize: MainAxisSize.min,
+  final type = context.fluentType;
+
+  return Wrap(
+    spacing: AppSpacing.xs,
+    runSpacing: AppSpacing.xs,
+    crossAxisAlignment: WrapCrossAlignment.center,
     children: [
-      Text('$label ', style: FluentTheme.of(context).typography.caption),
-      ComboBox<int>(
+      Text('$label ', style: type.caption1),
+      FluentSelect<int>(
         value: hour,
         items: List.generate(
           24,
-          (h) => ComboBoxItem<int>(
+          (h) => FluentSelectItem<int>(
             value: h,
             child: Text(h.toString().padLeft(2, '0')),
           ),
@@ -212,17 +384,14 @@ Widget buildTimePicker({
           if (h != null) onChanged(h, minute);
         },
       ),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Text(':', style: FluentTheme.of(context).typography.bodyStrong),
-      ),
-      ComboBox<int>(
+      Text(':', style: type.body1Strong),
+      FluentSelect<int>(
         value: [0, 15, 30, 45].contains(minute) ? minute : 0,
         items: const [
-          ComboBoxItem(value: 0, child: Text('00')),
-          ComboBoxItem(value: 15, child: Text('15')),
-          ComboBoxItem(value: 30, child: Text('30')),
-          ComboBoxItem(value: 45, child: Text('45')),
+          FluentSelectItem(value: 0, child: Text('00')),
+          FluentSelectItem(value: 15, child: Text('15')),
+          FluentSelectItem(value: 30, child: Text('30')),
+          FluentSelectItem(value: 45, child: Text('45')),
         ],
         onChanged: (m) {
           if (m != null) onChanged(hour, m);
@@ -232,12 +401,7 @@ Widget buildTimePicker({
   );
 }
 
-/// 构建信息渠道开关行
-/// [icon] 图标
-/// [title] 渠道名称
-/// [subtitle] 渠道描述
-/// [value] 是否启用
-/// [onChanged] 切换回调
+/// 构建信息渠道开关行。
 Widget buildChannelToggle({
   required BuildContext context,
   required IconData icon,
@@ -246,31 +410,32 @@ Widget buildChannelToggle({
   required bool value,
   required ValueChanged<bool> onChanged,
 }) {
+  final colors = context.fluentColors;
+  final type = context.fluentType;
+
   return Row(
     children: [
-      Icon(icon, size: 20),
-      const SizedBox(width: 12),
+      Icon(icon, color: colors.brandForeground1),
+      const SizedBox(width: AppSpacing.md),
       Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: FluentTheme.of(context).typography.bodyStrong),
-            const SizedBox(height: 2),
-            Text(subtitle, style: FluentTheme.of(context).typography.caption),
+            Text(title, style: type.body1Strong),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              subtitle,
+              style: type.caption1.copyWith(color: colors.neutralForeground2),
+            ),
           ],
         ),
       ),
-      ToggleSwitch(checked: value, onChanged: onChanged),
+      FluentSwitch(value: value, onChanged: onChanged),
     ],
   );
 }
 
-/// 构建设置分区导航栏按钮
-/// [index] 分区索引
-/// [selectedIndex] 当前选中索引
-/// [icon] 图标
-/// [label] 显示文本
-/// [onTap] 点击回调
+/// 构建设置分区导航栏按钮。
 Widget buildNavTab({
   required BuildContext context,
   required int index,
@@ -280,36 +445,19 @@ Widget buildNavTab({
   required VoidCallback onTap,
 }) {
   final isSelected = selectedIndex == index;
-  final theme = FluentTheme.of(context);
+
   return Padding(
-    padding: const EdgeInsets.only(bottom: 4),
-    child: Button(
-      style: ButtonStyle(
-        padding: WidgetStatePropertyAll(
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        ),
-        backgroundColor: WidgetStatePropertyAll(
-          isSelected
-              ? theme.accentColor.withValues(alpha: 0.1)
-              : Colors.transparent,
-        ),
-      ),
-      onPressed: onTap,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: isSelected ? theme.accentColor : null),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: isSelected
-                ? theme.typography.bodyStrong?.copyWith(
-                    color: theme.accentColor,
-                  )
-                : theme.typography.body,
+    padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.xs),
+    child: isSelected
+        ? FluentButton.secondaryIcon(
+            onPressed: onTap,
+            icon: Icon(icon),
+            label: Text(label),
+          )
+        : FluentButton.transparentIcon(
+            onPressed: onTap,
+            icon: Icon(icon),
+            label: Text(label),
           ),
-        ],
-      ),
-    ),
   );
 }

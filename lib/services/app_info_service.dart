@@ -1,6 +1,6 @@
 /*
  * 应用信息服务 — 读取运行时包名、版本号与构建号
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : app_info_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-23

@@ -14,8 +14,8 @@ if (keyPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "cn.qintsg.sspu_all_in_one"
-    compileSdk = flutter.compileSdkVersion
+    namespace = "cn.qintsg.sspu_allinone"
+    compileSdk = maxOf(flutter.compileSdkVersion, 34)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -28,10 +28,9 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "cn.qintsg.sspu_all_in_one"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        // 使用项目正式包名，保持 namespace、Manifest Activity 和发布产物一致。
+        applicationId = "cn.qintsg.sspu_allinone"
+        // SDK 与版本号继续由 Flutter 工具链统一注入，避免多处配置漂移。
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

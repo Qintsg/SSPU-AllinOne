@@ -2,7 +2,7 @@
  * Web 内容获取服务 — 网页内容抓取与 HTML 解析
  * 基于 http_service（dio）获取网页源码，使用 html 包解析 DOM
  * 提供标题提取、正文提取、链接收集等实用方法
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : web_content_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

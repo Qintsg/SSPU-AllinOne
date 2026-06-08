@@ -23,14 +23,32 @@
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="SSPU All-in-One">
+  <meta name="apple-mobile-web-app-title" content="SSPU-AllinOne">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>SSPU All-in-One</title>
-  <link rel="manifest" href="manifest.json">
+  <title>SSPU-AllinOne</title>
+  <script>
+    (function () {
+      const languages = navigator.languages || [navigator.language || ''];
+      const isChinese = languages.some((language) =>
+        language.toLowerCase().startsWith('zh')
+      );
+      const appName = isChinese ? '工大聚合' : 'SSPU-AllinOne';
+      const manifestHref = isChinese ? 'manifest.zh.json' : 'manifest.json';
+      document.title = appName;
+      document
+        .querySelector('meta[name="apple-mobile-web-app-title"]')
+        ?.setAttribute('content', appName);
+
+      const manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      manifestLink.href = manifestHref;
+      document.head.appendChild(manifestLink);
+    })();
+  </script>
 </head>
 <body>
   <!--

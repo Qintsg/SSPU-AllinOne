@@ -3,7 +3,7 @@
  * 支持 342（通知公告）和 343（部门动态）两个栏目
  * 体育部使用 table 布局列表：table.wp_article_list_table ul li > span + a
  * 列表页只提供日期，精确发布时间需进入文章页读取 .time
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : sports_news_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

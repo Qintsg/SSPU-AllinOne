@@ -1,6 +1,6 @@
 /*
  * 微信公众号平台配置文件服务 — 管理可手动编辑的 wxmp_config.toml
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : wxmp_config_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-23
@@ -118,9 +118,9 @@ class WxmpConfig {
   /// 转为可读 TOML，便于用户直接编辑。
   String toToml() {
     return '''
-# SSPU All-in-One 微信公众号平台配置
+# SSPU-AllinOne 微信公众号平台配置
 # 空字符串表示使用扫码登录保存的 Cookie / Token。
-# 文件位于 ~/.sspu-all-in-one/，扫码登录成功后会自动更新 Cookie / Token。
+# 文件位于 ~/.sspu-aio/，扫码登录成功后会自动更新 Cookie / Token。
 # 保存后可回到设置页点击“重新加载配置”立即生效。
 
 [wxmp]

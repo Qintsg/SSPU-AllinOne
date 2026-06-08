@@ -31,6 +31,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+/android/build/
 /coverage/
 *.dart_tool/
 
@@ -107,6 +108,15 @@ Desktop.ini
 .github/copilot-runtime/
 
 # 本地自动化与平台安装器临时产物
+dist/
+.claude/
 .omx/
 .codex/
 .playwright-mcp/
+.worktree/
+.worktrees/
+.agents/
+.opencode/
+.sisyphus/
+CLAUDE.md
+AGENTS.md

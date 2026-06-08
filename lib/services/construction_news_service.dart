@@ -2,7 +2,7 @@
  * 基建处消息解析服务 — 抓取基建处建设要闻与通知公告
  * 通过栏目列表页解析，支持翻页与完整发布日期
  * 列表结构: li > a[title] > span.first(标题) + span.last(日期)
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : construction_news_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

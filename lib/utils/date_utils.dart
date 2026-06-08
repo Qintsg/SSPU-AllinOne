@@ -3,7 +3,7 @@
  * 支持多种输入格式：YYYY-MM-DD、MM-DD、YYYY/MM/DD、MM/DD 等
  * 对仅有 MM-DD 的日期，通过与当前日期比较自动补全年份
  * 对仅有时间（HH:MM）或含"今日/今天/today"的字符串，返回今天日期
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : date_utils.dart
  * @Author : Qintsg
  * @Date : 2025-04-20

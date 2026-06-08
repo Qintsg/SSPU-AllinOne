@@ -1,14 +1,14 @@
 /*
  * 信息中心 — 校园消息聚合列表
  * 展示学校官网、微信等渠道的消息，支持搜索、筛选、已读/未读、分页
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : info_page.dart
  * @Author : Qintsg
  * @Date : 2026-07-19
  */
 
 import 'dart:math';
-import 'package:fluent_ui/fluent_ui.dart';
+import '../design/fluent_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/message_item.dart';
@@ -16,7 +16,9 @@ import '../models/channel_config.dart';
 import '../services/info_refresh_service.dart';
 import '../services/wechat_article_service.dart';
 import '../theme/fluent_tokens.dart';
+import '../widgets/app_feedback.dart';
 import '../widgets/message_tile.dart';
+import '../widgets/responsive_layout.dart';
 import '../services/message_state_service.dart';
 import '../utils/webview_env.dart';
 import 'webview_page.dart';
@@ -51,6 +53,9 @@ class _InfoPageState extends State<InfoPage> {
 
   /// 筛选：来源名称（null 表示不筛选）
   MessageSourceName? _filterSourceName;
+
+  /// 筛选：微信公众号名称（null 表示不筛选）
+  String? _filterWechatMpName;
 
   /// 筛选：内容分类（null 表示不筛选）
   MessageCategory? _filterCategory;
@@ -102,24 +107,25 @@ class _InfoPageState extends State<InfoPage> {
   /// 初始化状态服务，从本地存储加载消息并根据渠道开关过滤显示
   Future<void> _initAndLoad() async {
     await _stateService.init();
-    _wechatSourceConfigured = await WechatArticleService.instance
-        .hasConfiguredSource();
     await _loadPersistedMessages();
+
+    final wechatSourceConfigured = await WechatArticleService.instance
+        .hasConfiguredSource();
+    if (!mounted) return;
+    setState(() => _wechatSourceConfigured = wechatSourceConfigured);
   }
 
   /// 刷新官网消息：抓取所有已启用渠道的新数据并与已有数据合并持久化
   Future<void> _refreshSchoolWebsite() async {
     final started = await _refreshService.startSchoolWebsiteRefresh();
     if (!started && mounted) {
-      displayInfoBar(
+      showFluentInfoBar(
         context,
-        builder: (ctx, close) => InfoBar(
-          title: const Text('已有刷新任务正在进行'),
-          severity: InfoBarSeverity.info,
-          action: IconButton(
-            icon: const Icon(FluentIcons.clear),
-            onPressed: close,
-          ),
+        title: const Text('已有刷新任务正在进行'),
+        severity: FluentInfoSeverity.info,
+        actionBuilder: (close) => FluentIconButton(
+          icon: const Icon(FluentIcons.clear),
+          onPressed: close,
         ),
       );
     }
@@ -132,19 +138,15 @@ class _InfoPageState extends State<InfoPage> {
     if (!isConfigured) {
       _wechatSourceConfigured = false;
       if (mounted) {
-        displayInfoBar(
+        showFluentInfoBar(
           context,
-          builder: (ctx, close) {
-            return InfoBar(
-              title: const Text('未获取到微信公众号文章'),
-              content: const Text('请先在设置中完成公众号平台认证并关注目标公众号'),
-              severity: InfoBarSeverity.warning,
-              action: IconButton(
-                icon: const Icon(FluentIcons.clear),
-                onPressed: close,
-              ),
-            );
-          },
+          title: const Text('未获取到微信公众号文章'),
+          content: const Text('请先在设置中完成公众号平台认证并关注目标公众号'),
+          severity: FluentInfoSeverity.warning,
+          actionBuilder: (close) => FluentIconButton(
+            icon: const Icon(FluentIcons.clear),
+            onPressed: close,
+          ),
         );
         setState(() {});
       }
@@ -154,15 +156,13 @@ class _InfoPageState extends State<InfoPage> {
     _wechatSourceConfigured = true;
     final started = await _refreshService.startWechatRefresh();
     if (!started && mounted) {
-      displayInfoBar(
+      showFluentInfoBar(
         context,
-        builder: (ctx, close) => InfoBar(
-          title: const Text('已有刷新任务正在进行'),
-          severity: InfoBarSeverity.info,
-          action: IconButton(
-            icon: const Icon(FluentIcons.clear),
-            onPressed: close,
-          ),
+        title: const Text('已有刷新任务正在进行'),
+        severity: FluentInfoSeverity.info,
+        actionBuilder: (close) => FluentIconButton(
+          icon: const Icon(FluentIcons.clear),
+          onPressed: close,
         ),
       );
     }
@@ -204,13 +204,14 @@ class _InfoPageState extends State<InfoPage> {
   /// WebView 初始化失败时自动 fallback 到外部浏览器
   Future<void> _openMessage(MessageItem message) async {
     await _stateService.markAsRead(message.id);
+    final webViewEnvironment = await ensureGlobalWebViewEnvironment();
     if (mounted) {
       Navigator.of(context).push(
         FluentPageRoute(
           builder: (_) => WebViewPage(
             url: message.url,
             initialTitle: message.title,
-            webViewEnvironment: globalWebViewEnvironment,
+            webViewEnvironment: webViewEnvironment,
           ),
         ),
       );
@@ -240,6 +241,10 @@ class _InfoPageState extends State<InfoPage> {
   /// 根据当前来源类型获取可选的来源名称列表
   List<MessageSourceName> _getAvailableSourceNames() =>
       _getInfoAvailableSourceNames(this);
+
+  /// 根据已加载微信推文获取可选的公众号名称列表
+  List<String> _getAvailableWechatMpNames() =>
+      _getInfoAvailableWechatMpNames(this);
 
   /// 根据当前来源名称获取可选的内容分类列表
   List<MessageCategory> _getAvailableCategories() =>

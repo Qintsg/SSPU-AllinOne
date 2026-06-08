@@ -2,7 +2,7 @@
  * HTTP 请求服务 — 基于 dio 的统一网络请求封装
  * 提供单例 HTTP 客户端、请求拦截器、错误处理、超时管理
  * 所有网络请求应通过此服务发起，确保统一的错误处理与日志记录
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : http_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19
@@ -198,13 +198,14 @@ class HttpService {
 }
 
 /// 请求日志拦截器
-/// 在 debug 模式下输出请求/响应信息，方便调试
+/// 在 debug 模式下输出脱敏请求/响应信息，方便调试
 class _LogInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     assert(() {
+      final safeUri = _safeLogUri(options.uri);
       // ignore: avoid_print
-      print('[HTTP] → ${options.method} ${options.uri}');
+      print('[HTTP] → ${options.method} $safeUri');
       return true;
     }());
     handler.next(options);
@@ -213,8 +214,9 @@ class _LogInterceptor extends Interceptor {
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     assert(() {
+      final safeUri = _safeLogUri(response.requestOptions.uri);
       // ignore: avoid_print
-      print('[HTTP] ← ${response.statusCode} ${response.requestOptions.uri}');
+      print('[HTTP] ← ${response.statusCode} $safeUri');
       return true;
     }());
     handler.next(response);
@@ -223,12 +225,24 @@ class _LogInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     assert(() {
+      final safeUri = _safeLogUri(err.requestOptions.uri);
       // ignore: avoid_print
-      print(
-        '[HTTP] ✗ ${err.type.name} ${err.requestOptions.uri}: ${err.message}',
-      );
+      print('[HTTP] ✗ ${err.type.name} $safeUri: ${err.message}');
       return true;
     }());
     handler.next(err);
+  }
+
+  /// 仅保留定位目标端点所需的 URI 信息，避免 Token、Ticket 或账号参数进入日志。
+  String _safeLogUri(Uri uri) {
+    if (!uri.hasScheme && uri.host.isEmpty) {
+      return uri.path.isEmpty ? '/' : uri.path;
+    }
+    return Uri(
+      scheme: uri.scheme,
+      host: uri.host,
+      port: uri.hasPort ? uri.port : null,
+      path: uri.path,
+    ).toString();
   }
 }

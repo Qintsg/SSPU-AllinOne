@@ -2,7 +2,7 @@
  * 学院/部门通用新闻解析服务 — 配置驱动的首页新闻抓取
  * 支持多种 CMS 模板：A(标准列表)、B(图文卡片)、C(swiper)、D(自定义)
  * 每个学院通过 CollegeConfig 描述域名与解析规则，统一入口调用
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : college_news_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

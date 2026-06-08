@@ -8,6 +8,7 @@ frontend:
           - 'lib/main.dart'
           - 'lib/pages/**'
           - 'lib/widgets/**'
+          - 'lib/design/**'
           - 'lib/theme/**'
 
 services:
@@ -19,6 +20,57 @@ models:
   - changed-files:
       - any-glob-to-any-file:
           - 'lib/models/**'
+
+storage:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'lib/services/storage_service.dart'
+          - 'lib/services/storage_keys.dart'
+          - 'lib/services/authenticated_data_cache_service.dart'
+          - 'lib/services/app_data_directory_service.dart'
+          - 'test/storage_service_test.dart'
+          - 'test/authenticated_data_cache_service_test.dart'
+          - 'test/app_data_directory_service_test.dart'
+
+installer:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/installer/**'
+          - 'test/windows_installer_legal_test.dart'
+
+update:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'lib/services/app_update_service.dart'
+          - 'lib/widgets/settings_update_section.dart'
+          - 'test/app_update_service_test.dart'
+
+auth:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'lib/models/academic_credentials.dart'
+          - 'lib/models/academic_login_validation.dart'
+          - 'lib/pages/wxmp_login_page.dart'
+          - 'lib/services/*auth*'
+          - 'lib/services/*credentials*'
+          - 'lib/services/*login*'
+          - 'lib/widgets/settings_security_credentials_section.dart'
+          - 'lib/widgets/settings_wechat_auth_guide.dart'
+          - 'test/*auth*'
+          - 'test/*credentials*'
+          - 'test/*login*'
+
+notification:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'lib/services/notification_service.dart'
+          - 'lib/services/message_state_service_notifications.dart'
+          - 'test/*notification*'
+
+test:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'test/**'
 
 android:
   - changed-files:
@@ -69,6 +121,7 @@ governance:
   - changed-files:
       - any-glob-to-any-file:
           - '.github/ISSUE_TEMPLATE/**'
+          - '.github/PULL_REQUEST_TEMPLATE/**'
           - '.github/pull_request_template.md'
           - '.github/CODEOWNERS'
           - '.github/dependabot.yml'
@@ -78,9 +131,11 @@ governance:
 documentation:
   - changed-files:
       - any-glob-to-any-file:
+          - 'AGENTS.md'
+          - 'CLAUDE.md'
+          - 'assets/legal/**'
           - 'docs/**'
           - 'README.md'
-          - 'AGENTS.md'
 
 dependencies:
   - changed-files:

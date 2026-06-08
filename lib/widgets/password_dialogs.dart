@@ -1,16 +1,18 @@
 /*
  * 密码相关对话框 — 设置、移除、修改密码
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : password_dialogs.dart
  * @Author : Qintsg
  * @Date : 2026-04-17
  */
 
-import 'package:fluent_ui/fluent_ui.dart';
-import '../services/password_service.dart';
+import '../design/fluent_ui.dart';
 
-/// 显示设置密码对话框
-/// 返回 true 表示密码设置成功
+import '../services/password_service.dart';
+import '../theme/app_spacing.dart';
+
+/// 显示设置密码对话框。
+/// 返回 true 表示密码设置成功。
 Future<bool> showSetPasswordDialog(BuildContext context) async {
   final passwordController = TextEditingController();
   final confirmController = TextEditingController();
@@ -21,46 +23,37 @@ Future<bool> showSetPasswordDialog(BuildContext context) async {
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          return ContentDialog(
+          return FluentDialog(
             title: const Text('设置密码'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('设置密码后，每次重新打开应用时需要输入密码才能进入。'),
-                const SizedBox(height: 16),
-                InfoLabel(
+                const SizedBox(height: AppSpacing.md),
+                _PasswordField(
+                  controller: passwordController,
                   label: '输入密码',
-                  child: PasswordBox(
-                    controller: passwordController,
-                    placeholder: '请输入密码',
-                    revealMode: PasswordRevealMode.peekAlways,
-                  ),
+                  hintText: '请输入密码',
                 ),
-                const SizedBox(height: 12),
-                InfoLabel(
+                const SizedBox(height: AppSpacing.sm),
+                _PasswordField(
+                  controller: confirmController,
                   label: '确认密码',
-                  child: PasswordBox(
-                    controller: confirmController,
-                    placeholder: '请再次输入密码',
-                    revealMode: PasswordRevealMode.peekAlways,
-                  ),
+                  hintText: '请再次输入密码',
                 ),
                 if (errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  InfoBar(
-                    title: Text(errorMessage!),
-                    severity: InfoBarSeverity.error,
-                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _PasswordDialogError(message: errorMessage!),
                 ],
               ],
             ),
             actions: [
-              Button(
+              FluentButton.transparent(
                 child: const Text('取消'),
                 onPressed: () => Navigator.pop(dialogContext, false),
               ),
-              FilledButton(
+              FluentButton.primary(
                 child: const Text('确认'),
                 onPressed: () {
                   final password = passwordController.text;
@@ -95,8 +88,8 @@ Future<bool> showSetPasswordDialog(BuildContext context) async {
   return false;
 }
 
-/// 显示移除密码的确认对话框
-/// 返回 true 表示密码移除成功
+/// 显示移除密码的确认对话框。
+/// 返回 true 表示密码移除成功。
 Future<bool> showRemovePasswordDialog(BuildContext context) async {
   final passwordController = TextEditingController();
   String? errorMessage;
@@ -106,37 +99,31 @@ Future<bool> showRemovePasswordDialog(BuildContext context) async {
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          return ContentDialog(
+          return FluentDialog(
             title: const Text('移除密码'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('请输入当前密码以确认移除密码保护。'),
-                const SizedBox(height: 16),
-                InfoLabel(
+                const SizedBox(height: AppSpacing.md),
+                _PasswordField(
+                  controller: passwordController,
                   label: '当前密码',
-                  child: PasswordBox(
-                    controller: passwordController,
-                    placeholder: '请输入当前密码',
-                    revealMode: PasswordRevealMode.peekAlways,
-                  ),
+                  hintText: '请输入当前密码',
                 ),
                 if (errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  InfoBar(
-                    title: Text(errorMessage!),
-                    severity: InfoBarSeverity.error,
-                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _PasswordDialogError(message: errorMessage!),
                 ],
               ],
             ),
             actions: [
-              Button(
+              FluentButton.transparent(
                 child: const Text('取消'),
                 onPressed: () => Navigator.pop(dialogContext, false),
               ),
-              FilledButton(
+              FluentButton.primary(
                 child: const Text('确认移除'),
                 onPressed: () async {
                   final isCorrect = await PasswordService.verifyPassword(
@@ -168,8 +155,74 @@ Future<bool> showRemovePasswordDialog(BuildContext context) async {
   return false;
 }
 
-/// 显示修改密码对话框
-/// 返回 true 表示密码修改成功
+/// 显示当前密码确认对话框。
+/// 返回 true 表示当前密码验证成功。
+Future<bool> showConfirmCurrentPasswordDialog(
+  BuildContext context, {
+  String title = '确认当前密码',
+  String message = '请输入当前密码以继续。',
+  String confirmLabel = '确认',
+}) async {
+  final passwordController = TextEditingController();
+  String? errorMessage;
+
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (builderContext, setDialogState) {
+          return FluentDialog(
+            title: Text(title),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(message),
+                const SizedBox(height: AppSpacing.md),
+                _PasswordField(
+                  controller: passwordController,
+                  label: '当前密码',
+                  hintText: '请输入当前密码',
+                ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  _PasswordDialogError(message: errorMessage!),
+                ],
+              ],
+            ),
+            actions: [
+              FluentButton.transparent(
+                child: const Text('取消'),
+                onPressed: () => Navigator.pop(dialogContext, false),
+              ),
+              FluentButton.primary(
+                child: Text(confirmLabel),
+                onPressed: () async {
+                  final isCorrect = await PasswordService.verifyPassword(
+                    passwordController.text,
+                  );
+                  if (isCorrect) {
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext, true);
+                    }
+                  } else {
+                    setDialogState(() => errorMessage = '密码错误');
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+
+  passwordController.dispose();
+  return result == true;
+}
+
+/// 显示修改密码对话框。
+/// 返回 true 表示密码修改成功。
 Future<bool> showChangePasswordDialog(BuildContext context) async {
   final oldPasswordController = TextEditingController();
   final newPasswordController = TextEditingController();
@@ -181,53 +234,41 @@ Future<bool> showChangePasswordDialog(BuildContext context) async {
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (builderContext, setDialogState) {
-          return ContentDialog(
+          return FluentDialog(
             title: const Text('修改密码'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                InfoLabel(
+                _PasswordField(
+                  controller: oldPasswordController,
                   label: '当前密码',
-                  child: PasswordBox(
-                    controller: oldPasswordController,
-                    placeholder: '请输入当前密码',
-                    revealMode: PasswordRevealMode.peekAlways,
-                  ),
+                  hintText: '请输入当前密码',
                 ),
-                const SizedBox(height: 12),
-                InfoLabel(
+                const SizedBox(height: AppSpacing.sm),
+                _PasswordField(
+                  controller: newPasswordController,
                   label: '新密码',
-                  child: PasswordBox(
-                    controller: newPasswordController,
-                    placeholder: '请输入新密码',
-                    revealMode: PasswordRevealMode.peekAlways,
-                  ),
+                  hintText: '请输入新密码',
                 ),
-                const SizedBox(height: 12),
-                InfoLabel(
+                const SizedBox(height: AppSpacing.sm),
+                _PasswordField(
+                  controller: confirmController,
                   label: '确认新密码',
-                  child: PasswordBox(
-                    controller: confirmController,
-                    placeholder: '请再次输入新密码',
-                    revealMode: PasswordRevealMode.peekAlways,
-                  ),
+                  hintText: '请再次输入新密码',
                 ),
                 if (errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  InfoBar(
-                    title: Text(errorMessage!),
-                    severity: InfoBarSeverity.error,
-                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _PasswordDialogError(message: errorMessage!),
                 ],
               ],
             ),
             actions: [
-              Button(
+              FluentButton.transparent(
                 child: const Text('取消'),
                 onPressed: () => Navigator.pop(dialogContext, false),
               ),
-              FilledButton(
+              FluentButton.primary(
                 child: const Text('确认修改'),
                 onPressed: () async {
                   final oldPassword = oldPasswordController.text;
@@ -274,4 +315,52 @@ Future<bool> showChangePasswordDialog(BuildContext context) async {
   newPasswordController.dispose();
   confirmController.dispose();
   return false;
+}
+
+class _PasswordField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String hintText;
+
+  const _PasswordField({
+    required this.controller,
+    required this.label,
+    required this.hintText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FluentTextField(
+      controller: controller,
+      obscureText: true,
+      label: label,
+      placeholder: hintText,
+      prefixIcon: FluentIcons.lock,
+    );
+  }
+}
+
+class _PasswordDialogError extends StatelessWidget {
+  final String message;
+
+  const _PasswordDialogError({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.fluentColors;
+    final type = context.fluentType;
+
+    return Row(
+      children: [
+        Icon(FluentIcons.warning, color: colors.statusDangerForeground),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Text(
+            message,
+            style: type.caption1.copyWith(color: colors.statusDangerForeground),
+          ),
+        ),
+      ],
+    );
+  }
 }

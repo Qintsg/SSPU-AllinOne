@@ -1,6 +1,6 @@
 /*
  * 微信公众号平台配置文件服务测试 — 校验 TOML 配置解析与边界值
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : wxmp_config_service_test.dart
  * @Author : Qintsg
  * @Date : 2026-04-23
@@ -9,7 +9,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_all_in_one/services/wxmp_config_service.dart';
+import 'package:sspu_allinone/services/wxmp_config_service.dart';
 
 void main() {
   test('可以从 TOML 文本解析公众号平台配置', () {

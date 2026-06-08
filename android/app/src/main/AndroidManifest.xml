@@ -3,14 +3,15 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="MissingVersion">
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
     <application
-        android:label="SSPU All-in-One"
+        android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher">
+        android:roundIcon="@mipmap/ic_launcher_round">
         <activity
-            android:name="cn.qintsg.sspu_all_in_one.MainActivity"
+            android:name="cn.qintsg.sspu_allinone.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""

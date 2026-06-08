@@ -1,27 +1,37 @@
 # Release Pull Request
 
 ## 背景与目标
-<!-- 说明本次发布的背景、目标版本、发布原因 -->
+<!-- 说明本次发布的背景、目标公开版本、发布原因 -->
 
 ## 关联事项
-<!-- 关联当前仓库内的 Issue / 任务 -->
+<!-- 需要关闭 Issue 时保留 Closes / Fixes / Resolves；仅引用请写 Refs #123。 -->
 Closes #
 
+<!-- Release PR 是唯一专项 PR 模板；其它 PR 默认使用 .github/pull_request_template.md。 -->
+
 ## 发布信息
-- 版本号：
+- 公开版本（不含 `+build`）：
+- `pubspec.yaml` 完整版本（含 `+build`）：
 - Git Tag：
 - 发布通道：
-    - [ ] stable：正式发布
+    - [ ] stable：稳定版
     - [ ] alpha：早期预发布
     - [ ] beta：测试版
     - [ ] rc：候选发布版
+    - [ ] lts：长期支持版
+    - [ ] hotfix：热修复版
 
 ## 发布类型
-- [ ] 正式发布
-- [ ] 预发布
-- [ ] 热修复发布
-- [ ] 重新发布
-- [ ] 仅更新构建产物 / Release 说明
+- [ ] 普通 Release（stable / lts / hotfix）
+- [ ] Pre-release（alpha / beta / rc）
+- [ ] 重新发布（仅递增 `+build`）
+
+## 分支与标签确认
+- [ ] alpha / beta / rc：本 PR 为 `release/v... -> develop`，并已添加 `release` label
+- [ ] stable / lts / hotfix 第一段：本 PR 为 `release/v... -> develop`，且没有添加 `release` label
+- [ ] stable / lts / hotfix 第二段：本 PR 为 `develop -> main`，并已添加 `release` label
+- [ ] 已确认版本号只修改了 `pubspec.yaml` 与 `docs/CHANGELOG.md`
+- [ ] 已确认安装包文件名、Release 标题和 Release 描述不显式包含 `+build`
 
 ## 影响范围
 - [ ] Flutter 前端（`lib/`）
@@ -51,12 +61,10 @@ Closes #
 - [ ] 手动验证（请补充关键路径）
 - [ ] 未执行部分验证（请说明原因）
 
-## 发布触发说明
-- [ ] 本 PR 需要在 merge 后触发公开 Release，并已人工添加 `release` 标签
-- [ ] 如为正式发布，目标分支为 `main`
-- [ ] 如为预发布，目标分支为 `main`、`develop` 或 `release/*`
-- [ ] 已确认 `pubspec.yaml` 中的版本号符合发布规范
-- [ ] 已确认 build number 已递增
+## 安全与发布门槛
+- [ ] 未提交签名密钥、keystore、token、Cookie 或真实用户数据
+- [ ] Android 正式发布签名材料通过本地文件或 CI Secrets 注入，不回退提交到仓库
+- [ ] 已确认 `release` label 仅在应触发公开 Release 的 PR 上人工添加
 
 ## 截图 / 录屏（如涉及 UI）
 <!-- 若无，可写“无” -->
@@ -69,10 +77,11 @@ Closes #
 Release workflow 会直接从下列章节生成 release-notes.md 与 GitHub Release 正文。
 
 要求：
-1. 带 `release` 标签时，必须将下列章节替换为真实内容。
+1. 带 `release` label 时，必须将下列章节替换为真实内容。
 2. 不允许保留“请填写”“待补充”等模板占位文本。
 3. 若无对应内容，请明确写“无”或“无已知问题”。
-4. 若本 PR 不触发公开 Release，请不要添加 `release` 标签。
+4. 若本 PR 不触发公开 Release，请不要添加 `release` label。
+5. 不要在发布说明中显式写出 `+build`。
 -->
 
 ## 亮点

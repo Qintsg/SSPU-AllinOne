@@ -1,7 +1,7 @@
 /*
  * 统一数据存储服务 — 管理所有持久化数据的读写与迁移
- * 使用 ~/.sspu-all-in-one/app_state.json 作为统一用户配置与缓存文件
- * @Project : SSPU-all-in-one
+ * 使用 ~/.sspu-aio/app_state.json 作为统一用户配置与缓存文件
+ * @Project : SSPU-AllinOne
  * @File : storage_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-18
@@ -15,24 +15,9 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_data_directory_service.dart';
+import '../legal/legal_documents.dart';
 
-/// 存储键名常量。
-/// 新增存储项时在此添加键名，保持集中管理。
-class StorageKeys {
-  StorageKeys._();
-
-  /// 密码哈希。
-  static const String passwordHash = 'app_password_hash';
-
-  /// EULA 接受状态。
-  static const String eulaAccepted = 'eula_accepted';
-
-  /// 关闭行为偏好（ask / minimize / exit）。
-  static const String closeBehavior = 'close_behavior';
-
-  /// 结构化数据前缀（JSON 序列化存储）。
-  static const String dataPrefix = 'data_';
-}
+part 'storage_keys.dart';
 
 /// 统一数据存储服务。
 /// 通过一个 JSON 文件保存设置、认证缓存、文章缓存与集合索引。
@@ -40,8 +25,14 @@ class StorageService {
   /// 统一状态文件名。
   static const String _stateFileName = 'app_state.json';
 
+  /// Web 端无法访问本地文件系统，使用 SharedPreferences 保存同一份 JSON 状态。
+  static const String _webStatePrefsKey = 'sspu_app_state_json';
+
   /// 旧版 SharedPreferences 实例，仅用于一次性迁移既有用户数据。
   static SharedPreferences? _legacyPrefs;
+
+  /// Web 端状态存储实例；获取失败时保留内存态，避免阻断启动。
+  static SharedPreferences? _webPrefs;
 
   /// 内存态缓存，避免每次读取都访问磁盘。
   static Map<String, Object?> _values = {};
@@ -55,9 +46,33 @@ class StorageService {
   /// 测试专用文件覆盖。
   static String? _debugStateFilePath;
 
+  /// 测试专用：强制使用 Web/SharedPreferences 存储路径。
+  static bool? _debugUseSharedPreferencesStorage;
+
+  /// 当前是否应使用 SharedPreferences 作为状态后端。
+  static bool get _usesSharedPreferencesStorage =>
+      kIsWeb || _debugUseSharedPreferencesStorage == true;
+
   /// 初始化存储服务，应在 app 启动时调用。
   static Future<void> init() async {
     if (_initialized) return;
+    if (_usesSharedPreferencesStorage) {
+      _stateFile = null;
+      _initialized = true;
+      try {
+        _webPrefs ??= await SharedPreferences.getInstance();
+        _legacyPrefs ??= _webPrefs;
+        _values = _readSharedPreferencesState(_webPrefs!);
+        await _migrateLegacyPreferencesIfNeeded();
+      } catch (_) {
+        // Web 端浏览器存储不可用时退回内存态，保证首屏可用但不写入本地文件。
+        _webPrefs = null;
+        _legacyPrefs = null;
+        _values = {};
+      }
+      return;
+    }
+
     final stateFilePath =
         _debugStateFilePath ??
         await AppDataDirectoryService.ensureFilePath(_stateFileName);
@@ -76,6 +91,18 @@ class StorageService {
   static void debugSetStateFilePathForTesting(String? stateFilePath) {
     _debugStateFilePath = stateFilePath;
     _stateFile = null;
+    _webPrefs = null;
+    _legacyPrefs = null;
+    _values = {};
+    _initialized = false;
+  }
+
+  /// 测试专用：覆盖状态后端，并重置内存缓存。
+  @visibleForTesting
+  static void debugUseSharedPreferencesStorageForTesting(bool? enabled) {
+    _debugUseSharedPreferencesStorage = enabled;
+    _stateFile = null;
+    _webPrefs = null;
     _legacyPrefs = null;
     _values = {};
     _initialized = false;
@@ -84,6 +111,9 @@ class StorageService {
   /// 获取当前状态文件路径，供设置页展示。
   static Future<String> getStateFilePath() async {
     await init();
+    if (_usesSharedPreferencesStorage) {
+      return 'SharedPreferences:$_webStatePrefsKey';
+    }
     return _stateFile!.path;
   }
 
@@ -106,22 +136,46 @@ class StorageService {
     }
   }
 
+  /// 从 SharedPreferences 读取统一 JSON 状态；格式损坏时回退为空配置。
+  static Map<String, Object?> _readSharedPreferencesState(
+    SharedPreferences prefs,
+  ) {
+    try {
+      final content = prefs.getString(_webStatePrefsKey);
+      if (content == null || content.trim().isEmpty) return {};
+      final decoded = jsonDecode(content) as Map<String, dynamic>;
+      return Map<String, Object?>.from(decoded);
+    } catch (_) {
+      return {};
+    }
+  }
+
   /// 将内存态写回统一状态文件。
   static Future<void> _persist() async {
     const encoder = JsonEncoder.withIndent('  ');
+    if (_usesSharedPreferencesStorage) {
+      try {
+        _webPrefs ??= await SharedPreferences.getInstance();
+        await _webPrefs!.setString(_webStatePrefsKey, encoder.convert(_values));
+      } catch (_) {
+        // 浏览器存储不可写时仅保留当前内存态，不影响运行流程。
+      }
+      return;
+    }
     await _stateFile!.writeAsString('${encoder.convert(_values)}\n');
   }
 
   /// 从旧 SharedPreferences 迁移数据到统一 JSON 文件。
   static Future<void> _migrateLegacyPreferencesIfNeeded() async {
     try {
-      _legacyPrefs ??= await SharedPreferences.getInstance();
+      _legacyPrefs ??= _webPrefs ?? await SharedPreferences.getInstance();
     } catch (_) {
       return;
     }
 
     var migrated = false;
     for (final key in _legacyPrefs!.getKeys()) {
+      if (key == _webStatePrefsKey) continue;
       if (_values.containsKey(key)) continue;
       final legacyValue = _legacyPrefs!.get(key);
       if (legacyValue is String ||
@@ -207,7 +261,10 @@ class StorageService {
 
   /// 设置密码（存储哈希值）。
   static Future<void> setPassword(String password) async {
-    await setString(StorageKeys.passwordHash, hashPassword(password));
+    await _ensureInitialized();
+    _values[StorageKeys.passwordHash] = hashPassword(password);
+    _values.remove(StorageKeys.quickAuthEnabled);
+    await _persist();
   }
 
   /// 验证密码是否正确。
@@ -219,19 +276,63 @@ class StorageService {
 
   /// 移除密码。
   static Future<void> removePassword() async {
-    await remove(StorageKeys.passwordHash);
+    await _ensureInitialized();
+    _values.remove(StorageKeys.passwordHash);
+    _values.remove(StorageKeys.quickAuthEnabled);
+    await _persist();
   }
 
-  // ==================== EULA 相关 ====================
-
-  /// 检查是否已接受 EULA。
-  static Future<bool> isEulaAccepted() async {
-    return getBool(StorageKeys.eulaAccepted);
+  /// 检查是否启用系统快速验证。
+  static Future<bool> isQuickAuthEnabled() async {
+    final hasPassword = await isPasswordSet();
+    if (!hasPassword) return false;
+    return getBool(StorageKeys.quickAuthEnabled);
   }
 
-  /// 标记 EULA 已接受（永久生效）。
-  static Future<void> acceptEula() async {
+  /// 设置系统快速验证开关。
+  static Future<void> setQuickAuthEnabled(bool enabled) async {
+    await _ensureInitialized();
+    if (!enabled) {
+      _values.remove(StorageKeys.quickAuthEnabled);
+      await _persist();
+      return;
+    }
+
+    final storedHash = _values[StorageKeys.passwordHash];
+    if (storedHash is! String || storedHash.isEmpty) {
+      _values.remove(StorageKeys.quickAuthEnabled);
+    } else {
+      _values[StorageKeys.quickAuthEnabled] = true;
+    }
+    await _persist();
+  }
+
+  /// 清除系统快速验证配置。
+  static Future<void> clearQuickAuth() async {
+    await remove(StorageKeys.quickAuthEnabled);
+  }
+
+  // ==================== 协议相关 ====================
+
+  /// 检查是否已接受当前版本的完整法律与隐私说明。
+  static Future<bool> areCurrentAgreementsAccepted() async {
+    return getBool(StorageKeys.agreementAccepted);
+  }
+
+  /// 标记当前版本的完整法律与隐私说明已接受。
+  static Future<void> acceptCurrentAgreements() async {
+    await setBool(StorageKeys.agreementAccepted, true);
     await setBool(StorageKeys.eulaAccepted, true);
+  }
+
+  /// 检查当前协议确认状态，保留旧命名以兼容既有测试和调用方。
+  static Future<bool> isEulaAccepted() async {
+    return areCurrentAgreementsAccepted();
+  }
+
+  /// 标记当前协议已接受，保留旧命名以兼容既有测试和调用方。
+  static Future<void> acceptEula() async {
+    await acceptCurrentAgreements();
   }
 
   // ==================== 窗口行为相关 ====================
@@ -311,6 +412,19 @@ class StorageService {
   static Future<void> clearAll() async {
     await _ensureInitialized();
     _values.clear();
+    if (_usesSharedPreferencesStorage) {
+      try {
+        _webPrefs ??= await SharedPreferences.getInstance();
+        await _webPrefs!.remove(_webStatePrefsKey);
+      } catch (_) {
+        // 无可用浏览器存储时清空内存态即可。
+      }
+      _webPrefs = null;
+      _legacyPrefs = null;
+      _initialized = false;
+      return;
+    }
+
     final dataDirectory = _stateFile!.parent;
     final isUnifiedAppDirectory =
         dataDirectory.path.endsWith(

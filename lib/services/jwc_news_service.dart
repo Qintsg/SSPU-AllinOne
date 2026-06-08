@@ -3,7 +3,7 @@
  * 支持 895（教学动态）、897（学生专栏）和 898（教师专栏）三个栏目
  * 与信息公开网使用相同 CMS，共用 .col_news_con ul.news_list 解析模式
  * 列表页只提供日期，精确发布时间需进入文章页读取 .arti_update
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : jwc_news_service.dart
  * @Author : Qintsg
  * @Date : 2026-04-19

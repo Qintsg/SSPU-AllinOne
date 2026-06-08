@@ -1,6 +1,6 @@
 /*
  * 微信关注账号匹配工具 — 统一判断推荐账号与已关注公众号是否为同一项
- * @Project : SSPU-all-in-one
+ * @Project : SSPU-AllinOne
  * @File : wechat_followed_account_matcher.dart
  * @Author : Qintsg
  * @Date : 2026-04-23
