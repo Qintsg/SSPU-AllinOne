@@ -8,6 +8,7 @@
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/academic_login_validation.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
 import 'package:sspu_allinone/services/academic_oa_session_prewarm_service.dart';
@@ -20,6 +21,7 @@ void main() {
   test('缺少 OA 账号或密码时不触发会话预热', () async {
     var ensureCalled = false;
     final service = AcademicOaSessionPrewarmService(
+      ensureStudentProfile: ({bool forceRefresh = false}) async => null,
       ensureSession:
           ({
             bool forceRefresh = false,
@@ -47,7 +49,12 @@ void main() {
       oaPassword: 'oa-pass',
     );
     final calls = <Map<String, bool>>[];
+    final profileForceRefreshValues = <bool>[];
     final service = AcademicOaSessionPrewarmService(
+      ensureStudentProfile: ({bool forceRefresh = false}) async {
+        profileForceRefreshValues.add(forceRefresh);
+        return _studentProfile();
+      },
       ensureSession:
           ({
             bool forceRefresh = false,
@@ -67,9 +74,11 @@ void main() {
     );
 
     expect(result?.isSuccess, isTrue);
+    await Future<void>.delayed(Duration.zero);
     expect(calls, [
       {'forceRefresh': true, 'requireCampusNetwork': false},
     ]);
+    expect(profileForceRefreshValues, [true]);
   });
 
   test('默认预热会强制刷新旧 OA 会话', () async {
@@ -79,6 +88,7 @@ void main() {
     );
     final calls = <Map<String, bool>>[];
     final service = AcademicOaSessionPrewarmService(
+      ensureStudentProfile: ({bool forceRefresh = false}) async => null,
       ensureSession:
           ({
             bool forceRefresh = false,
@@ -105,6 +115,7 @@ void main() {
       oaPassword: 'oa-pass',
     );
     final service = AcademicOaSessionPrewarmService(
+      ensureStudentProfile: ({bool forceRefresh = false}) async => null,
       ensureSession:
           ({
             bool forceRefresh = false,
@@ -118,6 +129,20 @@ void main() {
 
     expect(result, isNull);
   });
+}
+
+AcademicEamsProfile _studentProfile() {
+  return const AcademicEamsProfile(
+    name: '张三',
+    studentId: '20260001',
+    department: '计算机与信息工程学院',
+    major: '软件工程',
+    className: '软件 241',
+    gender: '男',
+    studyLength: '4 年',
+    educationLevel: '本科',
+    rawFields: {},
+  );
 }
 
 AcademicLoginValidationResult _successResult() {

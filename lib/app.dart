@@ -61,6 +61,7 @@ class _AppShellState extends State<AppShell> {
       selectedIcon: FluentIcons.home,
       body: HomePage(
         campusNetworkStatusService: widget.campusNetworkStatusService,
+        onOpenSettings: () => _selectDestination(6),
       ),
     ),
     const _AppDestination(

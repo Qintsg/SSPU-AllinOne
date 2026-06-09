@@ -72,6 +72,19 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
         if (!await _hasSameOaCredentials(oaAccount, oaPassword)) {
           return _credentialsChangedResult(campusStatus, result.finalUri);
         }
+        final profile = result.snapshot!.profile;
+        final parsedStudentId = profile?.studentId?.trim();
+        if (parsedStudentId != null &&
+            parsedStudentId.isNotEmpty &&
+            parsedStudentId != oaAccount) {
+          return _studentProfileOwnerMismatchResult(
+            campusStatus,
+            result.finalUri,
+          );
+        }
+        if (profile != null && profile.hasHomeSummary) {
+          await _credentialsService.saveStudentProfile(profile);
+        }
         await _saveAcademicEamsCache(
           scope: scope,
           accountKey: oaAccount,
@@ -139,6 +152,19 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
       AcademicEamsQueryStatus.unexpectedError,
       message: '本专科教务查询已取消',
       detail: '教务凭据已在查询过程中变更，已丢弃本次教务结果。',
+      finalUri: finalUri,
+      campusNetworkStatus: campusStatus,
+    );
+  }
+
+  AcademicEamsQueryResult _studentProfileOwnerMismatchResult(
+    CampusNetworkStatus? campusStatus,
+    Uri? finalUri,
+  ) {
+    return _buildResult(
+      AcademicEamsQueryStatus.unexpectedError,
+      message: '学籍信息账号不一致',
+      detail: '本专科教务页面返回的学号与当前 OA 账号不一致，已丢弃本次学籍信息。',
       finalUri: finalUri,
       campusNetworkStatus: campusStatus,
     );
@@ -293,6 +319,12 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
 
     if (scope == _AcademicFetchScope.overview) {
       await _fetchOptionalFeature(
+        _AcademicFeature.studentProfile,
+        featureUris,
+        featureSnapshots,
+        warnings,
+      );
+      await _fetchOptionalFeature(
         _AcademicFeature.gradeCurrent,
         featureUris,
         featureSnapshots,
@@ -331,8 +363,15 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
       await _resolveOptionalFeatureSnapshots(featureSnapshots, warnings);
     }
 
-    final allSnapshots = [homeSnapshot, ...featureSnapshots.values];
-    final profile = _parseProfile(allSnapshots);
+    final studentProfileSnapshot =
+        featureSnapshots[_AcademicFeature.studentProfile];
+    final profile = studentProfileSnapshot == null
+        ? _parseProfile([
+            homeSnapshot,
+            for (final entry in featureSnapshots.entries)
+              if (entry.key != _AcademicFeature.studentProfile) entry.value,
+          ])
+        : _parseProfile([studentProfileSnapshot]);
     final courseTable = courseSnapshot == null
         ? null
         : _parseCourseTable(courseSnapshot);

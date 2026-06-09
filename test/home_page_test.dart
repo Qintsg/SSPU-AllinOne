@@ -7,10 +7,14 @@
  */
 
 import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/campus_card.dart';
 import 'package:sspu_allinone/pages/home_page.dart';
+import 'package:sspu_allinone/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/services/academic_eams_service.dart';
 import 'package:sspu_allinone/services/campus_card_service.dart';
 import 'package:sspu_allinone/services/campus_network_status_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
@@ -33,6 +37,7 @@ Future<void> disposeHomePage(WidgetTester tester) async {
 Future<void> pumpHomePage(
   WidgetTester tester, {
   CampusCardBalanceClient? campusCardService,
+  AcademicEamsClient? academicEamsService,
   required CampusNetworkStatusService campusNetworkStatusService,
   required bool campusCardAutoRefreshEnabledOverride,
   int campusCardAutoRefreshIntervalOverride = 30,
@@ -41,6 +46,7 @@ Future<void> pumpHomePage(
     FluentApp(
       home: HomePage(
         campusCardService: campusCardService,
+        academicEamsService: academicEamsService,
         campusNetworkStatusService: campusNetworkStatusService,
         campusCardAutoRefreshEnabledOverride:
             campusCardAutoRefreshEnabledOverride,
@@ -53,6 +59,7 @@ Future<void> pumpHomePage(
 
 void main() {
   setUp(() {
+    FlutterSecureStorage.setMockInitialValues({});
     SharedPreferences.setMockInitialValues({});
     StorageService.debugUseSharedPreferencesStorageForTesting(true);
   });
@@ -91,6 +98,115 @@ void main() {
     expect(find.text('校园卡详情'), findsOneWidget);
     expect(find.text('余额：¥23.45'), findsOneWidget);
     expect(find.text('交易记录查询'), findsOneWidget);
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页学籍信息卡片展示身份摘要且无刷新时间', (tester) async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    final academicService = _FakeAcademicEamsClient(
+      cachedProfile: _studentProfile,
+    );
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
+
+    await pumpHomePage(
+      tester,
+      academicEamsService: academicService,
+      campusNetworkStatusService: campusNetworkStatusService,
+      campusCardAutoRefreshEnabledOverride: false,
+    );
+    await pumpUntilFound(tester, find.text('学籍信息'));
+
+    final profileCard = find.byKey(const Key('home-student-profile-card'));
+    expect(profileCard, findsOneWidget);
+    expect(
+      find.descendant(of: profileCard, matching: find.text('本专科教务')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: profileCard, matching: find.text('张三')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: profileCard, matching: find.text('20260001')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: profileCard, matching: find.text('计算机与信息工程学院')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: profileCard, matching: find.text('软件工程')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: profileCard, matching: find.text('软件 241')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: profileCard, matching: find.textContaining('来自学籍信息')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: profileCard, matching: find.textContaining('上次刷新')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: profileCard,
+        matching: find.byIcon(FluentIcons.refresh),
+      ),
+      findsNothing,
+    );
+    expect(academicService.refreshCount, 0);
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页无 OA 账密时学籍卡片显示设置引导', (tester) async {
+    var settingsOpened = false;
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
+    await tester.pumpWidget(
+      FluentApp(
+        home: HomePage(
+          academicEamsService: _FakeAcademicEamsClient(),
+          campusNetworkStatusService: campusNetworkStatusService,
+          campusCardAutoRefreshEnabledOverride: false,
+          onOpenSettings: () => settingsOpened = true,
+        ),
+      ),
+    );
+    await pumpUntilFound(tester, find.text('需要先保存 OA 账号密码'));
+
+    expect(find.text('学籍信息会在保存后自动读取'), findsOneWidget);
+    await tester.tap(find.text('前往设置'));
+    await tester.pump();
+    expect(settingsOpened, isTrue);
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页学籍卡片隐藏设置关闭后不展示', (tester) async {
+    await StorageService.setBool(
+      StorageKeys.homeStudentProfileCardVisible,
+      false,
+    );
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
+    await pumpHomePage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(
+        cachedProfile: _studentProfile,
+      ),
+      campusNetworkStatusService: campusNetworkStatusService,
+      campusCardAutoRefreshEnabledOverride: false,
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('学籍信息'), findsNothing);
     await disposeHomePage(tester);
   });
 
@@ -230,6 +346,62 @@ class _FakeCampusCardClient implements CampusCardBalanceClient {
     return result;
   }
 }
+
+class _FakeAcademicEamsClient implements AcademicEamsClient {
+  _FakeAcademicEamsClient({this.cachedProfile});
+
+  final AcademicEamsProfile? cachedProfile;
+  int refreshCount = 0;
+
+  @override
+  Future<AcademicEamsProfile?> readCachedStudentProfile() async {
+    return cachedProfile;
+  }
+
+  @override
+  Future<AcademicEamsProfile?> refreshStudentProfileIfIncomplete({
+    bool forceRefresh = false,
+  }) async {
+    refreshCount++;
+    return cachedProfile;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult> fetchCourseTable({
+    bool requireCampusNetwork = true,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<AcademicEamsQueryResult> fetchOverview({
+    bool requireCampusNetwork = true,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
+    return null;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedOverview() async {
+    return null;
+  }
+}
+
+const AcademicEamsProfile _studentProfile = AcademicEamsProfile(
+  name: '张三',
+  studentId: '20260001',
+  department: '计算机与信息工程学院',
+  major: '软件工程',
+  className: '软件 241',
+  gender: '男',
+  studyLength: '4 年',
+  educationLevel: '本科',
+  rawFields: {},
+);
 
 final CampusCardQueryResult _successResult = CampusCardQueryResult(
   status: CampusCardQueryStatus.success,

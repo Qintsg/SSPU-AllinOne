@@ -79,6 +79,18 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   }
 
   @override
+  Future<AcademicEamsProfile?> readCachedStudentProfile() async {
+    return null;
+  }
+
+  @override
+  Future<AcademicEamsProfile?> refreshStudentProfileIfIncomplete({
+    bool forceRefresh = false,
+  }) async {
+    return result.snapshot?.profile;
+  }
+
+  @override
   Future<AcademicEamsQueryResult> fetchCourseTable({
     bool requireCampusNetwork = true,
   }) async {
@@ -194,6 +206,9 @@ final AcademicEamsQueryResult _academicEamsResult = AcademicEamsQueryResult(
       department: '计算机与信息工程学院',
       major: '软件工程',
       className: '软件 241',
+      gender: '男',
+      studyLength: '4 年',
+      educationLevel: '本科',
       rawFields: {'姓名': '张三', '学号': '20260001'},
     ),
     courseTable: AcademicCourseTableSnapshot(

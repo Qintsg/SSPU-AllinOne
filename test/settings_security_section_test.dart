@@ -11,7 +11,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/models/academic_login_validation.dart';
+import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/services/academic_oa_session_prewarm_service.dart';
 import 'package:sspu_allinone/services/academic_login_validation_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/widgets/settings_security_section.dart';
@@ -55,6 +57,7 @@ void main() {
     required bool isQuickAuthAvailable,
     bool isQuickAuthBusy = false,
     AcademicLoginValidationService? academicLoginValidationService,
+    AcademicOaSessionPrewarmService? academicOaSessionPrewarmService,
   }) async {
     await tester.pumpWidget(
       FluentApp(
@@ -72,6 +75,7 @@ void main() {
               onClearMessageCache: () {},
               onClearAllData: () {},
               academicLoginValidationService: academicLoginValidationService,
+              academicOaSessionPrewarmService: academicOaSessionPrewarmService,
             ),
           ),
         ),
@@ -128,14 +132,14 @@ void main() {
 
   testWidgets('保存 OA 凭据后自动静默预热登录会话', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});
-    final validationService = _RecordingAcademicLoginValidationService();
+    final prewarmService = _RecordingAcademicOaSessionPrewarmService();
 
     await pumpSecuritySection(
       tester,
       isPasswordEnabled: false,
       isQuickAuthEnabled: false,
       isQuickAuthAvailable: false,
-      academicLoginValidationService: validationService,
+      academicOaSessionPrewarmService: prewarmService,
     );
     await pumpUntilFound(tester, find.text('保存教务凭据'));
 
@@ -146,8 +150,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
-    expect(validationService.forceRefreshValues, [true]);
-    expect(validationService.requireCampusNetworkValues, [false]);
+    expect(prewarmService.forceRefreshValues, [true]);
+    expect(prewarmService.requireCampusNetworkValues, [false]);
+    expect(prewarmService.refreshStudentProfileValues, [true]);
     expect(
       await AcademicCredentialsService.instance.readOaLoginSession(),
       isNull,
@@ -220,57 +225,44 @@ void main() {
   });
 }
 
-class _RecordingAcademicLoginValidationService
-    extends AcademicLoginValidationService {
-  _RecordingAcademicLoginValidationService()
-    : super(gateway: _UnusedAcademicLoginGateway());
+class _RecordingAcademicOaSessionPrewarmService
+    extends AcademicOaSessionPrewarmService {
+  _RecordingAcademicOaSessionPrewarmService()
+    : super(
+        ensureSession:
+            ({
+              bool forceRefresh = false,
+              bool requireCampusNetwork = true,
+            }) async => _successResult(),
+        ensureStudentProfile: ({bool forceRefresh = false}) async =>
+            const AcademicEamsProfile(
+              name: '张三',
+              studentId: '20260001',
+              department: '计算机与信息工程学院',
+              major: '软件工程',
+              className: '软件 241',
+              gender: '男',
+              studyLength: '4 年',
+              educationLevel: '本科',
+              rawFields: {},
+            ),
+      );
 
   final List<bool> forceRefreshValues = [];
   final List<bool> requireCampusNetworkValues = [];
+  final List<bool> refreshStudentProfileValues = [];
 
   @override
-  Future<AcademicLoginValidationResult> ensureSavedSession({
-    bool forceRefresh = false,
-    bool requireCampusNetwork = true,
+  Future<AcademicLoginValidationResult?> prewarm({
+    bool forceRefresh = true,
+    bool requireCampusNetwork = false,
+    bool refreshStudentProfile = true,
   }) async {
     forceRefreshValues.add(forceRefresh);
     requireCampusNetworkValues.add(requireCampusNetwork);
+    refreshStudentProfileValues.add(refreshStudentProfile);
     return _successResult();
   }
-
-  @override
-  Future<AcademicLoginValidationResult> validateSavedCredentials({
-    bool requireCampusNetwork = true,
-  }) async {
-    return _successResult();
-  }
-}
-
-class _UnusedAcademicLoginGateway implements AcademicLoginGateway {
-  @override
-  AcademicLoginSessionSnapshot currentSessionSnapshot({
-    required Uri entranceUri,
-    required Uri finalUri,
-  }) => throw UnimplementedError();
-
-  @override
-  Future<String> fetchPublicKey(Duration timeout) => throw UnimplementedError();
-
-  @override
-  Future<AcademicLoginHttpSnapshot> openLoginPage(
-    Uri entranceUri,
-    Duration timeout,
-  ) => throw UnimplementedError();
-
-  @override
-  Future<void> resetSession() async {}
-
-  @override
-  Future<AcademicLoginHttpSnapshot> submitLogin({
-    required Uri loginUri,
-    required Map<String, String> fields,
-    required Duration timeout,
-  }) => throw UnimplementedError();
 }
 
 AcademicLoginValidationResult _successResult() {

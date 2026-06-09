@@ -175,6 +175,13 @@ void main() {
     expect(gateway.openCount, 2);
     expect(gateway.resetCookieHeaders.last['oa.sspu.edu.cn'], contains('OA='));
     expect(result.snapshot?.profile?.name, '张三');
+    expect(result.snapshot?.profile?.studentId, '20260001');
+    expect(result.snapshot?.profile?.department, '计算机与信息工程学院');
+    expect(result.snapshot?.profile?.major, '软件工程');
+    expect(result.snapshot?.profile?.className, '软件 241');
+    expect(result.snapshot?.profile?.gender, '男');
+    expect(result.snapshot?.profile?.studyLength, '4 年');
+    expect(result.snapshot?.profile?.educationLevel, '本科');
     expect(result.snapshot?.courseTable?.entries.length, 1);
     expect(result.snapshot?.grades?.historyRecords.length, 1);
     expect(result.snapshot?.programCompletion?.completedCredits, 7);
@@ -183,7 +190,46 @@ void main() {
     expect(result.snapshot?.hasFreeClassroomEntry, isTrue);
   });
 
-  test('本专科教务缓存不持久化明文学号或原始个人字段', () async {
+  test('从空根菜单发现真实学籍个人信息入口', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final gateway = FakeAcademicEamsGateway(
+      disableNumberedStudentProfileMenu: true,
+    );
+    final service = buildAcademicEamsServiceForTest(
+      gateway: gateway,
+      campusReachable: true,
+    );
+
+    final result = await service.fetchOverview();
+
+    expect(result.status, AcademicEamsQueryStatus.success);
+    expect(result.snapshot?.profile?.studentId, '20260001');
+    expect(result.snapshot?.profile?.name, '张三');
+    expect(
+      gateway.requestedPageUris,
+      contains(
+        predicate<Uri>(
+          (uri) =>
+              uri.path.contains('home!submenus.action') &&
+              (uri.queryParameters['menu.id'] ?? '').isEmpty,
+        ),
+      ),
+    );
+    expect(
+      gateway.requestedPageUris.any(
+        (uri) => uri.path.contains('studentDetail.action'),
+      ),
+      isTrue,
+    );
+  });
+
+  test('本专科教务缓存不持久化明文学籍字段并从安全存储恢复学籍', () async {
     await AcademicCredentialsService.instance.saveCredentials(
       oaAccount: '20260001',
       oaPassword: 'oa-pass',
@@ -200,13 +246,98 @@ void main() {
     final storedPayload = (await StorageService.getAllData(
       StorageKeys.academicEamsOverviewCacheCollection,
     )).values.single;
+    final storedProfile = storedPayload['profile'];
     final cachedResult = await service.readLatestCachedOverview();
+    final secureProfile = await AcademicCredentialsService.instance
+        .readStudentProfile();
 
     expect(storedPayload.toString(), isNot(contains('20260001')));
+    expect(storedPayload.toString(), isNot(contains('张三')));
+    expect(storedPayload.toString(), isNot(contains('软件 241')));
     expect(storedPayload.toString(), isNot(contains('学号')));
+    expect(storedProfile.toString(), isNot(contains('计算机与信息工程学院')));
+    expect(storedProfile.toString(), isNot(contains('软件工程')));
+    expect(secureProfile?.studentId, '20260001');
+    expect(secureProfile?.gender, '男');
+    expect(secureProfile?.studyLength, '4 年');
+    expect(secureProfile?.educationLevel, '本科');
     expect(cachedResult?.snapshot?.profile?.name, '张三');
-    expect(cachedResult?.snapshot?.profile?.studentId, isNull);
+    expect(cachedResult?.snapshot?.profile?.studentId, '20260001');
     expect(cachedResult?.snapshot?.profile?.rawFields, isEmpty);
+  });
+
+  test('学籍页学号与 OA 账号不一致时不保存学籍缓存', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final service = buildAcademicEamsServiceForTest(
+      gateway: FakeAcademicEamsGateway(
+        studentProfileSnapshot: AcademicEamsHttpSnapshot(
+          finalUri: Uri.parse('https://jx.sspu.edu.cn/eams/std.action'),
+          statusCode: 200,
+          body: '''
+<html><body><table>
+<tr><th>学号</th><th>姓名</th><th>专业</th></tr>
+<tr><td>20269999</td><td>李四</td><td>软件工程</td></tr>
+</table></body></html>
+''',
+        ),
+      ),
+      campusReachable: true,
+    );
+
+    final result = await service.fetchOverview();
+
+    expect(result.status, AcademicEamsQueryStatus.unexpectedError);
+    expect(result.message, '学籍信息账号不一致');
+    expect(
+      await AcademicCredentialsService.instance.readStudentProfile(),
+      isNull,
+    );
+  });
+
+  test('学籍页解析失败时保留旧加密学籍缓存', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    await AcademicCredentialsService.instance.saveStudentProfile(
+      const AcademicEamsProfile(
+        name: '旧缓存',
+        studentId: '20260001',
+        department: '旧学院',
+        major: '旧专业',
+        className: '旧班级',
+        gender: '男',
+        studyLength: '4 年',
+        educationLevel: '本科',
+        rawFields: {},
+      ),
+    );
+    final service = buildAcademicEamsServiceForTest(
+      gateway: FakeAcademicEamsGateway(
+        studentProfileSnapshot: AcademicEamsHttpSnapshot(
+          finalUri: Uri.parse('https://jx.sspu.edu.cn/eams/std.action'),
+          statusCode: 200,
+          body: '<html><body><p>暂无可解析学籍字段</p></body></html>',
+        ),
+      ),
+      campusReachable: true,
+    );
+
+    await service.fetchOverview();
+    final cachedProfile = await AcademicCredentialsService.instance
+        .readStudentProfile();
+
+    expect(cachedProfile?.name, '旧缓存');
+    expect(cachedProfile?.major, '旧专业');
   });
 
   test('独立课表读取只解析当前学期课表', () async {

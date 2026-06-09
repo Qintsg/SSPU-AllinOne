@@ -90,6 +90,10 @@ class _SettingsPageState extends State<SettingsPage>
   @override
   bool _dndEnabled = false;
 
+  /// 首页是否显示学籍信息卡片。
+  @override
+  bool _homeStudentProfileCardVisible = true;
+
   /// 勿扰开始时间。
   @override
   int _dndStartHour = 22;

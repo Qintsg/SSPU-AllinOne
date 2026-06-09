@@ -28,6 +28,10 @@ class StorageKeys {
   /// 关闭行为偏好（ask / minimize / exit）。
   static const String closeBehavior = 'close_behavior';
 
+  /// 首页是否显示学籍信息卡片。
+  static const String homeStudentProfileCardVisible =
+      'home_student_profile_card_visible';
+
   /// 校园网 / VPN 状态检测间隔（分钟，0 = 关闭自动检测）。
   static const String campusNetworkDetectionIntervalMinutes =
       'campus_network_detection_interval_minutes';

@@ -13,6 +13,7 @@ import '../design/fluent_ui.dart';
 import '../models/academic_credentials.dart';
 import '../models/academic_login_validation.dart';
 import '../services/academic_credentials_service.dart';
+import '../services/academic_oa_session_prewarm_service.dart';
 import '../services/academic_login_validation_service.dart';
 import '../theme/fluent_tokens.dart';
 import 'app_feedback.dart';
@@ -55,6 +56,9 @@ class SettingsSecuritySection extends StatefulWidget {
   /// 可替换的 OA 登录校验服务，便于测试中使用 fake 网关。
   final AcademicLoginValidationService? academicLoginValidationService;
 
+  /// 可替换的 OA 会话与学籍预热服务，便于测试触发链路。
+  final AcademicOaSessionPrewarmService? academicOaSessionPrewarmService;
+
   const SettingsSecuritySection({
     super.key,
     required this.isPasswordEnabled,
@@ -68,6 +72,7 @@ class SettingsSecuritySection extends StatefulWidget {
     required this.onClearMessageCache,
     required this.onClearAllData,
     this.academicLoginValidationService,
+    this.academicOaSessionPrewarmService,
   });
 
   @override
@@ -95,6 +100,11 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
   AcademicLoginValidationService get _academicLoginValidationService {
     return widget.academicLoginValidationService ??
         AcademicLoginValidationService.instance;
+  }
+
+  AcademicOaSessionPrewarmService get _academicOaSessionPrewarmService {
+    return widget.academicOaSessionPrewarmService ??
+        AcademicOaSessionPrewarmService.instance;
   }
 
   @override
@@ -138,9 +148,11 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
     setState(() => _isSavingCredentials = true);
 
     try {
+      final previousStatus = await _academicCredentials.getStatus();
+      final enteredOaPassword = _nullablePassword(_oaPasswordController.text);
       await _academicCredentials.saveCredentials(
         oaAccount: _oaAccountController.text,
-        oaPassword: _nullablePassword(_oaPasswordController.text),
+        oaPassword: enteredOaPassword,
         sportsQueryPassword: _nullablePassword(_sportsPasswordController.text),
         emailPassword: _nullablePassword(_emailPasswordController.text),
       );
@@ -151,7 +163,14 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
         _credentialsStatus = status;
         _isSavingCredentials = false;
       });
-      unawaited(_prewarmAcademicLoginSession(status));
+      unawaited(
+        _prewarmAcademicLoginSession(
+          status,
+          forceRefreshStudentProfile:
+              previousStatus.oaAccount.trim() != status.oaAccount.trim() ||
+              (enteredOaPassword != null && enteredOaPassword.isNotEmpty),
+        ),
+      );
       _showCredentialInfoBar('教务凭据已保存', FluentInfoSeverity.success);
     } catch (_) {
       if (!mounted) return;
@@ -204,13 +223,15 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
 
   /// 保存凭据后静默准备 OA 会话，避免用户必须手动点击“验证 OA 登录”。
   Future<void> _prewarmAcademicLoginSession(
-    AcademicCredentialsStatus status,
-  ) async {
+    AcademicCredentialsStatus status, {
+    required bool forceRefreshStudentProfile,
+  }) async {
     if (status.oaAccount.trim().isEmpty || !status.hasOaPassword) return;
     try {
-      await _academicLoginValidationService.ensureSavedSession(
+      await _academicOaSessionPrewarmService.prewarm(
         forceRefresh: true,
         requireCampusNetwork: false,
+        refreshStudentProfile: forceRefreshStudentProfile,
       );
     } catch (_) {
       // 静默预热失败不打断保存流程；用户仍可手动验证查看具体原因。
