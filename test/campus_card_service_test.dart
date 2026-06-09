@@ -13,6 +13,7 @@ import 'package:sspu_allinone/models/academic_credentials.dart';
 import 'package:sspu_allinone/models/academic_login_validation.dart';
 import 'package:sspu_allinone/models/campus_card.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/services/authenticated_data_cache_service.dart';
 import 'package:sspu_allinone/services/campus_card_service.dart';
 import 'package:sspu_allinone/services/campus_network_status_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
@@ -137,7 +138,10 @@ void main() {
     final gateway = _FakeCampusCardGateway();
     final service = _buildService(gateway: gateway, campusReachable: false);
 
-    final result = await service.fetchCampusCard(requireCampusNetwork: false);
+    final result = await service.fetchCampusCard(
+      requireCampusNetwork: false,
+      queryTransactions: true,
+    );
 
     expect(result.status, CampusCardQueryStatus.success);
     expect(gateway.openCount, 1);
@@ -277,9 +281,443 @@ void main() {
     expect(gateway.submittedFields?['starttime'], '2026-04-01');
     expect(gateway.submittedFields?['endtime'], '2026-04-30');
     expect(gateway.submittedFields?['_csrf'], 'csrf-token');
-    expect(result.snapshot?.records.length, 2);
-    expect(result.snapshot?.records.last.type, '充值');
-    expect(result.snapshot?.records.last.amount, 50.00);
+    expect(result.snapshot?.records.length, 1);
+    expect(result.snapshot?.records.single.type, '充值');
+    expect(result.snapshot?.records.single.amount, 50.00);
+  });
+
+  test('交易表头状态和操作不会被误解析为卡状态', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final service = _buildService(
+      gateway: _FakeCampusCardGateway(
+        entryPage: _cardSnapshot('''
+<html><body><div>账户余额：23.45 元</div></body></html>
+'''),
+        homePage: _cardSnapshot('''
+<html><body><div>账户余额：23.45 元</div></body></html>
+'''),
+        transactionPage: CampusCardHttpSnapshot(
+          finalUri: CampusCardService.defaultTransactionIndexUri,
+          statusCode: 200,
+          body: '''
+<html>
+  <head><meta name="_csrf" content="csrf-token" /></head>
+  <body>
+    <table>
+      <tr><th>创建时间</th><th>名称</th><th>交易号</th><th>对方</th><th>金额</th><th>明细</th><th>状态</th><th>操作</th></tr>
+      <tr><td>2026-06-09 12:47</td><td>POS 消费</td><td>T202606090001</td><td>一食堂</td><td>12.50</td><td>午餐</td><td>成功</td><td>详情</td></tr>
+    </table>
+  </body>
+</html>
+''',
+        ),
+      ),
+      campusReachable: true,
+    );
+
+    final result = await service.fetchCampusCard();
+
+    expect(result.status, CampusCardQueryStatus.success);
+    expect(result.snapshot?.status, isNot('操作'));
+    expect(result.snapshot?.status, isEmpty);
+    expect(result.snapshot?.records.single.status, '成功');
+  });
+
+  test('真实 epay 风格交易表解析扩展字段并推断金额符号', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final gateway = _FakeCampusCardGateway(
+      queryPage: CampusCardHttpSnapshot(
+        finalUri: CampusCardService.defaultTransactionQueryUri,
+        statusCode: 200,
+        body: '''
+<ajax-response><![CDATA[
+<table>
+  <tr><th>创建时间</th><th>名称</th><th>交易号</th><th>对方</th><th>金额</th><th>明细</th><th>付款方式</th><th>状态</th><th>操作</th></tr>
+  <tr><td>2026-06-09 12:47</td><td>POS 消费</td><td>T202606090001</td><td>一食堂</td><td>12.50</td><td>午餐</td><td>校园卡</td><td>成功</td><td>详情</td></tr>
+  <tr><td>2026-06-08 08:10</td><td>充值</td><td>T202606080001</td><td>线上平台</td><td>50.00</td><td>账户充值</td><td>支付宝</td><td>成功</td><td>详情</td></tr>
+</table>
+]]></ajax-response>
+''',
+      ),
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final result = await service.fetchCampusCard(
+      requireCampusNetwork: false,
+      queryTransactions: true,
+    );
+
+    expect(result.status, CampusCardQueryStatus.success);
+    expect(gateway.submittedFields?['starttime'], isEmpty);
+    expect(gateway.submittedFields?['endtime'], isEmpty);
+    expect(gateway.submittedFields?['pageNo'], '1');
+    expect(gateway.submittedFields?['tabNo'], '1');
+    expect(gateway.submittedFields?['pager.offset'], '0');
+    expect(gateway.submittedFields?['_tradedirect'], 'on');
+    expect(gateway.submittedFields?['_csrf'], 'csrf-token');
+    expect(gateway.submittedRefererUri?.path, '/epay/consume/index');
+    final records = result.snapshot!.records;
+    expect(records.length, 2);
+    final consumption = records.first;
+    expect(consumption.title, 'POS 消费');
+    expect(consumption.transactionId, 'T202606090001');
+    expect(consumption.counterparty, '一食堂');
+    expect(consumption.paymentMethod, '校园卡');
+    expect(consumption.status, '成功');
+    expect(consumption.amount, -12.50);
+    expect(records.last.amount, 50.00);
+  });
+
+  test('真实 epay XML zone 合并列能解析交易号和点号时间', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final gateway = _FakeCampusCardGateway(
+      queryPage: CampusCardHttpSnapshot(
+        finalUri: CampusCardService.defaultTransactionQueryUri,
+        statusCode: 200,
+        body: '''
+<?xml version="1.0" encoding="UTF-8"?><zones><zone name="zone_show_box_1"><![CDATA[
+<table>
+  <thead>
+    <tr>
+      <td>创建时间</td><td>名称&nbsp;&nbsp;|&nbsp;&nbsp;交易号</td><td>对方</td>
+      <td>金额&nbsp;&nbsp;|&nbsp;&nbsp;明细</td><td>付款方式</td><td>状态</td><td>操作</td>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><div>2026.06.09</div><div class="span_2">114527</div></td>
+      <td><a>完美校园翼支付充值</a><div>交易号：T20260609114527</div></td>
+      <td>一卡通</td><td>200.00</td><td>现金</td><td>交易成功</td><td>详情</td>
+    </tr>
+    <tr>
+      <td><div>2026.06.09</div><div class="span_2">112953</div></td>
+      <td><a>POS消费</a><div>交易号：T20260609112953</div></td>
+      <td>一食堂</td><td>12.00</td><td>现金</td><td>交易成功</td><td>详情</td>
+    </tr>
+  </tbody>
+</table>
+]]></zone></zones>
+''',
+      ),
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final result = await service.fetchCampusCard(
+      requireCampusNetwork: false,
+      queryTransactions: true,
+    );
+
+    expect(result.status, CampusCardQueryStatus.success);
+    final records = result.snapshot!.records;
+    expect(records.length, 2);
+    expect(records.first.occurredAt, '2026-06-09 11:45:27');
+    expect(records.first.title, '完美校园翼支付充值');
+    expect(records.first.transactionId, 'T20260609114527');
+    expect(records.first.amount, 200);
+    expect(records.last.title, 'POS消费');
+    expect(records.last.amount, -12);
+  });
+
+  test('从 epay 首页查看所有交易记录入口发现真实交易页并携带 referer', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final transactionUri = Uri.parse(
+      'https://card.sspu.edu.cn/epay/trans/allRecords',
+    );
+    final queryUri = Uri.parse(
+      'https://card.sspu.edu.cn/epay/trans/queryRecords',
+    );
+    final gateway = _FakeCampusCardGateway(
+      entryPage: _cardSnapshot('''
+<html><body>
+  <table><tr><td>账户余额</td><td>23.45 元</td></tr></table>
+  <a href="/epay/trans/allRecords">查看所有交易记录</a>
+</body></html>
+'''),
+      homePage: _cardSnapshot('''
+<html><body>
+  <a data-url="/epay/trans/allRecords">查看所有交易记录</a>
+</body></html>
+'''),
+      transactionPagesByUri: {
+        transactionUri: CampusCardHttpSnapshot(
+          finalUri: transactionUri,
+          statusCode: 200,
+          body: '''
+<html><head><meta name="_csrf" content="real-csrf" /></head><body>
+  <form id="transparam" action="/epay/trans/queryRecords">
+    <input name="tabNo" value="1" />
+    <input name="pager.offset" value="0" />
+  </form>
+</body></html>
+''',
+        ),
+      },
+      queryPagesByPageNo: {
+        1: CampusCardHttpSnapshot(
+          finalUri: queryUri,
+          statusCode: 200,
+          body: _transactionQueryTable([
+            _TransactionFixtureRow(
+              date: '2026-06-09 12:47',
+              title: 'POS消费',
+              transactionId: 'T202606090001',
+              counterparty: '一食堂',
+              amount: '12.50',
+              detail: '午餐',
+              paymentMethod: '校园卡',
+              status: '交易成功',
+            ),
+          ]),
+        ),
+      },
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final result = await service.fetchCampusCard(
+      requireCampusNetwork: false,
+      syncAllTransactions: true,
+    );
+
+    expect(result.status, CampusCardQueryStatus.success);
+    expect(gateway.fetchedPageUris, contains(transactionUri));
+    expect(gateway.submittedQueryUris.single, queryUri);
+    expect(gateway.submittedRefererUris.single, transactionUri);
+    expect(gateway.submittedFieldsList.single['_csrf'], 'real-csrf');
+    expect(result.snapshot?.records.single.transactionId, 'T202606090001');
+  });
+
+  test('首次全量同步会翻取所有交易记录页直到短页并加密缓存', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final gateway = _FakeCampusCardGateway(
+      queryPagesByPageNo: {
+        1: _transactionQueryPage(
+          List.generate(
+            10,
+            (index) => _TransactionFixtureRow.expense(index + 1),
+          ),
+        ),
+        2: _transactionQueryPage(
+          List.generate(
+            10,
+            (index) => _TransactionFixtureRow.expense(index + 11),
+          ),
+        ),
+        3: _transactionQueryPage([
+          _TransactionFixtureRow.income(21, title: '补助'),
+        ]),
+      },
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final result = await service.fetchCampusCard(
+      requireCampusNetwork: false,
+      syncAllTransactions: true,
+    );
+    final cachedResult = await service.readLatestCachedCampusCard();
+
+    expect(result.status, CampusCardQueryStatus.success);
+    expect(gateway.submittedFieldsList.map((fields) => fields['pageNo']), [
+      '1',
+      '2',
+      '3',
+    ]);
+    expect(gateway.submittedFieldsList.map((fields) => fields['pager.offset']), [
+      '0',
+      '10',
+      '20',
+    ]);
+    expect(result.snapshot?.records.length, 21);
+    expect(result.snapshot?.transactionPageCount, 3);
+    expect(result.snapshot?.records.first.amount, -1);
+    expect(result.snapshot?.records.last.amount, 21);
+    expect(cachedResult?.snapshot?.records.length, 21);
+    expect(
+      await StorageService.getCollectionCount(
+        StorageKeys.campusCardCacheCollection,
+      ),
+      0,
+    );
+  });
+
+  test('已有全量缓存后只访问已知页数并合并旧交易记录', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final cachedSnapshot = CampusCardSnapshot(
+      balance: 30,
+      status: '正常',
+      fetchedAt: DateTime(2026, 6, 8, 8),
+      sourceUri: Uri.parse('https://card.sspu.edu.cn/epay/consume/query'),
+      transactionPageCount: 3,
+      records: List.unmodifiable(
+        List.generate(
+          30,
+          (index) => CampusCardTransactionRecord(
+            occurredAt: '2026-05-${(index + 1).toString().padLeft(2, '0')} 08:00',
+            amount: -(index + 1).toDouble(),
+            title: '旧交易 ${index + 1}',
+            transactionId: 'OLD${index + 1}',
+            counterparty: '旧窗口',
+            direction: 'expense',
+            rawCells: const [],
+          ),
+        ),
+      ),
+    );
+    await AuthenticatedDataCacheService.saveLatest(
+      collection: StorageKeys.campusCardCacheCollection,
+      accountKey: '20260001',
+      fetchedAt: cachedSnapshot.fetchedAt,
+      data: cachedSnapshot.toJson(),
+    );
+    final gateway = _FakeCampusCardGateway(
+      queryPagesByPageNo: {
+        1: _transactionQueryPage([
+          _TransactionFixtureRow.income(100, title: '补助'),
+        ]),
+        2: _transactionQueryPage(const []),
+        3: _transactionQueryPage(const []),
+      },
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final result = await service.fetchCampusCard(
+      requireCampusNetwork: false,
+      syncAllTransactions: true,
+    );
+
+    expect(result.status, CampusCardQueryStatus.success);
+    expect(gateway.submittedFieldsList.map((fields) => fields['pageNo']), [
+      '1',
+      '2',
+      '3',
+    ]);
+    expect(result.snapshot?.transactionPageCount, 3);
+    expect(result.snapshot?.records.length, 31);
+    expect(
+      result.snapshot?.records.any((record) => record.transactionId == 'OLD30'),
+      isTrue,
+    );
+    expect(result.snapshot?.records.first.title, '补助');
+  });
+
+  test('全量同步解析不到新记录时保留旧加密缓存记录和页数', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final cachedSnapshot = CampusCardSnapshot(
+      balance: 30,
+      status: '正常',
+      fetchedAt: DateTime(2026, 6, 8, 8),
+      sourceUri: Uri.parse('https://card.sspu.edu.cn/epay/consume/query'),
+      transactionPageCount: 2,
+      records: const [
+        CampusCardTransactionRecord(
+          occurredAt: '2026-06-08 08:00',
+          amount: -3,
+          title: '旧交易',
+          transactionId: 'OLD1',
+          direction: 'expense',
+          rawCells: [],
+        ),
+      ],
+    );
+    await AuthenticatedDataCacheService.saveLatest(
+      collection: StorageKeys.campusCardCacheCollection,
+      accountKey: '20260001',
+      fetchedAt: cachedSnapshot.fetchedAt,
+      data: cachedSnapshot.toJson(),
+    );
+    final gateway = _FakeCampusCardGateway(
+      queryPagesByPageNo: {
+        1: CampusCardHttpSnapshot(
+          finalUri: CampusCardService.defaultTransactionQueryUri,
+          statusCode: 200,
+          body: '<ajax-response><![CDATA[<div>暂无数据</div>]]></ajax-response>',
+        ),
+        2: CampusCardHttpSnapshot(
+          finalUri: CampusCardService.defaultTransactionQueryUri,
+          statusCode: 200,
+          body: '<ajax-response><![CDATA[<div>暂无数据</div>]]></ajax-response>',
+        ),
+      },
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final result = await service.fetchCampusCard(
+      requireCampusNetwork: false,
+      syncAllTransactions: true,
+    );
+
+    expect(result.status, CampusCardQueryStatus.success);
+    expect(result.snapshot?.transactionPageCount, 2);
+    expect(result.snapshot?.records.single.transactionId, 'OLD1');
+  });
+
+  test('交易记录查询失败时返回失败状态而不伪造空成功结果', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final service = _buildService(
+      gateway: _FakeCampusCardGateway(
+        queryPage: CampusCardHttpSnapshot(
+          finalUri: CampusCardService.defaultTransactionQueryUri,
+          statusCode: 500,
+          body: '<html><body>error</body></html>',
+        ),
+      ),
+      campusReachable: true,
+    );
+
+    final result = await service.fetchCampusCard(
+      requireCampusNetwork: false,
+      queryTransactions: true,
+    );
+
+    expect(result.status, CampusCardQueryStatus.cardSystemUnavailable);
+    expect(result.snapshot, isNull);
   });
 
   test('成功查询写入校园卡缓存且失败不会覆盖最近缓存', () async {
@@ -432,6 +870,8 @@ class _FakeCampusCardGateway implements CampusCardGateway {
     CampusCardHttpSnapshot? homePage,
     CampusCardHttpSnapshot? transactionPage,
     CampusCardHttpSnapshot? queryPage,
+    Map<Uri, CampusCardHttpSnapshot> transactionPagesByUri = const {},
+    Map<int, CampusCardHttpSnapshot> queryPagesByPageNo = const {},
   }) : entryPage = entryPage ?? _cardSnapshot(_balanceHtml),
        homePage = homePage ?? _cardSnapshot(_balanceHtml),
        transactionPage =
@@ -441,14 +881,22 @@ class _FakeCampusCardGateway implements CampusCardGateway {
              statusCode: 200,
              body: _transactionHtml,
            ),
-       queryPage = queryPage ?? _cardSnapshot(_transactionHtml);
+       queryPage = queryPage ?? _cardSnapshot(_transactionHtml),
+       transactionPagesByUri = transactionPagesByUri,
+       queryPagesByPageNo = queryPagesByPageNo;
 
   final bool requireAuthFirst;
   final CampusCardHttpSnapshot entryPage;
   final CampusCardHttpSnapshot homePage;
   final CampusCardHttpSnapshot transactionPage;
   final CampusCardHttpSnapshot queryPage;
+  final Map<Uri, CampusCardHttpSnapshot> transactionPagesByUri;
+  final Map<int, CampusCardHttpSnapshot> queryPagesByPageNo;
   final List<Map<String, String>> resetCookieHeaders = [];
+  final List<Uri> fetchedPageUris = [];
+  final List<Uri> submittedQueryUris = [];
+  final List<Map<String, String>> submittedFieldsList = [];
+  final List<Uri?> submittedRefererUris = [];
   int openCount = 0;
   Map<String, String>? submittedFields;
 
@@ -472,8 +920,14 @@ class _FakeCampusCardGateway implements CampusCardGateway {
     Uri pageUri,
     Duration timeout,
   ) async {
+    fetchedPageUris.add(pageUri);
+    final transactionPageByUri = transactionPagesByUri[pageUri];
+    if (transactionPageByUri != null) return transactionPageByUri;
     if (pageUri.path.contains('/myepay/')) return homePage;
-    if (pageUri.path.contains('/consume/')) return transactionPage;
+    if (pageUri.path.contains('/consume/') ||
+        pageUri.path.contains('/trans/')) {
+      return transactionPage;
+    }
     return CampusCardHttpSnapshot(
       finalUri: pageUri,
       statusCode: 404,
@@ -486,10 +940,18 @@ class _FakeCampusCardGateway implements CampusCardGateway {
     required Uri queryUri,
     required Map<String, String> fields,
     required Duration timeout,
+    Uri? refererUri,
   }) async {
     submittedFields = fields;
-    return queryPage;
+    submittedRefererUri = refererUri;
+    submittedFieldsList.add(Map<String, String>.from(fields));
+    submittedRefererUris.add(refererUri);
+    submittedQueryUris.add(queryUri);
+    final pageNo = int.tryParse(fields['pageNo'] ?? '') ?? 1;
+    return queryPagesByPageNo[pageNo] ?? queryPage;
   }
+
+  Uri? submittedRefererUri;
 }
 
 CampusCardHttpSnapshot _cardSnapshot(String body) {
@@ -498,6 +960,84 @@ CampusCardHttpSnapshot _cardSnapshot(String body) {
     statusCode: 200,
     body: body,
   );
+}
+
+CampusCardHttpSnapshot _transactionQueryPage(
+  List<_TransactionFixtureRow> rows,
+) {
+  return CampusCardHttpSnapshot(
+    finalUri: CampusCardService.defaultTransactionQueryUri,
+    statusCode: 200,
+    body: _transactionQueryTable(rows),
+  );
+}
+
+String _transactionQueryTable(List<_TransactionFixtureRow> rows) {
+  final bodyRows = rows.map((row) => '''
+  <tr>
+    <td>${row.date}</td><td>${row.title}</td><td>${row.transactionId}</td>
+    <td>${row.counterparty}</td><td>${row.amount}</td><td>${row.detail}</td>
+    <td>${row.paymentMethod}</td><td>${row.status}</td><td>详情</td>
+  </tr>
+''').join();
+  return '''
+<ajax-response><![CDATA[
+<table>
+  <tr><th>创建时间</th><th>名称</th><th>交易号</th><th>对方</th><th>金额</th><th>明细</th><th>付款方式</th><th>状态</th><th>操作</th></tr>
+$bodyRows
+</table>
+]]></ajax-response>
+''';
+}
+
+class _TransactionFixtureRow {
+  const _TransactionFixtureRow({
+    required this.date,
+    required this.title,
+    required this.transactionId,
+    required this.counterparty,
+    required this.amount,
+    required this.detail,
+    required this.paymentMethod,
+    required this.status,
+  });
+
+  factory _TransactionFixtureRow.expense(int index, {String title = 'POS消费'}) {
+    final day = ((index - 1) % 28) + 1;
+    return _TransactionFixtureRow(
+      date: '2026-06-${day.toString().padLeft(2, '0')} 12:00',
+      title: title,
+      transactionId: 'EXP${index.toString().padLeft(4, '0')}',
+      counterparty: '窗口 $index',
+      amount: index.toStringAsFixed(2),
+      detail: '消费',
+      paymentMethod: '校园卡',
+      status: '交易成功',
+    );
+  }
+
+  factory _TransactionFixtureRow.income(int index, {String title = '充值'}) {
+    final day = ((index - 1) % 28) + 1;
+    return _TransactionFixtureRow(
+      date: '2026-06-${day.toString().padLeft(2, '0')} 08:00',
+      title: title,
+      transactionId: 'INC${index.toString().padLeft(4, '0')}',
+      counterparty: '一卡通',
+      amount: index.toStringAsFixed(2),
+      detail: title,
+      paymentMethod: '现金',
+      status: '交易成功',
+    );
+  }
+
+  final String date;
+  final String title;
+  final String transactionId;
+  final String counterparty;
+  final String amount;
+  final String detail;
+  final String paymentMethod;
+  final String status;
 }
 
 final CampusCardHttpSnapshot _casSnapshot = CampusCardHttpSnapshot(

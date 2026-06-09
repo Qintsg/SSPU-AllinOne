@@ -203,6 +203,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           notificationEnabled: _notificationEnabled,
           dndEnabled: _dndEnabled,
           homeStudentProfileCardVisible: _homeStudentProfileCardVisible,
+          homeCampusCardBalanceCardVisible: _homeCampusCardBalanceCardVisible,
           dndStartHour: _dndStartHour,
           dndStartMinute: _dndStartMinute,
           dndEndHour: _dndEndHour,
@@ -212,6 +213,8 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           onDndChanged: _onDndChanged,
           onHomeStudentProfileCardVisibleChanged:
               _onHomeStudentProfileCardVisibleChanged,
+          onHomeCampusCardBalanceCardVisibleChanged:
+              _onHomeCampusCardBalanceCardVisibleChanged,
           onDndStartChanged: _onDndStartChanged,
           onDndEndChanged: _onDndEndChanged,
         );

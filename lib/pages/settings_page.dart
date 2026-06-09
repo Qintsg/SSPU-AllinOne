@@ -94,6 +94,10 @@ class _SettingsPageState extends State<SettingsPage>
   @override
   bool _homeStudentProfileCardVisible = true;
 
+  /// 首页是否显示校园卡余额卡片。
+  @override
+  bool _homeCampusCardBalanceCardVisible = true;
+
   /// 勿扰开始时间。
   @override
   int _dndStartHour = 22;

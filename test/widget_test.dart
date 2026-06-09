@@ -496,8 +496,9 @@ void main() {
     expect(selectedShortcut, 3);
   });
 
-  testWidgets('常规设置分区显示首页学籍卡片开关', (WidgetTester tester) async {
-    var visible = true;
+  testWidgets('常规设置分区显示首页业务卡片开关', (WidgetTester tester) async {
+    var studentVisible = true;
+    var campusCardVisible = true;
     await tester.pumpWidget(
       FluentApp(
         home: ScaffoldPage(
@@ -507,6 +508,7 @@ void main() {
               notificationEnabled: true,
               dndEnabled: false,
               homeStudentProfileCardVisible: true,
+              homeCampusCardBalanceCardVisible: true,
               dndStartHour: 22,
               dndStartMinute: 0,
               dndEndHour: 7,
@@ -515,7 +517,9 @@ void main() {
               onNotificationChanged: (_) {},
               onDndChanged: (_) {},
               onHomeStudentProfileCardVisibleChanged: (value) =>
-                  visible = value,
+                  studentVisible = value,
+              onHomeCampusCardBalanceCardVisibleChanged: (value) =>
+                  campusCardVisible = value,
               onDndStartChanged: (_, _) async {},
               onDndEndChanged: (_, _) async {},
             ),
@@ -527,11 +531,15 @@ void main() {
 
     expect(find.text('首页显示'), findsOneWidget);
     expect(find.text('显示学籍信息卡片'), findsOneWidget);
+    expect(find.text('显示校园卡余额卡片'), findsOneWidget);
     await tester.tap(
       find.byKey(const Key('settings-home-student-profile-card-switch')),
     );
     await tester.pump();
-    expect(visible, isFalse);
+    expect(studentVisible, isFalse);
+    await tester.tap(find.byKey(const Key('settings-home-campus-card-switch')));
+    await tester.pump();
+    expect(campusCardVisible, isFalse);
     await tester.pump(const Duration(milliseconds: 120));
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

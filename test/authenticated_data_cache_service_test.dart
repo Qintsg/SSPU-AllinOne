@@ -6,6 +6,7 @@
  * @Date : 2026-05-31
  */
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/services/authenticated_data_cache_service.dart';
@@ -13,6 +14,7 @@ import 'package:sspu_allinone/services/storage_service.dart';
 
 void main() {
   setUp(() {
+    FlutterSecureStorage.setMockInitialValues({});
     SharedPreferences.setMockInitialValues({});
     StorageService.debugUseSharedPreferencesStorageForTesting(true);
   });
@@ -132,6 +134,44 @@ void main() {
       ),
       isNotNull,
     );
+  });
+
+  test('校园卡缓存写入安全存储而不落入普通应用状态', () async {
+    await AuthenticatedDataCacheService.saveLatest(
+      collection: StorageKeys.campusCardCacheCollection,
+      accountKey: '20260001',
+      fetchedAt: DateTime(2026, 6, 9, 12),
+      data: const {
+        'balance': 23.45,
+        'records': [
+          {
+            'occurredAt': '2026-06-09 12:47',
+            'title': 'POS消费',
+            'transactionId': 'T202606090001',
+            'counterparty': '一食堂',
+            'amount': -12.5,
+          },
+        ],
+      },
+    );
+
+    final plainPayload = await StorageService.getAllData(
+      StorageKeys.campusCardCacheCollection,
+    );
+    final secureEntry = await AuthenticatedDataCacheService.readLatest(
+      StorageKeys.campusCardCacheCollection,
+      accountKey: '20260001',
+    );
+
+    expect(plainPayload, isEmpty);
+    expect(
+      await StorageService.getCollectionCount(
+        StorageKeys.campusCardCacheCollection,
+      ),
+      0,
+    );
+    expect(secureEntry?.data['balance'], 23.45);
+    expect(secureEntry?.data.toString(), contains('POS消费'));
   });
 
   test('缓存持久化前移除 URI 中的敏感查询参数', () async {

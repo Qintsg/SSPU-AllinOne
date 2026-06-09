@@ -57,31 +57,94 @@ extension _CampusCardFlow on CampusCardService {
     }
   }
 
-  Future<CampusCardHttpSnapshot?> _queryTransactionsIfAvailable(
+  Future<_CampusCardTransactionQueryAttempt> _queryTransactionsIfAvailable(
     CampusCardHttpSnapshot transactionIndexSnapshot, {
     DateTime? startDate,
     DateTime? endDate,
+    required bool syncAllTransactions,
   }) async {
     try {
-      final fields = _buildTransactionQueryFields(
+      final queryUri = _transactionQueryUriFor(transactionIndexSnapshot);
+      final cachedQueryResult = syncAllTransactions
+          ? await readLatestCachedCampusCard()
+          : null;
+      final cachedSnapshot = cachedQueryResult?.snapshot;
+      final hasCachedPageWindow =
+          (cachedSnapshot?.transactionPageCount ?? 0) > 0;
+      final pageLimit = syncAllTransactions
+          ? _transactionPagesToFetch(cachedSnapshot)
+          : 1;
+      final baseFields = _buildTransactionQueryFields(
         transactionIndexSnapshot.body,
         startDate: startDate,
         endDate: endDate,
       );
-      final snapshot = await _gateway.queryTransactions(
-        queryUri: transactionQueryUri,
-        fields: fields,
-        timeout: timeout,
-      );
-      if (_isAuthenticationRequired(snapshot) || _isUnavailable(snapshot)) {
-        return null;
+      final snapshots = <CampusCardHttpSnapshot>[];
+      final seenPageKeys = <String>{};
+      for (var pageNo = 1; pageNo <= pageLimit; pageNo++) {
+        final fields = _fieldsForTransactionPage(baseFields, pageNo);
+        final snapshot = await _gateway.queryTransactions(
+          queryUri: queryUri,
+          fields: fields,
+          timeout: timeout,
+          refererUri: transactionIndexSnapshot.finalUri,
+        );
+        if (_isAuthenticationRequired(snapshot) || _isUnavailable(snapshot)) {
+          return _CampusCardTransactionQueryAttempt.failure(
+            status: _isAuthenticationRequired(snapshot)
+                ? CampusCardQueryStatus.oaLoginRequired
+                : CampusCardQueryStatus.cardSystemUnavailable,
+            message: _isAuthenticationRequired(snapshot)
+                ? 'OA 登录状态不可用，无法查询校园卡交易记录'
+                : '校园卡交易记录页面不可用',
+            detail: _isAuthenticationRequired(snapshot)
+                ? '交易记录查询接口返回登录页，请重新验证 OA 登录状态后再试。'
+                : '交易记录查询接口返回不可用状态或错误页面。',
+            finalUri: snapshot.finalUri,
+          );
+        }
+
+        final pageRecords =
+            CampusCardPageParser.parse([snapshot])?.records ?? const [];
+        final count = pageRecords.length;
+        if (syncAllTransactions) {
+          final pageKey = _transactionPageKey(pageRecords);
+          if (pageKey.isNotEmpty && !seenPageKeys.add(pageKey)) break;
+          if (!hasCachedPageWindow && count == 0) break;
+        }
+        snapshots.add(snapshot);
+        if (!syncAllTransactions) break;
+        if (!hasCachedPageWindow && count < _transactionPageSize) break;
       }
-      return snapshot;
-    } on DioException catch (_) {
-      return null;
-    } on TimeoutException catch (_) {
-      return null;
+      return _CampusCardTransactionQueryAttempt.success(snapshots);
+    } on DioException catch (error) {
+      return _CampusCardTransactionQueryAttempt.failure(
+        status: CampusCardQueryStatus.networkError,
+        message: '校园卡交易记录查询网络失败',
+        detail: HttpService.describeError(error),
+        finalUri: error.requestOptions.uri,
+      );
+    } on TimeoutException {
+      return _CampusCardTransactionQueryAttempt.failure(
+        status: CampusCardQueryStatus.networkError,
+        message: '校园卡交易记录查询超时',
+        detail: '访问校园卡交易记录查询接口超时。',
+        finalUri: transactionQueryUri,
+      );
     }
+  }
+
+  Uri _transactionQueryUriFor(CampusCardHttpSnapshot transactionIndexSnapshot) {
+    final document = html_parser.parse(transactionIndexSnapshot.body);
+    final form =
+        document.querySelector('form#transparam') ??
+        document.querySelector('form[action*="query"]') ??
+        document.querySelector('form');
+    final action = form?.attributes['action']?.trim();
+    if (action != null && action.isNotEmpty) {
+      return transactionIndexSnapshot.finalUri.resolve(action);
+    }
+    return transactionQueryUri;
   }
 
   Map<String, String> _buildTransactionQueryFields(
@@ -89,24 +152,62 @@ extension _CampusCardFlow on CampusCardService {
     DateTime? startDate,
     DateTime? endDate,
   }) {
-    final csrf = _extractCsrf(transactionIndexBody);
-    final fields = {
+    final document = html_parser.parse(transactionIndexBody);
+    final form =
+        document.querySelector('form#transparam') ??
+        document.querySelector('form[action*="query"]') ??
+        document.querySelector('form');
+    final fields = form == null
+        ? <String, String>{}
+        : _extractFormDefaults(form);
+    final csrf = _extractCsrf(document);
+    fields.addAll({
       'aaxmlrequest': 'true',
       'pageNo': '1',
-      'tabNo': '0',
+      'tabNo': '1',
       'pager.offset': '0',
-      'tradename': '',
-      'starttime': startDate == null ? '' : _formatDate(startDate),
-      'endtime': endDate == null ? '' : _formatDate(endDate),
-      'timetype': '1',
-      '_tradedirect': '',
-    };
+      'tradename': fields['tradename'] ?? '',
+      'timetype': fields['timetype'] ?? '1',
+      '_tradedirect': fields['_tradedirect'] ?? 'on',
+    });
+    if (startDate != null) fields['starttime'] = _formatDate(startDate);
+    fields.putIfAbsent('starttime', () => '');
+    if (endDate != null) fields['endtime'] = _formatDate(endDate);
+    fields.putIfAbsent('endtime', () => '');
     if (csrf != null) fields['_csrf'] = csrf;
     return fields;
   }
 
-  String? _extractCsrf(String body) {
-    final document = html_parser.parse(body);
+  Map<String, String> _fieldsForTransactionPage(
+    Map<String, String> baseFields,
+    int pageNo,
+  ) {
+    final fields = Map<String, String>.from(baseFields);
+    fields['pageNo'] = pageNo.toString();
+    fields['pager.offset'] = ((pageNo - 1) * _transactionPageSize).toString();
+    return fields;
+  }
+
+  Map<String, String> _extractFormDefaults(html_dom.Element form) {
+    final fields = <String, String>{};
+    for (final input in form.querySelectorAll('input[name]')) {
+      final name = input.attributes['name']?.trim();
+      if (name == null || name.isEmpty) continue;
+      final type = input.attributes['type']?.trim().toLowerCase() ?? '';
+      final value = input.attributes['value'] ?? '';
+      if ((type == 'checkbox' || type == 'radio') &&
+          !input.attributes.containsKey('checked')) {
+        if (type == 'checkbox' && name.startsWith('_')) {
+          fields[name] = value;
+        }
+        continue;
+      }
+      fields[name] = value;
+    }
+    return fields;
+  }
+
+  String? _extractCsrf(html_dom.Document document) {
     final meta = document.querySelector('meta[name="_csrf"]');
     final token = meta?.attributes['content']?.trim();
     if (token != null && token.isNotEmpty) return token;
@@ -119,6 +220,86 @@ extension _CampusCardFlow on CampusCardService {
     return '${date.year.toString().padLeft(4, '0')}-'
         '${date.month.toString().padLeft(2, '0')}-'
         '${date.day.toString().padLeft(2, '0')}';
+  }
+
+  Uri _findTransactionIndexUri(List<CampusCardHttpSnapshot> snapshots) {
+    final candidates = <Uri>[];
+    for (final snapshot in snapshots) {
+      final document = html_parser.parse(snapshot.body);
+      for (final element in document.querySelectorAll('a,button')) {
+        final text = _normalizeText(element.text);
+        final title = element.attributes['title'] ?? '';
+        final combined = '$text $title';
+        if (!_looksLikeAllTransactionsEntry(combined)) continue;
+        candidates.addAll(_extractTransactionLinkUris(element, snapshot));
+      }
+    }
+    for (final candidate in candidates) {
+      if (_isCardUri(candidate)) return candidate;
+    }
+    return transactionIndexUri;
+  }
+
+  bool _looksLikeAllTransactionsEntry(String text) {
+    final normalizedText = _normalizeText(text);
+    return normalizedText.contains('查看所有交易记录') ||
+        (normalizedText.contains('所有') && normalizedText.contains('交易记录')) ||
+        normalizedText.contains('交易记录查询');
+  }
+
+  List<Uri> _extractTransactionLinkUris(
+    html_dom.Element element,
+    CampusCardHttpSnapshot entrySnapshot,
+  ) {
+    final values = <String>{};
+    for (final attributeName in const [
+      'href',
+      'data-url',
+      'data-href',
+      'url',
+      'action',
+    ]) {
+      final value = element.attributes[attributeName]?.trim();
+      if (_isUsableTransactionHref(value)) values.add(value!);
+    }
+    final onclick = element.attributes['onclick']?.trim();
+    if (onclick != null && onclick.isNotEmpty) {
+      final patterns = [
+        RegExp(r'''location(?:\.href)?\s*=\s*['"]([^'"]+)['"]'''),
+        RegExp(r'''window\.open\(\s*['"]([^'"]+)['"]'''),
+        RegExp(r'''['"]([^'"]*/epay/[^'"]*)['"]'''),
+      ];
+      for (final pattern in patterns) {
+        for (final match in pattern.allMatches(onclick)) {
+          final value = match.group(1)?.trim();
+          if (_isUsableTransactionHref(value)) values.add(value!);
+        }
+      }
+    }
+    return values.map(entrySnapshot.finalUri.resolve).toList();
+  }
+
+  bool _isUsableTransactionHref(String? value) {
+    if (value == null) return false;
+    final trimmedValue = value.trim();
+    if (trimmedValue.isEmpty ||
+        trimmedValue == '#' ||
+        trimmedValue.toLowerCase().startsWith('javascript:')) {
+      return false;
+    }
+    return true;
+  }
+
+  bool _isTransactionPage(Uri uri) {
+    final path = uri.path.toLowerCase();
+    return path.contains('/consume/') ||
+        path.contains('/transaction') ||
+        path.contains('/trad') ||
+        uri == transactionIndexUri;
+  }
+
+  bool _isCardUri(Uri uri) {
+    return uri.host.toLowerCase() == 'card.sspu.edu.cn';
   }
 
   bool _isAuthenticationRequired(CampusCardHttpSnapshot snapshot) {
@@ -163,14 +344,28 @@ extension _CampusCardFlow on CampusCardService {
 
     return values
         .map(snapshot.finalUri.resolve)
-        .map(
-          (uri) => uri.host.toLowerCase() == 'card.sspu.edu.cn'
-              ? uri.replace(scheme: 'http')
-              : uri,
-        )
-        .where((uri) => uri.host.toLowerCase() == 'card.sspu.edu.cn')
+        .where(_isCardUri)
         .toSet()
         .toList();
+  }
+
+  int _transactionPagesToFetch(CampusCardSnapshot? cachedSnapshot) {
+    final cachedPageCount = cachedSnapshot?.transactionPageCount ?? 0;
+    if (cachedPageCount > 0) return cachedPageCount.clamp(1, 200);
+    final cachedRecordCount = cachedSnapshot?.records.length ?? 0;
+    if (cachedRecordCount > 0) {
+      return (cachedRecordCount / _transactionPageSize).ceil().clamp(1, 200);
+    }
+    return 200;
+  }
+
+  String _transactionPageKey(List<CampusCardTransactionRecord> records) {
+    return records
+        .map(
+          (record) =>
+              '${record.occurredAt}|${record.transactionId ?? ''}|${record.amount}',
+        )
+        .join('\n');
   }
 
   CampusCardQueryResult _buildResult(
@@ -199,4 +394,51 @@ extension _CampusCardFlow on CampusCardService {
         ? CampusCardService.defaultAutoRefreshIntervalMinutes
         : minutes;
   }
+
+  static const int _transactionPageSize = 10;
+}
+
+class _CampusCardTransactionQueryAttempt {
+  const _CampusCardTransactionQueryAttempt._({
+    required this.snapshots,
+    required this.status,
+    required this.message,
+    required this.detail,
+    required this.finalUri,
+  });
+
+  factory _CampusCardTransactionQueryAttempt.success(
+    List<CampusCardHttpSnapshot> snapshots,
+  ) {
+    return _CampusCardTransactionQueryAttempt._(
+      snapshots: List.unmodifiable(snapshots),
+      status: null,
+      message: null,
+      detail: null,
+      finalUri: snapshots.isEmpty ? null : snapshots.last.finalUri,
+    );
+  }
+
+  factory _CampusCardTransactionQueryAttempt.failure({
+    required CampusCardQueryStatus status,
+    required String message,
+    required String detail,
+    required Uri finalUri,
+  }) {
+    return _CampusCardTransactionQueryAttempt._(
+      snapshots: const [],
+      status: status,
+      message: message,
+      detail: detail,
+      finalUri: finalUri,
+    );
+  }
+
+  final List<CampusCardHttpSnapshot> snapshots;
+  final CampusCardQueryStatus? status;
+  final String? message;
+  final String? detail;
+  final Uri? finalUri;
+
+  bool get isSuccess => status == null;
 }

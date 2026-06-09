@@ -6,6 +6,10 @@
  * @Date : 2026-05-31
  */
 
+import 'dart:convert';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import 'storage_service.dart';
 
 /// 鉴权业务数据缓存条目。
@@ -39,6 +43,8 @@ class AuthenticatedDataCacheService {
   AuthenticatedDataCacheService._();
 
   static const String _ownerAccountKey = 'ownerAccount';
+  static const String _secureDataPrefix = 'authenticated_data_cache';
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   /// 每类业务数据最多保留的历史记录数。
   static const int maxRecordsPerType = 3;
@@ -62,7 +68,7 @@ class AuthenticatedDataCacheService {
     payload[_ownerAccountKey] = ownerAccount;
     payload['fetchedAt'] = normalizedFetchedAt.toIso8601String();
 
-    await StorageService.saveData(collection, key, payload);
+    await _saveData(collection, key, payload);
     await _trimCollection(collection);
   }
 
@@ -83,7 +89,7 @@ class AuthenticatedDataCacheService {
     final expectedOwner = accountKey == null
         ? null
         : _ownerKeyForAccount(accountKey);
-    final records = await StorageService.getAllData(collection);
+    final records = await _getAllData(collection);
     final entries = <AuthenticatedDataCacheEntry>[];
     for (final item in records.entries) {
       final fetchedAt = _parseFetchedAt(item.value);
@@ -107,7 +113,7 @@ class AuthenticatedDataCacheService {
   /// 清理全部鉴权业务数据缓存。
   static Future<void> clearAll() async {
     for (final collection in _authenticatedCollections) {
-      await StorageService.clearCollection(collection);
+      await _clearCollection(collection);
     }
   }
 
@@ -115,7 +121,7 @@ class AuthenticatedDataCacheService {
     final entries = await readLatestRecords(collection);
     if (entries.length <= maxRecordsPerType) return;
     for (final entry in entries.skip(maxRecordsPerType)) {
-      await StorageService.removeData(collection, entry.key);
+      await _removeData(collection, entry.key);
     }
   }
 
@@ -181,6 +187,106 @@ class AuthenticatedDataCacheService {
     if (normalizedAccount.isEmpty) return '';
     return StorageService.hashPassword(
       'authenticated-cache:$normalizedAccount',
+    );
+  }
+
+  static Future<void> _saveData(
+    String collection,
+    String key,
+    Map<String, dynamic> data,
+  ) async {
+    if (!_usesSecureCollection(collection)) {
+      await StorageService.saveData(collection, key, data);
+      return;
+    }
+    await _secureStorage.write(
+      key: _secureDataKey(collection, key),
+      value: jsonEncode(data),
+    );
+    await _addSecureIndexKey(collection, key);
+  }
+
+  static Future<Map<String, Map<String, dynamic>>> _getAllData(
+    String collection,
+  ) async {
+    if (!_usesSecureCollection(collection)) {
+      return StorageService.getAllData(collection);
+    }
+    final result = <String, Map<String, dynamic>>{};
+    for (final key in await _getSecureIndex(collection)) {
+      final payload = await _secureStorage.read(
+        key: _secureDataKey(collection, key),
+      );
+      if (payload == null || payload.trim().isEmpty) continue;
+      try {
+        result[key] = jsonDecode(payload) as Map<String, dynamic>;
+      } catch (_) {
+        continue;
+      }
+    }
+    return result;
+  }
+
+  static Future<void> _removeData(String collection, String key) async {
+    if (!_usesSecureCollection(collection)) {
+      await StorageService.removeData(collection, key);
+      return;
+    }
+    await _secureStorage.delete(key: _secureDataKey(collection, key));
+    await _removeSecureIndexKey(collection, key);
+  }
+
+  static Future<void> _clearCollection(String collection) async {
+    if (!_usesSecureCollection(collection)) {
+      await StorageService.clearCollection(collection);
+      return;
+    }
+    for (final key in await _getSecureIndex(collection)) {
+      await _secureStorage.delete(key: _secureDataKey(collection, key));
+    }
+    await _secureStorage.delete(key: _secureIndexKey(collection));
+  }
+
+  static bool _usesSecureCollection(String collection) {
+    return collection == StorageKeys.campusCardCacheCollection;
+  }
+
+  static String _secureDataKey(String collection, String key) {
+    return '${_secureDataPrefix}_${collection}_$key';
+  }
+
+  static String _secureIndexKey(String collection) {
+    return '${_secureDataPrefix}_${collection}_index';
+  }
+
+  static Future<List<String>> _getSecureIndex(String collection) async {
+    final payload = await _secureStorage.read(key: _secureIndexKey(collection));
+    if (payload == null || payload.trim().isEmpty) return [];
+    try {
+      return (jsonDecode(payload) as List<dynamic>).cast<String>();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> _addSecureIndexKey(String collection, String key) async {
+    final keys = await _getSecureIndex(collection);
+    if (!keys.contains(key)) keys.add(key);
+    await _secureStorage.write(
+      key: _secureIndexKey(collection),
+      value: jsonEncode(keys),
+    );
+  }
+
+  static Future<void> _removeSecureIndexKey(
+    String collection,
+    String key,
+  ) async {
+    final keys = await _getSecureIndex(collection);
+    keys.remove(key);
+    await _secureStorage.write(
+      key: _secureIndexKey(collection),
+      value: jsonEncode(keys),
     );
   }
 

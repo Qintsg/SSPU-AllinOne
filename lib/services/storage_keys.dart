@@ -32,6 +32,10 @@ class StorageKeys {
   static const String homeStudentProfileCardVisible =
       'home_student_profile_card_visible';
 
+  /// 首页是否显示校园卡余额卡片。
+  static const String homeCampusCardBalanceCardVisible =
+      'home_campus_card_balance_card_visible';
+
   /// 校园网 / VPN 状态检测间隔（分钟，0 = 关闭自动检测）。
   static const String campusNetworkDetectionIntervalMinutes =
       'campus_network_detection_interval_minutes';

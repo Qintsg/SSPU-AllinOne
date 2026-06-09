@@ -47,6 +47,12 @@ class CampusCardTransactionRecord {
     this.merchant,
     this.type,
     this.balanceAfter,
+    this.title,
+    this.transactionId,
+    this.counterparty,
+    this.paymentMethod,
+    this.status,
+    this.direction,
   });
 
   /// 交易发生时间，保持页面原始格式以避免误转换时区。
@@ -64,8 +70,33 @@ class CampusCardTransactionRecord {
   /// 交易后余额；页面未提供时为空。
   final double? balanceAfter;
 
+  /// 交易名称，对应 epay 表格的“名称”列。
+  final String? title;
+
+  /// 交易号或流水号。
+  final String? transactionId;
+
+  /// 交易对方、商户或收付款方。
+  final String? counterparty;
+
+  /// 付款方式，例如校园卡、钱包或其它页面原始文案。
+  final String? paymentMethod;
+
+  /// 单条交易状态，例如成功、失败或处理中。
+  final String? status;
+
+  /// 收支方向，取值为 `income`、`expense` 或 `unknown`。
+  final String? direction;
+
   /// 原始表格单元格文本，页面结构变化时用于兜底展示。
   final List<String> rawCells;
+
+  /// 是否为收入记录。
+  bool get isIncome => (direction ?? _directionFromAmount(amount)) == 'income';
+
+  /// 是否为支出记录。
+  bool get isExpense =>
+      (direction ?? _directionFromAmount(amount)) == 'expense';
 
   /// 从 JSON 恢复校园卡交易记录。
   factory CampusCardTransactionRecord.fromJson(Map<String, dynamic> json) {
@@ -75,6 +106,14 @@ class CampusCardTransactionRecord {
       merchant: json['merchant'] as String?,
       type: json['type'] as String?,
       balanceAfter: (json['balanceAfter'] as num?)?.toDouble(),
+      title: json['title'] as String?,
+      transactionId: json['transactionId'] as String?,
+      counterparty: json['counterparty'] as String?,
+      paymentMethod: json['paymentMethod'] as String?,
+      status: json['status'] as String?,
+      direction:
+          json['direction'] as String? ??
+          _directionFromAmount((json['amount'] as num?)?.toDouble() ?? 0),
       rawCells: (json['rawCells'] as List<dynamic>? ?? const []).cast<String>(),
     );
   }
@@ -87,8 +126,20 @@ class CampusCardTransactionRecord {
       'merchant': merchant,
       'type': type,
       'balanceAfter': balanceAfter,
+      'title': title,
+      'transactionId': transactionId,
+      'counterparty': counterparty,
+      'paymentMethod': paymentMethod,
+      'status': status,
+      'direction': direction ?? _directionFromAmount(amount),
       'rawCells': rawCells,
     };
+  }
+
+  static String _directionFromAmount(double amount) {
+    if (amount > 0) return 'income';
+    if (amount < 0) return 'expense';
+    return 'unknown';
   }
 }
 
@@ -100,6 +151,7 @@ class CampusCardSnapshot {
     required this.records,
     required this.fetchedAt,
     required this.sourceUri,
+    this.transactionPageCount = 0,
   });
 
   /// 当前账户余额；页面未提供余额但提供交易记录时为空。
@@ -117,6 +169,9 @@ class CampusCardSnapshot {
   /// 产生该快照的最后一个业务页面地址。
   final Uri sourceUri;
 
+  /// 已同步的交易记录页数；0 表示旧缓存或未知。
+  final int transactionPageCount;
+
   /// 从 JSON 恢复校园卡快照。
   factory CampusCardSnapshot.fromJson(Map<String, dynamic> json) {
     return CampusCardSnapshot(
@@ -130,6 +185,7 @@ class CampusCardSnapshot {
           DateTime.tryParse(json['fetchedAt'] as String? ?? '')?.toLocal() ??
           DateTime.fromMillisecondsSinceEpoch(0),
       sourceUri: Uri.parse(json['sourceUri'] as String? ?? ''),
+      transactionPageCount: (json['transactionPageCount'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -141,7 +197,27 @@ class CampusCardSnapshot {
       'records': records.map((record) => record.toJson()).toList(),
       'fetchedAt': fetchedAt.toUtc().toIso8601String(),
       'sourceUri': sourceUri.toString(),
+      'transactionPageCount': transactionPageCount,
     };
+  }
+
+  /// 复制快照并替换局部字段。
+  CampusCardSnapshot copyWith({
+    double? balance,
+    String? status,
+    List<CampusCardTransactionRecord>? records,
+    DateTime? fetchedAt,
+    Uri? sourceUri,
+    int? transactionPageCount,
+  }) {
+    return CampusCardSnapshot(
+      balance: balance ?? this.balance,
+      status: status ?? this.status,
+      records: records ?? this.records,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+      sourceUri: sourceUri ?? this.sourceUri,
+      transactionPageCount: transactionPageCount ?? this.transactionPageCount,
+    );
   }
 
   /// 页面是否明确显示非正常状态。

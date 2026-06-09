@@ -76,6 +76,7 @@ class _HomePageState extends State<HomePage> {
   AcademicEamsProfile? _studentProfile;
   bool _isLoadingStudentProfile = false;
   bool _studentProfileCardVisible = true;
+  bool _campusCardCardVisible = true;
   bool _isLoadingCampusCard = false;
   bool _campusCardAutoRefreshEnabled = false;
   Timer? _campusCardAutoRefreshTimer;
@@ -119,11 +120,16 @@ class _HomePageState extends State<HomePage> {
       StorageKeys.homeStudentProfileCardVisible,
       defaultValue: true,
     );
+    final campusCardVisible = await StorageService.getBool(
+      StorageKeys.homeCampusCardBalanceCardVisible,
+      defaultValue: true,
+    );
     final status = await AcademicCredentialsService.instance.getStatus();
     final cachedProfile = await _academicEamsService.readCachedStudentProfile();
     if (!mounted) return;
     setState(() {
       _studentProfileCardVisible = visible;
+      _campusCardCardVisible = campusCardVisible;
       _credentialsStatus = status;
       _studentProfile = cachedProfile;
     });
@@ -183,6 +189,11 @@ class _HomePageState extends State<HomePage> {
 
   /// 先显示本地校园卡缓存，再根据设置决定是否静默刷新。
   Future<void> _loadCampusCardCacheAndSettings() async {
+    final visible = await StorageService.getBool(
+      StorageKeys.homeCampusCardBalanceCardVisible,
+      defaultValue: true,
+    );
+    if (mounted) setState(() => _campusCardCardVisible = visible);
     final cachedResult = await _campusCardService.readLatestCachedCampusCard();
     if (mounted && cachedResult != null) {
       setState(() => _campusCardResult = cachedResult);
@@ -197,18 +208,22 @@ class _HomePageState extends State<HomePage> {
     bool silent = false,
   }) async {
     if (_isLoadingCampusCard) return;
-    if (!silent) setState(() => _isLoadingCampusCard = true);
+    setState(() => _isLoadingCampusCard = true);
 
     final result = await _campusCardService.fetchCampusCard(
       startDate: startDate,
       endDate: endDate,
       requireCampusNetwork: silent,
+      syncAllTransactions: true,
     );
     if (!mounted) return;
-    if (silent && !result.isSuccess) return;
+    if (silent && !result.isSuccess) {
+      setState(() => _isLoadingCampusCard = false);
+      return;
+    }
     setState(() {
       _campusCardResult = result;
-      if (!silent) _isLoadingCampusCard = false;
+      _isLoadingCampusCard = false;
     });
   }
 
@@ -304,8 +319,8 @@ class _HomePageState extends State<HomePage> {
 
             const SizedBox(height: FluentSpacing.l),
 
-            if (_studentProfileCardVisible) ...[
-              _buildStudentProfileCard(context)
+            if (_studentProfileCardVisible || _campusCardCardVisible) ...[
+              _buildHomeBusinessCards(context)
                   .animate(delay: 100.ms)
                   .fadeIn(
                     duration: FluentDuration.slow,
@@ -314,16 +329,6 @@ class _HomePageState extends State<HomePage> {
                   .slideY(begin: 0.05, end: 0),
               const SizedBox(height: FluentSpacing.l),
             ],
-
-            _buildCampusCardBalanceCard(context)
-                .animate(delay: 150.ms)
-                .fadeIn(
-                  duration: FluentDuration.slow,
-                  curve: FluentEasing.decelerate,
-                )
-                .slideY(begin: 0.05, end: 0),
-
-            const SizedBox(height: FluentSpacing.l),
 
             FluentSurface(
                   padding: const EdgeInsets.all(FluentSpacing.l),
@@ -371,6 +376,37 @@ class _HomePageState extends State<HomePage> {
                   curve: FluentEasing.decelerate,
                 )
                 .slideY(begin: 0.05, end: 0),
+          ],
+        );
+      },
+    );
+  }
+
+  /// 构建欢迎卡下方的业务卡片区域。
+  Widget _buildHomeBusinessCards(BuildContext context) {
+    final cards = <Widget>[
+      if (_studentProfileCardVisible) _buildStudentProfileCard(context),
+      if (_campusCardCardVisible) _buildCampusCardBalanceCard(context),
+    ];
+    if (cards.length == 1) return cards.single;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 860) {
+          return Column(
+            children: [
+              cards[0],
+              const SizedBox(height: FluentSpacing.l),
+              cards[1],
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: cards[0]),
+            const SizedBox(width: FluentSpacing.l),
+            Expanded(child: cards[1]),
           ],
         );
       },
