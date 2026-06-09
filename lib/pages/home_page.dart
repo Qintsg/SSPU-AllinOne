@@ -11,12 +11,16 @@ import 'dart:async';
 import '../design/fluent_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../models/campus_card.dart';
+import '../models/academic_credentials.dart';
+import '../models/academic_eams.dart';
 import '../models/message_item.dart';
 import '../services/academic_credentials_service.dart';
+import '../services/academic_eams_service.dart';
 import '../services/app_display_name_service.dart';
 import '../services/campus_card_service.dart';
 import '../services/campus_network_status_service.dart';
 import '../services/message_state_service.dart';
+import '../services/storage_service.dart';
 import '../theme/fluent_tokens.dart';
 import '../utils/webview_env.dart';
 import '../widgets/campus_network_status_indicator.dart';
@@ -25,6 +29,7 @@ import 'webview_page.dart';
 
 part 'home_campus_card_balance_card.dart';
 part 'home_campus_card_detail_page.dart';
+part 'home_student_profile_card.dart';
 
 /// 主页
 /// 展示欢迎信息与最新消息列表
@@ -41,12 +46,20 @@ class HomePage extends StatefulWidget {
   /// 测试专用：覆盖校园卡余额自动刷新间隔。
   final int? campusCardAutoRefreshIntervalOverride;
 
+  /// 本专科教务服务，测试中可替换为 fake。
+  final AcademicEamsClient? academicEamsService;
+
+  /// 打开设置页回调。
+  final VoidCallback? onOpenSettings;
+
   const HomePage({
     super.key,
     this.campusCardService,
     this.campusNetworkStatusService,
     this.campusCardAutoRefreshEnabledOverride,
     this.campusCardAutoRefreshIntervalOverride,
+    this.academicEamsService,
+    this.onOpenSettings,
   });
 
   @override
@@ -58,6 +71,11 @@ class _HomePageState extends State<HomePage> {
   List<MessageItem> _latestMessages = [];
 
   CampusCardQueryResult? _campusCardResult;
+  AcademicCredentialsStatus _credentialsStatus =
+      const AcademicCredentialsStatus.empty();
+  AcademicEamsProfile? _studentProfile;
+  bool _isLoadingStudentProfile = false;
+  bool _studentProfileCardVisible = true;
   bool _isLoadingCampusCard = false;
   bool _campusCardAutoRefreshEnabled = false;
   Timer? _campusCardAutoRefreshTimer;
@@ -67,12 +85,20 @@ class _HomePageState extends State<HomePage> {
     return widget.campusCardService ?? CampusCardService.instance;
   }
 
+  AcademicEamsClient get _academicEamsService {
+    return widget.academicEamsService ?? AcademicEamsService.instance;
+  }
+
   @override
   void initState() {
     super.initState();
     _credentialChangeSubscription = AcademicCredentialsService.instance.changes
-        .listen((_) => _clearAuthenticatedState());
+        .listen((_) {
+          _clearAuthenticatedState();
+          unawaited(_loadStudentProfileCard(forceRefresh: true));
+        });
     _loadLatestMessages();
+    _loadStudentProfileCard();
     _loadCampusCardCacheAndSettings();
   }
 
@@ -80,7 +106,38 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
     setState(() {
       _campusCardResult = null;
+      _studentProfile = null;
+      _credentialsStatus = const AcademicCredentialsStatus.empty();
+      _isLoadingStudentProfile = false;
       _isLoadingCampusCard = false;
+    });
+  }
+
+  /// 读取首页学籍卡片设置和安全缓存，必要时静默补全。
+  Future<void> _loadStudentProfileCard({bool forceRefresh = false}) async {
+    final visible = await StorageService.getBool(
+      StorageKeys.homeStudentProfileCardVisible,
+      defaultValue: true,
+    );
+    final status = await AcademicCredentialsService.instance.getStatus();
+    final cachedProfile = await _academicEamsService.readCachedStudentProfile();
+    if (!mounted) return;
+    setState(() {
+      _studentProfileCardVisible = visible;
+      _credentialsStatus = status;
+      _studentProfile = cachedProfile;
+    });
+    if (!visible || status.oaAccount.trim().isEmpty || !status.hasOaPassword) {
+      return;
+    }
+    if (!forceRefresh && cachedProfile?.hasHomeSummary == true) return;
+    setState(() => _isLoadingStudentProfile = true);
+    final refreshedProfile = await _academicEamsService
+        .refreshStudentProfileIfIncomplete(forceRefresh: forceRefresh);
+    if (!mounted) return;
+    setState(() {
+      _studentProfile = refreshedProfile ?? _studentProfile;
+      _isLoadingStudentProfile = false;
     });
   }
 
@@ -247,8 +304,19 @@ class _HomePageState extends State<HomePage> {
 
             const SizedBox(height: FluentSpacing.l),
 
+            if (_studentProfileCardVisible) ...[
+              _buildStudentProfileCard(context)
+                  .animate(delay: 100.ms)
+                  .fadeIn(
+                    duration: FluentDuration.slow,
+                    curve: FluentEasing.decelerate,
+                  )
+                  .slideY(begin: 0.05, end: 0),
+              const SizedBox(height: FluentSpacing.l),
+            ],
+
             _buildCampusCardBalanceCard(context)
-                .animate(delay: 100.ms)
+                .animate(delay: 150.ms)
                 .fadeIn(
                   duration: FluentDuration.slow,
                   curve: FluentEasing.decelerate,
@@ -297,7 +365,7 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 )
-                .animate(delay: 200.ms)
+                .animate(delay: 250.ms)
                 .fadeIn(
                   duration: FluentDuration.slow,
                   curve: FluentEasing.decelerate,

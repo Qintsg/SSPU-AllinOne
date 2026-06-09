@@ -32,6 +32,9 @@ mixin _SettingsPageActions on State<SettingsPage> {
   bool get _dndEnabled;
   set _dndEnabled(bool value);
 
+  bool get _homeStudentProfileCardVisible;
+  set _homeStudentProfileCardVisible(bool value);
+
   int get _dndStartHour;
   set _dndStartHour(int value);
 
@@ -89,6 +92,10 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
     final notifEnabled = await _messageState.isNotificationEnabled();
     final dndOn = await _messageState.isDndEnabled();
+    final homeStudentProfileCardVisible = await StorageService.getBool(
+      StorageKeys.homeStudentProfileCardVisible,
+      defaultValue: true,
+    );
     final dndStartHour = await _messageState.getDndStartHour();
     final dndStartMinute = await _messageState.getDndStartMinute();
     final dndEndHour = await _messageState.getDndEndHour();
@@ -127,6 +134,7 @@ mixin _SettingsPageActions on State<SettingsPage> {
       _closeBehavior = behavior;
       _notificationEnabled = notifEnabled;
       _dndEnabled = dndOn;
+      _homeStudentProfileCardVisible = homeStudentProfileCardVisible;
       _dndStartHour = dndStartHour;
       _dndStartMinute = dndStartMinute;
       _dndEndHour = dndEndHour;
@@ -185,6 +193,16 @@ mixin _SettingsPageActions on State<SettingsPage> {
     await _messageState.setDndEnabled(enabled);
     if (!mounted) return;
     setState(() => _dndEnabled = enabled);
+  }
+
+  /// 修改首页学籍信息卡片显示开关。
+  Future<void> _onHomeStudentProfileCardVisibleChanged(bool visible) async {
+    await StorageService.setBool(
+      StorageKeys.homeStudentProfileCardVisible,
+      visible,
+    );
+    if (!mounted) return;
+    setState(() => _homeStudentProfileCardVisible = visible);
   }
 
   /// 修改勿扰开始时间。

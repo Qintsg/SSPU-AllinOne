@@ -151,7 +151,21 @@ String _weekdayLabel(int weekday) {
 }
 
 bool _looksLikeProfileLabel(String text) {
-  return ['姓名', '学生姓名', '学号', '学工号', '院系', '学院', '专业', '班级'].contains(text);
+  return [
+    '姓名',
+    '学生姓名',
+    '学号',
+    '学工号',
+    '院系',
+    '学院',
+    '专业',
+    '行政班级',
+    '班级',
+    '性别',
+    '学制',
+    '学历层次',
+    '培养层次',
+  ].contains(text);
 }
 
 void _captureProfileByRegex(
@@ -159,7 +173,11 @@ void _captureProfileByRegex(
   String bodyText,
   String label,
 ) {
-  final pattern = RegExp('$label[:：]\\s*([^\\s]+)');
+  final escapedLabel = RegExp.escape(label);
+  final pattern = RegExp(
+    '$escapedLabel[:：]'
+    r'\s*([^：:]+?)(?=\s+[\u4e00-\u9fa5]{2,8}[:：]|$)',
+  );
   final match = pattern.firstMatch(bodyText);
   final value = match?.group(1)?.trim();
   if (value != null && value.isNotEmpty) {

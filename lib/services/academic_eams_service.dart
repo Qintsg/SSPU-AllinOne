@@ -38,6 +38,14 @@ part 'academic_eams_shell_followups.dart';
 
 /// 教务中心与课程表页可依赖的只读接口。
 abstract class AcademicEamsClient {
+  /// 读取当前 OA 账号的本地加密学籍缓存。
+  Future<AcademicEamsProfile?> readCachedStudentProfile();
+
+  /// 学籍信息缺失或不完整时静默刷新。
+  Future<AcademicEamsProfile?> refreshStudentProfileIfIncomplete({
+    bool forceRefresh = false,
+  });
+
   /// 读取最近一次本地本专科教务摘要缓存。
   Future<AcademicEamsQueryResult?> readLatestCachedOverview();
 
@@ -105,6 +113,7 @@ typedef AcademicEamsOaLoginRefresher =
 enum _AcademicFetchScope { overview, courseTableOnly }
 
 enum _AcademicFeature {
+  studentProfile,
   courseTable,
   gradeCurrent,
   gradeHistory,
@@ -323,6 +332,29 @@ class AcademicEamsService implements AcademicEamsClient {
     );
   }
 
+  /// 读取当前 OA 账号绑定的加密学籍缓存。
+  @override
+  Future<AcademicEamsProfile?> readCachedStudentProfile() {
+    return _credentialsService.readStudentProfile();
+  }
+
+  /// 学籍信息缺失或不完整时静默刷新。
+  @override
+  Future<AcademicEamsProfile?> refreshStudentProfileIfIncomplete({
+    bool forceRefresh = false,
+  }) async {
+    final cachedProfile = await _credentialsService.readStudentProfile();
+    if (!forceRefresh && cachedProfile?.hasHomeSummary == true) {
+      return cachedProfile;
+    }
+    final result = await fetchOverview(requireCampusNetwork: false);
+    if (result.isSuccess) {
+      return result.snapshot?.profile ??
+          await _credentialsService.readStudentProfile();
+    }
+    return cachedProfile;
+  }
+
   /// 读取最近一次本地课表缓存。
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
@@ -346,13 +378,31 @@ class AcademicEamsService implements AcademicEamsClient {
     );
     if (entry == null) return null;
     final snapshot = AcademicEamsSnapshot.fromJson(entry.data);
+    final secureProfile = await _credentialsService.readStudentProfile();
+    final mergedSnapshot = secureProfile == null
+        ? snapshot
+        : AcademicEamsSnapshot(
+            fetchedAt: snapshot.fetchedAt,
+            sourceUri: snapshot.sourceUri,
+            warnings: snapshot.warnings,
+            hasCourseOfferingEntry: snapshot.hasCourseOfferingEntry,
+            hasFreeClassroomEntry: snapshot.hasFreeClassroomEntry,
+            profile: secureProfile,
+            courseTable: snapshot.courseTable,
+            grades: snapshot.grades,
+            programPlan: snapshot.programPlan,
+            programCompletion: snapshot.programCompletion,
+            exams: snapshot.exams,
+            courseOfferingsPreview: snapshot.courseOfferingsPreview,
+            freeClassroomsPreview: snapshot.freeClassroomsPreview,
+          );
     return _buildResult(
       AcademicEamsQueryStatus.success,
       message: message,
       detail: detail,
-      checkedAt: snapshot.fetchedAt,
-      finalUri: snapshot.sourceUri,
-      snapshot: snapshot,
+      checkedAt: mergedSnapshot.fetchedAt,
+      finalUri: mergedSnapshot.sourceUri,
+      snapshot: mergedSnapshot,
     );
   }
 }

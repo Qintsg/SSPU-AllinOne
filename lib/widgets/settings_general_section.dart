@@ -23,6 +23,9 @@ class SettingsGeneralSection extends StatelessWidget {
   /// 是否启用勿扰。
   final bool dndEnabled;
 
+  /// 首页是否显示学籍信息卡片。
+  final bool homeStudentProfileCardVisible;
+
   /// 勿扰开始时间。
   final int dndStartHour;
   final int dndStartMinute;
@@ -40,6 +43,9 @@ class SettingsGeneralSection extends StatelessWidget {
   /// 勿扰开关回调。
   final ValueChanged<bool> onDndChanged;
 
+  /// 首页学籍信息卡片显示开关回调。
+  final ValueChanged<bool> onHomeStudentProfileCardVisibleChanged;
+
   /// 勿扰开始时间修改回调。
   final Future<void> Function(int hour, int minute) onDndStartChanged;
 
@@ -51,6 +57,7 @@ class SettingsGeneralSection extends StatelessWidget {
     required this.closeBehavior,
     required this.notificationEnabled,
     required this.dndEnabled,
+    required this.homeStudentProfileCardVisible,
     required this.dndStartHour,
     required this.dndStartMinute,
     required this.dndEndHour,
@@ -58,6 +65,7 @@ class SettingsGeneralSection extends StatelessWidget {
     required this.onCloseBehaviorChanged,
     required this.onNotificationChanged,
     required this.onDndChanged,
+    required this.onHomeStudentProfileCardVisibleChanged,
     required this.onDndStartChanged,
     required this.onDndEndChanged,
   });
@@ -69,10 +77,40 @@ class SettingsGeneralSection extends StatelessWidget {
       children: [
         _buildWindowBehaviorSection(context),
         const SizedBox(height: AppSpacing.lg),
+        _buildHomeDisplaySection(context),
+        const SizedBox(height: AppSpacing.lg),
         SettingsUpdateSection(),
         const SizedBox(height: AppSpacing.lg),
         _buildNotificationSection(context),
       ],
+    );
+  }
+
+  Widget _buildHomeDisplaySection(BuildContext context) {
+    final type = context.fluentType;
+    return FluentCard(
+      padding: EdgeInsets.zero,
+      child: Padding(
+        padding: AppSpacing.cardPadding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Semantics(header: true, child: Text('首页显示', style: type.subtitle1)),
+            const SizedBox(height: AppSpacing.md),
+            buildResponsiveSettingsRow(
+              context: context,
+              icon: FluentIcons.contact,
+              title: Text('显示学籍信息卡片', style: type.body1Strong),
+              subtitle: Text('在主页首屏展示姓名、学号、院系、专业和行政班级', style: type.caption1),
+              trailing: FluentSwitch(
+                key: const Key('settings-home-student-profile-card-switch'),
+                value: homeStudentProfileCardVisible,
+                onChanged: onHomeStudentProfileCardVisibleChanged,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -85,10 +123,7 @@ class SettingsGeneralSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Semantics(
-              header: true,
-              child: Text('窗口行为', style: type.subtitle1),
-            ),
+            Semantics(header: true, child: Text('窗口行为', style: type.subtitle1)),
             const SizedBox(height: AppSpacing.md),
             buildResponsiveSettingsRow(
               context: context,
@@ -131,10 +166,7 @@ class SettingsGeneralSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Semantics(
-              header: true,
-              child: Text('消息推送', style: type.subtitle1),
-            ),
+            Semantics(header: true, child: Text('消息推送', style: type.subtitle1)),
             const SizedBox(height: AppSpacing.md),
             buildResponsiveSettingsRow(
               context: context,

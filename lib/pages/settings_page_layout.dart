@@ -202,6 +202,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           closeBehavior: _closeBehavior,
           notificationEnabled: _notificationEnabled,
           dndEnabled: _dndEnabled,
+          homeStudentProfileCardVisible: _homeStudentProfileCardVisible,
           dndStartHour: _dndStartHour,
           dndStartMinute: _dndStartMinute,
           dndEndHour: _dndEndHour,
@@ -209,6 +210,8 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           onCloseBehaviorChanged: _onCloseBehaviorChanged,
           onNotificationChanged: _onNotificationChanged,
           onDndChanged: _onDndChanged,
+          onHomeStudentProfileCardVisibleChanged:
+              _onHomeStudentProfileCardVisibleChanged,
           onDndStartChanged: _onDndStartChanged,
           onDndEndChanged: _onDndEndChanged,
         );

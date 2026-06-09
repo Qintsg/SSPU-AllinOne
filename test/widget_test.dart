@@ -20,6 +20,7 @@ import 'package:sspu_allinone/services/wxmp_config_service.dart';
 import 'package:sspu_allinone/widgets/app_feedback.dart';
 import 'package:sspu_allinone/widgets/campus_network_status_indicator.dart';
 import 'package:sspu_allinone/widgets/settings_auto_refresh_section.dart';
+import 'package:sspu_allinone/widgets/settings_general_section.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_section.dart';
 
 /// 等待目标组件出现，避免页面异步加载尚未完成时提前断言。
@@ -493,6 +494,47 @@ void main() {
     await tester.tap(find.text('前往设置').first);
     await tester.pump(const Duration(milliseconds: 150));
     expect(selectedShortcut, 3);
+  });
+
+  testWidgets('常规设置分区显示首页学籍卡片开关', (WidgetTester tester) async {
+    var visible = true;
+    await tester.pumpWidget(
+      FluentApp(
+        home: ScaffoldPage(
+          content: SingleChildScrollView(
+            child: SettingsGeneralSection(
+              closeBehavior: 'ask',
+              notificationEnabled: true,
+              dndEnabled: false,
+              homeStudentProfileCardVisible: true,
+              dndStartHour: 22,
+              dndStartMinute: 0,
+              dndEndHour: 7,
+              dndEndMinute: 0,
+              onCloseBehaviorChanged: (_) {},
+              onNotificationChanged: (_) {},
+              onDndChanged: (_) {},
+              onHomeStudentProfileCardVisibleChanged: (value) =>
+                  visible = value,
+              onDndStartChanged: (_, _) async {},
+              onDndEndChanged: (_, _) async {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('首页显示'), findsOneWidget);
+    expect(find.text('显示学籍信息卡片'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('settings-home-student-profile-card-switch')),
+    );
+    await tester.pump();
+    expect(visible, isFalse);
+    await tester.pump(const Duration(milliseconds: 120));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
   });
 
   testWidgets('页面反馈连续显示时替换上一条信息条', (WidgetTester tester) async {
