@@ -119,6 +119,7 @@ void main() {
     expect(find.text('Artistic License 2.0'), findsOneWidget);
     expect(find.text('flutter_inappwebview'), findsOneWidget);
     expect(find.text('enough_mail'), findsOneWidget);
+    expect(find.text('open_filex'), findsOneWidget);
   });
 
   testWidgets('桌面首次启动协议确认弹窗提供更大阅读面积', (tester) async {
