@@ -102,7 +102,7 @@ Widget buildSettingsNavItem({
   );
 }
 
-class _SettingsNavItem extends StatefulWidget {
+class _SettingsNavItem extends StatelessWidget {
   const _SettingsNavItem({
     required this.isSelected,
     required this.icon,
@@ -120,114 +120,149 @@ class _SettingsNavItem extends StatefulWidget {
   final FluentTypography type;
 
   @override
-  State<_SettingsNavItem> createState() => _SettingsNavItemState();
-}
-
-class _SettingsNavItemState extends State<_SettingsNavItem> {
-  bool _hovered = false;
-  bool _pressed = false;
-  bool _focused = false;
-
-  @override
   Widget build(BuildContext context) {
-    final colors = widget.colors;
-    final type = widget.type;
-    final background = widget.isSelected
-        ? colors.brandBackgroundSelected.withValues(alpha: 0.12)
-        : _pressed
-        ? colors.neutralBackground1Pressed
-        : _hovered || _focused
-        ? colors.neutralBackground1Hover
-        : Colors.transparent;
-
     return Semantics(
       button: true,
-      selected: widget.isSelected,
-      child: Shortcuts(
+      selected: isSelected,
+      child: HoverButton(
+        cursor: SystemMouseCursors.click,
+        onPressed: onTap,
+        semanticLabel: label,
         shortcuts: const <ShortcutActivator, Intent>{
           SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.numpadEnter): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
         },
-        child: FocusableActionDetector(
-          mouseCursor: SystemMouseCursors.click,
-          onShowFocusHighlight: (focused) => setState(() => _focused = focused),
-          onShowHoverHighlight: (hovered) => setState(() {
-            _hovered = hovered;
-            if (!hovered) _pressed = false;
-          }),
-          actions: <Type, Action<Intent>>{
-            ActivateIntent: CallbackAction<ActivateIntent>(
-              onInvoke: (_) {
-                widget.onTap();
-                return null;
-              },
-            ),
-          },
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: widget.onTap,
-            onTapDown: (_) => setState(() => _pressed = true),
-            onTapUp: (_) => setState(() => _pressed = false),
-            onTapCancel: () => setState(() => _pressed = false),
-            child: SizedBox(
-              width: double.infinity,
-              child: AnimatedContainer(
-                duration: AppMotion.short,
-                padding: const EdgeInsetsDirectional.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
-                decoration: BoxDecoration(
-                  color: background,
-                  borderRadius: AppShapes.md,
-                  border: Border.all(
-                    color: _focused ? colors.brandStroke1 : Colors.transparent,
-                    width: 2,
+        builder: (context, states) {
+          final style = _resolveSettingsNavItemStyle(
+            context: context,
+            colors: colors,
+            type: type,
+            states: states,
+            isSelected: isSelected,
+          );
+
+          return SizedBox(
+            width: double.infinity,
+            child: AnimatedContainer(
+              duration: AppMotion.short,
+              padding: const EdgeInsetsDirectional.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: style.background,
+                borderRadius: AppShapes.md,
+                border: Border.all(color: style.border, width: 2),
+              ),
+              child: Row(
+                children: [
+                  AnimatedContainer(
+                    duration: AppMotion.short,
+                    width: 4,
+                    height: 24,
+                    margin: const EdgeInsetsDirectional.only(
+                      end: AppSpacing.sm,
+                    ),
+                    decoration: BoxDecoration(
+                      color: style.indicator,
+                      borderRadius: AppShapes.xs,
+                    ),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    AnimatedContainer(
-                      duration: AppMotion.short,
-                      width: 4,
-                      height: 24,
-                      margin: const EdgeInsetsDirectional.only(
-                        end: AppSpacing.sm,
-                      ),
-                      decoration: BoxDecoration(
-                        color: widget.isSelected
-                            ? colors.brandBackground
-                            : Colors.transparent,
-                        borderRadius: AppShapes.xs,
-                      ),
-                    ),
-                    Icon(
-                      widget.icon,
-                      color: widget.isSelected
-                          ? colors.brandForeground1
-                          : colors.neutralForeground2,
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        widget.label,
-                        style: widget.isSelected
-                            ? type.body1Strong.copyWith(
-                                color: colors.brandForeground1,
-                              )
-                            : type.body1,
-                      ),
-                    ),
-                  ],
-                ),
+                  Icon(icon, color: style.foreground),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(child: Text(label, style: style.labelStyle)),
+                ],
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
+}
+
+class _SettingsNavItemStyle {
+  const _SettingsNavItemStyle({
+    required this.background,
+    required this.border,
+    required this.indicator,
+    required this.foreground,
+    required this.labelStyle,
+  });
+
+  /// 导航项背景色。
+  final Color background;
+
+  /// 导航项焦点描边色。
+  final Color border;
+
+  /// 选中指示条颜色。
+  final Color indicator;
+
+  /// 图标前景色。
+  final Color foreground;
+
+  /// 标签文本样式。
+  final TextStyle labelStyle;
+}
+
+/// 根据 Fluent 交互状态解析设置导航项视觉。
+_SettingsNavItemStyle _resolveSettingsNavItemStyle({
+  required BuildContext context,
+  required FluentColors colors,
+  required FluentTypography type,
+  required Set<WidgetState> states,
+  required bool isSelected,
+}) {
+  final resources = FluentTheme.of(context).resources;
+
+  if (states.isDisabled) {
+    return _SettingsNavItemStyle(
+      background: Colors.transparent,
+      border: Colors.transparent,
+      indicator: Colors.transparent,
+      foreground: colors.neutralForegroundDisabled,
+      labelStyle: type.body1.copyWith(color: colors.neutralForegroundDisabled),
+    );
+  }
+
+  final background = _resolveSettingsNavItemBackground(
+    resources: resources,
+    states: states,
+    isSelected: isSelected,
+  );
+  final foreground = isSelected
+      ? colors.brandForeground1
+      : colors.neutralForeground2;
+
+  return _SettingsNavItemStyle(
+    background: background,
+    border: states.isFocused ? colors.brandStroke1 : Colors.transparent,
+    indicator: isSelected ? colors.brandBackground : Colors.transparent,
+    foreground: foreground,
+    labelStyle: isSelected
+        ? type.body1Strong.copyWith(color: foreground)
+        : type.body1.copyWith(color: foreground),
+  );
+}
+
+/// 对齐 `NavigationPane` 普通导航项的浅色背景状态。
+Color _resolveSettingsNavItemBackground({
+  required ResourceDictionary resources,
+  required Set<WidgetState> states,
+  required bool isSelected,
+}) {
+  if (isSelected) {
+    return states.isHovered || states.isPressed
+        ? resources.subtleFillColorTertiary
+        : resources.subtleFillColorSecondary;
+  }
+
+  if (states.isPressed) return resources.subtleFillColorTertiary;
+  if (states.isHovered) return resources.subtleFillColorSecondary;
+
+  return resources.subtleFillColorTransparent;
 }
 
 /// 构建数值设置框。

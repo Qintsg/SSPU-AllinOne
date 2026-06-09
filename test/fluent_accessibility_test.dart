@@ -6,12 +6,83 @@
  * @Date : 2026-05-31
  */
 
+import 'dart:ui' show PointerDeviceKind;
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/design/fluent_ui.dart';
 import 'package:sspu_allinone/widgets/settings_widgets.dart';
 
 void main() {
+  Widget buildSettingsNavHarness({
+    int selectedIndex = 0,
+    ValueChanged<int>? onSelected,
+  }) {
+    return FluentApp(
+      home: ScaffoldPage(
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            void selectIndex(int index) {
+              setState(() => selectedIndex = index);
+              onSelected?.call(index);
+            }
+
+            return Column(
+              children: [
+                buildSettingsNavItem(
+                  context: context,
+                  index: 0,
+                  selectedIndex: selectedIndex,
+                  icon: FluentIcons.settings,
+                  label: '常规设置',
+                  onTap: () => selectIndex(0),
+                ),
+                buildSettingsNavItem(
+                  context: context,
+                  index: 1,
+                  selectedIndex: selectedIndex,
+                  icon: FluentIcons.sync,
+                  label: '自动刷新设置',
+                  onTap: () => selectIndex(1),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  BoxDecoration navItemDecoration(WidgetTester tester, String label) {
+    final finder = find.ancestor(
+      of: find.text(label),
+      matching: find.byType(AnimatedContainer),
+    );
+    return tester.widget<AnimatedContainer>(finder.first).decoration!
+        as BoxDecoration;
+  }
+
+  BoxDecoration navItemIndicatorDecoration(WidgetTester tester, String label) {
+    final row = find.ancestor(of: find.text(label), matching: find.byType(Row));
+    final indicator = find.descendant(
+      of: row.first,
+      matching: find.byType(AnimatedContainer),
+    );
+    return tester.widget<AnimatedContainer>(indicator.first).decoration!
+        as BoxDecoration;
+  }
+
+  Icon navItemIcon(WidgetTester tester, String label, IconData icon) {
+    final row = find.ancestor(of: find.text(label), matching: find.byType(Row));
+    return tester.widget<Icon>(
+      find.descendant(of: row.first, matching: find.byIcon(icon)).first,
+    );
+  }
+
+  ResourceDictionary navResources(WidgetTester tester, String label) {
+    return FluentTheme.of(tester.element(find.text(label))).resources;
+  }
+
   testWidgets('FluentSelect 支持键盘打开、移动并选择选项', (tester) async {
     var selectedValue = 0;
 
@@ -59,34 +130,7 @@ void main() {
     var selectedIndex = 0;
 
     await tester.pumpWidget(
-      FluentApp(
-        home: ScaffoldPage(
-          content: StatefulBuilder(
-            builder: (context, setState) {
-              return Column(
-                children: [
-                  buildSettingsNavItem(
-                    context: context,
-                    index: 0,
-                    selectedIndex: selectedIndex,
-                    icon: FluentIcons.settings,
-                    label: '常规设置',
-                    onTap: () => setState(() => selectedIndex = 0),
-                  ),
-                  buildSettingsNavItem(
-                    context: context,
-                    index: 1,
-                    selectedIndex: selectedIndex,
-                    icon: FluentIcons.sync,
-                    label: '自动刷新设置',
-                    onTap: () => setState(() => selectedIndex = 1),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
+      buildSettingsNavHarness(onSelected: (index) => selectedIndex = index),
     );
 
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
@@ -97,6 +141,120 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(selectedIndex, 1);
+  });
+
+  testWidgets('设置侧栏导航项 hover 移出后恢复默认背景', (tester) async {
+    final previousHighlightStrategy = FocusManager.instance.highlightStrategy;
+    FocusManager.instance.highlightStrategy =
+        FocusHighlightStrategy.alwaysTraditional;
+    addTearDown(() {
+      FocusManager.instance.highlightStrategy = previousHighlightStrategy;
+    });
+
+    await tester.pumpWidget(buildSettingsNavHarness());
+
+    final resources = navResources(tester, '常规设置');
+    final pointer = await tester.createGesture(kind: PointerDeviceKind.mouse);
+
+    expect(
+      navItemDecoration(tester, '自动刷新设置').color,
+      resources.subtleFillColorTransparent,
+    );
+
+    await pointer.moveTo(tester.getCenter(find.text('自动刷新设置')));
+    await tester.pump();
+    expect(
+      navItemDecoration(tester, '自动刷新设置').color,
+      resources.subtleFillColorSecondary,
+    );
+
+    await pointer.moveTo(tester.getCenter(find.text('常规设置')));
+    await tester.pump();
+    expect(
+      navItemDecoration(tester, '自动刷新设置').color,
+      resources.subtleFillColorTransparent,
+    );
+  });
+
+  testWidgets('设置侧栏导航项 selected hover 不覆盖选中身份', (tester) async {
+    final previousHighlightStrategy = FocusManager.instance.highlightStrategy;
+    FocusManager.instance.highlightStrategy =
+        FocusHighlightStrategy.alwaysTraditional;
+    addTearDown(() {
+      FocusManager.instance.highlightStrategy = previousHighlightStrategy;
+    });
+
+    await tester.pumpWidget(buildSettingsNavHarness());
+
+    final colors = tester.element(find.text('常规设置')).fluentColors;
+    final resources = navResources(tester, '常规设置');
+    final pointer = await tester.createGesture(kind: PointerDeviceKind.mouse);
+
+    await pointer.moveTo(tester.getCenter(find.text('常规设置')));
+    await tester.pump();
+
+    expect(
+      navItemDecoration(tester, '常规设置').color,
+      resources.subtleFillColorTertiary,
+    );
+    expect(
+      navItemIndicatorDecoration(tester, '常规设置').color,
+      colors.brandBackground,
+    );
+    expect(
+      navItemIcon(tester, '常规设置', FluentIcons.settings).color,
+      colors.brandForeground1,
+    );
+    expect(
+      tester.widget<Text>(find.text('常规设置')).style?.color,
+      colors.brandForeground1,
+    );
+  });
+
+  testWidgets('设置侧栏导航项键盘焦点只显示焦点边框', (tester) async {
+    await tester.pumpWidget(buildSettingsNavHarness());
+
+    final colors = tester.element(find.text('自动刷新设置')).fluentColors;
+    final resources = navResources(tester, '自动刷新设置');
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+
+    final decoration = navItemDecoration(tester, '自动刷新设置');
+    expect(decoration.color, resources.subtleFillColorTransparent);
+    expect(decoration.border?.top.color, colors.brandStroke1);
+  });
+
+  testWidgets('设置侧栏导航项快速划过时旧项不残留 hover 背景', (tester) async {
+    final previousHighlightStrategy = FocusManager.instance.highlightStrategy;
+    FocusManager.instance.highlightStrategy =
+        FocusHighlightStrategy.alwaysTraditional;
+    addTearDown(() {
+      FocusManager.instance.highlightStrategy = previousHighlightStrategy;
+    });
+
+    await tester.pumpWidget(buildSettingsNavHarness());
+
+    final resources = navResources(tester, '常规设置');
+    final pointer = await tester.createGesture(kind: PointerDeviceKind.mouse);
+
+    await pointer.moveTo(tester.getCenter(find.text('自动刷新设置')));
+    await tester.pump();
+    await pointer.moveTo(tester.getCenter(find.text('常规设置')));
+    await tester.pump();
+    await pointer.moveTo(tester.getCenter(find.text('自动刷新设置')));
+    await tester.pump();
+
+    expect(
+      navItemDecoration(tester, '常规设置').color,
+      resources.subtleFillColorSecondary,
+    );
+    expect(
+      navItemDecoration(tester, '自动刷新设置').color,
+      resources.subtleFillColorSecondary,
+    );
   });
 
   testWidgets('FluentSurface 和 FluentCard 支持键盘激活', (tester) async {
