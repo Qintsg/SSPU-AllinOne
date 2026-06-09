@@ -8,7 +8,9 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sspu_allinone/models/academic_calendar.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
+import 'package:sspu_allinone/services/academic_calendar_service.dart';
 import 'package:sspu_allinone/services/academic_term_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 
@@ -205,6 +207,63 @@ void main() {
     expect(afterKnownContext.dateStatus, AcademicTermDateStatus.unsupported);
   });
 
+  test('动态校历缓存优先覆盖同学期内置定义', () async {
+    final dynamicService = _FakeAcademicCalendarClient(
+      definitions: [
+        AcademicTermDefinition(
+          choice: const AcademicTermChoice(
+            academicYear: 2026,
+            season: AcademicTermSeason.fall,
+          ),
+          startDate: DateTime(2026, 9, 21),
+          endDate: DateTime(2027, 1, 17),
+          teachingSegments: [
+            AcademicTermTeachingSegment(
+              startDate: DateTime(2026, 9, 21),
+              endDate: DateTime(2027, 1, 17),
+              startWeek: 1,
+              endWeek: 17,
+            ),
+          ],
+        ),
+      ],
+    );
+    final service = AcademicTermService(calendarService: dynamicService);
+
+    final context = await service.getEffectiveContext(
+      now: DateTime(2026, 9, 21),
+    );
+
+    expect(dynamicService.ensureCallCount, 1);
+    expectTeachingWeek(
+      context,
+      academicYear: 2026,
+      season: AcademicTermSeason.fall,
+      week: 1,
+      source: AcademicTermContextSource.automatic,
+    );
+  });
+
+  test('动态校历刷新失败时回退到内置定义', () async {
+    final service = AcademicTermService(
+      calendarService: _FakeAcademicCalendarClient(
+        ensureError: Exception('fail'),
+      ),
+    );
+
+    final context = await service.getEffectiveContext(
+      now: DateTime(2026, 9, 21),
+    );
+
+    expectTeachingWeek(
+      context,
+      academicYear: 2026,
+      season: AcademicTermSeason.fall,
+      week: 1,
+      source: AcademicTermContextSource.automatic,
+    );
+  });
+
   test('全局学期选择仅持久化学年和学期并清理旧周数开关', () async {
     final service = AcademicTermService();
     await StorageService.setInt(StorageKeys.academicTermManualWeek, 8);
@@ -234,6 +293,50 @@ void main() {
       isFalse,
     );
   });
+}
+
+class _FakeAcademicCalendarClient implements AcademicCalendarClient {
+  _FakeAcademicCalendarClient({this.definitions = const [], this.ensureError});
+
+  final List<AcademicTermDefinition> definitions;
+  final Object? ensureError;
+  int ensureCallCount = 0;
+
+  @override
+  Future<AcademicCalendarSyncResult> ensureCalendarsForDate({
+    DateTime? now,
+  }) async {
+    ensureCallCount++;
+    final error = ensureError;
+    if (error != null) throw error;
+    return const AcademicCalendarSyncResult(
+      entries: [],
+      loadedFromCache: false,
+      refreshed: false,
+    );
+  }
+
+  @override
+  Future<List<AcademicTermDefinition>> readCachedTermDefinitions() async {
+    return definitions;
+  }
+
+  @override
+  Future<List<AcademicCalendarCacheEntry>> readCachedCalendars() async {
+    return const [];
+  }
+
+  @override
+  Future<AcademicCalendarCacheEntry?> readCachedCalendar(int schoolYear) async {
+    return null;
+  }
+
+  @override
+  Future<List<AcademicCalendarCacheEntry>> refreshCalendars({
+    List<int>? targetYears,
+  }) async {
+    return const [];
+  }
 }
 
 void expectTeachingWeek(

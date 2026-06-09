@@ -141,6 +141,18 @@ const List<_OpenSourceProject> _openSourceProjects = [
     url: 'https://pub.dev/packages/enough_mail',
   ),
   _OpenSourceProject(
+    name: 'pdfrx',
+    description: '应用内 PDF 查看与 PDF 渲染能力',
+    license: 'MIT',
+    url: 'https://pub.dev/packages/pdfrx',
+  ),
+  _OpenSourceProject(
+    name: 'pdfrx_engine',
+    description: 'PDF 文本抽取与底层 PDFium 封装',
+    license: 'MIT',
+    url: 'https://pub.dev/packages/pdfrx_engine',
+  ),
+  _OpenSourceProject(
     name: 'MiSans',
     description: '小米系统字体，数字等宽',
     license: 'MiSans EULA',

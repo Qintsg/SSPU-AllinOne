@@ -9,6 +9,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/academic_term.dart';
+import 'academic_calendar_service.dart';
 import 'storage_service.dart';
 
 /// 内置校历解析器。
@@ -131,6 +132,22 @@ class AcademicCalendarResolver {
     return knownAcademicYears.contains(choice.academicYear);
   }
 
+  /// 合并动态校历与内置定义；同一学年学期以动态解析结果为准。
+  static List<AcademicTermDefinition> mergeDefinitions({
+    required List<AcademicTermDefinition> dynamicDefinitions,
+    List<AcademicTermDefinition>? fallbackDefinitions,
+  }) {
+    final fallback = fallbackDefinitions ?? defaultDefinitions;
+    final dynamicChoices = dynamicDefinitions
+        .map((definition) => definition.choice)
+        .toSet();
+    return [
+      ...dynamicDefinitions,
+      for (final definition in fallback)
+        if (!dynamicChoices.contains(definition.choice)) definition,
+    ];
+  }
+
   static AcademicTermDefinition _fall(int year, DateTime startDate) {
     return _continuous(year, AcademicTermSeason.fall, startDate, 17);
   }
@@ -188,8 +205,11 @@ class AcademicCalendarResolver {
 
 /// 全局学期设置服务。
 class AcademicTermService extends ChangeNotifier {
-  AcademicTermService({AcademicCalendarResolver? calendarResolver})
-    : _calendarResolver = calendarResolver ?? AcademicCalendarResolver();
+  AcademicTermService({
+    AcademicCalendarResolver? calendarResolver,
+    AcademicCalendarClient? calendarService,
+  }) : _calendarResolver = calendarResolver ?? AcademicCalendarResolver(),
+       _calendarService = calendarService ?? AcademicCalendarService.instance;
 
   /// 全局单例。
   static final AcademicTermService instance = AcademicTermService();
@@ -201,6 +221,7 @@ class AcademicTermService extends ChangeNotifier {
   );
 
   final AcademicCalendarResolver _calendarResolver;
+  final AcademicCalendarClient _calendarService;
 
   AcademicTermSettings? _settings;
 
@@ -236,19 +257,37 @@ class AcademicTermService extends ChangeNotifier {
   /// 读取当前生效学期上下文。
   Future<AcademicTermContext> getEffectiveContext({DateTime? now}) async {
     if (_settings == null) await loadSettings();
-    return resolveContext(settings, now: now);
+    final resolvedAt = now ?? DateTime.now();
+    try {
+      await _calendarService.ensureCalendarsForDate(now: resolvedAt);
+      final definitions = await _calendarService.readCachedTermDefinitions();
+      if (definitions.isNotEmpty) {
+        return resolveContext(
+          settings,
+          now: resolvedAt,
+          calendarResolver: AcademicCalendarResolver(
+            definitions: AcademicCalendarResolver.mergeDefinitions(
+              dynamicDefinitions: definitions,
+            ),
+          ),
+        );
+      }
+    } catch (_) {
+      // 校历抓取或解析失败时必须回退内置校历，不阻断设置页和课程表等核心功能。
+    }
+    return resolveContext(settings, now: resolvedAt);
   }
 
   /// 按设置解析当前生效学期上下文。
   AcademicTermContext resolveContext(
     AcademicTermSettings settings, {
     DateTime? now,
+    AcademicCalendarResolver? calendarResolver,
   }) {
     final resolvedAt = now ?? DateTime.now();
+    final resolver = calendarResolver ?? _calendarResolver;
     final selectedTerm = settings.selectedTerm;
-    final automaticDefinition = _calendarResolver.definitionForContext(
-      resolvedAt,
-    );
+    final automaticDefinition = resolver.definitionForContext(resolvedAt);
     if (selectedTerm == null && automaticDefinition == null) {
       return AcademicTermContext(
         term: defaultTerm,
@@ -264,7 +303,7 @@ class AcademicTermService extends ChangeNotifier {
     final source = selectedTerm == null
         ? AcademicTermContextSource.automatic
         : AcademicTermContextSource.selected;
-    final definition = _calendarResolver.definitionFor(term);
+    final definition = resolver.definitionFor(term);
 
     if (definition == null) {
       return AcademicTermContext(
@@ -273,7 +312,7 @@ class AcademicTermService extends ChangeNotifier {
         dateStatus: AcademicTermDateStatus.unsupported,
         resolvedAt: resolvedAt,
         isTeachingWeek: false,
-        message: _calendarResolver.isKnownTerm(term)
+        message: resolver.isKnownTerm(term)
             ? '该学期保留为可选择项，但暂无可定位的内置校历。'
             : '该学期不在官网已知校历范围内。',
       );

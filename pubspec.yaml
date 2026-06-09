@@ -82,6 +82,8 @@ dependencies:
 
   # 邮箱协议客户端，用于学校邮箱 IMAP / POP 只读收信和 SMTP 认证校验
   enough_mail: ^2.1.7
+  pdfrx: ^2.2.24
+  pdfrx_engine: ^0.3.9
 
 dev_dependencies:
   flutter_test:

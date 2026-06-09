@@ -12,8 +12,10 @@ import '../design/fluent_ui.dart';
 
 import '../models/academic_eams.dart';
 import '../services/academic_credentials_service.dart';
+import '../services/academic_calendar_service.dart';
 import '../services/academic_eams_service.dart';
 import '../theme/fluent_tokens.dart';
+import 'academic_calendar_page.dart';
 
 /// 独立课程表页面。
 class CourseSchedulePage extends StatefulWidget {
@@ -29,12 +31,16 @@ class CourseSchedulePage extends StatefulWidget {
   /// 测试专用：覆盖自动刷新间隔。
   final int? autoRefreshIntervalOverride;
 
+  /// 校历客户端，测试中可替换为 fake。
+  final AcademicCalendarClient? academicCalendarService;
+
   const CourseSchedulePage({
     super.key,
     this.academicEamsService,
     this.initialResult,
     this.autoRefreshEnabledOverride,
     this.autoRefreshIntervalOverride,
+    this.academicCalendarService,
   });
 
   @override
@@ -139,6 +145,15 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
         Duration(minutes: intervalMinutes);
   }
 
+  void _openAcademicCalendar() {
+    Navigator.of(context).push(
+      FluentPageRoute(
+        builder: (_) =>
+            AcademicCalendarPage(service: widget.academicCalendarService),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _credentialChangeSubscription?.cancel();
@@ -155,34 +170,33 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     return FluentPage.scrollable(
       header: FluentPageHeader(
         title: const Text('课程表'),
-        commandBar: Row(
-          mainAxisSize: MainAxisSize.min,
+        commandBar: Wrap(
+          spacing: FluentSpacing.s,
+          runSpacing: FluentSpacing.xs,
+          alignment: WrapAlignment.end,
           children: [
-            if (canPop) ...[
+            if (canPop)
               FluentButton.outline(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('返回'),
               ),
-              const SizedBox(width: FluentSpacing.s),
-            ],
-            FluentButton.primary(
+            FluentButton.outlineIcon(
+              key: const Key('open-academic-calendar'),
+              onPressed: _openAcademicCalendar,
+              icon: const Icon(FluentIcons.calendarWeek, size: 14),
+              label: const Text('校历'),
+            ),
+            FluentButton.primaryIcon(
               key: const Key('course-schedule-refresh'),
               onPressed: _isLoading ? null : _loadCourseTable,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_isLoading)
-                    const SizedBox(
+              icon: _isLoading
+                  ? const SizedBox(
                       width: 14,
                       height: 14,
                       child: FluentProgressRing(strokeWidth: 2),
                     )
-                  else
-                    const Icon(FluentIcons.refresh, size: 14),
-                  const SizedBox(width: 6),
-                  const Text('刷新课表'),
-                ],
-              ),
+                  : const Icon(FluentIcons.refresh, size: 14),
+              label: const Text('刷新课表'),
             ),
           ],
         ),
