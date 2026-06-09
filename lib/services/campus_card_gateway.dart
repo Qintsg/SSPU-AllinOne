@@ -57,6 +57,7 @@ class DioCampusCardGateway implements CampusCardGateway {
     required Uri queryUri,
     required Map<String, String> fields,
     required Duration timeout,
+    Uri? refererUri,
   }) {
     return _sendWithRedirects(
       method: 'POST',
@@ -65,6 +66,8 @@ class DioCampusCardGateway implements CampusCardGateway {
       body: _formEncode(fields),
       contentType: Headers.formUrlEncodedContentType,
       accept: 'text/xml,application/xml,text/html,*/*',
+      referer: refererUri,
+      extraHeaders: const {'X-Requested-With': 'XMLHttpRequest'},
     );
   }
 
@@ -75,6 +78,8 @@ class DioCampusCardGateway implements CampusCardGateway {
     String? body,
     String? contentType,
     String? accept,
+    Uri? referer,
+    Map<String, String> extraHeaders = const {},
   }) async {
     var currentMethod = method;
     var currentUri = uri;
@@ -86,6 +91,11 @@ class DioCampusCardGateway implements CampusCardGateway {
       final cookieHeader = _cookieStore.headerFor(currentUri);
       if (cookieHeader.isNotEmpty) headers['Cookie'] = cookieHeader;
       if (accept != null) headers['Accept'] = accept;
+      if (referer != null) headers['Referer'] = referer.toString();
+      if (referer != null) {
+        headers['Origin'] = '${referer.scheme}://${referer.host}';
+      }
+      headers.addAll(extraHeaders);
 
       final response = await _dio
           .request<List<int>>(

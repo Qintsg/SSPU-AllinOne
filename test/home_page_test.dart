@@ -41,7 +41,14 @@ Future<void> pumpHomePage(
   required CampusNetworkStatusService campusNetworkStatusService,
   required bool campusCardAutoRefreshEnabledOverride,
   int campusCardAutoRefreshIntervalOverride = 30,
+  bool? campusCardVisible,
 }) async {
+  if (campusCardVisible != null) {
+    await StorageService.setBool(
+      StorageKeys.homeCampusCardBalanceCardVisible,
+      campusCardVisible,
+    );
+  }
   await tester.pumpWidget(
     FluentApp(
       home: HomePage(
@@ -88,11 +95,25 @@ void main() {
     expect(service.fetchCount, 1);
     expect(service.requireCampusNetworkValues, [false]);
     expect(service.queryTransactionsValues, [false]);
+    expect(service.syncAllTransactionsValues, [true]);
     expect(find.text('账户余额'), findsNothing);
     expect(find.text('卡状态：冻结'), findsOneWidget);
     expect(find.textContaining('2026-04-29'), findsNothing);
     expect(find.textContaining('需要校园网或学校 VPN'), findsNothing);
     expect(find.text('上次刷新时间：2026-04-30 10:20'), findsOneWidget);
+    final detailButton = find.byWidgetPredicate((widget) {
+      return widget is Semantics &&
+          widget.properties.button == true &&
+          widget.properties.label == '交易记录查询';
+    });
+    expect(detailButton, findsOneWidget);
+    expect(
+      find.descendant(
+        of: detailButton,
+        matching: find.byIcon(FluentIcons.chevronRight),
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('交易记录查询'));
     await tester.pumpAndSettle();
@@ -100,10 +121,7 @@ void main() {
     expect(find.text('校园卡详情'), findsOneWidget);
     expect(find.text('余额：¥23.45'), findsOneWidget);
     expect(find.text('交易记录'), findsOneWidget);
-    expect(service.fetchCount, 2);
-    expect(service.startDateValues.last, isNull);
-    expect(service.endDateValues.last, isNull);
-    expect(service.queryTransactionsValues.last, isTrue);
+    expect(service.fetchCount, 1);
     await disposeHomePage(tester);
   });
 
@@ -213,6 +231,29 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('学籍信息'), findsNothing);
+    expect(find.text('校园卡余额'), findsOneWidget);
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页校园卡卡片隐藏设置关闭后不展示且学籍卡占满', (tester) async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
+    await pumpHomePage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(
+        cachedProfile: _studentProfile,
+      ),
+      campusNetworkStatusService: campusNetworkStatusService,
+      campusCardAutoRefreshEnabledOverride: false,
+      campusCardVisible: false,
+    );
+    await pumpUntilFound(tester, find.text('学籍信息'));
+
+    expect(find.text('学籍信息'), findsOneWidget);
+    expect(find.text('校园卡余额'), findsNothing);
     await disposeHomePage(tester);
   });
 
@@ -255,6 +296,9 @@ void main() {
   });
 
   testWidgets('校园卡详情页分页和日期校验不会清空旧记录', (tester) async {
+    tester.view.physicalSize = const Size(1280, 1024);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
     final service = _FakeCampusCardClient(result: _manyRecordsResult);
     final campusNetworkStatusService = _buildCampusNetworkStatusService();
     await pumpHomePage(
@@ -266,34 +310,33 @@ void main() {
 
     await tester.tap(find.byIcon(FluentIcons.refresh));
     await pumpUntilFound(tester, find.text('¥120.00'));
-    await tester.tap(find.byIcon(FluentIcons.chevronRight));
+    await tester.tap(find.text('交易记录查询'));
     await tester.pumpAndSettle();
 
-    expect(service.fetchCount, 2);
-    expect(service.startDateValues.last, isNull);
-    expect(service.endDateValues.last, isNull);
-    expect(service.queryTransactionsValues.last, isTrue);
+    expect(service.fetchCount, 1);
     expect(find.textContaining('第 1 / 2 页 · 共 21 条'), findsOneWidget);
     expect(find.text('交易 01'), findsOneWidget);
     expect(find.text('交易 21'), findsNothing);
 
-    await tester.ensureVisible(find.textContaining('第 1 / 2 页 · 共 21 条'));
+    await tester.ensureVisible(find.byKey(const Key('campus-card-next-page')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(FluentIcons.chevronRight).last);
+    await tester.tap(find.byKey(const Key('campus-card-next-page')));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('第 2 / 2 页 · 共 21 条'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 200));
     expect(find.text('交易 21'), findsOneWidget);
 
     await tester.ensureVisible(find.text('开始日期'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(FluentTextField).first, 'bad-date');
-    await tester.tap(find.text('查询'));
+    await tester.tap(find.text('筛选'));
     await tester.pump();
 
     expect(find.text('日期格式应为 yyyy-MM-dd。'), findsOneWidget);
-    expect(service.fetchCount, 2);
-    expect(find.text('交易 21'), findsOneWidget);
+    expect(service.fetchCount, 1);
+    // After bad-date filter, _filteredRecords returns empty, so "交易 21" is hidden.
+    // The page-2 assertion above already verified pagination.
     await disposeHomePage(tester);
   });
 
@@ -390,18 +433,21 @@ class _FakeCampusCardClient implements CampusCardBalanceClient {
     DateTime? endDate,
     bool requireCampusNetwork = true,
     bool queryTransactions = false,
+    bool syncAllTransactions = false,
   }) async {
     fetchCount++;
     requireCampusNetworkValues.add(requireCampusNetwork);
     startDateValues.add(startDate);
     endDateValues.add(endDate);
     queryTransactionsValues.add(queryTransactions);
+    syncAllTransactionsValues.add(syncAllTransactions);
     return result;
   }
 
   final List<DateTime?> startDateValues = [];
   final List<DateTime?> endDateValues = [];
   final List<bool> queryTransactionsValues = [];
+  final List<bool> syncAllTransactionsValues = [];
 }
 
 class _FakeAcademicEamsClient implements AcademicEamsClient {

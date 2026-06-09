@@ -212,7 +212,7 @@ class CampusCardPageParser {
     if (label == '创建时间' || label == '交易时间' || label == '时间') {
       return _CampusCardTransactionColumn.occurredAt;
     }
-    if (label == '名称' || label == '交易名称') {
+    if (label == '名称' || label == '交易名称' || label.contains('名称')) {
       return _CampusCardTransactionColumn.title;
     }
     if (label == '交易号' || label == '流水号' || label == '订单号') {
@@ -221,7 +221,7 @@ class CampusCardPageParser {
     if (label == '对方' || label == '商户' || label == '商家') {
       return _CampusCardTransactionColumn.counterparty;
     }
-    if (label == '金额' || label == '交易金额') {
+    if (label == '金额' || label == '交易金额' || label.contains('金额')) {
       return _CampusCardTransactionColumn.amount;
     }
     if (label == '明细' || label == '详情') {
@@ -241,16 +241,20 @@ class CampusCardPageParser {
     List<String> cells,
     Map<_CampusCardTransactionColumn, int> indexes,
   ) {
-    final occurredAt =
-        _cellAt(cells, indexes[_CampusCardTransactionColumn.occurredAt]) ??
-        _datePattern.firstMatch(cells.join(' '))?.group(0);
+    final occurredAt = _parseOccurredAt(
+      _cellAt(cells, indexes[_CampusCardTransactionColumn.occurredAt]) ??
+          cells.join(' '),
+    );
     if (occurredAt == null || occurredAt.isEmpty) return null;
 
-    final title = _cellAt(cells, indexes[_CampusCardTransactionColumn.title]);
-    final transactionId = _cellAt(
+    final titleCell = _cellAt(
       cells,
-      indexes[_CampusCardTransactionColumn.transactionId],
+      indexes[_CampusCardTransactionColumn.title],
     );
+    final title = _parseTitle(titleCell);
+    final transactionId =
+        _cellAt(cells, indexes[_CampusCardTransactionColumn.transactionId]) ??
+        _parseTransactionId(titleCell);
     final counterparty = _cellAt(
       cells,
       indexes[_CampusCardTransactionColumn.counterparty],
@@ -279,6 +283,7 @@ class CampusCardPageParser {
       contextText: contextText,
     );
     if (amount == null || !_hasTransactionHint(contextText)) return null;
+    final direction = _parseDirection(contextText, amount);
 
     return CampusCardTransactionRecord(
       occurredAt: occurredAt,
@@ -290,6 +295,7 @@ class CampusCardPageParser {
       counterparty: counterparty,
       paymentMethod: paymentMethod,
       status: status,
+      direction: direction,
       rawCells: List.unmodifiable(cells),
     );
   }
@@ -298,7 +304,7 @@ class CampusCardPageParser {
     List<String> cells,
   ) {
     final joinedCells = cells.join(' ');
-    final occurredAt = _datePattern.firstMatch(joinedCells)?.group(0);
+    final occurredAt = _parseOccurredAt(joinedCells);
     if (occurredAt == null || !_hasTransactionHint(joinedCells)) return null;
 
     final amount = _parseRecordAmount(cells, contextText: joinedCells);
@@ -309,6 +315,7 @@ class CampusCardPageParser {
       merchant: _parseMerchant(cells),
       type: _parseType(joinedCells),
       balanceAfter: _parseBalanceAfter(cells),
+      direction: _parseDirection(joinedCells, amount),
       rawCells: List.unmodifiable(cells),
     );
   }
@@ -321,6 +328,7 @@ class CampusCardPageParser {
         text.contains('退款') ||
         text.contains('退费') ||
         text.contains('交易') ||
+        text.contains('交易号') ||
         text.contains('扣款') ||
         text.contains('收入') ||
         text.contains('支出') ||
@@ -385,6 +393,45 @@ class CampusCardPageParser {
     return null;
   }
 
+  static String? _parseOccurredAt(String text) {
+    final compactMatch = _compactDateTimePattern.firstMatch(text);
+    if (compactMatch != null) {
+      final date = compactMatch.group(1)?.replaceAll('.', '-');
+      final time = compactMatch.group(2);
+      if (date != null && time != null && time.length == 6) {
+        return '$date ${time.substring(0, 2)}:${time.substring(2, 4)}:${time.substring(4, 6)}';
+      }
+    }
+
+    final match = _datePattern.firstMatch(text);
+    if (match == null) return null;
+    final value = match.group(0)?.trim();
+    if (value == null || value.isEmpty) return null;
+    return value
+        .replaceAll('.', '-')
+        .replaceFirstMapped(
+          RegExp(r'\s+(\d{2})(\d{2})(\d{2})$'),
+          (match) => ' ${match.group(1)}:${match.group(2)}:${match.group(3)}',
+        );
+  }
+
+  static String? _parseTitle(String? text) {
+    final value = text?.trim();
+    if (value == null || value.isEmpty) return null;
+    final withoutTransactionId = value
+        .replaceAll(RegExp(r'交易号[:：]?\s*\S+'), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    return withoutTransactionId.isEmpty ? value : withoutTransactionId;
+  }
+
+  static String? _parseTransactionId(String? text) {
+    final value = text?.trim();
+    if (value == null || value.isEmpty) return null;
+    final match = RegExp(r'(?:交易号|流水号|订单号)[:：]?\s*(\S+)').firstMatch(value);
+    return match?.group(1)?.trim();
+  }
+
   static String? _parseType(String text) {
     const types = ['消费', '充值', '补助', '圈存', '退款', '退费', '扣款', '收入', '支出'];
     for (final type in types) {
@@ -392,6 +439,27 @@ class CampusCardPageParser {
     }
     if (text.toUpperCase().contains('POS')) return '消费';
     return null;
+  }
+
+  static String _parseDirection(String text, double amount) {
+    if (_containsAny(text, const [
+      '收入',
+      '充值',
+      '补助',
+      '退款',
+      '退费',
+      '返还',
+      '发放',
+    ])) {
+      return 'income';
+    }
+    if (_containsAny(text, const ['支出', '消费', '扣款', '付款', '支付']) ||
+        text.toUpperCase().contains('POS')) {
+      return 'expense';
+    }
+    if (amount > 0) return 'income';
+    if (amount < 0) return 'expense';
+    return 'unknown';
   }
 
   static double _applyInferredSign(
@@ -470,7 +538,11 @@ class CampusCardPageParser {
   }
 
   static final RegExp _datePattern = RegExp(
-    r'\d{4}[-/]\d{1,2}[-/]\d{1,2}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?',
+    r'\d{4}[-/.]\d{1,2}[-/.]\d{1,2}(?:\s+\d{1,2}:?\d{2}(?::?\d{2})?)?',
+  );
+
+  static final RegExp _compactDateTimePattern = RegExp(
+    r'(\d{4}[-/.]\d{1,2}[-/.]\d{2})\s*(\d{6})',
   );
 }
 

@@ -26,6 +26,9 @@ class SettingsGeneralSection extends StatelessWidget {
   /// 首页是否显示学籍信息卡片。
   final bool homeStudentProfileCardVisible;
 
+  /// 首页是否显示校园卡余额卡片。
+  final bool homeCampusCardBalanceCardVisible;
+
   /// 勿扰开始时间。
   final int dndStartHour;
   final int dndStartMinute;
@@ -46,6 +49,9 @@ class SettingsGeneralSection extends StatelessWidget {
   /// 首页学籍信息卡片显示开关回调。
   final ValueChanged<bool> onHomeStudentProfileCardVisibleChanged;
 
+  /// 首页校园卡余额卡片显示开关回调。
+  final ValueChanged<bool> onHomeCampusCardBalanceCardVisibleChanged;
+
   /// 勿扰开始时间修改回调。
   final Future<void> Function(int hour, int minute) onDndStartChanged;
 
@@ -58,6 +64,7 @@ class SettingsGeneralSection extends StatelessWidget {
     required this.notificationEnabled,
     required this.dndEnabled,
     required this.homeStudentProfileCardVisible,
+    required this.homeCampusCardBalanceCardVisible,
     required this.dndStartHour,
     required this.dndStartMinute,
     required this.dndEndHour,
@@ -66,6 +73,7 @@ class SettingsGeneralSection extends StatelessWidget {
     required this.onNotificationChanged,
     required this.onDndChanged,
     required this.onHomeStudentProfileCardVisibleChanged,
+    required this.onHomeCampusCardBalanceCardVisibleChanged,
     required this.onDndStartChanged,
     required this.onDndEndChanged,
   });
@@ -106,6 +114,18 @@ class SettingsGeneralSection extends StatelessWidget {
                 key: const Key('settings-home-student-profile-card-switch'),
                 value: homeStudentProfileCardVisible,
                 onChanged: onHomeStudentProfileCardVisibleChanged,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            buildResponsiveSettingsRow(
+              context: context,
+              icon: FluentIcons.paymentCard,
+              title: Text('显示校园卡余额卡片', style: type.body1Strong),
+              subtitle: Text('在主页首屏展示校园卡余额和交易记录入口', style: type.caption1),
+              trailing: FluentSwitch(
+                key: const Key('settings-home-campus-card-switch'),
+                value: homeCampusCardBalanceCardVisible,
+                onChanged: onHomeCampusCardBalanceCardVisibleChanged,
               ),
             ),
           ],
