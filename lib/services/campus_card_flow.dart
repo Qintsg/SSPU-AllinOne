@@ -57,7 +57,7 @@ extension _CampusCardFlow on CampusCardService {
     }
   }
 
-  Future<CampusCardHttpSnapshot?> _queryTransactionsIfAvailable(
+  Future<_CampusCardTransactionQueryAttempt> _queryTransactionsIfAvailable(
     CampusCardHttpSnapshot transactionIndexSnapshot, {
     DateTime? startDate,
     DateTime? endDate,
@@ -74,13 +74,34 @@ extension _CampusCardFlow on CampusCardService {
         timeout: timeout,
       );
       if (_isAuthenticationRequired(snapshot) || _isUnavailable(snapshot)) {
-        return null;
+        return _CampusCardTransactionQueryAttempt.failure(
+          status: _isAuthenticationRequired(snapshot)
+              ? CampusCardQueryStatus.oaLoginRequired
+              : CampusCardQueryStatus.cardSystemUnavailable,
+          message: _isAuthenticationRequired(snapshot)
+              ? 'OA 登录状态不可用，无法查询校园卡交易记录'
+              : '校园卡交易记录页面不可用',
+          detail: _isAuthenticationRequired(snapshot)
+              ? '交易记录查询接口返回登录页，请重新验证 OA 登录状态后再试。'
+              : '交易记录查询接口返回不可用状态或错误页面。',
+          finalUri: snapshot.finalUri,
+        );
       }
-      return snapshot;
-    } on DioException catch (_) {
-      return null;
-    } on TimeoutException catch (_) {
-      return null;
+      return _CampusCardTransactionQueryAttempt.success(snapshot);
+    } on DioException catch (error) {
+      return _CampusCardTransactionQueryAttempt.failure(
+        status: CampusCardQueryStatus.networkError,
+        message: '校园卡交易记录查询网络失败',
+        detail: HttpService.describeError(error),
+        finalUri: error.requestOptions.uri,
+      );
+    } on TimeoutException {
+      return _CampusCardTransactionQueryAttempt.failure(
+        status: CampusCardQueryStatus.networkError,
+        message: '校园卡交易记录查询超时',
+        detail: '访问校园卡交易记录查询接口超时。',
+        finalUri: transactionQueryUri,
+      );
     }
   }
 
@@ -199,4 +220,49 @@ extension _CampusCardFlow on CampusCardService {
         ? CampusCardService.defaultAutoRefreshIntervalMinutes
         : minutes;
   }
+}
+
+class _CampusCardTransactionQueryAttempt {
+  const _CampusCardTransactionQueryAttempt._({
+    required this.snapshot,
+    required this.status,
+    required this.message,
+    required this.detail,
+    required this.finalUri,
+  });
+
+  factory _CampusCardTransactionQueryAttempt.success(
+    CampusCardHttpSnapshot snapshot,
+  ) {
+    return _CampusCardTransactionQueryAttempt._(
+      snapshot: snapshot,
+      status: null,
+      message: null,
+      detail: null,
+      finalUri: snapshot.finalUri,
+    );
+  }
+
+  factory _CampusCardTransactionQueryAttempt.failure({
+    required CampusCardQueryStatus status,
+    required String message,
+    required String detail,
+    required Uri finalUri,
+  }) {
+    return _CampusCardTransactionQueryAttempt._(
+      snapshot: null,
+      status: status,
+      message: message,
+      detail: detail,
+      finalUri: finalUri,
+    );
+  }
+
+  final CampusCardHttpSnapshot? snapshot;
+  final CampusCardQueryStatus? status;
+  final String? message;
+  final String? detail;
+  final Uri? finalUri;
+
+  bool get isSuccess => snapshot != null;
 }

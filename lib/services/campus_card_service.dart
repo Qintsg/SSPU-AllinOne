@@ -39,6 +39,7 @@ abstract class CampusCardBalanceClient {
     DateTime? startDate,
     DateTime? endDate,
     bool requireCampusNetwork = true,
+    bool queryTransactions = false,
   });
 }
 
@@ -221,6 +222,7 @@ class CampusCardService implements CampusCardBalanceClient {
     DateTime? startDate,
     DateTime? endDate,
     bool requireCampusNetwork = true,
+    bool queryTransactions = false,
   }) async {
     CampusNetworkStatus? campusStatus;
     try {
@@ -277,6 +279,7 @@ class CampusCardService implements CampusCardBalanceClient {
         endDate: endDate,
         campusNetworkStatus: campusStatus,
         requireCampusNetwork: requireCampusNetwork,
+        queryTransactions: queryTransactions,
       );
       if (result.isSuccess && result.snapshot != null) {
         if (!await _hasSameOaCredentials(studentId, oaPassword)) {
@@ -355,6 +358,7 @@ class CampusCardService implements CampusCardBalanceClient {
     DateTime? endDate,
     required CampusNetworkStatus? campusNetworkStatus,
     required bool requireCampusNetwork,
+    required bool queryTransactions,
   }) async {
     var sessionSnapshot = await _credentialsService.readOaLoginSession();
     var refreshedBeforeEntry = false;
@@ -460,16 +464,32 @@ class CampusCardService implements CampusCardBalanceClient {
       orElse: () => entrySnapshot,
     );
 
-    if (startDate != null || endDate != null) {
-      final querySnapshot = await _queryTransactionsIfAvailable(
+    final shouldQueryTransactions =
+        queryTransactions || startDate != null || endDate != null;
+    final snapshotsForParsing = List<CampusCardHttpSnapshot>.of(snapshots);
+    if (shouldQueryTransactions) {
+      final queryAttempt = await _queryTransactionsIfAvailable(
         transactionIndexSnapshot,
         startDate: startDate,
         endDate: endDate,
       );
-      if (querySnapshot != null) snapshots.add(querySnapshot);
+      if (!queryAttempt.isSuccess) {
+        return _buildResult(
+          queryAttempt.status!,
+          message: queryAttempt.message!,
+          detail: queryAttempt.detail!,
+          finalUri: queryAttempt.finalUri ?? snapshots.last.finalUri,
+          campusNetworkStatus: campusNetworkStatus,
+        );
+      }
+      snapshotsForParsing
+        ..removeWhere(
+          (snapshot) => snapshot.finalUri.path.contains('/consume/index'),
+        )
+        ..add(queryAttempt.snapshot!);
     }
 
-    final snapshot = CampusCardPageParser.parse(snapshots);
+    final snapshot = CampusCardPageParser.parse(snapshotsForParsing);
     if (snapshot == null) {
       return _buildResult(
         CampusCardQueryStatus.parseFailed,

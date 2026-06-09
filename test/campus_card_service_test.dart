@@ -137,7 +137,10 @@ void main() {
     final gateway = _FakeCampusCardGateway();
     final service = _buildService(gateway: gateway, campusReachable: false);
 
-    final result = await service.fetchCampusCard(requireCampusNetwork: false);
+    final result = await service.fetchCampusCard(
+      requireCampusNetwork: false,
+      queryTransactions: true,
+    );
 
     expect(result.status, CampusCardQueryStatus.success);
     expect(gateway.openCount, 1);
@@ -277,9 +280,128 @@ void main() {
     expect(gateway.submittedFields?['starttime'], '2026-04-01');
     expect(gateway.submittedFields?['endtime'], '2026-04-30');
     expect(gateway.submittedFields?['_csrf'], 'csrf-token');
-    expect(result.snapshot?.records.length, 2);
-    expect(result.snapshot?.records.last.type, '充值');
-    expect(result.snapshot?.records.last.amount, 50.00);
+    expect(result.snapshot?.records.length, 1);
+    expect(result.snapshot?.records.single.type, '充值');
+    expect(result.snapshot?.records.single.amount, 50.00);
+  });
+
+  test('交易表头状态和操作不会被误解析为卡状态', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final service = _buildService(
+      gateway: _FakeCampusCardGateway(
+        entryPage: _cardSnapshot('''
+<html><body><div>账户余额：23.45 元</div></body></html>
+'''),
+        homePage: _cardSnapshot('''
+<html><body><div>账户余额：23.45 元</div></body></html>
+'''),
+        transactionPage: CampusCardHttpSnapshot(
+          finalUri: CampusCardService.defaultTransactionIndexUri,
+          statusCode: 200,
+          body: '''
+<html>
+  <head><meta name="_csrf" content="csrf-token" /></head>
+  <body>
+    <table>
+      <tr><th>创建时间</th><th>名称</th><th>交易号</th><th>对方</th><th>金额</th><th>明细</th><th>状态</th><th>操作</th></tr>
+      <tr><td>2026-06-09 12:47</td><td>POS 消费</td><td>T202606090001</td><td>一食堂</td><td>12.50</td><td>午餐</td><td>成功</td><td>详情</td></tr>
+    </table>
+  </body>
+</html>
+''',
+        ),
+      ),
+      campusReachable: true,
+    );
+
+    final result = await service.fetchCampusCard();
+
+    expect(result.status, CampusCardQueryStatus.success);
+    expect(result.snapshot?.status, isNot('操作'));
+    expect(result.snapshot?.status, isEmpty);
+    expect(result.snapshot?.records.single.status, '成功');
+  });
+
+  test('真实 epay 风格交易表解析扩展字段并推断金额符号', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final gateway = _FakeCampusCardGateway(
+      queryPage: CampusCardHttpSnapshot(
+        finalUri: CampusCardService.defaultTransactionQueryUri,
+        statusCode: 200,
+        body: '''
+<ajax-response><![CDATA[
+<table>
+  <tr><th>创建时间</th><th>名称</th><th>交易号</th><th>对方</th><th>金额</th><th>明细</th><th>付款方式</th><th>状态</th><th>操作</th></tr>
+  <tr><td>2026-06-09 12:47</td><td>POS 消费</td><td>T202606090001</td><td>一食堂</td><td>12.50</td><td>午餐</td><td>校园卡</td><td>成功</td><td>详情</td></tr>
+  <tr><td>2026-06-08 08:10</td><td>充值</td><td>T202606080001</td><td>线上平台</td><td>50.00</td><td>账户充值</td><td>支付宝</td><td>成功</td><td>详情</td></tr>
+</table>
+]]></ajax-response>
+''',
+      ),
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final result = await service.fetchCampusCard(
+      requireCampusNetwork: false,
+      queryTransactions: true,
+    );
+
+    expect(result.status, CampusCardQueryStatus.success);
+    expect(gateway.submittedFields?['starttime'], isEmpty);
+    expect(gateway.submittedFields?['endtime'], isEmpty);
+    expect(gateway.submittedFields?['pageNo'], '1');
+    expect(gateway.submittedFields?['pager.offset'], '0');
+    expect(gateway.submittedFields?['_csrf'], 'csrf-token');
+    final records = result.snapshot!.records;
+    expect(records.length, 2);
+    final consumption = records.first;
+    expect(consumption.title, 'POS 消费');
+    expect(consumption.transactionId, 'T202606090001');
+    expect(consumption.counterparty, '一食堂');
+    expect(consumption.paymentMethod, '校园卡');
+    expect(consumption.status, '成功');
+    expect(consumption.amount, -12.50);
+    expect(records.last.amount, 50.00);
+  });
+
+  test('交易记录查询失败时返回失败状态而不伪造空成功结果', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final service = _buildService(
+      gateway: _FakeCampusCardGateway(
+        queryPage: CampusCardHttpSnapshot(
+          finalUri: CampusCardService.defaultTransactionQueryUri,
+          statusCode: 500,
+          body: '<html><body>error</body></html>',
+        ),
+      ),
+      campusReachable: true,
+    );
+
+    final result = await service.fetchCampusCard(
+      requireCampusNetwork: false,
+      queryTransactions: true,
+    );
+
+    expect(result.status, CampusCardQueryStatus.cardSystemUnavailable);
+    expect(result.snapshot, isNull);
   });
 
   test('成功查询写入校园卡缓存且失败不会覆盖最近缓存', () async {

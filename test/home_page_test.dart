@@ -87,17 +87,23 @@ void main() {
 
     expect(service.fetchCount, 1);
     expect(service.requireCampusNetworkValues, [false]);
-    expect(find.text('账户余额'), findsOneWidget);
+    expect(service.queryTransactionsValues, [false]);
+    expect(find.text('账户余额'), findsNothing);
     expect(find.text('卡状态：冻结'), findsOneWidget);
-    expect(find.textContaining('2026-04-29'), findsOneWidget);
-    expect(find.text('上次刷新：2026-04-30 10:20'), findsOneWidget);
+    expect(find.textContaining('2026-04-29'), findsNothing);
+    expect(find.textContaining('需要校园网或学校 VPN'), findsNothing);
+    expect(find.text('上次刷新时间：2026-04-30 10:20'), findsOneWidget);
 
-    await tester.tap(find.byIcon(FluentIcons.chevronRight));
+    await tester.tap(find.text('交易记录查询'));
     await tester.pumpAndSettle();
 
     expect(find.text('校园卡详情'), findsOneWidget);
     expect(find.text('余额：¥23.45'), findsOneWidget);
-    expect(find.text('交易记录查询'), findsOneWidget);
+    expect(find.text('交易记录'), findsOneWidget);
+    expect(service.fetchCount, 2);
+    expect(service.startDateValues.last, isNull);
+    expect(service.endDateValues.last, isNull);
+    expect(service.queryTransactionsValues.last, isTrue);
     await disposeHomePage(tester);
   });
 
@@ -248,6 +254,49 @@ void main() {
     await disposeHomePage(tester);
   });
 
+  testWidgets('校园卡详情页分页和日期校验不会清空旧记录', (tester) async {
+    final service = _FakeCampusCardClient(result: _manyRecordsResult);
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
+    await pumpHomePage(
+      tester,
+      campusCardService: service,
+      campusNetworkStatusService: campusNetworkStatusService,
+      campusCardAutoRefreshEnabledOverride: false,
+    );
+
+    await tester.tap(find.byIcon(FluentIcons.refresh));
+    await pumpUntilFound(tester, find.text('¥120.00'));
+    await tester.tap(find.byIcon(FluentIcons.chevronRight));
+    await tester.pumpAndSettle();
+
+    expect(service.fetchCount, 2);
+    expect(service.startDateValues.last, isNull);
+    expect(service.endDateValues.last, isNull);
+    expect(service.queryTransactionsValues.last, isTrue);
+    expect(find.textContaining('第 1 / 2 页 · 共 21 条'), findsOneWidget);
+    expect(find.text('交易 01'), findsOneWidget);
+    expect(find.text('交易 21'), findsNothing);
+
+    await tester.ensureVisible(find.textContaining('第 1 / 2 页 · 共 21 条'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(FluentIcons.chevronRight).last);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('第 2 / 2 页 · 共 21 条'), findsOneWidget);
+    expect(find.text('交易 21'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('开始日期'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(FluentTextField).first, 'bad-date');
+    await tester.tap(find.text('查询'));
+    await tester.pump();
+
+    expect(find.text('日期格式应为 yyyy-MM-dd。'), findsOneWidget);
+    expect(service.fetchCount, 2);
+    expect(find.text('交易 21'), findsOneWidget);
+    await disposeHomePage(tester);
+  });
+
   testWidgets('首页静默自动刷新失败时保留已有校园卡缓存', (tester) async {
     final service = _FakeCampusCardClient(
       result: _missingAccountResult,
@@ -340,11 +389,19 @@ class _FakeCampusCardClient implements CampusCardBalanceClient {
     DateTime? startDate,
     DateTime? endDate,
     bool requireCampusNetwork = true,
+    bool queryTransactions = false,
   }) async {
     fetchCount++;
     requireCampusNetworkValues.add(requireCampusNetwork);
+    startDateValues.add(startDate);
+    endDateValues.add(endDate);
+    queryTransactionsValues.add(queryTransactions);
     return result;
   }
+
+  final List<DateTime?> startDateValues = [];
+  final List<DateTime?> endDateValues = [];
+  final List<bool> queryTransactionsValues = [];
 }
 
 class _FakeAcademicEamsClient implements AcademicEamsClient {
@@ -427,6 +484,44 @@ final CampusCardQueryResult _successResult = CampusCardQueryResult(
         rawCells: ['2026-04-29 12:10', '消费', '一食堂', '-12.50', '23.45'],
       ),
     ],
+  ),
+);
+
+final CampusCardQueryResult _manyRecordsResult = CampusCardQueryResult(
+  status: CampusCardQueryStatus.success,
+  message: '校园卡查询成功',
+  detail: '已读取校园卡余额、卡状态和交易记录。',
+  checkedAt: DateTime(2026, 6, 9, 12, 47),
+  entranceUri: Uri.parse(
+    'https://oa.sspu.edu.cn//interface/Entrance.jsp?id=xykxt',
+  ),
+  finalUri: Uri.parse('https://card.sspu.edu.cn/epay/consume/query'),
+  snapshot: CampusCardSnapshot(
+    balance: 120,
+    status: '正常',
+    fetchedAt: DateTime(2026, 6, 9, 12, 47),
+    sourceUri: Uri.parse('https://card.sspu.edu.cn/epay/consume/query'),
+    records: List.unmodifiable(
+      List.generate(21, (index) {
+        final number = index + 1;
+        return CampusCardTransactionRecord(
+          occurredAt: '2026-06-${number.toString().padLeft(2, '0')} 12:00',
+          amount: -number.toDouble(),
+          title: '交易 ${number.toString().padLeft(2, '0')}',
+          counterparty: '窗口 $number',
+          paymentMethod: '校园卡',
+          status: '成功',
+          rawCells: [
+            '2026-06-${number.toString().padLeft(2, '0')} 12:00',
+            '交易 ${number.toString().padLeft(2, '0')}',
+            '窗口 $number',
+            number.toStringAsFixed(2),
+            '校园卡',
+            '成功',
+          ],
+        );
+      }),
+    ),
   ),
 );
 

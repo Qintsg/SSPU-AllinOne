@@ -1,5 +1,5 @@
 /*
- * 主页校园卡余额卡片 — 展示余额、状态和最近交易摘要
+ * 主页校园卡余额卡片 — 展示余额并提供交易记录入口
  * @Project : SSPU-AllinOne
  * @File : home_campus_card_balance_card.dart
  * @Author : Qintsg
@@ -20,18 +20,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FluentSectionHeader(
-            title: '校园卡余额',
-            subtitle: '需要校园网或学校 VPN，并复用 OA/CAS 登录状态。',
-            icon: FluentIcons.paymentCard,
-            action: FluentIconButton(
-              tooltip: snapshot == null ? '刷新后查看详情' : '查看校园卡详情',
-              icon: const Icon(FluentIcons.chevronRight),
-              onPressed: snapshot == null
-                  ? null
-                  : () => _openCampusCardDetail(snapshot),
-            ),
-          ),
+          _buildCampusCardHeader(context, result, snapshot),
           const SizedBox(height: FluentSpacing.l),
           if (_isLoadingCampusCard) ...[
             const Row(
@@ -48,8 +37,11 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
           ] else if (result == null) ...[
             Text(
               _campusCardAutoRefreshEnabled
-                  ? '自动刷新已开启，等待下一次读取；也可点击右下角刷新。'
-                  : '自动刷新未开启。点击右下角刷新图标可手动读取；校园卡查询需要校园网或学校 VPN。',
+                  ? '自动刷新已开启，等待下一次读取。'
+                  : '自动刷新未开启，可点击标题行刷新图标读取校园卡余额。',
+              style: theme.typography.caption?.copyWith(
+                color: theme.resources.textFillColorSecondary,
+              ),
             ),
           ] else if (result.isSuccess && snapshot != null) ...[
             _buildCampusCardBalanceSummary(context, snapshot),
@@ -60,94 +52,107 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
               severity: _campusCardSeverity(result.status),
             ),
           ],
-          const SizedBox(height: FluentSpacing.m),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Wrap(
-              spacing: FluentSpacing.xs,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  _campusCardLastRefreshLabel(result),
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
-                  ),
-                ),
-                FluentIconButton(
-                  tooltip: '刷新校园卡余额',
-                  icon: _isLoadingCampusCard
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: FluentProgressRing(strokeWidth: 2),
-                        )
-                      : const Icon(FluentIcons.refresh),
-                  onPressed: _isLoadingCampusCard ? null : _loadCampusCard,
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
 
-  /// 构建校园卡余额、状态和最近交易记录摘要。
+  Widget _buildCampusCardHeader(
+    BuildContext context,
+    CampusCardQueryResult? result,
+    CampusCardSnapshot? snapshot,
+  ) {
+    final theme = FluentTheme.of(context);
+    final openDetail = snapshot == null
+        ? null
+        : () => _openCampusCardDetail(snapshot);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final actions = Wrap(
+          spacing: FluentSpacing.s,
+          runSpacing: FluentSpacing.xs,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              _campusCardLastRefreshLabel(result),
+              style: theme.typography.caption?.copyWith(
+                color: theme.resources.textFillColorSecondary,
+              ),
+            ),
+            FluentIconButton(
+              tooltip: '刷新校园卡余额',
+              icon: _isLoadingCampusCard
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: FluentProgressRing(strokeWidth: 2),
+                    )
+                  : const Icon(FluentIcons.refresh),
+              onPressed: _isLoadingCampusCard ? null : _loadCampusCard,
+            ),
+            FluentButton.transparent(
+              size: FluentButtonSize.small,
+              onPressed: openDetail,
+              child: const Text('交易记录查询'),
+            ),
+            FluentIconButton(
+              tooltip: snapshot == null ? '刷新后查看详情' : '查看校园卡详情',
+              icon: const Icon(FluentIcons.chevronRight),
+              onPressed: openDetail,
+            ),
+          ],
+        );
+        if (constraints.maxWidth < 560) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('校园卡余额', style: theme.typography.subtitle),
+              const SizedBox(height: FluentSpacing.xs),
+              actions,
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: Text('校园卡余额', style: theme.typography.subtitle)),
+            actions,
+          ],
+        );
+      },
+    );
+  }
+
+  /// 构建校园卡余额和异常状态摘要。
   Widget _buildCampusCardBalanceSummary(
     BuildContext context,
     CampusCardSnapshot snapshot,
   ) {
     final theme = FluentTheme.of(context);
-    final recentRecords = snapshot.records.take(3).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FluentMetricCard(
-          label: '账户余额',
-          value: snapshot.balance == null
-              ? '未读取'
-              : _formatMoney(snapshot.balance!),
-          icon: FluentIcons.paymentCard,
-        ),
-        if (snapshot.hasAbnormalStatus) ...[
-          const SizedBox(height: FluentSpacing.s),
-          FluentInfoBar(
-            title: Text('卡状态：${snapshot.status}'),
-            content: const Text('校园卡状态不是正常状态，请以校园卡系统或服务窗口为准。'),
-            severity: FluentInfoSeverity.warning,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final summaryWidth = constraints.maxWidth >= 720
+            ? constraints.maxWidth * 0.48
+            : constraints.maxWidth;
+        return SizedBox(
+          width: summaryWidth,
+          child: Wrap(
+            spacing: FluentSpacing.m,
+            runSpacing: FluentSpacing.s,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                snapshot.balance == null
+                    ? '未读取'
+                    : _formatMoney(snapshot.balance!),
+                style: theme.typography.titleLarge,
+              ),
+              if (snapshot.hasAbnormalStatus)
+                _CampusCardStatusPill(status: snapshot.status),
+            ],
           ),
-        ],
-        const SizedBox(height: FluentSpacing.m),
-        Text('最近交易记录', style: theme.typography.bodyStrong),
-        const SizedBox(height: FluentSpacing.xs),
-        if (recentRecords.isEmpty)
-          Text(
-            '暂无可展示的最近交易记录',
-            style: theme.typography.caption?.copyWith(
-              color: theme.resources.textFillColorSecondary,
-            ),
-          )
-        else
-          ...recentRecords.map((record) => _buildCampusCardRecordLine(record)),
-      ],
-    );
-  }
-
-  /// 构建首页校园卡交易记录单行摘要。
-  Widget _buildCampusCardRecordLine(CampusCardTransactionRecord record) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: FluentSpacing.xxs),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              '${record.occurredAt} · ${record.merchant ?? record.type ?? '交易'}',
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Text(_formatSignedMoney(record.amount)),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -179,8 +184,8 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
 
   String _campusCardLastRefreshLabel(CampusCardQueryResult? result) {
     final checkedAt = result?.checkedAt;
-    if (checkedAt == null) return '上次刷新：未刷新';
-    return '上次刷新：${_formatDateTime(checkedAt)}';
+    if (checkedAt == null) return '上次刷新时间：未刷新';
+    return '上次刷新时间：${_formatDateTime(checkedAt)}';
   }
 
   String _formatDateTime(DateTime dateTime) {
@@ -194,9 +199,33 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
   String _formatMoney(double value) {
     return '¥${value.toStringAsFixed(2)}';
   }
+}
 
-  String _formatSignedMoney(double value) {
-    final sign = value > 0 ? '+' : '';
-    return '$sign${_formatMoney(value)}';
+class _CampusCardStatusPill extends StatelessWidget {
+  const _CampusCardStatusPill({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.fluentColors;
+    final type = context.fluentType;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: FluentSpacing.s,
+        vertical: FluentSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: colors.statusWarningBackground,
+        borderRadius: BorderRadius.circular(FluentRadius.medium),
+        border: Border.all(
+          color: colors.statusWarningForeground.withValues(alpha: 0.24),
+        ),
+      ),
+      child: Text(
+        '卡状态：$status',
+        style: type.caption1.copyWith(color: colors.statusWarningForeground),
+      ),
+    );
   }
 }

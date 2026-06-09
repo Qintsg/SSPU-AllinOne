@@ -47,6 +47,11 @@ class CampusCardTransactionRecord {
     this.merchant,
     this.type,
     this.balanceAfter,
+    this.title,
+    this.transactionId,
+    this.counterparty,
+    this.paymentMethod,
+    this.status,
   });
 
   /// 交易发生时间，保持页面原始格式以避免误转换时区。
@@ -64,6 +69,21 @@ class CampusCardTransactionRecord {
   /// 交易后余额；页面未提供时为空。
   final double? balanceAfter;
 
+  /// 交易名称，对应 epay 表格的“名称”列。
+  final String? title;
+
+  /// 交易号或流水号。
+  final String? transactionId;
+
+  /// 交易对方、商户或收付款方。
+  final String? counterparty;
+
+  /// 付款方式，例如校园卡、钱包或其它页面原始文案。
+  final String? paymentMethod;
+
+  /// 单条交易状态，例如成功、失败或处理中。
+  final String? status;
+
   /// 原始表格单元格文本，页面结构变化时用于兜底展示。
   final List<String> rawCells;
 
@@ -75,6 +95,11 @@ class CampusCardTransactionRecord {
       merchant: json['merchant'] as String?,
       type: json['type'] as String?,
       balanceAfter: (json['balanceAfter'] as num?)?.toDouble(),
+      title: json['title'] as String?,
+      transactionId: json['transactionId'] as String?,
+      counterparty: json['counterparty'] as String?,
+      paymentMethod: json['paymentMethod'] as String?,
+      status: json['status'] as String?,
       rawCells: (json['rawCells'] as List<dynamic>? ?? const []).cast<String>(),
     );
   }
@@ -87,6 +112,11 @@ class CampusCardTransactionRecord {
       'merchant': merchant,
       'type': type,
       'balanceAfter': balanceAfter,
+      'title': title,
+      'transactionId': transactionId,
+      'counterparty': counterparty,
+      'paymentMethod': paymentMethod,
+      'status': status,
       'rawCells': rawCells,
     };
   }
