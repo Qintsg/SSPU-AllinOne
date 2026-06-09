@@ -81,6 +81,12 @@ const List<_OpenSourceProject> _openSourceProjects = [
     url: 'https://pub.dev/packages/url_launcher',
   ),
   _OpenSourceProject(
+    name: 'open_filex',
+    description: '打开本地文件、安装包或所在文件夹',
+    license: 'BSD-3-Clause',
+    url: 'https://pub.dev/packages/open_filex',
+  ),
+  _OpenSourceProject(
     name: 'window_manager',
     description: 'Flutter 桌面窗口管理',
     license: 'MIT',
