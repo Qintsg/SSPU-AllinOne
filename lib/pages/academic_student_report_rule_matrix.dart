@@ -40,6 +40,9 @@ class _SecondClassroomRuleMatrix extends StatelessWidget {
             const SizedBox(height: FluentSpacing.m),
             LayoutBuilder(
               builder: (context, constraints) {
+                if (constraints.maxWidth < 720) {
+                  return _RuleMatrixMobileList(groups: categoryGroups);
+                }
                 const fixedWidth =
                     _categoryWidth +
                     _itemWidth +
@@ -69,6 +72,178 @@ class _SecondClassroomRuleMatrix extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _RuleMatrixMobileList extends StatelessWidget {
+  const _RuleMatrixMobileList({required this.groups});
+
+  final List<_RuleCategoryGroup> groups;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = _ruleMatrixBorderColor(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(context.fluentRadii.medium),
+      ),
+      child: Column(
+        children: [
+          for (var index = 0; index < groups.length; index++) ...[
+            _RuleCategoryMobileSection(group: groups[index]),
+            if (index != groups.length - 1)
+              Container(height: 1, color: borderColor),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RuleCategoryMobileSection extends StatelessWidget {
+  const _RuleCategoryMobileSection({required this.group});
+
+  final _RuleCategoryGroup group;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    final borderColor = _ruleMatrixBorderColor(context);
+    final statusColor = _statusTextColor(context, group.passStatus);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ColoredBox(
+          color: theme.resources.controlAltFillColorSecondary,
+          child: Padding(
+            padding: const EdgeInsets.all(FluentSpacing.m),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _emptyAsDash(group.category),
+                    style: theme.typography.bodyStrong,
+                  ),
+                ),
+                const SizedBox(width: FluentSpacing.s),
+                _RuleCategoryBadge(
+                  label: '必修',
+                  value: _formatNullableCredit(group.requiredCredit),
+                ),
+                const SizedBox(width: FluentSpacing.s),
+                _RuleCategoryBadge(
+                  label: '通过',
+                  value: _emptyAsDash(group.passStatus),
+                  foreground: statusColor,
+                ),
+              ],
+            ),
+          ),
+        ),
+        for (var index = 0; index < group.items.length; index++) ...[
+          _RuleItemMobileSection(group: group.items[index]),
+          if (index != group.items.length - 1)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: FluentSpacing.m),
+              child: Container(height: 1, color: borderColor),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _RuleCategoryBadge extends StatelessWidget {
+  const _RuleCategoryBadge({
+    required this.label,
+    required this.value,
+    this.foreground,
+  });
+
+  final String label;
+  final String value;
+  final Color? foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: theme.typography.caption?.copyWith(
+            color: theme.resources.textFillColorSecondary,
+          ),
+        ),
+        const SizedBox(height: FluentSpacing.xxs),
+        Text(
+          value,
+          style: theme.typography.bodyStrong?.copyWith(
+            color: foreground,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RuleItemMobileSection extends StatelessWidget {
+  const _RuleItemMobileSection({required this.group});
+
+  final _RuleItemGroup group;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    final borderColor = _ruleMatrixBorderColor(context);
+    return Padding(
+      padding: const EdgeInsets.all(FluentSpacing.m),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(_emptyAsDash(group.item), style: theme.typography.bodyStrong),
+          const SizedBox(height: FluentSpacing.s),
+          for (var index = 0; index < group.rules.length; index++) ...[
+            _RuleLeafMobileRow(rule: group.rules[index]),
+            if (index != group.rules.length - 1) ...[
+              const SizedBox(height: FluentSpacing.s),
+              Container(height: 1, color: borderColor),
+              const SizedBox(height: FluentSpacing.s),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RuleLeafMobileRow extends StatelessWidget {
+  const _RuleLeafMobileRow({required this.rule});
+
+  final SecondClassroomCreditRuleRow rule;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: FluentSpacing.l,
+      runSpacing: FluentSpacing.s,
+      children: [
+        _ReportRecordField(label: '等级', value: rule.level),
+        _ReportRecordField(label: '参与情况', value: rule.participation),
+        _ReportRecordField(
+          label: '积分',
+          value: _formatNullableCredit(rule.credit),
+        ),
+        _ReportRecordField(
+          label: '已获积分',
+          value: _formatNullableCredit(rule.earnedCredit),
+        ),
+      ],
     );
   }
 }

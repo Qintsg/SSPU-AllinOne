@@ -33,14 +33,12 @@ class _SecondClassroomCompactSummary extends StatelessWidget {
     required this.summary,
     required this.categories,
     this.minCategoryWidth = 168,
-    this.showTotalCredit = false,
     this.title,
   });
 
   final SecondClassroomCreditSummary summary;
   final List<_CategoryProgress> categories;
   final double minCategoryWidth;
-  final bool showTotalCredit;
   final String? title;
 
   @override
@@ -49,11 +47,6 @@ class _SecondClassroomCompactSummary extends StatelessWidget {
     final theme = FluentTheme.of(context);
     final status = totals?.passStatus;
     final metrics = [
-      if (showTotalCredit)
-        _SummaryMetric(
-          label: '总积分',
-          value: _formatNullableCredit(totals?.totalCredit),
-        ),
       _SummaryMetric(
         label: '总已获分数',
         value: _formatNullableCredit(totals?.totalEarnedCredit),

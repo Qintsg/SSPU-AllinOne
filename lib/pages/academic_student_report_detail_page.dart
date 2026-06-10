@@ -50,7 +50,6 @@ class _SecondClassroomTotalsPanel extends StatelessWidget {
           summary: summary,
           categories: categories,
           title: '总计',
-          showTotalCredit: true,
           minCategoryWidth: constraints.maxWidth < 640 ? 136 : 156,
         );
       },
@@ -58,19 +57,31 @@ class _SecondClassroomTotalsPanel extends StatelessWidget {
   }
 }
 
-class _SecondClassroomDetailRecordsPanel extends StatelessWidget {
+class _SecondClassroomDetailRecordsPanel extends StatefulWidget {
   const _SecondClassroomDetailRecordsPanel({required this.summary});
 
   final SecondClassroomCreditSummary summary;
 
   @override
+  State<_SecondClassroomDetailRecordsPanel> createState() =>
+      _SecondClassroomDetailRecordsPanelState();
+}
+
+class _SecondClassroomDetailRecordsPanelState
+    extends State<_SecondClassroomDetailRecordsPanel> {
+  bool _expanded = true;
+
+  @override
   Widget build(BuildContext context) {
-    final details = summary.detailRecords;
+    final details = widget.summary.detailRecords;
+    const headers = ['名称', '类别', '项目', '等级', '参与情况', '获得积分'];
     if (details.isNotEmpty) {
-      return _ReportTablePanel(
+      return _CollapsibleReportRowsPanel(
         title: '已获积分详情',
+        expanded: _expanded,
+        onToggle: _toggleExpanded,
         minTableWidth: 840,
-        headers: const ['名称', '类别', '项目', '等级', '参与情况', '获得积分'],
+        headers: headers,
         rows: [
           for (final detail in details)
             [
@@ -85,16 +96,26 @@ class _SecondClassroomDetailRecordsPanel extends StatelessWidget {
       );
     }
 
-    if (summary.records.isEmpty) {
-      return const _EmptyPanel(title: '已获积分详情', message: '暂无已获积分详情。');
+    if (widget.summary.records.isEmpty) {
+      return _CollapsibleReportRowsPanel(
+        title: '已获积分详情',
+        expanded: _expanded,
+        onToggle: _toggleExpanded,
+        minTableWidth: 760,
+        headers: headers,
+        rows: const [],
+        emptyMessage: '暂无已获积分详情。',
+      );
     }
 
-    return _ReportTablePanel(
+    return _CollapsibleReportRowsPanel(
       title: '已获积分详情',
+      expanded: _expanded,
+      onToggle: _toggleExpanded,
       minTableWidth: 760,
-      headers: const ['名称', '类别', '项目', '等级', '参与情况', '获得积分'],
+      headers: headers,
       rows: [
-        for (final record in summary.records)
+        for (final record in widget.summary.records)
           [
             record.itemName,
             record.category,
@@ -106,24 +127,33 @@ class _SecondClassroomDetailRecordsPanel extends StatelessWidget {
       ],
     );
   }
+
+  void _toggleExpanded() {
+    setState(() => _expanded = !_expanded);
+  }
 }
 
-class _ReportTablePanel extends StatelessWidget {
-  const _ReportTablePanel({
+class _CollapsibleReportRowsPanel extends StatelessWidget {
+  const _CollapsibleReportRowsPanel({
     required this.title,
     required this.headers,
     required this.rows,
     required this.minTableWidth,
+    required this.expanded,
+    required this.onToggle,
+    this.emptyMessage,
   });
 
   final String title;
   final List<String> headers;
   final List<List<String>> rows;
   final double minTableWidth;
+  final bool expanded;
+  final VoidCallback onToggle;
+  final String? emptyMessage;
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
     return FluentCard(
       padding: EdgeInsets.zero,
       child: Padding(
@@ -131,37 +161,109 @@ class _ReportTablePanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: theme.typography.bodyStrong),
-            const SizedBox(height: FluentSpacing.m),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minWidth: constraints.maxWidth < minTableWidth
-                          ? minTableWidth
-                          : constraints.maxWidth,
-                    ),
-                    child: _buildTable(context),
-                  ),
-                );
-              },
+            _CollapsiblePanelHeader(
+              title: title,
+              expanded: expanded,
+              onToggle: onToggle,
             ),
+            if (expanded) ...[
+              const SizedBox(height: FluentSpacing.m),
+              if (rows.isEmpty)
+                _InlineEmptyState(message: emptyMessage ?? '暂无数据。')
+              else
+                _ResponsiveReportRows(
+                  headers: headers,
+                  rows: rows,
+                  minTableWidth: minTableWidth,
+                ),
+            ],
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildTable(BuildContext context) {
+class _CollapsiblePanelHeader extends StatelessWidget {
+  const _CollapsiblePanelHeader({
+    required this.title,
+    required this.expanded,
+    required this.onToggle,
+  });
+
+  final String title;
+  final bool expanded;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
-    final borderSide = BorderSide(
-      color: theme.resources.cardStrokeColorDefault,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FluentIconButton(
+          key: const Key('academic-student-report-detail-collapse'),
+          icon: Icon(
+            expanded ? FluentIcons.chevronDown : FluentIcons.chevronRight,
+          ),
+          tooltip: expanded ? '收起已获积分详情' : '展开已获积分详情',
+          size: 28,
+          iconSize: 16,
+          onPressed: onToggle,
+        ),
+        const SizedBox(width: FluentSpacing.xs),
+        Text(title, style: theme.typography.bodyStrong),
+      ],
     );
+  }
+}
+
+class _ResponsiveReportRows extends StatelessWidget {
+  const _ResponsiveReportRows({
+    required this.headers,
+    required this.rows,
+    required this.minTableWidth,
+  });
+
+  final List<String> headers;
+  final List<List<String>> rows;
+  final double minTableWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 640) {
+          return _ReportRecordList(headers: headers, rows: rows);
+        }
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: constraints.maxWidth < minTableWidth
+                  ? minTableWidth
+                  : constraints.maxWidth,
+            ),
+            child: _ReportDesktopTable(headers: headers, rows: rows),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ReportDesktopTable extends StatelessWidget {
+  const _ReportDesktopTable({required this.headers, required this.rows});
+
+  final List<String> headers;
+  final List<List<String>> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FluentTheme.of(context);
     return Table(
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-      border: TableBorder.all(color: borderSide.color),
+      border: TableBorder.all(color: _reportTableBorderColor(context)),
       columnWidths: {
         for (var index = 0; index < headers.length; index++)
           index: _columnWidthFor(index),
@@ -204,6 +306,96 @@ class _ReportTablePanel extends StatelessWidget {
   }
 }
 
+class _ReportRecordList extends StatelessWidget {
+  const _ReportRecordList({required this.headers, required this.rows});
+
+  final List<String> headers;
+  final List<List<String>> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = _reportTableBorderColor(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(context.fluentRadii.medium),
+      ),
+      child: Column(
+        children: [
+          for (var index = 0; index < rows.length; index++) ...[
+            _ReportRecordListItem(headers: headers, row: rows[index]),
+            if (index != rows.length - 1)
+              Container(height: 1, color: borderColor),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ReportRecordListItem extends StatelessWidget {
+  const _ReportRecordListItem({required this.headers, required this.row});
+
+  final List<String> headers;
+  final List<String> row;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    final title = row.isEmpty ? '-' : _emptyAsDash(row.first);
+    return Padding(
+      padding: const EdgeInsets.all(FluentSpacing.m),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.typography.bodyStrong),
+          const SizedBox(height: FluentSpacing.s),
+          Wrap(
+            spacing: FluentSpacing.l,
+            runSpacing: FluentSpacing.s,
+            children: [
+              for (var index = 1; index < headers.length; index++)
+                _ReportRecordField(
+                  label: headers[index],
+                  value: index < row.length ? row[index] : '',
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReportRecordField extends StatelessWidget {
+  const _ReportRecordField({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 96, maxWidth: 220),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: theme.typography.caption?.copyWith(
+              color: theme.resources.textFillColorSecondary,
+            ),
+          ),
+          const SizedBox(height: FluentSpacing.xxs),
+          Text(_emptyAsDash(value), style: theme.typography.body),
+        ],
+      ),
+    );
+  }
+}
+
 class _TableCellText extends StatelessWidget {
   const _TableCellText(
     this.text, {
@@ -233,6 +425,27 @@ class _TableCellText extends StatelessWidget {
       ),
     );
   }
+}
+
+class _InlineEmptyState extends StatelessWidget {
+  const _InlineEmptyState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    return Text(
+      message,
+      style: theme.typography.caption?.copyWith(
+        color: theme.resources.textFillColorSecondary,
+      ),
+    );
+  }
+}
+
+Color _reportTableBorderColor(BuildContext context) {
+  return context.fluentColors.neutralStroke1;
 }
 
 class _EmptyPanel extends StatelessWidget {
