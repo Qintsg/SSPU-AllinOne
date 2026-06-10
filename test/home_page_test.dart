@@ -323,15 +323,24 @@ void main() {
     final cardTop = tester
         .getTopLeft(find.byKey(const Key('home-campus-card-balance-card')))
         .dy;
-    final refreshCenter = tester
-        .getCenter(find.byKey(const Key('home-campus-card-refresh')))
-        .dy;
+    final refreshCenter = tester.getCenter(
+      find.byKey(const Key('home-campus-card-refresh')),
+    );
+    final lastRefresh = find.textContaining('上次刷新时间：').first;
+    final lastRefreshCenter = tester.getCenter(lastRefresh);
+    final lastRefreshRight = tester.getTopRight(lastRefresh).dx;
+    final refreshLeft = tester
+        .getTopLeft(find.byKey(const Key('home-campus-card-refresh')))
+        .dx;
 
     final cardHeight = tester
         .getSize(find.byKey(const Key('home-campus-card-balance-card')))
         .height;
 
-    expect(refreshCenter - cardTop, lessThan(cardHeight * 0.5));
+    expect(refreshCenter.dy - cardTop, lessThan(cardHeight * 0.42));
+    expect((refreshCenter.dy - lastRefreshCenter.dy).abs(), lessThan(1));
+    expect(refreshLeft - lastRefreshRight, greaterThanOrEqualTo(0));
+    expect(refreshLeft - lastRefreshRight, lessThan(16));
     expect(tester.takeException(), isNull);
     await disposeHomePage(tester);
   });

@@ -210,6 +210,19 @@ void main() {
     expect(find.text('2.00/0.00'), findsWidgets);
     expect(find.text('上次刷新：2026-05-01 00:00'), findsOneWidget);
     expect(find.textContaining('数据来自学工报表系统'), findsNothing);
+    final titleCenter = tester.getCenter(find.text('第二课堂学分'));
+    final lastRefreshCenter = tester.getCenter(
+      find.text('上次刷新：2026-05-01 00:00'),
+    );
+    final refreshCenter = tester.getCenter(studentReportRefresh);
+    final lastRefreshRight = tester
+        .getTopRight(find.text('上次刷新：2026-05-01 00:00'))
+        .dx;
+    final refreshLeft = tester.getTopLeft(studentReportRefresh).dx;
+    expect(lastRefreshCenter.dy, greaterThan(titleCenter.dy));
+    expect((refreshCenter.dy - lastRefreshCenter.dy).abs(), lessThan(1));
+    expect(refreshLeft - lastRefreshRight, greaterThanOrEqualTo(0));
+    expect(refreshLeft - lastRefreshRight, lessThan(16));
 
     await tester.pump(const Duration(seconds: 3));
     await tester.pump();

@@ -21,7 +21,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildCampusCardHeader(context, result, snapshot),
-          const SizedBox(height: FluentSpacing.m),
+          const SizedBox(height: FluentSpacing.s),
           ConstrainedBox(
             constraints: const BoxConstraints(
               minHeight: _campusCardBodyMinHeight,
@@ -89,32 +89,26 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
               ],
             ),
             const SizedBox(height: FluentSpacing.xxs),
-            Wrap(
-              spacing: FluentSpacing.s,
-              runSpacing: FluentSpacing.xxs,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text(
-                    _campusCardLastRefreshLabel(result),
-                    style: theme.typography.caption?.copyWith(
-                      color: theme.resources.textFillColorSecondary,
-                    ),
-                  ),
-                ),
-                RefreshFeedbackAction(
-                  key: const Key('home-campus-card-refresh'),
-                  tooltip: '刷新校园卡余额',
-                  semanticLabel: '刷新校园卡余额',
-                  isLoading: _isLoadingCampusCard,
-                  feedback: _campusCardRefreshFeedback,
-                  onPressed: _loadCampusCard,
-                  minTouchSize: 32,
-                  size: 28,
-                  iconSize: 15,
-                ),
-              ],
+            RefreshStatusLine(
+              label: _campusCardLastRefreshLabel(result),
+              labelStyle: theme.typography.caption?.copyWith(
+                color: theme.resources.textFillColorSecondary,
+              ),
+              actionReservedWidth: _campusCardRefreshFeedback == null
+                  ? 32
+                  : 180,
+              action: RefreshFeedbackAction(
+                key: const Key('home-campus-card-refresh'),
+                tooltip: '刷新校园卡余额',
+                semanticLabel: '刷新校园卡余额',
+                isLoading: _isLoadingCampusCard,
+                feedback: _campusCardRefreshFeedback,
+                onPressed: _loadCampusCard,
+                minTouchSize: 32,
+                size: 28,
+                iconSize: 15,
+                maxFeedbackWidth: 180,
+              ),
             ),
           ],
         );

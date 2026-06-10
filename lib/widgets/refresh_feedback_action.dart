@@ -34,6 +34,70 @@ class RefreshActionFeedback {
   }
 }
 
+/// 上次刷新文案与刷新动作的紧凑同行布局。
+class RefreshStatusLine extends StatelessWidget {
+  const RefreshStatusLine({
+    super.key,
+    required this.label,
+    required this.action,
+    this.labelStyle,
+    this.minLineHeight = 32,
+    this.actionReservedWidth = 32,
+  });
+
+  /// 上次刷新文案。
+  final String label;
+
+  /// 刷新按钮或刷新结果反馈。
+  final Widget action;
+
+  /// 文案样式。
+  final TextStyle? labelStyle;
+
+  /// 单行最小高度，用于让图标和文案垂直居中。
+  final double minLineHeight;
+
+  /// 为右侧动作预留的最大宽度，避免窄屏溢出。
+  final double actionReservedWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth;
+        final spacing = FluentSpacing.s;
+        final labelMaxWidth = maxWidth.isFinite
+            ? (maxWidth - actionReservedWidth - spacing).clamp(0.0, maxWidth)
+            : double.infinity;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: labelMaxWidth.toDouble()),
+              child: SizedBox(
+                height: minLineHeight,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: 1,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: labelStyle,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: spacing),
+            action,
+          ],
+        );
+      },
+    );
+  }
+}
+
 /// 刷新按钮与刷新结果反馈的统一动作控件。
 class RefreshFeedbackAction extends StatelessWidget {
   const RefreshFeedbackAction({
@@ -191,39 +255,29 @@ class _RefreshFeedbackLabel extends StatelessWidget {
     final foreground = feedback.success
         ? colors.statusSuccessForeground
         : colors.statusDangerForeground;
-    final background = feedback.success
-        ? colors.statusSuccessBackground
-        : colors.statusDangerBackground;
     final label = feedback.label;
 
     return Tooltip(
       message: label,
       child: Semantics(
-        button: true,
-        enabled: false,
         label: label,
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            minWidth: minTouchSize,
             minHeight: minTouchSize,
+            maxWidth: maxWidth,
           ),
           child: Center(
-            child: Container(
+            child: SizedBox(
               height: height,
-              constraints: BoxConstraints(maxWidth: maxWidth),
-              padding: const EdgeInsets.symmetric(horizontal: FluentSpacing.s),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: background,
-                borderRadius: context.fluentRadii.mediumBorder,
-                border: Border.all(color: foreground.withValues(alpha: 0.28)),
-              ),
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.fluentType.caption1Strong.copyWith(
-                  color: foreground,
+              child: Align(
+                alignment: Alignment.center,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.fluentType.caption1Strong.copyWith(
+                    color: foreground,
+                  ),
                 ),
               ),
             ),

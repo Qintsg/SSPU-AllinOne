@@ -135,87 +135,98 @@ class _SecondClassroomCardHeader extends StatelessWidget {
         const FluentSurfaceIcon(icon: FluentIcons.education),
         const SizedBox(width: FluentSpacing.m),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '第二课堂学分',
-                style: theme.typography.subtitle?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: FluentSpacing.xxs),
-              Text(
-                lastRefreshLabel,
-                style: theme.typography.caption?.copyWith(
-                  color: theme.resources.textFillColorSecondary,
-                ),
-              ),
-            ],
+          child: Text(
+            '第二课堂学分',
+            style: theme.typography.subtitle?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],
     );
-    final actions = _buildActions(context);
+    final detailAction = _buildDetailAction(context);
+    final refreshLine = _buildRefreshLine(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < 440) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              title,
-              const SizedBox(height: FluentSpacing.s),
-              Align(alignment: Alignment.centerRight, child: actions),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(child: title),
+                  const SizedBox(width: FluentSpacing.s),
+                  detailAction,
+                ],
+              ),
+              const SizedBox(height: FluentSpacing.xs),
+              refreshLine,
             ],
           );
         }
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: title),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  title,
+                  const SizedBox(height: FluentSpacing.xs),
+                  refreshLine,
+                ],
+              ),
+            ),
             const SizedBox(width: FluentSpacing.s),
-            actions,
+            detailAction,
           ],
         );
       },
     );
   }
 
-  Widget _buildActions(BuildContext context) {
-    return Wrap(
-      spacing: FluentSpacing.xs,
-      runSpacing: FluentSpacing.xs,
-      alignment: WrapAlignment.end,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        RefreshFeedbackAction(
-          key: const Key('academic-student-report-refresh'),
-          tooltip: '手动刷新第二课堂学分',
-          semanticLabel: '手动刷新第二课堂学分',
-          isLoading: isLoading,
-          feedback: refreshFeedback,
-          onPressed: onRefresh,
-        ),
-        Button(
-          key: const Key('academic-student-report-detail'),
-          onPressed: canOpenDetail && summary != null
-              ? () => Navigator.of(context).push(
-                  FluentPageRoute(
-                    builder: (_) => StudentReportDetailPage(summary: summary!),
-                  ),
-                )
-              : null,
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('详情'),
-              SizedBox(width: 4),
-              Icon(FluentIcons.chevronRight, size: 14),
-            ],
-          ),
-        ),
-      ],
+  Widget _buildRefreshLine(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    return RefreshStatusLine(
+      label: lastRefreshLabel,
+      labelStyle: theme.typography.caption?.copyWith(
+        color: theme.resources.textFillColorSecondary,
+      ),
+      actionReservedWidth: refreshFeedback == null ? 32 : 180,
+      action: RefreshFeedbackAction(
+        key: const Key('academic-student-report-refresh'),
+        tooltip: '手动刷新第二课堂学分',
+        semanticLabel: '手动刷新第二课堂学分',
+        isLoading: isLoading,
+        feedback: refreshFeedback,
+        onPressed: onRefresh,
+        minTouchSize: 32,
+        size: 28,
+        iconSize: 15,
+        maxFeedbackWidth: 180,
+      ),
+    );
+  }
+
+  Widget _buildDetailAction(BuildContext context) {
+    return Button(
+      key: const Key('academic-student-report-detail'),
+      onPressed: canOpenDetail && summary != null
+          ? () => Navigator.of(context).push(
+              FluentPageRoute(
+                builder: (_) => StudentReportDetailPage(summary: summary!),
+              ),
+            )
+          : null,
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('详情'),
+          SizedBox(width: 4),
+          Icon(FluentIcons.chevronRight, size: 14),
+        ],
+      ),
     );
   }
 }
