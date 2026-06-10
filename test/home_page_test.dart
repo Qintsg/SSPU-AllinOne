@@ -188,6 +188,44 @@ void main() {
     await disposeHomePage(tester);
   });
 
+  testWidgets('桌面宽度下学籍信息和校园卡余额卡片等高', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
+
+    await pumpHomePage(
+      tester,
+      campusCardService: _FakeCampusCardClient(
+        result: _successResult,
+        cachedResult: _freshCachedResult,
+      ),
+      academicEamsService: _FakeAcademicEamsClient(
+        cachedProfile: _studentProfile,
+      ),
+      campusNetworkStatusService: campusNetworkStatusService,
+      campusCardAutoRefreshEnabledOverride: false,
+    );
+    await pumpUntilFound(
+      tester,
+      find.byKey(const Key('home-campus-card-balance-card')),
+    );
+
+    final profileSize = tester.getSize(
+      find.byKey(const Key('home-student-profile-card')),
+    );
+    final campusCardSize = tester.getSize(
+      find.byKey(const Key('home-campus-card-balance-card')),
+    );
+
+    expect(campusCardSize.height, profileSize.height);
+    await disposeHomePage(tester);
+  });
+
   testWidgets('首页无 OA 账密时学籍卡片显示设置引导', (tester) async {
     var settingsOpened = false;
     final campusNetworkStatusService = _buildCampusNetworkStatusService();

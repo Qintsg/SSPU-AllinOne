@@ -82,6 +82,8 @@ class _HomePageState extends State<HomePage> {
   Timer? _campusCardAutoRefreshTimer;
   StreamSubscription<int>? _credentialChangeSubscription;
 
+  static const double _desktopBusinessCardHeight = 192.0;
+
   CampusCardBalanceClient get _campusCardService {
     return widget.campusCardService ?? CampusCardService.instance;
   }
@@ -401,13 +403,16 @@ class _HomePageState extends State<HomePage> {
             ],
           );
         }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: cards[0]),
-            const SizedBox(width: FluentSpacing.l),
-            Expanded(child: cards[1]),
-          ],
+        return SizedBox(
+          height: _desktopBusinessCardHeight,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: cards[0]),
+              const SizedBox(width: FluentSpacing.l),
+              Expanded(child: cards[1]),
+            ],
+          ),
         );
       },
     );

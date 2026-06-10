@@ -15,6 +15,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
     final snapshot = result?.snapshot;
 
     return FluentSurface(
+      key: const Key('home-campus-card-balance-card'),
       padding: const EdgeInsets.all(FluentSpacing.l),
       child: Column(
         mainAxisSize: MainAxisSize.min,

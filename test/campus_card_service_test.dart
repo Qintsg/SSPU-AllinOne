@@ -870,8 +870,8 @@ class _FakeCampusCardGateway implements CampusCardGateway {
     CampusCardHttpSnapshot? homePage,
     CampusCardHttpSnapshot? transactionPage,
     CampusCardHttpSnapshot? queryPage,
-    Map<Uri, CampusCardHttpSnapshot> transactionPagesByUri = const {},
-    Map<int, CampusCardHttpSnapshot> queryPagesByPageNo = const {},
+    this.transactionPagesByUri = const {},
+    this.queryPagesByPageNo = const {},
   }) : entryPage = entryPage ?? _cardSnapshot(_balanceHtml),
        homePage = homePage ?? _cardSnapshot(_balanceHtml),
        transactionPage =
@@ -881,9 +881,7 @@ class _FakeCampusCardGateway implements CampusCardGateway {
              statusCode: 200,
              body: _transactionHtml,
            ),
-       queryPage = queryPage ?? _cardSnapshot(_transactionHtml),
-       transactionPagesByUri = transactionPagesByUri,
-       queryPagesByPageNo = queryPagesByPageNo;
+       queryPage = queryPage ?? _cardSnapshot(_transactionHtml);
 
   final bool requireAuthFirst;
   final CampusCardHttpSnapshot entryPage;

@@ -69,6 +69,16 @@ add_subdirectory("runner")
 # them to the application.
 include(flutter/generated_plugins.cmake)
 
+if(MSVC AND TARGET flutter_inappwebview_windows_plugin)
+  # flutter_inappwebview_windows / WebView2 依赖在 MSVC 中文代码页下会输出
+  # C4819 / C4244 / C4458 等第三方 warning；只对该插件目标降噪，避免污染主工程。
+  target_compile_options(flutter_inappwebview_windows_plugin PRIVATE
+    /utf-8
+    /wd4244
+    /wd4458
+  )
+endif()
+
 
 # === Installation ===
 # Support files are copied into place next to the executable, so that it can

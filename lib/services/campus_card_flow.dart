@@ -290,14 +290,6 @@ extension _CampusCardFlow on CampusCardService {
     return true;
   }
 
-  bool _isTransactionPage(Uri uri) {
-    final path = uri.path.toLowerCase();
-    return path.contains('/consume/') ||
-        path.contains('/transaction') ||
-        path.contains('/trad') ||
-        uri == transactionIndexUri;
-  }
-
   bool _isCardUri(Uri uri) {
     return uri.host.toLowerCase() == 'card.sspu.edu.cn';
   }
