@@ -19,6 +19,9 @@ class AcademicStudentReportCard extends StatelessWidget {
   /// 是否已开启自动刷新。
   final bool autoRefreshEnabled;
 
+  /// 手动刷新结束后的短暂反馈。
+  final RefreshActionFeedback? refreshFeedback;
+
   /// 手动刷新回调。
   final VoidCallback onRefresh;
 
@@ -27,25 +30,30 @@ class AcademicStudentReportCard extends StatelessWidget {
     required this.result,
     required this.isLoading,
     required this.autoRefreshEnabled,
+    required this.refreshFeedback,
     required this.onRefresh,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
     final summary = result?.summary;
 
     return FluentSurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const FluentSectionHeader(
-            title: '第二课堂学分',
-            subtitle: '数据来自学工报表系统，通过 OA 登录态只读读取第二课堂学分。',
-            icon: FluentIcons.education,
+          _SecondClassroomCardHeader(
+            summary: summary,
+            canOpenDetail: result?.isSuccess == true && summary != null,
+            lastRefreshLabel: _studentReportLastRefreshLabel(result),
+            isLoading: isLoading,
+            refreshFeedback: refreshFeedback,
+            onRefresh: onRefresh,
           ),
           const SizedBox(height: FluentSpacing.l),
-          if (isLoading) ...[
+          if (result?.isSuccess == true && summary != null) ...[
+            _SecondClassroomSummaryView(summary: summary),
+          ] else if (isLoading) ...[
             const Row(
               children: [
                 SizedBox(
@@ -63,8 +71,6 @@ class AcademicStudentReportCard extends StatelessWidget {
                   ? '自动刷新已开启，等待下一次读取；也可点击右上角刷新。'
                   : '自动刷新未开启。点击右上角刷新图标可手动读取；学工报表需要校园网或学校 VPN。',
             ),
-          ] else if (result!.isSuccess && summary != null) ...[
-            _SecondClassroomSummaryView(summary: summary),
           ] else ...[
             FluentInfoBar(
               title: Text(result!.message),
@@ -72,34 +78,6 @@ class AcademicStudentReportCard extends StatelessWidget {
               severity: _studentReportSeverity(result!.status),
             ),
           ],
-          const SizedBox(height: FluentSpacing.m),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Wrap(
-              spacing: FluentSpacing.xs,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  _studentReportLastRefreshLabel(result),
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
-                  ),
-                ),
-                FluentIconButton(
-                  key: const Key('academic-student-report-refresh'),
-                  tooltip: '手动刷新第二课堂学分',
-                  icon: isLoading
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: FluentProgressRing(strokeWidth: 2),
-                        )
-                      : const Icon(FluentIcons.refresh),
-                  onPressed: isLoading ? null : onRefresh,
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -132,289 +110,123 @@ class AcademicStudentReportCard extends StatelessWidget {
   }
 }
 
-class _SecondClassroomSummaryView extends StatelessWidget {
-  const _SecondClassroomSummaryView({required this.summary});
+class _SecondClassroomCardHeader extends StatelessWidget {
+  const _SecondClassroomCardHeader({
+    required this.summary,
+    required this.canOpenDetail,
+    required this.lastRefreshLabel,
+    required this.isLoading,
+    required this.refreshFeedback,
+    required this.onRefresh,
+  });
 
-  final SecondClassroomCreditSummary summary;
+  final SecondClassroomCreditSummary? summary;
+  final bool canOpenDetail;
+  final String lastRefreshLabel;
+  final bool isLoading;
+  final RefreshActionFeedback? refreshFeedback;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
-    final previewRecords = summary.records.take(4).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final title = Row(
       children: [
-        FluentMetricCard(
-          label: '项得分记录',
-          value: summary.records.length.toString(),
-          icon: FluentIcons.certificate,
-        ),
-        const SizedBox(height: FluentSpacing.xs),
-        Text(
-          '逐项展示学工报表返回的具体得分，不再将单项分值相加作为总学分。',
-          style: theme.typography.caption?.copyWith(
-            color: theme.resources.textFillColorSecondary,
-          ),
-        ),
-        const SizedBox(height: FluentSpacing.m),
-        ...previewRecords.map(
-          (record) => _SecondClassroomScoreTile(
-            record: record,
-            onTap: () =>
-                unawaited(_showSecondClassroomRecordDialog(context, record)),
-          ),
-        ),
-        if (summary.records.length > previewRecords.length)
-          Padding(
-            padding: const EdgeInsets.only(top: FluentSpacing.xs),
-            child: Text(
-              '还有 ${summary.records.length - previewRecords.length} 项得分记录，点击下方按钮查看全部。',
-              style: theme.typography.caption?.copyWith(
-                color: theme.resources.textFillColorSecondary,
-              ),
+        const FluentSurfaceIcon(icon: FluentIcons.education),
+        const SizedBox(width: FluentSpacing.m),
+        Expanded(
+          child: Text(
+            '第二课堂学分',
+            style: theme.typography.subtitle?.copyWith(
+              fontWeight: FontWeight.w700,
             ),
-          ),
-        const SizedBox(height: FluentSpacing.l),
-        FluentButton.primary(
-          onPressed: () => Navigator.of(context).push(
-            FluentPageRoute(
-              builder: (_) => StudentReportDetailPage(summary: summary),
-            ),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(FluentIcons.list, size: 14),
-              SizedBox(width: 6),
-              Text('查看全部得分记录'),
-            ],
           ),
         ),
       ],
     );
-  }
-}
-
-class _SecondClassroomScoreTile extends StatelessWidget {
-  const _SecondClassroomScoreTile({required this.record, required this.onTap});
-
-  final SecondClassroomCreditRecord record;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final meta = [
-      record.category,
-      if (record.semester != null) record.semester!,
-      if (record.occurredAt != null) record.occurredAt!,
-      if (record.status != null) record.status!,
-    ].join(' · ');
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: FluentSpacing.s),
-      child: FluentCard(
-        bordered: true,
-        elevated: false,
-        onPressed: onTap,
-        semanticLabel: '查看${record.itemName}得分详情',
-        padding: const EdgeInsets.all(FluentSpacing.m),
-        child: Row(
+    final detailAction = _buildDetailAction(context);
+    final refreshLine = _buildRefreshLine(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 440) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(child: title),
+                  const SizedBox(width: FluentSpacing.s),
+                  detailAction,
+                ],
+              ),
+              const SizedBox(height: FluentSpacing.xs),
+              refreshLine,
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(record.itemName, style: theme.typography.bodyStrong),
-                  if (meta.isNotEmpty) ...[
-                    const SizedBox(height: FluentSpacing.xxs),
-                    Text(
-                      meta,
-                      style: theme.typography.caption?.copyWith(
-                        color: theme.resources.textFillColorSecondary,
-                      ),
-                    ),
-                  ],
+                  title,
+                  const SizedBox(height: FluentSpacing.xs),
+                  refreshLine,
                 ],
               ),
             ),
-            const SizedBox(width: FluentSpacing.m),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  _formatCredit(record.credit),
-                  style: theme.typography.bodyLarge?.copyWith(
-                    color: theme.accentColor,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  '得分',
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
-                  ),
-                ),
-              ],
-            ),
+            const SizedBox(width: FluentSpacing.s),
+            detailAction,
           ],
-        ),
-      ),
+        );
+      },
     );
   }
-}
 
-Future<void> _showSecondClassroomRecordDialog(
-  BuildContext context,
-  SecondClassroomCreditRecord record,
-) {
-  return showDialog<void>(
-    context: context,
-    builder: (dialogContext) => FluentDialog(
-      title: const Text('得分详情'),
-      content: _SecondClassroomRecordDetailCard(record: record),
-      actions: [
-        FluentButton.outline(
-          onPressed: () => Navigator.of(dialogContext).pop(),
-          child: const Text('关闭'),
-        ),
-      ],
-    ),
-  );
-}
-
-class _SecondClassroomRecordDetailCard extends StatelessWidget {
-  const _SecondClassroomRecordDetailCard({required this.record});
-
-  final SecondClassroomCreditRecord record;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildRefreshLine(BuildContext context) {
     final theme = FluentTheme.of(context);
-    final detailRows = [
-      _DetailRow(label: '项目', value: record.itemName),
-      _DetailRow(label: '类别', value: record.category),
-      _DetailRow(label: '得分', value: _formatCredit(record.credit)),
-      if (record.semester != null)
-        _DetailRow(label: '学期', value: record.semester!),
-      if (record.occurredAt != null)
-        _DetailRow(label: '时间', value: record.occurredAt!),
-      if (record.status != null) _DetailRow(label: '状态', value: record.status!),
-      if (record.rawCells.isNotEmpty)
-        _DetailRow(label: '原始记录', value: record.rawCells.join(' / ')),
-    ];
-
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 360),
-      child: SingleChildScrollView(
-        child: FluentCard(
-          padding: EdgeInsets.zero,
-          child: Padding(
-            padding: const EdgeInsets.all(FluentSpacing.l),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _formatCredit(record.credit),
-                  style: theme.typography.display?.copyWith(
-                    color: theme.accentColor,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: FluentSpacing.s),
-                ...detailRows.map((row) => _buildDetailRow(context, row)),
-              ],
-            ),
-          ),
-        ),
+    return RefreshStatusLine(
+      label: lastRefreshLabel,
+      labelStyle: theme.typography.caption?.copyWith(
+        color: theme.resources.textFillColorSecondary,
+      ),
+      actionReservedWidth: refreshFeedback == null ? 32 : 180,
+      action: RefreshFeedbackAction(
+        key: const Key('academic-student-report-refresh'),
+        tooltip: '手动刷新第二课堂学分',
+        semanticLabel: '手动刷新第二课堂学分',
+        isLoading: isLoading,
+        feedback: refreshFeedback,
+        onPressed: onRefresh,
+        minTouchSize: 32,
+        size: 28,
+        iconSize: 15,
+        maxFeedbackWidth: 180,
       ),
     );
   }
 
-  Widget _buildDetailRow(BuildContext context, _DetailRow row) {
-    final theme = FluentTheme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: FluentSpacing.xs),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildDetailAction(BuildContext context) {
+    return Button(
+      key: const Key('academic-student-report-detail'),
+      onPressed: canOpenDetail && summary != null
+          ? () => Navigator.of(context).push(
+              FluentPageRoute(
+                builder: (_) => StudentReportDetailPage(summary: summary!),
+              ),
+            )
+          : null,
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            row.label,
-            style: theme.typography.caption?.copyWith(
-              color: theme.resources.textFillColorSecondary,
-            ),
-          ),
-          const SizedBox(height: FluentSpacing.xxs),
-          Text(row.value),
+          Text('详情'),
+          SizedBox(width: 4),
+          Icon(FluentIcons.chevronRight, size: 14),
         ],
       ),
     );
   }
-}
-
-class _DetailRow {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-}
-
-/// 第二课堂得分明细二级页面。
-class StudentReportDetailPage extends StatelessWidget {
-  /// 已读取的第二课堂学分汇总与明细。
-  final SecondClassroomCreditSummary summary;
-
-  const StudentReportDetailPage({super.key, required this.summary});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return FluentPage.scrollable(
-      header: FluentPageHeader(
-        title: const Text('第二课堂得分明细'),
-        commandBar: FluentButton.outline(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('返回'),
-        ),
-      ),
-      children: [
-        FluentCard(
-          padding: EdgeInsets.zero,
-          child: Padding(
-            padding: const EdgeInsets.all(FluentSpacing.l),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('汇总', style: theme.typography.bodyStrong),
-                const SizedBox(height: FluentSpacing.s),
-                Text('得分记录 ${summary.records.length} 项。点击任一记录可查看得分详情。'),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: FluentSpacing.m),
-        ...summary.records.map((record) => _buildRecordCard(context, record)),
-      ],
-    );
-  }
-
-  /// 构建单条第二课堂得分记录，点击后弹出完整详情卡片。
-  Widget _buildRecordCard(
-    BuildContext context,
-    SecondClassroomCreditRecord record,
-  ) {
-    return _SecondClassroomScoreTile(
-      record: record,
-      onTap: () => unawaited(_showSecondClassroomRecordDialog(context, record)),
-    );
-  }
-}
-
-/// 学分展示保留必要小数，避免整数显示为 3.0。
-String _formatCredit(double credit) {
-  final text = credit.toStringAsFixed(2);
-  return text
-      .replaceFirst(RegExp(r'\.0+$'), '')
-      .replaceFirst(RegExp(r'0$'), '');
 }

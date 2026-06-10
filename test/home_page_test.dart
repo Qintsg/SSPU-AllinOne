@@ -92,6 +92,7 @@ void main() {
     await tester.tap(find.byIcon(FluentIcons.refresh));
     await pumpUntilFound(tester, find.text('¥23.45'));
 
+    expect(find.text('刷新成功√'), findsOneWidget);
     expect(service.fetchCount, 1);
     expect(service.requireCampusNetworkValues, [false]);
     expect(service.queryTransactionsValues, [false]);
@@ -114,6 +115,9 @@ void main() {
       ),
       findsOneWidget,
     );
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump();
+    expect(find.text('刷新成功√'), findsNothing);
 
     await tester.tap(find.text('交易记录查询'));
     await tester.pumpAndSettle();
@@ -122,6 +126,29 @@ void main() {
     expect(find.text('余额：¥23.45'), findsOneWidget);
     expect(find.text('交易记录'), findsOneWidget);
     expect(service.fetchCount, 1);
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页校园卡手动刷新失败时显示预置短原因', (tester) async {
+    final service = _FakeCampusCardClient(result: _missingAccountResult);
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
+    await pumpHomePage(
+      tester,
+      campusCardService: service,
+      campusNetworkStatusService: campusNetworkStatusService,
+      campusCardAutoRefreshEnabledOverride: false,
+    );
+
+    final refreshButton = find.byKey(const Key('home-campus-card-refresh'));
+    await tester.ensureVisible(refreshButton);
+    await tester.tap(refreshButton);
+    await pumpUntilFound(tester, find.text('刷新失败:未设置OA账号×'));
+
+    expect(find.text('请先保存学工号'), findsOneWidget);
+    expect(service.fetchCount, 1);
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump();
+    expect(find.text('刷新失败:未设置OA账号×'), findsNothing);
     await disposeHomePage(tester);
   });
 
@@ -223,6 +250,98 @@ void main() {
     );
 
     expect(campusCardSize.height, profileSize.height);
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('中等宽度下学籍信息和校园卡余额卡片仍保持并排', (tester) async {
+    tester.view.physicalSize = const Size(820, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
+
+    await pumpHomePage(
+      tester,
+      campusCardService: _FakeCampusCardClient(
+        result: _successResult,
+        cachedResult: _freshCachedResult,
+      ),
+      academicEamsService: _FakeAcademicEamsClient(
+        cachedProfile: _studentProfile,
+      ),
+      campusNetworkStatusService: campusNetworkStatusService,
+      campusCardAutoRefreshEnabledOverride: false,
+    );
+    await pumpUntilFound(
+      tester,
+      find.byKey(const Key('home-campus-card-balance-card')),
+    );
+
+    final profileCard = find.byKey(const Key('home-student-profile-card'));
+    final campusCard = find.byKey(const Key('home-campus-card-balance-card'));
+    final profileTop = tester.getTopLeft(profileCard).dy;
+    final campusTop = tester.getTopLeft(campusCard).dy;
+    final profileSize = tester.getSize(profileCard);
+    final campusCardSize = tester.getSize(campusCard);
+
+    expect((profileTop - campusTop).abs(), lessThan(1));
+    expect(campusCardSize.height, profileSize.height);
+    expect(tester.takeException(), isNull);
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页校园卡刷新控件保持在卡片标题区域', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
+
+    await pumpHomePage(
+      tester,
+      campusCardService: _FakeCampusCardClient(
+        result: _successResult,
+        cachedResult: _freshCachedResult,
+      ),
+      academicEamsService: _FakeAcademicEamsClient(
+        cachedProfile: _studentProfile,
+      ),
+      campusNetworkStatusService: campusNetworkStatusService,
+      campusCardAutoRefreshEnabledOverride: false,
+    );
+    await pumpUntilFound(
+      tester,
+      find.byKey(const Key('home-campus-card-balance-card')),
+    );
+
+    final cardTop = tester
+        .getTopLeft(find.byKey(const Key('home-campus-card-balance-card')))
+        .dy;
+    final refreshCenter = tester.getCenter(
+      find.byKey(const Key('home-campus-card-refresh')),
+    );
+    final lastRefresh = find.textContaining('上次刷新时间：').first;
+    final lastRefreshCenter = tester.getCenter(lastRefresh);
+    final lastRefreshRight = tester.getTopRight(lastRefresh).dx;
+    final refreshLeft = tester
+        .getTopLeft(find.byKey(const Key('home-campus-card-refresh')))
+        .dx;
+
+    final cardHeight = tester
+        .getSize(find.byKey(const Key('home-campus-card-balance-card')))
+        .height;
+
+    expect(refreshCenter.dy - cardTop, lessThan(cardHeight * 0.42));
+    expect((refreshCenter.dy - lastRefreshCenter.dy).abs(), lessThan(1));
+    expect(refreshLeft - lastRefreshRight, greaterThanOrEqualTo(0));
+    expect(refreshLeft - lastRefreshRight, lessThan(16));
+    expect(tester.takeException(), isNull);
     await disposeHomePage(tester);
   });
 

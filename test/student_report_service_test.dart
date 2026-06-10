@@ -15,6 +15,7 @@ import 'package:sspu_allinone/models/academic_credentials.dart';
 import 'package:sspu_allinone/models/academic_login_validation.dart';
 import 'package:sspu_allinone/models/student_report.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/services/authenticated_data_cache_service.dart';
 import 'package:sspu_allinone/services/campus_network_status_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/services/student_report_service.dart';
@@ -398,6 +399,196 @@ void main() {
     expect(records?.single.itemName, '迎新志愿服务');
     expect(records?.single.status, isNull);
     expect(records?.single.credit, 1);
+  });
+
+  test('解析规则矩阵总计和已获分数详情且忽略签到时间', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final gateway = _FakeStudentReportGateway(
+      entryPage: _onclickHome,
+      creditPage: _snapshot(_ruleMatrixCreditHtml),
+      detailPagesByPath: {
+        '/sharedc/dc/studentxfform/detail.do?rule=1': _snapshot(
+          _detailCreditHtml,
+        ),
+        '/sharedc/dc/studentxfform/detail.do?rule=2': _snapshot(
+          _detailCreditHtml,
+        ),
+        '/sharedc/dc/studentxfform/detail.do?rule=3': _snapshot(
+          _detailCreditHtml,
+        ),
+      },
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final result = await service.fetchSecondClassroomCredits();
+
+    expect(result.status, StudentReportQueryStatus.success);
+    expect(
+      gateway.fetchedUris
+          .map((uri) => uri.path)
+          .where((path) => path.endsWith('/detail.do')),
+      hasLength(3),
+    );
+    final summary = result.summary;
+    expect(summary?.warning, isNull);
+    expect(summary?.rules, hasLength(4));
+    expect(summary?.rules[1].category, '思想成长');
+    expect(summary?.rules[1].item, '理论学习');
+    expect(summary?.rules.last.item, '通识讲座');
+    expect(summary?.totals?.totalCredit, 5);
+    expect(summary?.totals?.totalEarnedCredit, 4);
+    expect(summary?.totals?.totalRequiredCredit, 4);
+    expect(summary?.totals?.passStatus, '未通过');
+    expect(summary?.detailRecords, hasLength(2));
+    expect(summary?.detailRecords.first.name, '主题团日');
+    expect(summary?.detailRecords.first.item, '主题教育');
+    expect(summary?.detailRecords.first.participation, '2');
+    expect(summary?.detailRecords.first.earnedCredit, 1.5);
+    expect(
+      summary?.detailRecords.first.toJson().toString(),
+      isNot(contains('签到时间')),
+    );
+    expect(
+      summary?.detailRecords.first.toJson().toString(),
+      isNot(contains('示例签到时间A')),
+    );
+  });
+
+  test('真实二课页面通过隐藏 proid 和学号读取 JSON 已获积分详情', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final gateway = _FakeStudentReportGateway(
+      entryPage: _snapshot(_resourceStringHomeHtml),
+      creditPage: StudentReportHttpSnapshot(
+        finalUri: Uri.parse(
+          'https://xgbb.sspu.edu.cn/sharedc/dc/studentxfform/index.do',
+        ),
+        statusCode: 200,
+        body: _realisticStudentXfHtml,
+      ),
+      detailPagesByPath: {
+        '/sharedc/dc/studentxfform/detail.do': StudentReportHttpSnapshot(
+          finalUri: Uri.parse(
+            'https://xgbb.sspu.edu.cn/sharedc/dc/studentxfform/detail.do',
+          ),
+          statusCode: 200,
+          body: _realisticDetailJson,
+        ),
+      },
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final result = await service.fetchSecondClassroomCredits();
+
+    expect(result.status, StudentReportQueryStatus.success);
+    expect(
+      gateway.fetchedUris.first.path,
+      '/sharedc/dc/studentxfform/index.do',
+    );
+    expect(
+      gateway.fetchedUris.any((uri) => uri.toString().contains('addOrEdit')),
+      isFalse,
+    );
+    final detailUri = gateway.fetchedUris.singleWhere(
+      (uri) => uri.path.endsWith('/detail.do'),
+    );
+    expect(detailUri.queryParameters['xh'], '20260001');
+    expect(detailUri.queryParameters['proid'], ',fake-proid-a,fake-proid-b');
+    expect(result.finalUri?.path, '/sharedc/dc/studentxfform/index.do');
+    expect(result.summary?.sourceUri.query, isEmpty);
+    expect(result.summary?.detailRecords, hasLength(1));
+    expect(result.summary?.detailRecords.single.name, '合成志愿服务');
+    expect(result.summary?.detailRecords.single.participation, '20小时');
+    expect(result.summary?.detailRecords.single.earnedCredit, 1.5);
+    expect(
+      result.summary?.detailRecords.single.toJson().toString(),
+      isNot(contains('signTime')),
+    );
+  });
+
+  test('详情解析失败时返回警告并保留旧加密缓存', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    await AuthenticatedDataCacheService.saveLatest(
+      collection: StorageKeys.studentReportCacheCollection,
+      accountKey: '20260001',
+      fetchedAt: DateTime(2026, 5, 1),
+      data: _cachedSummary('旧缓存项目').toJson(),
+    );
+    final gateway = _FakeStudentReportGateway(
+      entryPage: _onclickHome,
+      creditPage: _snapshot(_ruleMatrixCreditHtml),
+      detailPagesByPath: {
+        '/sharedc/dc/studentxfform/detail.do?rule=1': _snapshot(
+          '<html><body>不是详情表</body></html>',
+        ),
+        '/sharedc/dc/studentxfform/detail.do?rule=2': _snapshot(
+          '<html><body>不是详情表</body></html>',
+        ),
+        '/sharedc/dc/studentxfform/detail.do?rule=3': _snapshot(
+          '<html><body>不是详情表</body></html>',
+        ),
+      },
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final result = await service.fetchSecondClassroomCredits();
+    final cached = await service.readLatestCachedSecondClassroomCredits();
+
+    expect(result.status, StudentReportQueryStatus.success);
+    expect(result.summary?.rules, hasLength(4));
+    expect(result.summary?.warning, contains('部分已获分数详情无法解析'));
+    expect(cached?.summary?.records.single.itemName, '旧缓存项目');
+    expect(cached?.summary?.warning, isNull);
+  });
+
+  test('第二课堂缓存写入安全存储并清理旧普通缓存集合', () async {
+    await StorageService.saveData(
+      StorageKeys.studentReportCacheCollection,
+      'legacy_plain_cache',
+      _cachedSummary('旧明文项目').toJson(),
+    );
+
+    await AuthenticatedDataCacheService.saveLatest(
+      collection: StorageKeys.studentReportCacheCollection,
+      accountKey: '20260001',
+      fetchedAt: DateTime(2026, 5, 2),
+      data: _cachedSummary('安全缓存项目').toJson(),
+    );
+
+    final plainPayload = await StorageService.getAllData(
+      StorageKeys.studentReportCacheCollection,
+    );
+    final secureEntry = await AuthenticatedDataCacheService.readLatest(
+      StorageKeys.studentReportCacheCollection,
+      accountKey: '20260001',
+    );
+
+    expect(plainPayload, isEmpty);
+    expect(
+      await StorageService.getCollectionCount(
+        StorageKeys.studentReportCacheCollection,
+      ),
+      0,
+    );
+    expect(secureEntry?.data.toString(), contains('安全缓存项目'));
+    expect(secureEntry?.data.toString(), isNot(contains('20260001')));
   });
 
   test('第二课堂查询过程中清除 OA 密码时不会重新写入学工缓存', () async {

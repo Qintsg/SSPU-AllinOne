@@ -19,12 +19,17 @@ import '../services/academic_eams_service.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/student_report_service.dart';
 import '../theme/fluent_tokens.dart';
+import '../utils/query_result_messages.dart';
+import '../widgets/refresh_feedback_action.dart';
 import '../widgets/responsive_layout.dart';
 import 'course_schedule_page.dart';
 
 part 'academic_eams_summary_card.dart';
 part 'academic_sports_attendance_card.dart';
 part 'academic_student_report_card.dart';
+part 'academic_student_report_summary.dart';
+part 'academic_student_report_detail_page.dart';
+part 'academic_student_report_rule_matrix.dart';
 
 /// 教务中心页面。
 /// 已接入体育部考勤和第二课堂学分，其余教务能力保留规划入口。
@@ -90,6 +95,8 @@ class _AcademicPageState extends State<AcademicPage> {
   bool _isLoadingStudentReport = false;
   bool _studentReportAutoRefreshEnabled = false;
   Timer? _studentReportAutoRefreshTimer;
+  Timer? _studentReportRefreshFeedbackTimer;
+  RefreshActionFeedback? _studentReportRefreshFeedback;
   StreamSubscription<int>? _credentialChangeSubscription;
 
   SportsAttendanceClient get _sportsAttendanceService {
@@ -123,6 +130,7 @@ class _AcademicPageState extends State<AcademicPage> {
       _isLoadingAcademicEams = false;
       _isLoadingSportsAttendance = false;
       _isLoadingStudentReport = false;
+      _studentReportRefreshFeedback = null;
     });
   }
 
@@ -304,7 +312,13 @@ class _AcademicPageState extends State<AcademicPage> {
   /// 读取第二课堂学分；失败时在卡片内展示明确状态。
   Future<void> _loadStudentReport({bool silent = false}) async {
     if (_isLoadingStudentReport) return;
-    if (!silent) setState(() => _isLoadingStudentReport = true);
+    if (!silent) {
+      _studentReportRefreshFeedbackTimer?.cancel();
+      setState(() {
+        _studentReportRefreshFeedback = null;
+        _isLoadingStudentReport = true;
+      });
+    }
 
     final result = await _studentReportService.fetchSecondClassroomCredits(
       requireCampusNetwork: silent,
@@ -315,6 +329,41 @@ class _AcademicPageState extends State<AcademicPage> {
       _studentReportResult = result;
       if (!silent) _isLoadingStudentReport = false;
     });
+    if (!silent) _showStudentReportRefreshFeedback(result);
+  }
+
+  void _showStudentReportRefreshFeedback(StudentReportQueryResult result) {
+    _studentReportRefreshFeedbackTimer?.cancel();
+    setState(() {
+      _studentReportRefreshFeedback = result.isSuccess
+          ? const RefreshActionFeedback.success()
+          : RefreshActionFeedback.failure(
+              _studentReportRefreshFailureReason(result),
+            );
+    });
+    _studentReportRefreshFeedbackTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      setState(() => _studentReportRefreshFeedback = null);
+    });
+  }
+
+  String _studentReportRefreshFailureReason(StudentReportQueryResult result) {
+    return switch (result.status) {
+      StudentReportQueryStatus.success => '',
+      StudentReportQueryStatus.missingOaAccount => '未设置OA账号',
+      StudentReportQueryStatus.missingOaPassword => '未设置OA密码',
+      StudentReportQueryStatus.campusNetworkUnavailable => '校园网/VPN不可用',
+      StudentReportQueryStatus.oaLoginRequired => 'OA登录失效',
+      StudentReportQueryStatus.reportSystemUnavailable => '学工报表不可用',
+      StudentReportQueryStatus.secondClassroomEntryUnavailable => '未找到二课入口',
+      StudentReportQueryStatus.parseFailed ||
+      StudentReportQueryStatus.networkError ||
+      StudentReportQueryStatus.unexpectedError => firstNonEmptyText(
+        result.detail,
+        result.message,
+        fallback: '查询失败',
+      ),
+    };
   }
 
   bool _shouldAutoRefresh(DateTime? fetchedAt, int intervalMinutes) {
@@ -330,6 +379,7 @@ class _AcademicPageState extends State<AcademicPage> {
     _academicEamsAutoRefreshTimer?.cancel();
     _sportsAttendanceAutoRefreshTimer?.cancel();
     _studentReportAutoRefreshTimer?.cancel();
+    _studentReportRefreshFeedbackTimer?.cancel();
     super.dispose();
   }
 
@@ -383,6 +433,7 @@ class _AcademicPageState extends State<AcademicPage> {
                   result: _studentReportResult,
                   isLoading: _isLoadingStudentReport,
                   autoRefreshEnabled: _studentReportAutoRefreshEnabled,
+                  refreshFeedback: _studentReportRefreshFeedback,
                   onRefresh: _loadStudentReport,
                 )
                 .animate(delay: FluentDuration.stagger * 2)

@@ -42,6 +42,8 @@ class FluentIcons {
       system.FluentIcons.chevron_left_24_regular;
   static const IconData chevronRight =
       system.FluentIcons.chevron_right_24_regular;
+  static const IconData chevronDown =
+      system.FluentIcons.chevron_down_24_regular;
   static const IconData back = system.FluentIcons.arrow_left_24_regular;
   static const IconData forward = system.FluentIcons.arrow_right_24_regular;
   static const IconData chromeBack = system.FluentIcons.arrow_left_24_regular;
