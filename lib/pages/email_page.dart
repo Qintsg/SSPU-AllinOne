@@ -45,6 +45,7 @@ class _EmailPageState extends State<EmailPage> {
   EmailProtocol? _validatingProtocol;
   EmailMailboxQueryResult? _mailboxResult;
   EmailLoginValidationResult? _validationResult;
+  String? _selectedMessageId;
   bool _isFetchingMessages = false;
   bool _emailAutoRefreshEnabled = false;
   Timer? _emailAutoRefreshTimer;
@@ -67,6 +68,7 @@ class _EmailPageState extends State<EmailPage> {
     setState(() {
       _mailboxResult = null;
       _validationResult = null;
+      _selectedMessageId = null;
       _isFetchingMessages = false;
       _validatingProtocol = null;
     });
@@ -113,7 +115,12 @@ class _EmailPageState extends State<EmailPage> {
       _selectedProtocol,
     );
     if (!mounted) return;
-    setState(() => _mailboxResult = cachedResult);
+    setState(() {
+      _mailboxResult = cachedResult;
+      _selectedMessageId = cachedResult?.snapshot?.messages.isNotEmpty == true
+          ? cachedResult!.snapshot!.messages.first.id
+          : null;
+    });
   }
 
   /// 使用当前选择的只读协议读取最近邮件。
@@ -129,8 +136,35 @@ class _EmailPageState extends State<EmailPage> {
     if (silent && !result.isSuccess) return;
     setState(() {
       _mailboxResult = result;
+      _selectedMessageId = result.snapshot?.messages.isNotEmpty == true
+          ? result.snapshot!.messages.first.id
+          : null;
       if (!silent) _isFetchingMessages = false;
     });
+  }
+
+  EmailMessageSnapshot? _selectedMessage(List<EmailMessageSnapshot> messages) {
+    if (messages.isEmpty) return null;
+    for (final message in messages) {
+      if (message.id == _selectedMessageId) return message;
+    }
+    return messages.first;
+  }
+
+  void _openOrSelectMessage(
+    EmailMessageSnapshot message, {
+    required bool inline,
+  }) {
+    if (inline) {
+      setState(() => _selectedMessageId = message.id);
+      return;
+    }
+    _openMessageDetail(message);
+  }
+
+  void _selectFirstMessageIfNeeded(List<EmailMessageSnapshot> messages) {
+    if (messages.isEmpty || _selectedMessage(messages) != null) return;
+    _selectedMessageId = messages.first.id;
   }
 
   bool _shouldAutoRefresh(DateTime? fetchedAt, int intervalMinutes) {
@@ -164,32 +198,58 @@ class _EmailPageState extends State<EmailPage> {
   Widget build(BuildContext context) {
     return FluentPage.scrollable(
       header: const FluentPageHeader(title: Text('学校邮箱')),
-      children: [
-        _buildOverviewCard(context)
-            .animate()
-            .fadeIn(
-              duration: FluentDuration.slow,
-              curve: FluentEasing.decelerate,
-            )
-            .slideY(begin: 0.05, end: 0),
-        const SizedBox(height: FluentSpacing.m),
-        _buildProtocolCard(context)
-            .animate(delay: 80.ms)
-            .fadeIn(
-              duration: FluentDuration.slow,
-              curve: FluentEasing.decelerate,
-            )
-            .slideY(begin: 0.05, end: 0),
-        const SizedBox(height: FluentSpacing.m),
-        _buildMailboxSection(context)
-            .animate(delay: 160.ms)
-            .fadeIn(
-              duration: FluentDuration.slow,
-              curve: FluentEasing.decelerate,
-            )
-            .slideY(begin: 0.05, end: 0),
-      ],
+      children: [FluentContentWidth(child: _buildEmailContent(context))],
     );
+  }
+
+  Widget _buildEmailContent(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useTwoPane = constraints.maxWidth >= 900;
+        if (useTwoPane) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 340,
+                child: Column(
+                  children: [
+                    _buildOverviewCard(context),
+                    const SizedBox(height: FluentSpacing.m),
+                    _buildProtocolCard(context),
+                  ],
+                ),
+              ),
+              const SizedBox(width: FluentSpacing.m),
+              Expanded(
+                child: _buildMailboxSection(context, inlineDetail: true),
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          children: [
+            _animateEmailSection(_buildOverviewCard(context), 0),
+            const SizedBox(height: FluentSpacing.m),
+            _animateEmailSection(_buildProtocolCard(context), 1),
+            const SizedBox(height: FluentSpacing.m),
+            _animateEmailSection(
+              _buildMailboxSection(context, inlineDetail: false),
+              2,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _animateEmailSection(Widget child, int index) {
+    if (MediaQuery.disableAnimationsOf(context)) return child;
+    return child
+        .animate(delay: FluentDuration.stagger * index)
+        .fadeIn(duration: FluentDuration.slow, curve: FluentEasing.decelerate)
+        .slideY(begin: 0.05, end: 0);
   }
 
   /// 构建页面说明，强调只读边界。
@@ -315,7 +375,10 @@ class _EmailPageState extends State<EmailPage> {
   }
 
   /// 构建邮件读取结果和列表。
-  Widget _buildMailboxSection(BuildContext context) {
+  Widget _buildMailboxSection(
+    BuildContext context, {
+    required bool inlineDetail,
+  }) {
     final result = _mailboxResult;
     if (_isFetchingMessages) {
       return const FluentSurface(
@@ -355,6 +418,7 @@ class _EmailPageState extends State<EmailPage> {
 
     final snapshot = result.snapshot!;
     final messages = snapshot.messages;
+    _selectFirstMessageIfNeeded(messages);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -378,14 +442,65 @@ class _EmailPageState extends State<EmailPage> {
             content: Text('邮箱协议登录成功，但最近邮件列表为空。'),
             severity: FluentInfoSeverity.info,
           )
+        else if (inlineDetail)
+          _buildMailboxTwoPane(context, snapshot, messages)
         else
-          ...messages.map(_buildMessageCard),
+          ...messages.map(
+            (message) => _buildMessageCard(message, inlineDetail: false),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMailboxTwoPane(
+    BuildContext context,
+    EmailMailboxSnapshot snapshot,
+    List<EmailMessageSnapshot> messages,
+  ) {
+    final selectedMessage = _selectedMessage(messages);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 360,
+          child: FluentSurface(
+            padding: const EdgeInsets.symmetric(vertical: FluentSpacing.xxs),
+            child: Column(
+              children: [
+                for (var index = 0; index < messages.length; index++) ...[
+                  _EmailListRow(
+                    message: messages[index],
+                    selected: messages[index].id == selectedMessage?.id,
+                    senderLabel: _senderLabel,
+                    formatDateTime: _formatOptionalDateTime,
+                    onPressed: () =>
+                        _openOrSelectMessage(messages[index], inline: true),
+                  ),
+                  if (index != messages.length - 1) const Divider(),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: FluentSpacing.m),
+        Expanded(
+          child: _EmailInlineDetailPanel(
+            message: selectedMessage,
+            protocolLabel: snapshot.protocol.label,
+            fetchedAtLabel: _formatDateTime(snapshot.fetchedAt),
+            senderLabel: _senderLabel,
+            formatDateTime: _formatOptionalDateTime,
+          ),
+        ),
       ],
     );
   }
 
   /// 构建单封邮件摘要卡片。
-  Widget _buildMessageCard(EmailMessageSnapshot message) {
+  Widget _buildMessageCard(
+    EmailMessageSnapshot message, {
+    required bool inlineDetail,
+  }) {
     final theme = FluentTheme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: FluentSpacing.s),
@@ -421,7 +536,8 @@ class _EmailPageState extends State<EmailPage> {
             Align(
               alignment: Alignment.centerRight,
               child: FluentButton.outline(
-                onPressed: () => _openMessageDetail(message),
+                onPressed: () =>
+                    _openOrSelectMessage(message, inline: inlineDetail),
                 child: const Text('查看正文'),
               ),
             ),
@@ -466,5 +582,203 @@ class _EmailPageState extends State<EmailPage> {
         '${dateTime.day.toString().padLeft(2, '0')} '
         '${dateTime.hour.toString().padLeft(2, '0')}:'
         '${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _EmailListRow extends StatelessWidget {
+  const _EmailListRow({
+    required this.message,
+    required this.selected,
+    required this.senderLabel,
+    required this.formatDateTime,
+    required this.onPressed,
+  });
+
+  final EmailMessageSnapshot message;
+  final bool selected;
+  final String Function(EmailMessageSnapshot message) senderLabel;
+  final String Function(DateTime? dateTime) formatDateTime;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.fluentColors;
+    final theme = FluentTheme.of(context);
+    return HoverButton(
+      onPressed: onPressed,
+      builder: (context, states) {
+        final background = selected
+            ? colors.brandStroke2.withValues(alpha: 0.16)
+            : states.isHovered || states.isFocused
+            ? colors.subtleBackgroundHover
+            : null;
+        return Container(
+          color: background,
+          padding: const EdgeInsets.all(FluentSpacing.m),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _EmailSenderAnchor(label: senderLabel(message)),
+              const SizedBox(width: FluentSpacing.s),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            message.subject,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.typography.bodyStrong,
+                          ),
+                        ),
+                        const SizedBox(width: FluentSpacing.s),
+                        Text(
+                          formatDateTime(message.receivedAt),
+                          style: theme.typography.caption?.copyWith(
+                            color: colors.neutralForeground3,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: FluentSpacing.xxs),
+                    Text(
+                      senderLabel(message),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.typography.caption?.copyWith(
+                        color: colors.neutralForeground3,
+                      ),
+                    ),
+                    const SizedBox(height: FluentSpacing.xxs),
+                    Text(
+                      message.preview,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.typography.caption,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EmailSenderAnchor extends StatelessWidget {
+  const _EmailSenderAnchor({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = context.fluentAccents.mail;
+    final initial = label.trim().isEmpty ? '邮' : label.trim().characters.first;
+    return Container(
+      width: 34,
+      height: 34,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: context.fluentRadii.mediumBorder,
+      ),
+      child: Text(
+        initial,
+        style: FluentTheme.of(context).typography.bodyStrong?.copyWith(
+          color: accent,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _EmailInlineDetailPanel extends StatelessWidget {
+  const _EmailInlineDetailPanel({
+    required this.message,
+    required this.protocolLabel,
+    required this.fetchedAtLabel,
+    required this.senderLabel,
+    required this.formatDateTime,
+  });
+
+  final EmailMessageSnapshot? message;
+  final String protocolLabel;
+  final String fetchedAtLabel;
+  final String Function(EmailMessageSnapshot message) senderLabel;
+  final String Function(DateTime? dateTime) formatDateTime;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    final colors = context.fluentColors;
+    final current = message;
+    if (current == null) {
+      return const FluentSurface(
+        minHeight: 320,
+        child: Center(child: Text('选择一封邮件查看正文快照')),
+      );
+    }
+
+    return FluentSurface(
+      minHeight: 420,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: FluentSpacing.s,
+            runSpacing: FluentSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              FluentStatusChip(
+                label: '$protocolLabel 只读快照',
+                icon: FluentIcons.mail,
+                tone: FluentStatusChipTone.brand,
+              ),
+              FluentStatusChip(
+                label: '刷新 $fetchedAtLabel',
+                icon: FluentIcons.clock,
+              ),
+            ],
+          ),
+          const SizedBox(height: FluentSpacing.m),
+          Text(current.subject, style: theme.typography.subtitle),
+          const SizedBox(height: FluentSpacing.s),
+          Text(
+            senderLabel(current),
+            style: theme.typography.caption?.copyWith(
+              color: colors.neutralForeground3,
+            ),
+          ),
+          Text(
+            formatDateTime(current.receivedAt),
+            style: theme.typography.caption?.copyWith(
+              color: colors.neutralForeground3,
+            ),
+          ),
+          const SizedBox(height: FluentSpacing.m),
+          const FluentInfoBar(
+            title: Text('只读正文快照'),
+            content: Text('不会执行回复、转发、删除、移动或标记已读操作。'),
+            severity: FluentInfoSeverity.info,
+          ),
+          const SizedBox(height: FluentSpacing.m),
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 180),
+            child: SingleChildScrollView(
+              primary: false,
+              child: SelectableText(
+                current.body.isEmpty ? '无可展示正文。' : current.body,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

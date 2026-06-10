@@ -34,17 +34,23 @@ Widget _buildInfoRegularBody(
   FluentThemeData theme,
   bool isDark,
 ) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _buildInfoRegularControls(state, theme, isDark),
-      const SizedBox(height: FluentSpacing.s),
-      Expanded(child: _buildInfoMessagePanel(state, theme, isDark)),
-      if (state._filteredMessages.isNotEmpty) ...[
-        const SizedBox(height: FluentSpacing.xxs),
-        state._buildPagination(theme),
-      ],
-    ],
+  return FluentContentWidth(
+    child: Focus(
+      autofocus: true,
+      onKeyEvent: (node, event) => _handleInfoPaginationKey(state, event),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildInfoRegularControls(state, theme, isDark),
+          const SizedBox(height: FluentSpacing.s),
+          Expanded(child: _buildInfoMessagePanel(state, theme, isDark)),
+          if (state._filteredMessages.isNotEmpty) ...[
+            const SizedBox(height: FluentSpacing.xxs),
+            state._buildPagination(theme),
+          ],
+        ],
+      ),
+    ),
   );
 }
 
@@ -65,6 +71,23 @@ Widget _buildInfoMobileBody(
       ],
     ],
   );
+}
+
+KeyEventResult _handleInfoPaginationKey(_InfoPageState state, KeyEvent event) {
+  if (event is! KeyDownEvent || state._filteredMessages.isEmpty) {
+    return KeyEventResult.ignored;
+  }
+  if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+      state._currentPage > 0) {
+    state._setCurrentPage(state._currentPage - 1);
+    return KeyEventResult.handled;
+  }
+  if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
+      state._currentPage < state._totalPages - 1) {
+    state._setCurrentPage(state._currentPage + 1);
+    return KeyEventResult.handled;
+  }
+  return KeyEventResult.ignored;
 }
 
 Widget _buildInfoMessagePanel(

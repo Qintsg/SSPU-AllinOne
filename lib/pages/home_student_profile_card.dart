@@ -20,6 +20,7 @@ extension _HomeStudentProfileCard on _HomePageState {
     return FluentSurface(
       key: const Key('home-student-profile-card'),
       padding: const EdgeInsets.all(FluentSpacing.l),
+      minHeight: _homeIdentityCardMinHeight,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -161,3 +162,5 @@ extension _HomeStudentProfileCard on _HomePageState {
     return normalized == null || normalized.isEmpty ? '未读取' : normalized;
   }
 }
+
+const double _homeIdentityCardMinHeight = 168;

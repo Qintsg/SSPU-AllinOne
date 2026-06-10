@@ -9,9 +9,9 @@
 part of 'info_page.dart';
 
 Future<void> _showInfoMobileFilterDialog(_InfoPageState state) {
-  return showFluentDialog<void>(
+  return showFluentBottomDrawer<void>(
     context: state.context,
-    builder: (dialogContext) {
+    builder: (drawerContext) {
       return StatefulBuilder(
         builder: (context, setDialogState) {
           void applyAndRefreshDialog() {
@@ -19,29 +19,41 @@ Future<void> _showInfoMobileFilterDialog(_InfoPageState state) {
             if (context.mounted) setDialogState(() {});
           }
 
-          return FluentDialog(
+          return FluentBottomDrawer(
             title: const Text('筛选消息'),
-            content: _buildInfoMobileFilterForm(
-              state,
-              applyAndRefreshDialog: applyAndRefreshDialog,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildInfoMobileFilterForm(
+                  state,
+                  applyAndRefreshDialog: applyAndRefreshDialog,
+                ),
+                const SizedBox(height: FluentSpacing.m),
+                Wrap(
+                  spacing: FluentSpacing.s,
+                  runSpacing: FluentSpacing.s,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    FluentButton.outline(
+                      child: const Text('重置'),
+                      onPressed: () {
+                        state._filterSourceType = null;
+                        state._filterSourceName = null;
+                        state._filterWechatMpName = null;
+                        state._filterCategory = null;
+                        state._filterUnreadOnly = false;
+                        applyAndRefreshDialog();
+                      },
+                    ),
+                    FluentButton.primary(
+                      child: const Text('完成'),
+                      onPressed: () => Navigator.of(drawerContext).pop(),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            actions: [
-              FluentButton.outline(
-                child: const Text('重置'),
-                onPressed: () {
-                  state._filterSourceType = null;
-                  state._filterSourceName = null;
-                  state._filterWechatMpName = null;
-                  state._filterCategory = null;
-                  state._filterUnreadOnly = false;
-                  applyAndRefreshDialog();
-                },
-              ),
-              FluentButton.primary(
-                child: const Text('完成'),
-                onPressed: () => Navigator.of(dialogContext).pop(),
-              ),
-            ],
           );
         },
       );

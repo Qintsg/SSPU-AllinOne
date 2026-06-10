@@ -39,6 +39,14 @@ class FluentLightColors {
   static const Color hoverFill = Color(0x0A000000);
   static const Color activeFill = Color(0x06000000);
   static const Color unreadIndicator = Color(0xFF0F6CBD);
+  static const Color accentAcademic = Color(0xFF0F6CBD);
+  static const Color accentSchedule = Color(0xFF0078D4);
+  static const Color accentInformation = Color(0xFF8764B8);
+  static const Color accentMail = Color(0xFF0078A8);
+  static const Color accentFinance = Color(0xFF107C10);
+  static const Color accentSports = Color(0xFFC239B3);
+  static const Color accentSecondClassroom = Color(0xFFCA5010);
+  static const Color accentQuickLink = Color(0xFF038387);
 }
 
 /// 暗色主题固定语义色。
@@ -64,6 +72,28 @@ class FluentDarkColors {
   static const Color hoverFill = Color(0x0AFFFFFF);
   static const Color activeFill = Color(0x06FFFFFF);
   static const Color unreadIndicator = Color(0xFF479EF5);
+  static const Color accentAcademic = Color(0xFF62ABF5);
+  static const Color accentSchedule = Color(0xFF60CDFF);
+  static const Color accentInformation = Color(0xFFB4A0FF);
+  static const Color accentMail = Color(0xFF6CCBFF);
+  static const Color accentFinance = Color(0xFF6CCB5F);
+  static const Color accentSports = Color(0xFFE8A3DE);
+  static const Color accentSecondClassroom = Color(0xFFFFB386);
+  static const Color accentQuickLink = Color(0xFF68D8D6);
+}
+
+/// UI Refresh 2026 应用级度量镜像。
+class FluentAppMetrics {
+  FluentAppMetrics._();
+
+  static const double contentMaxWidth = 1280;
+  static const double readableMaxWidth = 920;
+  static const double dashboardTileMinHeight = 176;
+  static const double dashboardCompactTileMinHeight = 132;
+  static const double businessCardHeight = 224;
+  static const double quickLinkTileWidth = 156;
+  static const double schedulePeriodColumnWidth = 82;
+  static const double scheduleCellMinHeight = 76;
 }
 
 /// Fluent 2 浮层阴影静态映射。
@@ -92,7 +122,9 @@ class FluentSpacing {
   static const double xxl = AppSpacing.lg;
   static const double xxxl = AppSpacing.xl;
   static const EdgeInsets cardPadding = EdgeInsets.all(xl);
-  static const EdgeInsets pageHorizontal = EdgeInsets.symmetric(horizontal: xxl);
+  static const EdgeInsets pageHorizontal = EdgeInsets.symmetric(
+    horizontal: xxl,
+  );
   static const EdgeInsets listItemVertical = EdgeInsets.symmetric(vertical: s);
 }
 

@@ -130,9 +130,11 @@ void main() {
       await tester.tap(find.text('更多'));
       await tester.pumpAndSettle();
 
-      expect(find.text('更多功能'), findsOneWidget);
+      expect(find.text('更多'), findsWidgets);
       expect(find.text('设置'), findsOneWidget);
-      expect(find.text('关于'), findsOneWidget);
+      expect(find.text('邮箱'), findsAtLeastNWidgets(1));
+      expect(find.text('跳转'), findsOneWidget);
+      expect(find.text('关于'), findsNothing);
 
       // 首页使用 flutter_animate，补一段时间让一次性动画定时器自然完成。
       await tester.pump(const Duration(milliseconds: 300));
@@ -499,6 +501,12 @@ void main() {
   testWidgets('常规设置分区显示首页业务卡片开关', (WidgetTester tester) async {
     var studentVisible = true;
     var campusCardVisible = true;
+    var todayCoursesVisible = true;
+    var sportsVisible = true;
+    var studentReportVisible = true;
+    var messagesVisible = true;
+    var emailVisible = true;
+    var quickLinksVisible = true;
     await tester.pumpWidget(
       FluentApp(
         home: ScaffoldPage(
@@ -509,6 +517,12 @@ void main() {
               dndEnabled: false,
               homeStudentProfileCardVisible: true,
               homeCampusCardBalanceCardVisible: true,
+              homeTodayCoursesTileVisible: true,
+              homeSportsAttendanceTileVisible: true,
+              homeStudentReportTileVisible: true,
+              homeMessagesTileVisible: true,
+              homeEmailTileVisible: true,
+              homeQuickLinksTileVisible: true,
               dndStartHour: 22,
               dndStartMinute: 0,
               dndEndHour: 7,
@@ -520,6 +534,17 @@ void main() {
                   studentVisible = value,
               onHomeCampusCardBalanceCardVisibleChanged: (value) =>
                   campusCardVisible = value,
+              onHomeTodayCoursesTileVisibleChanged: (value) =>
+                  todayCoursesVisible = value,
+              onHomeSportsAttendanceTileVisibleChanged: (value) =>
+                  sportsVisible = value,
+              onHomeStudentReportTileVisibleChanged: (value) =>
+                  studentReportVisible = value,
+              onHomeMessagesTileVisibleChanged: (value) =>
+                  messagesVisible = value,
+              onHomeEmailTileVisibleChanged: (value) => emailVisible = value,
+              onHomeQuickLinksTileVisibleChanged: (value) =>
+                  quickLinksVisible = value,
               onDndStartChanged: (_, _) async {},
               onDndEndChanged: (_, _) async {},
             ),
@@ -532,6 +557,12 @@ void main() {
     expect(find.text('首页显示'), findsOneWidget);
     expect(find.text('显示学籍信息卡片'), findsOneWidget);
     expect(find.text('显示校园卡余额卡片'), findsOneWidget);
+    expect(find.text('显示今日课程磁贴'), findsOneWidget);
+    expect(find.text('显示体育考勤磁贴'), findsOneWidget);
+    expect(find.text('显示第二课堂磁贴'), findsOneWidget);
+    expect(find.text('显示最新消息磁贴'), findsOneWidget);
+    expect(find.text('显示邮箱摘要磁贴'), findsOneWidget);
+    expect(find.text('显示快速跳转磁贴'), findsOneWidget);
     await tester.tap(
       find.byKey(const Key('settings-home-student-profile-card-switch')),
     );
@@ -540,6 +571,34 @@ void main() {
     await tester.tap(find.byKey(const Key('settings-home-campus-card-switch')));
     await tester.pump();
     expect(campusCardVisible, isFalse);
+    await tester.tap(
+      find.byKey(const Key('settings-home-today-courses-switch')),
+    );
+    await tester.pump();
+    expect(todayCoursesVisible, isFalse);
+    await tester.tap(
+      find.byKey(const Key('settings-home-sports-attendance-switch')),
+    );
+    await tester.pump();
+    expect(sportsVisible, isFalse);
+    await tester.tap(
+      find.byKey(const Key('settings-home-student-report-switch')),
+    );
+    await tester.pump();
+    expect(studentReportVisible, isFalse);
+    await tester.tap(find.byKey(const Key('settings-home-messages-switch')));
+    await tester.pump();
+    expect(messagesVisible, isFalse);
+    await tester.tap(find.byKey(const Key('settings-home-email-switch')));
+    await tester.pump();
+    expect(emailVisible, isFalse);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-home-quick-links-switch')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings-home-quick-links-switch')));
+    await tester.pump();
+    expect(quickLinksVisible, isFalse);
     await tester.pump(const Duration(milliseconds: 120));
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
@@ -598,7 +657,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // 仅覆盖响应式导航结构，避免完整设置页服务初始化拖慢组件测试。
-      expect(find.text('常规设置'), findsOneWidget);
+      expect(find.text('常规'), findsOneWidget);
       expect(find.text('系统设置'), findsNothing);
       expect(
         find.byKey(const Key('settings-narrow-tab-combo')),
@@ -794,12 +853,14 @@ class _NarrowSettingsNavigation extends StatelessWidget {
             value: 0,
             isExpanded: true,
             items: const [
-              FluentSelectItem(value: 0, child: Text('常规设置')),
-              FluentSelectItem(value: 1, child: Text('自动刷新设置')),
-              FluentSelectItem(value: 2, child: Text('安全设置')),
-              FluentSelectItem(value: 3, child: Text('职能部门')),
-              FluentSelectItem(value: 4, child: Text('教学单位')),
-              FluentSelectItem(value: 5, child: Text('微信推文')),
+              FluentSelectItem(value: 0, child: Text('常规')),
+              FluentSelectItem(value: 1, child: Text('学期')),
+              FluentSelectItem(value: 2, child: Text('自动刷新')),
+              FluentSelectItem(value: 3, child: Text('安全')),
+              FluentSelectItem(value: 4, child: Text('职能部门')),
+              FluentSelectItem(value: 5, child: Text('教学单位')),
+              FluentSelectItem(value: 6, child: Text('微信推文')),
+              FluentSelectItem(value: 7, child: Text('关于')),
             ],
             onChanged: (_) {},
           ),
@@ -816,7 +877,7 @@ class _WideSettingsNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [Text('系统设置'), SizedBox(height: 8), Text('常规设置')],
+      children: const [Text('系统设置'), SizedBox(height: 8), Text('常规')],
     );
   }
 }

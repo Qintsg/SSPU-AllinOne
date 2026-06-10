@@ -86,7 +86,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           index: 0,
           selectedIndex: _selectedTab,
           icon: FluentIcons.settings,
-          label: '常规设置',
+          label: '常规',
           onTap: () => setState(() => _selectedTab = 0),
         ),
         const SizedBox(height: FluentSpacing.xxs),
@@ -95,7 +95,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           index: 1,
           selectedIndex: _selectedTab,
           icon: FluentIcons.calendar,
-          label: '学期设置',
+          label: '学期',
           onTap: () => setState(() => _selectedTab = 1),
         ),
         const SizedBox(height: FluentSpacing.xxs),
@@ -104,7 +104,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           index: 2,
           selectedIndex: _selectedTab,
           icon: FluentIcons.sync,
-          label: '自动刷新设置',
+          label: '自动刷新',
           onTap: () => setState(() => _selectedTab = 2),
         ),
         const SizedBox(height: FluentSpacing.xxs),
@@ -113,7 +113,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           index: 3,
           selectedIndex: _selectedTab,
           icon: FluentIcons.lock,
-          label: '安全设置',
+          label: '安全',
           onTap: () => setState(() => _selectedTab = 3),
         ),
         const Padding(
@@ -150,6 +150,18 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           label: '微信推文',
           onTap: () => setState(() => _selectedTab = 6),
         ),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          child: Divider(),
+        ),
+        buildSettingsNavItem(
+          context: context,
+          index: 7,
+          selectedIndex: _selectedTab,
+          icon: FluentIcons.info,
+          label: '关于',
+          onTap: () => setState(() => _selectedTab = 7),
+        ),
       ],
     );
   }
@@ -166,13 +178,14 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
             value: _selectedTab,
             isExpanded: true,
             items: const [
-              FluentSelectItem(value: 0, child: Text('常规设置')),
-              FluentSelectItem(value: 1, child: Text('学期设置')),
-              FluentSelectItem(value: 2, child: Text('自动刷新设置')),
-              FluentSelectItem(value: 3, child: Text('安全设置')),
+              FluentSelectItem(value: 0, child: Text('常规')),
+              FluentSelectItem(value: 1, child: Text('学期')),
+              FluentSelectItem(value: 2, child: Text('自动刷新')),
+              FluentSelectItem(value: 3, child: Text('安全')),
               FluentSelectItem(value: 4, child: Text('职能部门')),
               FluentSelectItem(value: 5, child: Text('教学单位')),
               FluentSelectItem(value: 6, child: Text('微信推文')),
+              FluentSelectItem(value: 7, child: Text('关于')),
             ],
             onChanged: (value) {
               if (value != null) setState(() => _selectedTab = value);
@@ -204,6 +217,12 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           dndEnabled: _dndEnabled,
           homeStudentProfileCardVisible: _homeStudentProfileCardVisible,
           homeCampusCardBalanceCardVisible: _homeCampusCardBalanceCardVisible,
+          homeTodayCoursesTileVisible: _homeTodayCoursesTileVisible,
+          homeSportsAttendanceTileVisible: _homeSportsAttendanceTileVisible,
+          homeStudentReportTileVisible: _homeStudentReportTileVisible,
+          homeMessagesTileVisible: _homeMessagesTileVisible,
+          homeEmailTileVisible: _homeEmailTileVisible,
+          homeQuickLinksTileVisible: _homeQuickLinksTileVisible,
           dndStartHour: _dndStartHour,
           dndStartMinute: _dndStartMinute,
           dndEndHour: _dndEndHour,
@@ -215,6 +234,16 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
               _onHomeStudentProfileCardVisibleChanged,
           onHomeCampusCardBalanceCardVisibleChanged:
               _onHomeCampusCardBalanceCardVisibleChanged,
+          onHomeTodayCoursesTileVisibleChanged:
+              _onHomeTodayCoursesTileVisibleChanged,
+          onHomeSportsAttendanceTileVisibleChanged:
+              _onHomeSportsAttendanceTileVisibleChanged,
+          onHomeStudentReportTileVisibleChanged:
+              _onHomeStudentReportTileVisibleChanged,
+          onHomeMessagesTileVisibleChanged: _onHomeMessagesTileVisibleChanged,
+          onHomeEmailTileVisibleChanged: _onHomeEmailTileVisibleChanged,
+          onHomeQuickLinksTileVisibleChanged:
+              _onHomeQuickLinksTileVisibleChanged,
           onDndStartChanged: _onDndStartChanged,
           onDndEndChanged: _onDndEndChanged,
         );
@@ -288,6 +317,8 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
         );
       case 6:
         return const SettingsWechatSection();
+      case 7:
+        return const AboutSettingsSection();
       default:
         return const SizedBox.shrink();
     }

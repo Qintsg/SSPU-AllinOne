@@ -17,6 +17,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
     return FluentSurface(
       key: const Key('home-campus-card-balance-card'),
       padding: const EdgeInsets.all(FluentSpacing.l),
+      minHeight: _homeIdentityCardMinHeight,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -43,7 +44,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
       return Align(
         alignment: Alignment.centerLeft,
         child: Text(
-          _campusCardAutoRefreshEnabled
+          _campusCardRefreshController.autoRefreshEnabled
               ? '自动刷新已开启，等待下一次读取。'
               : '自动刷新未开启，可点击标题行刷新图标读取校园卡余额。',
           style: theme.typography.caption?.copyWith(
@@ -94,15 +95,15 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
               labelStyle: theme.typography.caption?.copyWith(
                 color: theme.resources.textFillColorSecondary,
               ),
-              actionReservedWidth: _campusCardRefreshFeedback == null
+              actionReservedWidth: _campusCardRefreshController.feedback == null
                   ? 32
                   : 180,
               action: RefreshFeedbackAction(
                 key: const Key('home-campus-card-refresh'),
                 tooltip: '刷新校园卡余额',
                 semanticLabel: '刷新校园卡余额',
-                isLoading: _isLoadingCampusCard,
-                feedback: _campusCardRefreshFeedback,
+                isLoading: _campusCardRefreshController.isLoading,
+                feedback: _campusCardRefreshController.feedback,
                 onPressed: _loadCampusCard,
                 minTouchSize: 32,
                 size: 28,

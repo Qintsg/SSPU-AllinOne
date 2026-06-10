@@ -36,6 +36,7 @@ import '../widgets/settings_general_section.dart';
 import '../widgets/settings_security_section.dart';
 import '../widgets/settings_wechat_section.dart';
 import '../widgets/settings_widgets.dart';
+import 'about_page.dart';
 
 part 'settings_page_actions.dart';
 part 'settings_page_layout.dart';
@@ -50,7 +51,15 @@ class SettingsPage extends StatefulWidget {
   /// 测试专用：覆盖学期设置页当前日期。
   final DateTime? academicTermNow;
 
-  const SettingsPage({super.key, this.onLock, this.academicTermNow});
+  /// 初始或后续定位请求。
+  final SettingsLandingRequest? landingRequest;
+
+  const SettingsPage({
+    super.key,
+    this.onLock,
+    this.academicTermNow,
+    this.landingRequest,
+  });
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -97,6 +106,30 @@ class _SettingsPageState extends State<SettingsPage>
   /// 首页是否显示校园卡余额卡片。
   @override
   bool _homeCampusCardBalanceCardVisible = true;
+
+  /// 首页是否显示今日课程磁贴。
+  @override
+  bool _homeTodayCoursesTileVisible = true;
+
+  /// 首页是否显示体育考勤磁贴。
+  @override
+  bool _homeSportsAttendanceTileVisible = true;
+
+  /// 首页是否显示第二课堂磁贴。
+  @override
+  bool _homeStudentReportTileVisible = true;
+
+  /// 首页是否显示最新消息磁贴。
+  @override
+  bool _homeMessagesTileVisible = true;
+
+  /// 首页是否显示邮箱摘要磁贴。
+  @override
+  bool _homeEmailTileVisible = true;
+
+  /// 首页是否显示快速跳转磁贴。
+  @override
+  bool _homeQuickLinksTileVisible = true;
 
   /// 勿扰开始时间。
   @override
@@ -161,7 +194,7 @@ class _SettingsPageState extends State<SettingsPage>
       AcademicEamsService.defaultAutoRefreshIntervalMinutes;
 
   /// 当前选中的设置分区索引。
-  /// 0=常规设置 1=学期设置 2=自动刷新设置 3=安全设置 4=职能部门 5=教学单位 6=微信推文
+  /// 0=常规 1=学期 2=自动刷新 3=安全 4=职能部门 5=教学单位 6=微信推文 7=关于
   @override
   int _selectedTab = 0;
 
@@ -172,7 +205,18 @@ class _SettingsPageState extends State<SettingsPage>
   @override
   void initState() {
     super.initState();
+    _selectedTab = _tabIndexForLanding(widget.landingRequest?.section);
     _loadSettings();
+  }
+
+  @override
+  void didUpdateWidget(covariant SettingsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final request = widget.landingRequest;
+    if (request == null || identical(request, oldWidget.landingRequest)) {
+      return;
+    }
+    setState(() => _selectedTab = _tabIndexForLanding(request.section));
   }
 
   @override
@@ -192,4 +236,56 @@ class _SettingsPageState extends State<SettingsPage>
       ),
     );
   }
+}
+
+/// 设置页定位目标。
+enum SettingsLandingSection {
+  /// 常规。
+  general,
+
+  /// 学期。
+  academicTerm,
+
+  /// 自动刷新。
+  autoRefresh,
+
+  /// 安全。
+  security,
+
+  /// 职能部门。
+  departments,
+
+  /// 教学单位。
+  teaching,
+
+  /// 微信推文。
+  wechat,
+
+  /// 关于。
+  about,
+}
+
+/// 设置页定位请求。
+class SettingsLandingRequest {
+  /// 构造设置页定位请求。
+  SettingsLandingRequest(this.section) : issuedAt = DateTime.now();
+
+  /// 目标分区。
+  final SettingsLandingSection section;
+
+  /// 请求创建时间，用于重复定位到同一分区时触发更新。
+  final DateTime issuedAt;
+}
+
+int _tabIndexForLanding(SettingsLandingSection? section) {
+  return switch (section) {
+    SettingsLandingSection.general || null => 0,
+    SettingsLandingSection.academicTerm => 1,
+    SettingsLandingSection.autoRefresh => 2,
+    SettingsLandingSection.security => 3,
+    SettingsLandingSection.departments => 4,
+    SettingsLandingSection.teaching => 5,
+    SettingsLandingSection.wechat => 6,
+    SettingsLandingSection.about => 7,
+  };
 }

@@ -37,8 +37,10 @@ class AcademicStudentReportCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final summary = result?.summary;
+    final accent = context.fluentAccents.secondClassroom;
 
     return FluentSurface(
+      accentColor: accent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -130,9 +132,10 @@ class _SecondClassroomCardHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
+    final accent = context.fluentAccents.secondClassroom;
     final title = Row(
       children: [
-        const FluentSurfaceIcon(icon: FluentIcons.education),
+        FluentSurfaceIcon(icon: FluentIcons.education, color: accent),
         const SizedBox(width: FluentSpacing.m),
         Expanded(
           child: Text(

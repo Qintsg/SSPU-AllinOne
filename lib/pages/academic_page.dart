@@ -8,6 +8,7 @@
 
 import 'dart:async';
 
+import '../controllers/card_auto_refresh_controller.dart';
 import '../design/fluent_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -80,23 +81,16 @@ class AcademicPage extends StatefulWidget {
 
 class _AcademicPageState extends State<AcademicPage> {
   AcademicEamsQueryResult? _academicEamsResult;
-  bool _isLoadingAcademicEams = false;
-  bool _academicEamsAutoRefreshEnabled = false;
-  int _academicEamsAutoRefreshIntervalMinutes =
-      AcademicEamsService.defaultAutoRefreshIntervalMinutes;
-  Timer? _academicEamsAutoRefreshTimer;
+  late final CardAutoRefreshController<AcademicEamsQueryResult>
+  _academicEamsRefreshController;
 
   SportsAttendanceQueryResult? _sportsAttendanceResult;
-  bool _isLoadingSportsAttendance = false;
-  bool _sportsAttendanceAutoRefreshEnabled = false;
-  Timer? _sportsAttendanceAutoRefreshTimer;
+  late final CardAutoRefreshController<SportsAttendanceQueryResult>
+  _sportsAttendanceRefreshController;
 
   StudentReportQueryResult? _studentReportResult;
-  bool _isLoadingStudentReport = false;
-  bool _studentReportAutoRefreshEnabled = false;
-  Timer? _studentReportAutoRefreshTimer;
-  Timer? _studentReportRefreshFeedbackTimer;
-  RefreshActionFeedback? _studentReportRefreshFeedback;
+  late final CardAutoRefreshController<StudentReportQueryResult>
+  _studentReportRefreshController;
   StreamSubscription<int>? _credentialChangeSubscription;
 
   SportsAttendanceClient get _sportsAttendanceService {
@@ -114,6 +108,30 @@ class _AcademicPageState extends State<AcademicPage> {
   @override
   void initState() {
     super.initState();
+    _academicEamsRefreshController =
+        CardAutoRefreshController<AcademicEamsQueryResult>(
+          refreshTask: _fetchAcademicEamsForController,
+          isSuccess: (result) => result.isSuccess,
+          applyResult: _applyAcademicEamsResult,
+          checkedAt: () => _academicEamsResult?.checkedAt,
+          failureReason: _academicEamsRefreshFailureReason,
+        )..addListener(_handleRefreshControllerChanged);
+    _sportsAttendanceRefreshController =
+        CardAutoRefreshController<SportsAttendanceQueryResult>(
+          refreshTask: _fetchSportsAttendanceForController,
+          isSuccess: (result) => result.isSuccess,
+          applyResult: _applySportsAttendanceResult,
+          checkedAt: () => _sportsAttendanceResult?.checkedAt,
+          failureReason: _sportsAttendanceRefreshFailureReason,
+        )..addListener(_handleRefreshControllerChanged);
+    _studentReportRefreshController =
+        CardAutoRefreshController<StudentReportQueryResult>(
+          refreshTask: _fetchStudentReportForController,
+          isSuccess: (result) => result.isSuccess,
+          applyResult: _applyStudentReportResult,
+          checkedAt: () => _studentReportResult?.checkedAt,
+          failureReason: _studentReportRefreshFailureReason,
+        )..addListener(_handleRefreshControllerChanged);
     _credentialChangeSubscription = AcademicCredentialsService.instance.changes
         .listen((_) => _clearAuthenticatedState());
     _loadAcademicEamsCacheAndSettings();
@@ -121,16 +139,20 @@ class _AcademicPageState extends State<AcademicPage> {
     _loadStudentReportCacheAndSettings();
   }
 
+  void _handleRefreshControllerChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
   void _clearAuthenticatedState() {
     if (!mounted) return;
+    _academicEamsRefreshController.clearTransientState();
+    _sportsAttendanceRefreshController.clearTransientState();
+    _studentReportRefreshController.clearTransientState();
     setState(() {
       _academicEamsResult = null;
       _sportsAttendanceResult = null;
       _studentReportResult = null;
-      _isLoadingAcademicEams = false;
-      _isLoadingSportsAttendance = false;
-      _isLoadingStudentReport = false;
-      _studentReportRefreshFeedback = null;
     });
   }
 
@@ -146,31 +168,9 @@ class _AcademicPageState extends State<AcademicPage> {
         widget.academicEamsAutoRefreshIntervalOverride ??
         await service.getAutoRefreshIntervalMinutes();
     if (!mounted) return;
-    setState(() {
-      _academicEamsAutoRefreshEnabled = enabled;
-      _academicEamsAutoRefreshIntervalMinutes = interval;
-    });
-    _restartAcademicEamsAutoRefreshTimer(enabled, interval);
-    if (enabled &&
-        _shouldAutoRefresh(_academicEamsResult?.checkedAt, interval)) {
-      unawaited(_loadAcademicEamsOverview(silent: true));
-    }
-  }
-
-  void _restartAcademicEamsAutoRefreshTimer(bool enabled, int intervalMinutes) {
-    _academicEamsAutoRefreshTimer?.cancel();
-    _academicEamsAutoRefreshTimer = null;
-    if (!enabled || intervalMinutes <= 0) return;
-    _academicEamsAutoRefreshTimer = Timer.periodic(
-      Duration(minutes: intervalMinutes),
-      (_) {
-        if (_shouldAutoRefresh(
-          _academicEamsResult?.checkedAt,
-          intervalMinutes,
-        )) {
-          unawaited(_loadAcademicEamsOverview(silent: true));
-        }
-      },
+    _academicEamsRefreshController.configureAutoRefresh(
+      enabled: enabled,
+      intervalMinutes: interval,
     );
   }
 
@@ -185,18 +185,18 @@ class _AcademicPageState extends State<AcademicPage> {
 
   /// 读取本专科教务摘要；失败时在卡片中展示明确状态。
   Future<void> _loadAcademicEamsOverview({bool silent = false}) async {
-    if (_isLoadingAcademicEams) return;
-    if (!silent) setState(() => _isLoadingAcademicEams = true);
+    await _academicEamsRefreshController.runRefresh(silent: silent);
+  }
 
-    final result = await _academicEamsService.fetchOverview(
-      requireCampusNetwork: silent,
-    );
+  Future<AcademicEamsQueryResult> _fetchAcademicEamsForController({
+    required bool silent,
+  }) {
+    return _academicEamsService.fetchOverview(requireCampusNetwork: silent);
+  }
+
+  void _applyAcademicEamsResult(AcademicEamsQueryResult result) {
     if (!mounted) return;
-    if (silent && !result.isSuccess) return;
-    setState(() {
-      _academicEamsResult = result;
-      if (!silent) _isLoadingAcademicEams = false;
-    });
+    setState(() => _academicEamsResult = result);
   }
 
   /// 读取体育部自动刷新设置；未启用时不主动访问体育部系统。
@@ -208,31 +208,9 @@ class _AcademicPageState extends State<AcademicPage> {
         widget.sportsAttendanceAutoRefreshIntervalOverride ??
         await SportsAttendanceService.instance.getAutoRefreshIntervalMinutes();
     if (!mounted) return;
-    setState(() => _sportsAttendanceAutoRefreshEnabled = enabled);
-    _restartSportsAttendanceAutoRefreshTimer(enabled, interval);
-    if (enabled &&
-        _shouldAutoRefresh(_sportsAttendanceResult?.checkedAt, interval)) {
-      unawaited(_loadSportsAttendance(silent: true));
-    }
-  }
-
-  void _restartSportsAttendanceAutoRefreshTimer(
-    bool enabled,
-    int intervalMinutes,
-  ) {
-    _sportsAttendanceAutoRefreshTimer?.cancel();
-    _sportsAttendanceAutoRefreshTimer = null;
-    if (!enabled || intervalMinutes <= 0) return;
-    _sportsAttendanceAutoRefreshTimer = Timer.periodic(
-      Duration(minutes: intervalMinutes),
-      (_) {
-        if (_shouldAutoRefresh(
-          _sportsAttendanceResult?.checkedAt,
-          intervalMinutes,
-        )) {
-          unawaited(_loadSportsAttendance(silent: true));
-        }
-      },
+    _sportsAttendanceRefreshController.configureAutoRefresh(
+      enabled: enabled,
+      intervalMinutes: interval,
     );
   }
 
@@ -248,18 +226,20 @@ class _AcademicPageState extends State<AcademicPage> {
 
   /// 读取体育部课外活动考勤；失败时在卡片内展示明确状态。
   Future<void> _loadSportsAttendance({bool silent = false}) async {
-    if (_isLoadingSportsAttendance) return;
-    if (!silent) setState(() => _isLoadingSportsAttendance = true);
+    await _sportsAttendanceRefreshController.runRefresh(silent: silent);
+  }
 
-    final result = await _sportsAttendanceService.fetchAttendanceSummary(
+  Future<SportsAttendanceQueryResult> _fetchSportsAttendanceForController({
+    required bool silent,
+  }) {
+    return _sportsAttendanceService.fetchAttendanceSummary(
       requireCampusNetwork: silent,
     );
+  }
+
+  void _applySportsAttendanceResult(SportsAttendanceQueryResult result) {
     if (!mounted) return;
-    if (silent && !result.isSuccess) return;
-    setState(() {
-      _sportsAttendanceResult = result;
-      if (!silent) _isLoadingSportsAttendance = false;
-    });
+    setState(() => _sportsAttendanceResult = result);
   }
 
   /// 读取第二课堂学分自动刷新设置；未启用时不主动访问学工报表。
@@ -271,31 +251,9 @@ class _AcademicPageState extends State<AcademicPage> {
         widget.studentReportAutoRefreshIntervalOverride ??
         await StudentReportService.instance.getAutoRefreshIntervalMinutes();
     if (!mounted) return;
-    setState(() => _studentReportAutoRefreshEnabled = enabled);
-    _restartStudentReportAutoRefreshTimer(enabled, interval);
-    if (enabled &&
-        _shouldAutoRefresh(_studentReportResult?.checkedAt, interval)) {
-      unawaited(_loadStudentReport(silent: true));
-    }
-  }
-
-  void _restartStudentReportAutoRefreshTimer(
-    bool enabled,
-    int intervalMinutes,
-  ) {
-    _studentReportAutoRefreshTimer?.cancel();
-    _studentReportAutoRefreshTimer = null;
-    if (!enabled || intervalMinutes <= 0) return;
-    _studentReportAutoRefreshTimer = Timer.periodic(
-      Duration(minutes: intervalMinutes),
-      (_) {
-        if (_shouldAutoRefresh(
-          _studentReportResult?.checkedAt,
-          intervalMinutes,
-        )) {
-          unawaited(_loadStudentReport(silent: true));
-        }
-      },
+    _studentReportRefreshController.configureAutoRefresh(
+      enabled: enabled,
+      intervalMinutes: interval,
     );
   }
 
@@ -311,40 +269,62 @@ class _AcademicPageState extends State<AcademicPage> {
 
   /// 读取第二课堂学分；失败时在卡片内展示明确状态。
   Future<void> _loadStudentReport({bool silent = false}) async {
-    if (_isLoadingStudentReport) return;
-    if (!silent) {
-      _studentReportRefreshFeedbackTimer?.cancel();
-      setState(() {
-        _studentReportRefreshFeedback = null;
-        _isLoadingStudentReport = true;
-      });
-    }
-
-    final result = await _studentReportService.fetchSecondClassroomCredits(
-      requireCampusNetwork: silent,
-    );
-    if (!mounted) return;
-    if (silent && !result.isSuccess) return;
-    setState(() {
-      _studentReportResult = result;
-      if (!silent) _isLoadingStudentReport = false;
-    });
-    if (!silent) _showStudentReportRefreshFeedback(result);
+    await _studentReportRefreshController.runRefresh(silent: silent);
   }
 
-  void _showStudentReportRefreshFeedback(StudentReportQueryResult result) {
-    _studentReportRefreshFeedbackTimer?.cancel();
-    setState(() {
-      _studentReportRefreshFeedback = result.isSuccess
-          ? const RefreshActionFeedback.success()
-          : RefreshActionFeedback.failure(
-              _studentReportRefreshFailureReason(result),
-            );
-    });
-    _studentReportRefreshFeedbackTimer = Timer(const Duration(seconds: 3), () {
-      if (!mounted) return;
-      setState(() => _studentReportRefreshFeedback = null);
-    });
+  Future<StudentReportQueryResult> _fetchStudentReportForController({
+    required bool silent,
+  }) {
+    return _studentReportService.fetchSecondClassroomCredits(
+      requireCampusNetwork: silent,
+    );
+  }
+
+  void _applyStudentReportResult(StudentReportQueryResult result) {
+    if (!mounted) return;
+    setState(() => _studentReportResult = result);
+  }
+
+  String _academicEamsRefreshFailureReason(AcademicEamsQueryResult result) {
+    return switch (result.status) {
+      AcademicEamsQueryStatus.success => '',
+      AcademicEamsQueryStatus.partialSuccess => '部分数据降级',
+      AcademicEamsQueryStatus.missingOaAccount => '未设置OA账号',
+      AcademicEamsQueryStatus.missingOaPassword => '未设置OA密码',
+      AcademicEamsQueryStatus.campusNetworkUnavailable => '校园网/VPN不可用',
+      AcademicEamsQueryStatus.oaLoginRequired => 'OA登录失效',
+      AcademicEamsQueryStatus.systemUnavailable => '教务系统不可用',
+      AcademicEamsQueryStatus.readOnlyEntryUnavailable => '教务入口不可用',
+      AcademicEamsQueryStatus.queryFormUnavailable => '查询表单不可用',
+      AcademicEamsQueryStatus.parseFailed ||
+      AcademicEamsQueryStatus.networkError ||
+      AcademicEamsQueryStatus.unexpectedError => firstNonEmptyText(
+        result.detail,
+        result.message,
+        fallback: '查询失败',
+      ),
+    };
+  }
+
+  String _sportsAttendanceRefreshFailureReason(
+    SportsAttendanceQueryResult result,
+  ) {
+    return switch (result.status) {
+      SportsAttendanceQueryStatus.success => '',
+      SportsAttendanceQueryStatus.missingStudentId => '未设置学工号',
+      SportsAttendanceQueryStatus.missingSportsPassword => '未设置体育密码',
+      SportsAttendanceQueryStatus.campusNetworkUnavailable => '校园网/VPN不可用',
+      SportsAttendanceQueryStatus.loginPageUnavailable => '登录页不可用',
+      SportsAttendanceQueryStatus.credentialsRejected => '体育密码错误',
+      SportsAttendanceQueryStatus.sessionUnavailable => '会话失效',
+      SportsAttendanceQueryStatus.parseFailed ||
+      SportsAttendanceQueryStatus.networkError ||
+      SportsAttendanceQueryStatus.unexpectedError => firstNonEmptyText(
+        result.detail,
+        result.message,
+        fallback: '查询失败',
+      ),
+    };
   }
 
   String _studentReportRefreshFailureReason(StudentReportQueryResult result) {
@@ -366,20 +346,18 @@ class _AcademicPageState extends State<AcademicPage> {
     };
   }
 
-  bool _shouldAutoRefresh(DateTime? fetchedAt, int intervalMinutes) {
-    if (intervalMinutes <= 0) return false;
-    if (fetchedAt == null) return true;
-    return DateTime.now().difference(fetchedAt) >=
-        Duration(minutes: intervalMinutes);
-  }
-
   @override
   void dispose() {
     _credentialChangeSubscription?.cancel();
-    _academicEamsAutoRefreshTimer?.cancel();
-    _sportsAttendanceAutoRefreshTimer?.cancel();
-    _studentReportAutoRefreshTimer?.cancel();
-    _studentReportRefreshFeedbackTimer?.cancel();
+    _academicEamsRefreshController
+      ..removeListener(_handleRefreshControllerChanged)
+      ..dispose();
+    _sportsAttendanceRefreshController
+      ..removeListener(_handleRefreshControllerChanged)
+      ..dispose();
+    _studentReportRefreshController
+      ..removeListener(_handleRefreshControllerChanged)
+      ..dispose();
     super.dispose();
   }
 
@@ -391,10 +369,13 @@ class _AcademicPageState extends State<AcademicPage> {
           header: const FluentPageHeader(title: Text('教务中心')),
           padding: responsivePagePadding(deviceType),
           children: [
-            AcademicEamsSummaryCard(
+            FluentContentWidth(
+              child: _AcademicDashboardGrid(
+                primary: AcademicEamsSummaryCard(
                   result: _academicEamsResult,
-                  isLoading: _isLoadingAcademicEams,
-                  autoRefreshEnabled: _academicEamsAutoRefreshEnabled,
+                  isLoading: _academicEamsRefreshController.isLoading,
+                  autoRefreshEnabled:
+                      _academicEamsRefreshController.autoRefreshEnabled,
                   onRefresh: _loadAcademicEamsOverview,
                   onOpenCourseSchedule: () => Navigator.of(context).push(
                     FluentPageRoute(
@@ -402,58 +383,138 @@ class _AcademicPageState extends State<AcademicPage> {
                         academicEamsService: _academicEamsService,
                         initialResult: _academicEamsResult,
                         autoRefreshEnabledOverride:
-                            _academicEamsAutoRefreshEnabled,
+                            _academicEamsRefreshController.autoRefreshEnabled,
                         autoRefreshIntervalOverride:
-                            _academicEamsAutoRefreshIntervalMinutes,
+                            _academicEamsRefreshController
+                                .autoRefreshIntervalMinutes,
                       ),
                     ),
                   ),
-                )
-                .animate()
-                .fadeIn(
-                  duration: FluentDuration.slow,
-                  curve: FluentEasing.decelerate,
-                )
-                .slideY(begin: 0.05, end: 0),
-            const SizedBox(height: FluentSpacing.m),
-            AcademicSportsAttendanceCard(
+                ),
+                sports: AcademicSportsAttendanceCard(
                   result: _sportsAttendanceResult,
-                  isLoading: _isLoadingSportsAttendance,
-                  autoRefreshEnabled: _sportsAttendanceAutoRefreshEnabled,
+                  isLoading: _sportsAttendanceRefreshController.isLoading,
+                  autoRefreshEnabled:
+                      _sportsAttendanceRefreshController.autoRefreshEnabled,
                   onRefresh: _loadSportsAttendance,
-                )
-                .animate(delay: FluentDuration.stagger)
-                .fadeIn(
-                  duration: FluentDuration.slow,
-                  curve: FluentEasing.decelerate,
-                )
-                .slideY(begin: 0.05, end: 0),
-            const SizedBox(height: FluentSpacing.m),
-            AcademicStudentReportCard(
+                ),
+                secondClassroom: AcademicStudentReportCard(
                   result: _studentReportResult,
-                  isLoading: _isLoadingStudentReport,
-                  autoRefreshEnabled: _studentReportAutoRefreshEnabled,
-                  refreshFeedback: _studentReportRefreshFeedback,
+                  isLoading: _studentReportRefreshController.isLoading,
+                  autoRefreshEnabled:
+                      _studentReportRefreshController.autoRefreshEnabled,
+                  refreshFeedback: _studentReportRefreshController.feedback,
                   onRefresh: _loadStudentReport,
-                )
-                .animate(delay: FluentDuration.stagger * 2)
-                .fadeIn(
-                  duration: FluentDuration.slow,
-                  curve: FluentEasing.decelerate,
-                )
-                .slideY(begin: 0.05, end: 0),
-            const SizedBox(height: FluentSpacing.m),
-            const FluentInfoBar(
-              title: Text('只读边界'),
-              content: Text(
-                '本专科教务仅接入个人信息、课表、成绩、考试、培养计划、开课检索和空闲教室等只读能力；'
-                '不提供选课、退课、调课、教学评价、提交申请或任何状态变更入口。',
+                ),
               ),
-              severity: FluentInfoSeverity.info,
+            ),
+            const SizedBox(height: FluentSpacing.m),
+            const FluentContentWidth(
+              child: FluentInfoBar(
+                title: Text('只读边界'),
+                content: Text(
+                  '本专科教务仅接入个人信息、课表、成绩、考试、培养计划、开课检索和空闲教室等只读能力；'
+                  '不提供选课、退课、调课、教学评价、提交申请或任何状态变更入口。',
+                ),
+                severity: FluentInfoSeverity.info,
+              ),
             ),
           ],
         );
       },
     );
+  }
+}
+
+class _AcademicDashboardGrid extends StatelessWidget {
+  const _AcademicDashboardGrid({
+    required this.primary,
+    required this.sports,
+    required this.secondClassroom,
+  });
+
+  final Widget primary;
+  final Widget sports;
+  final Widget secondClassroom;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= 1040) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 7,
+                child: _AcademicAnimatedCard(index: 0, child: primary),
+              ),
+              const SizedBox(width: FluentSpacing.m),
+              Expanded(
+                flex: 5,
+                child: Column(
+                  children: [
+                    _AcademicAnimatedCard(index: 1, child: sports),
+                    const SizedBox(height: FluentSpacing.m),
+                    _AcademicAnimatedCard(index: 2, child: secondClassroom),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+
+        if (constraints.maxWidth >= 720) {
+          return Column(
+            children: [
+              _AcademicAnimatedCard(index: 0, child: primary),
+              const SizedBox(height: FluentSpacing.m),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _AcademicAnimatedCard(index: 1, child: sports),
+                  ),
+                  const SizedBox(width: FluentSpacing.m),
+                  Expanded(
+                    child: _AcademicAnimatedCard(
+                      index: 2,
+                      child: secondClassroom,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          children: [
+            _AcademicAnimatedCard(index: 0, child: primary),
+            const SizedBox(height: FluentSpacing.m),
+            _AcademicAnimatedCard(index: 1, child: sports),
+            const SizedBox(height: FluentSpacing.m),
+            _AcademicAnimatedCard(index: 2, child: secondClassroom),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _AcademicAnimatedCard extends StatelessWidget {
+  const _AcademicAnimatedCard({required this.index, required this.child});
+
+  final int index;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
+    if (disableAnimations) return child;
+    return child
+        .animate(delay: FluentDuration.stagger * index)
+        .fadeIn(duration: FluentDuration.slow, curve: FluentEasing.decelerate)
+        .slideY(begin: 0.05, end: 0);
   }
 }

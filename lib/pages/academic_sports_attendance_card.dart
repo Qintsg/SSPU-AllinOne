@@ -33,18 +33,19 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
+    final accent = context.fluentAccents.sports;
     final summary = result?.summary;
 
     return FluentSurface(
-      accentColor: theme.resources.systemFillColorSuccess,
+      accentColor: accent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           FluentSectionHeader(
             title: '课外活动考勤',
-            subtitle: '数据来自体育部查询系统，使用学工号和体育部查询密码登录。',
+            subtitle: '体育部查询系统只读汇总，展示晨跑、课外活动和次数调整。',
             icon: FluentIcons.running,
-            accentColor: theme.resources.systemFillColorSuccess,
+            accentColor: accent,
           ),
           const SizedBox(height: FluentSpacing.l),
           if (isLoading) ...[

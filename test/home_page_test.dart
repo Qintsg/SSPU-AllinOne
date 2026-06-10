@@ -360,8 +360,14 @@ void main() {
     );
     await pumpUntilFound(tester, find.text('需要先保存 OA 账号密码'));
 
-    expect(find.text('学籍信息会在保存后自动读取'), findsOneWidget);
-    await tester.tap(find.text('前往设置'));
+    final profileCard = find.byKey(const Key('home-student-profile-card'));
+    expect(
+      find.descendant(of: profileCard, matching: find.text('学籍信息会在保存后自动读取')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.descendant(of: profileCard, matching: find.text('前往设置')),
+    );
     await tester.pump();
     expect(settingsOpened, isTrue);
     await disposeHomePage(tester);
@@ -447,7 +453,13 @@ void main() {
     await pumpUntilFound(tester, find.text('¥88.88'));
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('¥88.88'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('home-campus-card-balance-card')),
+        matching: find.text('¥88.88'),
+      ),
+      findsOneWidget,
+    );
     expect(service.fetchCount, 0);
     await disposeHomePage(tester);
   });
@@ -514,7 +526,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
 
     expect(service.fetchCount, 1);
-    expect(find.text('¥66.66'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('home-campus-card-balance-card')),
+        matching: find.text('¥66.66'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('请先保存学工号'), findsNothing);
     await disposeHomePage(tester);
   });

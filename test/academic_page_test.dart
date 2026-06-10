@@ -88,6 +88,8 @@ void main() {
     expect(find.text('上次刷新：2026-04-30 00:00'), findsOneWidget);
     expect(sportsService.requireCampusNetworkValues, [false]);
 
+    await tester.ensureVisible(find.text('查看考勤记录'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('查看考勤记录'));
     await tester.pumpAndSettle();
 

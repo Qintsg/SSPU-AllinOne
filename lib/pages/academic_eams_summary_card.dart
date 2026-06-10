@@ -37,16 +37,19 @@ class AcademicEamsSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
+    final accent = context.fluentAccents.academic;
     final snapshot = result?.snapshot;
 
     return FluentSurface(
+      accentColor: accent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const FluentSectionHeader(
+          FluentSectionHeader(
             title: '本专科教务',
-            subtitle: '通过 OA 登录态只读读取 EAMS 个人信息、课表、成绩、考试和培养计划。',
+            subtitle: 'OA 登录态只读读取个人信息、课表、成绩、考试和培养计划。',
             icon: FluentIcons.education,
+            accentColor: accent,
           ),
           const SizedBox(height: FluentSpacing.l),
           if (isLoading) ...[
@@ -284,7 +287,7 @@ class _AcademicProfileSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final accent = context.fluentAccents.academic;
     final items = <String>[
       if (profile.name != null && profile.name!.isNotEmpty)
         '姓名：${profile.name}',
@@ -303,9 +306,9 @@ class _AcademicProfileSummary extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: FluentSpacing.m),
       padding: const EdgeInsets.all(FluentSpacing.m),
       decoration: BoxDecoration(
-        color: theme.accentColor.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: theme.accentColor.withValues(alpha: 0.16)),
+        color: accent.withValues(alpha: 0.08),
+        borderRadius: context.fluentRadii.mediumBorder,
+        border: Border.all(color: accent.withValues(alpha: 0.18)),
       ),
       child: Wrap(
         spacing: FluentSpacing.s,
