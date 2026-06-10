@@ -22,8 +22,10 @@ import '../services/campus_network_status_service.dart';
 import '../services/message_state_service.dart';
 import '../services/storage_service.dart';
 import '../theme/fluent_tokens.dart';
+import '../utils/query_result_messages.dart';
 import '../utils/webview_env.dart';
 import '../widgets/campus_network_status_indicator.dart';
+import '../widgets/refresh_feedback_action.dart';
 import '../widgets/responsive_layout.dart';
 import 'webview_page.dart';
 
@@ -80,9 +82,12 @@ class _HomePageState extends State<HomePage> {
   bool _isLoadingCampusCard = false;
   bool _campusCardAutoRefreshEnabled = false;
   Timer? _campusCardAutoRefreshTimer;
+  Timer? _campusCardRefreshFeedbackTimer;
+  RefreshActionFeedback? _campusCardRefreshFeedback;
   StreamSubscription<int>? _credentialChangeSubscription;
 
-  static const double _desktopBusinessCardHeight = 192.0;
+  static const double _desktopBusinessCardHeight = 224.0;
+  static const double _businessCardMinimumParallelWidth = 352.0;
 
   CampusCardBalanceClient get _campusCardService {
     return widget.campusCardService ?? CampusCardService.instance;
@@ -113,6 +118,7 @@ class _HomePageState extends State<HomePage> {
       _credentialsStatus = const AcademicCredentialsStatus.empty();
       _isLoadingStudentProfile = false;
       _isLoadingCampusCard = false;
+      _campusCardRefreshFeedback = null;
     });
   }
 
@@ -210,7 +216,11 @@ class _HomePageState extends State<HomePage> {
     bool silent = false,
   }) async {
     if (_isLoadingCampusCard) return;
-    setState(() => _isLoadingCampusCard = true);
+    if (!silent) _campusCardRefreshFeedbackTimer?.cancel();
+    setState(() {
+      if (!silent) _campusCardRefreshFeedback = null;
+      _isLoadingCampusCard = true;
+    });
 
     final result = await _campusCardService.fetchCampusCard(
       startDate: startDate,
@@ -227,6 +237,40 @@ class _HomePageState extends State<HomePage> {
       _campusCardResult = result;
       _isLoadingCampusCard = false;
     });
+    if (!silent) _showCampusCardRefreshFeedback(result);
+  }
+
+  void _showCampusCardRefreshFeedback(CampusCardQueryResult result) {
+    _campusCardRefreshFeedbackTimer?.cancel();
+    setState(() {
+      _campusCardRefreshFeedback = result.isSuccess
+          ? const RefreshActionFeedback.success()
+          : RefreshActionFeedback.failure(
+              _campusCardRefreshFailureReason(result),
+            );
+    });
+    _campusCardRefreshFeedbackTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      setState(() => _campusCardRefreshFeedback = null);
+    });
+  }
+
+  String _campusCardRefreshFailureReason(CampusCardQueryResult result) {
+    return switch (result.status) {
+      CampusCardQueryStatus.success => '',
+      CampusCardQueryStatus.missingOaAccount => '未设置OA账号',
+      CampusCardQueryStatus.missingOaPassword => '未设置OA密码',
+      CampusCardQueryStatus.campusNetworkUnavailable => '校园网/VPN不可用',
+      CampusCardQueryStatus.oaLoginRequired => 'OA登录失效',
+      CampusCardQueryStatus.cardSystemUnavailable => '校园卡系统不可用',
+      CampusCardQueryStatus.parseFailed ||
+      CampusCardQueryStatus.networkError ||
+      CampusCardQueryStatus.unexpectedError => firstNonEmptyText(
+        result.detail,
+        result.message,
+        fallback: '查询失败',
+      ),
+    };
   }
 
   bool _shouldAutoRefresh(DateTime? fetchedAt, int intervalMinutes) {
@@ -240,6 +284,7 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _credentialChangeSubscription?.cancel();
     _campusCardAutoRefreshTimer?.cancel();
+    _campusCardRefreshFeedbackTimer?.cancel();
     super.dispose();
   }
 
@@ -394,11 +439,15 @@ class _HomePageState extends State<HomePage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 860) {
+        const cardGap = FluentSpacing.l;
+        final canShowInParallel =
+            constraints.maxWidth >=
+            _businessCardMinimumParallelWidth * 2 + cardGap;
+        if (!canShowInParallel) {
           return Column(
             children: [
               cards[0],
-              const SizedBox(height: FluentSpacing.l),
+              const SizedBox(height: cardGap),
               cards[1],
             ],
           );
@@ -409,7 +458,7 @@ class _HomePageState extends State<HomePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(child: cards[0]),
-              const SizedBox(width: FluentSpacing.l),
+              const SizedBox(width: cardGap),
               Expanded(child: cards[1]),
             ],
           ),

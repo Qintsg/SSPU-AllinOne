@@ -84,8 +84,7 @@ class _RuleMatrixTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final borderColor = theme.resources.cardStrokeColorDefault;
+    final borderColor = _ruleMatrixBorderColor(context);
     return DecoratedBox(
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: borderColor)),
@@ -191,6 +190,18 @@ class _RuleCategoryGroupView extends StatelessWidget {
               ],
             ),
           ),
+          _RuleMatrixCell(
+            _formatNullableCredit(group.requiredCredit),
+            width: _SecondClassroomRuleMatrix._requiredWidth,
+            merged: true,
+          ),
+          _RuleMatrixCell(
+            group.passStatus,
+            width: _SecondClassroomRuleMatrix._statusWidth,
+            foreground: _statusTextColor(context, group.passStatus),
+            bold: true,
+            merged: true,
+          ),
         ],
       ),
     );
@@ -219,58 +230,23 @@ class _RuleItemGroupView extends StatelessWidget {
           ),
           Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final requirementGroup in group.requirements)
-                  _RuleRequirementGroupView(
-                    group: requirementGroup,
-                    participationWidth: participationWidth,
-                  ),
+                if (group.rules.length == 1)
+                  Expanded(
+                    child: _RuleMatrixLeafRow(
+                      rule: group.rules.single,
+                      participationWidth: participationWidth,
+                    ),
+                  )
+                else
+                  for (final rule in group.rules)
+                    _RuleMatrixLeafRow(
+                      rule: rule,
+                      participationWidth: participationWidth,
+                    ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RuleRequirementGroupView extends StatelessWidget {
-  const _RuleRequirementGroupView({
-    required this.group,
-    required this.participationWidth,
-  });
-
-  final _RuleRequirementGroup group;
-  final double participationWidth;
-
-  @override
-  Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Column(
-              children: [
-                for (final rule in group.rules)
-                  _RuleMatrixLeafRow(
-                    rule: rule,
-                    participationWidth: participationWidth,
-                  ),
-              ],
-            ),
-          ),
-          _RuleMatrixCell(
-            _formatNullableCredit(group.requiredCredit),
-            width: _SecondClassroomRuleMatrix._requiredWidth,
-            merged: true,
-          ),
-          _RuleMatrixCell(
-            group.passStatus,
-            width: _SecondClassroomRuleMatrix._statusWidth,
-            foreground: _statusTextColor(context, group.passStatus),
-            bold: true,
-            merged: true,
           ),
         ],
       ),
@@ -289,22 +265,25 @@ class _RuleMatrixLeafRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _RuleMatrixCell(
-          rule.level,
-          width: _SecondClassroomRuleMatrix._levelWidth,
-        ),
-        _RuleMatrixCell(rule.participation, width: participationWidth),
-        _RuleMatrixCell(
-          _formatNullableCredit(rule.credit),
-          width: _SecondClassroomRuleMatrix._creditWidth,
-        ),
-        _RuleMatrixCell(
-          _formatNullableCredit(rule.earnedCredit),
-          width: _SecondClassroomRuleMatrix._earnedWidth,
-        ),
-      ],
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _RuleMatrixCell(
+            rule.level,
+            width: _SecondClassroomRuleMatrix._levelWidth,
+          ),
+          _RuleMatrixCell(rule.participation, width: participationWidth),
+          _RuleMatrixCell(
+            _formatNullableCredit(rule.credit),
+            width: _SecondClassroomRuleMatrix._creditWidth,
+          ),
+          _RuleMatrixCell(
+            _formatNullableCredit(rule.earnedCredit),
+            width: _SecondClassroomRuleMatrix._earnedWidth,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -329,7 +308,7 @@ class _RuleMatrixCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
-    final borderColor = theme.resources.cardStrokeColorDefault;
+    final borderColor = _ruleMatrixBorderColor(context);
     return Container(
       width: width,
       constraints: BoxConstraints(minHeight: merged ? 46 : 42),
@@ -358,9 +337,16 @@ class _RuleMatrixCell extends StatelessWidget {
 }
 
 class _RuleCategoryGroup {
-  const _RuleCategoryGroup({required this.category, required this.items});
+  const _RuleCategoryGroup({
+    required this.category,
+    required this.requiredCredit,
+    required this.passStatus,
+    required this.items,
+  });
 
   final String category;
+  final double? requiredCredit;
+  final String passStatus;
   final List<_RuleItemGroup> items;
 
   static List<_RuleCategoryGroup> fromRules(
@@ -374,6 +360,12 @@ class _RuleCategoryGroup {
       groups.add(
         _RuleCategoryGroup(
           category: categoryRules.first.category,
+          requiredCredit: _representativeNumber(
+            categoryRules.map((rule) => rule.requiredCredit),
+          ),
+          passStatus: _representativeStatus(
+            categoryRules.map((rule) => rule.passStatus),
+          ),
           items: _RuleItemGroup.fromRules(categoryRules),
         ),
       );
@@ -383,57 +375,24 @@ class _RuleCategoryGroup {
 }
 
 class _RuleItemGroup {
-  const _RuleItemGroup({required this.item, required this.requirements});
+  const _RuleItemGroup({required this.item, required this.rules});
 
   final String item;
-  final List<_RuleRequirementGroup> requirements;
+  final List<SecondClassroomCreditRuleRow> rules;
 
   static List<_RuleItemGroup> fromRules(
     List<SecondClassroomCreditRuleRow> rules,
   ) {
     final groups = <_RuleItemGroup>[];
     for (final itemRules in _groupConsecutive(rules, (rule) => rule.item)) {
-      groups.add(
-        _RuleItemGroup(
-          item: itemRules.first.item,
-          requirements: _RuleRequirementGroup.fromRules(itemRules),
-        ),
-      );
+      groups.add(_RuleItemGroup(item: itemRules.first.item, rules: itemRules));
     }
     return groups;
   }
 }
 
-class _RuleRequirementGroup {
-  const _RuleRequirementGroup({
-    required this.requiredCredit,
-    required this.passStatus,
-    required this.rules,
-  });
-
-  final double? requiredCredit;
-  final String passStatus;
-  final List<SecondClassroomCreditRuleRow> rules;
-
-  static List<_RuleRequirementGroup> fromRules(
-    List<SecondClassroomCreditRuleRow> rules,
-  ) {
-    final groups = <_RuleRequirementGroup>[];
-    for (final requirementRules in _groupConsecutive(
-      rules,
-      (rule) => '${rule.requiredCredit}|${rule.passStatus}',
-    )) {
-      final first = requirementRules.first;
-      groups.add(
-        _RuleRequirementGroup(
-          requiredCredit: first.requiredCredit,
-          passStatus: first.passStatus,
-          rules: requirementRules,
-        ),
-      );
-    }
-    return groups;
-  }
+Color _ruleMatrixBorderColor(BuildContext context) {
+  return context.fluentColors.neutralStroke1;
 }
 
 List<List<T>> _groupConsecutive<T>(

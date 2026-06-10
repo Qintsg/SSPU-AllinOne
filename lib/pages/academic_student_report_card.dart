@@ -19,6 +19,9 @@ class AcademicStudentReportCard extends StatelessWidget {
   /// 是否已开启自动刷新。
   final bool autoRefreshEnabled;
 
+  /// 手动刷新结束后的短暂反馈。
+  final RefreshActionFeedback? refreshFeedback;
+
   /// 手动刷新回调。
   final VoidCallback onRefresh;
 
@@ -27,6 +30,7 @@ class AcademicStudentReportCard extends StatelessWidget {
     required this.result,
     required this.isLoading,
     required this.autoRefreshEnabled,
+    required this.refreshFeedback,
     required this.onRefresh,
   });
 
@@ -43,6 +47,7 @@ class AcademicStudentReportCard extends StatelessWidget {
             canOpenDetail: result?.isSuccess == true && summary != null,
             lastRefreshLabel: _studentReportLastRefreshLabel(result),
             isLoading: isLoading,
+            refreshFeedback: refreshFeedback,
             onRefresh: onRefresh,
           ),
           const SizedBox(height: FluentSpacing.l),
@@ -111,6 +116,7 @@ class _SecondClassroomCardHeader extends StatelessWidget {
     required this.canOpenDetail,
     required this.lastRefreshLabel,
     required this.isLoading,
+    required this.refreshFeedback,
     required this.onRefresh,
   });
 
@@ -118,13 +124,13 @@ class _SecondClassroomCardHeader extends StatelessWidget {
   final bool canOpenDetail;
   final String lastRefreshLabel;
   final bool isLoading;
+  final RefreshActionFeedback? refreshFeedback;
   final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final title = Row(
       children: [
         const FluentSurfaceIcon(icon: FluentIcons.education),
         const SizedBox(width: FluentSpacing.m),
@@ -149,45 +155,65 @@ class _SecondClassroomCardHeader extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: FluentSpacing.s),
-        Wrap(
-          spacing: FluentSpacing.xs,
-          runSpacing: FluentSpacing.xs,
-          alignment: WrapAlignment.end,
-          crossAxisAlignment: WrapCrossAlignment.center,
+      ],
+    );
+    final actions = _buildActions(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 440) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              title,
+              const SizedBox(height: FluentSpacing.s),
+              Align(alignment: Alignment.centerRight, child: actions),
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            FluentIconButton(
-              key: const Key('academic-student-report-refresh'),
-              tooltip: '手动刷新第二课堂学分',
-              icon: isLoading
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: FluentProgressRing(strokeWidth: 2),
-                    )
-                  : const Icon(FluentIcons.refresh),
-              onPressed: isLoading ? null : onRefresh,
-            ),
-            Button(
-              key: const Key('academic-student-report-detail'),
-              onPressed: canOpenDetail && summary != null
-                  ? () => Navigator.of(context).push(
-                      FluentPageRoute(
-                        builder: (_) =>
-                            StudentReportDetailPage(summary: summary!),
-                      ),
-                    )
-                  : null,
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('详情'),
-                  SizedBox(width: 4),
-                  Icon(FluentIcons.chevronRight, size: 14),
-                ],
-              ),
-            ),
+            Expanded(child: title),
+            const SizedBox(width: FluentSpacing.s),
+            actions,
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildActions(BuildContext context) {
+    return Wrap(
+      spacing: FluentSpacing.xs,
+      runSpacing: FluentSpacing.xs,
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        RefreshFeedbackAction(
+          key: const Key('academic-student-report-refresh'),
+          tooltip: '手动刷新第二课堂学分',
+          semanticLabel: '手动刷新第二课堂学分',
+          isLoading: isLoading,
+          feedback: refreshFeedback,
+          onPressed: onRefresh,
+        ),
+        Button(
+          key: const Key('academic-student-report-detail'),
+          onPressed: canOpenDetail && summary != null
+              ? () => Navigator.of(context).push(
+                  FluentPageRoute(
+                    builder: (_) => StudentReportDetailPage(summary: summary!),
+                  ),
+                )
+              : null,
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('详情'),
+              SizedBox(width: 4),
+              Icon(FluentIcons.chevronRight, size: 14),
+            ],
+          ),
         ),
       ],
     );

@@ -21,7 +21,7 @@ class _SecondClassroomSummaryView extends StatelessWidget {
         return _SecondClassroomCompactSummary(
           summary: summary,
           categories: categories,
-          minCategoryWidth: constraints.maxWidth < 560 ? 142 : 168,
+          minCategoryWidth: constraints.maxWidth < 560 ? 150 : 196,
         );
       },
     );
@@ -193,10 +193,12 @@ class _CategoryProgressStrip extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final spacing = FluentSpacing.s;
-        final columnCount = (constraints.maxWidth / minItemWidth)
-            .floor()
-            .clamp(1, categories.length)
-            .toInt();
+        final columnCount = _categoryColumnCount(
+          constraints.maxWidth,
+          minItemWidth,
+          spacing,
+          categories.length,
+        );
         final totalGap = spacing * (columnCount - 1);
         final tileWidth = (constraints.maxWidth - totalGap) / columnCount;
         return Wrap(
@@ -244,38 +246,30 @@ class _CategoryProgressPill extends StatelessWidget {
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final label = Text(
-              category.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.typography.caption?.copyWith(
-                color: textColor,
-                fontWeight: FontWeight.w700,
-              ),
+            final label = _CategoryProgressLabel(
+              text: category.label,
+              color: textColor,
             );
-            final value = Text(
-              category.displayValue,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.typography.bodyStrong?.copyWith(
-                color: textColor,
-                fontWeight: FontWeight.w700,
-              ),
+            final value = _CategoryProgressValue(
+              text: category.displayValue,
+              color: textColor,
             );
-            if (constraints.maxWidth < 138) {
+            if (constraints.maxWidth < 228) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
-                children: [label, value],
+                children: [
+                  label,
+                  const SizedBox(height: FluentSpacing.xxs),
+                  value,
+                ],
               );
             }
             return Row(
               children: [
                 Expanded(child: label),
                 const SizedBox(width: FluentSpacing.s),
-                Flexible(
-                  child: Align(alignment: Alignment.centerRight, child: value),
-                ),
+                Align(alignment: Alignment.centerRight, child: value),
               ],
             );
           },
@@ -283,6 +277,62 @@ class _CategoryProgressPill extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CategoryProgressLabel extends StatelessWidget {
+  const _CategoryProgressLabel({required this.text, required this.color});
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      maxLines: 2,
+      overflow: TextOverflow.visible,
+      style: FluentTheme.of(
+        context,
+      ).typography.caption?.copyWith(color: color, fontWeight: FontWeight.w700),
+    );
+  }
+}
+
+class _CategoryProgressValue extends StatelessWidget {
+  const _CategoryProgressValue({required this.text, required this.color});
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        text,
+        maxLines: 1,
+        style: FluentTheme.of(context).typography.bodyStrong?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+int _categoryColumnCount(
+  double maxWidth,
+  double minItemWidth,
+  double spacing,
+  int itemCount,
+) {
+  if (itemCount <= 1) return itemCount;
+  final fourColumnWidth = minItemWidth * 4 + spacing * 3;
+  final twoColumnWidth = minItemWidth * 2 + spacing;
+  if (itemCount >= 4 && maxWidth >= fourColumnWidth) return 4;
+  if (itemCount >= 2 && maxWidth >= twoColumnWidth) return 2;
+  return 1;
 }
 
 BoxDecoration _summaryPanelDecoration(BuildContext context) {

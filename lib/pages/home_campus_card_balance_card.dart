@@ -18,13 +18,14 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
       key: const Key('home-campus-card-balance-card'),
       padding: const EdgeInsets.all(FluentSpacing.l),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildCampusCardHeader(context, result, snapshot),
-          const SizedBox(height: FluentSpacing.l),
-          SizedBox(
-            height: _campusCardBodyMinHeight,
+          const SizedBox(height: FluentSpacing.m),
+          ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: _campusCardBodyMinHeight,
+            ),
             child: _buildCampusCardBody(context, result, snapshot),
           ),
         ],
@@ -54,17 +55,10 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
     if (result.isSuccess && snapshot != null) {
       return _buildCampusCardBalanceSummary(context, snapshot);
     }
-    return Align(
-      alignment: Alignment.topCenter,
-      child: FluentInfoBar(
-        title: Text(result.message),
-        content: Text(result.detail),
-        severity: _campusCardSeverity(result.status),
-      ),
-    );
+    return _CampusCardFailureSummary(result: result);
   }
 
-  static const double _campusCardBodyMinHeight = 48.0;
+  static const double _campusCardBodyMinHeight = 64.0;
 
   Widget _buildCampusCardHeader(
     BuildContext context,
@@ -76,66 +70,55 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
         ? null
         : () => _openCampusCardDetail(snapshot);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: Text('校园卡余额', style: theme.typography.subtitle)),
-            _CampusCardHeaderDetailAction(
-              label: '交易记录查询',
-              tooltip: snapshot == null ? '刷新后查看详情' : '交易记录查询',
-              onPressed: openDetail,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text('校园卡余额', style: theme.typography.subtitle),
+                ),
+                _CampusCardHeaderDetailAction(
+                  label: '交易记录查询',
+                  tooltip: snapshot == null ? '刷新后查看详情' : '交易记录查询',
+                  onPressed: openDetail,
+                ),
+              ],
+            ),
+            const SizedBox(height: FluentSpacing.xxs),
+            Wrap(
+              spacing: FluentSpacing.s,
+              runSpacing: FluentSpacing.xxs,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Text(
+                    _campusCardLastRefreshLabel(result),
+                    style: theme.typography.caption?.copyWith(
+                      color: theme.resources.textFillColorSecondary,
+                    ),
+                  ),
+                ),
+                RefreshFeedbackAction(
+                  key: const Key('home-campus-card-refresh'),
+                  tooltip: '刷新校园卡余额',
+                  semanticLabel: '刷新校园卡余额',
+                  isLoading: _isLoadingCampusCard,
+                  feedback: _campusCardRefreshFeedback,
+                  onPressed: _loadCampusCard,
+                  minTouchSize: 32,
+                  size: 28,
+                  iconSize: 15,
+                ),
+              ],
             ),
           ],
-        ),
-        const SizedBox(height: FluentSpacing.xs),
-        SizedBox(
-          height: 20,
-          child: Wrap(
-            spacing: FluentSpacing.s,
-            runSpacing: FluentSpacing.xs,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                _campusCardLastRefreshLabel(result),
-                style: theme.typography.caption?.copyWith(
-                  color: theme.resources.textFillColorSecondary,
-                ),
-              ),
-              _CampusCardHeaderIconAction(
-                tooltip: '刷新校园卡余额',
-                semanticLabel: '刷新校园卡余额',
-                icon: FluentIcons.refresh,
-                onPressed: _isLoadingCampusCard ? null : _loadCampusCard,
-              ),
-              if (_isLoadingCampusCard) _buildCampusCardLoadingHint(context),
-              if (!_isLoadingCampusCard) const SizedBox(width: 1, height: 20),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCampusCardLoadingHint(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const SizedBox(
-          width: 14,
-          height: 14,
-          child: FluentProgressRing(strokeWidth: 2),
-        ),
-        const SizedBox(width: FluentSpacing.xs),
-        Text(
-          '正在刷新',
-          style: theme.typography.caption?.copyWith(
-            color: theme.resources.textFillColorSecondary,
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -184,20 +167,6 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
     );
   }
 
-  FluentInfoSeverity _campusCardSeverity(CampusCardQueryStatus status) {
-    return switch (status) {
-      CampusCardQueryStatus.success => FluentInfoSeverity.success,
-      CampusCardQueryStatus.missingOaAccount ||
-      CampusCardQueryStatus.missingOaPassword ||
-      CampusCardQueryStatus.campusNetworkUnavailable ||
-      CampusCardQueryStatus.oaLoginRequired => FluentInfoSeverity.warning,
-      CampusCardQueryStatus.cardSystemUnavailable ||
-      CampusCardQueryStatus.parseFailed ||
-      CampusCardQueryStatus.networkError ||
-      CampusCardQueryStatus.unexpectedError => FluentInfoSeverity.error,
-    };
-  }
-
   String _campusCardLastRefreshLabel(CampusCardQueryResult? result) {
     final checkedAt = result?.checkedAt;
     if (checkedAt == null) return '上次刷新时间：未刷新';
@@ -214,92 +183,6 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
 
   String _formatMoney(double value) {
     return '¥${value.toStringAsFixed(2)}';
-  }
-}
-
-class _CampusCardHeaderIconAction extends StatefulWidget {
-  const _CampusCardHeaderIconAction({
-    required this.tooltip,
-    required this.semanticLabel,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  final String tooltip;
-  final String semanticLabel;
-  final IconData icon;
-  final VoidCallback? onPressed;
-
-  @override
-  State<_CampusCardHeaderIconAction> createState() =>
-      _CampusCardHeaderIconActionState();
-}
-
-class _CampusCardHeaderIconActionState
-    extends State<_CampusCardHeaderIconAction> {
-  bool _hovered = false;
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final enabled = widget.onPressed != null;
-    final backgroundColor = !enabled
-        ? null
-        : _pressed
-        ? colors.subtleBackgroundPressed
-        : _hovered
-        ? colors.subtleBackgroundHover
-        : null;
-    final foregroundColor = enabled
-        ? colors.neutralForeground2
-        : colors.neutralForegroundDisabled;
-
-    return Tooltip(
-      message: widget.tooltip,
-      child: Semantics(
-        button: true,
-        enabled: enabled,
-        label: widget.semanticLabel,
-        child: MouseRegion(
-          cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-          onEnter: (_) => _setHovered(true),
-          onExit: (_) {
-            _setHovered(false);
-            _setPressed(false);
-          },
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: widget.onPressed,
-            onTapDown: enabled ? (_) => _setPressed(true) : null,
-            onTapUp: enabled ? (_) => _setPressed(false) : null,
-            onTapCancel: enabled ? () => _setPressed(false) : null,
-            child: AnimatedContainer(
-              duration: context.fluentMotion.durationFaster,
-              curve: context.fluentMotion.curveEasyEase,
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: backgroundColor,
-                borderRadius: context.fluentRadii.mediumBorder,
-              ),
-              alignment: Alignment.center,
-              child: Icon(widget.icon, size: 16, color: foregroundColor),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _setHovered(bool value) {
-    if (_hovered == value) return;
-    setState(() => _hovered = value);
-  }
-
-  void _setPressed(bool value) {
-    if (_pressed == value) return;
-    setState(() => _pressed = value);
   }
 }
 
@@ -402,6 +285,63 @@ class _CampusCardHeaderDetailActionState
   void _setPressed(bool value) {
     if (_pressed == value) return;
     setState(() => _pressed = value);
+  }
+}
+
+class _CampusCardFailureSummary extends StatelessWidget {
+  const _CampusCardFailureSummary({required this.result});
+
+  final CampusCardQueryResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    final colors = context.fluentColors;
+    final textColor = _failureTextColor(context, result.status);
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            result.message,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.typography.bodyStrong?.copyWith(color: textColor),
+          ),
+          if (result.detail.trim().isNotEmpty) ...[
+            const SizedBox(height: FluentSpacing.xxs),
+            Text(
+              result.detail,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.typography.caption?.copyWith(
+                color: colors.neutralForeground3,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Color _failureTextColor(BuildContext context, CampusCardQueryStatus status) {
+    return switch (status) {
+      CampusCardQueryStatus.success =>
+        context.fluentColors.statusSuccessForeground,
+      CampusCardQueryStatus.missingOaAccount ||
+      CampusCardQueryStatus.missingOaPassword ||
+      CampusCardQueryStatus.campusNetworkUnavailable ||
+      CampusCardQueryStatus.oaLoginRequired =>
+        context.fluentColors.statusWarningForeground,
+      CampusCardQueryStatus.cardSystemUnavailable ||
+      CampusCardQueryStatus.parseFailed ||
+      CampusCardQueryStatus.networkError ||
+      CampusCardQueryStatus.unexpectedError =>
+        context.fluentColors.statusDangerForeground,
+    };
   }
 }
 
