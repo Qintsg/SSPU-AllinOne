@@ -460,6 +460,63 @@ void main() {
     );
   });
 
+  test('真实二课页面通过隐藏 proid 和学号读取 JSON 已获积分详情', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      _sessionSnapshot,
+    );
+    final gateway = _FakeStudentReportGateway(
+      entryPage: _snapshot(_resourceStringHomeHtml),
+      creditPage: StudentReportHttpSnapshot(
+        finalUri: Uri.parse(
+          'https://xgbb.sspu.edu.cn/sharedc/dc/studentxfform/index.do',
+        ),
+        statusCode: 200,
+        body: _realisticStudentXfHtml,
+      ),
+      detailPagesByPath: {
+        '/sharedc/dc/studentxfform/detail.do': StudentReportHttpSnapshot(
+          finalUri: Uri.parse(
+            'https://xgbb.sspu.edu.cn/sharedc/dc/studentxfform/detail.do',
+          ),
+          statusCode: 200,
+          body: _realisticDetailJson,
+        ),
+      },
+    );
+    final service = _buildService(gateway: gateway, campusReachable: true);
+
+    final result = await service.fetchSecondClassroomCredits();
+
+    expect(result.status, StudentReportQueryStatus.success);
+    expect(
+      gateway.fetchedUris.first.path,
+      '/sharedc/dc/studentxfform/index.do',
+    );
+    expect(
+      gateway.fetchedUris.any((uri) => uri.toString().contains('addOrEdit')),
+      isFalse,
+    );
+    final detailUri = gateway.fetchedUris.singleWhere(
+      (uri) => uri.path.endsWith('/detail.do'),
+    );
+    expect(detailUri.queryParameters['xh'], '20260001');
+    expect(detailUri.queryParameters['proid'], ',fake-proid-a,fake-proid-b');
+    expect(result.finalUri?.path, '/sharedc/dc/studentxfform/index.do');
+    expect(result.summary?.sourceUri.query, isEmpty);
+    expect(result.summary?.detailRecords, hasLength(1));
+    expect(result.summary?.detailRecords.single.name, '合成志愿服务');
+    expect(result.summary?.detailRecords.single.participation, '20小时');
+    expect(result.summary?.detailRecords.single.earnedCredit, 1.5);
+    expect(
+      result.summary?.detailRecords.single.toJson().toString(),
+      isNot(contains('signTime')),
+    );
+  });
+
   test('详情解析失败时返回警告并保留旧加密缓存', () async {
     await AcademicCredentialsService.instance.saveCredentials(
       oaAccount: '20260001',

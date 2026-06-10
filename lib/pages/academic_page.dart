@@ -27,6 +27,7 @@ part 'academic_sports_attendance_card.dart';
 part 'academic_student_report_card.dart';
 part 'academic_student_report_summary.dart';
 part 'academic_student_report_detail_page.dart';
+part 'academic_student_report_rule_matrix.dart';
 
 /// 教务中心页面。
 /// 已接入体育部考勤和第二课堂学分，其余教务能力保留规划入口。

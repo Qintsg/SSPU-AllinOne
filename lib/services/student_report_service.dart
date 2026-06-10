@@ -26,6 +26,8 @@ import 'http_service.dart';
 import 'storage_service.dart';
 
 part 'student_report_gateway.dart';
+part 'student_report_detail_json_parser.dart';
+part 'student_report_detail_uri_extractor.dart';
 part 'student_report_page_navigator.dart';
 part 'student_report_page_parser.dart';
 
@@ -518,6 +520,7 @@ class StudentReportService implements StudentReportClient {
       }
     }
 
+    final sourceUri = snapshots.last.finalUri;
     final detailFetchWarnings = <String>[];
     for (final detailUri
         in targetUri == null
@@ -547,7 +550,11 @@ class StudentReportService implements StudentReportClient {
     final warning = detailFetchWarnings.isEmpty
         ? null
         : detailFetchWarnings.toSet().join(' ');
-    final summary = StudentReportPageParser.parse(snapshots, warning: warning);
+    final summary = StudentReportPageParser.parse(
+      snapshots,
+      warning: warning,
+      sourceUri: sourceUri,
+    );
     if (summary == null) {
       final status = targetUri == null
           ? StudentReportQueryStatus.secondClassroomEntryUnavailable
@@ -569,7 +576,7 @@ class StudentReportService implements StudentReportClient {
       detail: warning == null
           ? '已读取第二课堂规则矩阵、总计和已获分数详情。'
           : '已读取第二课堂规则矩阵和总计；$warning',
-      finalUri: snapshots.last.finalUri,
+      finalUri: sourceUri,
       campusNetworkStatus: campusNetworkStatus,
       summary: summary,
     );

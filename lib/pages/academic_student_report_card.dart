@@ -32,7 +32,6 @@ class AcademicStudentReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
     final summary = result?.summary;
 
     return FluentSurface(
@@ -42,6 +41,9 @@ class AcademicStudentReportCard extends StatelessWidget {
           _SecondClassroomCardHeader(
             summary: summary,
             canOpenDetail: result?.isSuccess == true && summary != null,
+            lastRefreshLabel: _studentReportLastRefreshLabel(result),
+            isLoading: isLoading,
+            onRefresh: onRefresh,
           ),
           const SizedBox(height: FluentSpacing.l),
           if (result?.isSuccess == true && summary != null) ...[
@@ -71,31 +73,6 @@ class AcademicStudentReportCard extends StatelessWidget {
               severity: _studentReportSeverity(result!.status),
             ),
           ],
-          const SizedBox(height: FluentSpacing.m),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _studentReportLastRefreshLabel(result),
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
-                  ),
-                ),
-              ),
-              FluentIconButton(
-                key: const Key('academic-student-report-refresh'),
-                tooltip: '手动刷新第二课堂学分',
-                icon: isLoading
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: FluentProgressRing(strokeWidth: 2),
-                      )
-                    : const Icon(FluentIcons.refresh),
-                onPressed: isLoading ? null : onRefresh,
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -132,43 +109,85 @@ class _SecondClassroomCardHeader extends StatelessWidget {
   const _SecondClassroomCardHeader({
     required this.summary,
     required this.canOpenDetail,
+    required this.lastRefreshLabel,
+    required this.isLoading,
+    required this.onRefresh,
   });
 
   final SecondClassroomCreditSummary? summary;
   final bool canOpenDetail;
+  final String lastRefreshLabel;
+  final bool isLoading;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const FluentSurfaceIcon(icon: FluentIcons.education),
         const SizedBox(width: FluentSpacing.m),
         Expanded(
-          child: Text(
-            '第二课堂学分',
-            style: theme.typography.subtitle?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        Button(
-          key: const Key('academic-student-report-detail'),
-          onPressed: canOpenDetail && summary != null
-              ? () => Navigator.of(context).push(
-                  FluentPageRoute(
-                    builder: (_) => StudentReportDetailPage(summary: summary!),
-                  ),
-                )
-              : null,
-          child: const Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('详情'),
-              SizedBox(width: 4),
-              Icon(FluentIcons.chevronRight, size: 14),
+              Text(
+                '第二课堂学分',
+                style: theme.typography.subtitle?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: FluentSpacing.xxs),
+              Text(
+                lastRefreshLabel,
+                style: theme.typography.caption?.copyWith(
+                  color: theme.resources.textFillColorSecondary,
+                ),
+              ),
             ],
           ),
+        ),
+        const SizedBox(width: FluentSpacing.s),
+        Wrap(
+          spacing: FluentSpacing.xs,
+          runSpacing: FluentSpacing.xs,
+          alignment: WrapAlignment.end,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            FluentIconButton(
+              key: const Key('academic-student-report-refresh'),
+              tooltip: '手动刷新第二课堂学分',
+              icon: isLoading
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: FluentProgressRing(strokeWidth: 2),
+                    )
+                  : const Icon(FluentIcons.refresh),
+              onPressed: isLoading ? null : onRefresh,
+            ),
+            Button(
+              key: const Key('academic-student-report-detail'),
+              onPressed: canOpenDetail && summary != null
+                  ? () => Navigator.of(context).push(
+                      FluentPageRoute(
+                        builder: (_) =>
+                            StudentReportDetailPage(summary: summary!),
+                      ),
+                    )
+                  : null,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('详情'),
+                  SizedBox(width: 4),
+                  Icon(FluentIcons.chevronRight, size: 14),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
     );

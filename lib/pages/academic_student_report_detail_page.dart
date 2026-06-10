@@ -43,100 +43,17 @@ class _SecondClassroomTotalsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final totals = summary.totals;
     final categories = _categoryProgressList(summary);
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('总计', style: theme.typography.bodyStrong),
-            const SizedBox(height: FluentSpacing.s),
-            Wrap(
-              spacing: FluentSpacing.xl,
-              runSpacing: FluentSpacing.s,
-              crossAxisAlignment: WrapCrossAlignment.end,
-              children: [
-                _InlineMetric(
-                  label: '总积分',
-                  value: _formatNullableCredit(totals?.totalCredit),
-                ),
-                _InlineMetric(
-                  label: '总已获分数',
-                  value: _formatNullableCredit(totals?.totalEarnedCredit),
-                ),
-                _InlineMetric(
-                  label: '总必修积分',
-                  value: _formatNullableCredit(totals?.totalRequiredCredit),
-                ),
-                _InlineMetric(
-                  label: '总体通过情况',
-                  value: _emptyAsUnread(totals?.passStatus),
-                  valueColor: _statusTextColor(context, totals?.passStatus),
-                ),
-                _InlineMetric(
-                  label: '详情记录',
-                  value: '${_detailCount(summary)} 项',
-                ),
-              ],
-            ),
-            const SizedBox(height: FluentSpacing.m),
-            Wrap(
-              spacing: FluentSpacing.l,
-              runSpacing: FluentSpacing.s,
-              children: [
-                for (final category in categories)
-                  _InlineMetric(
-                    label: category.label,
-                    value: category.displayValue,
-                    valueColor: _statusTextColor(context, category.status),
-                  ),
-              ],
-            ),
-            if (summary.warning != null) ...[
-              const SizedBox(height: FluentSpacing.s),
-              _SecondClassroomWarningText(summary.warning!),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _InlineMetric extends StatelessWidget {
-  const _InlineMetric({
-    required this.label,
-    required this.value,
-    this.valueColor,
-  });
-
-  final String label;
-  final String value;
-  final Color? valueColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          value,
-          style: theme.typography.bodyStrong?.copyWith(color: valueColor),
-        ),
-        const SizedBox(height: FluentSpacing.xxs),
-        Text(
-          label,
-          style: theme.typography.caption?.copyWith(
-            color: theme.resources.textFillColorSecondary,
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return _SecondClassroomCompactSummary(
+          summary: summary,
+          categories: categories,
+          title: '总计',
+          showTotalCredit: true,
+          minCategoryWidth: constraints.maxWidth < 640 ? 136 : 156,
+        );
+      },
     );
   }
 }
@@ -191,53 +108,18 @@ class _SecondClassroomDetailRecordsPanel extends StatelessWidget {
   }
 }
 
-class _SecondClassroomRuleMatrix extends StatelessWidget {
-  const _SecondClassroomRuleMatrix({required this.summary});
-
-  final SecondClassroomCreditSummary summary;
-
-  @override
-  Widget build(BuildContext context) {
-    final rules = summary.rules;
-    if (rules.isEmpty) {
-      return const _EmptyPanel(title: '规则矩阵', message: '暂无规则矩阵，等待下次刷新补全。');
-    }
-    return _ReportTablePanel(
-      title: '规则矩阵',
-      minTableWidth: 980,
-      headers: const ['类别', '项目', '等级', '参与情况', '积分', '已获积分', '必修积分', '通过情况'],
-      rows: [
-        for (final rule in rules)
-          [
-            rule.category,
-            rule.item,
-            rule.level,
-            rule.participation,
-            _formatNullableCredit(rule.credit),
-            _formatNullableCredit(rule.earnedCredit),
-            _formatNullableCredit(rule.requiredCredit),
-            rule.passStatus,
-          ],
-      ],
-      statusColumnIndex: 7,
-    );
-  }
-}
-
 class _ReportTablePanel extends StatelessWidget {
   const _ReportTablePanel({
     required this.title,
     required this.headers,
     required this.rows,
     required this.minTableWidth,
-    this.statusColumnIndex,
   });
 
   final String title;
   final List<String> headers;
   final List<List<String>> rows;
   final double minTableWidth;
-  final int? statusColumnIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -301,13 +183,6 @@ class _ReportTablePanel extends StatelessWidget {
                 _TableCellText(
                   index < row.length ? row[index] : '',
                   alignCenter: index >= 2,
-                  foreground: index == statusColumnIndex
-                      ? _statusTextColor(
-                          context,
-                          index < row.length ? row[index] : '',
-                        )
-                      : null,
-                  bold: index == statusColumnIndex,
                 ),
             ],
           ),
@@ -316,17 +191,6 @@ class _ReportTablePanel extends StatelessWidget {
   }
 
   TableColumnWidth _columnWidthFor(int index) {
-    if (headers.length == 8) {
-      return switch (index) {
-        0 => const FixedColumnWidth(124),
-        1 => const FixedColumnWidth(156),
-        2 => const FixedColumnWidth(124),
-        3 => const FlexColumnWidth(1.35),
-        4 || 5 || 6 => const FixedColumnWidth(92),
-        7 => const FixedColumnWidth(112),
-        _ => const FlexColumnWidth(),
-      };
-    }
     if (headers.length == 6) {
       return switch (index) {
         0 => const FlexColumnWidth(1.5),
@@ -345,15 +209,11 @@ class _TableCellText extends StatelessWidget {
     this.text, {
     this.header = false,
     this.alignCenter = false,
-    this.foreground,
-    this.bold = false,
   });
 
   final String text;
   final bool header;
   final bool alignCenter;
-  final Color? foreground;
-  final bool bold;
 
   @override
   Widget build(BuildContext context) {
@@ -369,10 +229,7 @@ class _TableCellText extends StatelessWidget {
       child: Text(
         _emptyAsDash(text),
         textAlign: alignCenter ? TextAlign.center : TextAlign.start,
-        style: baseStyle?.copyWith(
-          color: foreground,
-          fontWeight: bold || header ? FontWeight.w700 : null,
-        ),
+        style: baseStyle?.copyWith(fontWeight: header ? FontWeight.w700 : null),
       ),
     );
   }

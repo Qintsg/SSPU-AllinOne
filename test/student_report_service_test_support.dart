@@ -311,6 +311,74 @@ const String _ruleMatrixCreditHtml = '''
 </html>
 ''';
 
+const String _resourceStringHomeHtml = '''
+<html>
+  <body>
+    <nav>第二课堂学分查询</nav>
+    <script>
+      var resourceString = "/dc/studentxfform/addOrEdit=2,/dc/studentxfform/delete.do";
+    </script>
+  </body>
+</html>
+''';
+
+const String _realisticStudentXfHtml = r'''
+<html>
+  <body>
+    <input type="hidden" value="20260001" id="xh"/>
+    <table>
+      <tr>
+        <th>类别</th><th>项目</th><th>等级</th><th>参与情况</th>
+        <th>积分</th><th>已获积分</th><th>必修积分</th><th>通过情况</th>
+      </tr>
+      <tr>
+        <td rowspan="2">社会实践</td><td rowspan="2">实践活动</td>
+        <td>校级</td><td>优秀</td><td>2</td>
+        <td><p data-toggle="modal" onclick="detail(this);"></p></td>
+        <td rowspan="2">2</td><td rowspan="2">通过</td>
+      </tr>
+      <tr>
+        <td>院级</td><td>20小时</td><td>1</td>
+        <td>
+          <p data-toggle="modal" onclick="detail(this);">
+            <input type="hidden" id="value" value=",fake-proid-a,fake-proid-b">
+            <a>1.50</a>
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td>报告与讲座</td><td>通识讲座</td><td></td><td>1次</td>
+        <td>0.25</td><td>0</td><td>2</td><td>未通过</td>
+      </tr>
+      <tr>
+        <td colspan="4">总计</td><td>3.25</td><td>1.50</td><td>4</td><td>未通过</td>
+      </tr>
+    </table>
+    <script>
+      function detail(obj){
+        var xh = $("#xh").val();
+        var proid = $(obj).children("#value").val();
+        $.ajax({url: thisPath+"/detail.do", data:{"proid":proid,"xh":xh}});
+      }
+    </script>
+  </body>
+</html>
+''';
+
+const String _realisticDetailJson = '''
+[
+  {
+    "name": "合成志愿服务",
+    "category": "社会实践",
+    "item": "实践活动",
+    "level": "院级",
+    "h": "20小时",
+    "integral": 1.5,
+    "signTime": "2026-01-01 12:00"
+  }
+]
+''';
+
 const String _detailCreditHtml = '''
 <html>
   <body>

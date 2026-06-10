@@ -40,12 +40,17 @@ class StudentReportPageNavigator {
           lowerHref.contains('secondclassroom') ||
           lowerHref.contains('second_classroom')) {
         if (!lowerHref.startsWith('javascript:')) {
-          return _resolveBusinessUri(snapshot.finalUri, href);
+          final uri = _resolveBusinessUri(snapshot.finalUri, href);
+          if (_isSecondClassroomReadOnlyEntry(uri)) return uri;
+          continue;
         }
         final uri = _uriFromElementAttributes(snapshot.finalUri, anchor);
         if (uri != null) return uri;
       }
     }
+
+    final canonicalUri = _canonicalStudentXfUriIfPresent(snapshot);
+    if (canonicalUri != null) return canonicalUri;
 
     for (final element in document.querySelectorAll('*')) {
       final elementText = _cleanText(element.text);
@@ -74,7 +79,7 @@ class StudentReportPageNavigator {
       final value = element.attributes[attributeName]?.trim();
       if (value == null || value.isEmpty) continue;
       final uri = _uriFromText(baseUri, value);
-      if (uri != null) return uri;
+      if (uri != null && _isSecondClassroomReadOnlyEntry(uri)) return uri;
     }
     return null;
   }
@@ -85,7 +90,8 @@ class StudentReportPageNavigator {
       final match = pattern.firstMatch(normalizedBody);
       final rawUri = match?.group(1)?.trim();
       if (rawUri != null && rawUri.isNotEmpty) {
-        return _resolveBusinessUri(baseUri, rawUri);
+        final uri = _resolveBusinessUri(baseUri, rawUri);
+        if (_isSecondClassroomReadOnlyEntry(uri)) return uri;
       }
     }
     return null;
@@ -97,10 +103,50 @@ class StudentReportPageNavigator {
       final match = pattern.firstMatch(normalizedText);
       final rawUri = match?.group(1)?.trim();
       if (rawUri != null && rawUri.isNotEmpty) {
-        return _resolveBusinessUri(baseUri, rawUri);
+        final uri = _resolveBusinessUri(baseUri, rawUri);
+        if (_isSecondClassroomReadOnlyEntry(uri)) return uri;
       }
     }
     return null;
+  }
+
+  static Uri? _canonicalStudentXfUriIfPresent(
+    StudentReportHttpSnapshot snapshot,
+  ) {
+    final normalizedBody = snapshot.body.replaceAll('&amp;', '&');
+    if (!normalizedBody.toLowerCase().contains('studentxfform')) return null;
+    if (!_hasSecondClassroomCreditHint(_cleanText(normalizedBody)) &&
+        !normalizedBody.toLowerCase().contains('studentxfform/index.do')) {
+      return null;
+    }
+    return _resolveBusinessUri(snapshot.finalUri, 'dc/studentxfform/index.do');
+  }
+
+  static bool _isSecondClassroomReadOnlyEntry(Uri uri) {
+    final path = uri.path.toLowerCase();
+    final value = uri.toString().toLowerCase();
+    if (path.contains('/studentxfform/index.do')) return true;
+    if (value.contains('secondclassroom') ||
+        value.contains('second_classroom')) {
+      return !_isUnsafeBusinessUri(uri);
+    }
+    return false;
+  }
+
+  static bool _isUnsafeBusinessUri(Uri uri) {
+    final value = uri.toString().toLowerCase();
+    const unsafeTokens = [
+      'addoredit',
+      'delete',
+      'remove',
+      'save',
+      'import',
+      'export',
+      'setintegral',
+      'download',
+      'upload',
+    ];
+    return unsafeTokens.any(value.contains);
   }
 
   static Uri _resolveBusinessUri(Uri baseUri, String rawUri) {

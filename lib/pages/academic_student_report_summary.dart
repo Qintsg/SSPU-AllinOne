@@ -18,166 +18,110 @@ class _SecondClassroomSummaryView extends StatelessWidget {
     final categories = _categoryProgressList(summary);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxWidth < 760;
-        if (compact) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _SecondClassroomTotalOverview(summary: summary),
-              const SizedBox(height: FluentSpacing.m),
-              _CategoryProgressGrid(categories: categories),
-            ],
-          );
-        }
-
-        var categoryWidth = constraints.maxWidth * 0.46;
-        if (categoryWidth > 560) categoryWidth = 560;
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: _SecondClassroomTotalOverview(summary: summary)),
-            const SizedBox(width: FluentSpacing.xl),
-            SizedBox(
-              width: categoryWidth,
-              child: _CategoryProgressGrid(categories: categories),
-            ),
-          ],
+        return _SecondClassroomCompactSummary(
+          summary: summary,
+          categories: categories,
+          minCategoryWidth: constraints.maxWidth < 560 ? 142 : 168,
         );
       },
     );
   }
 }
 
-class _SecondClassroomTotalOverview extends StatelessWidget {
-  const _SecondClassroomTotalOverview({required this.summary});
+class _SecondClassroomCompactSummary extends StatelessWidget {
+  const _SecondClassroomCompactSummary({
+    required this.summary,
+    required this.categories,
+    this.minCategoryWidth = 168,
+    this.showTotalCredit = false,
+    this.title,
+  });
 
   final SecondClassroomCreditSummary summary;
+  final List<_CategoryProgress> categories;
+  final double minCategoryWidth;
+  final bool showTotalCredit;
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
     final totals = summary.totals;
+    final theme = FluentTheme.of(context);
     final status = totals?.passStatus;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: FluentSpacing.xl,
-          runSpacing: FluentSpacing.s,
-          crossAxisAlignment: WrapCrossAlignment.end,
+    final metrics = [
+      if (showTotalCredit)
+        _SummaryMetric(
+          label: '总积分',
+          value: _formatNullableCredit(totals?.totalCredit),
+        ),
+      _SummaryMetric(
+        label: '总已获分数',
+        value: _formatNullableCredit(totals?.totalEarnedCredit),
+        emphasized: true,
+      ),
+      _SummaryMetric(
+        label: '总必修积分',
+        value: _formatNullableCredit(totals?.totalRequiredCredit),
+      ),
+      _SummaryMetric(
+        label: '总体通过情况',
+        value: _emptyAsUnread(status),
+        valueColor: _statusTextColor(context, status),
+      ),
+      _SummaryMetric(label: '详情记录', value: '${_detailCount(summary)} 项'),
+    ];
+    return DecoratedBox(
+      decoration: _summaryPanelDecoration(context),
+      child: Padding(
+        padding: const EdgeInsets.all(FluentSpacing.m),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _TotalValue(
-              label: '总已获分数',
-              value: _formatNullableCredit(totals?.totalEarnedCredit),
+            if (title != null) ...[
+              Text(title!, style: theme.typography.bodyStrong),
+              const SizedBox(height: FluentSpacing.s),
+            ],
+            _SummaryMetricWrap(metrics: metrics),
+            const SizedBox(height: FluentSpacing.s),
+            Container(
+              height: 1,
+              color: FluentTheme.of(context).resources.cardStrokeColorDefault,
             ),
-            _CompactValue(
-              label: '总必修积分',
-              value: _formatNullableCredit(totals?.totalRequiredCredit),
+            const SizedBox(height: FluentSpacing.s),
+            _CategoryProgressStrip(
+              categories: categories,
+              minItemWidth: minCategoryWidth,
             ),
-            _CompactValue(
-              label: '总体通过情况',
-              value: _emptyAsUnread(status),
-              valueColor: _statusTextColor(context, status),
-            ),
-            _CompactValue(label: '详情记录', value: '${_detailCount(summary)} 项'),
+            if (summary.warning != null) ...[
+              const SizedBox(height: FluentSpacing.s),
+              _SecondClassroomWarningText(summary.warning!),
+            ],
           ],
         ),
-        if (summary.warning != null) ...[
-          const SizedBox(height: FluentSpacing.s),
-          _SecondClassroomWarningText(summary.warning!),
-        ],
-      ],
+      ),
     );
   }
 }
 
-class _TotalValue extends StatelessWidget {
-  const _TotalValue({required this.label, required this.value});
+class _SummaryMetricWrap extends StatelessWidget {
+  const _SummaryMetricWrap({required this.metrics});
 
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          value,
-          style: theme.typography.title?.copyWith(
-            color: theme.accentColor,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: FluentSpacing.xxs),
-        Text(
-          label,
-          style: theme.typography.caption?.copyWith(
-            color: theme.resources.textFillColorSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CompactValue extends StatelessWidget {
-  const _CompactValue({
-    required this.label,
-    required this.value,
-    this.valueColor,
-  });
-
-  final String label;
-  final String value;
-  final Color? valueColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          value,
-          style: theme.typography.bodyStrong?.copyWith(color: valueColor),
-        ),
-        const SizedBox(height: FluentSpacing.xxs),
-        Text(
-          label,
-          style: theme.typography.caption?.copyWith(
-            color: theme.resources.textFillColorSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CategoryProgressGrid extends StatelessWidget {
-  const _CategoryProgressGrid({required this.categories});
-
-  final List<_CategoryProgress> categories;
+  final List<_SummaryMetric> metrics;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final twoColumns = constraints.maxWidth >= 360;
-        final spacing = FluentSpacing.s;
-        final tileWidth = twoColumns
-            ? (constraints.maxWidth - spacing) / 2
-            : constraints.maxWidth;
+        final minWidth = constraints.maxWidth < 560 ? 96.0 : 112.0;
         return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
+          spacing: FluentSpacing.l,
+          runSpacing: FluentSpacing.s,
+          crossAxisAlignment: WrapCrossAlignment.end,
           children: [
-            for (final category in categories)
-              SizedBox(
-                width: tileWidth,
-                child: _CategoryProgressTile(category: category),
+            for (final metric in metrics)
+              ConstrainedBox(
+                constraints: BoxConstraints(minWidth: minWidth),
+                child: metric,
               ),
           ],
         );
@@ -186,8 +130,93 @@ class _CategoryProgressGrid extends StatelessWidget {
   }
 }
 
-class _CategoryProgressTile extends StatelessWidget {
-  const _CategoryProgressTile({required this.category});
+class _SummaryMetric extends StatelessWidget {
+  const _SummaryMetric({
+    required this.label,
+    required this.value,
+    this.valueColor,
+    this.emphasized = false,
+  });
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style:
+              (emphasized
+                      ? theme.typography.title
+                      : theme.typography.bodyStrong)
+                  ?.copyWith(
+                    color:
+                        valueColor ??
+                        (emphasized
+                            ? theme.accentColor.defaultBrushFor(
+                                theme.brightness,
+                              )
+                            : null),
+                    fontWeight: FontWeight.w700,
+                  ),
+        ),
+        const SizedBox(height: FluentSpacing.xxs),
+        Text(
+          label,
+          style: theme.typography.caption?.copyWith(
+            color: theme.resources.textFillColorSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CategoryProgressStrip extends StatelessWidget {
+  const _CategoryProgressStrip({
+    required this.categories,
+    required this.minItemWidth,
+  });
+
+  final List<_CategoryProgress> categories;
+  final double minItemWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final spacing = FluentSpacing.s;
+        final columnCount = (constraints.maxWidth / minItemWidth)
+            .floor()
+            .clamp(1, categories.length)
+            .toInt();
+        final totalGap = spacing * (columnCount - 1);
+        final tileWidth = (constraints.maxWidth - totalGap) / columnCount;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final category in categories)
+              SizedBox(
+                width: tileWidth,
+                child: _CategoryProgressPill(category: category),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _CategoryProgressPill extends StatelessWidget {
+  const _CategoryProgressPill({required this.category});
 
   final _CategoryProgress category;
 
@@ -205,19 +234,17 @@ class _CategoryProgressTile extends StatelessWidget {
     return FluentCard(
       bordered: true,
       elevated: false,
-      padding: const EdgeInsets.symmetric(
-        horizontal: FluentSpacing.m,
-        vertical: FluentSpacing.s,
-      ),
+      padding: EdgeInsets.zero,
       backgroundColor: backgroundColor,
       borderColor: borderColor,
-      child: SizedBox(
-        height: 64,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: FluentSpacing.s,
+          vertical: FluentSpacing.xs,
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final label = Text(
               category.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -225,22 +252,47 @@ class _CategoryProgressTile extends StatelessWidget {
                 color: textColor,
                 fontWeight: FontWeight.w700,
               ),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                category.displayValue,
-                style: theme.typography.bodyLarge?.copyWith(
-                  color: textColor,
-                  fontWeight: FontWeight.w700,
-                ),
+            );
+            final value = Text(
+              category.displayValue,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.typography.bodyStrong?.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w700,
               ),
-            ),
-          ],
+            );
+            if (constraints.maxWidth < 138) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [label, value],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: label),
+                const SizedBox(width: FluentSpacing.s),
+                Flexible(
+                  child: Align(alignment: Alignment.centerRight, child: value),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
+}
+
+BoxDecoration _summaryPanelDecoration(BuildContext context) {
+  final theme = FluentTheme.of(context);
+  final colors = context.fluentColors;
+  return BoxDecoration(
+    color: theme.resources.controlAltFillColorSecondary,
+    borderRadius: BorderRadius.circular(context.fluentRadii.medium),
+    border: Border.all(color: colors.neutralStroke2),
+  );
 }
 
 class _SecondClassroomWarningText extends StatelessWidget {
@@ -297,10 +349,20 @@ _CategoryProgress _categoryProgress(
       .toList();
   return _CategoryProgress(
     label: target,
-    earned: _representativeNumber(matched.map((rule) => rule.earnedCredit)),
+    earned: _sumNumbers(matched.map((rule) => rule.earnedCredit)),
     required: _representativeNumber(matched.map((rule) => rule.requiredCredit)),
     status: _representativeStatus(matched.map((rule) => rule.passStatus)),
   );
+}
+
+double? _sumNumbers(Iterable<double?> values) {
+  var hasValue = false;
+  var total = 0.0;
+  for (final value in values.whereType<double>()) {
+    hasValue = true;
+    total += value;
+  }
+  return hasValue ? total : null;
 }
 
 double? _representativeNumber(Iterable<double?> values) {

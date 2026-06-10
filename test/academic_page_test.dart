@@ -198,13 +198,14 @@ void main() {
     expect(find.text('10.55'), findsOneWidget);
     expect(find.text('8'), findsOneWidget);
     expect(find.text('未通过'), findsOneWidget);
-    expect(find.text('4 项'), findsOneWidget);
+    expect(find.text('5 项'), findsOneWidget);
     expect(find.text('社会实践'), findsWidgets);
     expect(find.text('报告与讲座'), findsWidgets);
     expect(find.text('校园文化活动'), findsWidgets);
     expect(find.text('创新创业活动'), findsWidgets);
     expect(find.text('4.65/2.00'), findsWidgets);
     expect(find.text('1.50/2.00'), findsWidgets);
+    expect(find.text('1.00/2.00'), findsWidgets);
     expect(find.text('2.00/0.00'), findsWidgets);
     expect(find.text('上次刷新：2026-05-01 00:00'), findsOneWidget);
     expect(find.textContaining('数据来自学工报表系统'), findsNothing);
@@ -268,6 +269,7 @@ void main() {
 
     expect(find.text('4.65/2.00'), findsOneWidget);
     expect(find.text('1.50/2.00'), findsOneWidget);
+    expect(find.text('1.00/2.00'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     final detailButton = find.byKey(

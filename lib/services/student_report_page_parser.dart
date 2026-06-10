@@ -16,6 +16,7 @@ class StudentReportPageParser {
   static SecondClassroomCreditSummary? parse(
     List<StudentReportHttpSnapshot> snapshots, {
     String? warning,
+    Uri? sourceUri,
   }) {
     final rules = <SecondClassroomCreditRuleRow>[];
     final detailRecords = <SecondClassroomCreditDetailRecord>[];
@@ -23,6 +24,7 @@ class StudentReportPageParser {
     SecondClassroomCreditTotals? totals;
 
     for (final snapshot in snapshots) {
+      detailRecords.addAll(_StudentReportDetailJsonParser.parse(snapshot.body));
       for (final fragment in _extractHtmlFragments(snapshot.body)) {
         final document = html_parser.parse(fragment);
         final parsedMatrix = _parseRuleMatrix(document);
@@ -54,7 +56,7 @@ class StudentReportPageParser {
       totals: totals,
       detailRecords: List.unmodifiable(uniqueDetailRecords),
       fetchedAt: DateTime.now(),
-      sourceUri: snapshots.last.finalUri,
+      sourceUri: sourceUri ?? snapshots.last.finalUri,
       warning: warning,
     );
   }
@@ -66,6 +68,8 @@ class StudentReportPageParser {
     final uris = <Uri>[];
     for (final fragment in _extractHtmlFragments(snapshot.body)) {
       final document = html_parser.parse(fragment);
+      final studentNumber =
+          _StudentReportDetailUriExtractor.studentNumberFromDocument(document);
       for (final table in document.querySelectorAll('table')) {
         final rows = _expandTable(table);
         final headerIndex = rows.indexWhere(
@@ -81,6 +85,13 @@ class StudentReportPageParser {
           }
           final cell = row.cellAt(earnedIndex);
           if (cell == null || _parseNumber(cell.text) == null) continue;
+          final detailUri =
+              _StudentReportDetailUriExtractor.detailUriFromEarnedCell(
+                baseUri: snapshot.finalUri,
+                element: cell.element,
+                studentNumber: studentNumber,
+              );
+          if (detailUri != null) uris.add(detailUri);
           uris.addAll(_urisFromElement(snapshot.finalUri, cell.element));
         }
       }
