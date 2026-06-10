@@ -310,12 +310,38 @@ jobs:
             exit 1
           fi
 
-          hdiutil create \
-            -volname "SSPU-AllinOne" \
-            -srcfolder "$macos_app_bundle" \
-            -ov \
-            -format UDZO \
+          npm install -g appdmg
+
+          staging="dmg-staging"
+          mkdir -p "$staging"
+          cp -R "$macos_app_bundle" "$staging/"
+          cp .github/installer/macos/bg.png "$staging/bg.png"
+
+          APP_VERSION="${{ needs.prepare.outputs.public_version }}"
+          APP_BUILD="${{ needs.prepare.outputs.build_number }}"
+
+          cat > "$staging/config.json" << APPDMG_EOF
+          {
+            "title": "SSPU-AllinOne v${APP_VERSION} (${APP_BUILD})",
+            "icon-size": 80,
+            "window": {
+              "size": {
+                "width": 520,
+                "height": 360
+              }
+            },
+            "background": "bg.png",
+            "contents": [
+              { "x": 130, "y": 215, "type": "file", "path": "SSPU-AllinOne.app" },
+              { "x": 395, "y": 215, "type": "link", "path": "/Applications" }
+            ]
+          }
+          APPDMG_EOF
+
+          appdmg "$staging/config.json" \
             "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-universal-unsigned.dmg"
+
+          rm -rf "$staging"
 
       - uses: actions/upload-artifact@v7.0.1
         with:
