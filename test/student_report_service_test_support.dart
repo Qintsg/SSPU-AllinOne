@@ -35,11 +35,13 @@ class _FakeStudentReportGateway implements StudentReportGateway {
     StudentReportHttpSnapshot? entryPage,
     StudentReportHttpSnapshot? creditPage,
     StudentReportHttpSnapshot? reportEntryPage,
+    Map<String, StudentReportHttpSnapshot>? detailPagesByPath,
     this.timeoutReportEntry = false,
     this.beforeCreditReturn,
   }) : entryPage = entryPage ?? _snapshot(_homeHtml),
        creditPage = creditPage ?? _snapshot(_creditHtml),
-       reportEntryPage = reportEntryPage ?? _snapshot(_homeHtml);
+       reportEntryPage = reportEntryPage ?? _snapshot(_homeHtml),
+       detailPagesByPath = detailPagesByPath ?? const {};
 
   final bool requireAuthFirst;
   final bool requireAuthReportEntryFirst;
@@ -48,6 +50,7 @@ class _FakeStudentReportGateway implements StudentReportGateway {
   final StudentReportHttpSnapshot entryPage;
   final StudentReportHttpSnapshot creditPage;
   final StudentReportHttpSnapshot reportEntryPage;
+  final Map<String, StudentReportHttpSnapshot> detailPagesByPath;
   final Future<void> Function()? beforeCreditReturn;
   final List<Map<String, String>> resetCookieHeaders = [];
   final List<Uri> fetchedUris = [];
@@ -78,6 +81,8 @@ class _FakeStudentReportGateway implements StudentReportGateway {
   ) async {
     fetchCount++;
     fetchedUris.add(pageUri);
+    final detailSnapshot = _findDetailSnapshot(pageUri);
+    if (detailSnapshot != null) return detailSnapshot;
     if (pageUri.path.contains('/sharedc/sso/')) {
       _reportEntryFetchCount++;
       if (requireAuthReportEntryFirst && _reportEntryFetchCount == 1) {
@@ -85,6 +90,13 @@ class _FakeStudentReportGateway implements StudentReportGateway {
       }
       if (timeoutReportEntry) throw TimeoutException('SSO timeout');
       return reportEntryPage;
+    }
+    if (pageUri.path.contains('detail.do')) {
+      return StudentReportHttpSnapshot(
+        finalUri: pageUri,
+        statusCode: 404,
+        body: 'not found',
+      );
     }
     if (pageUri.path.contains('/studentxfform/') ||
         pageUri.path.contains('secondClassroom')) {
@@ -100,6 +112,15 @@ class _FakeStudentReportGateway implements StudentReportGateway {
       statusCode: 404,
       body: 'not found',
     );
+  }
+
+  StudentReportHttpSnapshot? _findDetailSnapshot(Uri pageUri) {
+    final pathWithQuery = pageUri.hasQuery
+        ? '${pageUri.path}?${pageUri.query}'
+        : pageUri.path;
+    return detailPagesByPath[pageUri.toString()] ??
+        detailPagesByPath[pathWithQuery] ??
+        detailPagesByPath[pageUri.path];
   }
 }
 
@@ -174,6 +195,41 @@ AcademicLoginValidationResult _loginSuccessResult() {
   );
 }
 
+SecondClassroomCreditSummary _cachedSummary(String itemName) {
+  return SecondClassroomCreditSummary(
+    fetchedAt: DateTime(2026, 5, 1),
+    sourceUri: Uri.parse(
+      'https://xgbb.sspu.edu.cn/sharedc/dc/studentxfform/index.do',
+    ),
+    records: [
+      SecondClassroomCreditRecord(
+        category: '思想成长',
+        itemName: itemName,
+        credit: 1,
+        rawCells: ['思想成长', itemName, '1'],
+      ),
+    ],
+    rules: [
+      SecondClassroomCreditRuleRow(
+        category: '思想成长',
+        item: itemName,
+        level: '校级',
+        participation: '参与',
+        credit: 1,
+        earnedCredit: 1,
+        requiredCredit: 1,
+        passStatus: '通过',
+      ),
+    ],
+    totals: const SecondClassroomCreditTotals(
+      totalCredit: 1,
+      totalEarnedCredit: 1,
+      totalRequiredCredit: 1,
+      passStatus: '通过',
+    ),
+  );
+}
+
 const String _homeHtml = '''
 <html>
   <body>
@@ -212,6 +268,65 @@ const String _semesterDetailCreditHtml = '''
     <table>
       <tr><th>学期</th><th>课程状态</th><th>项目名称</th><th>获得分数</th></tr>
       <tr><td>2024-2025-1</td><td>活动</td><td>迎新志愿服务</td><td>1</td></tr>
+    </table>
+  </body>
+</html>
+''';
+
+const String _ruleMatrixCreditHtml = '''
+<html>
+  <body>
+    <table>
+      <tr>
+        <th>类别</th><th>项目</th><th>等级</th><th>参与情况</th>
+        <th>积分</th><th>已获分数</th><th>必修积分</th><th>通过情况</th>
+      </tr>
+      <tr>
+        <td rowspan="2">思想成长</td><td>主题团日</td><td>校级</td><td>参与</td>
+        <td>1.5</td>
+        <td><a href="/sharedc/dc/studentxfform/detail.do?rule=1">1.5</a></td>
+        <td>1</td><td>通过</td>
+      </tr>
+      <tr>
+        <td>理论学习</td><td>院级</td><td>参与</td>
+        <td>1</td><td>0</td><td>1</td><td>未通过</td>
+      </tr>
+      <tr>
+        <td>社会实践</td><td>志愿服务</td><td>校级</td><td>参与</td>
+        <td>2</td>
+        <td><button data-url="/sharedc/dc/studentxfform/detail.do?rule=2">2</button></td>
+        <td>1</td><td>通过</td>
+      </tr>
+      <tr>
+        <td>报告与讲座</td><td>通识讲座</td><td>院级</td><td>1次</td>
+        <td>0.5</td>
+        <td>0.5<script>window.open('/sharedc/dc/studentxfform/detail.do?rule=3')</script></td>
+        <td>1</td><td>未通过</td>
+      </tr>
+      <tr>
+        <td colspan="4">总计</td><td>5</td><td>4</td><td>4</td><td>未通过</td>
+      </tr>
+    </table>
+  </body>
+</html>
+''';
+
+const String _detailCreditHtml = '''
+<html>
+  <body>
+    <table>
+      <tr>
+        <th>名称</th><th>类别</th><th>项目</th><th>等级</th>
+        <th>参与情况(h)</th><th>获得积分</th><th>签到时间</th>
+      </tr>
+      <tr>
+        <td>主题团日</td><td>思想成长</td><td>主题教育</td><td>校级</td>
+        <td>2</td><td>1.5</td><td>示例签到时间A</td>
+      </tr>
+      <tr>
+        <td>志愿服务</td><td>社会实践</td><td>志愿公益</td><td>校级</td>
+        <td>3</td><td>2</td><td>示例签到时间B</td>
+      </tr>
     </table>
   </body>
 </html>

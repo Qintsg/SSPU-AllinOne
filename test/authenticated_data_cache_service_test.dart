@@ -174,6 +174,54 @@ void main() {
     expect(secureEntry?.data.toString(), contains('POS消费'));
   });
 
+  test('第二课堂缓存写入安全存储并清除旧普通缓存', () async {
+    await StorageService.saveData(
+      StorageKeys.studentReportCacheCollection,
+      'legacy_plain_cache',
+      const {
+        'records': [
+          {'itemName': '旧明文项目', 'credit': 1},
+        ],
+      },
+    );
+
+    await AuthenticatedDataCacheService.saveLatest(
+      collection: StorageKeys.studentReportCacheCollection,
+      accountKey: '20260001',
+      fetchedAt: DateTime(2026, 5, 2, 12),
+      data: const {
+        'records': [
+          {'itemName': '安全缓存项目', 'credit': 1},
+        ],
+        'rules': [
+          {'category': '思想成长', 'item': '安全缓存项目'},
+        ],
+        'detailRecords': [
+          {'name': '安全缓存项目', 'earnedCredit': 1},
+        ],
+      },
+    );
+
+    final plainPayload = await StorageService.getAllData(
+      StorageKeys.studentReportCacheCollection,
+    );
+    final secureEntry = await AuthenticatedDataCacheService.readLatest(
+      StorageKeys.studentReportCacheCollection,
+      accountKey: '20260001',
+    );
+
+    expect(plainPayload, isEmpty);
+    expect(
+      await StorageService.getCollectionCount(
+        StorageKeys.studentReportCacheCollection,
+      ),
+      0,
+    );
+    expect(secureEntry?.data.toString(), contains('安全缓存项目'));
+    expect(secureEntry?.data.toString(), isNot(contains('20260001')));
+    expect(secureEntry?.data.toString(), isNot(contains('旧明文项目')));
+  });
+
   test('缓存持久化前移除 URI 中的敏感查询参数', () async {
     const collection = 'test_sanitized_uri_authenticated_cache';
     await AuthenticatedDataCacheService.saveLatest(

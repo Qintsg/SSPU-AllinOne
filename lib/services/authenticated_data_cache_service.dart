@@ -56,6 +56,7 @@ class AuthenticatedDataCacheService {
     required DateTime fetchedAt,
     required Map<String, dynamic> data,
   }) async {
+    await _clearLegacyPlainCollectionIfSecure(collection);
     final ownerAccount = _ownerKeyForAccount(accountKey);
     if (ownerAccount.isEmpty) return;
     final normalizedFetchedAt = fetchedAt.toUtc();
@@ -86,6 +87,7 @@ class AuthenticatedDataCacheService {
     String collection, {
     String? accountKey,
   }) async {
+    await _clearLegacyPlainCollectionIfSecure(collection);
     final expectedOwner = accountKey == null
         ? null
         : _ownerKeyForAccount(accountKey);
@@ -248,7 +250,15 @@ class AuthenticatedDataCacheService {
   }
 
   static bool _usesSecureCollection(String collection) {
-    return collection == StorageKeys.campusCardCacheCollection;
+    return collection == StorageKeys.campusCardCacheCollection ||
+        collection == StorageKeys.studentReportCacheCollection;
+  }
+
+  static Future<void> _clearLegacyPlainCollectionIfSecure(
+    String collection,
+  ) async {
+    if (!_usesSecureCollection(collection)) return;
+    await StorageService.clearCollection(collection);
   }
 
   static String _secureDataKey(String collection, String key) {

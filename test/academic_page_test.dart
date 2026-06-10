@@ -188,32 +188,33 @@ void main() {
     );
     await tester.ensureVisible(studentReportRefresh);
     await tester.tap(studentReportRefresh);
-    await pumpUntilFound(tester, find.text('2'));
+    await pumpUntilFound(tester, find.text('已获分数'));
 
     expect(find.text('第二课堂学分'), findsOneWidget);
-    expect(find.text('项得分记录'), findsOneWidget);
-    expect(find.text('总学分'), findsNothing);
-    expect(find.text('主题团日'), findsOneWidget);
-    expect(find.text('创新训练项目'), findsOneWidget);
-    expect(find.text('1.5'), findsOneWidget);
+    expect(find.text('已获分数'), findsOneWidget);
+    expect(find.text('必修积分'), findsOneWidget);
+    expect(find.text('通过情况'), findsOneWidget);
+    expect(find.text('详情记录'), findsOneWidget);
+    expect(find.text('3.5'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('通过'), findsOneWidget);
+    expect(find.text('2 项'), findsOneWidget);
     expect(find.text('上次刷新：2026-05-01 00:00'), findsOneWidget);
 
-    await tester.tap(find.text('主题团日'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('得分详情'), findsOneWidget);
-    expect(find.text('原始记录'), findsOneWidget);
-    await tester.tap(find.text('关闭'));
-    await tester.pumpAndSettle();
-
-    final detailButton = find.text('查看全部得分记录');
+    final detailButton = find.text('查看第二课堂详情');
     await tester.ensureVisible(detailButton);
     await tester.pumpAndSettle();
     await tester.tap(detailButton);
     await tester.pumpAndSettle();
 
-    expect(find.text('第二课堂得分明细'), findsOneWidget);
-    expect(find.textContaining('得分记录 2 项'), findsOneWidget);
+    expect(find.text('第二课堂详情'), findsOneWidget);
+    expect(find.text('总计'), findsOneWidget);
+    expect(find.text('总已获分数'), findsOneWidget);
+    expect(find.text('规则矩阵'), findsOneWidget);
+    expect(find.text('已获分数详情'), findsOneWidget);
+    expect(find.text('名称'), findsOneWidget);
+    expect(find.text('获得积分'), findsOneWidget);
+    expect(find.textContaining('主题教育'), findsWidgets);
     expect(find.textContaining('创新训练项目'), findsWidgets);
     await disposeAcademicPage(tester);
   });
@@ -229,9 +230,9 @@ void main() {
       studentReportAutoRefreshEnabledOverride: true,
     );
 
-    await pumpUntilFound(tester, find.text('2'));
+    await pumpUntilFound(tester, find.text('已获分数'));
 
-    expect(find.text('项得分记录'), findsOneWidget);
+    expect(find.text('详情记录'), findsOneWidget);
     await disposeAcademicPage(tester);
   });
 

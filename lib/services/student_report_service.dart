@@ -265,7 +265,10 @@ class StudentReportService implements StudentReportClient {
         campusNetworkStatus: campusStatus,
         requireCampusNetwork: requireCampusNetwork,
       );
-      if (requireCredits && result.isSuccess && result.summary != null) {
+      if (requireCredits &&
+          result.isSuccess &&
+          result.summary != null &&
+          result.summary!.warning == null) {
         final currentStudentId = (await _credentialsService.getStatus())
             .oaAccount
             .trim();
@@ -515,7 +518,36 @@ class StudentReportService implements StudentReportClient {
       }
     }
 
-    final summary = StudentReportPageParser.parse(snapshots);
+    final detailFetchWarnings = <String>[];
+    for (final detailUri
+        in targetUri == null
+            ? const <Uri>[]
+            : StudentReportPageParser.findEarnedCreditDetailUris(
+                snapshots.last,
+              )) {
+      try {
+        final detailSnapshot = await _gateway.fetchPage(detailUri, timeout);
+        if (_isAuthenticationRequired(detailSnapshot) ||
+            _isUnavailable(detailSnapshot)) {
+          detailFetchWarnings.add('部分已获分数详情无法读取。');
+          continue;
+        }
+        final detailSummary = StudentReportPageParser.parse([detailSnapshot]);
+        if (detailSummary == null || detailSummary.detailRecords.isEmpty) {
+          detailFetchWarnings.add('部分已获分数详情无法解析。');
+        }
+        snapshots.add(detailSnapshot);
+      } on TimeoutException {
+        detailFetchWarnings.add('部分已获分数详情读取超时。');
+      } on DioException {
+        detailFetchWarnings.add('部分已获分数详情网络请求失败。');
+      }
+    }
+
+    final warning = detailFetchWarnings.isEmpty
+        ? null
+        : detailFetchWarnings.toSet().join(' ');
+    final summary = StudentReportPageParser.parse(snapshots, warning: warning);
     if (summary == null) {
       final status = targetUri == null
           ? StudentReportQueryStatus.secondClassroomEntryUnavailable
@@ -534,7 +566,9 @@ class StudentReportService implements StudentReportClient {
     return _buildResult(
       StudentReportQueryStatus.success,
       message: '第二课堂学分查询成功',
-      detail: '已读取第二课堂逐项得分明细，未将单项分值合并为总学分。',
+      detail: warning == null
+          ? '已读取第二课堂规则矩阵、总计和已获分数详情。'
+          : '已读取第二课堂规则矩阵和总计；$warning',
       finalUri: snapshots.last.finalUri,
       campusNetworkStatus: campusNetworkStatus,
       summary: summary,
