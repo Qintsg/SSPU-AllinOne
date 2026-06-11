@@ -212,6 +212,7 @@ class _CompactNavigationShell extends StatelessWidget {
 
     return ScaffoldPage(
       padding: EdgeInsets.zero,
+      resizeToAvoidBottomInset: false,
       content: MediaQuery.removePadding(
         context: context,
         removeBottom: true,
