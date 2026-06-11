@@ -163,6 +163,80 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('iOS 保存教务凭据时反馈浮层不复用路由主滚动控制器', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final previousTargetPlatform = debugDefaultTargetPlatformOverride;
+    final sharedController = ScrollController();
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    await configureNarrowView(tester);
+
+    try {
+      await tester.pumpWidget(
+        FluentApp(
+          home: PrimaryScrollController(
+            controller: sharedController,
+            child: Stack(
+              children: [
+                const Positioned.fill(
+                  child: SingleChildScrollView(
+                    child: SizedBox(
+                      height: 1200,
+                      child: Text('同路由主滚动内容'),
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: SingleChildScrollView(
+                    primary: false,
+                    child: SettingsSecuritySection(
+                      isPasswordEnabled: false,
+                      onPasswordProtectionChanged: (_) {},
+                      onChangePassword: () {},
+                      isQuickAuthEnabled: false,
+                      isQuickAuthAvailable: false,
+                      isQuickAuthBusy: false,
+                      onQuickAuthChanged: (_) {},
+                      onLock: null,
+                      onClearMessageCache: () {},
+                      onClearAllData: () {},
+                      academicOaSessionPrewarmService:
+                          _RecordingAcademicOaSessionPrewarmService(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await pumpUntilFound(tester, find.text('保存教务凭据'));
+      expect(find.text('保存教务凭据'), findsOneWidget);
+
+      expect(sharedController.positions, hasLength(1));
+
+      final editableFields = find.byType(EditableText, skipOffstage: false);
+      await tester.enterText(editableFields.at(0), '20260001');
+      await tester.enterText(editableFields.at(1), 'oa-pass');
+      await tester.ensureVisible(find.text('保存教务凭据'));
+      await tester.tap(find.text('保存教务凭据'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('教务凭据已保存'), findsOneWidget);
+      expect(sharedController.positions, hasLength(1));
+
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(milliseconds: 100));
+    } finally {
+      debugDefaultTargetPlatformOverride = previousTargetPlatform;
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await resetView(tester);
+      sharedController.dispose();
+    }
+  });
+
   testWidgets('系统快速验证在可用时显示开关，不可用时显示密码兜底提示', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});
 
