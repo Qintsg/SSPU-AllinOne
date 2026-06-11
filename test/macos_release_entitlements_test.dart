@@ -22,7 +22,9 @@ void main() {
   });
 
   test('macOS DMG 打包前以 Release-unsigned.entitlements 剥离残留 entitlement', () {
-    final releaseWorkflow = File('.github/workflows/release.yml').readAsStringSync();
+    final releaseWorkflow = File(
+      '.github/workflows/release.yml',
+    ).readAsStringSync();
 
     // unsigned DMG 路径必须显式使用 Release-unsigned.entitlements 剥离权限。
     final unsignedEntitlementRef = releaseWorkflow.indexOf(
