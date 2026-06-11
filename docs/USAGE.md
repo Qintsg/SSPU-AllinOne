@@ -309,8 +309,8 @@ flutter build macos --release
 发布后使用：
 
 - 分发生成的 `.app` 包
-- 若未做 Apple 签名与公证，首次运行可能需要在系统安全设置中手动允许
-- 当前 GitHub Release 默认产出未签名 DMG：`SSPU-AllinOne-v{version}-macos-universal-unsigned.dmg`
+- 当前 GitHub Release 默认产出 Developer ID 签名并公证的 DMG：`SSPU-AllinOne-v{version}-macos-universal.dmg`
+- 若自行本地构建且未做 Apple 签名与公证，首次运行可能需要在系统安全设置中手动允许
 - macOS 系统快速验证通过 `local_auth` 调用系统能力，`Info.plist` 已配置 `NSFaceIDUsageDescription`
 
 ### 7.5 Linux 桌面

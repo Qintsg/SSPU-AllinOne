@@ -21,24 +21,23 @@ void main() {
     expect(unsignedEntitlements, isNot(contains('keychain-access-groups')));
   });
 
-  test('macOS DMG 打包前以 Release-unsigned.entitlements 剥离残留 entitlement', () {
+  test('macOS 正式 Release 要求签名材料齐全并使用公证工具链', () {
     final releaseWorkflow = File(
       '.github/workflows/release.yml',
     ).readAsStringSync();
 
-    // unsigned DMG 路径必须显式使用 Release-unsigned.entitlements 剥离权限。
-    final unsignedEntitlementRef = releaseWorkflow.indexOf(
-      'Release-unsigned.entitlements',
+    expect(
+      releaseWorkflow,
+      contains('当前公开 Release 必须产出 Developer ID 签名并公证的 macOS DMG'),
     );
-    final adHocSigningIndex = releaseWorkflow.indexOf(
-      'codesign --force --deep --sign -',
+    expect(releaseWorkflow, isNot(contains('-T /usr/bin/notarytool')));
+    expect(releaseWorkflow, contains('xcrun notarytool submit'));
+    expect(releaseWorkflow, contains('xcrun stapler staple'));
+    expect(
+      releaseWorkflow,
+      contains(
+        'dist/SSPU-AllinOne-v\${{ needs.prepare.outputs.version }}-macos-universal.dmg',
+      ),
     );
-    final entitlementCheckIndex = releaseWorkflow.indexOf(
-      'unsigned macOS 产物不得携带',
-    );
-
-    expect(unsignedEntitlementRef, greaterThanOrEqualTo(0));
-    expect(adHocSigningIndex, greaterThanOrEqualTo(0));
-    expect(entitlementCheckIndex, greaterThan(adHocSigningIndex));
   });
 }

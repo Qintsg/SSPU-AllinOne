@@ -467,7 +467,7 @@ class AppUpdateService {
   String _kindNameFromAsset(AppUpdateAsset asset) {
     return switch (asset.kind) {
       AppUpdateAssetKind.installer => 'installer',
-      AppUpdateAssetKind.dmg => 'unsigned',
+      AppUpdateAssetKind.dmg => 'dmg',
       AppUpdateAssetKind.appImage => 'appimage',
       AppUpdateAssetKind.deb => 'deb',
       AppUpdateAssetKind.rpm => 'rpm',
