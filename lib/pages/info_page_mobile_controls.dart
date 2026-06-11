@@ -59,7 +59,7 @@ Widget _buildInfoMobileControls(_InfoPageState state, FluentThemeData theme) {
           ],
         ),
         const SizedBox(height: FluentSpacing.xxs),
-        _buildInfoMobileFilterSummary(state, theme),
+        _buildInfoActiveFilterChips(state, includeCount: true),
         if (refreshSnapshot.isRefreshing) ...[
           const SizedBox(height: FluentSpacing.xxs),
           _buildInfoMobileRefreshProgress(state, theme),
@@ -101,84 +101,4 @@ Widget _buildInfoMobileRefreshProgress(
       ],
     ),
   );
-}
-
-Widget _buildInfoMobileFilterSummary(
-  _InfoPageState state,
-  FluentThemeData theme,
-) {
-  final labels = _getInfoActiveFilterLabels(state);
-  final messageCountLabel = '${state._filteredMessages.length} 条';
-  final effectiveLabels = labels.isEmpty
-      ? <String>[messageCountLabel, '全部消息']
-      : <String>[messageCountLabel, ...labels];
-
-  return SizedBox(
-    key: const Key('info-mobile-filter-summary'),
-    height: 20,
-    child: SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (var i = 0; i < effectiveLabels.length; i++) ...[
-            _InfoFilterPill(label: effectiveLabels[i]),
-            if (i < effectiveLabels.length - 1)
-              const SizedBox(width: FluentSpacing.xxs),
-          ],
-        ],
-      ),
-    ),
-  );
-}
-
-List<String> _getInfoActiveFilterLabels(_InfoPageState state) {
-  final labels = <String>[];
-  if (state._searchQuery.trim().isNotEmpty) {
-    labels.add('搜索：${state._searchQuery.trim()}');
-  }
-  if (state._filterSourceType != null) {
-    labels.add(state._filterSourceType!.label);
-  }
-  if (state._filterWechatMpName != null) {
-    labels.add(state._filterWechatMpName!);
-  } else if (state._filterSourceName != null) {
-    labels.add(state._filterSourceName!.label);
-  }
-  if (state._filterCategory != null) {
-    labels.add(state._filterCategory!.label);
-  }
-  if (state._filterUnreadOnly) {
-    labels.add('仅未读');
-  }
-  return labels;
-}
-
-class _InfoFilterPill extends StatelessWidget {
-  const _InfoFilterPill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-
-    return Container(
-      height: 20,
-      constraints: const BoxConstraints(maxWidth: 150),
-      alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: FluentSpacing.xs),
-      decoration: BoxDecoration(
-        color: theme.inactiveColor.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(FluentRadius.circular),
-      ),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: theme.typography.caption?.copyWith(
-          color: theme.resources.textFillColorSecondary,
-        ),
-      ),
-    );
-  }
 }

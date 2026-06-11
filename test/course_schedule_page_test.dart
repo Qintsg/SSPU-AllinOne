@@ -11,9 +11,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/models/academic_calendar.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
+import 'package:sspu_allinone/models/course_period.dart';
 import 'package:sspu_allinone/pages/course_schedule_page.dart';
 import 'package:sspu_allinone/services/academic_calendar_service.dart';
 import 'package:sspu_allinone/services/academic_eams_service.dart';
+import 'package:sspu_allinone/utils/course_week_parser.dart';
 
 Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
   for (var attempt = 0; attempt < 40; attempt++) {
@@ -49,6 +51,25 @@ Future<void> pumpCourseSchedulePage(
 }
 
 void main() {
+  test('内置作息时间表包含教务处 1-13 节数据', () {
+    const table = CoursePeriodTable.standard;
+
+    expect(table.periods.length, 13);
+    expect(table.periodOf(1)?.timeRange, '08:00-08:45');
+    expect(table.periodOf(5)?.timeRange, '11:25-12:10');
+    expect(table.periodOf(13)?.timeRange, '19:40-20:25');
+    expect(table.rangeText(1, 2), '08:00-09:35');
+  });
+
+  test('课程周次解析支持区间、单双周、枚举和异常文本', () {
+    expect(CourseWeekParser.parse('1-16周').contains(16), isTrue);
+    expect(CourseWeekParser.parse('1-16周 单周').contains(2), isFalse);
+    expect(CourseWeekParser.parse('1-16周 双周').contains(2), isTrue);
+    expect(CourseWeekParser.parse('1,3,5周').weeks, {1, 3, 5});
+    expect(CourseWeekParser.parse('第 1-4 周, 7周').weeks, {1, 2, 3, 4, 7});
+    expect(CourseWeekParser.parse('周次待定').showWhenUnknown, isTrue);
+  });
+
   testWidgets('课程表页面自动刷新开启时会主动读取课表', (tester) async {
     final service = _FakeAcademicEamsClient(result: _successResult);
     await pumpCourseSchedulePage(
@@ -63,7 +84,8 @@ void main() {
     expect(find.text('课程表'), findsOneWidget);
     expect(find.textContaining('自动刷新已开启'), findsOneWidget);
     expect(find.text('高等数学'), findsOneWidget);
-    expect(find.textContaining('周一 第1-2节'), findsOneWidget);
+    expect(find.text('周一'), findsOneWidget);
+    expect(find.textContaining('08:00-09:35'), findsOneWidget);
     expect(find.text('返回'), findsNothing);
     expect(service.courseTableFetchCount, 1);
 

@@ -37,6 +37,9 @@ class FluentMotion extends ThemeExtension<FluentMotion> {
   /// 500ms — 全屏转场。
   Duration get durationUltraSlow => const Duration(milliseconds: 500);
 
+  /// 1200ms — 骨架屏 shimmer 周期。
+  Duration get durationSkeleton => const Duration(milliseconds: 1200);
+
   // —— 曲线 ——
   /// 默认，进出对称。
   Cubic get curveEasyEase => const Cubic(0.33, 0, 0.67, 1);

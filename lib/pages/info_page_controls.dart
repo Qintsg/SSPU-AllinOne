@@ -21,11 +21,96 @@ Widget _buildInfoRegularControls(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       _buildInfoRegularFilterRow(state, theme, isDark),
+      _buildInfoActiveFilterChips(state, includeCount: true),
       if (refreshSnapshot.isRefreshing) ...[
         const SizedBox(height: FluentSpacing.xs),
         state._buildRefreshProgress(theme),
       ],
     ],
+  );
+}
+
+Widget _buildInfoActiveFilterChips(
+  _InfoPageState state, {
+  required bool includeCount,
+}) {
+  final chips = <Widget>[
+    if (includeCount)
+      FluentStatusChip(
+        label: '${state._filteredMessages.length} 条',
+        icon: FluentIcons.list,
+      ),
+    if (state._searchQuery.trim().isNotEmpty)
+      FluentStatusChip(
+        label: '搜索：${state._searchQuery.trim()}',
+        icon: FluentIcons.search,
+        onClose: () {
+          state._searchController.clear();
+          state._searchQuery = '';
+          state._applyFilters();
+        },
+      ),
+    if (state._filterSourceType != null)
+      FluentStatusChip(
+        label: state._filterSourceType!.label,
+        icon: FluentIcons.filter,
+        onClose: () {
+          state._filterSourceType = null;
+          state._filterSourceName = null;
+          state._filterWechatMpName = null;
+          state._filterCategory = null;
+          state._applyFilters();
+        },
+      ),
+    if (state._filterWechatMpName != null)
+      FluentStatusChip(
+        label: state._filterWechatMpName!,
+        icon: FluentIcons.chat,
+        onClose: () {
+          state._filterWechatMpName = null;
+          state._applyFilters();
+        },
+      )
+    else if (state._filterSourceName != null)
+      FluentStatusChip(
+        label: state._filterSourceName!.label,
+        icon: FluentIcons.news,
+        onClose: () {
+          state._filterSourceName = null;
+          state._filterCategory = null;
+          state._applyFilters();
+        },
+      ),
+    if (state._filterCategory != null)
+      FluentStatusChip(
+        label: state._filterCategory!.label,
+        icon: FluentIcons.list,
+        onClose: () {
+          state._filterCategory = null;
+          state._applyFilters();
+        },
+      ),
+    if (state._filterUnreadOnly)
+      FluentStatusChip(
+        label: '仅未读',
+        icon: FluentIcons.read,
+        tone: FluentStatusChipTone.brand,
+        onClose: () {
+          state._filterUnreadOnly = false;
+          state._applyFilters();
+        },
+      ),
+  ];
+
+  if (chips.length == 1 && includeCount) return const SizedBox.shrink();
+
+  return Padding(
+    padding: const EdgeInsets.only(top: FluentSpacing.xs),
+    child: Wrap(
+      spacing: FluentSpacing.xs,
+      runSpacing: FluentSpacing.xxs,
+      children: chips,
+    ),
   );
 }
 

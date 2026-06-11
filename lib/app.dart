@@ -7,7 +7,6 @@
  */
 
 import 'design/fluent_ui.dart';
-import 'pages/about_page.dart';
 import 'pages/academic_page.dart';
 import 'pages/course_schedule_page.dart';
 import 'pages/email_page.dart';
@@ -61,7 +60,7 @@ class _AppShellState extends State<AppShell> {
       selectedIcon: FluentIcons.home,
       body: HomePage(
         campusNetworkStatusService: widget.campusNetworkStatusService,
-        onOpenSettings: () => _selectDestination(6),
+        onOpenSettings: () => _openSettings(SettingsLandingSection.security),
       ),
     ),
     const _AppDestination(
@@ -98,15 +97,15 @@ class _AppShellState extends State<AppShell> {
       title: '设置',
       icon: FluentIcons.settings,
       selectedIcon: FluentIcons.settings,
-      body: SettingsPage(onLock: widget.onLock),
-    ),
-    const _AppDestination(
-      title: '关于',
-      icon: FluentIcons.info,
-      selectedIcon: FluentIcons.infoSolid,
-      body: AboutPage(),
+      body: SettingsPage(
+        onLock: widget.onLock,
+        landingRequest: _settingsLandingRequest,
+      ),
     ),
   ];
+
+  /// 设置页定位请求。
+  SettingsLandingRequest? _settingsLandingRequest;
 
   @override
   Widget build(BuildContext context) {
@@ -148,6 +147,18 @@ class _AppShellState extends State<AppShell> {
     setState(() {
       _selectedIndex = index;
       _visitedDestinationIndexes.add(index);
+    });
+  }
+
+  /// 打开设置页并定位到指定分区。
+  void _openSettings(SettingsLandingSection section) {
+    setState(() {
+      _settingsLandingRequest = SettingsLandingRequest(section);
+      _selectedIndex = _destinations.indexWhere(
+        (destination) => destination.title == '设置',
+      );
+      if (_selectedIndex < 0) _selectedIndex = 0;
+      _visitedDestinationIndexes.add(_selectedIndex);
     });
   }
 }
@@ -257,12 +268,12 @@ class _CompactNavigationShell extends StatelessWidget {
     BuildContext context, {
     required List<int> hiddenIndexes,
   }) {
-    return showFluentDialog<void>(
+    return showFluentBottomDrawer<void>(
       context: context,
-      builder: (dialogContext) {
-        return FluentDialog(
-          title: const Text('更多功能'),
-          content: Column(
+      builder: (drawerContext) {
+        return FluentBottomDrawer(
+          title: const Text('更多'),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               for (final index in hiddenIndexes)
@@ -279,7 +290,7 @@ class _CompactNavigationShell extends StatelessWidget {
                     ),
                     semanticLabel: '打开${destinations[index].title}',
                     onPressed: () {
-                      Navigator.of(dialogContext).pop();
+                      Navigator.of(drawerContext).pop();
                       onChanged(index);
                     },
                     child: Row(

@@ -206,6 +206,21 @@ class StorageService {
     await _persist();
   }
 
+  /// 读取字符串列表。
+  static Future<List<String>> getStringList(String key) async {
+    await _ensureInitialized();
+    final value = _values[key];
+    if (value is List) return value.whereType<String>().toList();
+    return const [];
+  }
+
+  /// 写入字符串列表。
+  static Future<void> setStringList(String key, List<String> value) async {
+    await _ensureInitialized();
+    _values[key] = List<String>.unmodifiable(value);
+    await _persist();
+  }
+
   /// 读取布尔值。
   static Future<bool> getBool(String key, {bool defaultValue = false}) async {
     await _ensureInitialized();

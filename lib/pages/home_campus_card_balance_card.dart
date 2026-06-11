@@ -13,22 +13,51 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
   Widget _buildCampusCardBalanceCard(BuildContext context) {
     final result = _campusCardResult;
     final snapshot = result?.snapshot;
+    final state = result == null
+        ? FluentDataState.degraded
+        : result.isSuccess
+        ? FluentDataState.ready
+        : FluentDataState.failed;
 
-    return FluentSurface(
+    return FluentDashboardTile(
       key: const Key('home-campus-card-balance-card'),
-      padding: const EdgeInsets.all(FluentSpacing.l),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildCampusCardHeader(context, result, snapshot),
-          const SizedBox(height: FluentSpacing.s),
-          ConstrainedBox(
-            constraints: const BoxConstraints(
-              minHeight: _campusCardBodyMinHeight,
-            ),
-            child: _buildCampusCardBody(context, result, snapshot),
-          ),
-        ],
+      title: '校园卡余额',
+      icon: FluentIcons.money,
+      state: state,
+      accentColor: context.fluentAccents.finance,
+      actions: [
+        _CampusCardHeaderDetailAction(
+          label: '交易记录查询',
+          tooltip: snapshot == null ? '刷新后查看详情' : '交易记录查询',
+          onPressed: snapshot == null
+              ? null
+              : () => _openCampusCardDetail(snapshot),
+        ),
+      ],
+      footer: RefreshStatusLine(
+        label: _campusCardLastRefreshLabel(result),
+        labelStyle: FluentTheme.of(context).typography.caption?.copyWith(
+          color: FluentTheme.of(context).resources.textFillColorSecondary,
+        ),
+        actionReservedWidth: _campusCardRefreshController.feedback == null
+            ? 32
+            : 180,
+        action: RefreshFeedbackAction(
+          key: const Key('home-campus-card-refresh'),
+          tooltip: '刷新校园卡余额',
+          semanticLabel: '刷新校园卡余额',
+          isLoading: _campusCardRefreshController.isLoading,
+          feedback: _campusCardRefreshController.feedback,
+          onPressed: _loadCampusCard,
+          minTouchSize: 32,
+          size: 28,
+          iconSize: 15,
+          maxFeedbackWidth: 180,
+        ),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: _campusCardBodyMinHeight),
+        child: _buildCampusCardBody(context, result, snapshot),
       ),
     );
   }
@@ -43,9 +72,9 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
       return Align(
         alignment: Alignment.centerLeft,
         child: Text(
-          _campusCardAutoRefreshEnabled
+          _campusCardRefreshController.autoRefreshEnabled
               ? '自动刷新已开启，等待下一次读取。'
-              : '自动刷新未开启，可点击标题行刷新图标读取校园卡余额。',
+              : '自动刷新未开启，可点击刷新图标读取校园卡余额。',
           style: theme.typography.caption?.copyWith(
             color: theme.resources.textFillColorSecondary,
           ),
@@ -60,92 +89,24 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
 
   static const double _campusCardBodyMinHeight = 64.0;
 
-  Widget _buildCampusCardHeader(
-    BuildContext context,
-    CampusCardQueryResult? result,
-    CampusCardSnapshot? snapshot,
-  ) {
-    final theme = FluentTheme.of(context);
-    final openDetail = snapshot == null
-        ? null
-        : () => _openCampusCardDetail(snapshot);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text('校园卡余额', style: theme.typography.subtitle),
-                ),
-                _CampusCardHeaderDetailAction(
-                  label: '交易记录查询',
-                  tooltip: snapshot == null ? '刷新后查看详情' : '交易记录查询',
-                  onPressed: openDetail,
-                ),
-              ],
-            ),
-            const SizedBox(height: FluentSpacing.xxs),
-            RefreshStatusLine(
-              label: _campusCardLastRefreshLabel(result),
-              labelStyle: theme.typography.caption?.copyWith(
-                color: theme.resources.textFillColorSecondary,
-              ),
-              actionReservedWidth: _campusCardRefreshFeedback == null
-                  ? 32
-                  : 180,
-              action: RefreshFeedbackAction(
-                key: const Key('home-campus-card-refresh'),
-                tooltip: '刷新校园卡余额',
-                semanticLabel: '刷新校园卡余额',
-                isLoading: _isLoadingCampusCard,
-                feedback: _campusCardRefreshFeedback,
-                onPressed: _loadCampusCard,
-                minTouchSize: 32,
-                size: 28,
-                iconSize: 15,
-                maxFeedbackWidth: 180,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   /// 构建校园卡余额和异常状态摘要。
   Widget _buildCampusCardBalanceSummary(
     BuildContext context,
     CampusCardSnapshot snapshot,
   ) {
     final theme = FluentTheme.of(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final summaryWidth = constraints.maxWidth >= 720
-            ? constraints.maxWidth * 0.48
-            : constraints.maxWidth;
-        return SizedBox(
-          width: summaryWidth,
-          child: Wrap(
-            spacing: FluentSpacing.m,
-            runSpacing: FluentSpacing.s,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                snapshot.balance == null
-                    ? '未读取'
-                    : _formatMoney(snapshot.balance!),
-                style: theme.typography.titleLarge,
-              ),
-              if (snapshot.hasAbnormalStatus)
-                _CampusCardStatusPill(status: snapshot.status),
-            ],
-          ),
-        );
-      },
+    return Wrap(
+      spacing: FluentSpacing.m,
+      runSpacing: FluentSpacing.s,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          snapshot.balance == null ? '未读取' : _formatMoney(snapshot.balance!),
+          style: theme.typography.titleLarge,
+        ),
+        if (snapshot.hasAbnormalStatus)
+          _CampusCardStatusPill(status: snapshot.status),
+      ],
     );
   }
 

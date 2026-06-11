@@ -88,6 +88,8 @@ void main() {
     expect(find.text('上次刷新：2026-04-30 00:00'), findsOneWidget);
     expect(sportsService.requireCampusNetworkValues, [false]);
 
+    await tester.ensureVisible(find.text('查看考勤记录'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('查看考勤记录'));
     await tester.pumpAndSettle();
 
@@ -385,6 +387,99 @@ void main() {
     expect((socialTop - reportTop).abs(), lessThan(1));
     expect((cultureTop - innovationTop).abs(), lessThan(1));
     expect(cultureTop, greaterThan(socialTop));
+    expect(tester.takeException(), isNull);
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('教务中心宽屏下体育与第二课堂卡片行内等高', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
+      ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+      sportsAttendanceAutoRefreshEnabledOverride: true,
+      studentReportAutoRefreshEnabledOverride: true,
+    );
+
+    await pumpUntilFound(tester, find.text('总已获分数'));
+
+    final sportsCard = find.byKey(const Key('academic-sports-card'));
+    final studentReportCard = find.byKey(
+      const Key('academic-student-report-card'),
+    );
+    final sportsSize = tester.getSize(sportsCard);
+    final studentReportSize = tester.getSize(studentReportCard);
+    expect((sportsSize.height - studentReportSize.height).abs(), lessThan(1));
+    expect(
+      tester.getBottomLeft(sportsCard).dy,
+      tester.getBottomLeft(studentReportCard).dy,
+    );
+    expect(tester.takeException(), isNull);
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('教务中心中屏下体育与第二课堂卡片行内等高', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
+      ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+      sportsAttendanceAutoRefreshEnabledOverride: true,
+      studentReportAutoRefreshEnabledOverride: true,
+    );
+
+    await pumpUntilFound(tester, find.text('总已获分数'));
+
+    final sportsCard = find.byKey(const Key('academic-sports-card'));
+    final studentReportCard = find.byKey(
+      const Key('academic-student-report-card'),
+    );
+    final sportsSize = tester.getSize(sportsCard);
+    final studentReportSize = tester.getSize(studentReportCard);
+    expect((sportsSize.height - studentReportSize.height).abs(), lessThan(1));
+    expect(
+      tester.getBottomLeft(sportsCard).dy,
+      tester.getBottomLeft(studentReportCard).dy,
+    );
+    expect(tester.takeException(), isNull);
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('教务中心窄屏下单列卡片不强制等高且无溢出', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(400, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
+      ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+      sportsAttendanceAutoRefreshEnabledOverride: true,
+      studentReportAutoRefreshEnabledOverride: true,
+    );
+
+    await pumpUntilFound(tester, find.text('总已获分数'));
+
+    final sportsCard = find.byKey(const Key('academic-sports-card'));
+    final studentReportCard = find.byKey(
+      const Key('academic-student-report-card'),
+    );
+    expect(
+      tester.getTopLeft(studentReportCard).dy,
+      greaterThan(tester.getBottomLeft(sportsCard).dy),
+    );
     expect(tester.takeException(), isNull);
     await disposeAcademicPage(tester);
   });

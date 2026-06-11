@@ -16,51 +16,53 @@ extension _HomeStudentProfileCard on _HomePageState {
     final hasCredentials =
         _credentialsStatus.oaAccount.trim().isNotEmpty &&
         _credentialsStatus.hasOaPassword;
+    final state = !hasCredentials
+        ? FluentDataState.notConfigured
+        : _isLoadingStudentProfile && profile == null
+        ? FluentDataState.loading
+        : profile == null || !profile.hasAnyValue
+        ? FluentDataState.degraded
+        : FluentDataState.ready;
 
-    return FluentSurface(
+    return FluentDashboardTile(
       key: const Key('home-student-profile-card'),
-      padding: const EdgeInsets.all(FluentSpacing.l),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text('学籍信息', style: theme.typography.subtitle)),
-              Text(
-                '本专科教务',
-                style: theme.typography.caption?.copyWith(
-                  color: theme.resources.textFillColorSecondary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: FluentSpacing.xl),
-          if (!hasCredentials) ...[
-            Text('需要先保存 OA 账号密码', style: theme.typography.bodyStrong),
-            const SizedBox(height: FluentSpacing.xs),
-            Text(
-              '学籍信息会在保存后自动读取',
-              style: theme.typography.caption?.copyWith(
-                color: theme.resources.textFillColorSecondary,
-              ),
-            ),
-            const SizedBox(height: FluentSpacing.m),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FluentButton.primary(
+      title: '学籍信息',
+      subtitle: '本专科教务',
+      icon: FluentIcons.contact,
+      state: state,
+      accentColor: context.fluentAccents.academic,
+      actions: !hasCredentials
+          ? [
+              FluentButton.primary(
                 onPressed: widget.onOpenSettings,
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(FluentIcons.settings, size: 14),
-                    SizedBox(width: 6),
+                    SizedBox(width: FluentSpacing.xs),
                     Text('前往设置'),
                   ],
                 ),
               ),
-            ),
-          ] else if (_isLoadingStudentProfile && profile == null) ...[
-            const Row(
+            ]
+          : null,
+      child: !hasCredentials
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('需要先保存 OA 账号密码', style: theme.typography.bodyStrong),
+                const SizedBox(height: FluentSpacing.xs),
+                Text(
+                  '学籍信息会在保存后自动读取',
+                  style: theme.typography.caption?.copyWith(
+                    color: theme.resources.textFillColorSecondary,
+                  ),
+                ),
+              ],
+            )
+          : _isLoadingStudentProfile && profile == null
+          ? const Row(
               children: [
                 SizedBox(
                   width: 18,
@@ -70,21 +72,23 @@ extension _HomeStudentProfileCard on _HomePageState {
                 SizedBox(width: FluentSpacing.s),
                 Text('正在读取学籍信息...'),
               ],
-            ),
-          ] else if (profile == null || !profile.hasAnyValue) ...[
-            Text('暂未读取到学籍信息', style: theme.typography.bodyStrong),
-            const SizedBox(height: FluentSpacing.xs),
-            Text(
-              '应用会在启动或更新 OA 凭据后自动尝试补全',
-              style: theme.typography.caption?.copyWith(
-                color: theme.resources.textFillColorSecondary,
-              ),
-            ),
-          ] else ...[
-            _buildStudentProfileSummary(context, profile),
-          ],
-        ],
-      ),
+            )
+          : profile == null || !profile.hasAnyValue
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('暂未读取到学籍信息', style: theme.typography.bodyStrong),
+                const SizedBox(height: FluentSpacing.xs),
+                Text(
+                  '应用会在启动或更新 OA 凭据后自动尝试补全',
+                  style: theme.typography.caption?.copyWith(
+                    color: theme.resources.textFillColorSecondary,
+                  ),
+                ),
+              ],
+            )
+          : _buildStudentProfileSummary(context, profile),
     );
   }
 
@@ -99,60 +103,31 @@ extension _HomeStudentProfileCard on _HomePageState {
     final major = _profileValue(profile.major);
     final className = _profileValue(profile.className);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 520;
-        if (compact) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(child: Text(name, style: theme.typography.subtitle)),
-                  Text(studentId, style: theme.typography.bodyStrong),
-                ],
-              ),
-              const SizedBox(height: FluentSpacing.m),
-              Text(
-                department,
-                style: theme.typography.body?.copyWith(
-                  color: theme.resources.textFillColorSecondary,
-                ),
-              ),
-              const SizedBox(height: FluentSpacing.xs),
-              Row(
-                children: [
-                  Expanded(child: Text(major)),
-                  Text(className),
-                ],
-              ),
-            ],
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Expanded(child: Text(name, style: theme.typography.subtitle)),
-                Text(studentId, style: theme.typography.bodyStrong),
-              ],
-            ),
-            const SizedBox(height: FluentSpacing.m),
-            Row(
-              children: [
-                Expanded(flex: 3, child: Text(department)),
-                Expanded(flex: 2, child: Text(major)),
-                Expanded(
-                  flex: 2,
-                  child: Text(className, textAlign: TextAlign.end),
-                ),
-              ],
-            ),
+            Expanded(child: Text(name, style: theme.typography.subtitle)),
+            Text(studentId, style: theme.typography.bodyStrong),
           ],
-        );
-      },
+        ),
+        const SizedBox(height: FluentSpacing.m),
+        Text(
+          department,
+          style: theme.typography.body?.copyWith(
+            color: theme.resources.textFillColorSecondary,
+          ),
+        ),
+        const SizedBox(height: FluentSpacing.xs),
+        Row(
+          children: [
+            Expanded(child: Text(major)),
+            const SizedBox(width: FluentSpacing.s),
+            Text(className),
+          ],
+        ),
+      ],
     );
   }
 

@@ -36,6 +36,31 @@ class StorageKeys {
   static const String homeCampusCardBalanceCardVisible =
       'home_campus_card_balance_card_visible';
 
+  /// 首页是否显示今日课程磁贴。
+  static const String homeTodayCoursesTileVisible =
+      'home_today_courses_tile_visible';
+
+  /// 首页是否显示体育考勤磁贴。
+  static const String homeSportsAttendanceTileVisible =
+      'home_sports_attendance_tile_visible';
+
+  /// 首页是否显示第二课堂磁贴。
+  static const String homeStudentReportTileVisible =
+      'home_student_report_tile_visible';
+
+  /// 首页是否显示最新消息磁贴。
+  static const String homeMessagesTileVisible = 'home_messages_tile_visible';
+
+  /// 首页是否显示邮箱摘要磁贴。
+  static const String homeEmailTileVisible = 'home_email_tile_visible';
+
+  /// 首页是否显示快速跳转磁贴。
+  static const String homeQuickLinksTileVisible =
+      'home_quick_links_tile_visible';
+
+  /// 快速跳转常用入口 URL 列表。
+  static const String quickLinkFavoriteUrls = 'quick_link_favorite_urls';
+
   /// 校园网 / VPN 状态检测间隔（分钟，0 = 关闭自动检测）。
   static const String campusNetworkDetectionIntervalMinutes =
       'campus_network_detection_interval_minutes';

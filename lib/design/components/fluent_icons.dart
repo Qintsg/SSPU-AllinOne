@@ -29,6 +29,8 @@ class FluentIcons {
   static const IconData checkMark = system.FluentIcons.checkmark_24_regular;
   static const IconData blocked = system.FluentIcons.prohibited_24_regular;
   static const IconData clear = system.FluentIcons.dismiss_24_regular;
+  static const IconData favorite = system.FluentIcons.star_24_regular;
+  static const IconData favoriteFilled = system.FluentIcons.star_24_filled;
   static const IconData qrCode = system.FluentIcons.qr_code_24_regular;
   static const IconData shield = system.FluentIcons.shield_24_regular;
   static const IconData edit = system.FluentIcons.edit_24_regular;

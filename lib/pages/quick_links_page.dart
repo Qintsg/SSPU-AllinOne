@@ -6,12 +6,15 @@
  * @Date : 2026-04-23
  */
 
+import 'package:flutter/services.dart';
+
 import '../design/fluent_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/quick_links_config_service.dart';
 import '../services/quick_links_search_service.dart';
+import '../services/storage_service.dart';
 import '../theme/fluent_tokens.dart';
 import '../widgets/responsive_layout.dart';
 
@@ -77,8 +80,10 @@ class _QuickLinksContent extends StatefulWidget {
 
 class _QuickLinksContentState extends State<_QuickLinksContent> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   String _searchQuery = '';
+  Set<String> _favoriteUrls = const {};
 
   static const List<_QuickLinkColorRole> _groupColorRoles = [
     _QuickLinkColorRole.brand,
@@ -108,9 +113,34 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    _loadFavoriteUrls();
+  }
+
+  @override
   void dispose() {
+    _searchFocusNode.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadFavoriteUrls() async {
+    final urls = await StorageService.getStringList(
+      StorageKeys.quickLinkFavoriteUrls,
+    );
+    if (!mounted) return;
+    setState(() => _favoriteUrls = urls.toSet());
+  }
+
+  Future<void> _toggleFavorite(QuickLinkItemConfig item) async {
+    final next = Set<String>.from(_favoriteUrls);
+    if (!next.add(item.url)) next.remove(item.url);
+    setState(() => _favoriteUrls = next);
+    await StorageService.setStringList(
+      StorageKeys.quickLinkFavoriteUrls,
+      next.toList()..sort(),
+    );
   }
 
   Future<void> _openBestMatch(List<QuickLinkSearchResult> results) async {
@@ -140,28 +170,61 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
           DeviceType.desktop => FluentSpacing.xxl,
         };
 
-        return FluentPage.scrollable(
-          header: const FluentPageHeader(title: Text('快速跳转')),
-          padding: EdgeInsets.all(pagePadding),
-          children: [
-            _buildSearchBar(theme, hasSearchQuery, searchResults),
-            const SizedBox(height: FluentSpacing.l),
-            if (hasSearchQuery)
-              ..._buildSearchResults(theme, searchResults, tileWidth)
-            else
-              for (
-                var groupIndex = 0;
-                groupIndex < widget.groups.length;
-                groupIndex++
-              )
-                ..._buildGroup(
-                  context,
-                  theme,
-                  widget.groups[groupIndex],
-                  groupIndex,
-                  tileWidth,
-                ),
-          ],
+        return Shortcuts(
+          shortcuts: const {
+            SingleActivator(LogicalKeyboardKey.keyK, control: true):
+                _FocusQuickLinkSearchIntent(),
+            SingleActivator(LogicalKeyboardKey.keyK, meta: true):
+                _FocusQuickLinkSearchIntent(),
+          },
+          child: Actions(
+            actions: {
+              _FocusQuickLinkSearchIntent:
+                  CallbackAction<_FocusQuickLinkSearchIntent>(
+                    onInvoke: (_) {
+                      _searchFocusNode.requestFocus();
+                      return null;
+                    },
+                  ),
+            },
+            child: Focus(
+              autofocus: true,
+              child: FluentPage.scrollable(
+                header: const FluentPageHeader(title: Text('快速跳转')),
+                padding: EdgeInsets.all(pagePadding),
+                children: [
+                  FluentContentWidth(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSearchBar(theme, hasSearchQuery, searchResults),
+                        const SizedBox(height: FluentSpacing.l),
+                        if (hasSearchQuery)
+                          ..._buildSearchResults(
+                            theme,
+                            searchResults,
+                            tileWidth,
+                          )
+                        else
+                          for (
+                            var groupIndex = 0;
+                            groupIndex < widget.groups.length;
+                            groupIndex++
+                          )
+                            ..._buildGroup(
+                              context,
+                              theme,
+                              widget.groups[groupIndex],
+                              groupIndex,
+                              tileWidth,
+                            ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       },
     );
@@ -180,6 +243,7 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
           Expanded(
             child: FluentTextField(
               controller: _searchController,
+              focusNode: _searchFocusNode,
               placeholder: '搜索快捷入口或网址',
               prefixIcon: FluentIcons.search,
               suffix: hasSearchQuery
@@ -258,6 +322,7 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
                 label: result.item.name,
                 subtitle: result.group.category,
                 color: _resolveColor(
+                  context,
                   theme,
                   result.group.category,
                   result.item,
@@ -266,6 +331,8 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
                 ),
                 url: result.item.url,
                 onTap: widget.onOpenUrl,
+                favorite: _favoriteUrls.contains(result.item.url),
+                onToggleFavorite: () => _toggleFavorite(result.item),
                 width: tileWidth,
               );
             }).toList(),
@@ -297,6 +364,7 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
                 icon: _resolveIcon(group.category, item),
                 label: item.name,
                 color: _resolveColor(
+                  context,
                   theme,
                   group.category,
                   item,
@@ -304,11 +372,13 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
                 ),
                 url: item.url,
                 onTap: widget.onOpenUrl,
+                favorite: _favoriteUrls.contains(item.url),
+                onToggleFavorite: () => _toggleFavorite(item),
                 width: tileWidth,
               );
             }).toList(),
           )
-          .animate(delay: Duration(milliseconds: groupIndex * 80))
+          .animate(delay: FluentDuration.stagger * groupIndex)
           .fadeIn(duration: FluentDuration.slow, curve: FluentEasing.decelerate)
           .slideY(begin: 0.05, end: 0),
     ];
@@ -372,6 +442,7 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
   }
 
   Color _resolveColor(
+    BuildContext context,
     FluentThemeData theme,
     String category,
     QuickLinkItemConfig item,
@@ -379,33 +450,35 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
   ) {
     final searchableText = '${item.name} $category';
     if (searchableText.contains('财务') || searchableText.contains('保卫')) {
-      return _resolveColorRole(theme, _QuickLinkColorRole.critical);
+      return _resolveColorRole(context, theme, _QuickLinkColorRole.critical);
     }
     if (searchableText.contains('国际') || searchableText.contains('留学生')) {
-      return _resolveColorRole(theme, _QuickLinkColorRole.info);
+      return _resolveColorRole(context, theme, _QuickLinkColorRole.info);
     }
     if (searchableText.contains('学习') || searchableText.contains('教学')) {
-      return _resolveColorRole(theme, _QuickLinkColorRole.brand);
+      return _resolveColorRole(context, theme, _QuickLinkColorRole.brand);
     }
     if (searchableText.contains('图书') || searchableText.contains('档案')) {
-      return _resolveColorRole(theme, _QuickLinkColorRole.caution);
+      return _resolveColorRole(context, theme, _QuickLinkColorRole.caution);
     }
     if (searchableText.contains('党') ||
         searchableText.contains('团') ||
         searchableText.contains('工会')) {
-      return _resolveColorRole(theme, _QuickLinkColorRole.brandAlt);
+      return _resolveColorRole(context, theme, _QuickLinkColorRole.brandAlt);
     }
-    return _resolveColorRole(theme, fallback);
+    return _resolveColorRole(context, theme, fallback);
   }
 
-  Color _resolveColorRole(FluentThemeData theme, _QuickLinkColorRole role) {
-    final isDark = theme.brightness == Brightness.dark;
+  Color _resolveColorRole(
+    BuildContext context,
+    FluentThemeData theme,
+    _QuickLinkColorRole role,
+  ) {
+    final accents = context.fluentAccents;
     return switch (role) {
       _QuickLinkColorRole.brand => theme.accentColor,
-      _QuickLinkColorRole.brandAlt =>
-        isDark ? FluentDarkColors.brandHover : FluentLightColors.brandHover,
-      _QuickLinkColorRole.info =>
-        isDark ? FluentDarkColors.statusInfo : FluentLightColors.statusInfo,
+      _QuickLinkColorRole.brandAlt => accents.information,
+      _QuickLinkColorRole.info => accents.schedule,
       _QuickLinkColorRole.success => theme.resources.systemFillColorSuccess,
       _QuickLinkColorRole.caution => theme.resources.systemFillColorCaution,
       _QuickLinkColorRole.neutral =>
@@ -413,4 +486,8 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
       _QuickLinkColorRole.critical => theme.resources.systemFillColorCritical,
     };
   }
+}
+
+class _FocusQuickLinkSearchIntent extends Intent {
+  const _FocusQuickLinkSearchIntent();
 }

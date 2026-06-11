@@ -185,6 +185,20 @@ class _OpenSourceProject {
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
+  @override
+  Widget build(BuildContext context) {
+    return FluentPage.scrollable(
+      header: const FluentPageHeader(title: Text('关于')),
+      padding: AppSpacing.regularPagePadding,
+      children: const [AboutSettingsSection()],
+    );
+  }
+}
+
+/// 设置页中的关于分区。
+class AboutSettingsSection extends StatelessWidget {
+  const AboutSettingsSection({super.key});
+
   Future<void> _openUrl(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
@@ -196,49 +210,34 @@ class AboutPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final typography = FluentTheme.of(context).typography;
 
-    return FluentPage.scrollable(
-      header: const FluentPageHeader(title: Text('关于')),
-      padding: AppSpacing.regularPagePadding,
-      children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 840),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildAppInfoCard(context)
-                    .animate()
-                    .fadeIn(
-                      duration: AppMotion.medium,
-                      curve: Curves.easeOutCubic,
-                    )
-                    .slideY(begin: 0.05, end: 0),
-                const SizedBox(height: AppSpacing.lg),
-                _buildActionCard(context)
-                    .animate(delay: 100.ms)
-                    .fadeIn(
-                      duration: AppMotion.medium,
-                      curve: Curves.easeOutCubic,
-                    )
-                    .slideY(begin: 0.05, end: 0),
-                const SizedBox(height: AppSpacing.lg),
-                Semantics(
-                  header: true,
-                  child: Text('使用/参考的开源项目', style: typography.subtitle),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                _buildOpenSourceCard(context)
-                    .animate(delay: 200.ms)
-                    .fadeIn(
-                      duration: AppMotion.medium,
-                      curve: Curves.easeOutCubic,
-                    )
-                    .slideY(begin: 0.05, end: 0),
-              ],
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 840),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildAppInfoCard(context)
+                .animate()
+                .fadeIn(duration: AppMotion.medium, curve: Curves.easeOutCubic)
+                .slideY(begin: 0.05, end: 0),
+            const SizedBox(height: AppSpacing.lg),
+            _buildActionCard(context)
+                .animate(delay: 100.ms)
+                .fadeIn(duration: AppMotion.medium, curve: Curves.easeOutCubic)
+                .slideY(begin: 0.05, end: 0),
+            const SizedBox(height: AppSpacing.lg),
+            Semantics(
+              header: true,
+              child: Text('使用/参考的开源项目', style: typography.subtitle),
             ),
-          ),
+            const SizedBox(height: AppSpacing.sm),
+            _buildOpenSourceCard(context)
+                .animate(delay: 200.ms)
+                .fadeIn(duration: AppMotion.medium, curve: Curves.easeOutCubic)
+                .slideY(begin: 0.05, end: 0),
+          ],
         ),
-      ],
+      ),
     );
   }
 

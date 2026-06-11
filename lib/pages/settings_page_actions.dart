@@ -38,6 +38,24 @@ mixin _SettingsPageActions on State<SettingsPage> {
   bool get _homeCampusCardBalanceCardVisible;
   set _homeCampusCardBalanceCardVisible(bool value);
 
+  bool get _homeTodayCoursesTileVisible;
+  set _homeTodayCoursesTileVisible(bool value);
+
+  bool get _homeSportsAttendanceTileVisible;
+  set _homeSportsAttendanceTileVisible(bool value);
+
+  bool get _homeStudentReportTileVisible;
+  set _homeStudentReportTileVisible(bool value);
+
+  bool get _homeMessagesTileVisible;
+  set _homeMessagesTileVisible(bool value);
+
+  bool get _homeEmailTileVisible;
+  set _homeEmailTileVisible(bool value);
+
+  bool get _homeQuickLinksTileVisible;
+  set _homeQuickLinksTileVisible(bool value);
+
   int get _dndStartHour;
   set _dndStartHour(int value);
 
@@ -103,6 +121,30 @@ mixin _SettingsPageActions on State<SettingsPage> {
       StorageKeys.homeCampusCardBalanceCardVisible,
       defaultValue: true,
     );
+    final homeTodayCoursesTileVisible = await StorageService.getBool(
+      StorageKeys.homeTodayCoursesTileVisible,
+      defaultValue: true,
+    );
+    final homeSportsAttendanceTileVisible = await StorageService.getBool(
+      StorageKeys.homeSportsAttendanceTileVisible,
+      defaultValue: true,
+    );
+    final homeStudentReportTileVisible = await StorageService.getBool(
+      StorageKeys.homeStudentReportTileVisible,
+      defaultValue: true,
+    );
+    final homeMessagesTileVisible = await StorageService.getBool(
+      StorageKeys.homeMessagesTileVisible,
+      defaultValue: true,
+    );
+    final homeEmailTileVisible = await StorageService.getBool(
+      StorageKeys.homeEmailTileVisible,
+      defaultValue: true,
+    );
+    final homeQuickLinksTileVisible = await StorageService.getBool(
+      StorageKeys.homeQuickLinksTileVisible,
+      defaultValue: true,
+    );
     final dndStartHour = await _messageState.getDndStartHour();
     final dndStartMinute = await _messageState.getDndStartMinute();
     final dndEndHour = await _messageState.getDndEndHour();
@@ -143,6 +185,12 @@ mixin _SettingsPageActions on State<SettingsPage> {
       _dndEnabled = dndOn;
       _homeStudentProfileCardVisible = homeStudentProfileCardVisible;
       _homeCampusCardBalanceCardVisible = homeCampusCardBalanceCardVisible;
+      _homeTodayCoursesTileVisible = homeTodayCoursesTileVisible;
+      _homeSportsAttendanceTileVisible = homeSportsAttendanceTileVisible;
+      _homeStudentReportTileVisible = homeStudentReportTileVisible;
+      _homeMessagesTileVisible = homeMessagesTileVisible;
+      _homeEmailTileVisible = homeEmailTileVisible;
+      _homeQuickLinksTileVisible = homeQuickLinksTileVisible;
       _dndStartHour = dndStartHour;
       _dndStartMinute = dndStartMinute;
       _dndEndHour = dndEndHour;
@@ -221,6 +269,70 @@ mixin _SettingsPageActions on State<SettingsPage> {
     );
     if (!mounted) return;
     setState(() => _homeCampusCardBalanceCardVisible = visible);
+  }
+
+  /// 修改首页今日课程磁贴显示开关。
+  Future<void> _onHomeTodayCoursesTileVisibleChanged(bool visible) async {
+    await _setHomeTileVisible(
+      StorageKeys.homeTodayCoursesTileVisible,
+      visible,
+      (value) => _homeTodayCoursesTileVisible = value,
+    );
+  }
+
+  /// 修改首页体育考勤磁贴显示开关。
+  Future<void> _onHomeSportsAttendanceTileVisibleChanged(bool visible) async {
+    await _setHomeTileVisible(
+      StorageKeys.homeSportsAttendanceTileVisible,
+      visible,
+      (value) => _homeSportsAttendanceTileVisible = value,
+    );
+  }
+
+  /// 修改首页第二课堂磁贴显示开关。
+  Future<void> _onHomeStudentReportTileVisibleChanged(bool visible) async {
+    await _setHomeTileVisible(
+      StorageKeys.homeStudentReportTileVisible,
+      visible,
+      (value) => _homeStudentReportTileVisible = value,
+    );
+  }
+
+  /// 修改首页最新消息磁贴显示开关。
+  Future<void> _onHomeMessagesTileVisibleChanged(bool visible) async {
+    await _setHomeTileVisible(
+      StorageKeys.homeMessagesTileVisible,
+      visible,
+      (value) => _homeMessagesTileVisible = value,
+    );
+  }
+
+  /// 修改首页邮箱摘要磁贴显示开关。
+  Future<void> _onHomeEmailTileVisibleChanged(bool visible) async {
+    await _setHomeTileVisible(
+      StorageKeys.homeEmailTileVisible,
+      visible,
+      (value) => _homeEmailTileVisible = value,
+    );
+  }
+
+  /// 修改首页快速跳转磁贴显示开关。
+  Future<void> _onHomeQuickLinksTileVisibleChanged(bool visible) async {
+    await _setHomeTileVisible(
+      StorageKeys.homeQuickLinksTileVisible,
+      visible,
+      (value) => _homeQuickLinksTileVisible = value,
+    );
+  }
+
+  Future<void> _setHomeTileVisible(
+    String key,
+    bool visible,
+    ValueChanged<bool> apply,
+  ) async {
+    await StorageService.setBool(key, visible);
+    if (!mounted) return;
+    setState(() => apply(visible));
   }
 
   /// 修改勿扰开始时间。

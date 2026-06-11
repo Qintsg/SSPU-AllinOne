@@ -7,6 +7,7 @@
  */
 
 export 'package:flutter/foundation.dart';
-export 'package:fluent_ui/fluent_ui.dart' hide FluentIcons, FluentPage, FluentPageRoute;
+export 'package:fluent_ui/fluent_ui.dart'
+    hide FluentIcons, FluentPage, FluentPageRoute;
 
 export 'fluent.dart' hide FluentElevation, FluentSpacing;
