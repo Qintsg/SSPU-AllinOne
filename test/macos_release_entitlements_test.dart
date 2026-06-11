@@ -11,20 +11,25 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('unsigned macOS release 不携带受限 entitlement', () {
-    final releaseEntitlements = File(
-      'macos/Runner/Release.entitlements',
+  test('unsigned macOS release 使用空 entitlements 剥离受限权限', () {
+    final unsignedEntitlements = File(
+      'macos/Runner/Release-unsigned.entitlements',
     ).readAsStringSync();
 
-    // 当前公开 macOS 产物为 unsigned DMG，受限 entitlement 会导致 AMFI 拒绝启动。
-    expect(releaseEntitlements, isNot(contains('com.apple.security.')));
-    expect(releaseEntitlements, isNot(contains('keychain-access-groups')));
+    // unsigned DMG 使用空 entitlements 剥离沙盒与钥匙串权限，避免 AMFI 拒绝启动。
+    expect(unsignedEntitlements, isNot(contains('com.apple.security.')));
+    expect(unsignedEntitlements, isNot(contains('keychain-access-groups')));
   });
 
-  test('macOS DMG 打包前重新 ad-hoc 签名清理残留 entitlement', () {
-    final releaseWorkflow = File('.github/workflows/release.yml').readAsStringSync();
+  test('macOS DMG 打包前以 Release-unsigned.entitlements 剥离残留 entitlement', () {
+    final releaseWorkflow = File(
+      '.github/workflows/release.yml',
+    ).readAsStringSync();
 
-    // Release workflow 必须先剥离构建产物签名中的残留权限，再执行发布前拦截。
+    // unsigned DMG 路径必须显式使用 Release-unsigned.entitlements 剥离权限。
+    final unsignedEntitlementRef = releaseWorkflow.indexOf(
+      'Release-unsigned.entitlements',
+    );
     final adHocSigningIndex = releaseWorkflow.indexOf(
       'codesign --force --deep --sign -',
     );
@@ -32,6 +37,7 @@ void main() {
       'unsigned macOS 产物不得携带',
     );
 
+    expect(unsignedEntitlementRef, greaterThanOrEqualTo(0));
     expect(adHocSigningIndex, greaterThanOrEqualTo(0));
     expect(entitlementCheckIndex, greaterThan(adHocSigningIndex));
   });
