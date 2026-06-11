@@ -92,9 +92,10 @@ class _SettingsWechatConfigDialogState
         final minDialogWidth = availableDialogWidth < 320
             ? availableDialogWidth
             : 320;
+        final maxDialogWidth = AppBreakpoints.mediumMax + spacing.xxxl * 2;
         final dialogWidth = availableDialogWidth.clamp(
           minDialogWidth,
-          AppBreakpoints.expandedMax,
+          maxDialogWidth,
         );
         final dialogHeight = availableHeight - spacing.xxxl;
 
@@ -106,6 +107,7 @@ class _SettingsWechatConfigDialogState
           ),
           title: const Text('编辑公众号平台配置'),
           content: SizedBox(
+            key: const Key('wechat-config-dialog-content'),
             width: dialogWidth.toDouble(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,19 +162,18 @@ class _SettingsWechatConfigDialogState
                     ),
                   ],
                 ),
+                SizedBox(height: spacing.xl),
+                _ConfigDialogActions(onCancel: _cancel, onSubmit: _submit),
               ],
             ),
           ),
-          actions: [
-            FluentButton.outline(
-              child: const Text('取消'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            FluentButton.primary(onPressed: _submit, child: const Text('保存')),
-          ],
         );
       },
     );
+  }
+
+  void _cancel() {
+    Navigator.of(context).pop();
   }
 
   void _submit() {
@@ -233,6 +234,33 @@ class _SettingsWechatConfigDialogState
   }
 }
 
+class _ConfigDialogActions extends StatelessWidget {
+  const _ConfigDialogActions({required this.onCancel, required this.onSubmit});
+
+  /// 取消编辑。
+  final VoidCallback onCancel;
+
+  /// 提交配置。
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.fluentSpacing;
+    return Align(
+      alignment: AlignmentDirectional.centerEnd,
+      child: Wrap(
+        spacing: spacing.m,
+        runSpacing: spacing.s,
+        alignment: WrapAlignment.end,
+        children: [
+          FluentButton.outline(onPressed: onCancel, child: const Text('取消')),
+          FluentButton.primary(onPressed: onSubmit, child: const Text('保存')),
+        ],
+      ),
+    );
+  }
+}
+
 class _ConfigFieldsLayout extends StatelessWidget {
   const _ConfigFieldsLayout({required this.compact, required this.children});
 
@@ -249,19 +277,50 @@ class _ConfigFieldsLayout extends StatelessWidget {
       builder: (context, constraints) {
         final columns =
             compact || constraints.maxWidth < AppBreakpoints.compactMax ? 1 : 2;
-        final fieldWidth = columns == 1
-            ? constraints.maxWidth
-            : (constraints.maxWidth - spacing.l) / 2;
+        if (columns == 1) {
+          return _ConfigFieldColumn(children: children);
+        }
 
-        return Wrap(
-          spacing: spacing.l,
-          runSpacing: spacing.m,
+        final leftColumn = <Widget>[];
+        final rightColumn = <Widget>[];
+        for (var i = 0; i < children.length; i++) {
+          if (i.isEven) {
+            leftColumn.add(children[i]);
+          } else {
+            rightColumn.add(children[i]);
+          }
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (final child in children)
-              SizedBox(width: fieldWidth, child: child),
+            Expanded(child: _ConfigFieldColumn(children: leftColumn)),
+            SizedBox(width: spacing.l),
+            Expanded(child: _ConfigFieldColumn(children: rightColumn)),
           ],
         );
       },
+    );
+  }
+}
+
+class _ConfigFieldColumn extends StatelessWidget {
+  const _ConfigFieldColumn({required this.children});
+
+  /// 字段列表。
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.fluentSpacing;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) SizedBox(height: spacing.m),
+          children[i],
+        ],
+      ],
     );
   }
 }

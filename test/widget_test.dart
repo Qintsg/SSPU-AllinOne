@@ -847,14 +847,25 @@ void main() {
       await tester.tap(find.text('打开编辑器'));
       await pumpUntilFound(tester, find.text('cookie'));
 
-      final dialogBox = tester.renderObject<RenderBox>(
-        find.byType(FluentDialog),
+      final contentBox = tester.renderObject<RenderBox>(
+        find.byKey(const Key('wechat-config-dialog-content')),
       );
-      expect(dialogBox.size.width >= 900, isTrue);
+      expect(contentBox.size.width >= 760, isTrue);
+      expect(contentBox.size.width <= 920, isTrue);
 
       final cookieTop = tester.getTopLeft(find.text('cookie')).dy;
       final tokenTop = tester.getTopLeft(find.text('token')).dy;
       expect((cookieTop - tokenTop).abs() < 1, isTrue);
+
+      final appIdTop = tester.getTopLeft(find.text('app_id')).dy;
+      final userAgentTop = tester.getTopLeft(find.text('user_agent')).dy;
+      expect(userAgentTop < appIdTop, isTrue);
+
+      final cancelLeft = tester.getTopLeft(find.text('取消')).dx;
+      final contentLeft = tester.getTopLeft(
+        find.byKey(const Key('wechat-config-dialog-content')),
+      ).dx;
+      expect(cancelLeft > contentLeft + contentBox.size.width / 2, isTrue);
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(milliseconds: 300));
