@@ -7,15 +7,13 @@
  */
 
 import '../design/fluent_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../controllers/settings_wechat_controller.dart';
 import '../theme/fluent_tokens.dart';
 import '../utils/webview_env.dart';
 import 'app_feedback.dart';
-import 'settings_widgets.dart';
-import 'settings_wechat_auth_guide.dart';
 import 'settings_wechat_matrix_card.dart';
+import 'settings_wechat_refresh_card.dart';
 import '../pages/wxmp_login_page.dart';
 
 /// 微信推文设置分区。
@@ -63,21 +61,6 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
         icon: const Icon(FluentIcons.clear),
         onPressed: close,
       ),
-    );
-  }
-
-  Future<void> _openExternalUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      return;
-    }
-    if (!mounted) return;
-    showFluentInfoBar(
-      context,
-      title: const Text('无法打开链接'),
-      content: Text(url),
-      severity: FluentInfoSeverity.warning,
     );
   }
 
@@ -169,151 +152,29 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
         }
 
         final theme = FluentTheme.of(context);
-        final disabledColor = theme.resources.textFillColorSecondary.withValues(
-          alpha: 0.7,
-        );
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('微信推文消息获取', style: theme.typography.subtitle),
             const SizedBox(height: FluentSpacing.l),
-            FluentCard(
-              padding: EdgeInsets.zero,
-              child: Padding(
-                padding: const EdgeInsets.all(FluentSpacing.l),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: FluentSpacing.s,
-                      runSpacing: FluentSpacing.s,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text('刷新设置', style: theme.typography.bodyStrong),
-                        FluentButton.primary(
-                          onPressed: () async => _showFeedback(
-                            await _controller.setWechatPageEnabled(true),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(FluentIcons.checkMark, size: 14),
-                              SizedBox(
-                                width: FluentSpacing.xs + FluentSpacing.xxs,
-                              ),
-                              Text('一键全开'),
-                            ],
-                          ),
-                        ),
-                        FluentButton.outline(
-                          onPressed: () async => _showFeedback(
-                            await _controller.setWechatPageEnabled(false),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(FluentIcons.blocked, size: 14),
-                              SizedBox(
-                                width: FluentSpacing.xs + FluentSpacing.xxs,
-                              ),
-                              Text('一键全关'),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: FluentSpacing.s),
-                    Wrap(
-                      spacing: FluentSpacing.l,
-                      runSpacing: FluentSpacing.s,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        buildCountNumberBox(
-                          context: context,
-                          label: '手动刷新文章个数',
-                          value: _controller.wechatManualFetchCount,
-                          enabled: true,
-                          onChanged: (value) =>
-                              _controller.setManualFetchCount(value),
-                        ),
-                        Wrap(
-                          spacing: FluentSpacing.xs,
-                          runSpacing: FluentSpacing.xs,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text('启用自动刷新：', style: theme.typography.caption),
-                            FluentSwitch(
-                              value: _controller.wechatAutoRefreshEnabled,
-                              onChanged: (value) =>
-                                  _controller.setAutoRefreshEnabled(value),
-                            ),
-                          ],
-                        ),
-                        Wrap(
-                          spacing: FluentSpacing.xs,
-                          runSpacing: FluentSpacing.xs,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text(
-                              '自动刷新频率：',
-                              style: theme.typography.caption?.copyWith(
-                                color: _controller.wechatAutoRefreshEnabled
-                                    ? null
-                                    : disabledColor,
-                              ),
-                            ),
-                            FluentSelect<int>(
-                              value:
-                                  kIntervalOptions.containsKey(
-                                    _controller.wechatRefreshInterval,
-                                  )
-                                  ? _controller.wechatRefreshInterval
-                                  : 120,
-                              items: kIntervalOptions.entries
-                                  .where((entry) => entry.key > 0)
-                                  .map(
-                                    (entry) => FluentSelectItem<int>(
-                                      value: entry.key,
-                                      child: Text(entry.value),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: _controller.wechatAutoRefreshEnabled
-                                  ? (value) {
-                                      if (value != null) {
-                                        _controller.setRefreshInterval(value);
-                                      }
-                                    }
-                                  : null,
-                            ),
-                          ],
-                        ),
-                        buildCountNumberBox(
-                          context: context,
-                          label: '自动刷新文章个数',
-                          value: _controller.wechatAutoFetchCount,
-                          enabled: _controller.wechatAutoRefreshEnabled,
-                          onChanged: (value) =>
-                              _controller.setAutoFetchCount(value),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: FluentSpacing.s),
-                    Text(
-                      '注意：若频率过快，可能会触发微信公众平台的接口频率限制。',
-                      style: theme.typography.caption?.copyWith(
-                        color: theme.resources.textFillColorSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: FluentSpacing.l),
-            SettingsWechatAuthGuide(
-              onOpenOfficialSite: () =>
-                  _openExternalUrl('https://mp.weixin.qq.com/'),
+            SettingsWechatRefreshCard(
+              manualFetchCount: _controller.wechatManualFetchCount,
+              autoRefreshEnabled: _controller.wechatAutoRefreshEnabled,
+              refreshInterval: _controller.wechatRefreshInterval,
+              autoFetchCount: _controller.wechatAutoFetchCount,
+              onManualFetchCountChanged: (value) =>
+                  _controller.setManualFetchCount(value),
+              onAutoRefreshChanged: (value) =>
+                  _controller.setAutoRefreshEnabled(value),
+              onRefreshIntervalChanged: (value) =>
+                  _controller.setRefreshInterval(value),
+              onAutoFetchCountChanged: (value) =>
+                  _controller.setAutoFetchCount(value),
+              onEnableAll: () async =>
+                  _showFeedback(await _controller.setWechatPageEnabled(true)),
+              onDisableAll: () async =>
+                  _showFeedback(await _controller.setWechatPageEnabled(false)),
             ),
             const SizedBox(height: FluentSpacing.l),
             _buildAuthCard(theme),

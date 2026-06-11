@@ -711,7 +711,7 @@ void main() {
     }
   });
 
-  testWidgets('设置页显示内置编辑和配置目录按钮', (WidgetTester tester) async {
+  testWidgets('微信推文设置显示精简刷新卡片和认证操作', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final previousTargetPlatform = debugDefaultTargetPlatformOverride;
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
@@ -749,6 +749,13 @@ void main() {
       expect(find.text('打开配置文件所在文件夹'), findsOneWidget);
       expect(find.text('外部打开'), findsOneWidget);
       expect(find.text('使用 Visual Studio Code 打开配置文件'), findsNothing);
+      expect(find.text('刷新设置'), findsOneWidget);
+      expect(find.text('全部开启'), findsOneWidget);
+      expect(find.text('全部关闭'), findsOneWidget);
+      expect(find.text('微信矩阵'), findsOneWidget);
+      expect(find.text('SSPU 微信矩阵'), findsNothing);
+      expect(find.text('微信公众平台注册方式'), findsNothing);
+      expect(find.textContaining('若频率过快'), findsNothing);
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(milliseconds: 300));

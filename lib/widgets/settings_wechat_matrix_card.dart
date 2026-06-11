@@ -14,7 +14,7 @@ import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
 import '../utils/wechat_followed_account_matcher.dart';
 
-/// SSPU 微信矩阵卡片。
+/// 微信矩阵卡片。
 class SettingsWechatMatrixCard extends StatelessWidget {
   /// 已认证状态。
   final bool authenticated;
@@ -155,25 +155,12 @@ class SettingsWechatMatrixCard extends StatelessWidget {
           runSpacing: AppSpacing.xs,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Semantics(
-              header: true,
-              child: Text('SSPU 微信矩阵', style: type.subtitle1),
-            ),
+            Semantics(header: true, child: Text('微信矩阵', style: type.subtitle1)),
             Text(
               '来源：校园+微信矩阵 · 共 ${sspuWechatAccounts.length} 个',
               style: type.caption1.copyWith(color: colors.neutralForeground2),
             ),
           ],
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          '以下为上海第二工业大学官方认可的微信公众号',
-          style: type.caption1.copyWith(color: colors.neutralForeground2),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          '开启未关注公众号会自动关注并启用推文获取；已关注公众号可直接控制是否获取推文。',
-          style: type.caption1.copyWith(color: colors.neutralForeground2),
         ),
       ],
     );
