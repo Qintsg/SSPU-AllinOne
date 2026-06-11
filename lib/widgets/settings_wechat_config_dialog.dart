@@ -17,7 +17,7 @@ Future<WxmpConfig?> showSettingsWechatConfigDialog({
   required BuildContext context,
   required WxmpConfig initialConfig,
 }) {
-  return showDialog<WxmpConfig>(
+  return showFluentDialog<WxmpConfig>(
     context: context,
     builder: (dialogContext) =>
         _SettingsWechatConfigDialog(initialConfig: initialConfig),
@@ -146,18 +146,14 @@ class _SettingsWechatConfigDialogState
                       label: 'per_request_article_count',
                       controller: _perRequestCountController,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       errorText: _perRequestCountError,
                     ),
                     _ConfigTextField(
                       label: 'request_delay_ms',
                       controller: _requestDelayController,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       errorText: _requestDelayError,
                     ),
                   ],

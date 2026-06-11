@@ -718,6 +718,55 @@ void main() {
     }
   });
 
+  testWidgets('Fluent 弹窗使用紧凑按钮区并支持点击外部取消', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      FluentApp(
+        home: Builder(
+          builder: (context) {
+            return FluentButton.primary(
+              child: const Text('打开弹窗'),
+              onPressed: () {
+                showFluentDialog<void>(
+                  context: context,
+                  builder: (dialogContext) => FluentDialog(
+                    title: const Text('关闭应用'),
+                    content: const FluentDialogMessage(
+                      icon: FluentIcons.clear,
+                      message: '请选择点击窗口关闭按钮时的处理方式。',
+                      details: '点击弹窗外的空白区域取消本次操作。',
+                    ),
+                    actions: [
+                      FluentButton.outline(
+                        child: const Text('最小化到托盘'),
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                      ),
+                      FluentButton.primary(
+                        child: const Text('退出应用'),
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('打开弹窗'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FluentDialog), findsOneWidget);
+    expect(find.text('最小化到托盘'), findsOneWidget);
+    expect(find.text('退出应用'), findsOneWidget);
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FluentDialog), findsNothing);
+  });
+
   testWidgets('职能部门和教学单位设置使用总览与轻量频道卡布局', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     StorageService.debugUseSharedPreferencesStorageForTesting(true);

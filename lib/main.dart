@@ -193,8 +193,9 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     _closeDialogShowing = true;
     bool rememberChoice = false;
 
-    showDialog(
+    showFluentDialog<void>(
       context: ctx,
+      barrierDismissible: true,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (_, setDialogState) {
@@ -204,7 +205,11 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('选择点击关闭按钮时的操作：'),
+                  const FluentDialogMessage(
+                    icon: FluentIcons.clear,
+                    message: '请选择点击窗口关闭按钮时的处理方式。',
+                    details: '也可以点击弹窗外的空白区域取消本次操作，应用会继续保持打开。',
+                  ),
                   const SizedBox(height: AppSpacing.md),
                   Checkbox(
                     checked: rememberChoice,
@@ -217,8 +222,9 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                 ],
               ),
               actions: [
-                FluentButton.transparent(
-                  child: const Text('最小化到托盘'),
+                FluentButton.outlineIcon(
+                  icon: const Icon(FluentIcons.blocked),
+                  label: const Text('最小化到托盘'),
                   onPressed: () async {
                     Navigator.pop(dialogContext);
                     if (rememberChoice) {
@@ -227,8 +233,9 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                     await windowManager.hide();
                   },
                 ),
-                FluentButton.primary(
-                  child: const Text('退出应用'),
+                FluentButton.primaryIcon(
+                  icon: const Icon(FluentIcons.power),
+                  label: const Text('退出应用'),
                   onPressed: () async {
                     Navigator.pop(dialogContext);
                     if (rememberChoice) {
