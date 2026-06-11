@@ -16,8 +16,8 @@
 
 ### 环境要求
 
-- Flutter SDK >= 3.41.7
-- Dart SDK 3.11.5（随 Flutter 3.41.7 提供）
+- Flutter SDK >= 3.44.0
+- Dart SDK 3.12.0（随 Flutter 3.44.0 提供）
 - 各平台对应的开发工具（详见 [使用文档](docs/USAGE.md)）
 
 ### 安装与运行
