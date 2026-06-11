@@ -134,7 +134,31 @@ void main() {
     expect(futureGapContext.dateStatus, AcademicTermDateStatus.summerVacation);
   });
 
-  test('所选全局学期在教学段外保留相对周数且不返回第零周', () {
+  test('选择非当前学期时当前日期定位仍使用实际所在学期', () {
+    final service = AcademicTermService();
+    final context = service.resolveContext(
+      const AcademicTermSettings(
+        selectedTerm: AcademicTermChoice(
+          academicYear: 2024,
+          season: AcademicTermSeason.fall,
+        ),
+      ),
+      now: DateTime(2025, 2, 17),
+    );
+
+    expect(context.source, AcademicTermContextSource.selected);
+    expect(context.term.academicYear, 2024);
+    expect(context.term.season, AcademicTermSeason.spring);
+    expect(context.selection?.week, 1);
+    expect(context.effectiveQueryTerm.academicYear, 2024);
+    expect(context.effectiveQueryTerm.season, AcademicTermSeason.fall);
+    expect(context.hasDifferentQueryTerm, isTrue);
+    expect(context.dateStatus, AcademicTermDateStatus.teaching);
+    expect(context.summaryLabel, '2024-2025 学年春季学期 第 1 / 17 周');
+    expect(context.message, contains('查询相关内容时使用所选学期'));
+  });
+
+  test('选择未来学期时寒假状态仍以当前日期上下文定位', () {
     final service = AcademicTermService();
     final context = service.resolveContext(
       const AcademicTermSettings(
@@ -143,31 +167,17 @@ void main() {
           season: AcademicTermSeason.fall,
         ),
       ),
-      now: DateTime(2026, 9, 14),
+      now: DateTime(2026, 2),
     );
 
     expect(context.source, AcademicTermContextSource.selected);
     expect(context.dateStatus, AcademicTermDateStatus.winterVacation);
-    expect(context.selection?.week, -1);
-    expect(context.selection?.week, isNot(0));
-    expect(context.summaryLabel, '2026-2027 学年秋季学期 寒假');
-  });
-
-  test('夏季学期长范围外按寒假处理而不是硬套暑假', () {
-    final service = AcademicTermService();
-    final context = service.resolveContext(
-      const AcademicTermSettings(
-        selectedTerm: AcademicTermChoice(
-          academicYear: 2025,
-          season: AcademicTermSeason.summer,
-        ),
-      ),
-      now: DateTime(2026, 5, 25),
-    );
-
-    expect(context.source, AcademicTermContextSource.selected);
-    expect(context.dateStatus, AcademicTermDateStatus.winterVacation);
-    expect(context.summaryLabel, '2025-2026 学年夏季学期 寒假');
+    expect(context.term.academicYear, 2025);
+    expect(context.term.season, AcademicTermSeason.spring);
+    expect(context.selection?.week, -5);
+    expect(context.effectiveQueryTerm.academicYear, 2026);
+    expect(context.effectiveQueryTerm.season, AcademicTermSeason.fall);
+    expect(context.summaryLabel, '2025-2026 学年春季学期 寒假');
   });
 
   test('2023 年以前学期保留选择但不提供日期定位', () {

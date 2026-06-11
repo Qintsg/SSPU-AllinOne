@@ -182,11 +182,15 @@ class AcademicTermContext {
     required this.isTeachingWeek,
     this.selection,
     this.definition,
+    this.queryTerm,
     this.message,
   });
 
-  /// 当前全局学期。
+  /// 当前日期定位到的学期，用于显示教学周或假期状态。
   final AcademicTermChoice term;
+
+  /// 查询业务数据时使用的学期；为空时与 [term] 相同。
+  final AcademicTermChoice? queryTerm;
 
   /// 带周数的定位结果；假期或无内置校历时可能为空。
   final AcademicTermSelection? selection;
@@ -214,6 +218,12 @@ class AcademicTermContext {
 
   /// 是否暂无内置校历。
   bool get isUnsupported => dateStatus == AcademicTermDateStatus.unsupported;
+
+  /// 查询业务数据时使用的学期。
+  AcademicTermChoice get effectiveQueryTerm => queryTerm ?? term;
+
+  /// 查询学期是否与当前日期定位学期不同。
+  bool get hasDifferentQueryTerm => effectiveQueryTerm != term;
 
   /// 概览文本。
   String get summaryLabel {

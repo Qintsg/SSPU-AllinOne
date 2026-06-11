@@ -299,7 +299,8 @@ class AcademicTermService extends ChangeNotifier {
       );
     }
 
-    final term = selectedTerm ?? automaticDefinition?.choice ?? defaultTerm;
+    final term = automaticDefinition?.choice ?? selectedTerm ?? defaultTerm;
+    final queryTerm = selectedTerm;
     final source = selectedTerm == null
         ? AcademicTermContextSource.automatic
         : AcademicTermContextSource.selected;
@@ -312,6 +313,7 @@ class AcademicTermService extends ChangeNotifier {
         dateStatus: AcademicTermDateStatus.unsupported,
         resolvedAt: resolvedAt,
         isTeachingWeek: false,
+        queryTerm: queryTerm,
         message: resolver.isKnownTerm(term)
             ? '该学期保留为可选择项，但暂无可定位的内置校历。'
             : '该学期不在官网已知校历范围内。',
@@ -329,7 +331,10 @@ class AcademicTermService extends ChangeNotifier {
         dateStatus: AcademicTermDateStatus.teaching,
         resolvedAt: resolvedAt,
         isTeachingWeek: true,
-        message: '已根据内置校历计算当前教学周。',
+        queryTerm: queryTerm,
+        message: queryTerm != null && queryTerm != term
+            ? '已根据当前日期定位教学周；查询相关内容时使用所选学期。'
+            : '已根据内置校历计算当前教学周。',
       );
     }
 
@@ -347,8 +352,11 @@ class AcademicTermService extends ChangeNotifier {
       dateStatus: dateStatus,
       resolvedAt: resolvedAt,
       isTeachingWeek: false,
+      queryTerm: queryTerm,
       message: dateStatus == AcademicTermDateStatus.summerVacation
           ? '当前日期处于该夏季学期的暑假区间。'
+          : queryTerm != null && queryTerm != term
+          ? '当前日期处于学期间隔；查询相关内容时使用所选学期。'
           : '当前日期未落在该学期教学周内，按寒假处理。',
     );
   }
