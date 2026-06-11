@@ -256,17 +256,26 @@ class _WechatAccountTile extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: AppShapes.sm,
-              child: Image.network(
-                account.iconUrl,
-                width: 40,
-                height: 40,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Icon(
-                  FluentIcons.chat,
-                  size: 32,
-                  color: colors.brandForeground1,
-                ),
-              ),
+              child: account.iconUrl.trim().isEmpty
+                  ? SizedBox.square(
+                      dimension: 40,
+                      child: Icon(
+                        FluentIcons.chat,
+                        size: 32,
+                        color: colors.brandForeground1,
+                      ),
+                    )
+                  : Image.network(
+                      account.iconUrl,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Icon(
+                        FluentIcons.chat,
+                        size: 32,
+                        color: colors.brandForeground1,
+                      ),
+                    ),
             ),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
