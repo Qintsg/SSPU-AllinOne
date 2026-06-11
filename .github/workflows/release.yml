@@ -216,7 +216,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          architecture: x64
+          architecture: arm64
 
       - uses: ./.github/actions/setup-flutter-arm64
         with:
