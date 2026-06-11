@@ -141,6 +141,10 @@ class StorageKeys {
   /// 教务处校历缓存集合。
   static const String academicCalendarCollection = 'cache_academic_calendar';
 
+  /// 校历页面上次自动刷新时间。
+  static const String academicCalendarLastAutoRefreshAt =
+      'academic_calendar_last_auto_refresh_at';
+
   /// 学校邮箱业务快照缓存集合。
   static const String emailMailboxCacheCollection = 'cache_email_mailbox';
 }

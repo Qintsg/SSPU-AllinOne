@@ -11,75 +11,83 @@ import 'package:sspu_allinone/design/fluent_ui.dart';
 import 'package:sspu_allinone/models/academic_calendar.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/pages/academic_calendar_page.dart';
-import 'package:sspu_allinone/pages/academic_calendar_pdf_page.dart';
 import 'package:sspu_allinone/services/academic_calendar_service.dart';
 
 void main() {
   tearDown(() async {});
 
-  testWidgets('校历页桌面宽度展示列表、详情和特殊日期', (tester) async {
+  testWidgets('校历页桌面宽度直接内嵌 PDF 并隐藏结构化摘要', (tester) async {
+    final service = _FakeAcademicCalendarClient(entries: [_calendarEntry()]);
     await _pumpCalendarPage(
       tester,
       size: const Size(1100, 800),
-      service: _FakeAcademicCalendarClient(entries: [_calendarEntry()]),
+      service: service,
     );
 
-    await _pumpUntilFound(tester, find.text('校历已就绪'));
+    await _pumpUntilFound(tester, find.text('2025-2026学年'));
 
     expect(find.text('2025-2026学年'), findsWidgets);
-    expect(find.text('秋季学期'), findsOneWidget);
-    expect(find.text('运动会停课日'), findsOneWidget);
-    expect(find.textContaining('另行通知'), findsOneWidget);
+    expect(find.text('外部打开'), findsOneWidget);
+    expect(find.text('校历已就绪'), findsNothing);
+    expect(find.text('秋季学期'), findsNothing);
+    expect(find.text('结构化解析不可用'), findsNothing);
+    expect(service.viewerEnsureCount, 1);
     expect(tester.takeException(), isNull);
     await _resetView(tester);
   });
 
-  testWidgets('校历页移动宽度下不溢出并保留反馈入口', (tester) async {
+  testWidgets('校历页移动宽度下使用横向学年选择器且不溢出', (tester) async {
     await _pumpCalendarPage(
       tester,
       size: const Size(390, 844),
       service: _FakeAcademicCalendarClient(entries: [_failedCalendarEntry()]),
     );
 
-    await _pumpUntilFound(tester, find.text('结构化解析不可用'));
+    await _pumpUntilFound(tester, find.text('2025-2026学年'));
 
-    expect(find.text('反馈解析问题'), findsOneWidget);
-    expect(find.text('查看原始 PDF'), findsOneWidget);
+    expect(find.text('反馈解析问题'), findsNothing);
+    expect(find.text('查看原始 PDF'), findsNothing);
+    expect(find.text('外部打开'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _resetView(tester);
   });
 
-  testWidgets('解析失败弹窗包含提交 issue 引导', (tester) async {
+  testWidgets('首次进入校历页会按查看器策略触发自动刷新', (tester) async {
+    final service = _FakeAcademicCalendarClient(
+      entries: const [],
+      refreshedEntries: [_calendarEntry()],
+    );
     await _pumpCalendarPage(
       tester,
       size: const Size(800, 720),
-      service: _FakeAcademicCalendarClient(entries: [_failedCalendarEntry()]),
+      service: service,
     );
 
-    await _pumpUntilFound(tester, find.text('反馈解析问题'));
-    await tester.tap(find.text('反馈解析问题'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 350));
+    await _pumpUntilFound(tester, find.text('2025-2026学年'));
 
-    expect(find.text('校历解析失败'), findsOneWidget);
-    expect(find.text('提交 issue'), findsOneWidget);
+    expect(service.viewerEnsureCount, 1);
+    expect(service.refreshCount, 0);
     expect(tester.takeException(), isNull);
     await _resetView(tester);
   });
 
-  testWidgets('PDF 查看入口失败时不阻断校历详情页', (tester) async {
+  testWidgets('手动刷新校历后更新页面条目', (tester) async {
+    final service = _FakeAcademicCalendarClient(
+      entries: [_calendarEntry()],
+      refreshedEntries: [_calendarEntry(year: 2026)],
+    );
     await _pumpCalendarPage(
       tester,
       size: const Size(800, 720),
-      service: _FakeAcademicCalendarClient(entries: [_failedCalendarEntry()]),
+      service: service,
     );
 
-    await _pumpUntilFound(tester, find.text('查看原始 PDF'));
-    await tester.tap(find.text('查看原始 PDF'));
+    await _pumpUntilFound(tester, find.text('2025-2026学年'));
+    await tester.tap(find.text('刷新校历'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 350));
+    await _pumpUntilFound(tester, find.text('2026-2027学年'));
 
-    expect(find.byType(AcademicCalendarPdfPage), findsOneWidget);
+    expect(service.refreshCount, 1);
     expect(tester.takeException(), isNull);
     await _resetView(tester);
   });
@@ -114,9 +122,15 @@ Future<void> _resetView(WidgetTester tester) async {
 }
 
 class _FakeAcademicCalendarClient implements AcademicCalendarClient {
-  _FakeAcademicCalendarClient({required this.entries});
+  _FakeAcademicCalendarClient({
+    required this.entries,
+    List<AcademicCalendarCacheEntry>? refreshedEntries,
+  }) : refreshedEntries = refreshedEntries ?? entries;
 
   final List<AcademicCalendarCacheEntry> entries;
+  final List<AcademicCalendarCacheEntry> refreshedEntries;
+  int refreshCount = 0;
+  int viewerEnsureCount = 0;
 
   @override
   Future<AcademicCalendarSyncResult> ensureCalendarsForDate({
@@ -126,6 +140,18 @@ class _FakeAcademicCalendarClient implements AcademicCalendarClient {
       entries: entries,
       loadedFromCache: entries.isNotEmpty,
       refreshed: false,
+    );
+  }
+
+  @override
+  Future<AcademicCalendarSyncResult> ensureCalendarsForViewer({
+    DateTime? now,
+  }) async {
+    viewerEnsureCount++;
+    return AcademicCalendarSyncResult(
+      entries: entries.isEmpty ? refreshedEntries : entries,
+      loadedFromCache: entries.isNotEmpty,
+      refreshed: entries.isEmpty,
     );
   }
 
@@ -151,13 +177,14 @@ class _FakeAcademicCalendarClient implements AcademicCalendarClient {
   Future<List<AcademicCalendarCacheEntry>> refreshCalendars({
     List<int>? targetYears,
   }) async {
-    return entries;
+    refreshCount++;
+    return refreshedEntries;
   }
 }
 
-AcademicCalendarCacheEntry _calendarEntry() {
+AcademicCalendarCacheEntry _calendarEntry({int year = 2025}) {
   final schedule = AcademicCalendarTermSchedule(
-    schoolYearStart: 2025,
+    schoolYearStart: year,
     fallStart: DateTime(2025, 9, 22),
     fallEnd: DateTime(2026, 1, 18),
     springStart: DateTime(2026, 3, 2),
@@ -191,20 +218,29 @@ AcademicCalendarCacheEntry _calendarEntry() {
     ],
     parseWarnings: const [],
   );
-  return _baseEntry(schedule: schedule, errorMessage: null);
+  return _baseEntry(
+    schoolYearStart: year,
+    schedule: schedule,
+    errorMessage: null,
+  );
 }
 
 AcademicCalendarCacheEntry _failedCalendarEntry() {
-  return _baseEntry(schedule: null, errorMessage: 'PDF 文本抽取结果为空。');
+  return _baseEntry(
+    schoolYearStart: 2025,
+    schedule: null,
+    errorMessage: 'PDF 文本抽取结果为空。',
+  );
 }
 
 AcademicCalendarCacheEntry _baseEntry({
+  required int schoolYearStart,
   required AcademicCalendarTermSchedule? schedule,
   required String? errorMessage,
 }) {
   return AcademicCalendarCacheEntry(
-    schoolYearStart: 2025,
-    title: '2025-2026学年校历',
+    schoolYearStart: schoolYearStart,
+    title: '$schoolYearStart-${schoolYearStart + 1}学年校历',
     detailUrl: 'https://jwc.sspu.edu.cn/detail.htm',
     publishDate: '2025-04-24',
     pdfUrl: 'https://jwc.sspu.edu.cn/calendar.pdf',

@@ -123,6 +123,17 @@ class _FakeAcademicCalendarClient implements AcademicCalendarClient {
   }
 
   @override
+  Future<AcademicCalendarSyncResult> ensureCalendarsForViewer({
+    DateTime? now,
+  }) async {
+    return const AcademicCalendarSyncResult(
+      entries: [],
+      loadedFromCache: true,
+      refreshed: false,
+    );
+  }
+
+  @override
   Future<List<AcademicTermDefinition>> readCachedTermDefinitions() async {
     return const [];
   }

@@ -1,5 +1,5 @@
 /*
- * 校历页面 — 展示教务处校历缓存、结构化学期与原始资源入口
+ * 校历页面 — 直接内嵌展示教务处校历 PDF
  * @Project : SSPU-AllinOne
  * @File : academic_calendar_page.dart
  * @Author : Qintsg
@@ -8,13 +8,15 @@
 
 import 'dart:async';
 
-import '../design/fluent_ui.dart';
+import 'package:pdfrx/pdfrx.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../design/fluent_ui.dart';
 import '../models/academic_calendar.dart';
 import '../services/academic_calendar_service.dart';
 import '../theme/app_spacing.dart';
-import 'academic_calendar_pdf_page.dart';
+import '../widgets/empty_state_view.dart';
+import 'academic_calendar_pdf_file.dart';
 
 /// 校历页面。
 class AcademicCalendarPage extends StatefulWidget {
@@ -41,43 +43,32 @@ class _AcademicCalendarPageState extends State<AcademicCalendarPage> {
     unawaited(_loadCalendars());
   }
 
+  /// 读取缓存，并在首次进入或超过一个月时自动刷新。
   Future<void> _loadCalendars() async {
     final cached = await widget.service.readCachedCalendars();
     if (mounted && cached.isNotEmpty) {
       setState(() {
         _entries = cached;
-        _selected = cached.first;
+        _selected = _selectPreferred(cached, _selected);
       });
     }
 
-    try {
-      final result = await widget.service.ensureCalendarsForDate();
-      if (!mounted) return;
-      setState(() {
-        _entries = result.entries;
-        _selected = _selectPreferred(result.entries, _selected);
-        _errorMessage = result.errorMessage;
-        _isLoading = false;
-      });
-      if (result.errorMessage != null && result.entries.isEmpty) {
-        await _showParseFailureDialog(result.errorMessage!);
-      }
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = error.toString();
-        _isLoading = false;
-      });
-      await _showParseFailureDialog(error.toString());
-    }
+    final result = await widget.service.ensureCalendarsForViewer();
+    if (!mounted) return;
+    setState(() {
+      _entries = result.entries;
+      _selected = _selectPreferred(result.entries, _selected);
+      _errorMessage = result.errorMessage;
+      _isLoading = false;
+    });
   }
 
+  /// 手动刷新全部校历。
   Future<void> _refreshAll() async {
     if (_isRefreshing) return;
     setState(() => _isRefreshing = true);
     try {
-      await widget.service.refreshCalendars();
-      final entries = await widget.service.readCachedCalendars();
+      final entries = await widget.service.refreshCalendars();
       if (!mounted) return;
       setState(() {
         _entries = entries;
@@ -87,7 +78,6 @@ class _AcademicCalendarPageState extends State<AcademicCalendarPage> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _errorMessage = error.toString());
-      await _showParseFailureDialog(error.toString());
     } finally {
       if (mounted) setState(() => _isRefreshing = false);
     }
@@ -106,68 +96,19 @@ class _AcademicCalendarPageState extends State<AcademicCalendarPage> {
     return entries.first;
   }
 
-  Future<void> _showParseFailureDialog(String detail) async {
-    if (!mounted) return;
-    return showFluentDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return FluentDialog(
-          title: const Text('校历解析失败'),
-          content: Text('校历获取或解析失败，不会影响课表等核心功能。\n\n$detail'),
-          actions: [
-            FluentButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('关闭'),
-            ),
-            FluentButton.primary(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                unawaited(_openIssueUrl(detail));
-              },
-              child: const Text('提交 issue'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _openIssueUrl(String detail) async {
-    final selected = _selected;
-    final title = Uri.encodeComponent(
-      '校历解析失败：${selected?.schoolYearLabel ?? '未知学年'}',
-    );
-    final body = Uri.encodeComponent(
-      '## 校历解析失败反馈\n\n'
-      '- 学年：${selected?.schoolYearLabel ?? '未知'}\n'
-      '- 详情页：${selected?.detailUrl ?? '未知'}\n'
-      '- PDF：${selected?.pdfUrl ?? '无'}\n\n'
-      '## 错误摘要\n\n$detail',
-    );
-    final uri = Uri.parse(
-      'https://github.com/Qintsg/SSPU-AllinOne/issues/new?title=$title&body=$body',
-    );
-    if (await canLaunchUrl(uri)) {
+  Future<void> _openExternal(AcademicCalendarCacheEntry entry) async {
+    final target = entry.pdfUrl ?? entry.detailUrl;
+    if (target.isEmpty) return;
+    final uri = Uri.tryParse(target);
+    if (uri != null && await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
-  }
-
-  void _openPdf(AcademicCalendarCacheEntry entry) {
-    Navigator.of(context).push(
-      FluentPageRoute(
-        builder: (_) => AcademicCalendarPdfPage(
-          title: '${entry.schoolYearLabel} 原始 PDF',
-          pdfFilePath: entry.pdfFilePath,
-          pdfUrl: entry.pdfUrl,
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final selected = _selected;
-    return FluentPage.scrollable(
+    return FluentPage(
       header: FluentPageHeader(
         title: const Text('校历'),
         commandBar: Wrap(
@@ -190,333 +131,246 @@ class _AcademicCalendarPageState extends State<AcademicCalendarPage> {
                   : const Icon(FluentIcons.refresh, size: 14),
               label: const Text('刷新校历'),
             ),
+            FluentButton.outlineIcon(
+              onPressed: selected == null ? null : () => _openExternal(selected),
+              icon: const Icon(FluentIcons.openInNewWindow, size: 14),
+              label: const Text('外部打开'),
+            ),
           ],
         ),
       ),
-      padding: AppSpacing.regularPagePadding,
-      children: [
-        _buildStatusCard(),
-        const SizedBox(height: AppSpacing.md),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final narrow = constraints.maxWidth < 720;
-            if (narrow) {
-              return Column(
-                children: [
-                  _buildCalendarList(),
-                  const SizedBox(height: AppSpacing.md),
-                  if (selected != null) _buildCalendarDetail(selected),
-                ],
-              );
-            }
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(width: 280, child: _buildCalendarList()),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: selected == null
-                      ? const SizedBox.shrink()
-                      : _buildCalendarDetail(selected),
-                ),
-              ],
-            );
-          },
-        ),
-      ],
+      content: Padding(
+        padding: AppSpacing.regularPagePadding,
+        child: _buildBody(selected),
+      ),
     );
   }
 
-  Widget _buildStatusCard() {
+  Widget _buildBody(AcademicCalendarCacheEntry? selected) {
     if (_isLoading && _entries.isEmpty) {
-      return const FluentInfoBar(
-        title: Text('正在同步校历'),
-        content: Text('优先读取本地缓存，缺少当前或临近学年时自动从教务处获取。'),
-        severity: FluentInfoSeverity.info,
-      );
+      return const Center(child: FluentProgressRing());
     }
-    if (_errorMessage != null) {
-      return FluentInfoBar(
-        title: const Text('校历同步存在问题'),
-        content: Text(_errorMessage!),
-        severity: _entries.isEmpty
-            ? FluentInfoSeverity.error
-            : FluentInfoSeverity.warning,
-      );
-    }
-    return FluentInfoBar(
-      title: const Text('校历已就绪'),
-      content: Text('已缓存 ${_entries.length} 个 2021 年以后的校历条目。'),
-      severity: FluentInfoSeverity.success,
-    );
-  }
-
-  Widget _buildCalendarList() {
     if (_entries.isEmpty) {
-      return const FluentSurface(
-        padding: EdgeInsets.all(AppSpacing.lg),
-        child: Text('暂无校历缓存。'),
+      return EmptyStateView(
+        icon: FluentIcons.calendar,
+        title: '暂无校历 PDF',
+        message: _errorMessage ?? '尚未获取到教务处校历资源。',
+        action: FluentButton.primary(
+          onPressed: _isRefreshing ? null : _refreshAll,
+          child: const Text('刷新校历'),
+        ),
       );
     }
-    return FluentSurface(
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final entry in _entries)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-              child: FluentSurface(
-                subtle: _selected?.schoolYearStart != entry.schoolYearStart,
-                elevated: false,
-                semanticLabel: '打开${entry.schoolYearLabel}',
-                onPressed: () => setState(() => _selected = entry),
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                child: Row(
-                  children: [
-                    Icon(
-                      entry.hasStructuredSchedule
-                          ? FluentIcons.checkMark
-                          : FluentIcons.warning,
-                      size: 18,
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(entry.schoolYearLabel),
-                          Text(
-                            entry.publishDate.isEmpty
-                                ? entry.sourceType.label
-                                : '${entry.publishDate} · ${entry.sourceType.label}',
-                            style: context.fluentType.caption1.copyWith(
-                              color: context.fluentColors.neutralForeground2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildCalendarDetail(AcademicCalendarCacheEntry entry) {
-    final schedule = entry.schedule;
-    return FluentSurface(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _CalendarDetailHeader(entry: entry),
-          const SizedBox(height: AppSpacing.md),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.xs,
-            children: [
-              FluentButton.primaryIcon(
-                onPressed: entry.pdfUrl == null && entry.pdfFilePath == null
-                    ? null
-                    : () => _openPdf(entry),
-                icon: const Icon(FluentIcons.documentText),
-                label: const Text('查看原始 PDF'),
-              ),
-              FluentButton.outlineIcon(
-                onPressed: entry.errorMessage == null
-                    ? null
-                    : () => _showParseFailureDialog(entry.errorMessage!),
-                icon: const Icon(FluentIcons.searchIssue),
-                label: const Text('反馈解析问题'),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          if (entry.errorMessage != null)
-            FluentInfoBar(
-              title: const Text('结构化解析不可用'),
-              content: Text(entry.errorMessage!),
-              severity: FluentInfoSeverity.warning,
-            ),
-          if (schedule != null) ...[
-            _buildTermRows(schedule),
-            const SizedBox(height: AppSpacing.md),
-            _buildSpecialDays(schedule),
-            const SizedBox(height: AppSpacing.md),
-            _buildPendingNotices(schedule),
-          ],
-          if (entry.imageUrls.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.md),
-            Text('图片资源', style: context.fluentType.body1Strong),
-            const SizedBox(height: AppSpacing.xs),
-            for (final (index, imageUrl) in entry.imageUrls.indexed)
-              FluentButton.transparentIcon(
-                onPressed: () => _openExternalUrl(imageUrl),
-                icon: const Icon(FluentIcons.openInNewWindow, size: 14),
-                label: Text('查看图片 ${index + 1}'),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTermRows(AcademicCalendarTermSchedule schedule) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('学期范围', style: context.fluentType.body1Strong),
-        const SizedBox(height: AppSpacing.sm),
-        _TermRangeRow(
-          label: '秋季学期',
-          value:
-              '${_formatDate(schedule.fallStart)} 至 ${_formatDate(schedule.fallEnd)}',
-        ),
-        _TermRangeRow(
-          label: '春季学期',
-          value:
-              '${_formatDate(schedule.springStart)} 至 ${_formatDate(schedule.springEnd)}',
-        ),
-        for (final segment in schedule.summerSegments)
-          _TermRangeRow(
-            label: '夏季第 ${segment.startWeek}-${segment.endWeek} 周',
-            value:
-                '${_formatDate(segment.startDate)} 至 ${_formatDate(segment.endDate)}',
-          ),
-      ],
-    );
-  }
-
-  Widget _buildSpecialDays(AcademicCalendarTermSchedule schedule) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('特殊日期', style: context.fluentType.body1Strong),
-        const SizedBox(height: AppSpacing.sm),
-        if (schedule.dayTags.isEmpty)
-          const Text('暂无明确日期标签。')
-        else
-          for (final tag in schedule.dayTags)
-            _TermRangeRow(
-              label: tag.type.label,
-              value: '${_formatDate(tag.date)} · ${tag.label}',
-            ),
-      ],
-    );
-  }
-
-  Widget _buildPendingNotices(AcademicCalendarTermSchedule schedule) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('未补全说明', style: context.fluentType.body1Strong),
-        const SizedBox(height: AppSpacing.sm),
-        if (schedule.pendingHolidayNotices.isEmpty)
-          const Text('无另行通知类节假日说明。')
-        else
-          for (final notice in schedule.pendingHolidayNotices)
-            Text(notice.sourceText),
-      ],
-    );
-  }
-}
-
-Future<void> _openExternalUrl(String url) async {
-  final uri = Uri.tryParse(url);
-  if (uri == null) return;
-  if (await canLaunchUrl(uri)) {
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
-}
-
-class _TermRangeRow extends StatelessWidget {
-  const _TermRangeRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final valueStyle = context.fluentType.caption1.copyWith(
-      color: context.fluentColors.neutralForeground2,
-    );
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 320) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label),
-                const SizedBox(height: AppSpacing.xs),
-                Text(value, style: valueStyle, softWrap: true),
-              ],
-            ),
+        final narrow = constraints.maxWidth < 720;
+        if (narrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _CalendarSelector(
+                entries: _entries,
+                selected: selected,
+                compact: true,
+                onSelected: (entry) => setState(() => _selected = entry),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Expanded(child: _CalendarPdfViewer(entry: selected)),
+            ],
           );
         }
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(width: 112, child: Text(label)),
-              Expanded(child: Text(value, style: valueStyle, softWrap: true)),
-            ],
-          ),
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 280,
+              child: _CalendarSelector(
+                entries: _entries,
+                selected: selected,
+                compact: false,
+                onSelected: (entry) => setState(() => _selected = entry),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(child: _CalendarPdfViewer(entry: selected)),
+          ],
         );
       },
     );
   }
 }
 
-class _CalendarDetailHeader extends StatelessWidget {
-  const _CalendarDetailHeader({required this.entry});
+class _CalendarSelector extends StatelessWidget {
+  const _CalendarSelector({
+    required this.entries,
+    required this.selected,
+    required this.compact,
+    required this.onSelected,
+  });
 
-  final AcademicCalendarCacheEntry entry;
+  /// 校历条目。
+  final List<AcademicCalendarCacheEntry> entries;
+
+  /// 当前选中条目。
+  final AcademicCalendarCacheEntry? selected;
+
+  /// 是否为紧凑横向选择器。
+  final bool compact;
+
+  /// 选择条目回调。
+  final ValueChanged<AcademicCalendarCacheEntry> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const FluentSurfaceIcon(icon: FluentIcons.calendar),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Semantics(
-                header: true,
-                child: Text(
-                  entry.title,
-                  style: context.fluentType.subtitle2.copyWith(
-                    color: context.fluentColors.neutralForeground1,
-                  ),
-                  softWrap: true,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                entry.detailUrl,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: context.fluentType.caption1.copyWith(
-                  color: context.fluentColors.neutralForeground3,
-                ),
-              ),
-            ],
+    if (compact) {
+      return SizedBox(
+        height: 64,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: entries.length,
+          separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+          itemBuilder: (context, index) => SizedBox(
+            width: 180,
+            child: _CalendarSelectorItem(
+              entry: entries[index],
+              selected:
+                  selected?.schoolYearStart == entries[index].schoolYearStart,
+              onPressed: () => onSelected(entries[index]),
+            ),
           ),
         ),
-      ],
+      );
+    }
+
+    return ListView.separated(
+      itemCount: entries.length,
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.xs),
+      itemBuilder: (context, index) => _CalendarSelectorItem(
+        entry: entries[index],
+        selected: selected?.schoolYearStart == entries[index].schoolYearStart,
+        onPressed: () => onSelected(entries[index]),
+      ),
     );
   }
 }
 
-String _formatDate(DateTime date) {
-  return date.toIso8601String().split('T').first;
+class _CalendarSelectorItem extends StatelessWidget {
+  const _CalendarSelectorItem({
+    required this.entry,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  /// 校历条目。
+  final AcademicCalendarCacheEntry entry;
+
+  /// 是否选中。
+  final bool selected;
+
+  /// 点击回调。
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return FluentSurface(
+      subtle: !selected,
+      elevated: false,
+      semanticLabel: '打开${entry.schoolYearLabel}',
+      onPressed: onPressed,
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      child: Row(
+        children: [
+          const Icon(FluentIcons.documentText, size: 18),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(entry.schoolYearLabel, overflow: TextOverflow.ellipsis),
+                Text(
+                  entry.publishDate.isEmpty ? 'PDF' : entry.publishDate,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.fluentType.caption1.copyWith(
+                    color: context.fluentColors.neutralForeground2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CalendarPdfViewer extends StatelessWidget {
+  const _CalendarPdfViewer({required this.entry});
+
+  /// 当前校历条目。
+  final AcademicCalendarCacheEntry? entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = entry;
+    if (current == null) {
+      return const EmptyStateView(
+        icon: FluentIcons.documentText,
+        title: '请选择校历',
+        message: '从左侧选择一个学年查看原始 PDF。',
+      );
+    }
+    if (academicCalendarPdfFileExists(current.pdfFilePath)) {
+      return PdfViewer.file(
+        current.pdfFilePath!,
+        params: PdfViewerParams(errorBannerBuilder: _buildErrorBanner),
+      );
+    }
+    if (current.pdfUrl != null && current.pdfUrl!.isNotEmpty) {
+      return PdfViewer.uri(
+        Uri.parse(current.pdfUrl!),
+        params: PdfViewerParams(errorBannerBuilder: _buildErrorBanner),
+      );
+    }
+    return EmptyStateView(
+      icon: FluentIcons.documentText,
+      title: '暂无可查看的 PDF',
+      message: '该校历未识别到可直接打开的 PDF 资源。',
+      action: FluentButton.primary(
+        onPressed: current.detailUrl.isEmpty
+            ? null
+            : () => _openDetail(current.detailUrl),
+        child: const Text('打开详情页'),
+      ),
+    );
+  }
+
+  Future<void> _openDetail(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Widget _buildErrorBanner(
+    BuildContext context,
+    Object error,
+    StackTrace? stackTrace,
+    PdfDocumentRef documentRef,
+  ) {
+    final current = entry;
+    return EmptyStateView(
+      icon: FluentIcons.warning,
+      title: 'PDF 加载失败',
+      message: error.toString(),
+      action: current?.pdfUrl == null
+          ? null
+          : FluentButton.primary(
+              onPressed: () => _openDetail(current!.pdfUrl!),
+              child: const Text('在浏览器中打开'),
+            ),
+    );
+  }
 }
