@@ -248,11 +248,7 @@ void main() {
       expect(bottomNavigation, findsOneWidget);
       expect(tester.getBottomLeft(bottomNavigation).dy, 844);
 
-      await configureMobileView(
-        tester,
-        bottomPadding: 24,
-        keyboardInset: 320,
-      );
+      await configureMobileView(tester, bottomPadding: 24, keyboardInset: 320);
       await tester.pump();
 
       expect(tester.getBottomLeft(bottomNavigation).dy, 844);
