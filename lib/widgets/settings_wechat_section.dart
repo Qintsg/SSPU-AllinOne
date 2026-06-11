@@ -139,9 +139,7 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
               followingAccountId: _controller.wxmpFollowingAccountId,
               onBatchFollow: () async =>
                   _showFeedback(await _controller.batchFollowSspuWxmp()),
-              onToggleAccount: (account, enabled) async => _showFeedback(
-                await _controller.toggleSspuAccount(account, enabled),
-              ),
+              onToggleAccount: _controller.toggleSspuAccount,
             ),
           ],
         );
