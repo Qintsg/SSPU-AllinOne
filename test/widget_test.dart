@@ -332,6 +332,72 @@ void main() {
     }
   });
 
+  testWidgets('桌面侧边栏展开和收起时菜单按钮与导航项对齐', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+    final previousTargetPlatform = debugDefaultTargetPlatformOverride;
+    final service = _buildCampusNetworkStatusService();
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+
+    ({Offset menu, Offset home}) readNavigationCenters() {
+      return (
+        menu: tester.getCenter(find.byIcon(WindowsIcons.global_nav_button)),
+        home: tester.getCenter(find.byIcon(FluentIcons.home).first),
+      );
+    }
+
+    Future<({Offset menu, Offset home})> pumpAndReadCenters(Size size) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      await tester.binding.setSurfaceSize(size);
+      await tester.pumpWidget(
+        FluentApp(home: AppShell(campusNetworkStatusService: service)),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      final menuIcon = find.byIcon(WindowsIcons.global_nav_button);
+      expect(menuIcon, findsOneWidget);
+      return readNavigationCenters();
+    }
+
+    try {
+      final expanded = await pumpAndReadCenters(const Size(1280, 800));
+      final compactClosed = await pumpAndReadCenters(const Size(900, 800));
+      await tester.tap(find.byIcon(WindowsIcons.global_nav_button));
+      await tester.pumpAndSettle();
+      final compactOpen = readNavigationCenters();
+      final narrowClosed = await pumpAndReadCenters(const Size(700, 800));
+      await tester.tap(find.byIcon(WindowsIcons.global_nav_button));
+      await tester.pumpAndSettle();
+      final narrowOpen = readNavigationCenters();
+
+      for (final centers in [
+        expanded,
+        compactClosed,
+        compactOpen,
+        narrowClosed,
+        narrowOpen,
+      ]) {
+        expect(centers.menu.dx, closeTo(centers.home.dx, 1));
+      }
+
+      expect(expanded.menu.dx, closeTo(compactClosed.menu.dx, 1));
+      expect(compactClosed.menu.dx, closeTo(narrowClosed.menu.dx, 1));
+      expect(compactClosed.menu.dy, closeTo(compactOpen.menu.dy, 3));
+      expect(narrowClosed.menu.dy, closeTo(narrowOpen.menu.dy, 3));
+
+      await tester.pump(const Duration(milliseconds: 300));
+    } finally {
+      debugDefaultTargetPlatformOverride = previousTargetPlatform;
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    }
+  });
+
   testWidgets('多个校园网状态入口共享同一次检测结果', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     StorageService.debugUseSharedPreferencesStorageForTesting(true);
