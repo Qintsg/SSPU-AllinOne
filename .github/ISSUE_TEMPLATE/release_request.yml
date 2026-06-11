@@ -76,7 +76,7 @@ body:
         - Windows x64 portable
         - Windows arm64 installer
         - Windows arm64 portable
-        - macOS universal unsigned DMG
+        - macOS universal signed DMG
         - Linux x64 AppImage
         - Linux x64 deb
         - Linux x64 rpm
@@ -122,7 +122,7 @@ body:
     attributes:
       label: 缺失或异常平台说明
       description: 若某些平台本次不发布或存在限制，请写明原因；若无请写“无”。
-      placeholder: 例如：macOS 当前未完成签名，仅提供 unsigned DMG。
+      placeholder: 例如：macOS 签名或公证材料缺失，本次不发布 macOS 产物。
     validations:
       required: true
 

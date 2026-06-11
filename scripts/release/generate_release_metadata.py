@@ -32,7 +32,7 @@ EXPECTED_PRODUCT_ASSETS = {
     ("windows", "x64", "portable"),
     ("windows", "arm64", "installer"),
     ("windows", "arm64", "portable"),
-    ("macos", "universal", "unsigned"),
+    ("macos", "universal", "dmg"),
     ("linux", "x64", "appimage"),
     ("linux", "x64", "deb"),
     ("linux", "x64", "rpm"),
@@ -90,6 +90,8 @@ def infer_kind(platform_name: str, extension_name: str) -> str:
     """
     if platform_name == "android" and extension_name == ".apk":
         return "bundle"
+    if platform_name == "macos" and extension_name == ".dmg":
+        return "dmg"
 
     raise ValueError(
         f"资产文件名缺少 kind 且无法推断：platform={platform_name}, ext={extension_name}",
