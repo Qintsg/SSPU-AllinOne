@@ -20,7 +20,7 @@ from typing import Dict, List, Tuple
 
 FILENAME_PATTERN = re.compile(
     r"^SSPU-AllinOne-v(?P<version>.+?)-"
-    r"(?P<platform>android|ios|windows|macos|linux|web)-"
+    r"(?P<platform>android|ios|windows|macos|linux)-"
     r"(?P<arch>universal|x64|arm64|armv7)"
     r"(?:-(?P<kind>installer|portable|bundle|static|unsigned|appimage|deb|rpm))?"
     r"(?P<ext>\.AppImage|\.tar\.gz|\.zip|\.exe|\.dmg|\.deb|\.rpm|\.apk)$"
@@ -41,7 +41,6 @@ EXPECTED_PRODUCT_ASSETS = {
     ("linux", "arm64", "deb"),
     ("linux", "arm64", "rpm"),
     ("linux", "arm64", "portable"),
-    ("web", "universal", "static"),
 }
 
 

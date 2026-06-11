@@ -582,34 +582,6 @@ jobs:
             dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-arm64-rpm.rpm
             dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-arm64-portable.tar.gz
 
-  build-web:
-    needs: prepare
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6.0.3
-
-      - uses: ./.github/actions/setup-flutter
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-
-      - name: 构建 Web
-        run: flutter build web --release
-
-      - name: 打包 Web 静态站点
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p dist
-          cd build/web
-          zip -r \
-            "$GITHUB_WORKSPACE/dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-web-universal-static.zip" \
-            .
-
-      - uses: actions/upload-artifact@v7.0.1
-        with:
-          name: web-static
-          path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-web-universal-static.zip
-
   publish:
     if: needs.prepare.result == 'success'
     needs:
@@ -621,7 +593,6 @@ jobs:
         build-macos,
         build-linux,
         build-linux-arm64,
-        build-web,
       ]
     runs-on: ubuntu-latest
     permissions:

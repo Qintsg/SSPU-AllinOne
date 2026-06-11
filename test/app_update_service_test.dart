@@ -68,10 +68,10 @@ void main() {
             'sha256': _hashA,
           },
           {
-            'platform': 'web',
+            'platform': 'macos',
             'arch': 'universal',
-            'kind': 'static',
-            'filename': 'SSPU-AllinOne-v1.2.0-web-universal-static.zip',
+            'kind': 'unsigned',
+            'filename': 'SSPU-AllinOne-v1.2.0-macos-universal-unsigned.dmg',
             'sha256': _hashB,
           },
         ],
@@ -112,7 +112,7 @@ void main() {
         _windowsArm64Portable,
         'manifest.json',
         'SHA256SUMS.txt',
-        'SSPU-AllinOne-v1.2.0-web-universal-static.zip',
+        'SSPU-AllinOne-v1.2.0-macos-universal-unsigned.dmg',
         'SSPU-AllinOne-v1.2.0-android-universal.aab',
       ]);
 
