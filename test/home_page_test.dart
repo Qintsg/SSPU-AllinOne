@@ -169,11 +169,47 @@ void main() {
     await tester.tap(refreshButton);
     await pumpUntilFound(tester, find.text('刷新失败:未设置OA账号×'));
 
-    expect(find.text('请先保存学工号'), findsOneWidget);
+    expect(find.text('需要先填写 OA 账号'), findsOneWidget);
     expect(service.fetchCount, 1);
     await tester.pump(const Duration(seconds: 3));
     await tester.pump();
     expect(find.text('刷新失败:未设置OA账号×'), findsNothing);
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页校园卡未填写教务凭据时窄屏错误提示不溢出', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final service = _FakeCampusCardClient(result: _missingAccountResult);
+    final campusNetworkStatusService = _buildCampusNetworkStatusService();
+    await pumpHomePage(
+      tester,
+      campusCardService: service,
+      campusNetworkStatusService: campusNetworkStatusService,
+      campusCardAutoRefreshEnabledOverride: false,
+    );
+
+    final refreshButton = find.byKey(const Key('home-campus-card-refresh'));
+    await tester.ensureVisible(refreshButton);
+    await tester.tap(refreshButton);
+    await pumpUntilFound(tester, find.text('刷新失败:未设置OA账号×'));
+
+    final card = find.byKey(const Key('home-campus-card-balance-card'));
+    final cardRect = tester.getRect(card);
+    for (final text in [
+      '需要先填写 OA 账号',
+      '前往设置页保存学工号后，再刷新校园卡余额。',
+      '刷新失败:未设置OA账号×',
+    ]) {
+      final textRect = tester.getRect(
+        find.descendant(of: card, matching: find.text(text)),
+      );
+      expect(textRect.left, greaterThanOrEqualTo(cardRect.left));
+      expect(textRect.right, lessThanOrEqualTo(cardRect.right));
+      expect(textRect.top, greaterThanOrEqualTo(cardRect.top));
+      expect(textRect.bottom, lessThanOrEqualTo(cardRect.bottom));
+    }
+    expect(tester.takeException(), isNull);
     await disposeHomePage(tester);
   });
 

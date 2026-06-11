@@ -60,36 +60,96 @@ class RefreshStatusLine extends StatelessWidget {
   /// 为右侧动作预留的最大宽度，避免窄屏溢出。
   final double actionReservedWidth;
 
+  static const double _minimumInlineLabelWidth = 112;
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Flexible(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 0),
-            child: SizedBox(
-              height: minLineHeight,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                widthFactor: 1,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : double.infinity;
+        final inlineLabelWidth =
+            availableWidth - actionReservedWidth - FluentSpacing.s;
+        if (inlineLabelWidth < _minimumInlineLabelWidth) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _RefreshStatusLabel(
+                label: label,
+                style: labelStyle,
+                minLineHeight: minLineHeight,
+                maxLines: 2,
+                shrinkWrap: false,
+              ),
+              const SizedBox(height: FluentSpacing.xxs),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: actionReservedWidth),
+                child: action,
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Flexible(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 0),
+                child: _RefreshStatusLabel(
+                  label: label,
                   style: labelStyle,
+                  minLineHeight: minLineHeight,
+                  maxLines: 1,
+                  shrinkWrap: true,
                 ),
               ),
             ),
-          ),
+            const SizedBox(width: FluentSpacing.s),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: actionReservedWidth),
+              child: action,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _RefreshStatusLabel extends StatelessWidget {
+  const _RefreshStatusLabel({
+    required this.label,
+    required this.minLineHeight,
+    required this.maxLines,
+    required this.shrinkWrap,
+    this.style,
+  });
+
+  final String label;
+  final double minLineHeight;
+  final int maxLines;
+  final bool shrinkWrap;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: minLineHeight),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        widthFactor: shrinkWrap ? 1 : null,
+        child: Text(
+          label,
+          maxLines: maxLines,
+          overflow: TextOverflow.ellipsis,
+          softWrap: true,
+          style: style,
         ),
-        const SizedBox(width: FluentSpacing.s),
-        ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: actionReservedWidth),
-          child: action,
-        ),
-      ],
+      ),
     );
   }
 }
@@ -143,7 +203,6 @@ class RefreshFeedbackAction extends StatelessWidget {
       return _RefreshFeedbackLabel(
         feedback: currentFeedback,
         minTouchSize: minTouchSize,
-        height: size,
         maxWidth: maxFeedbackWidth,
       );
     }
@@ -236,13 +295,11 @@ class _RefreshFeedbackLabel extends StatelessWidget {
   const _RefreshFeedbackLabel({
     required this.feedback,
     required this.minTouchSize,
-    required this.height,
     required this.maxWidth,
   });
 
   final RefreshActionFeedback feedback;
   final double minTouchSize;
-  final double height;
   final double maxWidth;
 
   @override
@@ -263,17 +320,16 @@ class _RefreshFeedbackLabel extends StatelessWidget {
             maxWidth: maxWidth,
           ),
           child: Center(
-            child: SizedBox(
-              height: height,
-              child: Align(
-                alignment: Alignment.center,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.fluentType.caption1Strong.copyWith(
-                    color: foreground,
-                  ),
+            child: Align(
+              alignment: Alignment.center,
+              child: Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                softWrap: true,
+                style: context.fluentType.caption1Strong.copyWith(
+                  color: foreground,
+                  height: 1.1,
                 ),
               ),
             ),
