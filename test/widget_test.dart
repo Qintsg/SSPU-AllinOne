@@ -643,7 +643,7 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('页面反馈连续显示时替换上一条信息条', (WidgetTester tester) async {
+  testWidgets('页面反馈连续显示时替换上一条紧凑浮层', (WidgetTester tester) async {
     await tester.pumpWidget(
       FluentApp(
         home: ScaffoldPage(
@@ -665,6 +665,8 @@ void main() {
 
     expect(find.text('第一条反馈'), findsNothing);
     expect(find.text('第二条反馈'), findsOneWidget);
+    expect(find.byKey(const Key('app-feedback-toast')), findsOneWidget);
+    expect(find.byType(FluentInfoBar), findsNothing);
 
     await tester.pump(const Duration(seconds: 3));
     await tester.pump();

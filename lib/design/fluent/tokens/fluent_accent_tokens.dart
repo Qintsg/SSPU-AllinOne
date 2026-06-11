@@ -290,6 +290,9 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
   /// 快速跳转磁贴尺寸。
   double get quickLinkTileWidth => 156;
 
+  /// 页面操作反馈小浮层最大宽度。
+  double get feedbackToastMaxWidth => 520;
+
   /// 课表节次列宽。
   double get schedulePeriodColumnWidth => 82;
 
