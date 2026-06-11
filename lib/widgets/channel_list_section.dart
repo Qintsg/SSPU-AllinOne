@@ -15,6 +15,7 @@ import '../services/message_state_service.dart';
 import '../theme/app_spacing.dart';
 import 'app_feedback.dart';
 import 'channel_list_panels.dart';
+import 'responsive_layout.dart';
 
 /// 渠道列表组件。
 /// 负责加载分区级状态，并将渠道卡片与刷新面板组合到同一页。
@@ -123,8 +124,6 @@ class _ChannelListSectionState extends State<ChannelListSection> {
       return const Center(child: FluentProgressRing());
     }
 
-    final colors = context.fluentColors;
-    final type = context.fluentType;
     final enabledCount = _enabledMap.values.where((enabled) => enabled).length;
     final autoEnabledCount = widget.channels
         .where(
@@ -140,63 +139,72 @@ class _ChannelListSectionState extends State<ChannelListSection> {
       (channel) => _enabledMap[channel.id] ?? false,
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          crossAxisAlignment: WrapCrossAlignment.center,
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: context.appMetrics.contentMaxWidth,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Semantics(
-              header: true,
-              child: Text(widget.title, style: type.subtitle1),
+            _ChannelSectionOverview(
+              title: widget.title,
+              totalCount: widget.channels.length,
+              implementedCount: implementedChannels.length,
+              enabledCount: enabledCount,
+              autoEnabledCount: autoEnabledCount,
+              onEnableAll: () => _setAllChannelsEnabled(true),
+              onDisableAll: () => _setAllChannelsEnabled(false),
             ),
-            FluentButton.primaryIcon(
-              onPressed: () => _setAllChannelsEnabled(true),
-              icon: const Icon(FluentIcons.checkMark),
-              label: const Text('一键全开'),
+            const SizedBox(height: AppSpacing.md),
+            ChannelGroupRefreshPanel(
+              enabled: hasEnabledImplementedChannel,
+              hasImplementedChannel: implementedChannels.isNotEmpty,
+              groupAutoRefreshEnabled: _groupAutoRefreshEnabled,
+              groupInterval: _groupInterval,
+              groupManualCount: _groupManualCount,
+              groupAutoCount: _groupAutoCount,
+              onGroupManualCountChanged: (value) =>
+                  _onGroupManualCountChanged(value),
+              onGroupAutoRefreshToggled: (value) =>
+                  _onGroupAutoRefreshToggled(value),
+              onGroupIntervalChanged: (value) => _onGroupIntervalChanged(value),
+              onGroupAutoCountChanged: (value) =>
+                  _onGroupAutoCountChanged(value),
             ),
-            FluentButton.outlineIcon(
-              onPressed: () => _setAllChannelsEnabled(false),
-              icon: const Icon(FluentIcons.blocked),
-              label: const Text('一键全关'),
+            const SizedBox(height: AppSpacing.md),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final useTwoColumns = constraints.maxWidth >= 1040;
+                final itemWidth = useTwoColumns
+                    ? (constraints.maxWidth - AppSpacing.md) / 2
+                    : constraints.maxWidth;
+
+                return Wrap(
+                  spacing: AppSpacing.md,
+                  runSpacing: AppSpacing.md,
+                  children: widget.channels.map((channel) {
+                    return SizedBox(
+                      width: itemWidth,
+                      child: ChannelListItemCard(
+                        channel: channel,
+                        enabled: _enabledMap[channel.id] ?? false,
+                        onToggled: (value) => _onChannelToggled(channel, value),
+                        categoryEnabledMap: _categoryEnabledMap,
+                        onToggleCategory: (category) => _onCategoryToggled(
+                          category,
+                          !(_categoryEnabledMap[category.name] ?? true),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
             ),
+            SizedBox(height: widget.channels.isEmpty ? 0 : AppSpacing.md),
           ],
         ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          '共 ${widget.channels.length} 个渠道，已启用 $enabledCount 个，自动刷新开启 $autoEnabledCount 个。',
-          style: type.caption1.copyWith(color: colors.neutralForeground2),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        ChannelGroupRefreshPanel(
-          enabled: hasEnabledImplementedChannel,
-          hasImplementedChannel: implementedChannels.isNotEmpty,
-          groupAutoRefreshEnabled: _groupAutoRefreshEnabled,
-          groupInterval: _groupInterval,
-          groupManualCount: _groupManualCount,
-          groupAutoCount: _groupAutoCount,
-          onGroupManualCountChanged: (value) => _onGroupManualCountChanged(value),
-          onGroupAutoRefreshToggled: (value) =>
-              _onGroupAutoRefreshToggled(value),
-          onGroupIntervalChanged: (value) => _onGroupIntervalChanged(value),
-          onGroupAutoCountChanged: (value) => _onGroupAutoCountChanged(value),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        ...widget.channels.map(
-          (channel) => ChannelListItemCard(
-            channel: channel,
-            enabled: _enabledMap[channel.id] ?? false,
-            onToggled: (value) => _onChannelToggled(channel, value),
-            categoryEnabledMap: _categoryEnabledMap,
-            onToggleCategory: (category) => _onCategoryToggled(
-              category,
-              !(_categoryEnabledMap[category.name] ?? true),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -216,7 +224,9 @@ class _ChannelListSectionState extends State<ChannelListSection> {
     showAppFeedback(
       context,
       message: message,
-      severity: enabled ? AppFeedbackSeverity.success : AppFeedbackSeverity.warning,
+      severity: enabled
+          ? AppFeedbackSeverity.success
+          : AppFeedbackSeverity.warning,
     );
   }
 
@@ -247,7 +257,9 @@ class _ChannelListSectionState extends State<ChannelListSection> {
     showAppFeedback(
       context,
       message: enabled ? '已启用当前分区全部渠道' : '已关闭当前分区全部渠道',
-      severity: enabled ? AppFeedbackSeverity.success : AppFeedbackSeverity.info,
+      severity: enabled
+          ? AppFeedbackSeverity.success
+          : AppFeedbackSeverity.info,
     );
   }
 
@@ -304,8 +316,156 @@ class _ChannelListSectionState extends State<ChannelListSection> {
     setState(() => _groupAutoCount = normalized);
   }
 
-  Future<void> _onCategoryToggled(MessageCategory category, bool enabled) async {
+  Future<void> _onCategoryToggled(
+    MessageCategory category,
+    bool enabled,
+  ) async {
     await _messageState.setCategoryEnabled(category.name, enabled);
     setState(() => _categoryEnabledMap[category.name] = enabled);
+  }
+}
+
+/// 职能部门 / 教学单位分区总览。
+class _ChannelSectionOverview extends StatelessWidget {
+  const _ChannelSectionOverview({
+    required this.title,
+    required this.totalCount,
+    required this.implementedCount,
+    required this.enabledCount,
+    required this.autoEnabledCount,
+    required this.onEnableAll,
+    required this.onDisableAll,
+  });
+
+  /// 分区标题。
+  final String title;
+
+  /// 渠道总数。
+  final int totalCount;
+
+  /// 已接入渠道数。
+  final int implementedCount;
+
+  /// 已启用渠道数。
+  final int enabledCount;
+
+  /// 自动刷新开启数。
+  final int autoEnabledCount;
+
+  /// 启用全部渠道。
+  final VoidCallback onEnableAll;
+
+  /// 关闭全部渠道。
+  final VoidCallback onDisableAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.fluentColors;
+    final type = context.fluentType;
+
+    return FluentCard(
+      padding: EdgeInsets.zero,
+      bordered: true,
+      child: Padding(
+        padding: AppSpacing.cardPadding,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final shouldStack = shouldStackSettingsControls(constraints);
+            final titleBlock = Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                FluentSurfaceIcon(icon: FluentIcons.news),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Semantics(
+                        header: true,
+                        child: Text(title, style: type.subtitle1),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        '统一管理学校官网消息来源，启用后会在信息中心筛选和刷新中生效。',
+                        style: type.caption1.copyWith(
+                          color: colors.neutralForeground2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+            final actions = Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.xs,
+              alignment: shouldStack ? WrapAlignment.start : WrapAlignment.end,
+              children: [
+                FluentButton.primaryIcon(
+                  onPressed: onEnableAll,
+                  icon: const Icon(FluentIcons.checkMark),
+                  label: const Text('一键全开'),
+                ),
+                FluentButton.outlineIcon(
+                  onPressed: onDisableAll,
+                  icon: const Icon(FluentIcons.blocked),
+                  label: const Text('一键全关'),
+                ),
+              ],
+            );
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (shouldStack) ...[
+                  titleBlock,
+                  const SizedBox(height: AppSpacing.md),
+                  actions,
+                ] else
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: titleBlock),
+                      const SizedBox(width: AppSpacing.md),
+                      actions,
+                    ],
+                  ),
+                const SizedBox(height: AppSpacing.md),
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: [
+                    FluentStatusChip(
+                      label: '共 $totalCount 个渠道',
+                      tone: FluentStatusChipTone.neutral,
+                      icon: FluentIcons.list,
+                    ),
+                    FluentStatusChip(
+                      label: '已接入 $implementedCount 个',
+                      tone: FluentStatusChipTone.brand,
+                      icon: FluentIcons.plugConnected,
+                    ),
+                    FluentStatusChip(
+                      label: '已启用 $enabledCount 个',
+                      tone: enabledCount > 0
+                          ? FluentStatusChipTone.success
+                          : FluentStatusChipTone.neutral,
+                      icon: FluentIcons.checkMark,
+                    ),
+                    FluentStatusChip(
+                      label: '自动刷新 $autoEnabledCount 个',
+                      tone: autoEnabledCount > 0
+                          ? FluentStatusChipTone.brand
+                          : FluentStatusChipTone.neutral,
+                      icon: FluentIcons.sync,
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
   }
 }

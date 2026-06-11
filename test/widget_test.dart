@@ -13,12 +13,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/app.dart';
 import 'package:sspu_allinone/controllers/settings_wechat_controller.dart';
+import 'package:sspu_allinone/models/channel_config.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/services/campus_network_status_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/services/wxmp_config_service.dart';
 import 'package:sspu_allinone/widgets/app_feedback.dart';
 import 'package:sspu_allinone/widgets/campus_network_status_indicator.dart';
+import 'package:sspu_allinone/widgets/channel_list_section.dart';
 import 'package:sspu_allinone/widgets/settings_auto_refresh_section.dart';
 import 'package:sspu_allinone/widgets/settings_general_section.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_config_dialog.dart';
@@ -713,6 +715,70 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
       await resetMobileView(tester);
+    }
+  });
+
+  testWidgets('职能部门和教学单位设置使用总览与轻量频道卡布局', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+
+    Future<void> pumpChannelSection({
+      required double width,
+      required String title,
+      required List<ChannelConfig> channels,
+    }) async {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1.0;
+      await tester.binding.setSurfaceSize(Size(width, 900));
+      await tester.pumpWidget(
+        FluentApp(
+          home: ScaffoldPage(
+            content: SingleChildScrollView(
+              child: ChannelListSection(title: title, channels: channels),
+            ),
+          ),
+        ),
+      );
+      await pumpUntilFound(tester, find.text(title));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    try {
+      await pumpChannelSection(
+        width: 1280,
+        title: '职能部门',
+        channels: departmentChannels,
+      );
+      expect(find.text('统一管理学校官网消息来源，启用后会在信息中心筛选和刷新中生效。'), findsOneWidget);
+      expect(find.text('共 24 个渠道'), findsOneWidget);
+      expect(find.text('已接入 24 个'), findsOneWidget);
+      expect(find.text('刷新设置'), findsOneWidget);
+      expect(find.text('手动刷新'), findsOneWidget);
+      expect(find.text('自动抓取'), findsOneWidget);
+      expect(find.text('公开信息'), findsOneWidget);
+      expect(find.text('已接入'), findsWidgets);
+      expect(find.text('显示中'), findsWidgets);
+      expect(tester.takeException(), isNull);
+
+      await pumpChannelSection(
+        width: 390,
+        title: '教学单位',
+        channels: teachingChannels,
+      );
+      expect(find.text('教学单位'), findsOneWidget);
+      expect(find.text('共 20 个渠道'), findsOneWidget);
+      expect(find.text('计算机与信息工程学院'), findsOneWidget);
+      expect(find.text('内容分类'), findsWidgets);
+      expect(find.text('3 项'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    } finally {
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 300));
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
     }
   });
 
