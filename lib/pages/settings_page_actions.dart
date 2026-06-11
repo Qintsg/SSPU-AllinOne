@@ -335,6 +335,13 @@ mixin _SettingsPageActions on State<SettingsPage> {
     setState(() => apply(visible));
   }
 
+  /// 打开校历查看页。
+  void _openAcademicCalendar() {
+    Navigator.of(
+      context,
+    ).push(FluentPageRoute(builder: (_) => AcademicCalendarPage()));
+  }
+
   /// 修改勿扰开始时间。
   Future<void> _onDndStartChanged(int hour, int minute) async {
     await _messageState.setDndTime(

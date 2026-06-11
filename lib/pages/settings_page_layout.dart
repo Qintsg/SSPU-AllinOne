@@ -248,7 +248,10 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           onDndEndChanged: _onDndEndChanged,
         );
       case 1:
-        return SettingsAcademicTermSection(now: widget.academicTermNow);
+        return SettingsAcademicTermSection(
+          now: widget.academicTermNow,
+          onOpenAcademicCalendar: _openAcademicCalendar,
+        );
       case 2:
         return SettingsAutoRefreshSection(
           campusNetworkDetectionIntervalMinutes:
