@@ -228,8 +228,13 @@ void main() {
     final lastRefreshRight = tester
         .getTopRight(find.text('上次刷新：2026-05-01 00:00'))
         .dx;
+    final titleLeft = tester.getTopLeft(find.text('第二课堂学分')).dx;
+    final lastRefreshLeft = tester
+        .getTopLeft(find.text('上次刷新：2026-05-01 00:00'))
+        .dx;
     final refreshLeft = tester.getTopLeft(studentReportRefresh).dx;
     expect(lastRefreshCenter.dy, greaterThan(titleCenter.dy));
+    expect((lastRefreshLeft - titleLeft).abs(), lessThan(1));
     expect((refreshCenter.dy - lastRefreshCenter.dy).abs(), lessThan(1));
     expect(refreshLeft - lastRefreshRight, greaterThanOrEqualTo(0));
     expect(refreshLeft - lastRefreshRight, lessThan(16));

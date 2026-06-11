@@ -162,37 +162,29 @@ class _SecondClassroomCardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
     final accent = context.fluentAccents.secondClassroom;
-    final title = Row(
+    final detailAction = _buildDetailAction(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         FluentSurfaceIcon(icon: FluentIcons.education, color: accent),
         const SizedBox(width: FluentSpacing.m),
         Expanded(
-          child: Text(
-            '第二课堂学分',
-            style: theme.typography.subtitle?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '第二课堂学分',
+                style: theme.typography.subtitle?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: FluentSpacing.xxs),
+              _buildRefreshLine(context),
+            ],
           ),
         ),
-      ],
-    );
-    final detailAction = _buildDetailAction(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: title),
-            const SizedBox(width: FluentSpacing.s),
-            detailAction,
-          ],
-        ),
-        const SizedBox(height: FluentSpacing.xxs),
-        Align(
-          alignment: Alignment.centerRight,
-          child: _buildRefreshLine(context),
-        ),
+        const SizedBox(width: FluentSpacing.s),
+        detailAction,
       ],
     );
   }
