@@ -80,12 +80,20 @@ void main() {
     await pumpUntilFound(tester, find.text('8'));
 
     expect(find.text('课外活动考勤'), findsOneWidget);
+    expect(find.textContaining('体育部查询系统只读汇总'), findsNothing);
     expect(find.text('总次数'), findsOneWidget);
     expect(find.text('早操 2 次'), findsOneWidget);
     expect(find.text('课外活动 3 次'), findsOneWidget);
     expect(find.text('次数调整 -1 次'), findsOneWidget);
     expect(find.text('体育长廊 4 次'), findsOneWidget);
     expect(find.text('上次刷新：2026-04-30 00:00'), findsOneWidget);
+    final sportsTitleCenter = tester.getCenter(find.text('课外活动考勤'));
+    final sportsLastRefreshCenter = tester.getCenter(
+      find.text('上次刷新：2026-04-30 00:00'),
+    );
+    final sportsSummaryTop = tester.getTopLeft(find.text('总次数')).dy;
+    expect(sportsLastRefreshCenter.dy, greaterThan(sportsTitleCenter.dy));
+    expect(sportsLastRefreshCenter.dy, lessThan(sportsSummaryTop));
     expect(sportsService.requireCampusNetworkValues, [false]);
 
     await tester.ensureVisible(find.text('查看考勤记录'));
@@ -225,6 +233,10 @@ void main() {
     expect((refreshCenter.dy - lastRefreshCenter.dy).abs(), lessThan(1));
     expect(refreshLeft - lastRefreshRight, greaterThanOrEqualTo(0));
     expect(refreshLeft - lastRefreshRight, lessThan(16));
+    expect(
+      lastRefreshCenter.dy,
+      lessThan(tester.getTopLeft(find.text('总已获分数')).dy),
+    );
 
     await tester.pump(const Duration(seconds: 3));
     await tester.pump();
