@@ -40,4 +40,23 @@ void main() {
       ),
     );
   });
+
+  test('macOS DMG 卷名保持在 appdmg 长度限制内', () {
+    final releaseWorkflow = File(
+      '.github/workflows/release.yml',
+    ).readAsStringSync();
+
+    expect(
+      releaseWorkflow,
+      isNot(
+        contains('"title": "SSPU-AllinOne v\${APP_VERSION} (\${APP_BUILD})"'),
+      ),
+    );
+    expect(releaseWorkflow, contains('DMG_TITLE="SSPU-AIO v\${APP_VERSION}"'));
+    expect(releaseWorkflow, contains('if [ "\${#DMG_TITLE}" -gt 27 ]; then'));
+    expect(releaseWorkflow, contains('"title": "\${DMG_TITLE}"'));
+
+    const currentPublicVersion = '0.2.8-alpha';
+    expect('SSPU-AIO v$currentPublicVersion'.length, lessThanOrEqualTo(27));
+  });
 }

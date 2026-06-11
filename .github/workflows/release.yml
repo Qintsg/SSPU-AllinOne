@@ -380,11 +380,15 @@ jobs:
           cp .github/installer/macos/bg.png "$staging/bg.png"
 
           APP_VERSION="${{ needs.prepare.outputs.public_version }}"
-          APP_BUILD="${{ needs.prepare.outputs.build_number }}"
+          DMG_TITLE="SSPU-AIO v${APP_VERSION}"
+          if [ "${#DMG_TITLE}" -gt 27 ]; then
+            echo "::warning::macOS DMG volume title '${DMG_TITLE}' is longer than appdmg limit; using short product title"
+            DMG_TITLE="SSPU-AIO"
+          fi
 
           cat > "$staging/config.json" << APPDMG_EOF
           {
-            "title": "SSPU-AllinOne v${APP_VERSION} (${APP_BUILD})",
+            "title": "${DMG_TITLE}",
             "icon-size": 80,
             "window": {
               "size": {
