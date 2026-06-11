@@ -204,10 +204,41 @@ class SettingsWechatController extends ChangeNotifier {
     return _wxmpConfigService.loadConfigText();
   }
 
+  /// 读取认证配置对象，供设置页字段式编辑器展示。
+  Future<WxmpConfig> loadConfig() async {
+    _wxmpConfigPath = await _wxmpConfigService.getConfigPath();
+    return _wxmpConfigService.loadConfig();
+  }
+
   /// 保存内置编辑器内容，并刷新设置页认证状态。
   Future<SettingsWechatFeedback> saveConfigFileText(String content) async {
     try {
       await _wxmpConfigService.saveConfigText(content);
+      final authStatus = await _wxmpAuth.getAuthStatus();
+      _wxmpAuthenticated = authStatus.isUsable;
+      _wxmpAuthStatus = authStatus;
+      _wxmpConfigPath = await _wxmpConfigService.getConfigPath();
+      _wxmpConfigMessage = '配置文件已保存并重新加载';
+      notifyListeners();
+      return const SettingsWechatFeedback(
+        title: '配置文件已保存',
+        severity: FluentInfoSeverity.success,
+      );
+    } catch (error) {
+      _wxmpConfigMessage = '保存配置文件失败：$error';
+      notifyListeners();
+      return SettingsWechatFeedback(
+        title: '保存配置文件失败',
+        content: '$error',
+        severity: FluentInfoSeverity.error,
+      );
+    }
+  }
+
+  /// 保存字段式认证配置，并刷新设置页认证状态。
+  Future<SettingsWechatFeedback> saveConfig(WxmpConfig config) async {
+    try {
+      await _wxmpConfigService.saveConfig(config);
       final authStatus = await _wxmpAuth.getAuthStatus();
       _wxmpAuthenticated = authStatus.isUsable;
       _wxmpAuthStatus = authStatus;

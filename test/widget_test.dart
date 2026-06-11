@@ -21,6 +21,7 @@ import 'package:sspu_allinone/widgets/app_feedback.dart';
 import 'package:sspu_allinone/widgets/campus_network_status_indicator.dart';
 import 'package:sspu_allinone/widgets/settings_auto_refresh_section.dart';
 import 'package:sspu_allinone/widgets/settings_general_section.dart';
+import 'package:sspu_allinone/widgets/settings_wechat_config_dialog.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_section.dart';
 
 /// 等待目标组件出现，避免页面异步加载尚未完成时提前断言。
@@ -766,6 +767,53 @@ void main() {
       StorageService.debugSetStateFilePathForTesting(null);
       debugDefaultTargetPlatformOverride = previousTargetPlatform;
       await tester.runAsync(() => deleteDirectoryWithRetry(configDirectory));
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    }
+  });
+
+  testWidgets('微信推文配置编辑器使用自适应字段表单', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+
+    try {
+      await tester.pumpWidget(
+        FluentApp(
+          home: ScaffoldPage(
+            content: Center(
+              child: FluentButton(
+                onPressed: () {
+                  showSettingsWechatConfigDialog(
+                    context: tester.element(find.text('打开编辑器')),
+                    initialConfig: WxmpConfig.defaults(),
+                  );
+                },
+                child: const Text('打开编辑器'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('打开编辑器'));
+      await pumpUntilFound(tester, find.text('cookie'));
+
+      expect(find.text('cookie'), findsOneWidget);
+      expect(find.text('token'), findsOneWidget);
+      expect(find.text('app_id'), findsOneWidget);
+      expect(find.text('user_agent'), findsOneWidget);
+      expect(find.text('per_request_article_count'), findsOneWidget);
+      expect(find.text('request_delay_ms'), findsOneWidget);
+      expect(find.textContaining('保存后会立即重新加载配置'), findsNothing);
+
+      final dialogBox = tester.renderObject<RenderBox>(
+        find.byType(FluentDialog),
+      );
+      expect(dialogBox.size.width <= 390, isTrue);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 300));
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
       await tester.binding.setSurfaceSize(null);

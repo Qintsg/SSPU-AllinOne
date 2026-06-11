@@ -9,9 +9,11 @@
 import '../design/fluent_ui.dart';
 
 import '../controllers/settings_wechat_controller.dart';
+import '../services/wxmp_config_service.dart';
 import '../theme/fluent_tokens.dart';
 import '../utils/webview_env.dart';
 import 'app_feedback.dart';
+import 'settings_wechat_config_dialog.dart';
 import 'settings_wechat_matrix_card.dart';
 import 'settings_wechat_refresh_card.dart';
 import '../pages/wxmp_login_page.dart';
@@ -67,9 +69,9 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
   }
 
   Future<void> _openConfigEditor() async {
-    late final String initialContent;
+    late final WxmpConfig initialConfig;
     try {
-      initialContent = await _controller.loadConfigFileText();
+      initialConfig = await _controller.loadConfig();
     } catch (error) {
       await _showFeedback(
         SettingsWechatFeedback(
@@ -82,52 +84,13 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
     }
 
     if (!mounted) return;
-    final textController = TextEditingController(text: initialContent);
-    final savedContent = await showDialog<String>(
+    final savedConfig = await showSettingsWechatConfigDialog(
       context: context,
-      builder: (dialogContext) => FluentDialog(
-        constraints: const BoxConstraints(maxWidth: 800),
-        title: const Text('编辑公众号平台配置'),
-        content: SizedBox(
-          width: 720,
-          height: 460,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '保存后会立即重新加载配置；Cookie 和 Token 属于敏感信息，请勿分享。',
-                style: FluentTheme.of(dialogContext).typography.caption,
-              ),
-              const SizedBox(height: FluentSpacing.s),
-              Expanded(
-                child: FluentTextField(
-                  controller: textController,
-                  maxLines: null,
-                  expands: true,
-                  textAlignVertical: TextAlignVertical.top,
-                  style: const TextStyle(fontFamily: 'Consolas'),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          FluentButton.outline(
-            child: const Text('取消'),
-            onPressed: () => Navigator.of(dialogContext).pop(),
-          ),
-          FluentButton.primary(
-            child: const Text('保存'),
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(textController.text),
-          ),
-        ],
-      ),
+      initialConfig: initialConfig,
     );
 
-    textController.dispose();
-    if (savedContent == null) return;
-    await _showFeedback(await _controller.saveConfigFileText(savedContent));
+    if (savedConfig == null) return;
+    await _showFeedback(await _controller.saveConfig(savedConfig));
   }
 
   @override
