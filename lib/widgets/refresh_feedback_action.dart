@@ -143,7 +143,6 @@ class RefreshFeedbackAction extends StatelessWidget {
       return _RefreshFeedbackLabel(
         feedback: currentFeedback,
         minTouchSize: minTouchSize,
-        height: size,
         maxWidth: maxFeedbackWidth,
       );
     }
@@ -236,13 +235,11 @@ class _RefreshFeedbackLabel extends StatelessWidget {
   const _RefreshFeedbackLabel({
     required this.feedback,
     required this.minTouchSize,
-    required this.height,
     required this.maxWidth,
   });
 
   final RefreshActionFeedback feedback;
   final double minTouchSize;
-  final double height;
   final double maxWidth;
 
   @override
@@ -263,17 +260,16 @@ class _RefreshFeedbackLabel extends StatelessWidget {
             maxWidth: maxWidth,
           ),
           child: Center(
-            child: SizedBox(
-              height: height,
-              child: Align(
-                alignment: Alignment.center,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.fluentType.caption1Strong.copyWith(
-                    color: foreground,
-                  ),
+            child: Align(
+              alignment: Alignment.center,
+              child: Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                softWrap: true,
+                style: context.fluentType.caption1Strong.copyWith(
+                  color: foreground,
+                  height: 1.1,
                 ),
               ),
             ),

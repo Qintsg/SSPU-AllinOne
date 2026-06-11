@@ -41,7 +41,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
         ),
         actionReservedWidth: _campusCardRefreshController.feedback == null
             ? 32
-            : 180,
+            : 112,
         action: RefreshFeedbackAction(
           key: const Key('home-campus-card-refresh'),
           tooltip: '刷新校园卡余额',
@@ -52,11 +52,15 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
           minTouchSize: 32,
           size: 28,
           iconSize: 15,
-          maxFeedbackWidth: 180,
+          maxFeedbackWidth: 112,
         ),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: _campusCardBodyMinHeight),
+        constraints: BoxConstraints(
+          minHeight: result?.isSuccess == false
+              ? _campusCardFailureBodyMinHeight
+              : _campusCardBodyMinHeight,
+        ),
         child: _buildCampusCardBody(context, result, snapshot),
       ),
     );
@@ -88,6 +92,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
   }
 
   static const double _campusCardBodyMinHeight = 64.0;
+  static const double _campusCardFailureBodyMinHeight = 88.0;
 
   /// 构建校园卡余额和异常状态摘要。
   Widget _buildCampusCardBalanceSummary(
@@ -261,17 +266,19 @@ class _CampusCardFailureSummary extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            result.message,
-            maxLines: 1,
+            _message,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
+            softWrap: true,
             style: theme.typography.bodyStrong?.copyWith(color: textColor),
           ),
-          if (result.detail.trim().isNotEmpty) ...[
+          if (_detail.isNotEmpty) ...[
             const SizedBox(height: FluentSpacing.xxs),
             Text(
-              result.detail,
-              maxLines: 2,
+              _detail,
+              maxLines: 4,
               overflow: TextOverflow.ellipsis,
+              softWrap: true,
               style: theme.typography.caption?.copyWith(
                 color: colors.neutralForeground3,
               ),
@@ -280,6 +287,22 @@ class _CampusCardFailureSummary extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String get _message {
+    return switch (result.status) {
+      CampusCardQueryStatus.missingOaAccount => '需要先填写 OA 账号',
+      CampusCardQueryStatus.missingOaPassword => '需要先填写 OA 密码',
+      _ => result.message,
+    };
+  }
+
+  String get _detail {
+    return switch (result.status) {
+      CampusCardQueryStatus.missingOaAccount => '前往设置页保存学工号后，再刷新校园卡余额。',
+      CampusCardQueryStatus.missingOaPassword => '前往设置页保存 OA 密码后，再刷新校园卡余额。',
+      _ => result.detail.trim(),
+    };
   }
 
   Color _failureTextColor(BuildContext context, CampusCardQueryStatus status) {
