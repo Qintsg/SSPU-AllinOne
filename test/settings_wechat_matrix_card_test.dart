@@ -13,7 +13,7 @@ import 'package:sspu_allinone/theme/app_theme.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_matrix_card.dart';
 
 void main() {
-  testWidgets('未关注公众号使用开关触发自动关注', (tester) async {
+  testWidgets('未关注公众号使用胶囊按钮触发自动关注', (tester) async {
     SspuWechatAccount? toggledAccount;
     bool? toggledValue;
 
@@ -43,17 +43,22 @@ void main() {
     await tester.pump();
 
     expect(find.text('关注'), findsNothing);
-    expect(find.byType(FluentSwitch), findsWidgets);
+    expect(find.byType(FluentSwitch), findsNothing);
 
-    final firstSwitch = find.byType(FluentSwitch).first;
-    tester.widget<FluentSwitch>(firstSwitch).onChanged?.call(true);
+    await tester.tap(
+      find.byKey(
+        Key('wechat-matrix-toggle-${sspuWechatAccounts.first.wxAccount}'),
+      ),
+    );
     await tester.pump();
 
     expect(toggledAccount?.name, sspuWechatAccounts.first.name);
     expect(toggledValue, isTrue);
+
+    await tester.pump(const Duration(milliseconds: 150));
   });
 
-  testWidgets('未认证时矩阵开关不可操作', (tester) async {
+  testWidgets('未认证时矩阵胶囊按钮不可操作', (tester) async {
     var toggled = false;
 
     await tester.pumpWidget(
@@ -79,11 +84,15 @@ void main() {
     await tester.pump();
 
     expect(find.text('关注'), findsNothing);
-    final firstSwitch = tester.widget<FluentSwitch>(
-      find.byType(FluentSwitch).first,
-    );
+    expect(find.byType(FluentSwitch), findsNothing);
 
-    expect(firstSwitch.onChanged, isNull);
+    await tester.tap(
+      find.byKey(
+        Key('wechat-matrix-toggle-${sspuWechatAccounts.first.wxAccount}'),
+      ),
+    );
+    await tester.pump();
+
     expect(toggled, isFalse);
   });
 }

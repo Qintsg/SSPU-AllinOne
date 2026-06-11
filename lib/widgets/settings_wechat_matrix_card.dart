@@ -10,7 +10,6 @@ import '../design/fluent_ui.dart';
 
 import '../models/sspu_wechat_accounts.dart';
 import '../theme/app_breakpoints.dart';
-import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
 import '../utils/wechat_followed_account_matcher.dart';
 
@@ -104,11 +103,11 @@ class SettingsWechatMatrixCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             LayoutBuilder(
               builder: (context, constraints) {
-                final itemWidth = constraints.maxWidth < 360
+                final itemWidth = constraints.maxWidth < 420
                     ? constraints.maxWidth
-                    : 340.0;
+                    : null;
                 return Wrap(
-                  spacing: AppSpacing.md,
+                  spacing: AppSpacing.sm,
                   runSpacing: AppSpacing.sm,
                   children: sspuWechatAccounts.map((account) {
                     final followed = findFollowedWechatAccount(
@@ -121,17 +120,16 @@ class SettingsWechatMatrixCard extends StatelessWidget {
                         (mpNotificationEnabled[fakeid] ?? true);
                     final following = followingAccountId == account.wxAccount;
 
-                    return SizedBox(
-                      width: itemWidth,
-                      child: _WechatAccountTile(
-                        account: account,
-                        authenticated: authenticated,
-                        followed: followed != null,
-                        enabled: enabled,
-                        following: following,
-                        onToggle: (value) => onToggleAccount(account, value),
-                      ),
+                    final toggleButton = _WechatAccountToggleButton(
+                      account: account,
+                      authenticated: authenticated,
+                      followed: followed != null,
+                      enabled: enabled,
+                      following: following,
+                      onToggle: (value) => onToggleAccount(account, value),
                     );
+                    if (itemWidth == null) return toggleButton;
+                    return SizedBox(width: itemWidth, child: toggleButton);
                   }).toList(),
                 );
               },
@@ -204,7 +202,7 @@ class SettingsWechatMatrixCard extends StatelessWidget {
   }
 }
 
-class _WechatAccountTile extends StatelessWidget {
+class _WechatAccountToggleButton extends StatelessWidget {
   final SspuWechatAccount account;
   final bool authenticated;
   final bool followed;
@@ -212,7 +210,7 @@ class _WechatAccountTile extends StatelessWidget {
   final bool following;
   final ValueChanged<bool> onToggle;
 
-  const _WechatAccountTile({
+  const _WechatAccountToggleButton({
     required this.account,
     required this.authenticated,
     required this.followed,
@@ -224,86 +222,144 @@ class _WechatAccountTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.fluentColors;
+    final motion = context.fluentMotion;
+    final radii = context.fluentRadii;
+    final stroke = context.fluentStroke;
     final type = context.fluentType;
+    final active = authenticated && enabled;
+    final disabled = !authenticated || following;
+    final foreground = !authenticated
+        ? colors.neutralForegroundDisabled
+        : active
+        ? colors.brandForeground1
+        : colors.neutralForeground2;
+    final background = active
+        ? colors.brandStroke2.withValues(alpha: 0.35)
+        : colors.neutralBackground2;
+    final hoverBackground = active
+        ? colors.brandStroke2.withValues(alpha: 0.48)
+        : colors.neutralBackground1Hover;
+    final pressedBackground = active
+        ? colors.brandStroke2.withValues(alpha: 0.58)
+        : colors.neutralBackground1Pressed;
+    final borderColor = !authenticated
+        ? colors.neutralStroke2
+        : active
+        ? colors.brandStroke1
+        : colors.neutralStroke1;
+    final tooltipMessage = !authenticated
+        ? '需先完成公众号平台认证'
+        : followed
+        ? '切换是否获取该公众号推文'
+        : '切换后会自动关注并获取该公众号推文';
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colors.neutralBackground2,
-        borderRadius: AppShapes.md,
-      ),
-      child: Padding(
-        padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: AppShapes.sm,
-              child: account.iconUrl.trim().isEmpty
-                  ? SizedBox.square(
-                      dimension: 40,
-                      child: Icon(
-                        FluentIcons.chat,
-                        size: 32,
-                        color: colors.brandForeground1,
-                      ),
-                    )
-                  : Image.network(
-                      account.iconUrl,
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Icon(
-                        FluentIcons.chat,
-                        size: 32,
-                        color: colors.brandForeground1,
-                      ),
-                    ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Tooltip(
+      message: tooltipMessage,
+      child: Semantics(
+        button: true,
+        selected: active,
+        enabled: !disabled,
+        label: account.name,
+        child: HoverButton(
+          cursor: disabled
+              ? SystemMouseCursors.basic
+              : SystemMouseCursors.click,
+          onPressed: disabled ? null : () => onToggle(!active),
+          builder: (context, states) {
+            final resolvedBackground = states.isPressed
+                ? pressedBackground
+                : states.isHovered || states.isFocused
+                ? hoverBackground
+                : background;
+            return AnimatedContainer(
+              key: Key('wechat-matrix-toggle-${account.wxAccount}'),
+              duration: motion.durationFast,
+              constraints: const BoxConstraints(minHeight: 52, maxWidth: 260),
+              padding: const EdgeInsetsDirectional.only(
+                start: AppSpacing.sm,
+                top: AppSpacing.xs,
+                end: AppSpacing.md,
+                bottom: AppSpacing.xs,
+              ),
+              decoration: BoxDecoration(
+                color: resolvedBackground,
+                borderRadius: BorderRadius.circular(radii.circular),
+                border: Border.all(color: borderColor, width: stroke.thin),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    account.name,
-                    style: type.body1Strong,
-                    overflow: TextOverflow.ellipsis,
+                  _WechatAccountAvatar(
+                    account: account,
+                    foreground: foreground,
                   ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    account.wxAccount,
-                    style: type.caption1.copyWith(
-                      color: colors.neutralForeground2,
+                  const SizedBox(width: AppSpacing.sm),
+                  Flexible(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          account.name,
+                          style: type.body1Strong.copyWith(color: foreground),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          account.wxAccount,
+                          style: type.caption1.copyWith(color: foreground),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(width: AppSpacing.sm),
+                  if (following)
+                    const SizedBox.square(
+                      dimension: 18,
+                      child: FluentProgressRing(strokeWidth: 2),
+                    )
+                  else
+                    Icon(
+                      active ? FluentIcons.checkMark : FluentIcons.peopleAdd,
+                      size: 16,
+                      color: foreground,
+                    ),
                 ],
               ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Tooltip(
-              message: !authenticated
-                  ? '需先完成公众号平台认证'
-                  : followed
-                  ? '控制是否获取该公众号推文'
-                  : '开启后会自动关注并获取该公众号推文',
-              child: following
-                  ? const SizedBox.square(
-                      dimension: 32,
-                      child: Center(
-                        child: SizedBox.square(
-                          dimension: 20,
-                          child: FluentProgressRing(strokeWidth: 2),
-                        ),
-                      ),
-                    )
-                  : FluentSwitch(
-                      value: authenticated && enabled,
-                      onChanged: authenticated ? onToggle : null,
-                    ),
-            ),
-          ],
+            );
+          },
         ),
       ),
+    );
+  }
+}
+
+class _WechatAccountAvatar extends StatelessWidget {
+  const _WechatAccountAvatar({required this.account, required this.foreground});
+
+  /// 公众号账号。
+  final SspuWechatAccount account;
+
+  /// 前景色。
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    final radii = context.fluentRadii;
+    final avatar = account.iconUrl.trim().isEmpty
+        ? Icon(FluentIcons.chat, size: 24, color: foreground)
+        : Image.network(
+            account.iconUrl,
+            width: 32,
+            height: 32,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                Icon(FluentIcons.chat, size: 24, color: foreground),
+          );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radii.circular),
+      child: SizedBox.square(dimension: 32, child: avatar),
     );
   }
 }
