@@ -179,10 +179,7 @@ void main() {
               children: [
                 const Positioned.fill(
                   child: SingleChildScrollView(
-                    child: SizedBox(
-                      height: 1200,
-                      child: Text('同路由主滚动内容'),
-                    ),
+                    child: SizedBox(height: 1200, child: Text('同路由主滚动内容')),
                   ),
                 ),
                 Positioned.fill(
