@@ -9,6 +9,49 @@
 part of 'settings_wechat_controller.dart';
 
 extension SettingsWechatFollowActions on SettingsWechatController {
+  /// 切换推荐公众号矩阵开关。
+  Future<SettingsWechatFeedback> toggleSspuAccount(
+    SspuWechatAccount account,
+    bool enabled,
+  ) async {
+    final followed = findFollowedSspuAccount(account);
+    final fakeid = followed?['fakeid'] ?? '';
+    if (!enabled) {
+      if (fakeid.isEmpty) {
+        return SettingsWechatFeedback(
+          title: '已关闭「${account.name}」',
+          severity: FluentInfoSeverity.info,
+        );
+      }
+      await setMpNotificationEnabled(fakeid, false);
+      return SettingsWechatFeedback(
+        title: '已关闭「${account.name}」推文获取',
+        severity: FluentInfoSeverity.info,
+      );
+    }
+
+    if (fakeid.isNotEmpty) {
+      await setMpNotificationEnabled(fakeid, true);
+      return SettingsWechatFeedback(
+        title: '已启用「${account.name}」推文获取',
+        severity: FluentInfoSeverity.success,
+      );
+    }
+
+    final feedback = await followSspuAccount(account);
+    if (feedback.severity != FluentInfoSeverity.success) return feedback;
+
+    final newFollowed = findFollowedSspuAccount(account);
+    final newFakeid = newFollowed?['fakeid'] ?? '';
+    if (newFakeid.isNotEmpty) {
+      await setMpNotificationEnabled(newFakeid, true);
+    }
+    return SettingsWechatFeedback(
+      title: '已关注并启用「${account.name}」',
+      severity: FluentInfoSeverity.success,
+    );
+  }
+
   /// 关注单个 SSPU 微信矩阵账号。
   Future<SettingsWechatFeedback> followSspuAccount(
     SspuWechatAccount account,
@@ -187,7 +230,9 @@ extension SettingsWechatFollowActions on SettingsWechatController {
       title: summary.isEmpty ? '已完成' : summary.toString(),
       severity: rateLimited
           ? FluentInfoSeverity.warning
-          : (failed > 0 ? FluentInfoSeverity.warning : FluentInfoSeverity.success),
+          : (failed > 0
+                ? FluentInfoSeverity.warning
+                : FluentInfoSeverity.success),
     );
   }
 }

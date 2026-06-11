@@ -37,11 +37,9 @@ class SettingsWechatMatrixCard extends StatelessWidget {
   /// 一键全部关注回调。
   final VoidCallback onBatchFollow;
 
-  /// 单个公众号关注回调。
-  final ValueChanged<SspuWechatAccount> onFollowAccount;
-
-  /// 单个公众号开关回调。
-  final Future<void> Function(String fakeid, bool enabled) onToggleMp;
+  /// 单个推荐公众号开关回调。
+  final Future<void> Function(SspuWechatAccount account, bool enabled)
+  onToggleAccount;
 
   const SettingsWechatMatrixCard({
     super.key,
@@ -52,8 +50,7 @@ class SettingsWechatMatrixCard extends StatelessWidget {
     required this.followedMps,
     required this.followingAccountId,
     required this.onBatchFollow,
-    required this.onFollowAccount,
-    required this.onToggleMp,
+    required this.onToggleAccount,
   });
 
   @override
@@ -119,9 +116,9 @@ class SettingsWechatMatrixCard extends StatelessWidget {
                       followedMps,
                     );
                     final fakeid = followed?['fakeid'] ?? '';
-                    final enabled = fakeid.isEmpty
-                        ? false
-                        : (mpNotificationEnabled[fakeid] ?? true);
+                    final enabled =
+                        fakeid.isNotEmpty &&
+                        (mpNotificationEnabled[fakeid] ?? true);
                     final following = followingAccountId == account.wxAccount;
 
                     return SizedBox(
@@ -132,8 +129,7 @@ class SettingsWechatMatrixCard extends StatelessWidget {
                         followed: followed != null,
                         enabled: enabled,
                         following: following,
-                        onFollow: () => onFollowAccount(account),
-                        onToggle: (value) => onToggleMp(fakeid, value),
+                        onToggle: (value) => onToggleAccount(account, value),
                       ),
                     );
                   }).toList(),
@@ -165,9 +161,7 @@ class SettingsWechatMatrixCard extends StatelessWidget {
             ),
             Text(
               '来源：校园+微信矩阵 · 共 ${sspuWechatAccounts.length} 个',
-              style: type.caption1.copyWith(
-                color: colors.neutralForeground2,
-              ),
+              style: type.caption1.copyWith(color: colors.neutralForeground2),
             ),
           ],
         ),
@@ -178,7 +172,7 @@ class SettingsWechatMatrixCard extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          '已关注的公众号可在此直接控制是否获取推文；未关注项仅展示状态。',
+          '开启未关注公众号会自动关注并启用推文获取；已关注公众号可直接控制是否获取推文。',
           style: type.caption1.copyWith(color: colors.neutralForeground2),
         ),
       ],
@@ -192,7 +186,9 @@ class SettingsWechatMatrixCard extends StatelessWidget {
     final type = context.fluentType;
 
     return Column(
-      crossAxisAlignment: alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         FluentButton.primaryIcon(
           onPressed: !authenticated || batchFollowing ? null : onBatchFollow,
@@ -227,7 +223,6 @@ class _WechatAccountTile extends StatelessWidget {
   final bool followed;
   final bool enabled;
   final bool following;
-  final VoidCallback onFollow;
   final ValueChanged<bool> onToggle;
 
   const _WechatAccountTile({
@@ -236,7 +231,6 @@ class _WechatAccountTile extends StatelessWidget {
     required this.followed,
     required this.enabled,
     required this.following,
-    required this.onFollow,
     required this.onToggle,
   });
 
@@ -299,28 +293,27 @@ class _WechatAccountTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            if (!authenticated)
-              Text(
-                '未认证',
-                style: type.caption1.copyWith(
-                  color: colors.neutralForeground2,
-                ),
-              )
-            else if (!followed)
-              FluentButton.outline(
-                onPressed: following ? null : onFollow,
-                child: following
-                    ? const SizedBox.square(
-                        dimension: 20,
-                        child: FluentProgressRing(strokeWidth: 2),
-                      )
-                    : const Text('关注'),
-              )
-            else
-              Tooltip(
-                message: '控制是否获取该公众号推文',
-                child: FluentSwitch(value: enabled, onChanged: onToggle),
-              ),
+            Tooltip(
+              message: !authenticated
+                  ? '需先完成公众号平台认证'
+                  : followed
+                  ? '控制是否获取该公众号推文'
+                  : '开启后会自动关注并获取该公众号推文',
+              child: following
+                  ? const SizedBox.square(
+                      dimension: 32,
+                      child: Center(
+                        child: SizedBox.square(
+                          dimension: 20,
+                          child: FluentProgressRing(strokeWidth: 2),
+                        ),
+                      ),
+                    )
+                  : FluentSwitch(
+                      value: authenticated && enabled,
+                      onChanged: authenticated ? onToggle : null,
+                    ),
+            ),
           ],
         ),
       ),

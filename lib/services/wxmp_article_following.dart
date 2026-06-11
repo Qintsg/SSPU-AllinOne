@@ -75,6 +75,8 @@ extension WxmpArticleFollowing on WxmpArticleService {
         'name': e.value['name'] ?? '',
         'alias': e.value['alias'] ?? '',
         'avatar': e.value['avatar'] ?? '',
+        'recommended_name': e.value['recommended_name'] ?? '',
+        'recommended_wx_account': e.value['recommended_wx_account'] ?? '',
       };
     }).toList();
   }
