@@ -16,14 +16,13 @@ class _SecondClassroomSummaryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final categories = _categoryProgressList(summary);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return _SecondClassroomCompactSummary(
-          summary: summary,
-          categories: categories,
-          minCategoryWidth: constraints.maxWidth < 560 ? 150 : 196,
-        );
-      },
+    final sizeClass = AppBreakpoints.of(context);
+    final compact = sizeClass == WindowSizeClass.compact;
+    return _SecondClassroomCompactSummary(
+      summary: summary,
+      categories: categories,
+      metricMinWidth: compact ? 96 : 112,
+      categoryColumns: compact ? 1 : 2,
     );
   }
 }
@@ -32,13 +31,15 @@ class _SecondClassroomCompactSummary extends StatelessWidget {
   const _SecondClassroomCompactSummary({
     required this.summary,
     required this.categories,
-    this.minCategoryWidth = 168,
+    this.metricMinWidth = 112,
+    this.categoryColumns = 2,
     this.title,
   });
 
   final SecondClassroomCreditSummary summary;
   final List<_CategoryProgress> categories;
-  final double minCategoryWidth;
+  final double metricMinWidth;
+  final int categoryColumns;
   final String? title;
 
   @override
@@ -74,7 +75,7 @@ class _SecondClassroomCompactSummary extends StatelessWidget {
               Text(title!, style: theme.typography.bodyStrong),
               const SizedBox(height: FluentSpacing.s),
             ],
-            _SummaryMetricWrap(metrics: metrics),
+            _SummaryMetricWrap(metrics: metrics, minWidth: metricMinWidth),
             const SizedBox(height: FluentSpacing.s),
             Container(
               height: 1,
@@ -83,7 +84,7 @@ class _SecondClassroomCompactSummary extends StatelessWidget {
             const SizedBox(height: FluentSpacing.s),
             _CategoryProgressStrip(
               categories: categories,
-              minItemWidth: minCategoryWidth,
+              columnCount: categoryColumns,
             ),
             if (summary.warning != null) ...[
               const SizedBox(height: FluentSpacing.s),
@@ -97,28 +98,24 @@ class _SecondClassroomCompactSummary extends StatelessWidget {
 }
 
 class _SummaryMetricWrap extends StatelessWidget {
-  const _SummaryMetricWrap({required this.metrics});
+  const _SummaryMetricWrap({required this.metrics, required this.minWidth});
 
   final List<_SummaryMetric> metrics;
+  final double minWidth;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final minWidth = constraints.maxWidth < 560 ? 96.0 : 112.0;
-        return Wrap(
-          spacing: FluentSpacing.l,
-          runSpacing: FluentSpacing.s,
-          crossAxisAlignment: WrapCrossAlignment.end,
-          children: [
-            for (final metric in metrics)
-              ConstrainedBox(
-                constraints: BoxConstraints(minWidth: minWidth),
-                child: metric,
-              ),
-          ],
-        );
-      },
+    return Wrap(
+      spacing: FluentSpacing.l,
+      runSpacing: FluentSpacing.s,
+      crossAxisAlignment: WrapCrossAlignment.end,
+      children: [
+        for (final metric in metrics)
+          ConstrainedBox(
+            constraints: BoxConstraints(minWidth: minWidth),
+            child: metric,
+          ),
+      ],
     );
   }
 }
@@ -175,37 +172,43 @@ class _SummaryMetric extends StatelessWidget {
 class _CategoryProgressStrip extends StatelessWidget {
   const _CategoryProgressStrip({
     required this.categories,
-    required this.minItemWidth,
+    required this.columnCount,
   });
 
   final List<_CategoryProgress> categories;
-  final double minItemWidth;
+  final int columnCount;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final spacing = FluentSpacing.s;
-        final columnCount = _categoryColumnCount(
-          constraints.maxWidth,
-          minItemWidth,
-          spacing,
-          categories.length,
-        );
-        final totalGap = spacing * (columnCount - 1);
-        final tileWidth = (constraints.maxWidth - totalGap) / columnCount;
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: [
-            for (final category in categories)
-              SizedBox(
-                width: tileWidth,
-                child: _CategoryProgressPill(category: category),
-              ),
-          ],
-        );
-      },
+    final effectiveColumnCount = categories.isEmpty
+        ? 1
+        : columnCount.clamp(1, categories.length).toInt();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (
+          var columnIndex = 0;
+          columnIndex < effectiveColumnCount;
+          columnIndex++
+        ) ...[
+          if (columnIndex > 0) const SizedBox(width: FluentSpacing.s),
+          Expanded(
+            child: Column(
+              children: [
+                for (
+                  var itemIndex = columnIndex;
+                  itemIndex < categories.length;
+                  itemIndex += effectiveColumnCount
+                ) ...[
+                  if (itemIndex != columnIndex)
+                    const SizedBox(height: FluentSpacing.s),
+                  _CategoryProgressPill(category: categories[itemIndex]),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -237,35 +240,25 @@ class _CategoryProgressPill extends StatelessWidget {
           horizontal: FluentSpacing.s,
           vertical: FluentSpacing.xs,
         ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final label = _CategoryProgressLabel(
-              text: category.label,
-              color: textColor,
-            );
-            final value = _CategoryProgressValue(
-              text: category.displayValue,
-              color: textColor,
-            );
-            if (constraints.maxWidth < 228) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  label,
-                  const SizedBox(height: FluentSpacing.xxs),
-                  value,
-                ],
-              );
-            }
-            return Row(
-              children: [
-                Expanded(child: label),
-                const SizedBox(width: FluentSpacing.s),
-                Align(alignment: Alignment.centerRight, child: value),
-              ],
-            );
-          },
+        child: Row(
+          children: [
+            Expanded(
+              child: _CategoryProgressLabel(
+                text: category.label,
+                color: textColor,
+              ),
+            ),
+            const SizedBox(width: FluentSpacing.s),
+            Flexible(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: _CategoryProgressValue(
+                  text: category.displayValue,
+                  color: textColor,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -312,20 +305,6 @@ class _CategoryProgressValue extends StatelessWidget {
       ),
     );
   }
-}
-
-int _categoryColumnCount(
-  double maxWidth,
-  double minItemWidth,
-  double spacing,
-  int itemCount,
-) {
-  if (itemCount <= 1) return itemCount;
-  final fourColumnWidth = minItemWidth * 4 + spacing * 3;
-  final twoColumnWidth = minItemWidth * 2 + spacing;
-  if (itemCount >= 4 && maxWidth >= fourColumnWidth) return 4;
-  if (itemCount >= 2 && maxWidth >= twoColumnWidth) return 2;
-  return 1;
 }
 
 BoxDecoration _summaryPanelDecoration(BuildContext context) {

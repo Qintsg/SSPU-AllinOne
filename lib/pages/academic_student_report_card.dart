@@ -40,47 +40,26 @@ class AcademicStudentReportCard extends StatelessWidget {
     final accent = context.fluentAccents.secondClassroom;
 
     return FluentSurface(
+      key: const Key('academic-student-report-card'),
       accentColor: accent,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SecondClassroomCardHeader(
-            summary: summary,
-            canOpenDetail: result?.isSuccess == true && summary != null,
-            lastRefreshLabel: _studentReportLastRefreshLabel(result),
-            isLoading: isLoading,
-            refreshFeedback: refreshFeedback,
-            onRefresh: onRefresh,
-          ),
-          const SizedBox(height: FluentSpacing.l),
-          if (result?.isSuccess == true && summary != null) ...[
-            _SecondClassroomSummaryView(summary: summary),
-          ] else if (isLoading) ...[
-            const Row(
-              children: [
-                SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: FluentProgressRing(strokeWidth: 2),
-                ),
-                SizedBox(width: FluentSpacing.s),
-                Text('正在读取第二课堂学分...'),
-              ],
-            ),
-          ] else if (result == null) ...[
-            Text(
-              autoRefreshEnabled
-                  ? '自动刷新已开启，等待下一次读取；也可点击右上角刷新。'
-                  : '自动刷新未开启。点击右上角刷新图标可手动读取；学工报表需要校园网或学校 VPN。',
-            ),
-          ] else ...[
-            FluentInfoBar(
-              title: Text(result!.message),
-              content: Text(result!.detail),
-              severity: _studentReportSeverity(result!.status),
-            ),
-          ],
-        ],
+      child: FluentStretchCardBody(
+        header: _SecondClassroomCardHeader(
+          summary: summary,
+          canOpenDetail: result?.isSuccess == true && summary != null,
+        ),
+        body: _SecondClassroomCardContent(
+          result: result,
+          summary: summary,
+          isLoading: isLoading,
+          autoRefreshEnabled: autoRefreshEnabled,
+          severityForStatus: _studentReportSeverity,
+        ),
+        footer: _SecondClassroomRefreshFooter(
+          lastRefreshLabel: _studentReportLastRefreshLabel(result),
+          isLoading: isLoading,
+          refreshFeedback: refreshFeedback,
+          onRefresh: onRefresh,
+        ),
       ),
     );
   }
@@ -112,22 +91,66 @@ class AcademicStudentReportCard extends StatelessWidget {
   }
 }
 
+class _SecondClassroomCardContent extends StatelessWidget {
+  const _SecondClassroomCardContent({
+    required this.result,
+    required this.summary,
+    required this.isLoading,
+    required this.autoRefreshEnabled,
+    required this.severityForStatus,
+  });
+
+  final StudentReportQueryResult? result;
+  final SecondClassroomCreditSummary? summary;
+  final bool isLoading;
+  final bool autoRefreshEnabled;
+  final FluentInfoSeverity Function(StudentReportQueryStatus status)
+  severityForStatus;
+
+  @override
+  Widget build(BuildContext context) {
+    if (result?.isSuccess == true && summary != null) {
+      return _SecondClassroomSummaryView(summary: summary!);
+    }
+
+    if (isLoading) {
+      return const Row(
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: FluentProgressRing(strokeWidth: 2),
+          ),
+          SizedBox(width: FluentSpacing.s),
+          Text('正在读取第二课堂学分...'),
+        ],
+      );
+    }
+
+    if (result == null) {
+      return Text(
+        autoRefreshEnabled
+            ? '自动刷新已开启，等待下一次读取；也可点击右上角刷新。'
+            : '自动刷新未开启。点击右上角刷新图标可手动读取；学工报表需要校园网或学校 VPN。',
+      );
+    }
+
+    return FluentInfoBar(
+      title: Text(result!.message),
+      content: Text(result!.detail),
+      severity: severityForStatus(result!.status),
+    );
+  }
+}
+
 class _SecondClassroomCardHeader extends StatelessWidget {
   const _SecondClassroomCardHeader({
     required this.summary,
     required this.canOpenDetail,
-    required this.lastRefreshLabel,
-    required this.isLoading,
-    required this.refreshFeedback,
-    required this.onRefresh,
   });
 
   final SecondClassroomCreditSummary? summary;
   final bool canOpenDetail;
-  final String lastRefreshLabel;
-  final bool isLoading;
-  final RefreshActionFeedback? refreshFeedback;
-  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -148,44 +171,56 @@ class _SecondClassroomCardHeader extends StatelessWidget {
       ],
     );
     final detailAction = _buildDetailAction(context);
-    final refreshLine = _buildRefreshLine(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 440) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(child: title),
-                  const SizedBox(width: FluentSpacing.s),
-                  detailAction,
-                ],
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: title),
+        const SizedBox(width: FluentSpacing.s),
+        detailAction,
+      ],
+    );
+  }
+
+  Widget _buildDetailAction(BuildContext context) {
+    return Button(
+      key: const Key('academic-student-report-detail'),
+      onPressed: canOpenDetail && summary != null
+          ? () => Navigator.of(context).push(
+              FluentPageRoute(
+                builder: (_) => StudentReportDetailPage(summary: summary!),
               ),
-              const SizedBox(height: FluentSpacing.xs),
-              refreshLine,
-            ],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  title,
-                  const SizedBox(height: FluentSpacing.xs),
-                  refreshLine,
-                ],
-              ),
-            ),
-            const SizedBox(width: FluentSpacing.s),
-            detailAction,
-          ],
-        );
-      },
+            )
+          : null,
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('详情'),
+          SizedBox(width: 4),
+          Icon(FluentIcons.chevronRight, size: 14),
+        ],
+      ),
+    );
+  }
+}
+
+class _SecondClassroomRefreshFooter extends StatelessWidget {
+  const _SecondClassroomRefreshFooter({
+    required this.lastRefreshLabel,
+    required this.isLoading,
+    required this.refreshFeedback,
+    required this.onRefresh,
+  });
+
+  final String lastRefreshLabel;
+  final bool isLoading;
+  final RefreshActionFeedback? refreshFeedback;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: _buildRefreshLine(context),
     );
   }
 
@@ -208,27 +243,6 @@ class _SecondClassroomCardHeader extends StatelessWidget {
         size: 28,
         iconSize: 15,
         maxFeedbackWidth: 180,
-      ),
-    );
-  }
-
-  Widget _buildDetailAction(BuildContext context) {
-    return Button(
-      key: const Key('academic-student-report-detail'),
-      onPressed: canOpenDetail && summary != null
-          ? () => Navigator.of(context).push(
-              FluentPageRoute(
-                builder: (_) => StudentReportDetailPage(summary: summary!),
-              ),
-            )
-          : null,
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('详情'),
-          SizedBox(width: 4),
-          Icon(FluentIcons.chevronRight, size: 14),
-        ],
       ),
     );
   }

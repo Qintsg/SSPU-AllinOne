@@ -560,26 +560,14 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const gap = FluentSpacing.l;
-        final width = constraints.maxWidth;
-        final columns = width >= 1180
-            ? 3
-            : width >= 700
-            ? 2
-            : 1;
-        final itemWidth = columns == 1
-            ? width
-            : (width - gap * (columns - 1)) / columns;
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: [
-            for (final tile in tiles) SizedBox(width: itemWidth, child: tile),
-          ],
-        );
+    return FluentMasonryGrid(
+      gap: FluentSpacing.l,
+      columnsForWidth: (width) {
+        if (width >= 1180) return 3;
+        if (width >= 700) return 2;
+        return 1;
       },
+      children: tiles,
     );
   }
 

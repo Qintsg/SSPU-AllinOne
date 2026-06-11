@@ -50,7 +50,8 @@ class _SecondClassroomTotalsPanel extends StatelessWidget {
           summary: summary,
           categories: categories,
           title: '总计',
-          minCategoryWidth: constraints.maxWidth < 640 ? 136 : 156,
+          metricMinWidth: constraints.maxWidth < 640 ? 96 : 112,
+          categoryColumns: constraints.maxWidth < 640 ? 1 : 2,
         );
       },
     );

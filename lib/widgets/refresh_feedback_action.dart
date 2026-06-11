@@ -62,38 +62,34 @@ class RefreshStatusLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final maxWidth = constraints.maxWidth;
-        final spacing = FluentSpacing.s;
-        final labelMaxWidth = maxWidth.isFinite
-            ? (maxWidth - actionReservedWidth - spacing).clamp(0.0, maxWidth)
-            : double.infinity;
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: labelMaxWidth.toDouble()),
-              child: SizedBox(
-                height: minLineHeight,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: 1,
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: labelStyle,
-                  ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Flexible(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 0),
+            child: SizedBox(
+              height: minLineHeight,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                widthFactor: 1,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: labelStyle,
                 ),
               ),
             ),
-            SizedBox(width: spacing),
-            action,
-          ],
-        );
-      },
+          ),
+        ),
+        const SizedBox(width: FluentSpacing.s),
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: actionReservedWidth),
+          child: action,
+        ),
+      ],
     );
   }
 }

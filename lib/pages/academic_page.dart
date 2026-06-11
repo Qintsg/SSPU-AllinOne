@@ -20,6 +20,7 @@ import '../services/academic_eams_service.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/student_report_service.dart';
 import '../theme/fluent_tokens.dart';
+import '../theme/app_breakpoints.dart';
 import '../utils/query_result_messages.dart';
 import '../widgets/refresh_feedback_action.dart';
 import '../widgets/responsive_layout.dart';
@@ -442,23 +443,13 @@ class _AcademicDashboardGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth >= 1040) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          return Column(
             children: [
-              Expanded(
-                flex: 7,
-                child: _AcademicAnimatedCard(index: 0, child: primary),
-              ),
-              const SizedBox(width: FluentSpacing.m),
-              Expanded(
-                flex: 5,
-                child: Column(
-                  children: [
-                    _AcademicAnimatedCard(index: 1, child: sports),
-                    const SizedBox(height: FluentSpacing.m),
-                    _AcademicAnimatedCard(index: 2, child: secondClassroom),
-                  ],
-                ),
+              _AcademicAnimatedCard(index: 0, child: primary),
+              const SizedBox(height: FluentSpacing.m),
+              _AcademicEqualHeightRow(
+                left: _AcademicAnimatedCard(index: 1, child: sports),
+                right: _AcademicAnimatedCard(index: 2, child: secondClassroom),
               ),
             ],
           );
@@ -469,20 +460,9 @@ class _AcademicDashboardGrid extends StatelessWidget {
             children: [
               _AcademicAnimatedCard(index: 0, child: primary),
               const SizedBox(height: FluentSpacing.m),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _AcademicAnimatedCard(index: 1, child: sports),
-                  ),
-                  const SizedBox(width: FluentSpacing.m),
-                  Expanded(
-                    child: _AcademicAnimatedCard(
-                      index: 2,
-                      child: secondClassroom,
-                    ),
-                  ),
-                ],
+              _AcademicEqualHeightRow(
+                left: _AcademicAnimatedCard(index: 1, child: sports),
+                right: _AcademicAnimatedCard(index: 2, child: secondClassroom),
               ),
             ],
           );
@@ -498,6 +478,27 @@ class _AcademicDashboardGrid extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _AcademicEqualHeightRow extends StatelessWidget {
+  const _AcademicEqualHeightRow({required this.left, required this.right});
+
+  final Widget left;
+  final Widget right;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: left),
+          const SizedBox(width: FluentSpacing.m),
+          Expanded(child: right),
+        ],
+      ),
     );
   }
 }
