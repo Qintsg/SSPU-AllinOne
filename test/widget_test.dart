@@ -756,6 +756,7 @@ void main() {
       expect(find.text('刷新设置'), findsOneWidget);
       expect(find.text('全部开启'), findsOneWidget);
       expect(find.text('全部关闭'), findsOneWidget);
+      expect(find.textContaining('矩阵开关'), findsNothing);
       expect(find.text('微信矩阵'), findsOneWidget);
       expect(find.text('SSPU 微信矩阵'), findsNothing);
       expect(find.text('微信公众平台注册方式'), findsNothing);

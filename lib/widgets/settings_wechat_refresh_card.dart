@@ -7,7 +7,6 @@
  */
 
 import '../design/fluent_ui.dart';
-import '../theme/app_breakpoints.dart';
 import '../theme/fluent_tokens.dart';
 import 'settings_widgets.dart';
 
@@ -23,8 +22,6 @@ class SettingsWechatRefreshCard extends StatelessWidget {
     required this.onAutoRefreshChanged,
     required this.onRefreshIntervalChanged,
     required this.onAutoFetchCountChanged,
-    required this.onEnableAll,
-    required this.onDisableAll,
   });
 
   /// 手动刷新文章条数。
@@ -51,12 +48,6 @@ class SettingsWechatRefreshCard extends StatelessWidget {
   /// 修改自动刷新文章条数。
   final Future<void> Function(int count) onAutoFetchCountChanged;
 
-  /// 启用微信推文相关开关。
-  final Future<void> Function() onEnableAll;
-
-  /// 关闭微信推文相关开关。
-  final Future<void> Function() onDisableAll;
-
   @override
   Widget build(BuildContext context) {
     final colors = context.fluentColors;
@@ -69,67 +60,26 @@ class SettingsWechatRefreshCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final compact = constraints.maxWidth < AppBreakpoints.mediumMax;
-                final heading = Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    FluentSurfaceIcon(icon: FluentIcons.sync),
-                    const SizedBox(width: FluentSpacing.s),
-                    Flexible(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('刷新设置', style: type.subtitle2),
-                          Text(
-                            '控制微信推文的抓取条数、频率和矩阵开关',
-                            style: type.caption1.copyWith(
-                              color: colors.neutralForeground2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-                final actions = Wrap(
-                  spacing: FluentSpacing.s,
-                  runSpacing: FluentSpacing.s,
-                  children: [
-                    FluentButton.primaryIcon(
-                      icon: const Icon(FluentIcons.checkMark),
-                      label: const Text('全部开启'),
-                      onPressed: onEnableAll,
-                    ),
-                    FluentButton.outlineIcon(
-                      icon: const Icon(FluentIcons.blocked),
-                      label: const Text('全部关闭'),
-                      onPressed: onDisableAll,
-                    ),
-                  ],
-                );
-
-                if (compact) {
-                  return Column(
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FluentSurfaceIcon(icon: FluentIcons.sync),
+                const SizedBox(width: FluentSpacing.s),
+                Flexible(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      heading,
-                      const SizedBox(height: FluentSpacing.s),
-                      actions,
+                      Text('刷新设置', style: type.subtitle2),
+                      Text(
+                        '控制微信推文的抓取条数和自动刷新频率',
+                        style: type.caption1.copyWith(
+                          color: colors.neutralForeground2,
+                        ),
+                      ),
                     ],
-                  );
-                }
-
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: heading),
-                    const SizedBox(width: FluentSpacing.l),
-                    actions,
-                  ],
-                );
-              },
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: FluentSpacing.l),
             Wrap(

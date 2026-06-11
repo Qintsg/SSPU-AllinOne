@@ -36,6 +36,12 @@ class SettingsWechatMatrixCard extends StatelessWidget {
   /// 一键全部关注回调。
   final VoidCallback onBatchFollow;
 
+  /// 启用微信矩阵公众号获取回调。
+  final Future<void> Function() onEnableAll;
+
+  /// 关闭微信矩阵公众号获取回调。
+  final Future<void> Function() onDisableAll;
+
   /// 单个推荐公众号开关回调。
   final Future<void> Function(SspuWechatAccount account, bool enabled)
   onToggleAccount;
@@ -49,6 +55,8 @@ class SettingsWechatMatrixCard extends StatelessWidget {
     required this.followedMps,
     required this.followingAccountId,
     required this.onBatchFollow,
+    required this.onEnableAll,
+    required this.onDisableAll,
     required this.onToggleAccount,
   });
 
@@ -71,19 +79,19 @@ class SettingsWechatMatrixCard extends StatelessWidget {
                     AppBreakpoints.fromWidth(constraints.maxWidth) ==
                     WindowSizeClass.compact;
                 final intro = _buildIntro(context);
-                final batchAction = !allAccountsFollowed
-                    ? _buildBatchFollowAction(context, alignEnd: !shouldStack)
-                    : null;
+                final actions = _buildMatrixActions(
+                  context,
+                  showBatchFollow: !allAccountsFollowed,
+                  alignEnd: !shouldStack,
+                );
 
                 if (shouldStack) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       intro,
-                      if (batchAction != null) ...[
-                        const SizedBox(height: AppSpacing.sm),
-                        batchAction,
-                      ],
+                      const SizedBox(height: AppSpacing.sm),
+                      actions,
                     ],
                   );
                 }
@@ -92,10 +100,8 @@ class SettingsWechatMatrixCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(child: intro),
-                    if (batchAction != null) ...[
-                      const SizedBox(width: AppSpacing.md),
-                      batchAction,
-                    ],
+                    const SizedBox(width: AppSpacing.md),
+                    actions,
                   ],
                 );
               },
@@ -169,8 +175,9 @@ class SettingsWechatMatrixCard extends StatelessWidget {
     );
   }
 
-  Widget _buildBatchFollowAction(
+  Widget _buildMatrixActions(
     BuildContext context, {
+    required bool showBatchFollow,
     required bool alignEnd,
   }) {
     final type = context.fluentType;
@@ -180,15 +187,36 @@ class SettingsWechatMatrixCard extends StatelessWidget {
           ? CrossAxisAlignment.end
           : CrossAxisAlignment.start,
       children: [
-        FluentButton.primaryIcon(
-          onPressed: !authenticated || batchFollowing ? null : onBatchFollow,
-          icon: batchFollowing
-              ? const SizedBox.square(
-                  dimension: 20,
-                  child: FluentProgressRing(strokeWidth: 2),
-                )
-              : const Icon(FluentIcons.peopleAdd),
-          label: const Text('一键全部关注'),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          alignment: alignEnd ? WrapAlignment.end : WrapAlignment.start,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            if (showBatchFollow)
+              FluentButton.primaryIcon(
+                onPressed: !authenticated || batchFollowing
+                    ? null
+                    : onBatchFollow,
+                icon: batchFollowing
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: FluentProgressRing(strokeWidth: 2),
+                      )
+                    : const Icon(FluentIcons.peopleAdd),
+                label: const Text('一键全部关注'),
+              ),
+            FluentButton.primaryIcon(
+              icon: const Icon(FluentIcons.checkMark),
+              label: const Text('全部开启'),
+              onPressed: authenticated ? onEnableAll : null,
+            ),
+            FluentButton.outlineIcon(
+              icon: const Icon(FluentIcons.blocked),
+              label: const Text('全部关闭'),
+              onPressed: authenticated ? onDisableAll : null,
+            ),
+          ],
         ),
         if (batchFollowing && batchProgress.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.xs),

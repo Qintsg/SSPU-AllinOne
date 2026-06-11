@@ -355,6 +355,15 @@ class SettingsWechatController extends ChangeNotifier {
   /// 一键切换微信分区全部相关开关。
   Future<SettingsWechatFeedback> setWechatPageEnabled(bool enabled) async {
     await setAutoRefreshEnabled(enabled);
+    await setWechatMatrixEnabled(enabled);
+    return SettingsWechatFeedback(
+      title: enabled ? '已启用微信推文页全部开关' : '已关闭微信推文页全部开关',
+      severity: enabled ? FluentInfoSeverity.success : FluentInfoSeverity.info,
+    );
+  }
+
+  /// 一键切换微信矩阵公众号获取开关，不影响自动刷新设置。
+  Future<SettingsWechatFeedback> setWechatMatrixEnabled(bool enabled) async {
     for (final mp in _wxmpFollowedMps) {
       final fakeid = mp['fakeid'] ?? '';
       if (fakeid.isEmpty) continue;
@@ -363,7 +372,7 @@ class SettingsWechatController extends ChangeNotifier {
     }
     notifyListeners();
     return SettingsWechatFeedback(
-      title: enabled ? '已启用微信推文页全部开关' : '已关闭微信推文页全部开关',
+      title: enabled ? '已启用微信矩阵全部公众号' : '已关闭微信矩阵全部公众号',
       severity: enabled ? FluentInfoSeverity.success : FluentInfoSeverity.info,
     );
   }

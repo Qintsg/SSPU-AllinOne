@@ -122,10 +122,6 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
                   _controller.setRefreshInterval(value),
               onAutoFetchCountChanged: (value) =>
                   _controller.setAutoFetchCount(value),
-              onEnableAll: () async =>
-                  _showFeedback(await _controller.setWechatPageEnabled(true)),
-              onDisableAll: () async =>
-                  _showFeedback(await _controller.setWechatPageEnabled(false)),
             ),
             const SizedBox(height: FluentSpacing.l),
             _buildAuthCard(theme),
@@ -139,6 +135,11 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
               followingAccountId: _controller.wxmpFollowingAccountId,
               onBatchFollow: () async =>
                   _showFeedback(await _controller.batchFollowSspuWxmp()),
+              onEnableAll: () async =>
+                  _showFeedback(await _controller.setWechatMatrixEnabled(true)),
+              onDisableAll: () async => _showFeedback(
+                await _controller.setWechatMatrixEnabled(false),
+              ),
               onToggleAccount: _controller.toggleSspuAccount,
             ),
           ],

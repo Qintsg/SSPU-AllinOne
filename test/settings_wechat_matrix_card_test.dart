@@ -30,6 +30,8 @@ void main() {
               followedMps: const [],
               followingAccountId: '',
               onBatchFollow: () {},
+              onEnableAll: () async {},
+              onDisableAll: () async {},
               onToggleAccount: (account, enabled) async {
                 toggledAccount = account;
                 toggledValue = enabled;
@@ -74,6 +76,8 @@ void main() {
               followedMps: const [],
               followingAccountId: '',
               onBatchFollow: () {},
+              onEnableAll: () async {},
+              onDisableAll: () async {},
               onToggleAccount: (_, _) async => toggled = true,
             ),
           ),
@@ -121,6 +125,8 @@ void main() {
               ],
               followingAccountId: '',
               onBatchFollow: () {},
+              onEnableAll: () async {},
+              onDisableAll: () async {},
               onToggleAccount: (_, _) async {},
             ),
           ),
@@ -164,6 +170,8 @@ void main() {
                 ],
                 followingAccountId: '',
                 onBatchFollow: () {},
+                onEnableAll: () async {},
+                onDisableAll: () async {},
                 onToggleAccount: (_, _) async {},
               ),
             ),
@@ -187,5 +195,46 @@ void main() {
       tester.view.resetDevicePixelRatio();
       await tester.binding.setSurfaceSize(null);
     }
+  });
+
+  testWidgets('矩阵卡片提供全部开启和全部关闭入口', (tester) async {
+    var enabledAll = false;
+    var disabledAll = false;
+
+    await tester.pumpWidget(
+      FluentApp(
+        theme: AppTheme.build(Brightness.light),
+        home: ScaffoldPage(
+          content: SingleChildScrollView(
+            child: SettingsWechatMatrixCard(
+              authenticated: true,
+              batchFollowing: false,
+              batchProgress: '',
+              mpNotificationEnabled: const {},
+              followedMps: const [],
+              followingAccountId: '',
+              onBatchFollow: () {},
+              onEnableAll: () async => enabledAll = true,
+              onDisableAll: () async => disabledAll = true,
+              onToggleAccount: (_, _) async {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.text('全部开启'), findsOneWidget);
+    expect(find.text('全部关闭'), findsOneWidget);
+
+    await tester.tap(find.text('全部开启'));
+    await tester.pump();
+    await tester.tap(find.text('全部关闭'));
+    await tester.pump();
+
+    expect(enabledAll, isTrue);
+    expect(disabledAll, isTrue);
+    await tester.pump(const Duration(milliseconds: 150));
   });
 }
