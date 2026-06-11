@@ -85,7 +85,6 @@ body:
         - Linux arm64 deb
         - Linux arm64 rpm
         - Linux arm64 portable tar.gz
-        - Web static.zip
     validations:
       required: true
 
