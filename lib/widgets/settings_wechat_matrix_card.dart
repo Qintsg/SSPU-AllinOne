@@ -281,7 +281,7 @@ class _WechatAccountToggleButton extends StatelessWidget {
             return AnimatedContainer(
               key: Key('wechat-matrix-toggle-${account.wxAccount}'),
               duration: motion.durationFast,
-              constraints: const BoxConstraints(minHeight: 52, maxWidth: 260),
+              constraints: const BoxConstraints(minHeight: 52, maxWidth: 320),
               padding: const EdgeInsetsDirectional.only(
                 start: AppSpacing.sm,
                 top: AppSpacing.xs,
@@ -309,12 +309,16 @@ class _WechatAccountToggleButton extends StatelessWidget {
                         Text(
                           account.name,
                           style: type.body1Strong.copyWith(color: foreground),
-                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                          maxLines: 2,
+                          overflow: TextOverflow.visible,
                         ),
                         Text(
                           displayId,
                           style: type.caption1.copyWith(color: foreground),
-                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                          maxLines: 2,
+                          overflow: TextOverflow.visible,
                         ),
                       ],
                     ),

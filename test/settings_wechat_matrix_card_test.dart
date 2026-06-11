@@ -133,4 +133,59 @@ void main() {
     expect(find.text('sspu-official-id'), findsOneWidget);
     expect(find.text(account.wxAccount), findsNothing);
   });
+
+  testWidgets('长公众号名称胶囊文本自然换行不省略', (tester) async {
+    final account = sspuWechatAccounts.firstWhere(
+      (account) => account.name.length >= 12,
+    );
+
+    tester.view.physicalSize = const Size(420, 800);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(420, 800));
+
+    try {
+      await tester.pumpWidget(
+        FluentApp(
+          theme: AppTheme.build(Brightness.light),
+          home: ScaffoldPage(
+            content: SingleChildScrollView(
+              child: SettingsWechatMatrixCard(
+                authenticated: true,
+                batchFollowing: false,
+                batchProgress: '',
+                mpNotificationEnabled: const {'fakeid-long': true},
+                followedMps: [
+                  {
+                    'fakeid': 'fakeid-long',
+                    'name': account.name,
+                    'alias': 'long-public-account-id',
+                    'recommended_wx_account': account.wxAccount,
+                  },
+                ],
+                followingAccountId: '',
+                onBatchFollow: () {},
+                onToggleAccount: (_, _) async {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final title = tester.widget<Text>(find.text(account.name).first);
+      final subtitle = tester.widget<Text>(
+        find.text('long-public-account-id').first,
+      );
+
+      expect(title.overflow, TextOverflow.visible);
+      expect(subtitle.overflow, TextOverflow.visible);
+      expect(find.textContaining('...'), findsNothing);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 150));
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    }
+  });
 }
