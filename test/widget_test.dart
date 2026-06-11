@@ -784,6 +784,59 @@ void main() {
     }
   });
 
+  Future<void> expectSettingsSelectPopupAvoidsStatusBar(
+    WidgetTester tester,
+    TargetPlatform platform,
+  ) async {
+    final previousTargetPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = platform;
+    final topPadding = platform == TargetPlatform.iOS ? 59.0 : 24.0;
+    await configureMobileView(tester, topPadding: topPadding);
+
+    try {
+      await tester.pumpWidget(
+        const FluentApp(
+          home: ScaffoldPage(
+            padding: EdgeInsets.zero,
+            content: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: _NarrowSettingsNavigation(selectedValue: 6),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byKey(const Key('settings-narrow-tab-combo')));
+      await tester.pumpAndSettle();
+
+      final firstOption = find.byKey(
+        const ValueKey('fluent-select-popup-option-0'),
+      );
+      expect(firstOption, findsOneWidget);
+      expect(
+        tester.getTopLeft(firstOption).dy,
+        greaterThanOrEqualTo(topPadding),
+      );
+    } finally {
+      debugDefaultTargetPlatformOverride = previousTargetPlatform;
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await resetMobileView(tester);
+    }
+  }
+
+  testWidgets('设置页窄屏选择框弹层避开移动端状态栏', (WidgetTester tester) async {
+    await expectSettingsSelectPopupAvoidsStatusBar(
+      tester,
+      TargetPlatform.android,
+    );
+    await expectSettingsSelectPopupAvoidsStatusBar(tester, TargetPlatform.iOS);
+  });
+
   testWidgets('Fluent 弹窗使用紧凑按钮区并支持点击外部取消', (WidgetTester tester) async {
     await tester.pumpWidget(
       FluentApp(
@@ -1178,7 +1231,9 @@ class _SettingsNavigationLayoutHarness extends StatelessWidget {
 }
 
 class _NarrowSettingsNavigation extends StatelessWidget {
-  const _NarrowSettingsNavigation();
+  const _NarrowSettingsNavigation({this.selectedValue = 0});
+
+  final int selectedValue;
 
   @override
   Widget build(BuildContext context) {
@@ -1189,7 +1244,7 @@ class _NarrowSettingsNavigation extends StatelessWidget {
         Expanded(
           child: FluentSelect<int>(
             key: const Key('settings-narrow-tab-combo'),
-            value: 0,
+            value: selectedValue,
             isExpanded: true,
             items: const [
               FluentSelectItem(value: 0, child: Text('常规')),
