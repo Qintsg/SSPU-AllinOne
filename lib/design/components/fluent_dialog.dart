@@ -32,13 +32,11 @@ class FluentDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
+    return ContentDialog(
+      title: title,
+      content: _FluentDialogScrollableContent(child: content),
+      actions: actions,
       constraints: constraints,
-      child: ContentDialog(
-        title: title,
-        content: _FluentDialogScrollableContent(child: content),
-        actions: actions,
-      ),
     );
   }
 }

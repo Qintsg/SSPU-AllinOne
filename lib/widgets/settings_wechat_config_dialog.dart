@@ -84,78 +84,83 @@ class _SettingsWechatConfigDialogState
       builder: (context, constraints) {
         final availableWidth = constraints.maxWidth;
         final availableHeight = constraints.maxHeight;
-        final compact = availableWidth < AppBreakpoints.mediumMax;
-        final dialogWidth = compact
-            ? availableWidth - spacing.xxl
-            : AppBreakpoints.mediumMax;
+        final compact = availableWidth < AppBreakpoints.compactMax;
+        final availableDialogWidth = (availableWidth - spacing.xxxl).clamp(
+          0,
+          double.infinity,
+        );
+        final minDialogWidth = availableDialogWidth < 320
+            ? availableDialogWidth
+            : 320;
+        final dialogWidth = availableDialogWidth.clamp(
+          minDialogWidth,
+          AppBreakpoints.expandedMax,
+        );
         final dialogHeight = availableHeight - spacing.xxxl;
 
         return FluentDialog(
           constraints: BoxConstraints(
-            maxWidth: dialogWidth.clamp(320, AppBreakpoints.mediumMax),
+            minWidth: dialogWidth.toDouble(),
+            maxWidth: dialogWidth.toDouble(),
             maxHeight: dialogHeight.clamp(360, 720),
           ),
           title: const Text('编辑公众号平台配置'),
-          content: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: dialogHeight.clamp(320, 620),
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '只填写配置项内容。Cookie 和 Token 属于敏感信息，请勿分享。',
-                    style: type.caption1.copyWith(
-                      color: colors.neutralForeground2,
+          content: SizedBox(
+            width: dialogWidth.toDouble(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '只填写配置项内容。Cookie 和 Token 属于敏感信息，请勿分享。',
+                  style: type.caption1.copyWith(
+                    color: colors.neutralForeground2,
+                  ),
+                ),
+                SizedBox(height: spacing.l),
+                _ConfigFieldsLayout(
+                  compact: compact,
+                  children: [
+                    _ConfigTextField(
+                      label: 'cookie',
+                      controller: _cookieController,
+                      minLines: compact ? 3 : 4,
+                      maxLines: compact ? 5 : 6,
                     ),
-                  ),
-                  SizedBox(height: spacing.l),
-                  _ConfigFieldsLayout(
-                    compact: compact,
-                    children: [
-                      _ConfigTextField(
-                        label: 'cookie',
-                        controller: _cookieController,
-                        minLines: compact ? 3 : 4,
-                        maxLines: compact ? 5 : 6,
-                      ),
-                      _ConfigTextField(
-                        label: 'token',
-                        controller: _tokenController,
-                      ),
-                      _ConfigTextField(
-                        label: 'app_id',
-                        controller: _appIdController,
-                      ),
-                      _ConfigTextField(
-                        label: 'user_agent',
-                        controller: _userAgentController,
-                        maxLines: 2,
-                      ),
-                      _ConfigTextField(
-                        label: 'per_request_article_count',
-                        controller: _perRequestCountController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        errorText: _perRequestCountError,
-                      ),
-                      _ConfigTextField(
-                        label: 'request_delay_ms',
-                        controller: _requestDelayController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        errorText: _requestDelayError,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    _ConfigTextField(
+                      label: 'token',
+                      controller: _tokenController,
+                    ),
+                    _ConfigTextField(
+                      label: 'app_id',
+                      controller: _appIdController,
+                    ),
+                    _ConfigTextField(
+                      label: 'user_agent',
+                      controller: _userAgentController,
+                      maxLines: 2,
+                    ),
+                    _ConfigTextField(
+                      label: 'per_request_article_count',
+                      controller: _perRequestCountController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      errorText: _perRequestCountError,
+                    ),
+                    _ConfigTextField(
+                      label: 'request_delay_ms',
+                      controller: _requestDelayController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      errorText: _requestDelayError,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           actions: [
@@ -240,27 +245,23 @@ class _ConfigFieldsLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.fluentSpacing;
-    if (compact) {
-      return Column(
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            if (i > 0) SizedBox(height: spacing.m),
-            children[i],
-          ],
-        ],
-      );
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns =
+            compact || constraints.maxWidth < AppBreakpoints.compactMax ? 1 : 2;
+        final fieldWidth = columns == 1
+            ? constraints.maxWidth
+            : (constraints.maxWidth - spacing.l) / 2;
 
-    return Wrap(
-      spacing: spacing.l,
-      runSpacing: spacing.m,
-      children: [
-        for (final child in children)
-          SizedBox(
-            width: (AppBreakpoints.mediumMax - spacing.xxxl) / 2,
-            child: child,
-          ),
-      ],
+        return Wrap(
+          spacing: spacing.l,
+          runSpacing: spacing.m,
+          children: [
+            for (final child in children)
+              SizedBox(width: fieldWidth, child: child),
+          ],
+        );
+      },
     );
   }
 }

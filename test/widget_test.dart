@@ -820,6 +820,49 @@ void main() {
       await tester.binding.setSurfaceSize(null);
     }
   });
+
+  testWidgets('微信推文配置编辑器宽屏使用双列布局', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(1280, 800));
+
+    try {
+      await tester.pumpWidget(
+        FluentApp(
+          home: ScaffoldPage(
+            content: Center(
+              child: FluentButton(
+                onPressed: () {
+                  showSettingsWechatConfigDialog(
+                    context: tester.element(find.text('打开编辑器')),
+                    initialConfig: WxmpConfig.defaults(),
+                  );
+                },
+                child: const Text('打开编辑器'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('打开编辑器'));
+      await pumpUntilFound(tester, find.text('cookie'));
+
+      final dialogBox = tester.renderObject<RenderBox>(
+        find.byType(FluentDialog),
+      );
+      expect(dialogBox.size.width >= 900, isTrue);
+
+      final cookieTop = tester.getTopLeft(find.text('cookie')).dy;
+      final tokenTop = tester.getTopLeft(find.text('token')).dy;
+      expect((cookieTop - tokenTop).abs() < 1, isTrue);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 300));
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    }
+  });
 }
 
 Future<void> _expectTitleBarStatus(
