@@ -32,7 +32,6 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
     final accent = context.fluentAccents.sports;
     final summary = result?.summary;
 
@@ -40,10 +39,10 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
       key: const Key('academic-sports-card'),
       accentColor: accent,
       child: FluentStretchCardBody(
-        header: FluentSectionHeader(
-          title: '课外活动考勤',
-          subtitle: '体育部查询系统只读汇总，展示晨跑、课外活动和次数调整。',
-          icon: FluentIcons.running,
+        header: _SportsAttendanceCardHeader(
+          lastRefreshLabel: _sportsAttendanceLastRefreshLabel(result),
+          isLoading: isLoading,
+          onRefresh: onRefresh,
           accentColor: accent,
         ),
         body: _SportsAttendanceCardContent(
@@ -52,33 +51,6 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
           isLoading: isLoading,
           autoRefreshEnabled: autoRefreshEnabled,
           severityForStatus: _sportsAttendanceSeverity,
-        ),
-        footer: Align(
-          alignment: Alignment.centerRight,
-          child: Wrap(
-            spacing: FluentSpacing.xs,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                _sportsAttendanceLastRefreshLabel(result),
-                style: theme.typography.caption?.copyWith(
-                  color: theme.resources.textFillColorSecondary,
-                ),
-              ),
-              FluentIconButton(
-                key: const Key('academic-sports-refresh'),
-                tooltip: '手动刷新体育考勤',
-                icon: isLoading
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: FluentProgressRing(strokeWidth: 2),
-                      )
-                    : const Icon(FluentIcons.refresh),
-                onPressed: isLoading ? null : onRefresh,
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -112,6 +84,72 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
         '${checkedAt.day.toString().padLeft(2, '0')} '
         '${checkedAt.hour.toString().padLeft(2, '0')}:'
         '${checkedAt.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _SportsAttendanceCardHeader extends StatelessWidget {
+  const _SportsAttendanceCardHeader({
+    required this.lastRefreshLabel,
+    required this.isLoading,
+    required this.onRefresh,
+    required this.accentColor,
+  });
+
+  final String lastRefreshLabel;
+  final bool isLoading;
+  final VoidCallback onRefresh;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.fluentColors;
+    final type = context.fluentType;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FluentSurfaceIcon(icon: FluentIcons.running, color: accentColor),
+        const SizedBox(width: FluentSpacing.m),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Semantics(
+                header: true,
+                child: Text(
+                  '课外活动考勤',
+                  style: type.subtitle2.copyWith(
+                    color: colors.neutralForeground1,
+                  ),
+                ),
+              ),
+              const SizedBox(height: FluentSpacing.xxs),
+              _buildRefreshLine(context),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRefreshLine(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    return RefreshStatusLine(
+      label: lastRefreshLabel,
+      labelStyle: theme.typography.caption?.copyWith(
+        color: theme.resources.textFillColorSecondary,
+      ),
+      action: RefreshFeedbackAction(
+        key: const Key('academic-sports-refresh'),
+        tooltip: '手动刷新体育考勤',
+        semanticLabel: '手动刷新体育考勤',
+        isLoading: isLoading,
+        onPressed: onRefresh,
+        minTouchSize: 32,
+        size: 28,
+        iconSize: 15,
+      ),
+    );
   }
 }
 

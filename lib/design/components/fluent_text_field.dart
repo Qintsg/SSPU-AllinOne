@@ -28,6 +28,7 @@ class FluentTextField extends StatefulWidget {
     this.focusNode,
     this.autofocus = false,
     this.enabled = true,
+    this.minLines,
     this.maxLines = 1,
     this.expands = false,
     this.textAlignVertical,
@@ -77,6 +78,9 @@ class FluentTextField extends StatefulWidget {
   /// 是否启用。
   final bool enabled;
 
+  /// 最小行数。
+  final int? minLines;
+
   /// 最大行数。
   final int? maxLines;
 
@@ -119,7 +123,9 @@ class _FluentTextFieldState extends State<FluentTextField> {
   @override
   void didUpdateWidget(covariant FluentTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.controller == null && _localController == null && widget.initialValue != null) {
+    if (widget.controller == null &&
+        _localController == null &&
+        widget.initialValue != null) {
       _localController = TextEditingController(text: widget.initialValue);
     }
   }
@@ -156,7 +162,10 @@ class _FluentTextFieldState extends State<FluentTextField> {
       autofocus: widget.autofocus,
       enabled: widget.enabled,
       obscureText: widget.obscureText,
-      maxLines: widget.expands ? null : (widget.obscureText ? 1 : widget.maxLines),
+      minLines: widget.expands ? null : widget.minLines,
+      maxLines: widget.expands
+          ? null
+          : (widget.obscureText ? 1 : widget.maxLines),
       expands: widget.expands,
       textAlignVertical: widget.textAlignVertical,
       inputFormatters: widget.inputFormatters,

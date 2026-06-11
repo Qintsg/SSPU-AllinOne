@@ -105,7 +105,7 @@ Widget _buildInfoPaginationRow(
 
 Future<void> _showInfoPageJumpDialog(_InfoPageState state) async {
   final controller = TextEditingController();
-  final result = await showDialog<int>(
+  final result = await showFluentDialog<int>(
     context: state.context,
     builder: (ctx) => FluentDialog(
       title: const Text('跳转到指定页'),

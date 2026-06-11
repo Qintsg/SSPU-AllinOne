@@ -13,14 +13,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/app.dart';
 import 'package:sspu_allinone/controllers/settings_wechat_controller.dart';
+import 'package:sspu_allinone/models/channel_config.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/services/campus_network_status_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/services/wxmp_config_service.dart';
 import 'package:sspu_allinone/widgets/app_feedback.dart';
 import 'package:sspu_allinone/widgets/campus_network_status_indicator.dart';
+import 'package:sspu_allinone/widgets/channel_list_section.dart';
 import 'package:sspu_allinone/widgets/settings_auto_refresh_section.dart';
 import 'package:sspu_allinone/widgets/settings_general_section.dart';
+import 'package:sspu_allinone/widgets/settings_wechat_config_dialog.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_section.dart';
 
 /// 等待目标组件出现，避免页面异步加载尚未完成时提前断言。
@@ -316,6 +319,72 @@ void main() {
       );
 
       // 首页入场动画会保留短计时器，测试结束前推进时间以清理动画状态。
+      await tester.pump(const Duration(milliseconds: 300));
+    } finally {
+      debugDefaultTargetPlatformOverride = previousTargetPlatform;
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    }
+  });
+
+  testWidgets('桌面侧边栏展开和收起时菜单按钮与导航项对齐', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+    final previousTargetPlatform = debugDefaultTargetPlatformOverride;
+    final service = _buildCampusNetworkStatusService();
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+
+    ({Offset menu, Offset home}) readNavigationCenters() {
+      return (
+        menu: tester.getCenter(find.byIcon(WindowsIcons.global_nav_button)),
+        home: tester.getCenter(find.byIcon(FluentIcons.home).first),
+      );
+    }
+
+    Future<({Offset menu, Offset home})> pumpAndReadCenters(Size size) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      await tester.binding.setSurfaceSize(size);
+      await tester.pumpWidget(
+        FluentApp(home: AppShell(campusNetworkStatusService: service)),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      final menuIcon = find.byIcon(WindowsIcons.global_nav_button);
+      expect(menuIcon, findsOneWidget);
+      return readNavigationCenters();
+    }
+
+    try {
+      final expanded = await pumpAndReadCenters(const Size(1280, 800));
+      final compactClosed = await pumpAndReadCenters(const Size(900, 800));
+      await tester.tap(find.byIcon(WindowsIcons.global_nav_button));
+      await tester.pumpAndSettle();
+      final compactOpen = readNavigationCenters();
+      final narrowClosed = await pumpAndReadCenters(const Size(700, 800));
+      await tester.tap(find.byIcon(WindowsIcons.global_nav_button));
+      await tester.pumpAndSettle();
+      final narrowOpen = readNavigationCenters();
+
+      for (final centers in [
+        expanded,
+        compactClosed,
+        compactOpen,
+        narrowClosed,
+        narrowOpen,
+      ]) {
+        expect(centers.menu.dx, closeTo(centers.home.dx, 1));
+      }
+
+      expect(expanded.menu.dx, closeTo(compactClosed.menu.dx, 1));
+      expect(compactClosed.menu.dx, closeTo(narrowClosed.menu.dx, 1));
+      expect(compactClosed.menu.dy, closeTo(compactOpen.menu.dy, 3));
+      expect(narrowClosed.menu.dy, closeTo(narrowOpen.menu.dy, 3));
+
       await tester.pump(const Duration(milliseconds: 300));
     } finally {
       debugDefaultTargetPlatformOverride = previousTargetPlatform;
@@ -643,7 +712,7 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('页面反馈连续显示时替换上一条信息条', (WidgetTester tester) async {
+  testWidgets('页面反馈连续显示时替换上一条紧凑浮层', (WidgetTester tester) async {
     await tester.pumpWidget(
       FluentApp(
         home: ScaffoldPage(
@@ -665,9 +734,15 @@ void main() {
 
     expect(find.text('第一条反馈'), findsNothing);
     expect(find.text('第二条反馈'), findsOneWidget);
+    final toast = find.byKey(const Key('app-feedback-toast'));
+    expect(toast, findsOneWidget);
+    expect(tester.getTopLeft(toast).dy, lessThan(120));
+    expect(tester.getBottomLeft(toast).dy, lessThan(260));
+    expect(find.byType(FluentInfoBar), findsNothing);
 
     await tester.pump(const Duration(seconds: 3));
     await tester.pump();
+    expect(toast, findsNothing);
   });
 
   testWidgets('WebView 遇到无效链接时显示错误页', (WidgetTester tester) async {
@@ -709,7 +784,120 @@ void main() {
     }
   });
 
-  testWidgets('设置页显示内置编辑和配置目录按钮', (WidgetTester tester) async {
+  testWidgets('Fluent 弹窗使用紧凑按钮区并支持点击外部取消', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      FluentApp(
+        home: Builder(
+          builder: (context) {
+            return FluentButton.primary(
+              child: const Text('打开弹窗'),
+              onPressed: () {
+                showFluentDialog<void>(
+                  context: context,
+                  builder: (dialogContext) => FluentDialog(
+                    title: const Text('关闭应用'),
+                    content: const FluentDialogMessage(
+                      icon: FluentIcons.clear,
+                      message: '请选择点击窗口关闭按钮时的处理方式。',
+                      details: '点击弹窗外的空白区域取消本次操作。',
+                    ),
+                    actions: [
+                      FluentButton.outline(
+                        child: const Text('最小化到托盘'),
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                      ),
+                      FluentButton.primary(
+                        child: const Text('退出应用'),
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('打开弹窗'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FluentDialog), findsOneWidget);
+    expect(find.text('最小化到托盘'), findsOneWidget);
+    expect(find.text('退出应用'), findsOneWidget);
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FluentDialog), findsNothing);
+  });
+
+  testWidgets('职能部门和教学单位设置使用总览与轻量频道卡布局', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+
+    Future<void> pumpChannelSection({
+      required double width,
+      required String title,
+      required List<ChannelConfig> channels,
+    }) async {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1.0;
+      await tester.binding.setSurfaceSize(Size(width, 900));
+      await tester.pumpWidget(
+        FluentApp(
+          home: ScaffoldPage(
+            content: SingleChildScrollView(
+              child: ChannelListSection(title: title, channels: channels),
+            ),
+          ),
+        ),
+      );
+      await pumpUntilFound(tester, find.text(title));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    try {
+      await pumpChannelSection(
+        width: 1280,
+        title: '职能部门',
+        channels: departmentChannels,
+      );
+      expect(find.text('统一管理学校官网消息来源，启用后会在信息中心筛选和刷新中生效。'), findsOneWidget);
+      expect(find.text('共 24 个渠道'), findsOneWidget);
+      expect(find.text('已接入 24 个'), findsOneWidget);
+      expect(find.text('刷新设置'), findsOneWidget);
+      expect(find.text('手动刷新'), findsOneWidget);
+      expect(find.text('自动抓取'), findsOneWidget);
+      expect(find.text('公开信息'), findsOneWidget);
+      expect(find.text('已接入'), findsWidgets);
+      expect(find.text('显示中'), findsWidgets);
+      expect(tester.takeException(), isNull);
+
+      await pumpChannelSection(
+        width: 390,
+        title: '教学单位',
+        channels: teachingChannels,
+      );
+      expect(find.text('教学单位'), findsOneWidget);
+      expect(find.text('共 20 个渠道'), findsOneWidget);
+      expect(find.text('计算机与信息工程学院'), findsOneWidget);
+      expect(find.text('内容分类'), findsWidgets);
+      expect(find.text('3 项'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    } finally {
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 300));
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    }
+  });
+
+  testWidgets('微信推文设置显示精简刷新卡片和认证操作', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final previousTargetPlatform = debugDefaultTargetPlatformOverride;
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
@@ -744,9 +932,20 @@ void main() {
       await pumpUntilFound(tester, find.text('编辑配置文件'));
 
       expect(find.text('编辑配置文件'), findsOneWidget);
-      expect(find.text('打开配置文件所在文件夹'), findsOneWidget);
-      expect(find.text('外部打开'), findsOneWidget);
+      expect(find.text('重新加载配置并校验'), findsOneWidget);
+      expect(find.text('清除认证'), findsOneWidget);
+      expect(find.text('打开配置文件所在文件夹'), findsNothing);
+      expect(find.text('外部打开'), findsNothing);
+      expect(find.text('校验有效性'), findsNothing);
       expect(find.text('使用 Visual Studio Code 打开配置文件'), findsNothing);
+      expect(find.text('刷新设置'), findsOneWidget);
+      expect(find.text('全部开启'), findsOneWidget);
+      expect(find.text('全部关闭'), findsOneWidget);
+      expect(find.textContaining('矩阵开关'), findsNothing);
+      expect(find.text('微信矩阵'), findsOneWidget);
+      expect(find.text('SSPU 微信矩阵'), findsNothing);
+      expect(find.text('微信公众平台注册方式'), findsNothing);
+      expect(find.textContaining('若频率过快'), findsNothing);
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(milliseconds: 300));
@@ -754,6 +953,107 @@ void main() {
       StorageService.debugSetStateFilePathForTesting(null);
       debugDefaultTargetPlatformOverride = previousTargetPlatform;
       await tester.runAsync(() => deleteDirectoryWithRetry(configDirectory));
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    }
+  });
+
+  testWidgets('微信推文配置编辑器使用自适应字段表单', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+
+    try {
+      await tester.pumpWidget(
+        FluentApp(
+          home: ScaffoldPage(
+            content: Center(
+              child: FluentButton(
+                onPressed: () {
+                  showSettingsWechatConfigDialog(
+                    context: tester.element(find.text('打开编辑器')),
+                    initialConfig: WxmpConfig.defaults(),
+                  );
+                },
+                child: const Text('打开编辑器'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('打开编辑器'));
+      await pumpUntilFound(tester, find.text('cookie'));
+
+      expect(find.text('cookie'), findsOneWidget);
+      expect(find.text('token'), findsOneWidget);
+      expect(find.text('app_id'), findsOneWidget);
+      expect(find.text('user_agent'), findsOneWidget);
+      expect(find.text('per_request_article_count'), findsOneWidget);
+      expect(find.text('request_delay_ms'), findsOneWidget);
+      expect(find.textContaining('保存后会立即重新加载配置'), findsNothing);
+
+      final dialogBox = tester.renderObject<RenderBox>(
+        find.byType(FluentDialog),
+      );
+      expect(dialogBox.size.width <= 390, isTrue);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 300));
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    }
+  });
+
+  testWidgets('微信推文配置编辑器宽屏使用双列布局', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(1280, 800));
+
+    try {
+      await tester.pumpWidget(
+        FluentApp(
+          home: ScaffoldPage(
+            content: Center(
+              child: FluentButton(
+                onPressed: () {
+                  showSettingsWechatConfigDialog(
+                    context: tester.element(find.text('打开编辑器')),
+                    initialConfig: WxmpConfig.defaults(),
+                  );
+                },
+                child: const Text('打开编辑器'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('打开编辑器'));
+      await pumpUntilFound(tester, find.text('cookie'));
+
+      final contentBox = tester.renderObject<RenderBox>(
+        find.byKey(const Key('wechat-config-dialog-content')),
+      );
+      expect(contentBox.size.width >= 760, isTrue);
+      expect(contentBox.size.width <= 920, isTrue);
+
+      final cookieTop = tester.getTopLeft(find.text('cookie')).dy;
+      final tokenTop = tester.getTopLeft(find.text('token')).dy;
+      expect((cookieTop - tokenTop).abs() < 1, isTrue);
+
+      final appIdTop = tester.getTopLeft(find.text('app_id')).dy;
+      final userAgentTop = tester.getTopLeft(find.text('user_agent')).dy;
+      expect(userAgentTop < appIdTop, isTrue);
+
+      final cancelLeft = tester.getTopLeft(find.text('取消')).dx;
+      final contentLeft = tester
+          .getTopLeft(find.byKey(const Key('wechat-config-dialog-content')))
+          .dx;
+      expect(cancelLeft > contentLeft + contentBox.size.width / 2, isTrue);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 300));
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
       await tester.binding.setSurfaceSize(null);

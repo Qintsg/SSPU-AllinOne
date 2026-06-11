@@ -204,10 +204,41 @@ class SettingsWechatController extends ChangeNotifier {
     return _wxmpConfigService.loadConfigText();
   }
 
+  /// 读取认证配置对象，供设置页字段式编辑器展示。
+  Future<WxmpConfig> loadConfig() async {
+    _wxmpConfigPath = await _wxmpConfigService.getConfigPath();
+    return _wxmpConfigService.loadConfig();
+  }
+
   /// 保存内置编辑器内容，并刷新设置页认证状态。
   Future<SettingsWechatFeedback> saveConfigFileText(String content) async {
     try {
       await _wxmpConfigService.saveConfigText(content);
+      final authStatus = await _wxmpAuth.getAuthStatus();
+      _wxmpAuthenticated = authStatus.isUsable;
+      _wxmpAuthStatus = authStatus;
+      _wxmpConfigPath = await _wxmpConfigService.getConfigPath();
+      _wxmpConfigMessage = '配置文件已保存并重新加载';
+      notifyListeners();
+      return const SettingsWechatFeedback(
+        title: '配置文件已保存',
+        severity: FluentInfoSeverity.success,
+      );
+    } catch (error) {
+      _wxmpConfigMessage = '保存配置文件失败：$error';
+      notifyListeners();
+      return SettingsWechatFeedback(
+        title: '保存配置文件失败',
+        content: '$error',
+        severity: FluentInfoSeverity.error,
+      );
+    }
+  }
+
+  /// 保存字段式认证配置，并刷新设置页认证状态。
+  Future<SettingsWechatFeedback> saveConfig(WxmpConfig config) async {
+    try {
+      await _wxmpConfigService.saveConfig(config);
       final authStatus = await _wxmpAuth.getAuthStatus();
       _wxmpAuthenticated = authStatus.isUsable;
       _wxmpAuthStatus = authStatus;
@@ -251,22 +282,37 @@ class SettingsWechatController extends ChangeNotifier {
     }
   }
 
-  /// 重新加载认证配置文件。
+  /// 重新加载认证配置文件并校验认证可用性。
   Future<SettingsWechatFeedback> reloadConfigFile() async {
+    if (_wxmpValidating) {
+      return const SettingsWechatFeedback(
+        title: '正在校验中',
+        severity: FluentInfoSeverity.info,
+      );
+    }
+
+    _wxmpValidating = true;
+    notifyListeners();
+
     try {
       final config = await _wxmpConfigService.loadConfig();
+      final validation = await _wechatService.validateSource();
       final authStatus = await _wxmpAuth.getAuthStatus();
-      _wxmpAuthenticated = authStatus.isUsable;
+      _wxmpAuthenticated = validation.isValid && authStatus.isUsable;
       _wxmpAuthStatus = authStatus;
+      _wxmpValidating = false;
       _wxmpConfigMessage =
-          '已重新加载：单次请求 ${config.perRequestArticleCount} 条，间隔 ${config.requestDelayMs}ms';
+          '${validation.message}；单次请求 ${config.perRequestArticleCount} 条，间隔 ${config.requestDelayMs}ms';
       notifyListeners();
       return SettingsWechatFeedback(
-        title: '配置已重新加载',
+        title: validation.isValid ? '配置已重新加载并通过校验' : '配置已重新加载但认证不可用',
         content: _wxmpConfigMessage,
-        severity: FluentInfoSeverity.success,
+        severity: validation.isValid
+            ? FluentInfoSeverity.success
+            : FluentInfoSeverity.warning,
       );
     } catch (error) {
+      _wxmpValidating = false;
       _wxmpConfigMessage = '重新加载配置失败：$error';
       notifyListeners();
       return SettingsWechatFeedback(
@@ -309,6 +355,15 @@ class SettingsWechatController extends ChangeNotifier {
   /// 一键切换微信分区全部相关开关。
   Future<SettingsWechatFeedback> setWechatPageEnabled(bool enabled) async {
     await setAutoRefreshEnabled(enabled);
+    await setWechatMatrixEnabled(enabled);
+    return SettingsWechatFeedback(
+      title: enabled ? '已启用微信推文页全部开关' : '已关闭微信推文页全部开关',
+      severity: enabled ? FluentInfoSeverity.success : FluentInfoSeverity.info,
+    );
+  }
+
+  /// 一键切换微信矩阵公众号获取开关，不影响自动刷新设置。
+  Future<SettingsWechatFeedback> setWechatMatrixEnabled(bool enabled) async {
     for (final mp in _wxmpFollowedMps) {
       final fakeid = mp['fakeid'] ?? '';
       if (fakeid.isEmpty) continue;
@@ -317,7 +372,7 @@ class SettingsWechatController extends ChangeNotifier {
     }
     notifyListeners();
     return SettingsWechatFeedback(
-      title: enabled ? '已启用微信推文页全部开关' : '已关闭微信推文页全部开关',
+      title: enabled ? '已启用微信矩阵全部公众号' : '已关闭微信矩阵全部公众号',
       severity: enabled ? FluentInfoSeverity.success : FluentInfoSeverity.info,
     );
   }

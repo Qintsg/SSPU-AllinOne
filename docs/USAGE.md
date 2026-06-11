@@ -10,8 +10,8 @@
 
 | 工具 | 最低版本 | 说明 |
 |------|----------|------|
-| Flutter SDK | 3.41.7 | 框架主体，包含 Dart SDK |
-| Dart SDK | 3.11.5 | 随 Flutter SDK 一同安装 |
+| Flutter SDK | 3.44.0 | 框架主体，包含 Dart SDK |
+| Dart SDK | 3.12.0 | 随 Flutter SDK 一同安装 |
 | Git | 2.x | 版本控制 |
 
 ### 1.2 平台开发工具

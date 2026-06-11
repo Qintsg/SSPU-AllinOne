@@ -335,6 +335,13 @@ mixin _SettingsPageActions on State<SettingsPage> {
     setState(() => apply(visible));
   }
 
+  /// 打开校历查看页。
+  void _openAcademicCalendar() {
+    Navigator.of(
+      context,
+    ).push(FluentPageRoute(builder: (_) => AcademicCalendarPage()));
+  }
+
   /// 修改勿扰开始时间。
   Future<void> _onDndStartChanged(int hour, int minute) async {
     await _messageState.setDndTime(
@@ -534,14 +541,14 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
   /// 清理信息中心缓存。
   Future<void> _showClearMessageCacheDialog() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showFluentDialog<bool>(
       context: context,
       builder: (ctx) => FluentDialog(
         title: const Text('清理信息中心缓存'),
-        content: const Text(
-          '此操作将清除信息中心缓存的所有消息（包括官网消息和微信公众号文章）。\n\n'
-          '登录信息、设置和关注列表不受影响。\n'
-          '是否继续？',
+        content: const FluentDialogMessage(
+          icon: FluentIcons.broom,
+          message: '将清除信息中心缓存的官网消息和微信公众号文章。',
+          details: '登录信息、设置和关注列表不会受到影响。点击弹窗外区域可取消本次操作。',
         ),
         actions: [
           FluentButton.outline(
@@ -574,13 +581,15 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
   /// 清除所有本地数据并退出。
   Future<void> _showClearAllDataDialog() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showFluentDialog<bool>(
       context: context,
       builder: (ctx) => FluentDialog(
         title: const Text('确认清除所有数据'),
-        content: const Text(
-          '此操作将清除所有本地数据（包括登录信息、设置等），应用将退出。\n'
-          '是否继续？',
+        content: const FluentDialogMessage(
+          icon: FluentIcons.delete,
+          tone: FluentDialogMessageTone.danger,
+          message: '将清除所有本地数据，包括登录信息、设置和缓存。',
+          details: '操作完成后应用会退出。点击弹窗外区域可取消本次操作。',
         ),
         actions: [
           FluentButton.outline(

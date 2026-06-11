@@ -46,6 +46,10 @@ class AcademicStudentReportCard extends StatelessWidget {
         header: _SecondClassroomCardHeader(
           summary: summary,
           canOpenDetail: result?.isSuccess == true && summary != null,
+          lastRefreshLabel: _studentReportLastRefreshLabel(result),
+          isLoading: isLoading,
+          refreshFeedback: refreshFeedback,
+          onRefresh: onRefresh,
         ),
         body: _SecondClassroomCardContent(
           result: result,
@@ -53,12 +57,6 @@ class AcademicStudentReportCard extends StatelessWidget {
           isLoading: isLoading,
           autoRefreshEnabled: autoRefreshEnabled,
           severityForStatus: _studentReportSeverity,
-        ),
-        footer: _SecondClassroomRefreshFooter(
-          lastRefreshLabel: _studentReportLastRefreshLabel(result),
-          isLoading: isLoading,
-          refreshFeedback: refreshFeedback,
-          onRefresh: onRefresh,
         ),
       ),
     );
@@ -147,34 +145,44 @@ class _SecondClassroomCardHeader extends StatelessWidget {
   const _SecondClassroomCardHeader({
     required this.summary,
     required this.canOpenDetail,
+    required this.lastRefreshLabel,
+    required this.isLoading,
+    required this.refreshFeedback,
+    required this.onRefresh,
   });
 
   final SecondClassroomCreditSummary? summary;
   final bool canOpenDetail;
+  final String lastRefreshLabel;
+  final bool isLoading;
+  final RefreshActionFeedback? refreshFeedback;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
     final accent = context.fluentAccents.secondClassroom;
-    final title = Row(
-      children: [
-        FluentSurfaceIcon(icon: FluentIcons.education, color: accent),
-        const SizedBox(width: FluentSpacing.m),
-        Expanded(
-          child: Text(
-            '第二课堂学分',
-            style: theme.typography.subtitle?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
-    );
     final detailAction = _buildDetailAction(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: title),
+        FluentSurfaceIcon(icon: FluentIcons.education, color: accent),
+        const SizedBox(width: FluentSpacing.m),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '第二课堂学分',
+                style: theme.typography.subtitle?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: FluentSpacing.xxs),
+              _buildRefreshLine(context),
+            ],
+          ),
+        ),
         const SizedBox(width: FluentSpacing.s),
         detailAction,
       ],
@@ -199,28 +207,6 @@ class _SecondClassroomCardHeader extends StatelessWidget {
           Icon(FluentIcons.chevronRight, size: 14),
         ],
       ),
-    );
-  }
-}
-
-class _SecondClassroomRefreshFooter extends StatelessWidget {
-  const _SecondClassroomRefreshFooter({
-    required this.lastRefreshLabel,
-    required this.isLoading,
-    required this.refreshFeedback,
-    required this.onRefresh,
-  });
-
-  final String lastRefreshLabel;
-  final bool isLoading;
-  final RefreshActionFeedback? refreshFeedback;
-  final VoidCallback onRefresh;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: _buildRefreshLine(context),
     );
   }
 

@@ -355,6 +355,49 @@ void main() {
     expect(result.entries.single.isStale, isTrue);
     expect(cached?.isStale, isTrue);
   });
+
+  test('校历查看器首次或超过一个月进入时自动刷新', () async {
+    final schedule = AcademicCalendarService.parseTermScheduleFromText(
+      _pdfText2025,
+      schoolYearStart: 2025,
+    )!;
+    await StorageService.saveData(
+      AcademicCalendarService.cacheCollection,
+      '2025',
+      _calendarEntry(schedule: schedule).toJson(),
+    );
+    await StorageService.setString(
+      StorageKeys.academicCalendarLastAutoRefreshAt,
+      DateTime(2026, 6, 1).toUtc().toIso8601String(),
+    );
+
+    final adapter = _CalendarHttpAdapter({
+      AcademicCalendarService.buildListUrl(1): _listOnly2025Html,
+      'https://jwc.sspu.edu.cn/2025/0424/c955a161607/page.htm':
+          _detailPdfPlayerHtml,
+      'https://jwc.sspu.edu.cn/_upload/a.pdf': Uint8List.fromList([
+        37,
+        80,
+        68,
+        70,
+      ]),
+    });
+    HttpService.instance.dio.httpClientAdapter = adapter;
+    final service = AcademicCalendarService(
+      pdfTextExtractor: (_) async => _pdfText2025,
+    );
+
+    final cachedResult = await service.ensureCalendarsForViewer(
+      now: DateTime(2026, 6, 20),
+    );
+    final refreshedResult = await service.ensureCalendarsForViewer(
+      now: DateTime(2026, 7, 5),
+    );
+
+    expect(cachedResult.refreshed, isFalse);
+    expect(refreshedResult.refreshed, isTrue);
+    expect(adapter.requestCount, 3);
+  });
 }
 
 AcademicCalendarCacheEntry _calendarEntry({
@@ -385,6 +428,7 @@ class _CalendarHttpAdapter implements HttpClientAdapter {
 
   final Map<String, Object> responses;
   final bool failAllRequests;
+  int requestCount = 0;
 
   @override
   Future<ResponseBody> fetch(
@@ -392,6 +436,7 @@ class _CalendarHttpAdapter implements HttpClientAdapter {
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
+    requestCount++;
     if (failAllRequests) {
       throw DioException.connectionError(
         requestOptions: options,

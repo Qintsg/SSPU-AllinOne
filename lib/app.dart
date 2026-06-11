@@ -341,14 +341,20 @@ class _FluentNavigationShell extends StatelessWidget {
         selected: selectedIndex,
         onChanged: onChanged,
         displayMode: displayMode,
-        header: Padding(
-          padding: const EdgeInsetsDirectional.fromSTEB(
-            AppSpacing.lg,
-            AppSpacing.lg,
-            AppSpacing.lg,
-            AppSpacing.md,
+        size: const NavigationPaneSize(
+          compactWidth: _AppNavigationMetrics.paneRailWidth,
+          openWidth: _AppNavigationMetrics.paneOpenWidth,
+          headerHeight: _AppNavigationMetrics.paneHeaderHeight,
+        ),
+        toggleButton: const _AppPaneToggleButton(),
+        header: Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Text(
+            AppDisplayName.of(context),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: type.title2,
           ),
-          child: Text(AppDisplayName.of(context), style: type.title2),
         ),
         items: [
           for (final destination in destinations)
@@ -363,6 +369,48 @@ class _FluentNavigationShell extends StatelessWidget {
         destinations: destinations,
         selectedIndex: selectedIndex,
         visitedIndexes: visitedIndexes,
+      ),
+    );
+  }
+}
+
+/// 主导航尺寸常量，确保展开 / 收起状态共用同一套头部轨道。
+class _AppNavigationMetrics {
+  const _AppNavigationMetrics._();
+
+  /// 收起态侧边轨道宽度。
+  static const double paneRailWidth = 50;
+
+  /// 展开态侧边栏宽度。
+  static const double paneOpenWidth = 232;
+
+  /// 顶部菜单按钮槽高度。
+  static const double paneHeaderHeight = 50;
+
+  /// 菜单按钮图标尺寸。
+  static const double paneToggleIconSize = 16;
+}
+
+/// 主导航菜单按钮。
+///
+/// 外部 `NavigationPane` 在 compact 和 expanded 下会给内置按钮套不同的
+/// 头部结构，因此这里固定按钮自身宽高，让三种状态的图标中心一致。
+class _AppPaneToggleButton extends StatelessWidget {
+  const _AppPaneToggleButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: _AppNavigationMetrics.paneRailWidth,
+      height: _AppNavigationMetrics.paneHeaderHeight,
+      child: Center(
+        child: IconButton(
+          icon: const Icon(
+            WindowsIcons.global_nav_button,
+            size: _AppNavigationMetrics.paneToggleIconSize,
+          ),
+          onPressed: () => NavigationView.maybeOf(context)?.togglePane(),
+        ),
       ),
     );
   }

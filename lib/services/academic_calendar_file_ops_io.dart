@@ -16,7 +16,7 @@ import 'http_service.dart';
 
 /// 从 PDF 文件抽取全文。
 Future<String> extractAcademicCalendarPdfText(String pdfFilePath) async {
-  await pdfrxFlutterInitialize(dismissPdfiumWasmWarnings: true);
+  await pdfrxFlutterInitialize();
   final document = await PdfDocument.openFile(pdfFilePath);
   final buffer = StringBuffer();
   try {
