@@ -41,7 +41,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
         ),
         actionReservedWidth: _campusCardRefreshController.feedback == null
             ? 32
-            : 180,
+            : 112,
         action: RefreshFeedbackAction(
           key: const Key('home-campus-card-refresh'),
           tooltip: '刷新校园卡余额',
@@ -52,7 +52,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
           minTouchSize: 32,
           size: 28,
           iconSize: 15,
-          maxFeedbackWidth: 180,
+          maxFeedbackWidth: 112,
         ),
       ),
       child: ConstrainedBox(
