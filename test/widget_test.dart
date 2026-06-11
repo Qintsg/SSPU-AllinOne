@@ -666,11 +666,15 @@ void main() {
 
     expect(find.text('第一条反馈'), findsNothing);
     expect(find.text('第二条反馈'), findsOneWidget);
-    expect(find.byKey(const Key('app-feedback-toast')), findsOneWidget);
+    final toast = find.byKey(const Key('app-feedback-toast'));
+    expect(toast, findsOneWidget);
+    expect(tester.getTopLeft(toast).dy, lessThan(120));
+    expect(tester.getBottomLeft(toast).dy, lessThan(260));
     expect(find.byType(FluentInfoBar), findsNothing);
 
     await tester.pump(const Duration(seconds: 3));
     await tester.pump();
+    expect(toast, findsNothing);
   });
 
   testWidgets('WebView 遇到无效链接时显示错误页', (WidgetTester tester) async {
@@ -862,9 +866,9 @@ void main() {
       expect(userAgentTop < appIdTop, isTrue);
 
       final cancelLeft = tester.getTopLeft(find.text('取消')).dx;
-      final contentLeft = tester.getTopLeft(
-        find.byKey(const Key('wechat-config-dialog-content')),
-      ).dx;
+      final contentLeft = tester
+          .getTopLeft(find.byKey(const Key('wechat-config-dialog-content')))
+          .dx;
       expect(cancelLeft > contentLeft + contentBox.size.width / 2, isTrue);
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());

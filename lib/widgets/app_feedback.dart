@@ -9,6 +9,9 @@
 import '../design/fluent_ui.dart';
 
 OverlayEntry? _activeFeedbackEntry;
+int _feedbackGeneration = 0;
+
+const _feedbackVisibleDuration = Duration(seconds: 3);
 
 /// 页面反馈级别。
 enum AppFeedbackSeverity {
@@ -51,6 +54,7 @@ void showFluentInfoBar(
 }) {
   _activeFeedbackEntry?.remove();
   _activeFeedbackEntry = null;
+  final generation = ++_feedbackGeneration;
 
   late OverlayEntry entry;
   void close() {
@@ -62,29 +66,47 @@ void showFluentInfoBar(
   }
 
   entry = OverlayEntry(
-    builder: (context) => SafeArea(
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Padding(
-          padding: EdgeInsetsDirectional.symmetric(
-            horizontal: context.fluentSpacing.xl,
-            vertical: context.fluentSpacing.xxl,
-          ),
+    builder: (context) {
+      final spacing = context.fluentSpacing;
+      final media = MediaQuery.of(context);
+      final maxWidth =
+          (media.size.width -
+                  media.padding.left -
+                  media.padding.right -
+                  spacing.l * 2)
+              .clamp(0.0, context.appMetrics.feedbackToastMaxWidth)
+              .toDouble();
+      return PositionedDirectional(
+        top: media.padding.top + spacing.l,
+        end: media.padding.right + spacing.l,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
           child: _CompactFeedbackToast(
             title: title,
             content: content,
             severity: severity,
-            action: actionBuilder?.call(close),
+            action:
+                actionBuilder?.call(close) ??
+                FluentIconButton(
+                  icon: const Icon(FluentIcons.clear),
+                  onPressed: close,
+                  tooltip: '关闭反馈',
+                  size: 28,
+                  iconSize: 14,
+                ),
           ),
         ),
-      ),
-    ),
+      );
+    },
   );
 
   _activeFeedbackEntry = entry;
   Overlay.of(context).insert(entry);
-  Future<void>.delayed(const Duration(seconds: 3), () {
-    if (identical(_activeFeedbackEntry, entry)) close();
+  Future<void>.delayed(_feedbackVisibleDuration, () {
+    if (generation == _feedbackGeneration &&
+        identical(_activeFeedbackEntry, entry)) {
+      close();
+    }
   });
 }
 
@@ -120,6 +142,7 @@ class _CompactFeedbackToast extends StatelessWidget {
     return ConstrainedBox(
       key: const Key('app-feedback-toast'),
       constraints: BoxConstraints(
+        minWidth: 0,
         maxWidth: context.appMetrics.feedbackToastMaxWidth,
       ),
       child: DecoratedBox(
@@ -152,6 +175,8 @@ class _CompactFeedbackToast extends StatelessWidget {
                   style: context.fluentType.body1.copyWith(
                     color: colors.neutralForeground1,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,6 +188,8 @@ class _CompactFeedbackToast extends StatelessWidget {
                           style: context.fluentType.caption1.copyWith(
                             color: colors.neutralForeground2,
                           ),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
                           child: content!,
                         ),
                       ],
