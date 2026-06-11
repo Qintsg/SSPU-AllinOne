@@ -632,6 +632,7 @@ jobs:
         uses: softprops/action-gh-release@v3.0.0
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           name: ${{ needs.prepare.outputs.release_title }}
           body_path: dist/release-notes.md
           prerelease: ${{ needs.prepare.outputs.prerelease }}
