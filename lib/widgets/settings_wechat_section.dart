@@ -31,18 +31,6 @@ class SettingsWechatSection extends StatefulWidget {
 class _SettingsWechatSectionState extends State<SettingsWechatSection> {
   late final SettingsWechatController _controller;
 
-  bool get _canOpenConfigDirectory {
-    if (kIsWeb) return false;
-    return switch (defaultTargetPlatform) {
-      TargetPlatform.windows ||
-      TargetPlatform.macOS ||
-      TargetPlatform.linux => true,
-      TargetPlatform.android ||
-      TargetPlatform.iOS ||
-      TargetPlatform.fuchsia => false,
-    };
-  }
-
   @override
   void initState() {
     super.initState();
@@ -199,7 +187,10 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
   }
 
   Widget _buildAuthCard(FluentThemeData theme) {
-    final isDark = theme.brightness == Brightness.dark;
+    final statusTone = _controller.wxmpAuthenticated
+        ? FluentStatusChipTone.success
+        : FluentStatusChipTone.warning;
+
     return FluentCard(
       padding: EdgeInsets.zero,
       child: Padding(
@@ -207,17 +198,20 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('公众号平台认证', style: theme.typography.bodyStrong),
-            const SizedBox(height: FluentSpacing.xs),
-            Text(
-              '通过公众号管理平台 (mp.weixin.qq.com) 获取推文，需拥有公众号（个人订阅号即可）',
-              style: theme.typography.caption,
-            ),
-            const SizedBox(height: FluentSpacing.xs),
-            Text(
-              '高级配置已合并到认证配置中，扫码登录成功后会自动更新配置文件。'
-              '用户配置与文章缓存统一保存在 ~/.sspu-aio/。',
-              style: theme.typography.caption,
+            Wrap(
+              spacing: FluentSpacing.s,
+              runSpacing: FluentSpacing.s,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text('公众号平台认证', style: theme.typography.bodyStrong),
+                FluentStatusChip(
+                  label: _controller.wxmpAuthenticated ? '已认证' : '未认证',
+                  tone: statusTone,
+                  icon: _controller.wxmpAuthenticated
+                      ? FluentIcons.checkMark
+                      : FluentIcons.warning,
+                ),
+              ],
             ),
             if (_controller.wxmpAuthStatus != null) ...[
               const SizedBox(height: FluentSpacing.xs),
@@ -232,20 +226,11 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
             SelectableText(
               _controller.wxmpConfigPath.isEmpty
                   ? '认证配置路径加载中...'
-                  : _controller.wxmpConfigPath,
+                  : '配置文件：${_controller.wxmpConfigPath}',
               style: theme.typography.caption?.copyWith(
                 color: theme.resources.textFillColorSecondary,
               ),
             ),
-            if (_controller.stateFilePath.isNotEmpty) ...[
-              const SizedBox(height: FluentSpacing.xxs),
-              SelectableText(
-                '状态与缓存：${_controller.stateFilePath}',
-                style: theme.typography.caption?.copyWith(
-                  color: theme.resources.textFillColorSecondary,
-                ),
-              ),
-            ],
             if (_controller.wxmpConfigMessage.isNotEmpty) ...[
               const SizedBox(height: FluentSpacing.xxs),
               Text(
@@ -255,29 +240,6 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
                 ),
               ),
             ],
-            const SizedBox(height: FluentSpacing.m),
-            Row(
-              children: [
-                Icon(
-                  _controller.wxmpAuthenticated
-                      ? FluentIcons.checkMark
-                      : FluentIcons.warning,
-                  size: 16,
-                  color: _controller.wxmpAuthenticated
-                      ? (isDark
-                            ? FluentDarkColors.statusSuccess
-                            : FluentLightColors.statusSuccess)
-                      : (isDark
-                            ? FluentDarkColors.statusWarning
-                            : FluentLightColors.statusWarning),
-                ),
-                const SizedBox(width: FluentSpacing.s),
-                Text(
-                  _controller.wxmpAuthenticated ? '已认证' : '未认证',
-                  style: theme.typography.body,
-                ),
-              ],
-            ),
             const SizedBox(height: FluentSpacing.m),
             Wrap(
               spacing: FluentSpacing.s,
@@ -294,29 +256,6 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
                     ],
                   ),
                 ),
-                if (_controller.wxmpAuthenticated)
-                  FluentButton.outline(
-                    onPressed: _controller.wxmpValidating
-                        ? null
-                        : () async =>
-                              _showFeedback(await _controller.validateAuth()),
-                    child: _controller.wxmpValidating
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: FluentProgressRing(strokeWidth: 2),
-                          )
-                        : const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(FluentIcons.shield, size: 14),
-                              SizedBox(
-                                width: FluentSpacing.xs + FluentSpacing.xxs,
-                              ),
-                              Text('校验有效性'),
-                            ],
-                          ),
-                  ),
                 FluentButton.outline(
                   onPressed: _openConfigEditor,
                   child: const Row(
@@ -328,28 +267,34 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
                     ],
                   ),
                 ),
-                if (_canOpenConfigDirectory)
-                  FluentButton.outline(
-                    onPressed: () async =>
-                        _showFeedback(await _controller.openConfigDirectory()),
-                    child: const Text('打开配置文件所在文件夹'),
-                  ),
                 FluentButton.outline(
-                  onPressed: () async =>
-                      _showFeedback(await _controller.openConfigFile()),
-                  child: const Text('外部打开'),
+                  onPressed: _controller.wxmpValidating
+                      ? null
+                      : () async =>
+                            _showFeedback(await _controller.reloadConfigFile()),
+                  child: _controller.wxmpValidating
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: FluentProgressRing(strokeWidth: 2),
+                        )
+                      : const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(FluentIcons.sync, size: 14),
+                            SizedBox(
+                              width: FluentSpacing.xs + FluentSpacing.xxs,
+                            ),
+                            Text('重新加载配置并校验'),
+                          ],
+                        ),
                 ),
                 FluentButton.outline(
-                  onPressed: () async =>
-                      _showFeedback(await _controller.reloadConfigFile()),
-                  child: const Text('重新加载配置'),
+                  onPressed: _controller.wxmpAuthenticated
+                      ? () async => _showFeedback(await _controller.clearAuth())
+                      : null,
+                  child: const Text('清除认证'),
                 ),
-                if (_controller.wxmpAuthenticated)
-                  FluentButton.outline(
-                    onPressed: () async =>
-                        _showFeedback(await _controller.clearAuth()),
-                    child: const Text('清除认证'),
-                  ),
               ],
             ),
           ],

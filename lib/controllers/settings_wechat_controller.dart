@@ -251,22 +251,37 @@ class SettingsWechatController extends ChangeNotifier {
     }
   }
 
-  /// 重新加载认证配置文件。
+  /// 重新加载认证配置文件并校验认证可用性。
   Future<SettingsWechatFeedback> reloadConfigFile() async {
+    if (_wxmpValidating) {
+      return const SettingsWechatFeedback(
+        title: '正在校验中',
+        severity: FluentInfoSeverity.info,
+      );
+    }
+
+    _wxmpValidating = true;
+    notifyListeners();
+
     try {
       final config = await _wxmpConfigService.loadConfig();
+      final validation = await _wechatService.validateSource();
       final authStatus = await _wxmpAuth.getAuthStatus();
-      _wxmpAuthenticated = authStatus.isUsable;
+      _wxmpAuthenticated = validation.isValid && authStatus.isUsable;
       _wxmpAuthStatus = authStatus;
+      _wxmpValidating = false;
       _wxmpConfigMessage =
-          '已重新加载：单次请求 ${config.perRequestArticleCount} 条，间隔 ${config.requestDelayMs}ms';
+          '${validation.message}；单次请求 ${config.perRequestArticleCount} 条，间隔 ${config.requestDelayMs}ms';
       notifyListeners();
       return SettingsWechatFeedback(
-        title: '配置已重新加载',
+        title: validation.isValid ? '配置已重新加载并通过校验' : '配置已重新加载但认证不可用',
         content: _wxmpConfigMessage,
-        severity: FluentInfoSeverity.success,
+        severity: validation.isValid
+            ? FluentInfoSeverity.success
+            : FluentInfoSeverity.warning,
       );
     } catch (error) {
+      _wxmpValidating = false;
       _wxmpConfigMessage = '重新加载配置失败：$error';
       notifyListeners();
       return SettingsWechatFeedback(

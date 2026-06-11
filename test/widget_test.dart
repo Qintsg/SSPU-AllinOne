@@ -746,8 +746,11 @@ void main() {
       await pumpUntilFound(tester, find.text('编辑配置文件'));
 
       expect(find.text('编辑配置文件'), findsOneWidget);
-      expect(find.text('打开配置文件所在文件夹'), findsOneWidget);
-      expect(find.text('外部打开'), findsOneWidget);
+      expect(find.text('重新加载配置并校验'), findsOneWidget);
+      expect(find.text('清除认证'), findsOneWidget);
+      expect(find.text('打开配置文件所在文件夹'), findsNothing);
+      expect(find.text('外部打开'), findsNothing);
+      expect(find.text('校验有效性'), findsNothing);
       expect(find.text('使用 Visual Studio Code 打开配置文件'), findsNothing);
       expect(find.text('刷新设置'), findsOneWidget);
       expect(find.text('全部开启'), findsOneWidget);
