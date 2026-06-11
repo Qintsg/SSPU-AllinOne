@@ -199,6 +199,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
   /// 带动画的滚动内容区。
   Widget _buildScrollableContent(EdgeInsets padding) {
     return SingleChildScrollView(
+      primary: false,
       padding: padding,
       child: _buildContentPanel(context)
           .animate(key: ValueKey(_selectedTab))

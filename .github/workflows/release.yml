@@ -277,6 +277,12 @@ jobs:
   build-macos:
     needs: prepare
     runs-on: macos-latest
+    env:
+      MACOS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.MACOS_SIGNING_CERTIFICATE_BASE64 }}
+      MACOS_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_SIGNING_CERTIFICATE_PASSWORD }}
+      MACOS_NOTARY_APPLE_ID: ${{ secrets.MACOS_NOTARY_APPLE_ID }}
+      MACOS_NOTARY_TEAM_ID: ${{ secrets.MACOS_NOTARY_TEAM_ID }}
+      MACOS_NOTARY_PASSWORD: ${{ secrets.MACOS_NOTARY_PASSWORD }}
     steps:
       - uses: actions/checkout@v6.0.3
 
@@ -284,14 +290,58 @@ jobs:
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
 
-      - name: 构建 macOS universal
-        run: flutter build macos --release
-
-      - name: 生成 macOS DMG
+      - name: 导入 macOS 签名证书
+        id: signing
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p dist
+
+          missing_secrets=()
+          for secret_name in \
+            MACOS_SIGNING_CERTIFICATE_BASE64 \
+            MACOS_SIGNING_CERTIFICATE_PASSWORD \
+            MACOS_NOTARY_APPLE_ID \
+            MACOS_NOTARY_TEAM_ID \
+            MACOS_NOTARY_PASSWORD; do
+            if [[ -z "${!secret_name:-}" ]]; then
+              missing_secrets+=("$secret_name")
+            fi
+          done
+
+          if [[ "${#missing_secrets[@]}" -gt 0 ]]; then
+            printf 'macOS 签名 Secrets 缺失：%s，将产出 unsigned DMG。\n' "${missing_secrets[*]}"
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          TEMP_KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+          TEMP_KEYCHAIN="macos-signing.keychain-db"
+          security create-keychain -p "$TEMP_KEYCHAIN_PASSWORD" "$TEMP_KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$TEMP_KEYCHAIN"
+          security unlock-keychain -p "$TEMP_KEYCHAIN_PASSWORD" "$TEMP_KEYCHAIN"
+
+          printf '%s' "$MACOS_SIGNING_CERTIFICATE_BASE64" | base64 --decode > signing-cert.p12
+          security import signing-cert.p12 \
+            -k "$TEMP_KEYCHAIN" \
+            -P "$MACOS_SIGNING_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/notarytool
+          security set-key-partition-list -S apple-tool:,apple: \
+            -s -k "$TEMP_KEYCHAIN_PASSWORD" "$TEMP_KEYCHAIN"
+
+          security list-keychains -d user -s "$TEMP_KEYCHAIN" $(security list-keychains -d user | sed s/\"//g)
+
+          rm signing-cert.p12
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: 构建 macOS universal
+        run: flutter build macos --release
+
+      - name: 签名 macOS App Bundle
+        if: steps.signing.outputs.signed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
 
           macos_app_bundle="$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
           [[ -n "$macos_app_bundle" ]] || {
@@ -299,8 +349,36 @@ jobs:
             exit 1
           }
 
-          # Flutter/Xcode 可能在最终签名中残留 sandbox 相关 entitlement，打包前统一剥离。
-          codesign --force --deep --sign - "$macos_app_bundle"
+          DEVELOPER_ID="$(security find-identity -v -p basic | grep 'Developer ID Application' | head -1 | awk '{print $2}')"
+          [[ -n "$DEVELOPER_ID" ]] || {
+            echo "未找到 Developer ID Application 证书。" >&2
+            exit 1
+          }
+          echo "使用签名身份: $DEVELOPER_ID"
+
+          codesign --force --deep --sign "$DEVELOPER_ID" \
+            --options runtime \
+            --entitlements macos/Runner/Release.entitlements \
+            --timestamp \
+            "$macos_app_bundle"
+
+          codesign --verify --deep --strict --verbose=2 "$macos_app_bundle"
+
+      - name: 剥离 unsigned 构建 entitlement
+        if: steps.signing.outputs.signed != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          macos_app_bundle="$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
+          [[ -n "$macos_app_bundle" ]] || {
+            echo "未找到 macOS .app 产物。" >&2
+            exit 1
+          }
+
+          codesign --force --deep --sign - \
+            --entitlements macos/Runner/Release-unsigned.entitlements \
+            "$macos_app_bundle"
           codesign --verify --deep --strict --verbose=2 "$macos_app_bundle"
 
           app_entitlements="$(codesign -d --entitlements :- "$macos_app_bundle" 2>/dev/null || true)"
@@ -310,17 +388,85 @@ jobs:
             exit 1
           fi
 
-          hdiutil create \
-            -volname "SSPU-AllinOne" \
-            -srcfolder "$macos_app_bundle" \
-            -ov \
-            -format UDZO \
-            "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-universal-unsigned.dmg"
+      - name: 生成 macOS DMG
+        id: dmg
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+
+          macos_app_bundle="$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
+
+          npm install -g appdmg
+
+          staging="dmg-staging"
+          mkdir -p "$staging"
+          cp -R "$macos_app_bundle" "$staging/"
+          cp .github/installer/macos/bg.png "$staging/bg.png"
+
+          APP_VERSION="${{ needs.prepare.outputs.public_version }}"
+          APP_BUILD="${{ needs.prepare.outputs.build_number }}"
+
+          cat > "$staging/config.json" << APPDMG_EOF
+          {
+            "title": "SSPU-AllinOne v${APP_VERSION} (${APP_BUILD})",
+            "icon-size": 80,
+            "window": {
+              "size": {
+                "width": 520,
+                "height": 360
+              }
+            },
+            "background": "bg.png",
+            "contents": [
+              { "x": 130, "y": 215, "type": "file", "path": "SSPU-AllinOne.app" },
+              { "x": 395, "y": 215, "type": "link", "path": "/Applications" }
+            ]
+          }
+          APPDMG_EOF
+
+          if [[ '${{ steps.signing.outputs.signed }}' == 'true' ]]; then
+            dmg_suffix="universal"
+          else
+            dmg_suffix="universal-unsigned"
+          fi
+
+          appdmg "$staging/config.json" \
+            "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-${dmg_suffix}.dmg"
+
+          rm -rf "$staging"
+          echo "dmg_suffix=${dmg_suffix}" >> "$GITHUB_OUTPUT"
+
+      - name: 公证 DMG
+        if: steps.signing.outputs.signed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          dmg_path="dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-universal.dmg"
+
+          notarytool submit "$dmg_path" \
+            --apple-id "$MACOS_NOTARY_APPLE_ID" \
+            --team-id "$MACOS_NOTARY_TEAM_ID" \
+            --password "$MACOS_NOTARY_PASSWORD" \
+            --wait \
+            --output-format plist > notarization.plist
+
+          notary_status="$(/usr/libexec/PlistBuddy -c "Print :status" notarization.plist)"
+          if [[ "$notary_status" != "Accepted" ]]; then
+            echo "公证失败: $notary_status" >&2
+            cat notarization.plist >&2
+            exit 1
+          fi
+
+          echo "公证通过，装订票据..."
+          stapler staple "$dmg_path"
+          echo "装订完成"
 
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: macos-dmg
-          path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-universal-unsigned.dmg
+          path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-${{ steps.dmg.outputs.dmg_suffix }}.dmg
 
   build-linux:
     needs: prepare
@@ -436,34 +582,6 @@ jobs:
             dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-arm64-rpm.rpm
             dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-arm64-portable.tar.gz
 
-  build-web:
-    needs: prepare
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6.0.3
-
-      - uses: ./.github/actions/setup-flutter
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-
-      - name: 构建 Web
-        run: flutter build web --release
-
-      - name: 打包 Web 静态站点
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p dist
-          cd build/web
-          zip -r \
-            "$GITHUB_WORKSPACE/dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-web-universal-static.zip" \
-            .
-
-      - uses: actions/upload-artifact@v7.0.1
-        with:
-          name: web-static
-          path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-web-universal-static.zip
-
   publish:
     if: needs.prepare.result == 'success'
     needs:
@@ -475,7 +593,6 @@ jobs:
         build-macos,
         build-linux,
         build-linux-arm64,
-        build-web,
       ]
     runs-on: ubuntu-latest
     permissions:

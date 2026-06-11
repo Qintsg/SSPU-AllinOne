@@ -11,6 +11,8 @@
 	<key>com.apple.security.network.server</key>
 	<true/>
 	<key>keychain-access-groups</key>
-	<array/>
+	<array>
+		<string>8LDARH2S3X.cn.qintsg.sspuAllinOne</string>
+	</array>
 </dict>
 </plist>

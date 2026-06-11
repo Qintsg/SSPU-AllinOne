@@ -11,6 +11,7 @@
 ### 变更
 
 - 完善 CI/CD 与仓库治理门禁：普通 PR 增加标题/分支/base 校验、变更 Dart 文件格式检查、`flutter test`、GitHub 治理配置校验、Dependency Review、PR Metadata 与 Issue Triage 自动化，并补齐标签字典与文档说明。
+- Release workflow 不再构建和发布 Web 静态站点，公开 Release 资产矩阵收敛到 Android、Windows、macOS 与 Linux。
 - 收敛 Release workflow 复用逻辑，将 Flutter 初始化、arm64 SDK 安装、Windows portable 打包和 Linux 多格式产物整理抽成 composite actions，降低多平台发布脚本重复度。
 - 收敛 PR 模板为默认通用模板与 Release 专项模板，并完善 Issue 表单的多选平台、影响模块、优先级建议、敏感信息提醒和验收字段。
 - 第二课堂学分改为解析学工报表规则矩阵、总计行和“已获分数”详情，并将缓存迁移到系统安全存储，旧版普通明文缓存不再读取。

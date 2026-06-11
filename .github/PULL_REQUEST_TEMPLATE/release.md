@@ -35,7 +35,7 @@ Closes #
 
 ## 影响范围
 - [ ] Flutter 前端（`lib/`）
-- [ ] 平台工程（Android / iOS / macOS / Linux / Windows / Web）
+- [ ] 平台工程（Android / iOS / macOS / Linux / Windows）
 - [ ] 依赖 / 工具链
 - [ ] GitHub 工作流 / Release
 - [ ] 安装包 / 构建产物
@@ -57,7 +57,6 @@ Closes #
 - [ ] Windows 构建验证
 - [ ] macOS 构建验证
 - [ ] Linux 构建验证
-- [ ] Web 构建验证
 - [ ] 手动验证（请补充关键路径）
 - [ ] 未执行部分验证（请说明原因）
 
