@@ -199,6 +199,34 @@ void main() {
     expect(find.textContaining('仍可输入密码解锁'), findsOneWidget);
   });
 
+  testWidgets('数据管理操作在宽屏整合为一行', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    await tester.binding.setSurfaceSize(const Size(960, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpSecuritySection(
+      tester,
+      isPasswordEnabled: false,
+      isQuickAuthEnabled: false,
+      isQuickAuthAvailable: false,
+    );
+    await pumpUntilFound(tester, find.text('数据管理'));
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-clear-all-data')),
+    );
+    await tester.pumpAndSettle();
+
+    final cacheButton = find.byKey(const Key('settings-clear-message-cache'));
+    final clearButton = find.byKey(const Key('settings-clear-all-data'));
+    expect(cacheButton, findsOneWidget);
+    expect(clearButton, findsOneWidget);
+    expect(
+      (tester.getCenter(cacheButton).dy - tester.getCenter(clearButton).dy)
+          .abs(),
+      lessThan(1),
+    );
+  });
+
   testWidgets('窄屏安全设置堆叠 quick auth 与数据管理操作', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});
     await configureNarrowView(tester);

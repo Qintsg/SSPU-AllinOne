@@ -17,9 +17,11 @@ import '../services/academic_oa_session_prewarm_service.dart';
 import '../services/academic_login_validation_service.dart';
 import '../theme/fluent_tokens.dart';
 import 'app_feedback.dart';
+import 'responsive_layout.dart';
 import 'settings_widgets.dart';
 
 part 'settings_security_credentials_section.dart';
+part 'settings_security_data_management.dart';
 
 /// 安全设置分区。
 class SettingsSecuritySection extends StatefulWidget {
@@ -372,54 +374,9 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
             const SizedBox(height: FluentSpacing.xl),
             const Divider(),
             const SizedBox(height: FluentSpacing.l),
-            Text('数据管理', style: FluentTheme.of(context).typography.subtitle),
-            const SizedBox(height: FluentSpacing.xs),
-            Text(
-              '清理信息中心缓存的消息，不影响登录信息和设置',
-              style: FluentTheme.of(context).typography.caption,
-            ),
-            const SizedBox(height: FluentSpacing.m),
-            Wrap(
-              spacing: FluentSpacing.s,
-              runSpacing: FluentSpacing.s,
-              children: [
-                FluentButton.outline(
-                  onPressed: widget.onClearMessageCache,
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(FluentIcons.broom, size: 14),
-                      SizedBox(width: FluentSpacing.xs + FluentSpacing.xxs),
-                      Text('清理信息中心缓存'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: FluentSpacing.l),
-            const Divider(),
-            const SizedBox(height: FluentSpacing.l),
-            Text(
-              '清除所有本地数据（包括登录信息、设置、缓存等），应用将退出',
-              style: FluentTheme.of(context).typography.caption,
-            ),
-            const SizedBox(height: FluentSpacing.m),
-            Wrap(
-              spacing: FluentSpacing.s,
-              runSpacing: FluentSpacing.s,
-              children: [
-                FluentButton.outline(
-                  onPressed: widget.onClearAllData,
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(FluentIcons.delete, size: 14),
-                      SizedBox(width: FluentSpacing.xs + FluentSpacing.xxs),
-                      Text('清除所有数据'),
-                    ],
-                  ),
-                ),
-              ],
+            _DataManagementRow(
+              onClearMessageCache: widget.onClearMessageCache,
+              onClearAllData: widget.onClearAllData,
             ),
           ],
         ),
