@@ -119,9 +119,14 @@ class SettingsWechatMatrixCard extends StatelessWidget {
                         fakeid.isNotEmpty &&
                         (mpNotificationEnabled[fakeid] ?? true);
                     final following = followingAccountId == account.wxAccount;
+                    final displayId = _resolveWechatAccountDisplayId(
+                      account,
+                      followed,
+                    );
 
                     final toggleButton = _WechatAccountToggleButton(
                       account: account,
+                      displayId: displayId,
                       authenticated: authenticated,
                       followed: followed != null,
                       enabled: enabled,
@@ -204,6 +209,7 @@ class SettingsWechatMatrixCard extends StatelessWidget {
 
 class _WechatAccountToggleButton extends StatelessWidget {
   final SspuWechatAccount account;
+  final String displayId;
   final bool authenticated;
   final bool followed;
   final bool enabled;
@@ -212,6 +218,7 @@ class _WechatAccountToggleButton extends StatelessWidget {
 
   const _WechatAccountToggleButton({
     required this.account,
+    required this.displayId,
     required this.authenticated,
     required this.followed,
     required this.enabled,
@@ -305,7 +312,7 @@ class _WechatAccountToggleButton extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          account.wxAccount,
+                          displayId,
                           style: type.caption1.copyWith(color: foreground),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -332,6 +339,19 @@ class _WechatAccountToggleButton extends StatelessWidget {
       ),
     );
   }
+}
+
+String _resolveWechatAccountDisplayId(
+  SspuWechatAccount account,
+  Map<String, String>? followed,
+) {
+  final alias = followed?['alias']?.trim();
+  if (alias != null && alias.isNotEmpty) return alias;
+
+  final recommended = followed?['recommended_wx_account']?.trim();
+  if (recommended != null && recommended.isNotEmpty) return recommended;
+
+  return account.wxAccount;
 }
 
 class _WechatAccountAvatar extends StatelessWidget {

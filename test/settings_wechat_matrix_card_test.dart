@@ -95,4 +95,42 @@ void main() {
 
     expect(toggled, isFalse);
   });
+
+  testWidgets('已关注胶囊下方显示公众号 ID', (tester) async {
+    final account = sspuWechatAccounts.firstWhere(
+      (account) => account.wxAccount != account.name,
+    );
+
+    await tester.pumpWidget(
+      FluentApp(
+        theme: AppTheme.build(Brightness.light),
+        home: ScaffoldPage(
+          content: SingleChildScrollView(
+            child: SettingsWechatMatrixCard(
+              authenticated: true,
+              batchFollowing: false,
+              batchProgress: '',
+              mpNotificationEnabled: const {'fakeid-1': true},
+              followedMps: [
+                {
+                  'fakeid': 'fakeid-1',
+                  'name': account.name,
+                  'alias': 'sspu-official-id',
+                  'recommended_wx_account': account.wxAccount,
+                },
+              ],
+              followingAccountId: '',
+              onBatchFollow: () {},
+              onToggleAccount: (_, _) async {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.text('sspu-official-id'), findsOneWidget);
+    expect(find.text(account.wxAccount), findsNothing);
+  });
 }
