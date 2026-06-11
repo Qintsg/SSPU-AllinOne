@@ -106,6 +106,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.byType(LegalNoticePage), findsOneWidget);
+    expect(find.text('返回'), findsOneWidget);
+
+    await tester.tap(find.text('返回'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LegalNoticePage), findsNothing);
+    expect(find.text('关于'), findsOneWidget);
   });
 
   testWidgets('关于页展示当前项目许可证和主要第三方组件', (tester) async {
