@@ -62,22 +62,24 @@ void showFluentInfoBar(
   }
 
   entry = OverlayEntry(
-    builder: (context) => SafeArea(
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Padding(
-          padding: const EdgeInsetsDirectional.symmetric(
-            horizontal: 16,
-            vertical: 24,
-          ),
-          child: PhysicalModel(
-            color: Colors.transparent,
-            elevation: 8,
-            child: FluentInfoBar(
-              title: title,
-              content: content,
-              severity: severity,
-              action: actionBuilder?.call(close),
+    builder: (context) => PrimaryScrollController.none(
+      child: SafeArea(
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: const EdgeInsetsDirectional.symmetric(
+              horizontal: 16,
+              vertical: 24,
+            ),
+            child: PhysicalModel(
+              color: Colors.transparent,
+              elevation: 8,
+              child: FluentInfoBar(
+                title: title,
+                content: content,
+                severity: severity,
+                action: actionBuilder?.call(close),
+              ),
             ),
           ),
         ),
