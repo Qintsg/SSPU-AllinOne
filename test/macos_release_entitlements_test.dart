@@ -22,7 +22,9 @@ void main() {
   });
 
   test('macOS DMG 打包前重新 ad-hoc 签名清理残留 entitlement', () {
-    final releaseWorkflow = File('.github/workflows/release.yml').readAsStringSync();
+    final releaseWorkflow = File(
+      '.github/workflows/release.yml',
+    ).readAsStringSync();
 
     // Release workflow 必须先剥离构建产物签名中的残留权限，再执行发布前拦截。
     final adHocSigningIndex = releaseWorkflow.indexOf(

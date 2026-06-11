@@ -132,7 +132,9 @@ class _AcademicCalendarPageState extends State<AcademicCalendarPage> {
               label: const Text('刷新校历'),
             ),
             FluentButton.outlineIcon(
-              onPressed: selected == null ? null : () => _openExternal(selected),
+              onPressed: selected == null
+                  ? null
+                  : () => _openExternal(selected),
               icon: const Icon(FluentIcons.openInNewWindow, size: 14),
               label: const Text('外部打开'),
             ),
