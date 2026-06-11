@@ -69,7 +69,7 @@ class _SettingsAcademicTermSectionState
     }
 
     final contextSummary = _context;
-    final stateMessage = contextSummary?.message ?? '当前全局学期已加载。';
+    final stateMessage = _statusMessage(contextSummary);
     final selectedTerm =
         _settings!.selectedTerm ??
         contextSummary?.term ??
@@ -139,6 +139,9 @@ class _SettingsAcademicTermSectionState
   }
 
   String _statusTitle(AcademicTermContext? context) {
+    if (context?.hasDifferentQueryTerm == true) {
+      return '已定位当前日期所在学期';
+    }
     return switch (context?.dateStatus) {
       AcademicTermDateStatus.teaching => '已定位当前教学周',
       AcademicTermDateStatus.summerVacation => '当前处于暑假',
@@ -146,6 +149,12 @@ class _SettingsAcademicTermSectionState
       AcademicTermDateStatus.unsupported => '该学期暂无日期定位',
       null => '学期设置已加载',
     };
+  }
+
+  String _statusMessage(AcademicTermContext? context) {
+    final message = context?.message ?? '当前全局学期已加载。';
+    if (context?.hasDifferentQueryTerm != true) return message;
+    return '$message\n当前显示：${context!.summaryLabel}\n查询使用：${context.effectiveQueryTerm.label}';
   }
 
   FluentInfoSeverity _statusSeverity(AcademicTermContext? context) {

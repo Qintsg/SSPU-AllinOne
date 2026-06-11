@@ -113,6 +113,25 @@ class AcademicTermSelector extends StatelessWidget {
             ),
           ],
         ),
+        if (contextSummary?.hasDifferentQueryTerm == true) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Icon(
+                FluentIcons.search,
+                size: 16,
+                color: colors.neutralForeground2,
+              ),
+              Text(
+                '查询使用：${contextSummary!.effectiveQueryTerm.label}',
+                style: type.caption1.copyWith(color: colors.neutralForeground2),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -172,6 +191,7 @@ class AcademicTermSelector extends StatelessWidget {
 
   String _sourceText(AcademicTermContext? context) {
     if (context == null) return '等待校历定位';
+    if (context.hasDifferentQueryTerm) return '当前日期';
     return switch (context.source) {
       AcademicTermContextSource.selected => '全局学期',
       AcademicTermContextSource.automatic => '自动匹配',

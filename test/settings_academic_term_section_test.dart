@@ -9,6 +9,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/models/academic_calendar.dart';
+import 'package:sspu_allinone/models/academic_term.dart';
+import 'package:sspu_allinone/services/academic_calendar_service.dart';
+import 'package:sspu_allinone/services/academic_term_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/theme/app_theme.dart';
 import 'package:sspu_allinone/widgets/settings_academic_term_section.dart';
@@ -30,7 +34,10 @@ void main() {
         theme: AppTheme.build(Brightness.light),
         home: ScaffoldPage(
           content: SingleChildScrollView(
-            child: SettingsAcademicTermSection(now: DateTime(2026, 3, 2)),
+            child: SettingsAcademicTermSection(
+              service: _buildTermService(),
+              now: DateTime(2026, 3, 2),
+            ),
           ),
         ),
       ),
@@ -55,11 +62,85 @@ void main() {
     expect(find.byKey(const Key('academic-term-week-box')), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('设置页选择非当前学期时仍展示当前日期所在学期', (tester) async {
+    final service = _buildTermService();
+    await service.setSelectedTerm(
+      const AcademicTermChoice(
+        academicYear: 2024,
+        season: AcademicTermSeason.fall,
+      ),
+    );
+
+    await tester.pumpWidget(
+      FluentApp(
+        theme: AppTheme.build(Brightness.light),
+        home: ScaffoldPage(
+          content: SingleChildScrollView(
+            child: SettingsAcademicTermSection(
+              service: service,
+              now: DateTime(2025, 2, 17),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const Key('settings-academic-term-section')),
+    );
+
+    expect(find.text('已定位当前日期所在学期'), findsOneWidget);
+    expect(find.text('2024-2025 学年春季学期 第 1 / 17 周'), findsWidgets);
+    expect(find.text('查询使用：2024-2025 学年秋季学期'), findsWidgets);
+    expect(find.textContaining('按寒假处理'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+}
+
+AcademicTermService _buildTermService() {
+  return AcademicTermService(calendarService: _FakeAcademicCalendarClient());
 }
 
 Future<void> _pumpUntilFound(WidgetTester tester, Finder finder) async {
   for (var attempt = 0; attempt < 80; attempt++) {
     await tester.pump(const Duration(milliseconds: 50));
     if (finder.evaluate().isNotEmpty) return;
+  }
+}
+
+class _FakeAcademicCalendarClient implements AcademicCalendarClient {
+  @override
+  Future<AcademicCalendarSyncResult> ensureCalendarsForDate({
+    DateTime? now,
+  }) async {
+    return const AcademicCalendarSyncResult(
+      entries: [],
+      loadedFromCache: true,
+      refreshed: false,
+    );
+  }
+
+  @override
+  Future<List<AcademicTermDefinition>> readCachedTermDefinitions() async {
+    return const [];
+  }
+
+  @override
+  Future<List<AcademicCalendarCacheEntry>> readCachedCalendars() async {
+    return const [];
+  }
+
+  @override
+  Future<AcademicCalendarCacheEntry?> readCachedCalendar(int schoolYear) async {
+    return null;
+  }
+
+  @override
+  Future<List<AcademicCalendarCacheEntry>> refreshCalendars({
+    List<int>? targetYears,
+  }) async {
+    return const [];
   }
 }
