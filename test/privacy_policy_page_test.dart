@@ -117,9 +117,14 @@ void main() {
 
     expect(find.text('许可证：'), findsOneWidget);
     expect(find.text('Artistic License 2.0'), findsOneWidget);
+    expect(find.text('项目'), findsOneWidget);
+    expect(find.text('使用场景'), findsOneWidget);
+    expect(find.text('许可证说明'), findsOneWidget);
     expect(find.text('flutter_inappwebview'), findsOneWidget);
     expect(find.text('enough_mail'), findsOneWidget);
     expect(find.text('open_filex'), findsOneWidget);
+    expect(find.textContaining('专利授权条款'), findsOneWidget);
+    expect(find.textContaining('文件级弱 copyleft'), findsOneWidget);
   });
 
   testWidgets('桌面首次启动协议确认弹窗提供更大阅读面积', (tester) async {
