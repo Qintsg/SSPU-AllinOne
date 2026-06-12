@@ -13,10 +13,12 @@ import '../design/fluent_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/academic_eams.dart';
+import '../models/academic_term.dart';
 import '../models/sports_attendance.dart';
 import '../models/student_report.dart';
 import '../services/academic_credentials_service.dart';
 import '../services/academic_eams_service.dart';
+import '../services/academic_term_service.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/student_report_service.dart';
 import '../theme/fluent_tokens.dart';
@@ -27,11 +29,27 @@ import '../widgets/responsive_layout.dart';
 import 'course_schedule_page.dart';
 
 part 'academic_eams_summary_card.dart';
+part 'academic_eams_exam_card.dart';
+part 'academic_eams_exam_detail_page.dart';
 part 'academic_sports_attendance_card.dart';
 part 'academic_student_report_card.dart';
 part 'academic_student_report_summary.dart';
 part 'academic_student_report_detail_page.dart';
 part 'academic_student_report_rule_matrix.dart';
+
+/// 仅当缓存考试快照的学期与目标学期一致时才返回该缓存，否则返回 null。
+///
+/// 避免出现“卡片标题用全局默认学期、考试记录却是旧学期快照”的错位展示。
+AcademicEamsQueryResult? displayableExamCacheForTerm(
+  AcademicEamsQueryResult? cachedResult,
+  AcademicTermChoice? term,
+) {
+  if (term == null) return null;
+  final matches =
+      cachedResult?.snapshot?.exams?.selectedSemester?.matchesTerm(term) ??
+      false;
+  return matches ? cachedResult : null;
+}
 
 /// 教务中心页面。
 /// 已接入体育部考勤和第二课堂学分，其余教务能力保留规划入口。
@@ -82,8 +100,14 @@ class AcademicPage extends StatefulWidget {
 
 class _AcademicPageState extends State<AcademicPage> {
   AcademicEamsQueryResult? _academicEamsResult;
+  AcademicEamsQueryResult? _academicExamResult;
+  AcademicTermChoice? _academicExamSelectedTerm;
+  AcademicEamsSemesterOption? _academicExamSelectedSemester;
+  bool _academicEamsLastRefreshHadExamFailure = false;
   late final CardAutoRefreshController<AcademicEamsQueryResult>
   _academicEamsRefreshController;
+  late final CardAutoRefreshController<AcademicEamsQueryResult>
+  _academicExamRefreshController;
 
   SportsAttendanceQueryResult? _sportsAttendanceResult;
   late final CardAutoRefreshController<SportsAttendanceQueryResult>
@@ -112,9 +136,17 @@ class _AcademicPageState extends State<AcademicPage> {
     _academicEamsRefreshController =
         CardAutoRefreshController<AcademicEamsQueryResult>(
           refreshTask: _fetchAcademicEamsForController,
-          isSuccess: (result) => result.isSuccess,
+          isSuccess: _isAcademicEamsRefreshSuccess,
           applyResult: _applyAcademicEamsResult,
           checkedAt: () => _academicEamsResult?.checkedAt,
+          failureReason: _academicEamsRefreshFailureReason,
+        )..addListener(_handleRefreshControllerChanged);
+    _academicExamRefreshController =
+        CardAutoRefreshController<AcademicEamsQueryResult>(
+          refreshTask: _fetchAcademicExamForController,
+          isSuccess: (result) => result.isSuccess,
+          applyResult: _applyAcademicExamResult,
+          checkedAt: () => _academicExamResult?.checkedAt,
           failureReason: _academicEamsRefreshFailureReason,
         )..addListener(_handleRefreshControllerChanged);
     _sportsAttendanceRefreshController =
@@ -148,10 +180,13 @@ class _AcademicPageState extends State<AcademicPage> {
   void _clearAuthenticatedState() {
     if (!mounted) return;
     _academicEamsRefreshController.clearTransientState();
+    _academicExamRefreshController.clearTransientState();
     _sportsAttendanceRefreshController.clearTransientState();
     _studentReportRefreshController.clearTransientState();
     setState(() {
       _academicEamsResult = null;
+      _academicExamResult = null;
+      _academicExamSelectedSemester = null;
       _sportsAttendanceResult = null;
       _studentReportResult = null;
     });
@@ -181,7 +216,34 @@ class _AcademicPageState extends State<AcademicPage> {
     if (mounted && cachedResult != null) {
       setState(() => _academicEamsResult = cachedResult);
     }
+    await _loadAcademicExamCacheAndDefaultTerm();
     await _loadAcademicEamsAutoRefreshSettings();
+  }
+
+  /// 读取考试安排缓存，并把卡片学期默认到全局查询学期。
+  Future<void> _loadAcademicExamCacheAndDefaultTerm() async {
+    final cachedResult = await _academicEamsService
+        .readLatestCachedExamSchedule();
+    final context = await AcademicTermService.instance.getEffectiveContext();
+    final defaultTerm = context.effectiveQueryTerm;
+    final cachedExams = cachedResult?.snapshot?.exams;
+    // 仅当缓存学期与全局默认学期一致时才展示缓存，否则会出现“标题用默认学期、
+    // 记录却是旧学期快照”的错位；不一致时清空展示，等刷新按默认学期重新读取。
+    final displayableCache = displayableExamCacheForTerm(
+      cachedResult,
+      defaultTerm,
+    );
+    if (!mounted) return;
+    setState(() {
+      _academicExamSelectedTerm = defaultTerm;
+      _academicExamResult = displayableCache;
+      _academicExamSelectedSemester =
+          displayableCache?.snapshot?.exams?.selectedSemester ??
+          _findAcademicExamSemesterForTerm(
+            cachedExams?.semesterOptions ?? const [],
+            defaultTerm,
+          );
+    });
   }
 
   /// 读取本专科教务摘要；失败时在卡片中展示明确状态。
@@ -191,13 +253,91 @@ class _AcademicPageState extends State<AcademicPage> {
 
   Future<AcademicEamsQueryResult> _fetchAcademicEamsForController({
     required bool silent,
-  }) {
-    return _academicEamsService.fetchOverview(requireCampusNetwork: silent);
+  }) async {
+    _academicEamsLastRefreshHadExamFailure = false;
+    final result = await _academicEamsService.fetchOverview(
+      requireCampusNetwork: silent,
+    );
+    if (result.isSuccess || !silent) {
+      await _academicExamRefreshController.runRefresh(silent: silent);
+      final examResult = _academicExamResult;
+      _academicEamsLastRefreshHadExamFailure =
+          !silent && examResult != null && !examResult.isSuccess;
+    }
+    return result;
+  }
+
+  bool _isAcademicEamsRefreshSuccess(AcademicEamsQueryResult result) {
+    return result.isSuccess && !_academicEamsLastRefreshHadExamFailure;
   }
 
   void _applyAcademicEamsResult(AcademicEamsQueryResult result) {
     if (!mounted) return;
     setState(() => _academicEamsResult = result);
+  }
+
+  Future<AcademicEamsQueryResult> _fetchAcademicExamForController({
+    required bool silent,
+  }) {
+    return _academicEamsService.fetchExamSchedule(
+      term: _academicExamSelectedTerm,
+      semester: _academicExamSelectedSemester,
+      requireCampusNetwork: silent,
+    );
+  }
+
+  void _applyAcademicExamResult(AcademicEamsQueryResult result) {
+    if (!mounted) return;
+    final selectedSemester = result.snapshot?.exams?.selectedSemester;
+    setState(() {
+      _academicExamResult = result;
+      if (selectedSemester != null) {
+        _academicExamSelectedSemester = selectedSemester;
+        _academicExamSelectedTerm =
+            selectedSemester.termChoice ?? _academicExamSelectedTerm;
+      }
+    });
+  }
+
+  void _openAcademicExamDetail() {
+    Navigator.of(context).push(
+      FluentPageRoute(
+        builder: (_) => AcademicEamsExamDetailPage(
+          academicEamsService: _academicEamsService,
+          initialResult: _academicExamResult,
+          initialSelectedTerm: _academicExamSelectedTerm,
+          initialSelectedSemester: _academicExamSelectedSemester,
+          onResultChanged: _applyAcademicExamDetailResult,
+        ),
+      ),
+    );
+  }
+
+  void _applyAcademicExamDetailResult(
+    AcademicEamsQueryResult result,
+    AcademicTermChoice? selectedTerm,
+    AcademicEamsSemesterOption? selectedSemester,
+  ) {
+    if (!mounted) return;
+    final resultSemester = result.snapshot?.exams?.selectedSemester;
+    setState(() {
+      _academicExamResult = result;
+      _academicExamSelectedSemester = resultSemester ?? selectedSemester;
+      _academicExamSelectedTerm =
+          resultSemester?.termChoice ??
+          selectedTerm ??
+          _academicExamSelectedTerm;
+    });
+  }
+
+  AcademicEamsSemesterOption? _findAcademicExamSemesterForTerm(
+    Iterable<AcademicEamsSemesterOption> options,
+    AcademicTermChoice term,
+  ) {
+    for (final option in options) {
+      if (option.matchesTerm(term)) return option;
+    }
+    return null;
   }
 
   /// 读取体育部自动刷新设置；未启用时不主动访问体育部系统。
@@ -287,6 +427,12 @@ class _AcademicPageState extends State<AcademicPage> {
   }
 
   String _academicEamsRefreshFailureReason(AcademicEamsQueryResult result) {
+    final examResult = _academicExamResult;
+    if (result.isSuccess &&
+        _academicEamsLastRefreshHadExamFailure &&
+        examResult != null) {
+      return _academicEamsRefreshFailureReason(examResult);
+    }
     return switch (result.status) {
       AcademicEamsQueryStatus.success => '',
       AcademicEamsQueryStatus.partialSuccess => '部分数据降级',
@@ -353,6 +499,9 @@ class _AcademicPageState extends State<AcademicPage> {
     _academicEamsRefreshController
       ..removeListener(_handleRefreshControllerChanged)
       ..dispose();
+    _academicExamRefreshController
+      ..removeListener(_handleRefreshControllerChanged)
+      ..dispose();
     _sportsAttendanceRefreshController
       ..removeListener(_handleRefreshControllerChanged)
       ..dispose();
@@ -375,8 +524,12 @@ class _AcademicPageState extends State<AcademicPage> {
                 primary: AcademicEamsSummaryCard(
                   result: _academicEamsResult,
                   isLoading: _academicEamsRefreshController.isLoading,
+                  isRefreshActionLoading:
+                      _academicEamsRefreshController.isLoading ||
+                      _academicExamRefreshController.isLoading,
                   autoRefreshEnabled:
                       _academicEamsRefreshController.autoRefreshEnabled,
+                  refreshFeedback: _academicEamsRefreshController.feedback,
                   onRefresh: _loadAcademicEamsOverview,
                   onOpenCourseSchedule: () => Navigator.of(context).push(
                     FluentPageRoute(
@@ -391,12 +544,20 @@ class _AcademicPageState extends State<AcademicPage> {
                       ),
                     ),
                   ),
+                  examResult: _academicExamResult,
+                  examSchedule: AcademicEamsExamCard(
+                    result: _academicExamResult,
+                    isLoading: _academicExamRefreshController.isLoading,
+                    selectedTerm: _academicExamSelectedTerm,
+                    onOpenDetail: _openAcademicExamDetail,
+                  ),
                 ),
                 sports: AcademicSportsAttendanceCard(
                   result: _sportsAttendanceResult,
                   isLoading: _sportsAttendanceRefreshController.isLoading,
                   autoRefreshEnabled:
                       _sportsAttendanceRefreshController.autoRefreshEnabled,
+                  refreshFeedback: _sportsAttendanceRefreshController.feedback,
                   onRefresh: _loadSportsAttendance,
                 ),
                 secondClassroom: AcademicStudentReportCard(

@@ -19,6 +19,9 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
   /// 是否已开启自动刷新。
   final bool autoRefreshEnabled;
 
+  /// 手动刷新结束后的短暂反馈。
+  final RefreshActionFeedback? refreshFeedback;
+
   /// 手动刷新回调。
   final VoidCallback onRefresh;
 
@@ -27,6 +30,7 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
     required this.result,
     required this.isLoading,
     required this.autoRefreshEnabled,
+    required this.refreshFeedback,
     required this.onRefresh,
   });
 
@@ -55,29 +59,24 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
         ),
         footer: Align(
           alignment: Alignment.centerRight,
-          child: Wrap(
-            spacing: FluentSpacing.xs,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                _sportsAttendanceLastRefreshLabel(result),
-                style: theme.typography.caption?.copyWith(
-                  color: theme.resources.textFillColorSecondary,
-                ),
-              ),
-              FluentIconButton(
-                key: const Key('academic-sports-refresh'),
-                tooltip: '手动刷新体育考勤',
-                icon: isLoading
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: FluentProgressRing(strokeWidth: 2),
-                      )
-                    : const Icon(FluentIcons.refresh),
-                onPressed: isLoading ? null : onRefresh,
-              ),
-            ],
+          child: RefreshStatusLine(
+            label: _sportsAttendanceLastRefreshLabel(result),
+            labelStyle: theme.typography.caption?.copyWith(
+              color: theme.resources.textFillColorSecondary,
+            ),
+            actionReservedWidth: refreshFeedback == null ? 32 : 180,
+            action: RefreshFeedbackAction(
+              key: const Key('academic-sports-refresh'),
+              tooltip: '手动刷新体育考勤',
+              semanticLabel: '手动刷新体育考勤',
+              isLoading: isLoading,
+              feedback: refreshFeedback,
+              onPressed: onRefresh,
+              minTouchSize: 32,
+              size: 28,
+              iconSize: 15,
+              maxFeedbackWidth: 180,
+            ),
           ),
         ),
       ),

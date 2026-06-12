@@ -250,6 +250,17 @@ String? _pickValue(Map<String, String> rowMap, List<String> aliases) {
   return null;
 }
 
+String? _pickExactValue(Map<String, String> rowMap, List<String> aliases) {
+  final normalizedAliases = aliases
+      .map((alias) => alias.replaceAll(RegExp(r'\s+'), '').toLowerCase())
+      .toSet();
+  for (final entry in rowMap.entries) {
+    final key = entry.key.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+    if (normalizedAliases.contains(key)) return entry.value;
+  }
+  return null;
+}
+
 double? _parseDouble(String? text) {
   if (text == null) return null;
   final normalized = text.replaceAll(RegExp(r'[^0-9.\-]'), '');

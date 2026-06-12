@@ -17,6 +17,7 @@ import 'package:html/parser.dart' as html_parser;
 import '../models/academic_credentials.dart';
 import '../models/academic_eams.dart';
 import '../models/academic_login_validation.dart';
+import '../models/academic_term.dart';
 import '../models/campus_network_status.dart';
 import 'academic_credentials_service.dart';
 import 'academic_login_validation_service.dart';
@@ -52,6 +53,9 @@ abstract class AcademicEamsClient {
   /// 读取最近一次本地课表缓存。
   Future<AcademicEamsQueryResult?> readLatestCachedCourseTable();
 
+  /// 读取最近一次本地考试安排缓存。
+  Future<AcademicEamsQueryResult?> readLatestCachedExamSchedule();
+
   /// 读取教务摘要，尽量覆盖个人信息、课表、成绩、考试和培养计划。
   Future<AcademicEamsQueryResult> fetchOverview({
     bool requireCampusNetwork = true,
@@ -59,6 +63,16 @@ abstract class AcademicEamsClient {
 
   /// 只读取当前学期课表，供独立课程表页面使用。
   Future<AcademicEamsQueryResult> fetchCourseTable({
+    bool requireCampusNetwork = true,
+  });
+
+  /// 读取指定学期、指定考试类型的考试安排。
+  ///
+  /// [examTypeId] 默认期末考试（examType.id=1），可传入其它类型按需切换。
+  Future<AcademicEamsQueryResult> fetchExamSchedule({
+    AcademicTermChoice? term,
+    AcademicEamsSemesterOption? semester,
+    String? examTypeId,
     bool requireCampusNetwork = true,
   });
 }
@@ -69,6 +83,7 @@ class AcademicEamsHttpSnapshot {
     required this.finalUri,
     required this.statusCode,
     required this.body,
+    this.metadata = const {},
   });
 
   /// 请求完成后的最终地址。
@@ -79,6 +94,9 @@ class AcademicEamsHttpSnapshot {
 
   /// 已按 UTF-8 / GBK 解码的页面正文。
   final String body;
+
+  /// 解析流程附加的安全元信息。
+  final Map<String, Object?> metadata;
 }
 
 /// 可替换的本专科教务系统网关。
@@ -110,7 +128,7 @@ typedef AcademicEamsOaLoginRefresher =
       bool requireCampusNetwork,
     });
 
-enum _AcademicFetchScope { overview, courseTableOnly }
+enum _AcademicFetchScope { overview, courseTableOnly, examScheduleOnly }
 
 enum _AcademicFeature {
   studentProfile,
@@ -242,6 +260,22 @@ class AcademicEamsService implements AcademicEamsClient {
     );
   }
 
+  @override
+  Future<AcademicEamsQueryResult> fetchExamSchedule({
+    AcademicTermChoice? term,
+    AcademicEamsSemesterOption? semester,
+    String? examTypeId,
+    bool requireCampusNetwork = true,
+  }) async {
+    return _fetchSnapshot(
+      _AcademicFetchScope.examScheduleOnly,
+      requireCampusNetwork: requireCampusNetwork,
+      examTerm: term,
+      examSemester: semester,
+      examTypeId: examTypeId,
+    );
+  }
+
   /// 只读查询开课列表；仅提交搜索表单，不执行选课或其它写操作。
   Future<AcademicEamsQueryResult> searchCourseOfferings(
     AcademicCourseOfferingSearchCriteria criteria,
@@ -362,6 +396,16 @@ class AcademicEamsService implements AcademicEamsClient {
       collection: StorageKeys.academicEamsCourseTableCacheCollection,
       message: '已显示本地课表缓存',
       detail: '显示最近一次成功读取并保存的本专科教务课表。',
+    );
+  }
+
+  /// 读取最近一次本地考试安排缓存。
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedExamSchedule() async {
+    return _readLatestCachedResult(
+      collection: StorageKeys.academicEamsExamScheduleCacheCollection,
+      message: '已显示本地考试安排缓存',
+      detail: '显示最近一次成功读取并保存的本专科教务考试安排。',
     );
   }
 

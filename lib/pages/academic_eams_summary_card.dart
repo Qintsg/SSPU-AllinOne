@@ -16,8 +16,14 @@ class AcademicEamsSummaryCard extends StatelessWidget {
   /// 当前是否正在读取本专科教务系统。
   final bool isLoading;
 
+  /// 刷新按钮是否应显示加载态，包含考试安排子查询。
+  final bool isRefreshActionLoading;
+
   /// 是否已开启自动刷新。
   final bool autoRefreshEnabled;
+
+  /// 手动刷新结束后的短暂反馈。
+  final RefreshActionFeedback? refreshFeedback;
 
   /// 手动刷新回调。
   final VoidCallback onRefresh;
@@ -25,13 +31,23 @@ class AcademicEamsSummaryCard extends StatelessWidget {
   /// 打开独立课程表页面回调。
   final VoidCallback onOpenCourseSchedule;
 
+  /// 当前考试安排查询结果，用于让摘要指标跟随内嵌考试子卡片。
+  final AcademicEamsQueryResult? examResult;
+
+  /// 本专科教务内嵌考试安排子卡片。
+  final Widget examSchedule;
+
   const AcademicEamsSummaryCard({
     super.key,
     required this.result,
     required this.isLoading,
+    required this.isRefreshActionLoading,
     required this.autoRefreshEnabled,
+    required this.refreshFeedback,
     required this.onRefresh,
     required this.onOpenCourseSchedule,
+    required this.examResult,
+    required this.examSchedule,
   });
 
   @override
@@ -73,6 +89,7 @@ class AcademicEamsSummaryCard extends StatelessWidget {
           ] else if (result!.isSuccess && snapshot != null) ...[
             _AcademicEamsSnapshotView(
               snapshot: snapshot,
+              examSnapshot: examResult?.snapshot?.exams ?? snapshot.exams,
               status: result!.status,
               onOpenCourseSchedule: onOpenCourseSchedule,
             ),
@@ -83,32 +100,29 @@ class AcademicEamsSummaryCard extends StatelessWidget {
               severity: _academicEamsSeverity(result!.status),
             ),
           ],
+          const SizedBox(height: FluentSpacing.l),
+          _AcademicEamsSubcardWrap(children: [examSchedule]),
           const SizedBox(height: FluentSpacing.m),
           Align(
             alignment: Alignment.centerRight,
-            child: Wrap(
-              spacing: FluentSpacing.xs,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  _academicEamsLastRefreshLabel(result),
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
-                  ),
-                ),
-                FluentIconButton(
-                  key: const Key('academic-eams-refresh'),
-                  tooltip: '手动刷新本专科教务摘要',
-                  icon: isLoading
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: FluentProgressRing(strokeWidth: 2),
-                        )
-                      : const Icon(FluentIcons.refresh),
-                  onPressed: isLoading ? null : onRefresh,
-                ),
-              ],
+            child: RefreshStatusLine(
+              label: _academicEamsLastRefreshLabel(result),
+              labelStyle: theme.typography.caption?.copyWith(
+                color: theme.resources.textFillColorSecondary,
+              ),
+              actionReservedWidth: refreshFeedback == null ? 32 : 180,
+              action: RefreshFeedbackAction(
+                key: const Key('academic-eams-refresh'),
+                tooltip: '手动刷新本专科教务',
+                semanticLabel: '手动刷新本专科教务',
+                isLoading: isRefreshActionLoading,
+                feedback: refreshFeedback,
+                onPressed: onRefresh,
+                minTouchSize: 32,
+                size: 28,
+                iconSize: 15,
+                maxFeedbackWidth: 180,
+              ),
             ),
           ),
         ],
@@ -145,14 +159,51 @@ class AcademicEamsSummaryCard extends StatelessWidget {
   }
 }
 
+class _AcademicEamsSubcardWrap extends StatelessWidget {
+  const _AcademicEamsSubcardWrap({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 窄屏或仅有单个子卡片时占满整行，避免宽屏下半宽留白。
+        if (constraints.maxWidth < 720 || children.length <= 1) {
+          return Column(
+            children: [
+              for (var index = 0; index < children.length; index++) ...[
+                children[index],
+                if (index != children.length - 1)
+                  const SizedBox(height: FluentSpacing.m),
+              ],
+            ],
+          );
+        }
+        final itemWidth = (constraints.maxWidth - FluentSpacing.m) / 2;
+        return Wrap(
+          spacing: FluentSpacing.m,
+          runSpacing: FluentSpacing.m,
+          children: [
+            for (final child in children)
+              SizedBox(width: itemWidth, child: child),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _AcademicEamsSnapshotView extends StatelessWidget {
   const _AcademicEamsSnapshotView({
     required this.snapshot,
+    required this.examSnapshot,
     required this.status,
     required this.onOpenCourseSchedule,
   });
 
   final AcademicEamsSnapshot snapshot;
+  final AcademicExamSnapshot? examSnapshot;
   final AcademicEamsQueryStatus status;
   final VoidCallback onOpenCourseSchedule;
 
@@ -164,7 +215,8 @@ class _AcademicEamsSnapshotView extends StatelessWidget {
     final gradeCount =
         (snapshot.grades?.historyRecords.length ?? 0) +
         (snapshot.grades?.currentTermRecords.length ?? 0);
-    final examCount = snapshot.exams?.records.length ?? 0;
+    // 统计全部考试记录，避免考试时间未公布时摘要误显示为 0。
+    final examCount = examSnapshot?.records.length ?? 0;
     final completion = snapshot.programCompletion;
 
     return Column(

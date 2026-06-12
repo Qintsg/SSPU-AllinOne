@@ -138,6 +138,10 @@ class StorageKeys {
   static const String academicEamsCourseTableCacheCollection =
       'cache_academic_eams_course_table';
 
+  /// 本专科教务考试安排业务快照缓存集合。
+  static const String academicEamsExamScheduleCacheCollection =
+      'cache_academic_eams_exam_schedule';
+
   /// 教务处校历缓存集合。
   static const String academicCalendarCollection = 'cache_academic_calendar';
 
