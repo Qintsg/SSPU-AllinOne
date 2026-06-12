@@ -1,0 +1,69 @@
+# Flutter 覆盖率 — 生成 lcov 报告并作为 PR/分支构建产物保存。
+name: Code Coverage
+
+on:
+  pull_request:
+    branches: [develop]
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - 'analysis_options.yaml'
+      - 'lib/**'
+      - 'pubspec.lock'
+      - 'pubspec.yaml'
+      - 'test/**'
+  push:
+    branches: [develop, main]
+    paths:
+      - 'analysis_options.yaml'
+      - 'lib/**'
+      - 'pubspec.lock'
+      - 'pubspec.yaml'
+      - 'test/**'
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: '3.44.0'
+
+permissions:
+  contents: read
+
+jobs:
+  flutter-coverage:
+    name: Flutter Coverage
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: 安装依赖
+        run: flutter pub get
+
+      - name: Flutter Test Coverage
+        run: flutter test --coverage
+
+      - name: 写入覆盖率摘要
+        shell: bash
+        run: |
+          set -euo pipefail
+          line_count="$(grep -c '^DA:' coverage/lcov.info || true)"
+          {
+            echo '## Flutter Coverage'
+            echo
+            echo '- lcov 文件：`coverage/lcov.info`'
+            echo "- 覆盖记录行数：${line_count}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 上传 lcov 覆盖率报告
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: flutter-coverage-lcov
+          path: coverage/lcov.info
+          if-no-files-found: error
+          retention-days: 14
