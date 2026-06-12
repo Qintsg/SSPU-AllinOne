@@ -58,29 +58,37 @@ void main() {
             )
             as Map<String, Object?>;
     final platforms = manifest['platforms']! as List<Object?>;
-    final macosEntry = platforms.cast<Map<String, Object?>>().singleWhere(
+    final macosEntries = platforms.cast<Map<String, Object?>>().where(
       (entry) => entry['platform'] == 'macos',
     );
 
-    expect(macosEntry['arch'], 'universal');
-    expect(macosEntry['kind'], 'dmg');
-    expect(macosEntry['filename'], 'SSPU-AllinOne-v1.2.0-macos-universal.dmg');
+    expect(macosEntries.length, 2);
+    final arm64Entry = macosEntries.firstWhere(
+      (entry) => entry['arch'] == 'arm64',
+    );
+    expect(arm64Entry['kind'], 'dmg');
+    expect(arm64Entry['filename'], 'SSPU-AllinOne-v1.2.0-macos-arm64.dmg');
   });
 }
 
 const _expectedAssetNames = [
-  'SSPU-AllinOne-v1.2.0-android-universal.apk',
-  'SSPU-AllinOne-v1.2.0-windows-x64-installer.exe',
+  'SSPU-AllinOne-v1.2.0-android-armeabi-v7a.apk',
+  'SSPU-AllinOne-v1.2.0-android-arm64-v8a.apk',
+  'SSPU-AllinOne-v1.2.0-android-x86.apk',
+  'SSPU-AllinOne-v1.2.0-android-x86_64.apk',
+  'SSPU-AllinOne-v1.2.0-windows-x64-setup.exe',
   'SSPU-AllinOne-v1.2.0-windows-x64-portable.zip',
-  'SSPU-AllinOne-v1.2.0-windows-arm64-installer.exe',
+  'SSPU-AllinOne-v1.2.0-windows-arm64-setup.exe',
   'SSPU-AllinOne-v1.2.0-windows-arm64-portable.zip',
-  'SSPU-AllinOne-v1.2.0-macos-universal.dmg',
-  'SSPU-AllinOne-v1.2.0-linux-x64-appimage.AppImage',
-  'SSPU-AllinOne-v1.2.0-linux-x64-deb.deb',
-  'SSPU-AllinOne-v1.2.0-linux-x64-rpm.rpm',
-  'SSPU-AllinOne-v1.2.0-linux-x64-portable.tar.gz',
-  'SSPU-AllinOne-v1.2.0-linux-arm64-appimage.AppImage',
-  'SSPU-AllinOne-v1.2.0-linux-arm64-deb.deb',
-  'SSPU-AllinOne-v1.2.0-linux-arm64-rpm.rpm',
-  'SSPU-AllinOne-v1.2.0-linux-arm64-portable.tar.gz',
+  'SSPU-AllinOne-v1.2.0-macos-arm64.dmg',
+  'SSPU-AllinOne-v1.2.0-macos-x86_64.dmg',
+  'SSPU-AllinOne-v1.2.0-linux-x64.AppImage',
+  'SSPU-AllinOne-v1.2.0-linux-x64.deb',
+  'SSPU-AllinOne-v1.2.0-linux-x64.rpm',
+  'SSPU-AllinOne-v1.2.0-linux-x64.tar.gz',
+  'SSPU-AllinOne-v1.2.0-linux-arm64.AppImage',
+  'SSPU-AllinOne-v1.2.0-linux-arm64.deb',
+  'SSPU-AllinOne-v1.2.0-linux-arm64.rpm',
+  'SSPU-AllinOne-v1.2.0-linux-arm64.tar.gz',
+  'SSPU-AllinOne-v1.2.0-ios-arm64.app',
 ];

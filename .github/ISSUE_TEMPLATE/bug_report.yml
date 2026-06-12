@@ -6,14 +6,14 @@ body:
   - type: markdown
     attributes:
       value: |
-        感谢反馈 Bug。请勿提交校园账号、密码、Cookie、Token、邮箱验证码、身份证件、私钥、keystore 或完整个人隐私截图。
-        若日志中包含敏感信息，请先脱敏；必要时只保留错误码、堆栈、时间点和可复现条件。
+        感谢反馈 Bug。请勿提交账号、密码、Cookie、Token、验证码、身份证件、私钥或其它敏感信息。
+        若日志包含敏感内容，请先脱敏。
 
   - type: textarea
     id: summary
     attributes:
       label: 问题概述
-      description: 用 1-3 句话说明异常现象、触发入口和影响结果，避免在后续字段重复粘贴同一段描述。
+      description: 用 1-3 句话说明异常现象、触发入口和影响结果。
       placeholder: 例如：Windows 版首次打开设置页时卡住，必须重启应用才能恢复。
     validations:
       required: true
@@ -22,7 +22,6 @@ body:
     id: affected_platforms
     attributes:
       label: 受影响平台
-      description: 可多选；若只在某个平台出现，请只选择实际复现的平台。
       multiple: true
       options:
         - Windows
@@ -38,8 +37,7 @@ body:
   - type: dropdown
     id: affected_scope
     attributes:
-      label: 影响模块 / 范围
-      description: 可多选；后续自动化会优先使用该结构化字段辅助打标。
+      label: 影响模块
       multiple: true
       options:
         - 前端界面 / 交互
@@ -62,12 +60,23 @@ body:
     id: priority
     attributes:
       label: 优先级建议
-      description: 用于映射 P0/P1/P2/P3，最终优先级由维护者确认。
       options:
-        - P2 中优先级：排入计划
         - P0 阻塞 / 紧急：核心功能不可用或有数据风险
         - P1 高优先级：主要流程受影响
+        - P2 中优先级：排入计划
         - P3 低优先级：轻微问题或后续优化
+    validations:
+      required: true
+
+  - type: dropdown
+    id: regression
+    attributes:
+      label: 是否为回归
+      description: 该功能在之前的版本是否正常工作？
+      options:
+        - 是，之前版本正常（请在补充信息中填写正常版本号）
+        - 否，首次发现
+        - 不确定
     validations:
       required: true
 
@@ -84,10 +93,10 @@ body:
     attributes:
       label: 复现步骤
       description: 如果暂时无法稳定复现，请写明已观察到的触发条件和频率。
-      placeholder: |
-        1. 打开...
-        2. 点击...
-        3. 出现...
+      value: |
+        1. 
+        2. 
+        3. 
     validations:
       required: true
 
@@ -95,10 +104,10 @@ body:
     id: expected_actual
     attributes:
       label: 期望行为与实际行为
-      description: 请把期望和实际放在同一处，避免重复拆成两段相似描述。
-      placeholder: |
-        期望：...
-        实际：...
+      value: |
+        期望：
+
+        实际：
     validations:
       required: true
 
@@ -106,7 +115,7 @@ body:
     id: logs
     attributes:
       label: 日志、截图或录屏
-      description: 可粘贴脱敏日志、控制台输出、截图或录屏链接；请勿包含账号、密码、Cookie、Token、验证码、完整邮箱内容等敏感信息。
+      description: 可粘贴脱敏日志、控制台输出、截图或录屏链接。
       render: shell
     validations:
       required: false
@@ -118,7 +127,5 @@ body:
       options:
         - label: 我已搜索现有 Issue，确认不是重复问题
           required: true
-        - label: 我已移除日志、截图或录屏中的敏感信息
-          required: true
-        - label: 我已尽量提供版本、平台、复现步骤和实际影响
+        - label: 我已移除日志和截图中的敏感信息
           required: true

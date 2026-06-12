@@ -1,0 +1,50 @@
+name: 问题咨询
+description: 提出使用疑问、技术咨询或流程不清楚的地方
+title: "[Question] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        如果你遇到了 Bug 或希望提出新功能，请使用对应的模板。
+        提问前请先查看 [使用文档](https://github.com/Qintsg/SSPU-AllinOne/blob/main/docs/USAGE.md) 和 [贡献指南](https://github.com/Qintsg/SSPU-AllinOne/blob/main/CONTRIBUTE.md)。
+
+  - type: textarea
+    id: question
+    attributes:
+      label: 问题描述
+      description: 请尽量清晰地描述你的问题或疑惑。
+      placeholder: 例如：如何在本地运行 Android 版本？需要哪些环境配置？
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: 问题分类
+      options:
+        - 开发环境搭建
+        - 构建与运行
+        - 贡献流程 / Git Flow
+        - 发布与版本
+        - CI / 自动化
+        - 功能使用
+        - 其它
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 已尝试的方案
+      description: 你已经尝试过哪些方法？查阅过哪些文档？
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前检查
+      options:
+        - label: 我已搜索现有 Issue 和文档，未找到相关解答
+          required: true

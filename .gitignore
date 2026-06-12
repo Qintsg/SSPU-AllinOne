@@ -109,15 +109,25 @@ Desktop.ini
 
 # 本地自动化与平台安装器临时产物
 dist/
-.claude/
+.claude/*
+!.claude/skills/
 .omx/
 .codex/
 .playwright-mcp/
 .worktree/
 .worktrees/
-.agents/
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/branch-checkout/
+!.agents/skills/commit-messages/
+!.agents/skills/git-flow/
+!.agents/skills/issue-writing/
+!.agents/skills/lore-usage/
+!.agents/skills/pr-writing/
 .opencode/
 .sisyphus/
 CLAUDE.md
 AGENTS.md
 docs/plans/
+docs/compose/

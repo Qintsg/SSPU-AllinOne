@@ -146,21 +146,31 @@ jobs:
             printf 'storeFile=%s\n' 'app/ci-release.jks'
           } > android/key.properties
 
-      - name: 构建 Android Universal APK
-        run: flutter build apk --release
+      - name: 构建 Android APK（按 ABI 拆分）
+        run: flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64,android-x64,android-x86
 
       - name: 整理 Android 产物
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk \
-            "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-android-universal.apk"
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk \
+            "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-android-armeabi-v7a.apk"
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk \
+            "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-android-arm64-v8a.apk"
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk \
+            "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-android-x86_64.apk"
+          cp build/app/outputs/flutter-apk/app-x86-release.apk \
+            "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-android-x86.apk"
 
       - uses: actions/upload-artifact@v7.0.1
         with:
-          name: android-universal
-          path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-android-universal.apk
+          name: android-assets
+          path: |
+            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-android-armeabi-v7a.apk
+            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-android-arm64-v8a.apk
+            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-android-x86_64.apk
+            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-android-x86.apk
 
   build-windows:
     needs: prepare
@@ -201,7 +211,7 @@ jobs:
         with:
           name: windows-assets
           path: |
-            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-windows-x64-installer.exe
+            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-windows-x64-setup.exe
             dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-windows-x64-portable.zip
 
   build-windows-arm64:
@@ -271,7 +281,7 @@ jobs:
         with:
           name: windows-arm64-assets
           path: |
-            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-windows-arm64-installer.exe
+            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-windows-arm64-setup.exe
             dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-windows-arm64-portable.zip
 
   build-macos:
@@ -405,10 +415,10 @@ jobs:
           APPDMG_EOF
 
           appdmg "$staging/config.json" \
-            "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-universal.dmg"
+            "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-arm64.dmg"
 
           rm -rf "$staging"
-          echo "dmg_suffix=universal" >> "$GITHUB_OUTPUT"
+          echo "dmg_suffix=arm64" >> "$GITHUB_OUTPUT"
 
       - name: 公证 DMG
         if: steps.signing.outputs.signed == 'true'
@@ -416,7 +426,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          dmg_path="dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-universal.dmg"
+          dmg_path="dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-arm64.dmg"
 
           xcrun notarytool submit "$dmg_path" \
             --apple-id "$MACOS_NOTARY_APPLE_ID" \
@@ -440,6 +450,172 @@ jobs:
         with:
           name: macos-dmg
           path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-${{ steps.dmg.outputs.dmg_suffix }}.dmg
+
+  build-macos-x86_64:
+    needs: prepare
+    runs-on: macos-13
+    env:
+      MACOS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.MACOS_SIGNING_CERTIFICATE_BASE64 }}
+      MACOS_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_SIGNING_CERTIFICATE_PASSWORD }}
+      MACOS_NOTARY_APPLE_ID: ${{ secrets.MACOS_NOTARY_APPLE_ID }}
+      MACOS_NOTARY_TEAM_ID: ${{ secrets.MACOS_NOTARY_TEAM_ID }}
+      MACOS_NOTARY_PASSWORD: ${{ secrets.MACOS_NOTARY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - uses: ./.github/actions/setup-flutter
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: 导入 macOS 签名证书
+        id: signing
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          missing_secrets=()
+          for secret_name in \
+            MACOS_SIGNING_CERTIFICATE_BASE64 \
+            MACOS_SIGNING_CERTIFICATE_PASSWORD \
+            MACOS_NOTARY_APPLE_ID \
+            MACOS_NOTARY_TEAM_ID \
+            MACOS_NOTARY_PASSWORD; do
+            if [[ -z "${!secret_name:-}" ]]; then
+              missing_secrets+=("$secret_name")
+            fi
+          done
+
+          if [[ "${#missing_secrets[@]}" -gt 0 ]]; then
+            printf 'macOS x86_64 签名与公证 Secrets 缺失：%s，跳过签名。\n' "${missing_secrets[*]}" >&2
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          TEMP_KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+          TEMP_KEYCHAIN="macos-signing.keychain-db"
+          security create-keychain -p "$TEMP_KEYCHAIN_PASSWORD" "$TEMP_KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$TEMP_KEYCHAIN"
+          security unlock-keychain -p "$TEMP_KEYCHAIN_PASSWORD" "$TEMP_KEYCHAIN"
+
+          printf '%s' "$MACOS_SIGNING_CERTIFICATE_BASE64" | base64 --decode > signing-cert.p12
+          security import signing-cert.p12 \
+            -k "$TEMP_KEYCHAIN" \
+            -P "$MACOS_SIGNING_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: \
+            -s -k "$TEMP_KEYCHAIN_PASSWORD" "$TEMP_KEYCHAIN"
+
+          security list-keychains -d user -s "$TEMP_KEYCHAIN" $(security list-keychains -d user | sed s/\"//g)
+
+          rm signing-cert.p12
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: 构建 macOS x86_64
+        run: flutter build macos --release
+
+      - name: 签名 macOS App Bundle
+        if: steps.signing.outputs.signed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          macos_app_bundle="$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
+          [[ -n "$macos_app_bundle" ]] || {
+            echo "未找到 macOS .app 产物。" >&2
+            exit 1
+          }
+
+          DEVELOPER_ID="$(security find-identity -v -p basic | grep 'Developer ID Application' | head -1 | awk '{print $2}')"
+          [[ -n "$DEVELOPER_ID" ]] || {
+            echo "未找到 Developer ID Application 证书。" >&2
+            exit 1
+          }
+          echo "使用签名身份: $DEVELOPER_ID"
+
+          codesign --force --deep --sign "$DEVELOPER_ID" \
+            --options runtime \
+            --entitlements macos/Runner/Release.entitlements \
+            --timestamp \
+            "$macos_app_bundle"
+
+          codesign --verify --deep --strict --verbose=2 "$macos_app_bundle"
+
+      - name: 生成 macOS x86_64 DMG
+        id: dmg
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+
+          macos_app_bundle="$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
+
+          npm install -g appdmg
+
+          staging="dmg-staging"
+          mkdir -p "$staging"
+          cp -R "$macos_app_bundle" "$staging/"
+          cp .github/installer/macos/bg.png "$staging/bg.png"
+
+          APP_VERSION="${{ needs.prepare.outputs.public_version }}"
+          DMG_TITLE="SSPU-AIO v${APP_VERSION}"
+          if [ "${#DMG_TITLE}" -gt 27 ]; then
+            echo "::warning::macOS DMG volume title '${DMG_TITLE}' is longer than appdmg limit; using short product title"
+            DMG_TITLE="SSPU-AIO"
+          fi
+
+          cat > "$staging/config.json" << APPDMG_EOF
+          {
+            "title": "${DMG_TITLE}",
+            "icon-size": 80,
+            "window": {
+              "size": {
+                "width": 520,
+                "height": 360
+              }
+            },
+            "background": "bg.png",
+            "contents": [
+              { "x": 130, "y": 215, "type": "file", "path": "SSPU-AllinOne.app" },
+              { "x": 395, "y": 215, "type": "link", "path": "/Applications" }
+            ]
+          }
+          APPDMG_EOF
+
+          appdmg "$staging/config.json" \
+            "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-x86_64.dmg"
+
+          rm -rf "$staging"
+
+      - name: 公证 DMG
+        if: steps.signing.outputs.signed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          dmg_path="dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-x86_64.dmg"
+
+          xcrun notarytool submit "$dmg_path" \
+            --apple-id "$MACOS_NOTARY_APPLE_ID" \
+            --team-id "$MACOS_NOTARY_TEAM_ID" \
+            --password "$MACOS_NOTARY_PASSWORD" \
+            --wait \
+            --output-format plist > notarization.plist
+
+          notary_status="$(/usr/libexec/PlistBuddy -c "Print :status" notarization.plist)"
+          if [[ "$notary_status" != "Accepted" ]]; then
+            echo "公证失败: $notary_status" >&2
+            cat notarization.plist >&2
+            exit 1
+          fi
+
+          echo "公证通过，装订票据..."
+          xcrun stapler staple "$dmg_path"
+          echo "装订完成"
+
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: macos-x86_64-dmg
+          path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-x86_64.dmg
 
   build-linux:
     needs: prepare
@@ -492,9 +668,9 @@ jobs:
         with:
           name: linux-assets
           path: |
-            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-x64-appimage.AppImage
-            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-x64-deb.deb
-            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-x64-rpm.rpm
+            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-x64.AppImage
+            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-x64.deb
+            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-x64.rpm
             dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-x64-portable.tar.gz
 
   build-linux-arm64:
@@ -550,10 +726,36 @@ jobs:
         with:
           name: linux-arm64-assets
           path: |
-            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-arm64-appimage.AppImage
-            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-arm64-deb.deb
-            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-arm64-rpm.rpm
+            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-arm64.AppImage
+            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-arm64.deb
+            dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-arm64.rpm
             dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-linux-arm64-portable.tar.gz
+
+  build-ios:
+    needs: prepare
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - uses: ./.github/actions/setup-flutter
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: 构建 iOS（不签名）
+        run: flutter build ios --release --no-codesign
+
+      - name: 整理 iOS 产物
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp -R build/ios/iphoneos/Runner.app \
+            "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-ios-arm64.app"
+
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ios-app
+          path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-ios-arm64.app
 
   publish:
     if: needs.prepare.result == 'success'
@@ -564,8 +766,10 @@ jobs:
         build-windows,
         build-windows-arm64,
         build-macos,
+        build-macos-x86_64,
         build-linux,
         build-linux-arm64,
+        build-ios,
       ]
     runs-on: ubuntu-latest
     permissions:
@@ -629,7 +833,7 @@ jobs:
           dart-version: ${{ steps.toolchain.outputs.dart_version }}
 
       - name: 发布 GitHub Release
-        uses: softprops/action-gh-release@v3.0.0
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           target_commitish: ${{ github.sha }}

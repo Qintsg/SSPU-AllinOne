@@ -121,7 +121,7 @@ runs:
 
         dpkg-deb --build --root-owner-group \
           "$deb_root" \
-          "$GITHUB_WORKSPACE/dist/${asset_prefix}-deb.deb"
+          "$GITHUB_WORKSPACE/dist/${asset_prefix}.deb"
 
         rpm_root="$stage_dir/rpm"
         rpm_install_root="$rpm_root/usr/lib/sspu-allinone"
@@ -142,7 +142,7 @@ runs:
           --architecture "$RPM_ARCHITECTURE" \
           --description '上海第二工业大学校园综合服务应用' \
           --url 'https://github.com/Qintsg/SSPU-AllinOne' \
-          --package "$GITHUB_WORKSPACE/dist/${asset_prefix}-rpm.rpm" \
+          --package "$GITHUB_WORKSPACE/dist/${asset_prefix}.rpm" \
           -C "$rpm_root" .
 
         appdir_root="$stage_dir/AppDir"
@@ -174,4 +174,4 @@ runs:
         chmod +x "$stage_dir/appimagetool.AppImage"
         ARCH="$APPIMAGETOOL_ARCHITECTURE" "$stage_dir/appimagetool.AppImage" --appimage-extract-and-run \
           "$appdir_root" \
-          "$GITHUB_WORKSPACE/dist/${asset_prefix}-appimage.AppImage"
+          "$GITHUB_WORKSPACE/dist/${asset_prefix}.AppImage"

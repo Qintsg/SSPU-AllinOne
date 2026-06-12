@@ -1,8 +1,17 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 发布规则文档
-    url: https://github.com/Qintsg/SSPU-AllinOne/blob/main/docs/RELEASE.md
-    about: 查看版本、Tag、资产命名、发布矩阵、Release Notes 与发布门槛。
   - name: 使用与排障文档
     url: https://github.com/Qintsg/SSPU-AllinOne/blob/main/docs/USAGE.md
     about: 先查看运行方式、环境要求与常见排障说明，再决定是否需要提交 Issue。
+  - name: 发布规则文档
+    url: https://github.com/Qintsg/SSPU-AllinOne/blob/main/docs/RELEASE.md
+    about: 查看版本、Tag、资产命名、发布矩阵、Release Notes 与发布门槛。
+  - name: 贡献指南
+    url: https://github.com/Qintsg/SSPU-AllinOne/blob/main/CONTRIBUTE.md
+    about: Git Flow 工作流、开发环境、提交与 PR 规范。
+  - name: 安全漏洞报告
+    url: https://github.com/Qintsg/SSPU-AllinOne/blob/main/SECURITY.md
+    about: 请通过邮件报告安全漏洞，不要在公开 Issue 中提交。
+  - name: 行为准则
+    url: https://github.com/Qintsg/SSPU-AllinOne/blob/main/CODE_OF_CONDUCT.md
+    about: 社区行为准则与投诉渠道。

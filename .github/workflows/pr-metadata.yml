@@ -42,19 +42,12 @@ jobs:
               'P1',
               'P2',
               'P3',
-              'frontend',
-              'services',
-              'models',
-              'storage',
-              'installer',
-              'update',
-              'auth',
-              'notification',
               'ci',
               'governance',
               'release-files',
               'documentation',
               'dependencies',
+              'task',
               'windows',
               'macos',
               'linux',
@@ -79,6 +72,7 @@ jobs:
             const currentLabels = new Set(currentIssue.data.labels.map((label) => label.name));
             const labelsToAdd = new Set();
             const issueNumbers = new Set();
+            const closingIssues = new Set();
 
             function addIssue(number) {
               const parsed = Number(number);
@@ -98,6 +92,7 @@ jobs:
               }
             }
 
+            // 收集所有 Issue 引用（包括 Refs 和 Closes）
             function collectIssueRefs(text) {
               if (!text) return;
               for (const match of text.matchAll(/#(\d+)/g)) addIssue(match[1]);
@@ -106,6 +101,15 @@ jobs:
               }
               for (const match of text.matchAll(/\bissues?[-_/](\d+)\b/gi)) {
                 addIssue(match[1]);
+              }
+            }
+
+            // 仅收集关闭引用（Close/Closes/Fixes/Resolves，不含 Refs）
+            function collectClosingIssueRefs(text) {
+              if (!text) return;
+              const closingPattern = /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*#(\d+)/gi;
+              for (const match of text.matchAll(closingPattern)) {
+                closingIssues.add(Number(match[1]));
               }
             }
 
@@ -134,6 +138,13 @@ jobs:
             collectIssueRefs(pr.body || '');
             for (const commitItem of commitItems) {
               collectIssueRefs(commitItem.commit?.message || '');
+            }
+
+            // 收集关闭引用
+            collectClosingIssueRefs(pr.title || '');
+            collectClosingIssueRefs(pr.body || '');
+            for (const commitItem of commitItems) {
+              collectClosingIssueRefs(commitItem.commit?.message || '');
             }
 
             const typeLabel = detectTypeLabel();
@@ -315,12 +326,33 @@ jobs:
               });
             }
 
+            // 为关闭引用的 Issue 添加相同的 assignees
+            const issueAssigneeResults = [];
+            if (assigneesToAdd.length > 0 && closingIssues.size > 0) {
+              for (const issueNumber of [...closingIssues].sort((a, b) => a - b)) {
+                if (!issueNumbers.has(issueNumber)) continue;
+                try {
+                  await github.rest.issues.addAssignees({
+                    owner,
+                    repo,
+                    issue_number: issueNumber,
+                    assignees: assigneesToAdd,
+                  });
+                  issueAssigneeResults.push(`#${issueNumber}: ${assigneesToAdd.join(', ')}`);
+                } catch (error) {
+                  skippedAssignees.push(`Issue #${issueNumber}: ${error.status || 'error'}`);
+                }
+              }
+            }
+
             await core.summary
               .addHeading('PR Metadata')
               .addList([
                 `Detected issues: ${issueNumbers.size ? [...issueNumbers].join(', ') : 'none'}`,
+                `Closing issues: ${closingIssues.size ? [...closingIssues].join(', ') : 'none'}`,
                 `Added labels: ${missingLabels.length ? missingLabels.join(', ') : 'none'}`,
-                `Added assignees: ${assigneesToAdd.length ? assigneesToAdd.join(', ') : 'none'}`,
+                `Added PR assignees: ${assigneesToAdd.length ? assigneesToAdd.join(', ') : 'none'}`,
+                `Added issue assignees: ${issueAssigneeResults.length ? issueAssigneeResults.join('; ') : 'none'}`,
                 `Skipped assignees: ${skippedAssignees.length ? skippedAssignees.join('; ') : 'none'}`,
               ])
               .write();
