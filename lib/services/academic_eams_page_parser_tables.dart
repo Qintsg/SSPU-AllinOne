@@ -205,14 +205,10 @@ String? _extractHeadingText(html_dom.Document document, List<String> keywords) {
 List<_ParsedTable> _parseTables(html_dom.Document document) {
   final result = <_ParsedTable>[];
   for (final table in document.querySelectorAll('table')) {
-    final rows = <List<String>>[];
-    for (final row in table.querySelectorAll('tr')) {
-      final cells = row
-          .querySelectorAll('th,td')
-          .map((cell) => _cleanText(cell.text))
-          .toList();
-      if (cells.any((text) => text.isNotEmpty)) rows.add(cells);
-    }
+    final rows = _buildTableGrid(table)
+        .map((row) => row.map((cell) => cell?.text.trim() ?? '').toList())
+        .where((row) => row.any((text) => text.isNotEmpty))
+        .toList();
     if (rows.length < 2) continue;
     final headers = rows.first;
     final dataRows = rows.skip(1).where((row) => row.isNotEmpty).toList();

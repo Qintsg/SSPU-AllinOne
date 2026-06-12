@@ -12,6 +12,9 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
   Future<AcademicEamsQueryResult> _fetchSnapshot(
     _AcademicFetchScope scope, {
     bool requireCampusNetwork = true,
+    AcademicTermChoice? examTerm,
+    AcademicEamsSemesterOption? examSemester,
+    String? examTypeId,
   }) async {
     CampusNetworkStatus? campusStatus;
     try {
@@ -67,6 +70,9 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
         scope,
         campusStatus,
         requireCampusNetwork: requireCampusNetwork,
+        examTerm: examTerm,
+        examSemester: examSemester,
+        examTypeId: examTypeId,
       );
       if (result.isSuccess && result.snapshot != null) {
         if (!await _hasSameOaCredentials(oaAccount, oaPassword)) {
@@ -125,6 +131,8 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
     await AuthenticatedDataCacheService.saveLatest(
       collection: scope == _AcademicFetchScope.courseTableOnly
           ? StorageKeys.academicEamsCourseTableCacheCollection
+          : scope == _AcademicFetchScope.examScheduleOnly
+          ? StorageKeys.academicEamsExamScheduleCacheCollection
           : StorageKeys.academicEamsOverviewCacheCollection,
       accountKey: accountKey,
       fetchedAt: snapshot.fetchedAt,
@@ -174,6 +182,9 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
     _AcademicFetchScope scope,
     CampusNetworkStatus? campusNetworkStatus, {
     required bool requireCampusNetwork,
+    AcademicTermChoice? examTerm,
+    AcademicEamsSemesterOption? examSemester,
+    String? examTypeId,
   }) async {
     var sessionSnapshot = await _credentialsService.readOaLoginSession();
     var refreshedBeforeEntry = false;
@@ -253,6 +264,9 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
             scope: scope,
             homeSnapshot: retriedHomeSnapshot,
             campusNetworkStatus: campusNetworkStatus,
+            examTerm: examTerm,
+            examSemester: examSemester,
+            examTypeId: examTypeId,
           );
         }
       }
@@ -281,6 +295,9 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
       scope: scope,
       homeSnapshot: homeSnapshot,
       campusNetworkStatus: campusNetworkStatus,
+      examTerm: examTerm,
+      examSemester: examSemester,
+      examTypeId: examTypeId,
     );
   }
 
@@ -288,10 +305,64 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
     required _AcademicFetchScope scope,
     required AcademicEamsHttpSnapshot homeSnapshot,
     required CampusNetworkStatus? campusNetworkStatus,
+    AcademicTermChoice? examTerm,
+    AcademicEamsSemesterOption? examSemester,
+    String? examTypeId,
   }) async {
     final featureUris = await _discoverFeatureUris(homeSnapshot);
     final featureSnapshots = <_AcademicFeature, AcademicEamsHttpSnapshot>{};
     final warnings = <String>[];
+
+    if (scope == _AcademicFetchScope.examScheduleOnly) {
+      final rawExamSnapshot = await _fetchRequiredFeature(
+        feature: _AcademicFeature.exams,
+        featureUris: featureUris,
+        warnings: warnings,
+      );
+      final examSnapshot = await _resolveExamSnapshot(
+        rawExamSnapshot,
+        warnings,
+        targetTerm: examTerm,
+        targetSemester: examSemester,
+        examTypeId: examTypeId,
+      );
+      final exams = _parseExams(examSnapshot);
+      if (exams == null) {
+        return _buildResult(
+          AcademicEamsQueryStatus.parseFailed,
+          message: '未解析到考试安排',
+          detail: warnings.isEmpty
+              ? '考试安排页面结构与预期不一致，未提取到考试列表。'
+              : warnings.join('；'),
+          finalUri: examSnapshot?.finalUri ?? homeSnapshot.finalUri,
+          campusNetworkStatus: campusNetworkStatus,
+        );
+      }
+      final snapshot = AcademicEamsSnapshot(
+        fetchedAt: exams.fetchedAt,
+        sourceUri: exams.sourceUri,
+        warnings: List.unmodifiable(warnings),
+        hasCourseOfferingEntry: featureUris.containsKey(
+          _AcademicFeature.courseOfferingsEntry,
+        ),
+        hasFreeClassroomEntry: featureUris.containsKey(
+          _AcademicFeature.freeClassroomEntry,
+        ),
+        exams: exams,
+      );
+      return _buildResult(
+        warnings.isEmpty
+            ? AcademicEamsQueryStatus.success
+            : AcademicEamsQueryStatus.partialSuccess,
+        message: exams.records.isEmpty ? '当前学期暂无考试安排' : '考试安排读取成功',
+        detail: exams.records.isEmpty
+            ? '已读取所选学期考试安排，未发现可展示的考试信息。'
+            : '已读取所选学期考试安排。',
+        finalUri: exams.sourceUri,
+        campusNetworkStatus: campusNetworkStatus,
+        snapshot: snapshot,
+      );
+    }
 
     final rawCourseSnapshot = await _fetchRequiredFeature(
       feature: _AcademicFeature.courseTable,
