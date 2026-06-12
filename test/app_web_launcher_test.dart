@@ -223,6 +223,11 @@ class _TestInAppWebViewPlatform extends InAppWebViewPlatform {
   PlatformChromeSafariBrowser createPlatformChromeSafariBrowserStatic() {
     return chromeSafariBrowser;
   }
+
+  @override
+  PlatformWebViewEnvironment createPlatformWebViewEnvironmentStatic() {
+    return _TestPlatformWebViewEnvironment();
+  }
 }
 
 class _TestPlatformInAppWebViewWidget extends PlatformInAppWebViewWidget {
@@ -304,4 +309,14 @@ class _TestPlatformChromeSafariBrowser extends PlatformChromeSafariBrowser {
 
   @override
   bool isOpened() => openedUrl != null && !shouldThrowOnOpen;
+}
+
+class _TestPlatformWebViewEnvironment extends PlatformWebViewEnvironment {
+  _TestPlatformWebViewEnvironment()
+    : super.implementation(const PlatformWebViewEnvironmentCreationParams());
+
+  @override
+  Future<String?> getAvailableVersion({String? browserExecutableFolder}) async {
+    return null;
+  }
 }
