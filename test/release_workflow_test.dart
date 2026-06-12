@@ -16,7 +16,7 @@ void main() {
       '.github/workflows/release.yml',
     ).readAsStringSync();
     final publishStep = RegExp(
-      r'softprops/action-gh-release@v3\.0\.0[\s\S]*?files: dist/\*',
+      r'softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda[\s\S]*?files: dist/\*',
     ).firstMatch(releaseWorkflow)?.group(0);
 
     expect(publishStep, isNotNull);

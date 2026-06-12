@@ -57,16 +57,20 @@ flutter build linux          # Linux
 - 公开 Release 默认上传分架构 APK：
   `SSPU-AllinOne-v{version}-android-arm64-v8a.apk`
   `SSPU-AllinOne-v{version}-android-armeabi-v7a.apk`
+  `SSPU-AllinOne-v{version}-android-x86_64.apk`
+  `SSPU-AllinOne-v{version}-android-x86.apk`
 - 构建命令：
 
 ```bash
-flutter build apk --release --split-per-abi
+flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64,android-x64,android-x86
 flutter build appbundle --release
 ```
 
 - 产物位置：
   `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`
   `build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk`
+  `build/app/outputs/flutter-apk/app-x86_64-release.apk`
+  `build/app/outputs/flutter-apk/app-x86-release.apk`
   `build/app/outputs/bundle/release/app-release.aab`
 - 使用方式：
   `app-*-release.apk` 可直接分发安装（根据设备架构选择）

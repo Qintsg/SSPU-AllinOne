@@ -138,7 +138,7 @@ develop → main (with release label)
 
 | Platform | Naming |
 |----------|--------|
-| Android | `SSPU-AllinOne-v{ver}-android-arm64-v8a.apk`, `-armeabi-v7a.apk` |
+| Android | `SSPU-AllinOne-v{ver}-android-arm64-v8a.apk`, `-armeabi-v7a.apk`, `-x86_64.apk`, `-x86.apk` |
 | Windows | `SSPU-AllinOne-v{ver}-windows-{arch}-setup.exe`, `-portable.zip` |
 | macOS | `SSPU-AllinOne-v{ver}-macos-{arch}.dmg` |
 | Linux | `SSPU-AllinOne-v{ver}-linux-{arch}.{ext}` |
