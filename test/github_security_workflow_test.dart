@@ -15,7 +15,7 @@ String _readWorkflow(String fileName) {
 }
 
 void main() {
-  test('高级 CodeQL 覆盖 Actions、C/C++、Python 与 Ruby 配置', () {
+  test('高级 CodeQL 覆盖 Actions、C/C++ 与 Python 配置', () {
     final workflow = _readWorkflow('codeql.yml');
 
     expect(workflow, contains('name: CodeQL Analysis'));
@@ -24,11 +24,11 @@ void main() {
     expect(workflow, contains('github/codeql-action/analyze@'));
     expect(workflow, contains('language: actions'));
     expect(workflow, contains('language: python'));
-    expect(workflow, contains('language: ruby'));
     expect(workflow, contains('languages: c-cpp'));
     expect(workflow, contains('build-mode: none'));
     expect(workflow, contains("category: '/language:c-cpp'"));
     expect(workflow, isNot(contains('language: dart')));
+    expect(workflow, isNot(contains('language: ruby')));
   });
 
   test('Flutter 覆盖率 workflow 上传 lcov artifact', () {
