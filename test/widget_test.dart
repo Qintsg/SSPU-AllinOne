@@ -10,6 +10,7 @@ import 'dart:io';
 
 import 'package:sspu_allinone/design/fluent_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/app.dart';
 import 'package:sspu_allinone/controllers/settings_wechat_controller.dart';
@@ -21,10 +22,12 @@ import 'package:sspu_allinone/services/wxmp_config_service.dart';
 import 'package:sspu_allinone/widgets/app_feedback.dart';
 import 'package:sspu_allinone/widgets/campus_network_status_indicator.dart';
 import 'package:sspu_allinone/widgets/channel_list_section.dart';
+import 'package:sspu_allinone/widgets/desktop_window_frame.dart';
 import 'package:sspu_allinone/widgets/settings_auto_refresh_section.dart';
 import 'package:sspu_allinone/widgets/settings_general_section.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_config_dialog.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_section.dart';
+import 'package:window_manager/window_manager.dart' show WindowCaptionButton;
 
 /// 等待目标组件出现，避免页面异步加载尚未完成时提前断言。
 Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
@@ -48,6 +51,8 @@ Future<void> deleteDirectoryWithRetry(Directory directory) async {
 }
 
 void main() {
+  const windowManagerChannel = MethodChannel('window_manager');
+
   Future<void> configureMobileView(
     WidgetTester tester, {
     double topPadding = 0,
@@ -541,6 +546,71 @@ void main() {
     } finally {
       StorageService.debugUseSharedPreferencesStorageForTesting(null);
       SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    }
+  });
+
+  testWidgets('macOS 桌面标题栏使用原生红绿灯窗口按钮', (tester) async {
+    final previousTargetPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    final calls = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      windowManagerChannel,
+      (call) async {
+        calls.add(call.method);
+        if (call.method == 'isMaximized') return false;
+        return null;
+      },
+    );
+
+    try {
+      await tester.pumpWidget(
+        const FluentApp(home: DesktopWindowFrame(child: Text('桌面内容'))),
+      );
+      await tester.pump();
+
+      expect(find.byType(WindowCaptionButton), findsNothing);
+      expect(find.text('SSPU-AllinOne'), findsOneWidget);
+      expect(tester.getTopLeft(find.text('SSPU-AllinOne')).dx, greaterThan(80));
+      expect(calls, contains('isMaximized'));
+    } finally {
+      debugDefaultTargetPlatformOverride = previousTargetPlatform;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        windowManagerChannel,
+        null,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    }
+  });
+
+  testWidgets('非 macOS 桌面标题栏保留 Fluent 窗口按钮', (tester) async {
+    final previousTargetPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      windowManagerChannel,
+      (call) async {
+        if (call.method == 'isMaximized') return false;
+        return null;
+      },
+    );
+
+    try {
+      await tester.pumpWidget(
+        const FluentApp(home: DesktopWindowFrame(child: Text('桌面内容'))),
+      );
+      await tester.pump();
+
+      expect(find.byType(WindowCaptionButton), findsNWidgets(3));
+      expect(find.text('SSPU-AllinOne'), findsOneWidget);
+      expect(tester.getTopLeft(find.text('SSPU-AllinOne')).dx, lessThan(80));
+    } finally {
+      debugDefaultTargetPlatformOverride = previousTargetPlatform;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        windowManagerChannel,
+        null,
+      );
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
     }

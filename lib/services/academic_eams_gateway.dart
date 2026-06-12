@@ -83,11 +83,13 @@ class DioAcademicEamsGateway implements AcademicEamsGateway {
     String? accept,
   }) async {
     var currentMethod = method;
-    var currentUri = queryParameters == null
-        ? uri
-        : uri.replace(
-            queryParameters: {...uri.queryParameters, ...queryParameters},
-          );
+    var currentUri = _ensureChineseLocale(
+      queryParameters == null
+          ? uri
+          : uri.replace(
+              queryParameters: {...uri.queryParameters, ...queryParameters},
+            ),
+    );
     var currentBody = body;
     var currentContentType = contentType;
 
@@ -174,6 +176,18 @@ class DioAcademicEamsGateway implements AcademicEamsGateway {
       return uri.replace(scheme: 'https');
     }
     return uri;
+  }
+
+  /// 为 EAMS 页面请求强制中文界面，避免英文账号导致表头/字段无法解析。
+  ///
+  /// 仅对 `jx.sspu.edu.cn` 注入 `request_locale=zh_CN`，OA/CAS 链路保持原样，
+  /// 不干扰统一身份认证跳转。
+  Uri _ensureChineseLocale(Uri uri) {
+    if (uri.host.toLowerCase() != 'jx.sspu.edu.cn') return uri;
+    if (uri.queryParameters['request_locale'] == 'zh_CN') return uri;
+    return uri.replace(
+      queryParameters: {...uri.queryParameters, 'request_locale': 'zh_CN'},
+    );
   }
 }
 

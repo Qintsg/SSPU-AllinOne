@@ -76,7 +76,24 @@ void main() {
   test('当前协议确认键绑定完整法律说明版本', () {
     expect(StorageKeys.agreementAccepted, kLegalAgreementAcceptedKey);
     expect(StorageKeys.agreementAccepted, contains(kLegalAgreementVersion));
-    expect(StorageKeys.agreementAccepted, contains('combined'));
+    expect(StorageKeys.agreementAccepted, contains('email_smtp_send'));
+  });
+
+  test('仅有旧版合并协议键时需要重新确认当前 SMTP 发信协议', () async {
+    SharedPreferences.setMockInitialValues({
+      'agreement_20260607_artistic20_combined_accepted': true,
+    });
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+
+    await StorageService.init();
+
+    expect(
+      await StorageService.getBool(
+        'agreement_20260607_artistic20_combined_accepted',
+      ),
+      isTrue,
+    );
+    expect(await StorageService.areCurrentAgreementsAccepted(), isFalse);
   });
 
   test('仅有旧版 Artistic License 2.0 协议键时需要重新确认当前协议', () async {

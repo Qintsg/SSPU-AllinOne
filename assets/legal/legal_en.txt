@@ -1,8 +1,8 @@
 SSPU-AllinOne Legal and Privacy Notice
 
 Developer: Qintsg
-Agreement version: 20260607_artistic20_combined
-Last updated: June 7, 2026
+Agreement version: 20260612_email_smtp_send
+Last updated: June 12, 2026
 
 Please carefully read this notice before installing, launching, or using this software. This notice combines the Disclaimer, Terms of Use, Privacy Policy, and Open Source License and Third-Party Notices. This single confirmation confirms all of the above agreements. By clicking "Agree", continuing installation, launching the app for the first time, or continuing to use an updated version, you acknowledge that you have read, understood, and agreed to all terms below. If you do not agree, please stop installing or using the software and clear local data through the app settings, system uninstallation, or manual data deletion where applicable.
 
@@ -21,7 +21,7 @@ This notice does not constitute legal advice. If you have questions about accoun
 
 5. Third-party services may record, restrict, reject, or interrupt access due to login behavior, session refresh, risk control, CAPTCHA, MFA, interface changes, network conditions, or service rules. This software cannot control the availability, logs, risk-control rules, privacy policies, or account handling rules of third-party services.
 
-6. This software is designed to remain within a read-only information query boundary where possible. It does not intentionally provide course enrollment, course withdrawal, payment, top-up, email sending, email deletion, content publishing, external account modification, CAPTCHA bypass, security verification bypass, or similar write or circumvention capabilities.
+6. Except for the school email SMTP sending feature, this software is designed to remain within a read-only information query boundary where possible. It does not intentionally provide course enrollment, course withdrawal, payment, top-up, email deletion, content publishing, external account modification, CAPTCHA bypass, security verification bypass, or similar write or circumvention capabilities. School email sending is submitted only when the user actively clicks Send; the software does not send email automatically.
 
 7. Users must not use this software for unlawful activities, rights infringement, attacks, system interference, excessive automated access, commercial account agency, account custody, or unauthorized data extraction.
 
@@ -70,7 +70,7 @@ Desktop app data is stored by default under `.sspu-aio` in the user's directory.
 Account passwords, Cookies, Tokens, email credentials, course grades, campus card information, email content, identity-related information, and similar data may be sensitive or important information. Please use this software only on trusted devices and properly protect your device unlock password, system account, and app lock.
 
 6. Network Access
-To provide its functions, this software may access university websites, OA/CAS, academic systems, campus card systems, sports query systems, student affairs report systems, school email services through IMAP/POP/SMTP, WeChat Official Accounts Platform, WeChat article links, user-configured information sources, system browsers, or WebView components. Logs, Cookies, risk control, privacy policies, and data processing rules of external services are controlled by their respective providers.
+To provide its functions, this software may access university websites, OA/CAS, academic systems, campus card systems, sports query systems, student affairs report systems, school email services through IMAP/POP/SMTP, WeChat Official Accounts Platform, WeChat article links, user-configured information sources, system browsers, or WebView components. When the user actively sends email through school email SMTP, recipients, cc, bcc, subject, and body are submitted to the school email service for processing. This software does not store sent-email bodies or recipient plaintext in normal local caches. Logs, Cookies, risk control, privacy policies, and data processing rules of external services are controlled by their respective providers.
 
 7. Permissions and Platform Capabilities
 This software may use network access, local files, secure storage, local authentication, desktop window and tray features, system notifications, WebView, and external browser launching. Biometric or PIN verification is performed by the operating system. This software does not read or store raw biometric templates or system PINs.

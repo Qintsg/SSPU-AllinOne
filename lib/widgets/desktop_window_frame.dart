@@ -7,13 +7,16 @@
  */
 
 import 'dart:async';
-
 import 'package:window_manager/window_manager.dart';
 
 import '../design/fluent_ui.dart';
 import '../services/app_display_name_service.dart';
 import '../services/campus_network_status_service.dart';
 import 'campus_network_status_indicator.dart';
+
+/// macOS 使用系统原生红绿灯窗口按钮。
+bool get _usesNativeMacOSWindowControls =>
+    !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
 
 /// 桌面端自绘窗口框架。
 ///
@@ -128,7 +131,6 @@ class _DesktopWindowTitleBar extends StatelessWidget {
     final spacing = context.fluentSpacing;
     final type = context.fluentType;
     final brightness = FluentTheme.of(context).brightness;
-
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colors.neutralBackground2,
@@ -141,7 +143,9 @@ class _DesktopWindowTitleBar extends StatelessWidget {
             Expanded(
               child: DragToMoveArea(
                 child: Padding(
-                  padding: EdgeInsetsDirectional.only(start: spacing.l),
+                  padding: EdgeInsetsDirectional.only(
+                    start: _usesNativeMacOSWindowControls ? 84 : spacing.l,
+                  ),
                   child: Row(
                     children: [
                       Icon(
@@ -171,23 +175,25 @@ class _DesktopWindowTitleBar extends StatelessWidget {
               ),
               SizedBox(width: spacing.xs),
             ],
-            WindowCaptionButton.minimize(
-              brightness: brightness,
-              onPressed: () => unawaited(windowManager.minimize()),
-            ),
-            isMaximized
-                ? WindowCaptionButton.unmaximize(
-                    brightness: brightness,
-                    onPressed: onToggleMaximized,
-                  )
-                : WindowCaptionButton.maximize(
-                    brightness: brightness,
-                    onPressed: onToggleMaximized,
-                  ),
-            WindowCaptionButton.close(
-              brightness: brightness,
-              onPressed: () => unawaited(windowManager.close()),
-            ),
+            if (!_usesNativeMacOSWindowControls) ...[
+              WindowCaptionButton.minimize(
+                brightness: brightness,
+                onPressed: () => unawaited(windowManager.minimize()),
+              ),
+              isMaximized
+                  ? WindowCaptionButton.unmaximize(
+                      brightness: brightness,
+                      onPressed: onToggleMaximized,
+                    )
+                  : WindowCaptionButton.maximize(
+                      brightness: brightness,
+                      onPressed: onToggleMaximized,
+                    ),
+              WindowCaptionButton.close(
+                brightness: brightness,
+                onPressed: () => unawaited(windowManager.close()),
+              ),
+            ],
           ],
         ),
       ),

@@ -8,14 +8,37 @@
 
 ## [Unreleased]
 
+## [0.3.0-beta] - 2026-06-12
+
+### 发布
+
+- 本版本是 `v0.3.0-beta` 预发布，聚焦学校邮箱发信能力、发布质量门禁、User-Agent 策略和 macOS 窗口 / Bundle ID 修正；仍包含已知问题，建议作为预发布版本谨慎使用。
+
 ### 新增
 
+- 学校邮箱页面新增 SMTP 主动发信入口，支持 To / Cc / Bcc / 主题 / 正文的普通文本邮件发送，并继续保持 IMAP / POP 收信只读边界。
 - 新增高级 CodeQL、Gitleaks 密钥扫描与 Flutter 覆盖率 workflow，并将 Dart / Flutter 质量门禁文案整合到现有 CI。
 - 新增 User-Agent Policy PR workflow，阻止未写明例外原因的非标准 UA 进入运行时代码。
+- macOS 桌面窗口保留系统原生红绿灯控制按钮，并让自绘标题栏避让左上角系统按钮区域。
 
 ### 变更
 
 - OA/CAS 与校园受限 HTTP 请求改用 `SSPU-AllinOne/{version} ({platform}; {os_version})` 应用身份 User-Agent，微信公众号和通用 WebView 保留带注释说明的浏览器 UA 例外。
+
+### 修复
+
+- 修正 macOS Bundle ID、RunnerTests 标识和钥匙串访问组大小写，统一使用 `cn.qintsg.sspuAllInOne`。
+
+### 文档
+
+- 新增学校邮箱 IMAP / POP / SMTP 规则文档，更新仓库边界、法律与隐私说明和协议确认键，明确 SMTP 发信的数据提交与不缓存正文/收件人策略。
+
+### 已知问题
+
+- macOS 签名公证后的钥匙串凭据保存能力仍需继续验证。
+- 主页校园卡余额在未填写教务凭据时的提示展示仍可能存在异常。
+- 部分页面在移动端输入法弹出时仍可能存在局部布局问题。
+- 微信公众平台登录流程与凭证管理仍需继续优化。
 
 ## [0.2.8-alpha] - 2026-06-12
 

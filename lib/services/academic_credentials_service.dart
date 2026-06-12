@@ -88,6 +88,10 @@ class AcademicCredentialsService {
     final normalizedOaAccount = oaAccount.trim();
     final previousOaAccount = await _readValue(_oaAccountKey) ?? '';
     final hasOaAccountChanged = previousOaAccount != normalizedOaAccount;
+    final hasPasswordChanged =
+        (oaPassword != null && oaPassword.isNotEmpty) ||
+        (sportsQueryPassword != null && sportsQueryPassword.isNotEmpty) ||
+        (emailPassword != null && emailPassword.isNotEmpty);
     final shouldClearOaSession =
         hasOaAccountChanged || (oaPassword != null && oaPassword.isNotEmpty);
 
@@ -98,9 +102,7 @@ class AcademicCredentialsService {
     await _writeWhenPresent(_oaPasswordKey, oaPassword);
     await _writeWhenPresent(_sportsQueryPasswordKey, sportsQueryPassword);
     await _writeWhenPresent(_emailPasswordKey, emailPassword);
-    if (hasOaAccountChanged || (oaPassword != null && oaPassword.isNotEmpty)) {
-      _notifyChanged();
-    }
+    if (hasOaAccountChanged || hasPasswordChanged) _notifyChanged();
   }
 
   /// 读取指定密码字段原文，供后续登录外部网站使用。
@@ -226,8 +228,8 @@ class AcademicCredentialsService {
     if (secret == AcademicCredentialSecret.oaPassword) {
       await clearOaLoginSession();
       await clearStudentProfile();
-      _notifyChanged();
     }
+    _notifyChanged();
   }
 
   /// 清除本服务管理的所有教务凭据。

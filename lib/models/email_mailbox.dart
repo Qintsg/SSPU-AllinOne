@@ -1,5 +1,5 @@
 /*
- * 学校邮箱模型 — 描述只读收信与协议登录校验结果
+ * 学校邮箱模型 — 描述收信、发信与协议登录校验结果
  * @Project : SSPU-AllinOne
  * @File : email_mailbox.dart
  * @Author : Qintsg
@@ -14,7 +14,7 @@ enum EmailProtocol {
   /// POP 只读收信协议。
   pop,
 
-  /// SMTP 仅用于登录认证与连通性校验。
+  /// SMTP 发信协议；收信仍不可使用。
   smtp,
 }
 
@@ -30,7 +30,7 @@ extension EmailProtocolLabel on EmailProtocol {
   }
 }
 
-/// 邮箱只读查询或协议校验状态。
+/// 邮箱查询、发信或协议校验状态。
 enum EmailQueryStatus {
   /// 操作成功。
   success,
@@ -40,6 +40,9 @@ enum EmailQueryStatus {
 
   /// 未保存学校邮箱密码。
   missingEmailPassword,
+
+  /// 表单输入不完整或格式不合法。
+  invalidInput,
 
   /// 邮箱服务器拒绝登录或协议未启用。
   loginRejected,
@@ -52,6 +55,68 @@ enum EmailQueryStatus {
 
   /// 未归类异常。
   unexpectedError,
+}
+
+/// 邮箱撰写请求，仅保留用户主动输入的发信字段。
+class EmailComposeRequest {
+  const EmailComposeRequest({
+    required this.to,
+    required this.subject,
+    required this.body,
+    this.cc = const [],
+    this.bcc = const [],
+  });
+
+  /// 收件人地址列表，至少一个。
+  final List<String> to;
+
+  /// 抄送地址列表。
+  final List<String> cc;
+
+  /// 密送地址列表。
+  final List<String> bcc;
+
+  /// 邮件主题。
+  final String subject;
+
+  /// 纯文本正文。
+  final String body;
+
+  /// 所有收件人数量。
+  int get recipientCount => to.length + cc.length + bcc.length;
+}
+
+/// SMTP 主动发件结果。
+class EmailSendResult {
+  const EmailSendResult({
+    required this.status,
+    required this.message,
+    required this.detail,
+    required this.checkedAt,
+    required this.endpoint,
+    this.recipientsCount = 0,
+  });
+
+  /// 结构化状态，用于 UI 判断提示等级。
+  final EmailQueryStatus status;
+
+  /// 面向用户的简短说明，不包含收件人、正文或密码。
+  final String message;
+
+  /// 安全排查详情，不包含收件人、正文或密码。
+  final String detail;
+
+  /// 本次操作完成时间。
+  final DateTime checkedAt;
+
+  /// 本次操作使用的 SMTP 服务端点。
+  final EmailServerEndpoint endpoint;
+
+  /// 本次发送涉及的收件人数量。
+  final int recipientsCount;
+
+  /// 是否发送成功。
+  bool get isSuccess => status == EmailQueryStatus.success;
 }
 
 /// 邮箱服务端点配置。

@@ -10,7 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 /// 当前需要用户确认的协议版本。
-const String kLegalAgreementVersion = '20260607_artistic20_combined';
+const String kLegalAgreementVersion = '20260612_email_smtp_send';
 
 /// 中文完整法律与隐私说明资源。
 const String kLegalNoticeZhAsset = 'assets/legal/legal_zh.txt';

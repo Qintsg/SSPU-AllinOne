@@ -1,5 +1,5 @@
 /*
- * 学校邮箱服务 — 通过 IMAP / POP 只读收信，并用 SMTP 做登录校验
+ * 学校邮箱服务 — 通过 IMAP / POP 只读收信，并用 SMTP 主动发信
  * @Project : SSPU-AllinOne
  * @File : email_service.dart
  * @Author : Qintsg
@@ -21,7 +21,7 @@ import 'storage_service.dart';
 part 'email_gateway.dart';
 part 'email_support.dart';
 
-/// 邮箱页面依赖的只读查询接口，便于 widget 测试替换。
+/// 邮箱页面依赖的查询与发信接口，便于 widget 测试替换。
 abstract class EmailMailboxClient {
   /// 读取最近一次指定协议的本地邮箱缓存。
   Future<EmailMailboxQueryResult?> readLatestCachedMessages(
@@ -34,8 +34,11 @@ abstract class EmailMailboxClient {
     int messageCount = 10,
   });
 
-  /// 校验指定协议的登录状态；SMTP 只允许执行认证，不发送邮件。
+  /// 校验指定协议的登录状态。
   Future<EmailLoginValidationResult> validateLogin(EmailProtocol protocol);
+
+  /// 通过 SMTP 主动发送一封普通文本邮件。
+  Future<EmailSendResult> sendMessage(EmailComposeRequest request);
 }
 
 /// 可替换的邮箱协议网关。
@@ -74,16 +77,25 @@ abstract class EmailGateway {
     required Duration timeout,
   });
 
-  /// 仅校验 SMTP 认证，不发送任何邮件。
+  /// 仅校验 SMTP 认证。
   Future<void> validateSmtpLogin({
     required EmailServerEndpoint endpoint,
     required String account,
     required String password,
     required Duration timeout,
   });
+
+  /// 使用 SMTP 发送普通文本邮件。
+  Future<void> sendSmtpMessage({
+    required EmailServerEndpoint endpoint,
+    required String account,
+    required String password,
+    required EmailComposeRequest request,
+    required Duration timeout,
+  });
 }
 
-/// 学校邮箱只读服务。
+/// 学校邮箱服务。
 class EmailService implements EmailMailboxClient {
   EmailService({
     AcademicCredentialsService? credentialsService,
@@ -120,7 +132,7 @@ class EmailService implements EmailMailboxClient {
     isSecure: true,
   );
 
-  /// 腾讯企业邮箱 SMTP SSL 端点；仅用于 AUTH 校验。
+  /// 腾讯企业邮箱 SMTP SSL 端点；用于 AUTH 校验与用户主动发信。
   static const EmailServerEndpoint defaultSmtpEndpoint = EmailServerEndpoint(
     host: 'smtp.exmail.qq.com',
     port: 465,
@@ -129,6 +141,15 @@ class EmailService implements EmailMailboxClient {
 
   /// 学校邮箱默认自动刷新间隔，单位分钟。
   static const int defaultAutoRefreshIntervalMinutes = 30;
+
+  /// 单次 SMTP 发信允许的最大收件人数量。
+  static const int maxSendRecipients = 50;
+
+  /// 单次 SMTP 发信允许的最大主题长度。
+  static const int maxSendSubjectLength = 200;
+
+  /// 单次 SMTP 发信允许的最大纯文本正文长度。
+  static const int maxSendBodyLength = 20000;
 
   final AcademicCredentialsService _credentialsService;
   final EmailGateway _gateway;
@@ -221,7 +242,7 @@ class EmailService implements EmailMailboxClient {
         protocol: protocol,
         endpoint: endpoint,
         message: 'SMTP 不支持收信',
-        detail: 'SMTP 在本应用中仅用于认证与连通性校验，不提供发送或收信入口。',
+        detail: 'SMTP 仅用于登录校验和用户主动发信，不能读取邮箱内容。',
       );
     }
 
@@ -400,6 +421,61 @@ class EmailService implements EmailMailboxClient {
     }
   }
 
+  @override
+  Future<EmailSendResult> sendMessage(EmailComposeRequest request) async {
+    final validation = _validateComposeRequest(request);
+    if (validation != null) {
+      return _buildSendResult(
+        status: EmailQueryStatus.invalidInput,
+        message: validation.$1,
+        detail: validation.$2,
+      );
+    }
+
+    final credentials = await _readCredentials();
+    if (!credentials.isSuccess) {
+      return _buildSendResult(
+        status: credentials.status!,
+        message: credentials.message!,
+        detail: credentials.detail!,
+      );
+    }
+
+    try {
+      await _gateway.sendSmtpMessage(
+        endpoint: smtpEndpoint,
+        account: credentials.account,
+        password: credentials.password,
+        request: request,
+        timeout: timeout,
+      );
+      return _buildSendResult(
+        status: EmailQueryStatus.success,
+        message: '邮件已提交发送',
+        detail: '已通过 SMTP 提交普通文本邮件。请以学校邮箱服务端状态为准。',
+        recipientsCount: request.recipientCount,
+      );
+    } on TimeoutException {
+      return _sendNetworkFailure('邮箱服务器响应超时');
+    } on SocketException {
+      return _sendNetworkFailure('邮箱服务器网络连接失败');
+    } on HandshakeException {
+      return _sendNetworkFailure('邮箱服务器 TLS 握手失败');
+    } on SmtpException {
+      return _buildSendResult(
+        status: EmailQueryStatus.loginRejected,
+        message: 'SMTP 发件被拒绝',
+        detail: '请确认邮箱账号、邮箱密码、SMTP 客户端协议和收件服务器策略。',
+      );
+    } catch (error) {
+      return _buildSendResult(
+        status: EmailQueryStatus.unexpectedError,
+        message: '邮件发送失败',
+        detail: '未归类异常类型：${error.runtimeType}',
+      );
+    }
+  }
+
   /// 返回协议对应的默认服务端点。
   EmailServerEndpoint endpointFor(EmailProtocol protocol) {
     return switch (protocol) {
@@ -415,6 +491,45 @@ class EmailService implements EmailMailboxClient {
 
   String _mailboxCacheCollection(EmailProtocol protocol) {
     return '${StorageKeys.emailMailboxCacheCollection}_${protocol.name}';
+  }
+
+  (String, String)? _validateComposeRequest(EmailComposeRequest request) {
+    if (request.to.isEmpty) {
+      return ('请填写收件人', '至少需要填写一个 To 收件人。');
+    }
+    if (request.recipientCount > maxSendRecipients) {
+      return ('收件人过多', '单次发送最多支持 $maxSendRecipients 个收件人。');
+    }
+    if (request.subject.trim().isEmpty) {
+      return ('请填写邮件主题', '主题不能为空。');
+    }
+    if (request.subject.trim().length > maxSendSubjectLength) {
+      return ('邮件主题过长', '主题最多 $maxSendSubjectLength 个字符。');
+    }
+    if (request.body.trim().isEmpty) {
+      return ('请填写邮件正文', '正文不能为空。');
+    }
+    if (request.body.length > maxSendBodyLength) {
+      return ('邮件正文过长', '正文最多 $maxSendBodyLength 个字符。');
+    }
+
+    for (final address in [...request.to, ...request.cc, ...request.bcc]) {
+      if (!_looksLikeEmailAddress(address)) {
+        return ('收件人格式不正确', '请检查 To / Cc / Bcc 中的邮箱地址格式。');
+      }
+    }
+    return null;
+  }
+
+  bool _looksLikeEmailAddress(String raw) {
+    final address = raw.trim();
+    if (address.isEmpty || address.length > 254) return false;
+    final atIndex = address.indexOf('@');
+    return atIndex > 0 &&
+        atIndex == address.lastIndexOf('@') &&
+        atIndex < address.length - 1 &&
+        address.substring(atIndex + 1).contains('.') &&
+        !address.contains(RegExp(r'\s'));
   }
 
   Future<_EmailCredentials> _readCredentials() async {
@@ -496,6 +611,14 @@ class EmailService implements EmailMailboxClient {
     );
   }
 
+  EmailSendResult _sendNetworkFailure(String message) {
+    return _buildSendResult(
+      status: EmailQueryStatus.networkError,
+      message: message,
+      detail: 'SMTP 端点 ${smtpEndpoint.host}:${smtpEndpoint.port} 无法完成连接。',
+    );
+  }
+
   EmailMailboxQueryResult _buildMailboxResult({
     required EmailQueryStatus status,
     required EmailProtocol protocol,
@@ -530,6 +653,22 @@ class EmailService implements EmailMailboxClient {
       detail: detail,
       checkedAt: DateTime.now(),
       endpoint: endpoint,
+    );
+  }
+
+  EmailSendResult _buildSendResult({
+    required EmailQueryStatus status,
+    required String message,
+    required String detail,
+    int recipientsCount = 0,
+  }) {
+    return EmailSendResult(
+      status: status,
+      message: message,
+      detail: detail,
+      checkedAt: DateTime.now(),
+      endpoint: smtpEndpoint,
+      recipientsCount: recipientsCount,
     );
   }
 }

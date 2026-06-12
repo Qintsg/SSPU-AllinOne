@@ -43,16 +43,24 @@ void main() async {
   if (_supportsDesktopShell) {
     // 桌面端拦截关闭事件并提供系统托盘入口。
     await windowManager.ensureInitialized();
-    await windowManager.setTitleBarStyle(
-      TitleBarStyle.hidden,
-      windowButtonVisibility: false,
-    );
+    await _configureDesktopTitleBar();
     await windowManager.setPreventClose(true);
     await windowManager.setTitle(AppDisplayName.currentPlatformName);
     await TrayService.instance.init();
   }
 
   runApp(const SSPUApp());
+}
+
+/// 配置桌面端标题栏。
+///
+/// macOS 保留系统红绿灯窗口控制按钮，Windows / Linux 继续隐藏原生按钮并使用
+/// Flutter 自绘 Fluent 标题栏按钮。
+Future<void> _configureDesktopTitleBar() async {
+  await windowManager.setTitleBarStyle(
+    TitleBarStyle.hidden,
+    windowButtonVisibility: Platform.isMacOS,
+  );
 }
 
 /// 应用根 Widget

@@ -224,6 +224,11 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   }
 
   @override
+  Future<AcademicEamsQueryResult?> readLatestCachedExamSchedule() async {
+    return null;
+  }
+
+  @override
   Future<AcademicEamsProfile?> readCachedStudentProfile() async {
     return null;
   }
@@ -245,6 +250,16 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
 
   @override
   Future<AcademicEamsQueryResult> fetchOverview({
+    bool requireCampusNetwork = true,
+  }) async {
+    return result;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult> fetchExamSchedule({
+    AcademicTermChoice? term,
+    AcademicEamsSemesterOption? semester,
+    String? examTypeId,
     bool requireCampusNetwork = true,
   }) async {
     return result;
