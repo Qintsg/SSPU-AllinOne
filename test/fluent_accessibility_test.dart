@@ -126,6 +126,45 @@ void main() {
     expect(find.text('三'), findsNothing);
   });
 
+  testWidgets('FluentSelect 支持点按弹层选项', (tester) async {
+    var selectedValue = 0;
+
+    await tester.pumpWidget(
+      FluentApp(
+        home: ScaffoldPage(
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Center(
+                child: FluentSelect<int>(
+                  value: selectedValue,
+                  items: const [
+                    FluentSelectItem(value: 0, child: Text('一')),
+                    FluentSelectItem(value: 1, child: Text('二')),
+                    FluentSelectItem(value: 2, child: Text('三')),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() => selectedValue = value);
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('一'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('fluent-select-popup-option-2')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(selectedValue, 2);
+    expect(find.text('三'), findsOneWidget);
+  });
+
   testWidgets('设置侧栏导航项支持键盘聚焦并激活', (tester) async {
     var selectedIndex = 0;
 

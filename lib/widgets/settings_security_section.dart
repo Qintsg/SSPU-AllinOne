@@ -11,15 +11,19 @@ import 'dart:async';
 import '../design/fluent_ui.dart';
 
 import '../models/academic_credentials.dart';
-import '../models/academic_login_validation.dart';
+import '../models/email_mailbox.dart';
 import '../services/academic_credentials_service.dart';
 import '../services/academic_oa_session_prewarm_service.dart';
 import '../services/academic_login_validation_service.dart';
+import '../services/email_service.dart';
+import '../services/sports_attendance_service.dart';
 import '../theme/fluent_tokens.dart';
 import 'app_feedback.dart';
+import 'responsive_layout.dart';
 import 'settings_widgets.dart';
 
 part 'settings_security_credentials_section.dart';
+part 'settings_security_data_management.dart';
 
 /// 安全设置分区。
 class SettingsSecuritySection extends StatefulWidget {
@@ -59,6 +63,12 @@ class SettingsSecuritySection extends StatefulWidget {
   /// 可替换的 OA 会话与学籍预热服务，便于测试触发链路。
   final AcademicOaSessionPrewarmService? academicOaSessionPrewarmService;
 
+  /// 可替换的体育部登录验证服务，便于测试中使用 fake。
+  final SportsAttendanceClient? sportsAttendanceService;
+
+  /// 可替换的邮箱登录验证服务，便于测试中使用 fake。
+  final EmailMailboxClient? emailMailboxService;
+
   const SettingsSecuritySection({
     super.key,
     required this.isPasswordEnabled,
@@ -73,6 +83,8 @@ class SettingsSecuritySection extends StatefulWidget {
     required this.onClearAllData,
     this.academicLoginValidationService,
     this.academicOaSessionPrewarmService,
+    this.sportsAttendanceService,
+    this.emailMailboxService,
   });
 
   @override
@@ -92,7 +104,8 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
 
   AcademicCredentialsStatus _credentialsStatus =
       const AcademicCredentialsStatus.empty();
-  AcademicLoginValidationResult? _loginValidationResult;
+  Map<AcademicCredentialSecret, _CredentialValidationBadge>
+  _credentialValidationBadges = const {};
   bool _isCredentialsLoading = true;
   bool _isSavingCredentials = false;
   bool _isValidatingAcademicLogin = false;
@@ -105,6 +118,14 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
   AcademicOaSessionPrewarmService get _academicOaSessionPrewarmService {
     return widget.academicOaSessionPrewarmService ??
         AcademicOaSessionPrewarmService.instance;
+  }
+
+  SportsAttendanceClient get _sportsAttendanceService {
+    return widget.sportsAttendanceService ?? SportsAttendanceService.instance;
+  }
+
+  EmailMailboxClient get _emailMailboxService {
+    return widget.emailMailboxService ?? EmailService.instance;
   }
 
   @override
@@ -204,21 +225,83 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
     }
   }
 
-  /// 使用已保存账号密码执行一次只读 OA 登录校验。
+  /// 使用已保存账号密码执行一次只读聚合登录校验。
   Future<void> _validateAcademicLogin() async {
     if (_isSavingCredentials || _isValidatingAcademicLogin) return;
     setState(() {
       _isValidatingAcademicLogin = true;
-      _loginValidationResult = null;
+      _credentialValidationBadges = const {};
     });
 
+    try {
+      final status = await _academicCredentials.getStatus();
+      final validations = <Future<_CredentialValidationOutcome>>[];
+      if (status.hasOaPassword) {
+        validations.add(_validateOaCredential());
+      }
+      if (status.hasSportsQueryPassword) {
+        validations.add(_validateSportsCredential());
+      }
+      if (status.hasEmailPassword) {
+        validations.add(_validateEmailCredential());
+      }
+
+      if (validations.isEmpty) {
+        if (!mounted) return;
+        setState(() => _isValidatingAcademicLogin = false);
+        _showCredentialInfoBar('没有可验证的已保存密码', FluentInfoSeverity.warning);
+        return;
+      }
+
+      final outcomes = await Future.wait(validations);
+      if (!mounted) return;
+      setState(() {
+        _credentialValidationBadges = {
+          for (final outcome in outcomes) outcome.secret: outcome.badge,
+        };
+        _isValidatingAcademicLogin = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isValidatingAcademicLogin = false);
+      _showCredentialInfoBar('登录验证失败，请稍后重试', FluentInfoSeverity.error);
+    }
+  }
+
+  Future<_CredentialValidationOutcome> _validateOaCredential() async {
     final result = await _academicLoginValidationService
         .validateSavedCredentials(requireCampusNetwork: false);
-    if (!mounted) return;
-    setState(() {
-      _loginValidationResult = result;
-      _isValidatingAcademicLogin = false;
-    });
+    return _CredentialValidationOutcome(
+      secret: AcademicCredentialSecret.oaPassword,
+      badge: _CredentialValidationBadge(
+        isSuccess: result.isSuccess,
+        message: result.message,
+      ),
+    );
+  }
+
+  Future<_CredentialValidationOutcome> _validateSportsCredential() async {
+    final result = await _sportsAttendanceService.fetchAttendanceSummary(
+      requireCampusNetwork: false,
+    );
+    return _CredentialValidationOutcome(
+      secret: AcademicCredentialSecret.sportsQueryPassword,
+      badge: _CredentialValidationBadge(
+        isSuccess: result.isSuccess,
+        message: result.message,
+      ),
+    );
+  }
+
+  Future<_CredentialValidationOutcome> _validateEmailCredential() async {
+    final result = await _emailMailboxService.validateLogin(EmailProtocol.smtp);
+    return _CredentialValidationOutcome(
+      secret: AcademicCredentialSecret.emailPassword,
+      badge: _CredentialValidationBadge(
+        isSuccess: result.isSuccess,
+        message: result.message,
+      ),
+    );
   }
 
   /// 保存凭据后静默准备 OA 会话，避免用户必须手动点击“验证 OA 登录”。
@@ -372,54 +455,9 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
             const SizedBox(height: FluentSpacing.xl),
             const Divider(),
             const SizedBox(height: FluentSpacing.l),
-            Text('数据管理', style: FluentTheme.of(context).typography.subtitle),
-            const SizedBox(height: FluentSpacing.xs),
-            Text(
-              '清理信息中心缓存的消息，不影响登录信息和设置',
-              style: FluentTheme.of(context).typography.caption,
-            ),
-            const SizedBox(height: FluentSpacing.m),
-            Wrap(
-              spacing: FluentSpacing.s,
-              runSpacing: FluentSpacing.s,
-              children: [
-                FluentButton.outline(
-                  onPressed: widget.onClearMessageCache,
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(FluentIcons.broom, size: 14),
-                      SizedBox(width: FluentSpacing.xs + FluentSpacing.xxs),
-                      Text('清理信息中心缓存'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: FluentSpacing.l),
-            const Divider(),
-            const SizedBox(height: FluentSpacing.l),
-            Text(
-              '清除所有本地数据（包括登录信息、设置、缓存等），应用将退出',
-              style: FluentTheme.of(context).typography.caption,
-            ),
-            const SizedBox(height: FluentSpacing.m),
-            Wrap(
-              spacing: FluentSpacing.s,
-              runSpacing: FluentSpacing.s,
-              children: [
-                FluentButton.outline(
-                  onPressed: widget.onClearAllData,
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(FluentIcons.delete, size: 14),
-                      SizedBox(width: FluentSpacing.xs + FluentSpacing.xxs),
-                      Text('清除所有数据'),
-                    ],
-                  ),
-                ),
-              ],
+            _DataManagementRow(
+              onClearMessageCache: widget.onClearMessageCache,
+              onClearAllData: widget.onClearAllData,
             ),
           ],
         ),

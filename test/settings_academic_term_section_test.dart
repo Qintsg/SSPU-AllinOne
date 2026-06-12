@@ -29,6 +29,7 @@ void main() {
   });
 
   testWidgets('设置页学期分区展示内置校历定位结果', (tester) async {
+    var calendarOpened = false;
     await tester.pumpWidget(
       FluentApp(
         theme: AppTheme.build(Brightness.light),
@@ -37,6 +38,7 @@ void main() {
             child: SettingsAcademicTermSection(
               service: _buildTermService(),
               now: DateTime(2026, 3, 2),
+              onOpenAcademicCalendar: () => calendarOpened = true,
             ),
           ),
         ),
@@ -52,14 +54,24 @@ void main() {
       find.byKey(const Key('settings-academic-term-section')),
       findsOneWidget,
     );
-    expect(find.text('已定位当前教学周'), findsOneWidget);
+    expect(find.text('学期设置'), findsOneWidget);
+    expect(find.text('查看校历'), findsOneWidget);
     expect(find.text('2025-2026 学年春季学期 第 1 / 17 周'), findsOneWidget);
+    expect(find.text('已定位当前教学周'), findsNothing);
+    expect(find.text('已根据内置校历计算当前教学周。'), findsNothing);
+    expect(find.text('规则说明'), findsNothing);
     expect(find.byKey(const Key('academic-term-year-select')), findsOneWidget);
     expect(
       find.byKey(const Key('academic-term-season-select')),
       findsOneWidget,
     );
     expect(find.byKey(const Key('academic-term-week-box')), findsNothing);
+
+    await tester.tap(
+      find.byKey(const Key('settings-academic-term-calendar-button')),
+    );
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(calendarOpened, isTrue);
     expect(tester.takeException(), isNull);
   });
 
@@ -91,10 +103,41 @@ void main() {
       find.byKey(const Key('settings-academic-term-section')),
     );
 
-    expect(find.text('已定位当前日期所在学期'), findsOneWidget);
+    expect(find.text('已定位当前日期所在学期'), findsNothing);
     expect(find.text('2024-2025 学年春季学期 第 1 / 17 周'), findsWidgets);
     expect(find.text('查询使用：2024-2025 学年秋季学期'), findsWidgets);
+    expect(find.text('规则说明'), findsNothing);
     expect(find.textContaining('按寒假处理'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('设置页学期分区在窄屏下自适应展示', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      FluentApp(
+        theme: AppTheme.build(Brightness.light),
+        home: ScaffoldPage(
+          content: SingleChildScrollView(
+            child: SettingsAcademicTermSection(
+              service: _buildTermService(),
+              now: DateTime(2026, 6, 8),
+              onOpenAcademicCalendar: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const Key('settings-academic-term-section')),
+    );
+
+    expect(find.text('学期设置'), findsOneWidget);
+    expect(find.text('查看校历'), findsOneWidget);
+    expect(find.text('规则说明'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }
@@ -113,6 +156,17 @@ Future<void> _pumpUntilFound(WidgetTester tester, Finder finder) async {
 class _FakeAcademicCalendarClient implements AcademicCalendarClient {
   @override
   Future<AcademicCalendarSyncResult> ensureCalendarsForDate({
+    DateTime? now,
+  }) async {
+    return const AcademicCalendarSyncResult(
+      entries: [],
+      loadedFromCache: true,
+      refreshed: false,
+    );
+  }
+
+  @override
+  Future<AcademicCalendarSyncResult> ensureCalendarsForViewer({
     DateTime? now,
   }) async {
     return const AcademicCalendarSyncResult(

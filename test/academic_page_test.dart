@@ -84,12 +84,23 @@ void main() {
     await pumpUntilFound(tester, find.text('8'));
 
     expect(find.text('课外活动考勤'), findsOneWidget);
+    expect(find.textContaining('体育部查询系统只读汇总'), findsNothing);
+    expect(find.textContaining('展示晨跑'), findsNothing);
     expect(find.text('总次数'), findsOneWidget);
     expect(find.text('早操 2 次'), findsOneWidget);
     expect(find.text('课外活动 3 次'), findsOneWidget);
     expect(find.text('次数调整 -1 次'), findsOneWidget);
     expect(find.text('体育长廊 4 次'), findsOneWidget);
     expect(find.text('上次刷新：2026-04-30 00:00'), findsOneWidget);
+    final sportsTitleCenter = tester.getCenter(find.text('课外活动考勤'));
+    final sportsLastRefreshCenter = tester.getCenter(
+      find.text('上次刷新：2026-04-30 00:00'),
+    );
+    final sportsSummaryBottom = tester.getBottomLeft(find.text('总次数')).dy;
+    final sportsButtonCenter = tester.getCenter(find.text('查看考勤记录'));
+    expect(sportsLastRefreshCenter.dy, greaterThan(sportsTitleCenter.dy));
+    expect(sportsLastRefreshCenter.dy, greaterThan(sportsSummaryBottom));
+    expect((sportsButtonCenter.dy - sportsTitleCenter.dy).abs(), lessThan(20));
     expect(sportsService.requireCampusNetworkValues, [false]);
 
     await tester.ensureVisible(find.text('查看考勤记录'));
@@ -98,7 +109,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('课外活动考勤记录'), findsOneWidget);
-    expect(find.textContaining('明细 2 条'), findsOneWidget);
+    expect(find.text('2 条'), findsOneWidget);
+    expect(find.text('总次数'), findsWidgets);
+    expect(find.text('晨跑次数'), findsOneWidget);
+    expect(find.text('类别'), findsOneWidget);
+    expect(find.text('日期/时间'), findsOneWidget);
+    expect(find.text('项目'), findsOneWidget);
+    expect(find.text('地点'), findsOneWidget);
+    expect(find.text('次数'), findsOneWidget);
     expect(find.textContaining('2026-04-01'), findsWidgets);
     expect(find.textContaining('体育长廊'), findsWidgets);
     await disposeAcademicPage(tester);
@@ -229,11 +247,20 @@ void main() {
     final lastRefreshRight = tester
         .getTopRight(find.text('上次刷新：2026-05-01 00:00'))
         .dx;
+    final titleLeft = tester.getTopLeft(find.text('第二课堂学分')).dx;
+    final lastRefreshLeft = tester
+        .getTopLeft(find.text('上次刷新：2026-05-01 00:00'))
+        .dx;
     final refreshLeft = tester.getTopLeft(studentReportRefresh).dx;
     expect(lastRefreshCenter.dy, greaterThan(titleCenter.dy));
+    expect((lastRefreshLeft - titleLeft).abs(), lessThan(1));
     expect((refreshCenter.dy - lastRefreshCenter.dy).abs(), lessThan(1));
     expect(refreshLeft - lastRefreshRight, greaterThanOrEqualTo(0));
     expect(refreshLeft - lastRefreshRight, lessThan(16));
+    expect(
+      lastRefreshCenter.dy,
+      lessThan(tester.getTopLeft(find.text('总已获分数')).dy),
+    );
 
     await tester.pump(const Duration(seconds: 3));
     await tester.pump();
@@ -364,6 +391,35 @@ void main() {
     expect(find.text('必修'), findsWidgets);
     expect(find.text('通过'), findsWidgets);
     expect(find.text('参与情况'), findsWidgets);
+    expect(tester.takeException(), isNull);
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('体育考勤详情页在移动端以横向表格展示且不溢出', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
+      ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+    );
+
+    await tester.tap(find.byKey(const Key('academic-sports-refresh')));
+    await pumpUntilFound(tester, find.text('8'));
+
+    await tester.ensureVisible(find.text('查看考勤记录'));
+    await tester.tap(find.text('查看考勤记录'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('汇总表'), findsOneWidget);
+    expect(find.text('明细表'), findsOneWidget);
+    expect(find.text('晨跑次数'), findsOneWidget);
+    expect(find.byType(Table), findsWidgets);
+    expect(find.text('2026-04-01 06:50'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await disposeAcademicPage(tester);
   });

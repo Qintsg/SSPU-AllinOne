@@ -179,6 +179,7 @@ class _WebViewPageState extends State<WebViewPage> {
                   initialSettings: InAppWebViewSettings(
                     javaScriptEnabled: true,
                     isInspectable: kDebugMode,
+                    // UA-POLICY-ALLOW: 通用内嵌网页用于学校官网/外部文章展示，需要浏览器 UA 兼容页面渲染。
                     userAgent:
                         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
                         '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',

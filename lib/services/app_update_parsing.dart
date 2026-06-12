@@ -248,7 +248,7 @@ bool _isAuxiliaryAssetName(String lowerName) {
 
 String _inferReleaseKind(String platform, String extension) {
   if (platform == 'android' && extension == '.apk') return 'bundle';
-  if (platform == 'macos' && extension == '.dmg') return 'unsigned';
+  if (platform == 'macos' && extension == '.dmg') return 'dmg';
   return switch (extension) {
     '.exe' => 'installer',
     '.AppImage' => 'appimage',

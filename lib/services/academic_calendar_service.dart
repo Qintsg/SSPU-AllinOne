@@ -25,6 +25,9 @@ abstract class AcademicCalendarClient {
   /// 按日期确保当前学年和临近学年校历存在。
   Future<AcademicCalendarSyncResult> ensureCalendarsForDate({DateTime? now});
 
+  /// 按页面访问节流策略确保校历 PDF 缓存存在。
+  Future<AcademicCalendarSyncResult> ensureCalendarsForViewer({DateTime? now});
+
   /// 刷新校历缓存。
   Future<List<AcademicCalendarCacheEntry>> refreshCalendars({
     List<int>? targetYears,
@@ -64,9 +67,54 @@ class AcademicCalendarService implements AcademicCalendarClient {
   /// 当前解析版本。
   static const int parseVersion = 1;
 
+  /// 校历页自动刷新间隔。
+  static const Duration viewerAutoRefreshInterval = Duration(days: 30);
+
   final HttpService _http;
   final AcademicCalendarPdfTextExtractor _pdfTextExtractor;
   Future<void>? _pendingEnsure;
+
+  /// 按页面访问节流策略确保校历 PDF 缓存存在。
+  @override
+  Future<AcademicCalendarSyncResult> ensureCalendarsForViewer({
+    DateTime? now,
+  }) async {
+    final resolvedNow = now ?? DateTime.now();
+    final cached = await readCachedCalendars();
+    final lastRefresh = await _readLastViewerAutoRefreshAt();
+    final shouldRefresh =
+        cached.isEmpty ||
+        lastRefresh == null ||
+        resolvedNow.difference(lastRefresh) >= viewerAutoRefreshInterval;
+    if (!shouldRefresh) {
+      return AcademicCalendarSyncResult(
+        entries: cached,
+        loadedFromCache: cached.isNotEmpty,
+        refreshed: false,
+      );
+    }
+
+    try {
+      await refreshCalendars();
+      await StorageService.setString(
+        StorageKeys.academicCalendarLastAutoRefreshAt,
+        resolvedNow.toUtc().toIso8601String(),
+      );
+      final entries = await readCachedCalendars();
+      return AcademicCalendarSyncResult(
+        entries: entries,
+        loadedFromCache: cached.isNotEmpty,
+        refreshed: true,
+      );
+    } catch (error) {
+      return AcademicCalendarSyncResult(
+        entries: cached,
+        loadedFromCache: cached.isNotEmpty,
+        refreshed: false,
+        errorMessage: HttpService.describeError(error),
+      );
+    }
+  }
 
   /// 按日期确保当前学年和临近学年校历存在。
   @override
@@ -343,6 +391,14 @@ class AcademicCalendarService implements AcademicCalendarClient {
       if (entry.schoolYearStart == schoolYear) return entry;
     }
     return null;
+  }
+
+  static Future<DateTime?> _readLastViewerAutoRefreshAt() async {
+    final raw = await StorageService.getString(
+      StorageKeys.academicCalendarLastAutoRefreshAt,
+    );
+    if (raw == null || raw.isEmpty) return null;
+    return DateTime.tryParse(raw)?.toLocal();
   }
 
   /// 计算某日期需要的校历学年。

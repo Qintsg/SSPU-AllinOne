@@ -68,10 +68,10 @@ void main() {
             'sha256': _hashA,
           },
           {
-            'platform': 'web',
+            'platform': 'macos',
             'arch': 'universal',
-            'kind': 'static',
-            'filename': 'SSPU-AllinOne-v1.2.0-web-universal-static.zip',
+            'kind': 'dmg',
+            'filename': 'SSPU-AllinOne-v1.2.0-macos-universal.dmg',
             'sha256': _hashB,
           },
         ],
@@ -112,7 +112,7 @@ void main() {
         _windowsArm64Portable,
         'manifest.json',
         'SHA256SUMS.txt',
-        'SSPU-AllinOne-v1.2.0-web-universal-static.zip',
+        'SSPU-AllinOne-v1.2.0-macos-universal.dmg',
         'SSPU-AllinOne-v1.2.0-android-universal.aab',
       ]);
 
@@ -141,7 +141,7 @@ void main() {
       final linuxService = _buildService(platform: _linuxX64Platform);
       final androidService = _buildService(platform: _androidPlatform);
       final assets = _assets([
-        'SSPU-AllinOne-v1.2.0-macos-universal-unsigned.dmg',
+        'SSPU-AllinOne-v1.2.0-macos-universal.dmg',
         'SSPU-AllinOne-v1.2.0-linux-x64-rpm.rpm',
         'SSPU-AllinOne-v1.2.0-linux-x64-deb.deb',
         'SSPU-AllinOne-v1.2.0-linux-x64-appimage.AppImage',
@@ -151,7 +151,7 @@ void main() {
 
       expect(
         macService.selectRecommendedAsset(assets)?.name,
-        'SSPU-AllinOne-v1.2.0-macos-universal-unsigned.dmg',
+        'SSPU-AllinOne-v1.2.0-macos-universal.dmg',
       );
       expect(
         linuxService.selectRecommendedAsset(assets)?.name,

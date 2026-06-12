@@ -199,6 +199,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
   /// 带动画的滚动内容区。
   Widget _buildScrollableContent(EdgeInsets padding) {
     return SingleChildScrollView(
+      primary: false,
       padding: padding,
       child: _buildContentPanel(context)
           .animate(key: ValueKey(_selectedTab))
@@ -248,7 +249,10 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           onDndEndChanged: _onDndEndChanged,
         );
       case 1:
-        return SettingsAcademicTermSection(now: widget.academicTermNow);
+        return SettingsAcademicTermSection(
+          now: widget.academicTermNow,
+          onOpenAcademicCalendar: _openAcademicCalendar,
+        );
       case 2:
         return SettingsAutoRefreshSection(
           campusNetworkDetectionIntervalMinutes:

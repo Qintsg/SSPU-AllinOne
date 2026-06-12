@@ -15,6 +15,7 @@ import 'app.dart';
 import 'pages/lock_page.dart';
 import 'services/app_exit_service.dart';
 import 'services/app_display_name_service.dart';
+import 'services/app_user_agent_service.dart';
 import 'services/password_service.dart';
 import 'services/campus_network_status_service.dart';
 import 'services/storage_service.dart';
@@ -37,20 +38,29 @@ bool get _supportsDesktopShell =>
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppUserAgentService.initialize();
 
   if (_supportsDesktopShell) {
     // 桌面端拦截关闭事件并提供系统托盘入口。
     await windowManager.ensureInitialized();
-    await windowManager.setTitleBarStyle(
-      TitleBarStyle.hidden,
-      windowButtonVisibility: false,
-    );
+    await _configureDesktopTitleBar();
     await windowManager.setPreventClose(true);
     await windowManager.setTitle(AppDisplayName.currentPlatformName);
     await TrayService.instance.init();
   }
 
   runApp(const SSPUApp());
+}
+
+/// 配置桌面端标题栏。
+///
+/// macOS 保留系统红绿灯窗口控制按钮，Windows / Linux 继续隐藏原生按钮并使用
+/// Flutter 自绘 Fluent 标题栏按钮。
+Future<void> _configureDesktopTitleBar() async {
+  await windowManager.setTitleBarStyle(
+    TitleBarStyle.hidden,
+    windowButtonVisibility: Platform.isMacOS,
+  );
 }
 
 /// 应用根 Widget
@@ -193,8 +203,9 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     _closeDialogShowing = true;
     bool rememberChoice = false;
 
-    showDialog(
+    showFluentDialog<void>(
       context: ctx,
+      barrierDismissible: true,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (_, setDialogState) {
@@ -204,7 +215,11 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('选择点击关闭按钮时的操作：'),
+                  const FluentDialogMessage(
+                    icon: FluentIcons.clear,
+                    message: '请选择点击窗口关闭按钮时的处理方式。',
+                    details: '也可以点击弹窗外的空白区域取消本次操作，应用会继续保持打开。',
+                  ),
                   const SizedBox(height: AppSpacing.md),
                   Checkbox(
                     checked: rememberChoice,
@@ -217,8 +232,9 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                 ],
               ),
               actions: [
-                FluentButton.transparent(
-                  child: const Text('最小化到托盘'),
+                FluentButton.outlineIcon(
+                  icon: const Icon(FluentIcons.blocked),
+                  label: const Text('最小化到托盘'),
                   onPressed: () async {
                     Navigator.pop(dialogContext);
                     if (rememberChoice) {
@@ -227,8 +243,9 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                     await windowManager.hide();
                   },
                 ),
-                FluentButton.primary(
-                  child: const Text('退出应用'),
+                FluentButton.primaryIcon(
+                  icon: const Icon(FluentIcons.power),
+                  label: const Text('退出应用'),
                   onPressed: () async {
                     Navigator.pop(dialogContext);
                     if (rememberChoice) {

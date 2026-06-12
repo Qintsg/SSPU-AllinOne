@@ -15,6 +15,7 @@ import '../services/app_info_service.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
+import '../theme/fluent_tokens.dart';
 import 'legal_notice_page.dart';
 
 /// 使用/参考的开源项目列表。
@@ -178,6 +179,20 @@ class _OpenSourceProject {
     required this.license,
     required this.url,
   });
+
+  /// 许可证使用说明。
+  String get licenseDescription {
+    return switch (license) {
+      'BSD-3-Clause' => '宽松许可证；使用与分发时保留版权声明、许可文本和免责声明。',
+      'MIT' => '宽松许可证；允许使用、复制、修改与分发，需保留版权和许可声明。',
+      'Apache-2.0' => '宽松许可证；包含专利授权条款，分发时保留许可证与必要 NOTICE。',
+      'MPL-2.0' => '文件级弱 copyleft；若修改 MPL 覆盖文件，需按 MPL 提供对应源代码。',
+      'Microsoft Design Guidelines' =>
+        '设计指南与品牌资源规则；本项目仅参考界面语言，不声明 Microsoft 背书。',
+      'MiSans EULA' => '字体最终用户许可；随应用使用与分发时遵守小米字体许可条款。',
+      _ => '请以项目发布的许可证正文为准。',
+    };
+  }
 }
 
 /// 关于页面。
@@ -336,25 +351,63 @@ class AboutSettingsSection extends StatelessWidget {
 
   /// 构建开源项目卡片。
   Widget _buildOpenSourceCard(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    final resources = theme.resources;
+    final borderSide = BorderSide(
+      color: resources.controlStrokeColorDefault,
+      width: context.fluentStroke.thin,
+    );
+
     return FluentCard(
       padding: EdgeInsets.zero,
-      child: Column(
-        children: _openSourceProjects.asMap().entries.map((entry) {
-          final project = entry.value;
-          final isLast = entry.key == _openSourceProjects.length - 1;
-          return Column(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minWidth: FluentAppMetrics.readableMaxWidth,
+          ),
+          child: Table(
+            columnWidths: const {
+              0: FixedColumnWidth(160),
+              1: FixedColumnWidth(260),
+              2: FixedColumnWidth(150),
+              3: FixedColumnWidth(350),
+            },
+            border: TableBorder(
+              top: borderSide,
+              right: borderSide,
+              bottom: borderSide,
+              left: borderSide,
+              horizontalInside: borderSide,
+              verticalInside: borderSide,
+            ),
             children: [
-              _buildActionTile(
-                context,
-                icon: FluentIcons.openSource,
-                title: project.name,
-                subtitle: '${project.description} · ${project.license}',
-                onTap: () => _openUrl(project.url),
+              TableRow(
+                decoration: BoxDecoration(
+                  color: resources.controlFillColorSecondary,
+                ),
+                children: const [
+                  _OpenSourceHeaderCell('项目'),
+                  _OpenSourceHeaderCell('使用场景'),
+                  _OpenSourceHeaderCell('许可证'),
+                  _OpenSourceHeaderCell('许可证说明'),
+                ],
               ),
-              if (!isLast) const Divider(),
+              for (final project in _openSourceProjects)
+                TableRow(
+                  children: [
+                    _OpenSourceLinkCell(
+                      name: project.name,
+                      onTap: () => _openUrl(project.url),
+                    ),
+                    _OpenSourceBodyCell(project.description),
+                    _OpenSourceBodyCell(project.license),
+                    _OpenSourceBodyCell(project.licenseDescription),
+                  ],
+                ),
             ],
-          );
-        }).toList(),
+          ),
+        ),
       ),
     );
   }
@@ -415,6 +468,84 @@ class AboutSettingsSection extends StatelessWidget {
               FluentIcons.chevronRight,
               color: resources.textFillColorSecondary,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 开源项目表头单元格。
+class _OpenSourceHeaderCell extends StatelessWidget {
+  const _OpenSourceHeaderCell(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final typography = FluentTheme.of(context).typography;
+    return Padding(
+      padding: const EdgeInsetsDirectional.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: Text(label, style: typography.bodyStrong),
+    );
+  }
+}
+
+/// 开源项目正文单元格。
+class _OpenSourceBodyCell extends StatelessWidget {
+  const _OpenSourceBodyCell(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    return Padding(
+      padding: const EdgeInsetsDirectional.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: Text(
+        text,
+        style: theme.typography.caption?.copyWith(
+          color: theme.resources.textFillColorSecondary,
+        ),
+      ),
+    );
+  }
+}
+
+/// 开源项目链接单元格。
+class _OpenSourceLinkCell extends StatelessWidget {
+  const _OpenSourceLinkCell({required this.name, required this.onTap});
+
+  final String name;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              FluentIcons.openSource,
+              size: 16,
+              color: theme.accentColor.defaultBrushFor(theme.brightness),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Flexible(child: Text(name, style: theme.typography.bodyStrong)),
           ],
         ),
       ),

@@ -40,7 +40,13 @@ class _LegalNoticePageState extends State<LegalNoticePage> {
   @override
   Widget build(BuildContext context) {
     return FluentPage.scrollable(
-      header: FluentPageHeader(title: Text(widget.title)),
+      header: FluentPageHeader(
+        title: Text(widget.title),
+        commandBar: FluentButton.outline(
+          onPressed: () => Navigator.of(context).maybePop(),
+          child: const Text('返回'),
+        ),
+      ),
       padding: AppSpacing.regularPagePadding,
       children: [
         Center(

@@ -306,17 +306,12 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
 
   Widget _buildContent(BuildContext context) {
     final theme = FluentTheme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final successColor = isDark
-        ? FluentDarkColors.statusSuccess
-        : FluentLightColors.statusSuccess;
-    final errorColor = isDark
-        ? FluentDarkColors.statusError
-        : FluentLightColors.statusError;
-    final infoColor = isDark
-        ? FluentDarkColors.statusInfo
-        : FluentLightColors.statusInfo;
-    final resultColor = _result?.success == true ? successColor : errorColor;
+    final colors = context.fluentColors;
+    final spacing = context.fluentSpacing;
+    final type = context.fluentType;
+    final resultColor = _result?.success == true
+        ? colors.statusSuccessForeground
+        : colors.statusDangerForeground;
 
     if (_initFailed) {
       return Center(
@@ -338,36 +333,35 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
 
     return Column(
       children: [
-        // 结果横幅
         if (_result != null)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              horizontal: FluentSpacing.l,
-              vertical: FluentSpacing.s,
-            ),
-            color: resultColor.withValues(alpha: isDark ? 0.18 : 0.12),
-            child: Text(
-              _result!.message,
-              style: theme.typography.body?.copyWith(color: resultColor),
-            ),
-          ),
-        // 提示信息
+          _WxmpLoginInlineStatus(result: _result!, color: resultColor),
         if (!_isReady && _result == null)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              horizontal: FluentSpacing.l,
-              vertical: FluentSpacing.s,
+          Padding(
+            padding: EdgeInsetsDirectional.fromSTEB(
+              spacing.l,
+              spacing.s,
+              spacing.l,
+              spacing.xs,
             ),
-            color: infoColor.withValues(alpha: isDark ? 0.14 : 0.08),
-            child: Text(
-              '请使用拥有公众号的微信账号扫码登录。'
-              '个人订阅号即可（mp.weixin.qq.com 免费注册）。',
-              style: theme.typography.caption?.copyWith(color: infoColor),
+            child: Row(
+              children: [
+                Icon(
+                  FluentIcons.info,
+                  size: 14,
+                  color: colors.brandForeground1,
+                ),
+                SizedBox(width: spacing.xs),
+                Expanded(
+                  child: Text(
+                    '请使用拥有公众号的微信账号扫码登录。个人订阅号即可（mp.weixin.qq.com 免费注册）。',
+                    style: type.caption1.copyWith(
+                      color: colors.neutralForeground2,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        // WebView
         Expanded(
           child: InAppWebView(
             webViewEnvironment: widget.webViewEnvironment,
@@ -375,6 +369,7 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
             initialSettings: InAppWebViewSettings(
               javaScriptEnabled: true,
               isInspectable: kDebugMode,
+              // UA-POLICY-ALLOW: 微信公众号扫码登录页依赖浏览器 UA 展示桌面登录流程，不能使用 OA/CAS 应用 UA。
               userAgent:
                   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
                   '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -404,6 +399,51 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 公众号平台登录结果的内联短状态。
+class _WxmpLoginInlineStatus extends StatelessWidget {
+  const _WxmpLoginInlineStatus({required this.result, required this.color});
+
+  /// 登录结果。
+  final _LoginResult result;
+
+  /// 状态语义色。
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.fluentSpacing;
+    final type = context.fluentType;
+
+    return Padding(
+      key: const Key('wxmp-login-inline-status'),
+      padding: EdgeInsetsDirectional.fromSTEB(
+        spacing.l,
+        spacing.s,
+        spacing.l,
+        spacing.xs,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            result.success ? FluentIcons.checkMark : FluentIcons.warning,
+            size: 14,
+            color: color,
+          ),
+          SizedBox(width: spacing.xs),
+          Expanded(
+            child: Text(
+              result.message,
+              style: type.caption1.copyWith(color: color),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

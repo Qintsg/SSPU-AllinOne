@@ -153,7 +153,6 @@ SSPU-AllinOne-v{public_version}-android-universal.apk
 SSPU-AllinOne-v1.0.0-alpha-android-universal.apk
 SSPU-AllinOne-v1.0.0-windows-x64-installer.exe
 SSPU-AllinOne-v1.0.0.1-hotfix-linux-x64-appimage.AppImage
-SSPU-AllinOne-v1.0.0-lts-web-universal-static.zip
 ```
 
 ---
@@ -165,16 +164,15 @@ SSPU-AllinOne-v1.0.0-lts-web-universal-static.zip
 | Android | universal | APK | 是 |
 | Windows | x64 | installer / portable | 是 |
 | Windows | arm64 | installer / portable | 是 |
-| macOS | universal | unsigned DMG | 是 |
+| macOS | universal | Developer ID 签名并公证的 DMG | 是 |
 | Linux | x64 | AppImage / deb / rpm / tar.gz | 是 |
 | Linux | arm64 | AppImage / deb / rpm / tar.gz | 是 |
-| Web | universal | static.zip | 是 |
 
 Linux 正式发布必须同时覆盖 `x64` 与 `arm64`，并提供 AppImage、deb、rpm、tar.gz 四类产物。
 
-Windows installer 使用 Inno Setup 双模式安装器，x64 与 arm64 行为保持一致：全新安装默认当前用户范围，可在安装向导或命令行显式切换到所有用户范围；安装包文件名和 Release 资产类型仍保持 `windows-{arch}-installer.exe`。安装器可本地化展示应用名，但默认安装路径固定为 `SSPU-AllinOne`。安装器启动时会检测既有安装：不同版本进入升级安装，沿用既有当前用户 / 所有用户范围和目录并跳过目录选择；相同版本会询问是否重装，确认后先调用既有卸载器，卸载器负责询问是否保留用户目录下的 `.sspu-aio/` 应用数据，再回到正常安装流程。安装器许可页使用 `assets/legal/legal_zh.txt`，需要与应用首次启动展示的完整法律与隐私说明保持同步。Android 正式 Release 构建必须提供 `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`，缺少任一签名 Secret 都会直接失败，不允许回退到 debug 签名。
+Windows installer 使用 Inno Setup 双模式安装器，x64 与 arm64 行为保持一致：全新安装默认当前用户范围，可在安装向导或命令行显式切换到所有用户范围；安装包文件名和 Release 资产类型仍保持 `windows-{arch}-installer.exe`。安装器可本地化展示应用名，但默认安装路径固定为 `SSPU-AllinOne`。安装器启动时会检测既有安装：不同版本进入升级安装，沿用既有当前用户 / 所有用户范围和目录并跳过目录选择；相同版本会询问是否重装，确认后先调用既有卸载器，卸载器负责询问是否保留用户目录下的 `.sspu-aio/` 应用数据，再回到正常安装流程。安装器许可页使用 `assets/legal/legal_zh.txt`，需要与应用首次启动展示的完整法律与隐私说明保持同步。Android 正式 Release 构建必须提供 `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`，缺少任一签名 Secret 都会直接失败，不允许回退到 debug 签名。macOS 正式 Release 构建必须提供 `MACOS_SIGNING_CERTIFICATE_BASE64`、`MACOS_SIGNING_CERTIFICATE_PASSWORD`、`MACOS_NOTARY_APPLE_ID`、`MACOS_NOTARY_TEAM_ID`、`MACOS_NOTARY_PASSWORD`，产物命名为 `macos-universal.dmg`，DMG 卷名需保持在 appdmg 的 27 字符限制内。
 
-Android、iOS、macOS、Linux、Web、portable 与压缩包等当前没有仓库统一控制的安装前 GUI 或 CLI 协议确认页；这些渠道依赖应用首次启动的完整法律与隐私说明弹窗完成一次性确认。
+Android、iOS、macOS、Linux、portable 与压缩包等当前没有仓库统一控制的安装前 GUI 或 CLI 协议确认页；这些渠道依赖应用首次启动的完整法律与隐私说明弹窗完成一次性确认。
 
 品牌图标与应用徽章的源文件和生成规则见 `docs/BRAND_ASSETS.md`。更换图标时应先更新 `assets/brand/` 源图，再运行 `python scripts/assets/generate_brand_icons.py` 生成平台资源，避免手工只替换单个平台图标导致 Release 展示不一致。
 
@@ -233,10 +231,11 @@ Android、iOS、macOS、Linux、Web、portable 与压缩包等当前没有仓库
 2. `flutter analyze --no-fatal-infos` 通过。
 3. `flutter test` 通过。
 4. 变更 Dart 文件通过 `dart format --set-exit-if-changed` 检查。
-5. 版本号只在 `pubspec.yaml` 与 `docs/CHANGELOG.md` 中维护。
-6. Release PR 的目标分支、`release` label 使用方式与本规则一致。
-7. 构建产物文件名不包含 `+build`。
-8. 发布说明列明支持平台、已知问题、安装方式和校验方式。
+5. GitHub Actions 安全门禁保持启用：高级 CodeQL、Secret Scanning、Dependency Review 与 Coverage workflow 不应被 Release 改动绕过。
+6. 版本号只在 `pubspec.yaml` 与 `docs/CHANGELOG.md` 中维护。
+7. Release PR 的目标分支、`release` label 使用方式与本规则一致。
+8. 构建产物文件名不包含 `+build`。
+9. 发布说明列明支持平台、已知问题、安装方式和校验方式。
 
 ---
 

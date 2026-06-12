@@ -1,0 +1,30 @@
+# User-Agent 策略 — PR 阶段阻止未说明的非标准 UA 进入运行时代码。
+name: User-Agent Policy
+
+on:
+  pull_request:
+    branches: [develop]
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - 'lib/**'
+      - 'scripts/ci/validate_user_agent_policy.py'
+      - '.github/workflows/user-agent-policy.yml'
+      - 'docs/specs/RepoWorkflow.md'
+      - 'test/**user_agent**'
+      - 'test/github_security_workflow_test.dart'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  user-agent-policy:
+    name: User-Agent Policy
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+
+      - name: 校验 User-Agent 策略
+        run: python scripts/ci/validate_user_agent_policy.py

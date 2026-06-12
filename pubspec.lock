@@ -303,10 +303,10 @@ packages:
     dependency: transitive
     description:
       name: flutter_plugin_android_lifecycle
-      sha256: "38d1c268de9097ff59cf0e844ac38759fc78f76836d37edad06fa21e182055a0"
+      sha256: "3854fe5e3bff0b113c658f260b90c95dea17c92db0f2addeac2e343dd9969785"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.34"
+    version: "2.0.35"
   flutter_secure_storage:
     dependency: "direct main"
     description:
@@ -351,10 +351,10 @@ packages:
     dependency: transitive
     description:
       name: flutter_secure_storage_windows
-      sha256: "8f42f359f187a94dce7a3ab2ec5903d013dddfc7127078ebab19fa244c3840e8"
+      sha256: "471951813a97006d899db4948acc654a4f28c440083ea08178935ce20b173ec1"
       url: "https://pub.dev"
     source: hosted
-    version: "4.2.1"
+    version: "4.2.2"
   flutter_shaders:
     dependency: transitive
     description:
@@ -505,10 +505,10 @@ packages:
     dependency: transitive
     description:
       name: local_auth_android
-      sha256: b201c006fa769c23386f89aa6837ec0eb8179fcfb212eadcf87b422b3f9a6a78
+      sha256: fdb936d59ab945c7af297defd67bd1ed87b11b6db1bc16d01e94677a8f1c38ec
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.8"
+    version: "2.0.9"
   local_auth_darwin:
     dependency: transitive
     description:
@@ -705,34 +705,34 @@ packages:
     dependency: transitive
     description:
       name: pdfium_dart
-      sha256: f1683b9070ddc5c9189c6ee008c285791da66328ce1b882c7162d3393f3a4a74
+      sha256: b536c19a10f8c86c160274a54ca6f29bc4c88001324ddcda4cca316033f2dc96
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.3"
+    version: "0.2.4"
   pdfium_flutter:
     dependency: transitive
     description:
       name: pdfium_flutter
-      sha256: "0c8b7d5d11d20a1486eade599648e907067568955bd14a1b06de076a968b60a1"
+      sha256: "97ccb5cf207b66ba5549f09047e935376d967c6311ec3c5314405d1d04569fd2"
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.9"
+    version: "0.2.1"
   pdfrx:
     dependency: "direct main"
     description:
       name: pdfrx
-      sha256: e32e0c786528eec2b3c56b43f59ef1debce3a27c7accd862b95413f949afcfa9
+      sha256: "6b3571565fb412fb7d0a325a76154d0685bd0a0659c3f41ee007f408d48cfd46"
       url: "https://pub.dev"
     source: hosted
-    version: "2.2.24"
+    version: "2.4.3"
   pdfrx_engine:
     dependency: "direct main"
     description:
       name: pdfrx_engine
-      sha256: a8914433d1f6188b903c53d36b9d7dc908bfa89131591a9db22f1a22470d3a48
+      sha256: a201b11e13b6c729d731ddc96ce06394cce8503c39e4c7e9d2fa51b3e7b351a5
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.9"
+    version: "0.4.2"
   petitparser:
     dependency: transitive
     description:
@@ -809,42 +809,42 @@ packages:
     dependency: transitive
     description:
       name: screen_retriever
-      sha256: "570dbc8e4f70bac451e0efc9c9bb19fa2d6799a11e6ef04f946d7886d2e23d0c"
+      sha256: "42cc3b402a0f67d2455a0d067553d0f13453f6a008d98eababf8b63958d506bd"
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.0"
+    version: "0.2.1"
   screen_retriever_linux:
     dependency: transitive
     description:
       name: screen_retriever_linux
-      sha256: f7f8120c92ef0784e58491ab664d01efda79a922b025ff286e29aa123ea3dd18
+      sha256: "2a476f1a5538065bc5badf376cfdc83d6ecf07d77eb2391b9c2bff5a76970048"
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.0"
+    version: "0.2.1"
   screen_retriever_macos:
     dependency: transitive
     description:
       name: screen_retriever_macos
-      sha256: "71f956e65c97315dd661d71f828708bd97b6d358e776f1a30d5aa7d22d78a149"
+      sha256: b5abb900fcb86614ff10b738b34e37b9e1d03b0447280668e2bc8a98bdc7bd59
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.0"
+    version: "0.2.1"
   screen_retriever_platform_interface:
     dependency: transitive
     description:
       name: screen_retriever_platform_interface
-      sha256: ee197f4581ff0d5608587819af40490748e1e39e648d7680ecf95c05197240c0
+      sha256: "3af22d926bedf20c2caa308eea376776451a3af125919ce072e56525fded8901"
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.0"
+    version: "0.2.1"
   screen_retriever_windows:
     dependency: transitive
     description:
       name: screen_retriever_windows
-      sha256: "449ee257f03ca98a57288ee526a301a430a344a161f9202b4fcc38576716fe13"
+      sha256: c44b38a4c4bab34af259180a70a4eee1e29384e7b82e627c9faa68afcdab2e73
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.0"
+    version: "0.2.1"
   scroll_pos:
     dependency: transitive
     description:
@@ -865,10 +865,10 @@ packages:
     dependency: transitive
     description:
       name: shared_preferences_android
-      sha256: e8d4762b1e2e8578fc4d0fd548cebf24afd24f49719c08974df92834565e2c53
+      sha256: "93ae5884a9df5d3bb696825bceb3a17590754548b5d740eba51500afc8d088f5"
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.23"
+    version: "2.4.26"
   shared_preferences_foundation:
     dependency: transitive
     description:
@@ -958,10 +958,10 @@ packages:
     dependency: transitive
     description:
       name: synchronized
-      sha256: "63896c27e81b28f8cb4e69ead0d3e8f03f1d1e5fc531a3e579cabed6a2c7c9e5"
+      sha256: "93b153dcb6a26dcddee6ca087dd634b53e38c10b5aa163e8e49501a776456153"
       url: "https://pub.dev"
     source: hosted
-    version: "3.4.0+1"
+    version: "3.4.1"
   term_glyph:
     dependency: transitive
     description:
@@ -982,10 +982,10 @@ packages:
     dependency: "direct main"
     description:
       name: tray_manager
-      sha256: c5fd83b0ae4d80be6eaedfad87aaefab8787b333b8ebd064b0e442a81006035b
+      sha256: "1a659b08baa6e9b91ef8ce16eda37740de398be1c4cf322b8a1ddfef25c68c5a"
       url: "https://pub.dev"
     source: hosted
-    version: "0.5.2"
+    version: "0.5.3"
   typed_data:
     dependency: transitive
     description:
@@ -1006,10 +1006,10 @@ packages:
     dependency: transitive
     description:
       name: url_launcher_android
-      sha256: "3bb000251e55d4a209aa0e2e563309dc9bb2befea2295fd0cec1f51760aac572"
+      sha256: b413d49b73867ac08dd2f9890efd3cc11f2a0e577618d50843440a1fb3776c32
       url: "https://pub.dev"
     source: hosted
-    version: "6.3.29"
+    version: "6.3.32"
   url_launcher_ios:
     dependency: transitive
     description:
@@ -1094,10 +1094,10 @@ packages:
     dependency: transitive
     description:
       name: win32
-      sha256: a1fc9eb9248baa05dfc12ed5b66e377b3e23f095eec078e0371622b9033810d9
+      sha256: ba6f4bba816c8d7e3c1580e170f3786d216951cc6b94babc3b814c08d2cb2738
       url: "https://pub.dev"
     source: hosted
-    version: "6.2.0"
+    version: "6.3.0"
   window_manager:
     dependency: "direct main"
     description:
@@ -1131,5 +1131,5 @@ packages:
     source: hosted
     version: "3.1.3"
 sdks:
-  dart: ">=3.11.5 <4.0.0"
-  flutter: ">=3.41.7"
+  dart: ">=3.12.0 <4.0.0"
+  flutter: ">=3.44.0"

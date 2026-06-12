@@ -82,7 +82,10 @@ void main() {
     await pumpUntilFound(tester, find.text('高等数学'));
 
     expect(find.text('课程表'), findsOneWidget);
-    expect(find.textContaining('自动刷新已开启'), findsOneWidget);
+    expect(find.text('课程表说明'), findsNothing);
+    expect(find.text('本学期概览'), findsOneWidget);
+    expect(find.text('2025-2026 第2学期'), findsOneWidget);
+    expect(find.textContaining('自动刷新每 1 分钟运行一次'), findsOneWidget);
     expect(find.text('高等数学'), findsOneWidget);
     expect(find.text('周一'), findsOneWidget);
     expect(find.textContaining('08:00-09:35'), findsOneWidget);
@@ -167,11 +170,36 @@ void main() {
     await tester.tap(find.byKey(const Key('open-academic-calendar')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
-    await pumpUntilFound(tester, find.text('校历已就绪'));
+    await pumpUntilFound(tester, find.text('2025-2026学年'));
 
     expect(find.text('校历'), findsWidgets);
     expect(find.text('2025-2026学年'), findsWidgets);
-    expect(find.text('秋季学期'), findsOneWidget);
+    expect(find.text('外部打开'), findsOneWidget);
+    expect(find.text('秋季学期'), findsNothing);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表概览隐藏无效培养计划并在窄屏自适应', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(
+        result: _successResultWithEmptyProgramCompletion,
+      ),
+      initialResult: _successResultWithEmptyProgramCompletion,
+      autoRefreshEnabledOverride: false,
+    );
+    await pumpUntilFound(tester, find.text('高等数学'));
+
+    expect(find.text('课程表说明'), findsNothing);
+    expect(find.text('2025-2026 学年春季学期（按校历推断）'), findsOneWidget);
+    expect(find.textContaining('培养计划'), findsNothing);
+    expect(find.textContaining('0.0/0.0'), findsNothing);
+    expect(tester.takeException(), isNull);
     await disposeCourseSchedulePage(tester);
   });
 }
@@ -245,6 +273,17 @@ class _FakeAcademicCalendarClient implements AcademicCalendarClient {
 
   @override
   Future<AcademicCalendarSyncResult> ensureCalendarsForDate({
+    DateTime? now,
+  }) async {
+    return AcademicCalendarSyncResult(
+      entries: entries,
+      loadedFromCache: entries.isNotEmpty,
+      refreshed: false,
+    );
+  }
+
+  @override
+  Future<AcademicCalendarSyncResult> ensureCalendarsForViewer({
     DateTime? now,
   }) async {
     return AcademicCalendarSyncResult(
@@ -384,6 +423,41 @@ final AcademicEamsQueryResult _successResult = AcademicEamsQueryResult(
     ),
   ),
 );
+
+final AcademicEamsQueryResult _successResultWithEmptyProgramCompletion =
+    AcademicEamsQueryResult(
+      status: AcademicEamsQueryStatus.success,
+      message: '本专科教务只读查询成功',
+      detail: '已读取当前学期课表。',
+      checkedAt: DateTime(2026, 5, 2, 10, 0),
+      entranceUri: Uri.parse(
+        'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
+      ),
+      snapshot: AcademicEamsSnapshot(
+        fetchedAt: DateTime(2026, 5, 2, 10, 0),
+        sourceUri: Uri.parse(
+          'https://jx.sspu.edu.cn/eams/courseTableForStd.action',
+        ),
+        warnings: const [],
+        hasCourseOfferingEntry: true,
+        hasFreeClassroomEntry: true,
+        profile: _successResult.snapshot!.profile,
+        courseTable: AcademicCourseTableSnapshot(
+          entries: _successResult.snapshot!.courseTable!.entries,
+          fetchedAt: DateTime(2026, 5, 2, 10, 0),
+          sourceUri: Uri.parse(
+            'https://jx.sspu.edu.cn/eams/courseTableForStd.action',
+          ),
+        ),
+        programCompletion: const AcademicProgramCompletionSnapshot(
+          completedCourseCount: 0,
+          pendingCourseCount: 0,
+          completedCredits: 0,
+          pendingCredits: 0,
+          moduleProgress: [],
+        ),
+      ),
+    );
 
 final AcademicEamsQueryResult _missingPassword = AcademicEamsQueryResult(
   status: AcademicEamsQueryStatus.missingOaPassword,
