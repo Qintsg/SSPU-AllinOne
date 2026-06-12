@@ -369,6 +369,7 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
             initialSettings: InAppWebViewSettings(
               javaScriptEnabled: true,
               isInspectable: kDebugMode,
+              // UA-POLICY-ALLOW: 微信公众号扫码登录页依赖浏览器 UA 展示桌面登录流程，不能使用 OA/CAS 应用 UA。
               userAgent:
                   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
                   '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',

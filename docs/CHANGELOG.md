@@ -11,6 +11,11 @@
 ### 新增
 
 - 新增高级 CodeQL、Gitleaks 密钥扫描与 Flutter 覆盖率 workflow，并将 Dart / Flutter 质量门禁文案整合到现有 CI。
+- 新增 User-Agent Policy PR workflow，阻止未写明例外原因的非标准 UA 进入运行时代码。
+
+### 变更
+
+- OA/CAS 与校园受限 HTTP 请求改用 `SSPU-AllinOne/{version} ({platform}; {os_version})` 应用身份 User-Agent，微信公众号和通用 WebView 保留带注释说明的浏览器 UA 例外。
 
 ## [0.2.8-alpha] - 2026-06-12
 
