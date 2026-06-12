@@ -7,15 +7,15 @@
  */
 
 import '../design/fluent_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../controllers/settings_wechat_controller.dart';
+import '../services/wxmp_config_service.dart';
 import '../theme/fluent_tokens.dart';
 import '../utils/webview_env.dart';
 import 'app_feedback.dart';
-import 'settings_widgets.dart';
-import 'settings_wechat_auth_guide.dart';
+import 'settings_wechat_config_dialog.dart';
 import 'settings_wechat_matrix_card.dart';
+import 'settings_wechat_refresh_card.dart';
 import '../pages/wxmp_login_page.dart';
 
 /// 微信推文设置分区。
@@ -32,18 +32,6 @@ class SettingsWechatSection extends StatefulWidget {
 
 class _SettingsWechatSectionState extends State<SettingsWechatSection> {
   late final SettingsWechatController _controller;
-
-  bool get _canOpenConfigDirectory {
-    if (kIsWeb) return false;
-    return switch (defaultTargetPlatform) {
-      TargetPlatform.windows ||
-      TargetPlatform.macOS ||
-      TargetPlatform.linux => true,
-      TargetPlatform.android ||
-      TargetPlatform.iOS ||
-      TargetPlatform.fuchsia => false,
-    };
-  }
 
   @override
   void initState() {
@@ -66,21 +54,6 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
     );
   }
 
-  Future<void> _openExternalUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      return;
-    }
-    if (!mounted) return;
-    showFluentInfoBar(
-      context,
-      title: const Text('无法打开链接'),
-      content: Text(url),
-      severity: FluentInfoSeverity.warning,
-    );
-  }
-
   Future<void> _openWxmpLogin() async {
     final webViewEnvironment = await ensureGlobalWebViewEnvironment();
     if (!mounted) return;
@@ -96,9 +69,9 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
   }
 
   Future<void> _openConfigEditor() async {
-    late final String initialContent;
+    late final WxmpConfig initialConfig;
     try {
-      initialContent = await _controller.loadConfigFileText();
+      initialConfig = await _controller.loadConfig();
     } catch (error) {
       await _showFeedback(
         SettingsWechatFeedback(
@@ -111,52 +84,13 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
     }
 
     if (!mounted) return;
-    final textController = TextEditingController(text: initialContent);
-    final savedContent = await showDialog<String>(
+    final savedConfig = await showSettingsWechatConfigDialog(
       context: context,
-      builder: (dialogContext) => FluentDialog(
-        constraints: const BoxConstraints(maxWidth: 800),
-        title: const Text('编辑公众号平台配置'),
-        content: SizedBox(
-          width: 720,
-          height: 460,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '保存后会立即重新加载配置；Cookie 和 Token 属于敏感信息，请勿分享。',
-                style: FluentTheme.of(dialogContext).typography.caption,
-              ),
-              const SizedBox(height: FluentSpacing.s),
-              Expanded(
-                child: FluentTextField(
-                  controller: textController,
-                  maxLines: null,
-                  expands: true,
-                  textAlignVertical: TextAlignVertical.top,
-                  style: const TextStyle(fontFamily: 'Consolas'),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          FluentButton.outline(
-            child: const Text('取消'),
-            onPressed: () => Navigator.of(dialogContext).pop(),
-          ),
-          FluentButton.primary(
-            child: const Text('保存'),
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(textController.text),
-          ),
-        ],
-      ),
+      initialConfig: initialConfig,
     );
 
-    textController.dispose();
-    if (savedContent == null) return;
-    await _showFeedback(await _controller.saveConfigFileText(savedContent));
+    if (savedConfig == null) return;
+    await _showFeedback(await _controller.saveConfig(savedConfig));
   }
 
   @override
@@ -169,151 +103,25 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
         }
 
         final theme = FluentTheme.of(context);
-        final disabledColor = theme.resources.textFillColorSecondary.withValues(
-          alpha: 0.7,
-        );
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('微信推文消息获取', style: theme.typography.subtitle),
             const SizedBox(height: FluentSpacing.l),
-            FluentCard(
-              padding: EdgeInsets.zero,
-              child: Padding(
-                padding: const EdgeInsets.all(FluentSpacing.l),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: FluentSpacing.s,
-                      runSpacing: FluentSpacing.s,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text('刷新设置', style: theme.typography.bodyStrong),
-                        FluentButton.primary(
-                          onPressed: () async => _showFeedback(
-                            await _controller.setWechatPageEnabled(true),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(FluentIcons.checkMark, size: 14),
-                              SizedBox(
-                                width: FluentSpacing.xs + FluentSpacing.xxs,
-                              ),
-                              Text('一键全开'),
-                            ],
-                          ),
-                        ),
-                        FluentButton.outline(
-                          onPressed: () async => _showFeedback(
-                            await _controller.setWechatPageEnabled(false),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(FluentIcons.blocked, size: 14),
-                              SizedBox(
-                                width: FluentSpacing.xs + FluentSpacing.xxs,
-                              ),
-                              Text('一键全关'),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: FluentSpacing.s),
-                    Wrap(
-                      spacing: FluentSpacing.l,
-                      runSpacing: FluentSpacing.s,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        buildCountNumberBox(
-                          context: context,
-                          label: '手动刷新文章个数',
-                          value: _controller.wechatManualFetchCount,
-                          enabled: true,
-                          onChanged: (value) =>
-                              _controller.setManualFetchCount(value),
-                        ),
-                        Wrap(
-                          spacing: FluentSpacing.xs,
-                          runSpacing: FluentSpacing.xs,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text('启用自动刷新：', style: theme.typography.caption),
-                            FluentSwitch(
-                              value: _controller.wechatAutoRefreshEnabled,
-                              onChanged: (value) =>
-                                  _controller.setAutoRefreshEnabled(value),
-                            ),
-                          ],
-                        ),
-                        Wrap(
-                          spacing: FluentSpacing.xs,
-                          runSpacing: FluentSpacing.xs,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text(
-                              '自动刷新频率：',
-                              style: theme.typography.caption?.copyWith(
-                                color: _controller.wechatAutoRefreshEnabled
-                                    ? null
-                                    : disabledColor,
-                              ),
-                            ),
-                            FluentSelect<int>(
-                              value:
-                                  kIntervalOptions.containsKey(
-                                    _controller.wechatRefreshInterval,
-                                  )
-                                  ? _controller.wechatRefreshInterval
-                                  : 120,
-                              items: kIntervalOptions.entries
-                                  .where((entry) => entry.key > 0)
-                                  .map(
-                                    (entry) => FluentSelectItem<int>(
-                                      value: entry.key,
-                                      child: Text(entry.value),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: _controller.wechatAutoRefreshEnabled
-                                  ? (value) {
-                                      if (value != null) {
-                                        _controller.setRefreshInterval(value);
-                                      }
-                                    }
-                                  : null,
-                            ),
-                          ],
-                        ),
-                        buildCountNumberBox(
-                          context: context,
-                          label: '自动刷新文章个数',
-                          value: _controller.wechatAutoFetchCount,
-                          enabled: _controller.wechatAutoRefreshEnabled,
-                          onChanged: (value) =>
-                              _controller.setAutoFetchCount(value),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: FluentSpacing.s),
-                    Text(
-                      '注意：若频率过快，可能会触发微信公众平台的接口频率限制。',
-                      style: theme.typography.caption?.copyWith(
-                        color: theme.resources.textFillColorSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: FluentSpacing.l),
-            SettingsWechatAuthGuide(
-              onOpenOfficialSite: () =>
-                  _openExternalUrl('https://mp.weixin.qq.com/'),
+            SettingsWechatRefreshCard(
+              manualFetchCount: _controller.wechatManualFetchCount,
+              autoRefreshEnabled: _controller.wechatAutoRefreshEnabled,
+              refreshInterval: _controller.wechatRefreshInterval,
+              autoFetchCount: _controller.wechatAutoFetchCount,
+              onManualFetchCountChanged: (value) =>
+                  _controller.setManualFetchCount(value),
+              onAutoRefreshChanged: (value) =>
+                  _controller.setAutoRefreshEnabled(value),
+              onRefreshIntervalChanged: (value) =>
+                  _controller.setRefreshInterval(value),
+              onAutoFetchCountChanged: (value) =>
+                  _controller.setAutoFetchCount(value),
             ),
             const SizedBox(height: FluentSpacing.l),
             _buildAuthCard(theme),
@@ -327,10 +135,12 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
               followingAccountId: _controller.wxmpFollowingAccountId,
               onBatchFollow: () async =>
                   _showFeedback(await _controller.batchFollowSspuWxmp()),
-              onFollowAccount: (account) async =>
-                  _showFeedback(await _controller.followSspuAccount(account)),
-              onToggleMp: (fakeid, enabled) =>
-                  _controller.setMpNotificationEnabled(fakeid, enabled),
+              onEnableAll: () async =>
+                  _showFeedback(await _controller.setWechatMatrixEnabled(true)),
+              onDisableAll: () async => _showFeedback(
+                await _controller.setWechatMatrixEnabled(false),
+              ),
+              onToggleAccount: _controller.toggleSspuAccount,
             ),
           ],
         );
@@ -339,7 +149,10 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
   }
 
   Widget _buildAuthCard(FluentThemeData theme) {
-    final isDark = theme.brightness == Brightness.dark;
+    final statusTone = _controller.wxmpAuthenticated
+        ? FluentStatusChipTone.success
+        : FluentStatusChipTone.warning;
+
     return FluentCard(
       padding: EdgeInsets.zero,
       child: Padding(
@@ -347,17 +160,20 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('公众号平台认证', style: theme.typography.bodyStrong),
-            const SizedBox(height: FluentSpacing.xs),
-            Text(
-              '通过公众号管理平台 (mp.weixin.qq.com) 获取推文，需拥有公众号（个人订阅号即可）',
-              style: theme.typography.caption,
-            ),
-            const SizedBox(height: FluentSpacing.xs),
-            Text(
-              '高级配置已合并到认证配置中，扫码登录成功后会自动更新配置文件。'
-              '用户配置与文章缓存统一保存在 ~/.sspu-aio/。',
-              style: theme.typography.caption,
+            Wrap(
+              spacing: FluentSpacing.s,
+              runSpacing: FluentSpacing.s,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text('公众号平台认证', style: theme.typography.bodyStrong),
+                FluentStatusChip(
+                  label: _controller.wxmpAuthenticated ? '已认证' : '未认证',
+                  tone: statusTone,
+                  icon: _controller.wxmpAuthenticated
+                      ? FluentIcons.checkMark
+                      : FluentIcons.warning,
+                ),
+              ],
             ),
             if (_controller.wxmpAuthStatus != null) ...[
               const SizedBox(height: FluentSpacing.xs),
@@ -372,20 +188,11 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
             SelectableText(
               _controller.wxmpConfigPath.isEmpty
                   ? '认证配置路径加载中...'
-                  : _controller.wxmpConfigPath,
+                  : '配置文件：${_controller.wxmpConfigPath}',
               style: theme.typography.caption?.copyWith(
                 color: theme.resources.textFillColorSecondary,
               ),
             ),
-            if (_controller.stateFilePath.isNotEmpty) ...[
-              const SizedBox(height: FluentSpacing.xxs),
-              SelectableText(
-                '状态与缓存：${_controller.stateFilePath}',
-                style: theme.typography.caption?.copyWith(
-                  color: theme.resources.textFillColorSecondary,
-                ),
-              ),
-            ],
             if (_controller.wxmpConfigMessage.isNotEmpty) ...[
               const SizedBox(height: FluentSpacing.xxs),
               Text(
@@ -395,29 +202,6 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
                 ),
               ),
             ],
-            const SizedBox(height: FluentSpacing.m),
-            Row(
-              children: [
-                Icon(
-                  _controller.wxmpAuthenticated
-                      ? FluentIcons.checkMark
-                      : FluentIcons.warning,
-                  size: 16,
-                  color: _controller.wxmpAuthenticated
-                      ? (isDark
-                            ? FluentDarkColors.statusSuccess
-                            : FluentLightColors.statusSuccess)
-                      : (isDark
-                            ? FluentDarkColors.statusWarning
-                            : FluentLightColors.statusWarning),
-                ),
-                const SizedBox(width: FluentSpacing.s),
-                Text(
-                  _controller.wxmpAuthenticated ? '已认证' : '未认证',
-                  style: theme.typography.body,
-                ),
-              ],
-            ),
             const SizedBox(height: FluentSpacing.m),
             Wrap(
               spacing: FluentSpacing.s,
@@ -434,29 +218,6 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
                     ],
                   ),
                 ),
-                if (_controller.wxmpAuthenticated)
-                  FluentButton.outline(
-                    onPressed: _controller.wxmpValidating
-                        ? null
-                        : () async =>
-                              _showFeedback(await _controller.validateAuth()),
-                    child: _controller.wxmpValidating
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: FluentProgressRing(strokeWidth: 2),
-                          )
-                        : const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(FluentIcons.shield, size: 14),
-                              SizedBox(
-                                width: FluentSpacing.xs + FluentSpacing.xxs,
-                              ),
-                              Text('校验有效性'),
-                            ],
-                          ),
-                  ),
                 FluentButton.outline(
                   onPressed: _openConfigEditor,
                   child: const Row(
@@ -468,28 +229,34 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
                     ],
                   ),
                 ),
-                if (_canOpenConfigDirectory)
-                  FluentButton.outline(
-                    onPressed: () async =>
-                        _showFeedback(await _controller.openConfigDirectory()),
-                    child: const Text('打开配置文件所在文件夹'),
-                  ),
                 FluentButton.outline(
-                  onPressed: () async =>
-                      _showFeedback(await _controller.openConfigFile()),
-                  child: const Text('外部打开'),
+                  onPressed: _controller.wxmpValidating
+                      ? null
+                      : () async =>
+                            _showFeedback(await _controller.reloadConfigFile()),
+                  child: _controller.wxmpValidating
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: FluentProgressRing(strokeWidth: 2),
+                        )
+                      : const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(FluentIcons.sync, size: 14),
+                            SizedBox(
+                              width: FluentSpacing.xs + FluentSpacing.xxs,
+                            ),
+                            Text('重新加载配置并校验'),
+                          ],
+                        ),
                 ),
                 FluentButton.outline(
-                  onPressed: () async =>
-                      _showFeedback(await _controller.reloadConfigFile()),
-                  child: const Text('重新加载配置'),
+                  onPressed: _controller.wxmpAuthenticated
+                      ? () async => _showFeedback(await _controller.clearAuth())
+                      : null,
+                  child: const Text('清除认证'),
                 ),
-                if (_controller.wxmpAuthenticated)
-                  FluentButton.outline(
-                    onPressed: () async =>
-                        _showFeedback(await _controller.clearAuth()),
-                    child: const Text('清除认证'),
-                  ),
               ],
             ),
           ],

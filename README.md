@@ -8,7 +8,7 @@
 
 ## 简介
 
-工大聚合（SSPU-AllinOne）是面向上海第二工业大学师生的校园综合服务应用，基于 Flutter + Fluent UI 构建，支持 Android / iOS / macOS / Linux / Windows / Web 全平台。所有数据仅保留在本地，不上传至任何云端服务。
+工大聚合（SSPU-AllinOne）是面向上海第二工业大学师生的校园综合服务应用，基于 Flutter + Fluent UI 构建，公开 Release 面向 Android / iOS / macOS / Linux / Windows。所有数据仅保留在本地，不上传至任何云端服务。
 
 中文语言环境下，应用窗口、启动器、安装器和关于页默认显示为“工大聚合”；英文语言环境和技术标识仍使用 `SSPU-AllinOne`。包名、Bundle ID、可执行文件名、仓库名与 GitHub Release 资产命名不随显示名变化。
 
@@ -16,8 +16,8 @@
 
 ### 环境要求
 
-- Flutter SDK >= 3.41.7
-- Dart SDK 3.11.5（随 Flutter 3.41.7 提供）
+- Flutter SDK >= 3.44.0
+- Dart SDK 3.12.0（随 Flutter 3.44.0 提供）
 - 各平台对应的开发工具（详见 [使用文档](docs/USAGE.md)）
 
 ### 安装与运行
@@ -33,7 +33,6 @@ flutter run
 
 ```bash
 flutter build apk           # Android APK
-flutter build web            # Web
 flutter build windows        # Windows
 flutter build macos          # macOS
 flutter build linux          # Linux
@@ -126,21 +125,6 @@ flutter build macos --release
   分发生成的 `.app` 包；首次运行若被系统拦截，需要在“系统设置 → 隐私与安全性”中手动放行
   公开 Release 当前默认提供未签名 DMG：
   `SSPU-AllinOne-v{version}-macos-universal-unsigned.dmg`
-
-### Web
-
-- 构建命令：
-
-```bash
-flutter build web --release
-```
-
-- 产物位置：
-  `build/web/`
-- 使用方式：
-  将整个目录部署到任意静态文件服务器，并确保服务器对 `index.html` 开启 SPA 路由回退
-  公开 Release 会将静态站点压缩为：
-  `SSPU-AllinOne-v{version}-web-universal-static.zip`
 
 ## 文档
 

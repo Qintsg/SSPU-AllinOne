@@ -22,6 +22,8 @@ class FluentCard extends StatelessWidget {
     this.minHeight,
     this.elevated = true,
     this.bordered = false,
+    this.backgroundColor,
+    this.borderColor,
     this.semanticLabel,
   });
 
@@ -48,6 +50,12 @@ class FluentCard extends StatelessWidget {
 
   /// 是否显示边框。
   final bool bordered;
+
+  /// 自定义背景色；为空时使用主题卡片背景。
+  final Color? backgroundColor;
+
+  /// 自定义边框色；为空时使用主题默认边框。
+  final Color? borderColor;
 
   /// 交互态无障碍语义标签。
   final String? semanticLabel;
@@ -94,9 +102,11 @@ class FluentCard extends StatelessWidget {
       borderRadius: radii.largeBorder,
       backgroundColor: hovered
           ? resources.subtleFillColorSecondary
-          : FluentTheme.of(context).cardColor,
-      borderColor: bordered || states.isFocused
-          ? (hovered ? colors.brandStroke1 : resources.controlStrokeColorDefault)
+          : backgroundColor ?? FluentTheme.of(context).cardColor,
+      borderColor: bordered || states.isFocused || borderColor != null
+          ? (hovered
+                ? colors.brandStroke1
+                : borderColor ?? resources.controlStrokeColorDefault)
           : null,
       child: child,
     );

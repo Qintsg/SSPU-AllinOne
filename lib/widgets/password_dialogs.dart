@@ -18,7 +18,7 @@ Future<bool> showSetPasswordDialog(BuildContext context) async {
   final confirmController = TextEditingController();
   String? errorMessage;
 
-  final result = await showDialog<bool>(
+  final result = await showFluentDialog<bool>(
     context: context,
     builder: (dialogContext) {
       return StatefulBuilder(
@@ -49,7 +49,7 @@ Future<bool> showSetPasswordDialog(BuildContext context) async {
               ],
             ),
             actions: [
-              FluentButton.transparent(
+              FluentButton.outline(
                 child: const Text('取消'),
                 onPressed: () => Navigator.pop(dialogContext, false),
               ),
@@ -94,7 +94,7 @@ Future<bool> showRemovePasswordDialog(BuildContext context) async {
   final passwordController = TextEditingController();
   String? errorMessage;
 
-  final result = await showDialog<bool>(
+  final result = await showFluentDialog<bool>(
     context: context,
     builder: (dialogContext) {
       return StatefulBuilder(
@@ -119,7 +119,7 @@ Future<bool> showRemovePasswordDialog(BuildContext context) async {
               ],
             ),
             actions: [
-              FluentButton.transparent(
+              FluentButton.outline(
                 child: const Text('取消'),
                 onPressed: () => Navigator.pop(dialogContext, false),
               ),
@@ -166,7 +166,7 @@ Future<bool> showConfirmCurrentPasswordDialog(
   final passwordController = TextEditingController();
   String? errorMessage;
 
-  final result = await showDialog<bool>(
+  final result = await showFluentDialog<bool>(
     context: context,
     builder: (dialogContext) {
       return StatefulBuilder(
@@ -191,7 +191,7 @@ Future<bool> showConfirmCurrentPasswordDialog(
               ],
             ),
             actions: [
-              FluentButton.transparent(
+              FluentButton.outline(
                 child: const Text('取消'),
                 onPressed: () => Navigator.pop(dialogContext, false),
               ),
@@ -229,7 +229,7 @@ Future<bool> showChangePasswordDialog(BuildContext context) async {
   final confirmController = TextEditingController();
   String? errorMessage;
 
-  final result = await showDialog<bool>(
+  final result = await showFluentDialog<bool>(
     context: context,
     builder: (dialogContext) {
       return StatefulBuilder(
@@ -264,7 +264,7 @@ Future<bool> showChangePasswordDialog(BuildContext context) async {
               ],
             ),
             actions: [
-              FluentButton.transparent(
+              FluentButton.outline(
                 child: const Text('取消'),
                 onPressed: () => Navigator.pop(dialogContext, false),
               ),

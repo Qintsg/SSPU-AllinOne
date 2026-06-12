@@ -32,6 +32,30 @@ mixin _SettingsPageActions on State<SettingsPage> {
   bool get _dndEnabled;
   set _dndEnabled(bool value);
 
+  bool get _homeStudentProfileCardVisible;
+  set _homeStudentProfileCardVisible(bool value);
+
+  bool get _homeCampusCardBalanceCardVisible;
+  set _homeCampusCardBalanceCardVisible(bool value);
+
+  bool get _homeTodayCoursesTileVisible;
+  set _homeTodayCoursesTileVisible(bool value);
+
+  bool get _homeSportsAttendanceTileVisible;
+  set _homeSportsAttendanceTileVisible(bool value);
+
+  bool get _homeStudentReportTileVisible;
+  set _homeStudentReportTileVisible(bool value);
+
+  bool get _homeMessagesTileVisible;
+  set _homeMessagesTileVisible(bool value);
+
+  bool get _homeEmailTileVisible;
+  set _homeEmailTileVisible(bool value);
+
+  bool get _homeQuickLinksTileVisible;
+  set _homeQuickLinksTileVisible(bool value);
+
   int get _dndStartHour;
   set _dndStartHour(int value);
 
@@ -89,6 +113,38 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
     final notifEnabled = await _messageState.isNotificationEnabled();
     final dndOn = await _messageState.isDndEnabled();
+    final homeStudentProfileCardVisible = await StorageService.getBool(
+      StorageKeys.homeStudentProfileCardVisible,
+      defaultValue: true,
+    );
+    final homeCampusCardBalanceCardVisible = await StorageService.getBool(
+      StorageKeys.homeCampusCardBalanceCardVisible,
+      defaultValue: true,
+    );
+    final homeTodayCoursesTileVisible = await StorageService.getBool(
+      StorageKeys.homeTodayCoursesTileVisible,
+      defaultValue: true,
+    );
+    final homeSportsAttendanceTileVisible = await StorageService.getBool(
+      StorageKeys.homeSportsAttendanceTileVisible,
+      defaultValue: true,
+    );
+    final homeStudentReportTileVisible = await StorageService.getBool(
+      StorageKeys.homeStudentReportTileVisible,
+      defaultValue: true,
+    );
+    final homeMessagesTileVisible = await StorageService.getBool(
+      StorageKeys.homeMessagesTileVisible,
+      defaultValue: true,
+    );
+    final homeEmailTileVisible = await StorageService.getBool(
+      StorageKeys.homeEmailTileVisible,
+      defaultValue: true,
+    );
+    final homeQuickLinksTileVisible = await StorageService.getBool(
+      StorageKeys.homeQuickLinksTileVisible,
+      defaultValue: true,
+    );
     final dndStartHour = await _messageState.getDndStartHour();
     final dndStartMinute = await _messageState.getDndStartMinute();
     final dndEndHour = await _messageState.getDndEndHour();
@@ -127,6 +183,14 @@ mixin _SettingsPageActions on State<SettingsPage> {
       _closeBehavior = behavior;
       _notificationEnabled = notifEnabled;
       _dndEnabled = dndOn;
+      _homeStudentProfileCardVisible = homeStudentProfileCardVisible;
+      _homeCampusCardBalanceCardVisible = homeCampusCardBalanceCardVisible;
+      _homeTodayCoursesTileVisible = homeTodayCoursesTileVisible;
+      _homeSportsAttendanceTileVisible = homeSportsAttendanceTileVisible;
+      _homeStudentReportTileVisible = homeStudentReportTileVisible;
+      _homeMessagesTileVisible = homeMessagesTileVisible;
+      _homeEmailTileVisible = homeEmailTileVisible;
+      _homeQuickLinksTileVisible = homeQuickLinksTileVisible;
       _dndStartHour = dndStartHour;
       _dndStartMinute = dndStartMinute;
       _dndEndHour = dndEndHour;
@@ -185,6 +249,97 @@ mixin _SettingsPageActions on State<SettingsPage> {
     await _messageState.setDndEnabled(enabled);
     if (!mounted) return;
     setState(() => _dndEnabled = enabled);
+  }
+
+  /// 修改首页学籍信息卡片显示开关。
+  Future<void> _onHomeStudentProfileCardVisibleChanged(bool visible) async {
+    await StorageService.setBool(
+      StorageKeys.homeStudentProfileCardVisible,
+      visible,
+    );
+    if (!mounted) return;
+    setState(() => _homeStudentProfileCardVisible = visible);
+  }
+
+  /// 修改首页校园卡余额卡片显示开关。
+  Future<void> _onHomeCampusCardBalanceCardVisibleChanged(bool visible) async {
+    await StorageService.setBool(
+      StorageKeys.homeCampusCardBalanceCardVisible,
+      visible,
+    );
+    if (!mounted) return;
+    setState(() => _homeCampusCardBalanceCardVisible = visible);
+  }
+
+  /// 修改首页今日课程磁贴显示开关。
+  Future<void> _onHomeTodayCoursesTileVisibleChanged(bool visible) async {
+    await _setHomeTileVisible(
+      StorageKeys.homeTodayCoursesTileVisible,
+      visible,
+      (value) => _homeTodayCoursesTileVisible = value,
+    );
+  }
+
+  /// 修改首页体育考勤磁贴显示开关。
+  Future<void> _onHomeSportsAttendanceTileVisibleChanged(bool visible) async {
+    await _setHomeTileVisible(
+      StorageKeys.homeSportsAttendanceTileVisible,
+      visible,
+      (value) => _homeSportsAttendanceTileVisible = value,
+    );
+  }
+
+  /// 修改首页第二课堂磁贴显示开关。
+  Future<void> _onHomeStudentReportTileVisibleChanged(bool visible) async {
+    await _setHomeTileVisible(
+      StorageKeys.homeStudentReportTileVisible,
+      visible,
+      (value) => _homeStudentReportTileVisible = value,
+    );
+  }
+
+  /// 修改首页最新消息磁贴显示开关。
+  Future<void> _onHomeMessagesTileVisibleChanged(bool visible) async {
+    await _setHomeTileVisible(
+      StorageKeys.homeMessagesTileVisible,
+      visible,
+      (value) => _homeMessagesTileVisible = value,
+    );
+  }
+
+  /// 修改首页邮箱摘要磁贴显示开关。
+  Future<void> _onHomeEmailTileVisibleChanged(bool visible) async {
+    await _setHomeTileVisible(
+      StorageKeys.homeEmailTileVisible,
+      visible,
+      (value) => _homeEmailTileVisible = value,
+    );
+  }
+
+  /// 修改首页快速跳转磁贴显示开关。
+  Future<void> _onHomeQuickLinksTileVisibleChanged(bool visible) async {
+    await _setHomeTileVisible(
+      StorageKeys.homeQuickLinksTileVisible,
+      visible,
+      (value) => _homeQuickLinksTileVisible = value,
+    );
+  }
+
+  Future<void> _setHomeTileVisible(
+    String key,
+    bool visible,
+    ValueChanged<bool> apply,
+  ) async {
+    await StorageService.setBool(key, visible);
+    if (!mounted) return;
+    setState(() => apply(visible));
+  }
+
+  /// 打开校历查看页。
+  void _openAcademicCalendar() {
+    Navigator.of(
+      context,
+    ).push(FluentPageRoute(builder: (_) => AcademicCalendarPage()));
   }
 
   /// 修改勿扰开始时间。
@@ -386,14 +541,14 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
   /// 清理信息中心缓存。
   Future<void> _showClearMessageCacheDialog() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showFluentDialog<bool>(
       context: context,
       builder: (ctx) => FluentDialog(
         title: const Text('清理信息中心缓存'),
-        content: const Text(
-          '此操作将清除信息中心缓存的所有消息（包括官网消息和微信公众号文章）。\n\n'
-          '登录信息、设置和关注列表不受影响。\n'
-          '是否继续？',
+        content: const FluentDialogMessage(
+          icon: FluentIcons.broom,
+          message: '将清除信息中心缓存的官网消息和微信公众号文章。',
+          details: '登录信息、设置和关注列表不会受到影响。点击弹窗外区域可取消本次操作。',
         ),
         actions: [
           FluentButton.outline(
@@ -426,13 +581,15 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
   /// 清除所有本地数据并退出。
   Future<void> _showClearAllDataDialog() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showFluentDialog<bool>(
       context: context,
       builder: (ctx) => FluentDialog(
         title: const Text('确认清除所有数据'),
-        content: const Text(
-          '此操作将清除所有本地数据（包括登录信息、设置等），应用将退出。\n'
-          '是否继续？',
+        content: const FluentDialogMessage(
+          icon: FluentIcons.delete,
+          tone: FluentDialogMessageTone.danger,
+          message: '将清除所有本地数据，包括登录信息、设置和缓存。',
+          details: '操作完成后应用会退出。点击弹窗外区域可取消本次操作。',
         ),
         actions: [
           FluentButton.outline(

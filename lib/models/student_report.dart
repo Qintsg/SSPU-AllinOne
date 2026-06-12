@@ -101,16 +101,196 @@ class SecondClassroomCreditRecord {
   }
 }
 
+/// 第二课堂学分规则矩阵行。
+class SecondClassroomCreditRuleRow {
+  const SecondClassroomCreditRuleRow({
+    required this.category,
+    required this.item,
+    required this.level,
+    required this.participation,
+    required this.credit,
+    required this.earnedCredit,
+    required this.requiredCredit,
+    required this.passStatus,
+  });
+
+  /// 类别。
+  final String category;
+
+  /// 项目。
+  final String item;
+
+  /// 等级。
+  final String level;
+
+  /// 参与情况。
+  final String participation;
+
+  /// 积分。
+  final double? credit;
+
+  /// 已获分数。
+  final double? earnedCredit;
+
+  /// 必修积分。
+  final double? requiredCredit;
+
+  /// 通过情况。
+  final String passStatus;
+
+  /// 从 JSON 恢复规则矩阵行。
+  factory SecondClassroomCreditRuleRow.fromJson(Map<String, dynamic> json) {
+    return SecondClassroomCreditRuleRow(
+      category: json['category'] as String? ?? '',
+      item: json['item'] as String? ?? '',
+      level: json['level'] as String? ?? '',
+      participation: json['participation'] as String? ?? '',
+      credit: (json['credit'] as num?)?.toDouble(),
+      earnedCredit: (json['earnedCredit'] as num?)?.toDouble(),
+      requiredCredit: (json['requiredCredit'] as num?)?.toDouble(),
+      passStatus: json['passStatus'] as String? ?? '',
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'category': category,
+      'item': item,
+      'level': level,
+      'participation': participation,
+      'credit': credit,
+      'earnedCredit': earnedCredit,
+      'requiredCredit': requiredCredit,
+      'passStatus': passStatus,
+    };
+  }
+}
+
+/// 第二课堂学分总计行。
+class SecondClassroomCreditTotals {
+  const SecondClassroomCreditTotals({
+    this.totalCredit,
+    this.totalEarnedCredit,
+    this.totalRequiredCredit,
+    this.passStatus,
+  });
+
+  /// 总积分。
+  final double? totalCredit;
+
+  /// 总已获分数。
+  final double? totalEarnedCredit;
+
+  /// 总必修积分。
+  final double? totalRequiredCredit;
+
+  /// 总体通过情况。
+  final String? passStatus;
+
+  /// 从 JSON 恢复总计。
+  factory SecondClassroomCreditTotals.fromJson(Map<String, dynamic> json) {
+    return SecondClassroomCreditTotals(
+      totalCredit: (json['totalCredit'] as num?)?.toDouble(),
+      totalEarnedCredit: (json['totalEarnedCredit'] as num?)?.toDouble(),
+      totalRequiredCredit: (json['totalRequiredCredit'] as num?)?.toDouble(),
+      passStatus: json['passStatus'] as String?,
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'totalCredit': totalCredit,
+      'totalEarnedCredit': totalEarnedCredit,
+      'totalRequiredCredit': totalRequiredCredit,
+      'passStatus': passStatus,
+    };
+  }
+}
+
+/// 第二课堂已获分数详情记录。
+class SecondClassroomCreditDetailRecord {
+  const SecondClassroomCreditDetailRecord({
+    required this.name,
+    required this.category,
+    required this.item,
+    required this.level,
+    required this.participation,
+    required this.earnedCredit,
+  });
+
+  /// 名称。
+  final String name;
+
+  /// 类别。
+  final String category;
+
+  /// 项目。
+  final String item;
+
+  /// 等级。
+  final String level;
+
+  /// 参与情况。
+  final String participation;
+
+  /// 获得积分。
+  final double? earnedCredit;
+
+  /// 从 JSON 恢复详情记录。
+  factory SecondClassroomCreditDetailRecord.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return SecondClassroomCreditDetailRecord(
+      name: json['name'] as String? ?? '',
+      category: json['category'] as String? ?? '',
+      item: json['item'] as String? ?? '',
+      level: json['level'] as String? ?? '',
+      participation: json['participation'] as String? ?? '',
+      earnedCredit: (json['earnedCredit'] as num?)?.toDouble(),
+    );
+  }
+
+  /// 转换为可持久化 JSON。
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'category': category,
+      'item': item,
+      'level': level,
+      'participation': participation,
+      'earnedCredit': earnedCredit,
+    };
+  }
+}
+
 /// 第二课堂学分统计快照。
 class SecondClassroomCreditSummary {
   const SecondClassroomCreditSummary({
     required this.records,
     required this.fetchedAt,
     required this.sourceUri,
+    this.rules = const [],
+    this.totals,
+    this.detailRecords = const [],
+    this.warning,
   });
 
   /// 第二课堂逐项得分明细；不将明细分值相加作为官方总学分。
   final List<SecondClassroomCreditRecord> records;
+
+  /// 第二课堂规则矩阵。
+  final List<SecondClassroomCreditRuleRow> rules;
+
+  /// 页面总计行。
+  final SecondClassroomCreditTotals? totals;
+
+  /// “已获分数”详情记录。
+  final List<SecondClassroomCreditDetailRecord> detailRecords;
+
+  /// 部分详情读取或解析失败时的安全提示。
+  final String? warning;
 
   /// 本地解析完成时间。
   final DateTime fetchedAt;
@@ -120,15 +300,30 @@ class SecondClassroomCreditSummary {
 
   /// 从 JSON 恢复第二课堂学分统计。
   factory SecondClassroomCreditSummary.fromJson(Map<String, dynamic> json) {
+    final legacyRecords = (json['records'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(SecondClassroomCreditRecord.fromJson)
+        .toList();
     return SecondClassroomCreditSummary(
-      records: (json['records'] as List<dynamic>? ?? const [])
+      records: legacyRecords,
+      rules: (json['rules'] as List<dynamic>? ?? const [])
           .whereType<Map<String, dynamic>>()
-          .map(SecondClassroomCreditRecord.fromJson)
+          .map(SecondClassroomCreditRuleRow.fromJson)
+          .toList(),
+      totals: json['totals'] is Map<String, dynamic>
+          ? SecondClassroomCreditTotals.fromJson(
+              json['totals'] as Map<String, dynamic>,
+            )
+          : null,
+      detailRecords: (json['detailRecords'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(SecondClassroomCreditDetailRecord.fromJson)
           .toList(),
       fetchedAt:
           DateTime.tryParse(json['fetchedAt'] as String? ?? '')?.toLocal() ??
           DateTime.fromMillisecondsSinceEpoch(0),
       sourceUri: Uri.parse(json['sourceUri'] as String? ?? ''),
+      warning: json['warning'] as String?,
     );
   }
 
@@ -136,8 +331,12 @@ class SecondClassroomCreditSummary {
   Map<String, dynamic> toJson() {
     return {
       'records': records.map((record) => record.toJson()).toList(),
+      'rules': rules.map((rule) => rule.toJson()).toList(),
+      'totals': totals?.toJson(),
+      'detailRecords': detailRecords.map((record) => record.toJson()).toList(),
       'fetchedAt': fetchedAt.toUtc().toIso8601String(),
       'sourceUri': sourceUri.toString(),
+      'warning': warning,
     };
   }
 }

@@ -167,16 +167,17 @@ List<_AcademicReadonlyEntry> _extractReadonlyEntries(
   for (final element in document.querySelectorAll('a,span,div,li')) {
     final text = _cleanText(element.text);
     if (text.isEmpty || !keywords.any(text.contains)) continue;
-    final rawUri =
-        element.attributes['href'] ??
-        element.attributes['url'] ??
-        element.attributes['menuurl'] ??
-        '';
+    final href = element.attributes['href']?.trim() ?? '';
+    final rawUri = href == '#'
+        ? ''
+        : href.isNotEmpty
+        ? href
+        : element.attributes['url'] ?? element.attributes['menuurl'] ?? '';
     final onclick = element.attributes['onclick'] ?? '';
     final target = rawUri.isNotEmpty
         ? rawUri
         : _extractActionFromOnclick(onclick);
-    if (target.isEmpty) continue;
+    if (target.isEmpty || target == '#') continue;
     final uri = snapshot.finalUri.resolve(target);
     final key = '$text|$uri';
     if (!seen.add(key) || !_isReadonlyEntry(text, uri)) continue;

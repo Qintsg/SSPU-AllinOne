@@ -10,6 +10,7 @@ import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 
 import '../fluent/fluent_context_ext.dart';
 import '../fluent/tokens/fluent_color_tokens.dart';
+import 'fluent_icons.dart';
 
 /// 状态标签色调。
 enum FluentStatusChipTone {
@@ -36,6 +37,7 @@ class FluentStatusChip extends StatelessWidget {
     required this.label,
     this.tone = FluentStatusChipTone.neutral,
     this.icon,
+    this.onClose,
     this.semanticLabel,
   });
 
@@ -47,6 +49,9 @@ class FluentStatusChip extends StatelessWidget {
 
   /// 可选前置图标。
   final IconData? icon;
+
+  /// 可选关闭回调。
+  final VoidCallback? onClose;
 
   /// 无障碍语义标签。
   final String? semanticLabel;
@@ -83,6 +88,18 @@ class FluentStatusChip extends StatelessWidget {
               label,
               style: type.caption1Strong.copyWith(color: visual.foreground),
             ),
+            if (onClose != null) ...[
+              SizedBox(width: spacing.xs),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onClose,
+                child: Icon(
+                  FluentIcons.clear,
+                  size: 12,
+                  color: visual.foreground,
+                ),
+              ),
+            ],
           ],
         ),
       ),

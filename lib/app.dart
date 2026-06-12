@@ -7,7 +7,6 @@
  */
 
 import 'design/fluent_ui.dart';
-import 'pages/about_page.dart';
 import 'pages/academic_page.dart';
 import 'pages/course_schedule_page.dart';
 import 'pages/email_page.dart';
@@ -61,6 +60,7 @@ class _AppShellState extends State<AppShell> {
       selectedIcon: FluentIcons.home,
       body: HomePage(
         campusNetworkStatusService: widget.campusNetworkStatusService,
+        onOpenSettings: () => _openSettings(SettingsLandingSection.security),
       ),
     ),
     const _AppDestination(
@@ -97,15 +97,15 @@ class _AppShellState extends State<AppShell> {
       title: '设置',
       icon: FluentIcons.settings,
       selectedIcon: FluentIcons.settings,
-      body: SettingsPage(onLock: widget.onLock),
-    ),
-    const _AppDestination(
-      title: '关于',
-      icon: FluentIcons.info,
-      selectedIcon: FluentIcons.infoSolid,
-      body: AboutPage(),
+      body: SettingsPage(
+        onLock: widget.onLock,
+        landingRequest: _settingsLandingRequest,
+      ),
     ),
   ];
+
+  /// 设置页定位请求。
+  SettingsLandingRequest? _settingsLandingRequest;
 
   @override
   Widget build(BuildContext context) {
@@ -147,6 +147,18 @@ class _AppShellState extends State<AppShell> {
     setState(() {
       _selectedIndex = index;
       _visitedDestinationIndexes.add(index);
+    });
+  }
+
+  /// 打开设置页并定位到指定分区。
+  void _openSettings(SettingsLandingSection section) {
+    setState(() {
+      _settingsLandingRequest = SettingsLandingRequest(section);
+      _selectedIndex = _destinations.indexWhere(
+        (destination) => destination.title == '设置',
+      );
+      if (_selectedIndex < 0) _selectedIndex = 0;
+      _visitedDestinationIndexes.add(_selectedIndex);
     });
   }
 }
@@ -199,16 +211,15 @@ class _CompactNavigationShell extends StatelessWidget {
     final moreSelected = hiddenIndexes.contains(selectedIndex);
 
     return ScaffoldPage(
-      content: SafeArea(
-        bottom: false,
-        child: MediaQuery.removePadding(
-          context: context,
-          removeBottom: true,
-          child: _NavigationBody(
-            destinations: destinations,
-            selectedIndex: selectedIndex,
-            visitedIndexes: visitedIndexes,
-          ),
+      padding: EdgeInsets.zero,
+      resizeToAvoidBottomInset: false,
+      content: MediaQuery.removePadding(
+        context: context,
+        removeBottom: true,
+        child: _NavigationBody(
+          destinations: destinations,
+          selectedIndex: selectedIndex,
+          visitedIndexes: visitedIndexes,
         ),
       ),
       bottomBar: Container(
@@ -258,12 +269,12 @@ class _CompactNavigationShell extends StatelessWidget {
     BuildContext context, {
     required List<int> hiddenIndexes,
   }) {
-    return showFluentDialog<void>(
+    return showFluentBottomDrawer<void>(
       context: context,
-      builder: (dialogContext) {
-        return FluentDialog(
-          title: const Text('更多功能'),
-          content: Column(
+      builder: (drawerContext) {
+        return FluentBottomDrawer(
+          title: const Text('更多'),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               for (final index in hiddenIndexes)
@@ -280,7 +291,7 @@ class _CompactNavigationShell extends StatelessWidget {
                     ),
                     semanticLabel: '打开${destinations[index].title}',
                     onPressed: () {
-                      Navigator.of(dialogContext).pop();
+                      Navigator.of(drawerContext).pop();
                       onChanged(index);
                     },
                     child: Row(
@@ -330,14 +341,20 @@ class _FluentNavigationShell extends StatelessWidget {
         selected: selectedIndex,
         onChanged: onChanged,
         displayMode: displayMode,
-        header: Padding(
-          padding: const EdgeInsetsDirectional.fromSTEB(
-            AppSpacing.lg,
-            AppSpacing.lg,
-            AppSpacing.lg,
-            AppSpacing.md,
+        size: const NavigationPaneSize(
+          compactWidth: _AppNavigationMetrics.paneRailWidth,
+          openWidth: _AppNavigationMetrics.paneOpenWidth,
+          headerHeight: _AppNavigationMetrics.paneHeaderHeight,
+        ),
+        toggleButton: const _AppPaneToggleButton(),
+        header: Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Text(
+            AppDisplayName.of(context),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: type.title2,
           ),
-          child: Text(AppDisplayName.of(context), style: type.title2),
         ),
         items: [
           for (final destination in destinations)
@@ -352,6 +369,48 @@ class _FluentNavigationShell extends StatelessWidget {
         destinations: destinations,
         selectedIndex: selectedIndex,
         visitedIndexes: visitedIndexes,
+      ),
+    );
+  }
+}
+
+/// 主导航尺寸常量，确保展开 / 收起状态共用同一套头部轨道。
+class _AppNavigationMetrics {
+  const _AppNavigationMetrics._();
+
+  /// 收起态侧边轨道宽度。
+  static const double paneRailWidth = 50;
+
+  /// 展开态侧边栏宽度。
+  static const double paneOpenWidth = 232;
+
+  /// 顶部菜单按钮槽高度。
+  static const double paneHeaderHeight = 50;
+
+  /// 菜单按钮图标尺寸。
+  static const double paneToggleIconSize = 16;
+}
+
+/// 主导航菜单按钮。
+///
+/// 外部 `NavigationPane` 在 compact 和 expanded 下会给内置按钮套不同的
+/// 头部结构，因此这里固定按钮自身宽高，让三种状态的图标中心一致。
+class _AppPaneToggleButton extends StatelessWidget {
+  const _AppPaneToggleButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: _AppNavigationMetrics.paneRailWidth,
+      height: _AppNavigationMetrics.paneHeaderHeight,
+      child: Center(
+        child: IconButton(
+          icon: const Icon(
+            WindowsIcons.global_nav_button,
+            size: _AppNavigationMetrics.paneToggleIconSize,
+          ),
+          onPressed: () => NavigationView.maybeOf(context)?.togglePane(),
+        ),
       ),
     );
   }

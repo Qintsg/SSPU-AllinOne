@@ -20,7 +20,7 @@ from typing import Dict, List, Tuple
 
 FILENAME_PATTERN = re.compile(
     r"^SSPU-AllinOne-v(?P<version>.+?)-"
-    r"(?P<platform>android|ios|windows|macos|linux|web)-"
+    r"(?P<platform>android|ios|windows|macos|linux)-"
     r"(?P<arch>universal|x64|arm64|armv7)"
     r"(?:-(?P<kind>installer|portable|bundle|static|unsigned|appimage|deb|rpm))?"
     r"(?P<ext>\.AppImage|\.tar\.gz|\.zip|\.exe|\.dmg|\.deb|\.rpm|\.apk)$"
@@ -32,7 +32,7 @@ EXPECTED_PRODUCT_ASSETS = {
     ("windows", "x64", "portable"),
     ("windows", "arm64", "installer"),
     ("windows", "arm64", "portable"),
-    ("macos", "universal", "unsigned"),
+    ("macos", "universal", "dmg"),
     ("linux", "x64", "appimage"),
     ("linux", "x64", "deb"),
     ("linux", "x64", "rpm"),
@@ -41,7 +41,6 @@ EXPECTED_PRODUCT_ASSETS = {
     ("linux", "arm64", "deb"),
     ("linux", "arm64", "rpm"),
     ("linux", "arm64", "portable"),
-    ("web", "universal", "static"),
 }
 
 
@@ -91,6 +90,8 @@ def infer_kind(platform_name: str, extension_name: str) -> str:
     """
     if platform_name == "android" and extension_name == ".apk":
         return "bundle"
+    if platform_name == "macos" and extension_name == ".dmg":
+        return "dmg"
 
     raise ValueError(
         f"资产文件名缺少 kind 且无法推断：platform={platform_name}, ext={extension_name}",

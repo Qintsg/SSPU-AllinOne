@@ -28,6 +28,39 @@ class StorageKeys {
   /// 关闭行为偏好（ask / minimize / exit）。
   static const String closeBehavior = 'close_behavior';
 
+  /// 首页是否显示学籍信息卡片。
+  static const String homeStudentProfileCardVisible =
+      'home_student_profile_card_visible';
+
+  /// 首页是否显示校园卡余额卡片。
+  static const String homeCampusCardBalanceCardVisible =
+      'home_campus_card_balance_card_visible';
+
+  /// 首页是否显示今日课程磁贴。
+  static const String homeTodayCoursesTileVisible =
+      'home_today_courses_tile_visible';
+
+  /// 首页是否显示体育考勤磁贴。
+  static const String homeSportsAttendanceTileVisible =
+      'home_sports_attendance_tile_visible';
+
+  /// 首页是否显示第二课堂磁贴。
+  static const String homeStudentReportTileVisible =
+      'home_student_report_tile_visible';
+
+  /// 首页是否显示最新消息磁贴。
+  static const String homeMessagesTileVisible = 'home_messages_tile_visible';
+
+  /// 首页是否显示邮箱摘要磁贴。
+  static const String homeEmailTileVisible = 'home_email_tile_visible';
+
+  /// 首页是否显示快速跳转磁贴。
+  static const String homeQuickLinksTileVisible =
+      'home_quick_links_tile_visible';
+
+  /// 快速跳转常用入口 URL 列表。
+  static const String quickLinkFavoriteUrls = 'quick_link_favorite_urls';
+
   /// 校园网 / VPN 状态检测间隔（分钟，0 = 关闭自动检测）。
   static const String campusNetworkDetectionIntervalMinutes =
       'campus_network_detection_interval_minutes';
@@ -71,6 +104,19 @@ class StorageKeys {
   static const String academicEamsAutoRefreshIntervalMinutes =
       'academic_eams_auto_refresh_interval_minutes';
 
+  /// 历史全局学期自动切换开关，保留用于迁移清理。
+  static const String academicTermAutoSwitchEnabled =
+      'academic_term_auto_switch_enabled';
+
+  /// 全局学期选择的学年。
+  static const String academicTermManualYear = 'academic_term_manual_year';
+
+  /// 全局学期选择的季节。
+  static const String academicTermManualSeason = 'academic_term_manual_season';
+
+  /// 历史全局手动周数，保留用于迁移清理。
+  static const String academicTermManualWeek = 'academic_term_manual_week';
+
   /// 结构化数据前缀（JSON 序列化存储）。
   static const String dataPrefix = 'data_';
 
@@ -91,6 +137,13 @@ class StorageKeys {
   /// 本专科教务课表业务快照缓存集合。
   static const String academicEamsCourseTableCacheCollection =
       'cache_academic_eams_course_table';
+
+  /// 教务处校历缓存集合。
+  static const String academicCalendarCollection = 'cache_academic_calendar';
+
+  /// 校历页面上次自动刷新时间。
+  static const String academicCalendarLastAutoRefreshAt =
+      'academic_calendar_last_auto_refresh_at';
 
   /// 学校邮箱业务快照缓存集合。
   static const String emailMailboxCacheCollection = 'cache_email_mailbox';

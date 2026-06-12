@@ -115,7 +115,7 @@ class AcademicEamsSnapshot {
       'warnings': warnings,
       'hasCourseOfferingEntry': hasCourseOfferingEntry,
       'hasFreeClassroomEntry': hasFreeClassroomEntry,
-      'profile': profile?.toJson(),
+      'profile': profile?.toPublicCacheJson(),
       'courseTable': courseTable?.toJson(),
       'grades': grades?.toJson(),
       'programPlan': programPlan?.toJson(),

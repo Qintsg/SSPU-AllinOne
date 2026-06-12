@@ -11,8 +11,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/models/academic_login_validation.dart';
+import 'package:sspu_allinone/models/academic_eams.dart';
+import 'package:sspu_allinone/models/email_mailbox.dart';
+import 'package:sspu_allinone/models/sports_attendance.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
+import 'package:sspu_allinone/services/academic_oa_session_prewarm_service.dart';
 import 'package:sspu_allinone/services/academic_login_validation_service.dart';
+import 'package:sspu_allinone/services/email_service.dart';
+import 'package:sspu_allinone/services/sports_attendance_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/widgets/settings_security_section.dart';
 
@@ -55,6 +61,9 @@ void main() {
     required bool isQuickAuthAvailable,
     bool isQuickAuthBusy = false,
     AcademicLoginValidationService? academicLoginValidationService,
+    AcademicOaSessionPrewarmService? academicOaSessionPrewarmService,
+    SportsAttendanceClient? sportsAttendanceService,
+    EmailMailboxClient? emailMailboxService,
   }) async {
     await tester.pumpWidget(
       FluentApp(
@@ -72,6 +81,9 @@ void main() {
               onClearMessageCache: () {},
               onClearAllData: () {},
               academicLoginValidationService: academicLoginValidationService,
+              academicOaSessionPrewarmService: academicOaSessionPrewarmService,
+              sportsAttendanceService: sportsAttendanceService,
+              emailMailboxService: emailMailboxService,
             ),
           ),
         ),
@@ -98,7 +110,7 @@ void main() {
 
     expect(find.text('教务凭据'), findsOneWidget);
     expect(find.text('数据均加密存储在本地，不会上传至云端；密码框留空时不修改已保存密码。'), findsOneWidget);
-    expect(find.text('验证 OA 登录'), findsOneWidget);
+    expect(find.text('验证登录'), findsOneWidget);
     expect(find.text('20260001'), findsOneWidget);
     expect(find.text('学校邮箱账号：20260001@sspu.edu.cn'), findsOneWidget);
     expect(find.text('已填写'), findsNWidgets(3));
@@ -107,7 +119,7 @@ void main() {
     expect(find.text('mail-pass'), findsNothing);
   });
 
-  testWidgets('安全设置页可触发 OA 登录校验并展示缺少账号提示', (tester) async {
+  testWidgets('安全设置页没有已保存密码时提示无可验证内容', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});
 
     await pumpSecuritySection(
@@ -116,26 +128,80 @@ void main() {
       isQuickAuthEnabled: false,
       isQuickAuthAvailable: false,
     );
-    await pumpUntilFound(tester, find.text('验证 OA 登录'));
+    await pumpUntilFound(tester, find.text('验证登录'));
 
-    await tester.ensureVisible(find.text('验证 OA 登录'));
+    await tester.ensureVisible(find.text('验证登录'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('验证 OA 登录'));
+    await tester.tap(find.text('验证登录'));
     await tester.pumpAndSettle();
 
-    expect(find.text('请先保存学工号（OA账号）'), findsOneWidget);
+    expect(find.text('没有可验证的已保存密码'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump();
   });
 
-  testWidgets('保存 OA 凭据后自动静默预热登录会话', (tester) async {
+  testWidgets('安全设置页验证所有已保存密码并显示逐项结果', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});
-    final validationService = _RecordingAcademicLoginValidationService();
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+      sportsQueryPassword: 'sports-pass',
+      emailPassword: 'mail-pass',
+    );
+    final sportsService = _FakeSportsAttendanceClient(
+      result: SportsAttendanceQueryResult(
+        status: SportsAttendanceQueryStatus.credentialsRejected,
+        message: '体育部账号或密码未通过校验',
+        detail: '测试失败',
+        checkedAt: DateTime(2026, 6, 11),
+        entranceUri: Uri.parse('https://tygl.sspu.edu.cn/sportscore/'),
+      ),
+    );
+    final emailService = _FakeEmailMailboxClient(
+      result: EmailLoginValidationResult(
+        status: EmailQueryStatus.success,
+        protocol: EmailProtocol.smtp,
+        message: 'SMTP 登录校验通过',
+        detail: '测试成功',
+        checkedAt: DateTime(2026, 6, 11),
+        endpoint: EmailService.defaultSmtpEndpoint,
+      ),
+    );
 
     await pumpSecuritySection(
       tester,
       isPasswordEnabled: false,
       isQuickAuthEnabled: false,
       isQuickAuthAvailable: false,
-      academicLoginValidationService: validationService,
+      academicLoginValidationService: AcademicLoginValidationService(
+        gateway: _AlreadyLoggedInAcademicLoginGateway(),
+      ),
+      sportsAttendanceService: sportsService,
+      emailMailboxService: emailService,
+    );
+    await pumpUntilFound(tester, find.text('验证登录'));
+
+    await tester.tap(find.text('验证登录'));
+    await pumpUntilFound(tester, find.text('验证未通过'));
+
+    expect(find.text('验证通过'), findsNWidgets(2));
+    expect(find.text('验证未通过'), findsOneWidget);
+    expect(sportsService.requireCampusNetworkValues, [false]);
+    expect(emailService.validatedProtocols, [EmailProtocol.smtp]);
+    await tester.pump(const Duration(milliseconds: 120));
+    await tester.pump();
+  });
+
+  testWidgets('保存 OA 凭据后自动静默预热登录会话', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final prewarmService = _RecordingAcademicOaSessionPrewarmService();
+
+    await pumpSecuritySection(
+      tester,
+      isPasswordEnabled: false,
+      isQuickAuthEnabled: false,
+      isQuickAuthAvailable: false,
+      academicOaSessionPrewarmService: prewarmService,
     );
     await pumpUntilFound(tester, find.text('保存教务凭据'));
 
@@ -146,8 +212,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
-    expect(validationService.forceRefreshValues, [true]);
-    expect(validationService.requireCampusNetworkValues, [false]);
+    expect(prewarmService.forceRefreshValues, [true]);
+    expect(prewarmService.requireCampusNetworkValues, [false]);
+    expect(prewarmService.refreshStudentProfileValues, [true]);
     expect(
       await AcademicCredentialsService.instance.readOaLoginSession(),
       isNull,
@@ -156,6 +223,77 @@ void main() {
 
     await tester.pump(const Duration(seconds: 3));
     await tester.pump();
+  });
+
+  testWidgets('iOS 保存教务凭据时反馈浮层不复用路由主滚动控制器', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final previousTargetPlatform = debugDefaultTargetPlatformOverride;
+    final sharedController = ScrollController();
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    await configureNarrowView(tester);
+
+    try {
+      await tester.pumpWidget(
+        FluentApp(
+          home: PrimaryScrollController(
+            controller: sharedController,
+            child: Stack(
+              children: [
+                const Positioned.fill(
+                  child: SingleChildScrollView(
+                    child: SizedBox(height: 1200, child: Text('同路由主滚动内容')),
+                  ),
+                ),
+                Positioned.fill(
+                  child: SingleChildScrollView(
+                    primary: false,
+                    child: SettingsSecuritySection(
+                      isPasswordEnabled: false,
+                      onPasswordProtectionChanged: (_) {},
+                      onChangePassword: () {},
+                      isQuickAuthEnabled: false,
+                      isQuickAuthAvailable: false,
+                      isQuickAuthBusy: false,
+                      onQuickAuthChanged: (_) {},
+                      onLock: null,
+                      onClearMessageCache: () {},
+                      onClearAllData: () {},
+                      academicOaSessionPrewarmService:
+                          _RecordingAcademicOaSessionPrewarmService(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await pumpUntilFound(tester, find.text('保存教务凭据'));
+      expect(find.text('保存教务凭据'), findsOneWidget);
+
+      expect(sharedController.positions, hasLength(1));
+
+      final editableFields = find.byType(EditableText, skipOffstage: false);
+      await tester.enterText(editableFields.at(0), '20260001');
+      await tester.enterText(editableFields.at(1), 'oa-pass');
+      await tester.ensureVisible(find.text('保存教务凭据'));
+      await tester.tap(find.text('保存教务凭据'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('教务凭据已保存'), findsOneWidget);
+      expect(sharedController.positions, hasLength(1));
+
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(milliseconds: 100));
+    } finally {
+      debugDefaultTargetPlatformOverride = previousTargetPlatform;
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await resetView(tester);
+      sharedController.dispose();
+    }
   });
 
   testWidgets('系统快速验证在可用时显示开关，不可用时显示密码兜底提示', (tester) async {
@@ -194,6 +332,34 @@ void main() {
     expect(find.textContaining('仍可输入密码解锁'), findsOneWidget);
   });
 
+  testWidgets('数据管理操作在宽屏整合为一行', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    await tester.binding.setSurfaceSize(const Size(960, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpSecuritySection(
+      tester,
+      isPasswordEnabled: false,
+      isQuickAuthEnabled: false,
+      isQuickAuthAvailable: false,
+    );
+    await pumpUntilFound(tester, find.text('数据管理'));
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-clear-all-data')),
+    );
+    await tester.pumpAndSettle();
+
+    final cacheButton = find.byKey(const Key('settings-clear-message-cache'));
+    final clearButton = find.byKey(const Key('settings-clear-all-data'));
+    expect(cacheButton, findsOneWidget);
+    expect(clearButton, findsOneWidget);
+    expect(
+      (tester.getCenter(cacheButton).dy - tester.getCenter(clearButton).dy)
+          .abs(),
+      lessThan(1),
+    );
+  });
+
   testWidgets('窄屏安全设置堆叠 quick auth 与数据管理操作', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});
     await configureNarrowView(tester);
@@ -220,57 +386,148 @@ void main() {
   });
 }
 
-class _RecordingAcademicLoginValidationService
-    extends AcademicLoginValidationService {
-  _RecordingAcademicLoginValidationService()
-    : super(gateway: _UnusedAcademicLoginGateway());
+class _RecordingAcademicOaSessionPrewarmService
+    extends AcademicOaSessionPrewarmService {
+  _RecordingAcademicOaSessionPrewarmService()
+    : super(
+        ensureSession:
+            ({
+              bool forceRefresh = false,
+              bool requireCampusNetwork = true,
+            }) async => _successResult(),
+        ensureStudentProfile: ({bool forceRefresh = false}) async =>
+            const AcademicEamsProfile(
+              name: '张三',
+              studentId: '20260001',
+              department: '计算机与信息工程学院',
+              major: '软件工程',
+              className: '软件 241',
+              gender: '男',
+              studyLength: '4 年',
+              educationLevel: '本科',
+              rawFields: {},
+            ),
+      );
 
   final List<bool> forceRefreshValues = [];
   final List<bool> requireCampusNetworkValues = [];
+  final List<bool> refreshStudentProfileValues = [];
 
   @override
-  Future<AcademicLoginValidationResult> ensureSavedSession({
-    bool forceRefresh = false,
-    bool requireCampusNetwork = true,
+  Future<AcademicLoginValidationResult?> prewarm({
+    bool forceRefresh = true,
+    bool requireCampusNetwork = false,
+    bool refreshStudentProfile = true,
   }) async {
     forceRefreshValues.add(forceRefresh);
     requireCampusNetworkValues.add(requireCampusNetwork);
-    return _successResult();
-  }
-
-  @override
-  Future<AcademicLoginValidationResult> validateSavedCredentials({
-    bool requireCampusNetwork = true,
-  }) async {
+    refreshStudentProfileValues.add(refreshStudentProfile);
     return _successResult();
   }
 }
 
-class _UnusedAcademicLoginGateway implements AcademicLoginGateway {
+class _AlreadyLoggedInAcademicLoginGateway implements AcademicLoginGateway {
   @override
-  AcademicLoginSessionSnapshot currentSessionSnapshot({
-    required Uri entranceUri,
-    required Uri finalUri,
-  }) => throw UnimplementedError();
-
-  @override
-  Future<String> fetchPublicKey(Duration timeout) => throw UnimplementedError();
+  Future<void> resetSession() async {}
 
   @override
   Future<AcademicLoginHttpSnapshot> openLoginPage(
     Uri entranceUri,
     Duration timeout,
-  ) => throw UnimplementedError();
+  ) async {
+    return AcademicLoginHttpSnapshot(
+      finalUri: Uri.parse('https://oa.sspu.edu.cn/home'),
+      statusCode: 200,
+      body: '<html>OA</html>',
+    );
+  }
 
   @override
-  Future<void> resetSession() async {}
+  Future<String> fetchPublicKey(Duration timeout) async => '';
 
   @override
   Future<AcademicLoginHttpSnapshot> submitLogin({
     required Uri loginUri,
     required Map<String, String> fields,
     required Duration timeout,
-  }) => throw UnimplementedError();
+  }) async {
+    return AcademicLoginHttpSnapshot(
+      finalUri: Uri.parse('https://oa.sspu.edu.cn/home'),
+      statusCode: 200,
+      body: '<html>OA</html>',
+    );
+  }
+
+  @override
+  AcademicLoginSessionSnapshot currentSessionSnapshot({
+    required Uri entranceUri,
+    required Uri finalUri,
+  }) {
+    return AcademicLoginSessionSnapshot(
+      cookieHeadersByHost: const {'oa.sspu.edu.cn': 'SESSION=test'},
+      authenticatedAt: DateTime(2026, 6, 11),
+      entranceUri: entranceUri,
+      finalUri: finalUri,
+    );
+  }
+}
+
+class _FakeSportsAttendanceClient implements SportsAttendanceClient {
+  _FakeSportsAttendanceClient({required this.result});
+
+  final SportsAttendanceQueryResult result;
+  final List<bool> requireCampusNetworkValues = [];
+
+  @override
+  Future<SportsAttendanceQueryResult?>
+  readLatestCachedAttendanceSummary() async {
+    return null;
+  }
+
+  @override
+  Future<SportsAttendanceQueryResult> fetchAttendanceSummary({
+    bool requireCampusNetwork = true,
+  }) async {
+    requireCampusNetworkValues.add(requireCampusNetwork);
+    return result;
+  }
+}
+
+class _FakeEmailMailboxClient implements EmailMailboxClient {
+  _FakeEmailMailboxClient({required this.result});
+
+  final EmailLoginValidationResult result;
+  final List<EmailProtocol> validatedProtocols = [];
+
+  @override
+  Future<EmailMailboxQueryResult?> readLatestCachedMessages(
+    EmailProtocol protocol,
+  ) async {
+    return null;
+  }
+
+  @override
+  Future<EmailMailboxQueryResult> fetchMessages({
+    required EmailProtocol protocol,
+    int messageCount = 10,
+  }) async {
+    return EmailMailboxQueryResult(
+      status: EmailQueryStatus.unexpectedError,
+      protocol: protocol,
+      message: '测试不读取邮件',
+      detail: '测试不读取邮件',
+      checkedAt: DateTime(2026, 6, 11),
+      endpoint: EmailService.defaultImapEndpoint,
+    );
+  }
+
+  @override
+  Future<EmailLoginValidationResult> validateLogin(
+    EmailProtocol protocol,
+  ) async {
+    validatedProtocols.add(protocol);
+    return result;
+  }
 }
 
 AcademicLoginValidationResult _successResult() {

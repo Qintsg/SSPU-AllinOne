@@ -16,11 +16,11 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.2.7-alpha+3
+version: 0.2.8-alpha+4
 
 environment:
-  sdk: ^3.11.5
-  flutter: ">=3.41.7"
+  sdk: ^3.12.0
+  flutter: ">=3.44.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -56,8 +56,9 @@ dependencies:
   local_auth: ^3.0.1
 
   url_launcher: ^6.3.2
+  open_filex: ^4.7.0
   window_manager: ^0.5.1
-  tray_manager: ^0.5.1
+  tray_manager: ^0.5.3
 
   # HTTP 客户端，用于网络请求
   dio: ^5.8.0+1
@@ -82,6 +83,8 @@ dependencies:
 
   # 邮箱协议客户端，用于学校邮箱 IMAP / POP 只读收信和 SMTP 认证校验
   enough_mail: ^2.1.7
+  pdfrx: ^2.4.3
+  pdfrx_engine: ^0.4.2
 
 dev_dependencies:
   flutter_test:

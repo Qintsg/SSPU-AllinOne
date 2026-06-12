@@ -1,173 +1,45 @@
 /*
- * 应用更新服务 — 通过 GitHub Release 查询可用版本与平台下载资产
+ * 应用更新服务 — 通过 GitHub Release 查询、下载、校验并打开安装入口
  * @Project : SSPU-AllinOne
  * @File : app_update_service.dart
  * @Author : Qintsg
  * @Date : 2026-05-18
  */
 
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:open_filex/open_filex.dart';
 
+import 'app_data_directory_service.dart';
 import 'app_info_service.dart';
 import 'http_service.dart';
 
-/// 应用更新检查渠道。
-enum AppUpdateChannel {
-  /// 正式版渠道，仅读取 GitHub Release 中的普通 Release。
-  stable,
-
-  /// 测试版渠道，优先读取 GitHub Release 中的 Pre-release。
-  preview,
-}
-
-/// 应用更新检查结果类型。
-enum AppUpdateStatus {
-  /// 发现比当前版本新的 Release。
-  available,
-
-  /// 当前版本已是所选渠道的最新版本。
-  upToDate,
-
-  /// 所选渠道暂无可用 Release。
-  unavailable,
-}
-
-/// GitHub Release 资产摘要。
-class AppUpdateAsset {
-  /// 资产文件名。
-  final String name;
-
-  /// 浏览器下载地址。
-  final String downloadUrl;
-
-  /// 资产大小，单位字节。
-  final int size;
-
-  const AppUpdateAsset({
-    required this.name,
-    required this.downloadUrl,
-    required this.size,
-  });
-
-  /// 人类可读大小。
-  String get displaySize {
-    if (size <= 0) return '未知大小';
-    const units = ['B', 'KB', 'MB', 'GB'];
-    var value = size.toDouble();
-    var unitIndex = 0;
-    while (value >= 1024 && unitIndex < units.length - 1) {
-      value /= 1024;
-      unitIndex++;
-    }
-    final digits = value >= 100 || unitIndex == 0 ? 0 : 1;
-    return '${value.toStringAsFixed(digits)} ${units[unitIndex]}';
-  }
-}
-
-/// GitHub Release 摘要。
-class AppReleaseInfo {
-  /// GitHub Release 标题。
-  final String title;
-
-  /// GitHub Tag 名称。
-  final String tagName;
-
-  /// 公开版本号，不含前缀 v。
-  final String version;
-
-  /// 是否为 Pre-release。
-  final bool prerelease;
-
-  /// GitHub Release 页面地址。
-  final String htmlUrl;
-
-  /// 发布时间。
-  final DateTime? publishedAt;
-
-  /// Release 资产列表。
-  final List<AppUpdateAsset> assets;
-
-  const AppReleaseInfo({
-    required this.title,
-    required this.tagName,
-    required this.version,
-    required this.prerelease,
-    required this.htmlUrl,
-    required this.publishedAt,
-    required this.assets,
-  });
-
-  /// 从 GitHub REST API JSON 创建 Release 摘要。
-  factory AppReleaseInfo.fromJson(Map<String, dynamic> json) {
-    final tagName = json['tag_name']?.toString() ?? '';
-    final assetsJson = json['assets'];
-    return AppReleaseInfo(
-      title: json['name']?.toString().trim().isNotEmpty == true
-          ? json['name'].toString()
-          : tagName,
-      tagName: tagName,
-      version: normalizeVersion(tagName),
-      prerelease: json['prerelease'] == true,
-      htmlUrl: json['html_url']?.toString() ?? '',
-      publishedAt: DateTime.tryParse(json['published_at']?.toString() ?? ''),
-      assets: assetsJson is List
-          ? assetsJson
-                .whereType<Map<String, dynamic>>()
-                .map(
-                  (asset) => AppUpdateAsset(
-                    name: asset['name']?.toString() ?? '',
-                    downloadUrl:
-                        asset['browser_download_url']?.toString() ?? '',
-                    size: int.tryParse(asset['size']?.toString() ?? '') ?? 0,
-                  ),
-                )
-                .where((asset) => asset.name.isNotEmpty)
-                .toList(growable: false)
-          : const [],
-    );
-  }
-}
-
-/// 应用更新检查结果。
-class AppUpdateCheckResult {
-  /// 检查状态。
-  final AppUpdateStatus status;
-
-  /// 当前应用版本。
-  final String currentVersion;
-
-  /// 检查渠道。
-  final AppUpdateChannel channel;
-
-  /// 最新 Release 信息。
-  final AppReleaseInfo? release;
-
-  /// 推荐下载资产。
-  final AppUpdateAsset? recommendedAsset;
-
-  /// 结果说明。
-  final String message;
-
-  const AppUpdateCheckResult({
-    required this.status,
-    required this.currentVersion,
-    required this.channel,
-    required this.release,
-    required this.recommendedAsset,
-    required this.message,
-  });
-
-  /// 是否发现新版本。
-  bool get hasUpdate => status == AppUpdateStatus.available;
-}
+part 'app_update_models.dart';
+part 'app_update_parsing.dart';
 
 /// GitHub Release 更新检查服务。
 class AppUpdateService {
-  AppUpdateService({HttpService? httpService, AppInfoService? appInfoService})
-    : _httpService = httpService ?? HttpService.instance,
-      _appInfoService = appInfoService ?? AppInfoService.instance;
+  AppUpdateService({
+    HttpService? httpService,
+    AppInfoService? appInfoService,
+    AppUpdateRuntimePlatform? runtimePlatform,
+    AppUpdateDownloadFile? downloadFile,
+    AppUpdateOpenFile? openFile,
+    AppUpdateEnsureDirectory? ensureDirectory,
+    AppUpdateLoadVersionInfo? loadVersionInfo,
+  }) : _httpService = httpService ?? HttpService.instance,
+       _appInfoService = appInfoService ?? AppInfoService.instance,
+       _runtimePlatform = runtimePlatform ?? AppUpdateRuntimePlatform.current(),
+       _downloadFile = downloadFile,
+       _openFile = openFile,
+       _ensureDirectory =
+           ensureDirectory ?? AppDataDirectoryService.ensureDirectoryPath,
+       _loadVersionInfo = loadVersionInfo;
 
   /// 默认服务实例。
   static final AppUpdateService instance = AppUpdateService();
@@ -177,12 +49,19 @@ class AppUpdateService {
 
   final HttpService _httpService;
   final AppInfoService _appInfoService;
+  final AppUpdateRuntimePlatform _runtimePlatform;
+  final AppUpdateDownloadFile? _downloadFile;
+  final AppUpdateOpenFile? _openFile;
+  final AppUpdateEnsureDirectory _ensureDirectory;
+  final AppUpdateLoadVersionInfo? _loadVersionInfo;
 
   /// 检查指定渠道是否存在可用更新。
   Future<AppUpdateCheckResult> checkForUpdates({
     AppUpdateChannel channel = AppUpdateChannel.stable,
   }) async {
-    final currentVersionInfo = await _appInfoService.loadVersionInfo();
+    final currentVersionInfo = await (_loadVersionInfo != null
+        ? _loadVersionInfo()
+        : _appInfoService.loadVersionInfo());
     final currentVersion = normalizeVersion(currentVersionInfo.version);
     final releases = await _fetchReleases();
     final release = _selectRelease(releases, channel);
@@ -198,7 +77,7 @@ class AppUpdateService {
       );
     }
 
-    final recommendedAsset = selectRecommendedAsset(release.assets);
+    final recommendedAsset = await resolveRecommendedAsset(release);
     final hasNewerVersion =
         comparePublicVersions(release.version, currentVersion) > 0;
 
@@ -220,51 +99,179 @@ class AppUpdateService {
       release: release,
       recommendedAsset: recommendedAsset,
       message: recommendedAsset == null
-          ? '发现新版本 ${release.version}，但未找到当前平台的安装包。'
-          : '发现新版本 ${release.version}，可下载安装包更新。',
+          ? _runtimePlatform.supportsLocalInstall
+                ? '发现新版本 ${release.version}，但未找到当前平台的安装包。'
+                : '发现新版本 ${release.version}，当前平台不支持应用内安装。'
+          : '发现新版本 ${release.version}，可在应用内下载并校验安装包。',
     );
   }
 
   /// 选择最适合当前平台的 Release 资产。
+  ///
+  /// 保留旧同步 API，适用于仅需要资产名称筛选的调用。
   AppUpdateAsset? selectRecommendedAsset(List<AppUpdateAsset> assets) {
-    final candidates = assets
-        .where((asset) {
-          final name = asset.name.toLowerCase();
-          if (name.endsWith('.txt') || name.endsWith('.json')) return false;
-          if (Platform.isWindows) {
-            return name.contains('windows') &&
-                (name.endsWith('.exe') ||
-                    name.endsWith('.msix') ||
-                    name.endsWith('.zip') ||
-                    name.endsWith('.7z'));
-          }
-          if (Platform.isMacOS) {
-            return name.contains('macos') &&
-                (name.endsWith('.dmg') || name.endsWith('.zip'));
-          }
-          if (Platform.isLinux) {
-            return name.contains('linux') &&
-                (name.endsWith('.deb') ||
-                    name.endsWith('.appimage') ||
-                    name.endsWith('.tar.gz') ||
-                    name.endsWith('.zip'));
-          }
-          if (Platform.isAndroid) {
-            return name.contains('android') &&
-                (name.endsWith('.apk') || name.endsWith('.aab'));
-          }
-          if (Platform.isIOS) {
-            return name.contains('ios') &&
-                (name.endsWith('.ipa') || name.endsWith('.zip'));
-          }
-          return false;
-        })
-        .toList(growable: false);
+    return _selectRecommendedAsset(
+      assets,
+      const _ReleaseChecksumIndex(manifestAssets: {}, sha256Sums: {}),
+    );
+  }
 
-    if (candidates.isEmpty) return null;
-    return candidates.reduce((best, asset) {
-      return _assetScore(asset.name) > _assetScore(best.name) ? asset : best;
-    });
+  /// 解析推荐资产及校验来源。
+  Future<AppUpdateResolvedAsset?> resolveRecommendedAsset(
+    AppReleaseInfo release,
+  ) async {
+    if (!_runtimePlatform.supportsLocalFiles) return null;
+    final checksums = await _loadReleaseChecksums(release);
+    final asset = _selectRecommendedAsset(release.assets, checksums);
+    if (asset == null) return null;
+    final parsed = parseReleaseAssetName(asset.name);
+    final manifestAsset = checksums.manifestAssets[asset.name];
+    final sha = checksums.resolveSha256(asset);
+    return AppUpdateResolvedAsset(
+      asset: asset,
+      platform: manifestAsset?.platform ?? parsed?.platform ?? 'unknown',
+      arch: manifestAsset?.arch ?? parsed?.arch ?? 'unknown',
+      kind: manifestAsset?.kind ?? parsed?.kind ?? asset.kind.name,
+      sha256: sha?.value,
+      checksumSource: sha?.source,
+      installSupport: _runtimePlatform.supportsLocalInstall
+          ? AppUpdateInstallSupport.supported
+          : AppUpdateInstallSupport.unsupported,
+    );
+  }
+
+  /// 下载并校验推荐资产。
+  Future<AppUpdateDownloadResult> downloadAndVerify(
+    AppReleaseInfo release,
+    AppUpdateResolvedAsset resolvedAsset, {
+    required CancelToken cancelToken,
+    required void Function(AppUpdateDownloadProgress progress)
+    onReceiveProgress,
+  }) async {
+    if (!resolvedAsset.hasChecksum) {
+      return AppUpdateDownloadResult(
+        status: AppUpdateDownloadStatus.failed,
+        asset: resolvedAsset,
+        filePath: null,
+        message: 'Release 未提供 ${resolvedAsset.asset.name} 的 SHA-256 校验值。',
+        actualSha256: null,
+      );
+    }
+
+    final directoryPath = await _ensureDirectory(
+      'update_downloads${Platform.pathSeparator}${_safePathSegment(release.tagName)}',
+    );
+    final savePath =
+        '$directoryPath${Platform.pathSeparator}${resolvedAsset.asset.name}';
+    final saveFile = File(savePath);
+
+    try {
+      if (await saveFile.exists()) {
+        await saveFile.delete();
+      }
+      await _download(
+        resolvedAsset.asset.downloadUrl,
+        savePath,
+        cancelToken: cancelToken,
+        onReceiveProgress: (received, total) {
+          onReceiveProgress(
+            AppUpdateDownloadProgress(received: received, total: total),
+          );
+        },
+      );
+
+      final actualSha256 = await sha256ForFile(saveFile);
+      if (!_sameSha256(actualSha256, resolvedAsset.sha256!)) {
+        await _deleteIfExists(saveFile);
+        return AppUpdateDownloadResult(
+          status: AppUpdateDownloadStatus.failed,
+          asset: resolvedAsset,
+          filePath: null,
+          message: '安装包校验失败，请重新下载。',
+          actualSha256: actualSha256,
+        );
+      }
+
+      return AppUpdateDownloadResult(
+        status: AppUpdateDownloadStatus.verified,
+        asset: resolvedAsset,
+        filePath: savePath,
+        message: '安装包校验通过。',
+        actualSha256: actualSha256,
+      );
+    } on DioException catch (error) {
+      await _deleteIfExists(saveFile);
+      if (error.type == DioExceptionType.cancel) {
+        return AppUpdateDownloadResult(
+          status: AppUpdateDownloadStatus.canceled,
+          asset: resolvedAsset,
+          filePath: null,
+          message: '下载已取消。',
+          actualSha256: null,
+        );
+      }
+      return AppUpdateDownloadResult(
+        status: AppUpdateDownloadStatus.failed,
+        asset: resolvedAsset,
+        filePath: null,
+        message: HttpService.describeError(error),
+        actualSha256: null,
+      );
+    } catch (error) {
+      await _deleteIfExists(saveFile);
+      return AppUpdateDownloadResult(
+        status: AppUpdateDownloadStatus.failed,
+        asset: resolvedAsset,
+        filePath: null,
+        message: '下载安装包失败：$error',
+        actualSha256: null,
+      );
+    }
+  }
+
+  /// 打开已校验的安装入口。
+  Future<AppUpdateOpenResult> openVerifiedDownload(
+    AppUpdateDownloadResult result,
+  ) async {
+    final filePath = result.filePath;
+    if (!result.isVerified || filePath == null || filePath.isEmpty) {
+      return const AppUpdateOpenResult(
+        status: AppUpdateOpenStatus.notVerified,
+        message: '安装包尚未通过校验，不能打开安装入口。',
+      );
+    }
+    if (result.asset.installSupport == AppUpdateInstallSupport.unsupported) {
+      return const AppUpdateOpenResult(
+        status: AppUpdateOpenStatus.unsupported,
+        message: '当前平台不支持应用内打开本地安装入口，请前往 Release 页面下载。',
+      );
+    }
+
+    final pathToOpen = result.asset.isPortable
+        ? File(filePath).parent.path
+        : filePath;
+    final openResult = await _open(pathToOpen);
+    if (openResult.success) {
+      return AppUpdateOpenResult(
+        status: AppUpdateOpenStatus.opened,
+        message: result.asset.isPortable
+            ? '已打开安装包所在文件夹，请手动替换应用文件。'
+            : '已打开安装入口，请按系统提示完成安装。',
+      );
+    }
+
+    final fallback = _runtimePlatform.name == 'android'
+        ? '系统拒绝打开 APK。请在文件管理器中找到下载的 APK，并按系统提示允许本次安装。'
+        : result.asset.isPortable
+        ? '无法打开文件夹。请手动前往 $pathToOpen 替换应用文件。'
+        : '系统无法打开安装入口。请手动前往 $pathToOpen。';
+
+    return AppUpdateOpenResult(
+      status: AppUpdateOpenStatus.failed,
+      message: openResult.message.isEmpty
+          ? fallback
+          : '$fallback\n${openResult.message}',
+    );
   }
 
   Future<List<AppReleaseInfo>> _fetchReleases() async {
@@ -301,19 +308,213 @@ class AppUpdateService {
     return filtered.firstOrNull;
   }
 
-  int _assetScore(String assetName) {
-    final name = assetName.toLowerCase();
-    var score = 0;
-    if (name.contains('installer')) score += 30;
-    if (name.contains('portable')) score += 20;
-    if (name.contains('universal')) score += 15;
-    if (name.contains('x64')) score += 10;
-    if (name.endsWith('.exe') ||
-        name.endsWith('.dmg') ||
-        name.endsWith('.apk')) {
-      score += 8;
+  Future<_ReleaseChecksumIndex> _loadReleaseChecksums(
+    AppReleaseInfo release,
+  ) async {
+    final manifestIndex = await _loadManifestIndex(release);
+    final shaIndex = await _loadSha256SumsIndex(release);
+    return _ReleaseChecksumIndex(
+      manifestAssets: manifestIndex,
+      sha256Sums: shaIndex,
+    );
+  }
+
+  Future<Map<String, AppUpdateManifestAsset>> _loadManifestIndex(
+    AppReleaseInfo release,
+  ) async {
+    final manifestAsset = _firstWhereOrNull(
+      release.assets,
+      (asset) => asset.name.toLowerCase() == 'manifest.json',
+    );
+    if (manifestAsset == null || manifestAsset.downloadUrl.isEmpty) {
+      return const {};
     }
+    try {
+      final response = await _httpService.get<String>(
+        manifestAsset.downloadUrl,
+        options: Options(responseType: ResponseType.plain),
+      );
+      return parseManifestAssets(response.data ?? '');
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  Future<Map<String, String>> _loadSha256SumsIndex(
+    AppReleaseInfo release,
+  ) async {
+    final sumsAsset = _firstWhereOrNull(
+      release.assets,
+      (asset) => asset.name.toLowerCase() == 'sha256sums.txt',
+    );
+    if (sumsAsset == null || sumsAsset.downloadUrl.isEmpty) return const {};
+    try {
+      final response = await _httpService.get<String>(
+        sumsAsset.downloadUrl,
+        options: Options(responseType: ResponseType.plain),
+      );
+      return parseSha256Sums(response.data ?? '');
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  AppUpdateAsset? _selectRecommendedAsset(
+    List<AppUpdateAsset> assets,
+    _ReleaseChecksumIndex checksums,
+  ) {
+    final candidates = assets.where(_isInstallAssetForRuntime).toList();
+    if (candidates.isEmpty) return null;
+    candidates.sort((left, right) {
+      final leftScore = _assetScore(left, checksums);
+      final rightScore = _assetScore(right, checksums);
+      return rightScore.compareTo(leftScore);
+    });
+    return candidates.first;
+  }
+
+  bool _isInstallAssetForRuntime(AppUpdateAsset asset) {
+    final name = asset.name.toLowerCase();
+    if (_isAuxiliaryAssetName(name)) return false;
+    final parsed = parseReleaseAssetName(asset.name);
+    if (parsed != null) {
+      if (parsed.platform != _runtimePlatform.name) return false;
+      if (!_archMatches(parsed.arch)) return false;
+      return _isAllowedKindForRuntime(parsed.kind, parsed.extension);
+    }
+    if (!_matchesRuntimePlatformName(name)) return false;
+    if (!_matchesRuntimeArchName(name)) return false;
+    return inferAssetKind(name) != AppUpdateAssetKind.other;
+  }
+
+  bool _matchesRuntimePlatformName(String lowerName) {
+    return switch (_runtimePlatform.name) {
+      'windows' => lowerName.contains('windows'),
+      'macos' => lowerName.contains('macos'),
+      'linux' => lowerName.contains('linux'),
+      'android' => lowerName.contains('android'),
+      _ => false,
+    };
+  }
+
+  bool _matchesRuntimeArchName(String lowerName) {
+    if (_runtimePlatform.name == 'macos' ||
+        _runtimePlatform.name == 'android') {
+      return lowerName.contains('universal') ||
+          (!lowerName.contains('x64') && !lowerName.contains('arm64'));
+    }
+    if (_runtimePlatform.arch == 'x64') {
+      return lowerName.contains('x64') && !lowerName.contains('arm64');
+    }
+    if (_runtimePlatform.arch == 'arm64') {
+      return lowerName.contains('arm64');
+    }
+    return lowerName.contains(_runtimePlatform.arch);
+  }
+
+  bool _archMatches(String assetArch) {
+    if (assetArch == 'universal') {
+      return _runtimePlatform.name == 'macos' ||
+          _runtimePlatform.name == 'android';
+    }
+    return assetArch == _runtimePlatform.arch;
+  }
+
+  bool _isAllowedKindForRuntime(String kind, String extension) {
+    return switch (_runtimePlatform.name) {
+      'windows' =>
+        (kind == 'installer' && extension == '.exe') ||
+            (kind == 'portable' && (extension == '.zip' || extension == '.7z')),
+      'macos' => extension == '.dmg',
+      'linux' =>
+        (kind == 'appimage' && extension == '.AppImage') ||
+            (kind == 'deb' && extension == '.deb') ||
+            (kind == 'rpm' && extension == '.rpm') ||
+            (kind == 'portable' && extension == '.tar.gz'),
+      'android' => extension == '.apk',
+      _ => false,
+    };
+  }
+
+  int _assetScore(AppUpdateAsset asset, _ReleaseChecksumIndex checksums) {
+    final name = asset.name.toLowerCase();
+    final parsed = parseReleaseAssetName(asset.name);
+    final kind = parsed?.kind ?? _kindNameFromAsset(asset);
+    var score = 0;
+    score += switch (_runtimePlatform.name) {
+      'windows' => switch (kind) {
+        'installer' => 100,
+        'portable' => 60,
+        _ => 0,
+      },
+      'macos' => name.endsWith('.dmg') ? 100 : 0,
+      'linux' => switch (kind) {
+        'appimage' => 100,
+        'deb' => 80,
+        'rpm' => 70,
+        'portable' => 50,
+        _ => 0,
+      },
+      'android' => name.endsWith('.apk') ? 100 : 0,
+      _ => 0,
+    };
+    if (checksums.manifestAssets.containsKey(asset.name)) score += 10;
+    if (checksums.sha256Sums.containsKey(asset.name)) score += 5;
+    if (asset.digest != null && asset.digest!.isNotEmpty) score += 3;
     return score;
+  }
+
+  String _kindNameFromAsset(AppUpdateAsset asset) {
+    return switch (asset.kind) {
+      AppUpdateAssetKind.installer => 'installer',
+      AppUpdateAssetKind.dmg => 'dmg',
+      AppUpdateAssetKind.appImage => 'appimage',
+      AppUpdateAssetKind.deb => 'deb',
+      AppUpdateAssetKind.rpm => 'rpm',
+      AppUpdateAssetKind.apk => 'bundle',
+      AppUpdateAssetKind.portable => 'portable',
+      AppUpdateAssetKind.other => 'other',
+    };
+  }
+
+  Future<void> _download(
+    String url,
+    String savePath, {
+    required CancelToken cancelToken,
+    required void Function(int received, int total) onReceiveProgress,
+  }) async {
+    final downloadFile = _downloadFile;
+    if (downloadFile != null) {
+      await downloadFile(
+        url,
+        savePath,
+        cancelToken: cancelToken,
+        onReceiveProgress: onReceiveProgress,
+      );
+      return;
+    }
+    await _httpService.download(
+      url,
+      savePath,
+      cancelToken: cancelToken,
+      onReceiveProgress: onReceiveProgress,
+    );
+  }
+
+  Future<AppUpdateFileOpenResult> _open(String path) async {
+    final openFile = _openFile;
+    if (openFile != null) return openFile(path);
+    final result = await OpenFilex.open(path);
+    return AppUpdateFileOpenResult(
+      success: result.type == ResultType.done,
+      message: result.message,
+    );
+  }
+
+  Future<void> _deleteIfExists(File file) async {
+    if (await file.exists()) {
+      await file.delete();
+    }
   }
 
   String _channelLabel(AppUpdateChannel channel) {
@@ -322,59 +523,4 @@ class AppUpdateService {
       AppUpdateChannel.preview => '测试版',
     };
   }
-}
-
-/// 去除版本号前缀和构建号，返回公开版本号。
-String normalizeVersion(String version) {
-  final trimmed = version.trim();
-  final withoutPrefix = trimmed.startsWith('v') || trimmed.startsWith('V')
-      ? trimmed.substring(1)
-      : trimmed;
-  return withoutPrefix.split('+').first;
-}
-
-/// 比较公开版本号，返回正数表示 [left] 更新。
-int comparePublicVersions(String left, String right) {
-  final leftParts = _parseVersionParts(left);
-  final rightParts = _parseVersionParts(right);
-  final maxLength = leftParts.numbers.length > rightParts.numbers.length
-      ? leftParts.numbers.length
-      : rightParts.numbers.length;
-
-  for (var index = 0; index < maxLength; index++) {
-    final leftNumber = index < leftParts.numbers.length
-        ? leftParts.numbers[index]
-        : 0;
-    final rightNumber = index < rightParts.numbers.length
-        ? rightParts.numbers[index]
-        : 0;
-    if (leftNumber != rightNumber) return leftNumber.compareTo(rightNumber);
-  }
-
-  return _channelRank(
-    leftParts.channel,
-  ).compareTo(_channelRank(rightParts.channel));
-}
-
-({List<int> numbers, String channel}) _parseVersionParts(String version) {
-  final publicVersion = normalizeVersion(version);
-  final segments = publicVersion.split('-');
-  final numbers = segments.first
-      .split('.')
-      .map((part) => int.tryParse(part) ?? 0)
-      .toList(growable: false);
-  final channel = segments.length > 1 ? segments[1].toLowerCase() : 'stable';
-  return (numbers: numbers, channel: channel);
-}
-
-int _channelRank(String channel) {
-  return switch (channel) {
-    'alpha' => 0,
-    'beta' => 1,
-    'rc' => 2,
-    'stable' => 3,
-    'hotfix' => 4,
-    'lts' => 5,
-    _ => -1,
-  };
 }

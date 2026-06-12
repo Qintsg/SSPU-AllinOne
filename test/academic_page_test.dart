@@ -80,14 +80,24 @@ void main() {
     await pumpUntilFound(tester, find.text('8'));
 
     expect(find.text('课外活动考勤'), findsOneWidget);
+    expect(find.textContaining('体育部查询系统只读汇总'), findsNothing);
     expect(find.text('总次数'), findsOneWidget);
     expect(find.text('早操 2 次'), findsOneWidget);
     expect(find.text('课外活动 3 次'), findsOneWidget);
     expect(find.text('次数调整 -1 次'), findsOneWidget);
     expect(find.text('体育长廊 4 次'), findsOneWidget);
     expect(find.text('上次刷新：2026-04-30 00:00'), findsOneWidget);
+    final sportsTitleCenter = tester.getCenter(find.text('课外活动考勤'));
+    final sportsLastRefreshCenter = tester.getCenter(
+      find.text('上次刷新：2026-04-30 00:00'),
+    );
+    final sportsSummaryTop = tester.getTopLeft(find.text('总次数')).dy;
+    expect(sportsLastRefreshCenter.dy, greaterThan(sportsTitleCenter.dy));
+    expect(sportsLastRefreshCenter.dy, lessThan(sportsSummaryTop));
     expect(sportsService.requireCampusNetworkValues, [false]);
 
+    await tester.ensureVisible(find.text('查看考勤记录'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('查看考勤记录'));
     await tester.pumpAndSettle();
 
@@ -188,32 +198,87 @@ void main() {
     );
     await tester.ensureVisible(studentReportRefresh);
     await tester.tap(studentReportRefresh);
-    await pumpUntilFound(tester, find.text('2'));
+    await pumpUntilFound(tester, find.text('总已获分数'));
 
+    expect(find.text('刷新成功√'), findsOneWidget);
     expect(find.text('第二课堂学分'), findsOneWidget);
-    expect(find.text('项得分记录'), findsOneWidget);
-    expect(find.text('总学分'), findsNothing);
-    expect(find.text('主题团日'), findsOneWidget);
-    expect(find.text('创新训练项目'), findsOneWidget);
-    expect(find.text('1.5'), findsOneWidget);
+    expect(find.text('总已获分数'), findsOneWidget);
+    expect(find.text('总必修积分'), findsOneWidget);
+    expect(find.text('总体通过情况'), findsOneWidget);
+    expect(find.text('详情记录'), findsOneWidget);
+    expect(find.text('10.55'), findsOneWidget);
+    expect(find.text('8'), findsOneWidget);
+    expect(find.text('未通过'), findsOneWidget);
+    expect(find.text('5 项'), findsOneWidget);
+    expect(find.text('社会实践'), findsWidgets);
+    expect(find.text('报告与讲座'), findsWidgets);
+    expect(find.text('校园文化活动'), findsWidgets);
+    expect(find.text('创新创业活动'), findsWidgets);
+    expect(find.text('4.65/2.00'), findsWidgets);
+    expect(find.text('1.50/2.00'), findsWidgets);
+    expect(find.text('1.00/2.00'), findsWidgets);
+    expect(find.text('2.00/0.00'), findsWidgets);
     expect(find.text('上次刷新：2026-05-01 00:00'), findsOneWidget);
+    expect(find.textContaining('数据来自学工报表系统'), findsNothing);
+    final titleCenter = tester.getCenter(find.text('第二课堂学分'));
+    final lastRefreshCenter = tester.getCenter(
+      find.text('上次刷新：2026-05-01 00:00'),
+    );
+    final refreshCenter = tester.getCenter(studentReportRefresh);
+    final lastRefreshRight = tester
+        .getTopRight(find.text('上次刷新：2026-05-01 00:00'))
+        .dx;
+    final titleLeft = tester.getTopLeft(find.text('第二课堂学分')).dx;
+    final lastRefreshLeft = tester
+        .getTopLeft(find.text('上次刷新：2026-05-01 00:00'))
+        .dx;
+    final refreshLeft = tester.getTopLeft(studentReportRefresh).dx;
+    expect(lastRefreshCenter.dy, greaterThan(titleCenter.dy));
+    expect((lastRefreshLeft - titleLeft).abs(), lessThan(1));
+    expect((refreshCenter.dy - lastRefreshCenter.dy).abs(), lessThan(1));
+    expect(refreshLeft - lastRefreshRight, greaterThanOrEqualTo(0));
+    expect(refreshLeft - lastRefreshRight, lessThan(16));
+    expect(
+      lastRefreshCenter.dy,
+      lessThan(tester.getTopLeft(find.text('总已获分数')).dy),
+    );
 
-    await tester.tap(find.text('主题团日'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump();
+    expect(find.text('刷新成功√'), findsNothing);
 
-    expect(find.text('得分详情'), findsOneWidget);
-    expect(find.text('原始记录'), findsOneWidget);
-    await tester.tap(find.text('关闭'));
-    await tester.pumpAndSettle();
-
-    final detailButton = find.text('查看全部得分记录');
+    final detailButton = find.byKey(
+      const Key('academic-student-report-detail'),
+    );
     await tester.ensureVisible(detailButton);
     await tester.pumpAndSettle();
     await tester.tap(detailButton);
     await tester.pumpAndSettle();
 
-    expect(find.text('第二课堂得分明细'), findsOneWidget);
-    expect(find.textContaining('得分记录 2 项'), findsOneWidget);
+    expect(find.text('第二课堂详情'), findsOneWidget);
+    expect(find.text('总计'), findsOneWidget);
+    expect(find.text('总积分'), findsNothing);
+    expect(find.text('总已获分数'), findsOneWidget);
+    expect(find.text('已获积分详情'), findsOneWidget);
+    expect(find.text('规则矩阵'), findsOneWidget);
+    expect(find.byIcon(FluentIcons.chevronDown), findsOneWidget);
+    expect(find.text('名称'), findsOneWidget);
+    expect(find.text('获得积分'), findsOneWidget);
+    expect(find.textContaining('志愿服务'), findsWidgets);
+    expect(find.textContaining('创新训练项目'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(const Key('academic-student-report-detail-collapse')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byIcon(FluentIcons.chevronRight), findsOneWidget);
+    expect(find.textContaining('创新训练项目'), findsNothing);
+
+    await tester.tap(
+      find.byKey(const Key('academic-student-report-detail-collapse')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byIcon(FluentIcons.chevronDown), findsOneWidget);
     expect(find.textContaining('创新训练项目'), findsWidgets);
     await disposeAcademicPage(tester);
   });
@@ -229,9 +294,210 @@ void main() {
       studentReportAutoRefreshEnabledOverride: true,
     );
 
-    await pumpUntilFound(tester, find.text('2'));
+    await pumpUntilFound(tester, find.text('总已获分数'));
 
-    expect(find.text('项得分记录'), findsOneWidget);
+    expect(find.text('详情记录'), findsOneWidget);
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('第二课堂手动刷新失败时显示预置短原因', (tester) async {
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
+      ),
+      studentReportService: _FakeStudentReportClient(
+        result: StudentReportQueryResult(
+          status: StudentReportQueryStatus.campusNetworkUnavailable,
+          message: '校园网 / VPN 不可用，无法访问学工报表系统',
+          detail: '无法访问 xgbb.sspu.edu.cn',
+          checkedAt: DateTime(2026, 5, 1),
+          entranceUri: Uri.parse(
+            'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=xgreport',
+          ),
+        ),
+      ),
+    );
+
+    final studentReportRefresh = find.byKey(
+      const Key('academic-student-report-refresh'),
+    );
+    await tester.ensureVisible(studentReportRefresh);
+    await tester.tap(studentReportRefresh);
+    await pumpUntilFound(tester, find.text('刷新失败:校园网/VPN不可用×'));
+
+    expect(find.textContaining('无法访问学工报表系统'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump();
+    expect(find.text('刷新失败:校园网/VPN不可用×'), findsNothing);
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('第二课堂卡片和详情页在移动端宽度下不溢出', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
+      ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+    );
+
+    final studentReportRefresh = find.byKey(
+      const Key('academic-student-report-refresh'),
+    );
+    await tester.ensureVisible(studentReportRefresh);
+    await tester.tap(studentReportRefresh);
+    await pumpUntilFound(tester, find.text('社会实践'));
+
+    expect(find.text('4.65/2.00'), findsOneWidget);
+    expect(find.text('1.50/2.00'), findsOneWidget);
+    expect(find.text('1.00/2.00'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    final detailButton = find.byKey(
+      const Key('academic-student-report-detail'),
+    );
+    await tester.ensureVisible(detailButton);
+    await tester.tap(detailButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('已获积分详情'), findsOneWidget);
+    expect(find.text('规则矩阵'), findsOneWidget);
+    expect(find.byType(Table), findsNothing);
+    expect(find.text('必修'), findsWidgets);
+    expect(find.text('通过'), findsWidgets);
+    expect(find.text('参与情况'), findsWidgets);
+    expect(tester.takeException(), isNull);
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('第二课堂摘要中等宽度下固定为二乘二布局', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(760, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
+      ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+    );
+
+    final studentReportRefresh = find.byKey(
+      const Key('academic-student-report-refresh'),
+    );
+    await tester.ensureVisible(studentReportRefresh);
+    await tester.tap(studentReportRefresh);
+    await pumpUntilFound(tester, find.text('创新创业活动'));
+
+    final socialTop = tester.getTopLeft(find.text('社会实践')).dy;
+    final reportTop = tester.getTopLeft(find.text('报告与讲座')).dy;
+    final cultureTop = tester.getTopLeft(find.text('校园文化活动')).dy;
+    final innovationTop = tester.getTopLeft(find.text('创新创业活动')).dy;
+
+    expect((socialTop - reportTop).abs(), lessThan(1));
+    expect((cultureTop - innovationTop).abs(), lessThan(1));
+    expect(cultureTop, greaterThan(socialTop));
+    expect(tester.takeException(), isNull);
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('教务中心宽屏下体育与第二课堂卡片行内等高', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
+      ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+      sportsAttendanceAutoRefreshEnabledOverride: true,
+      studentReportAutoRefreshEnabledOverride: true,
+    );
+
+    await pumpUntilFound(tester, find.text('总已获分数'));
+
+    final sportsCard = find.byKey(const Key('academic-sports-card'));
+    final studentReportCard = find.byKey(
+      const Key('academic-student-report-card'),
+    );
+    final sportsSize = tester.getSize(sportsCard);
+    final studentReportSize = tester.getSize(studentReportCard);
+    expect((sportsSize.height - studentReportSize.height).abs(), lessThan(1));
+    expect(
+      tester.getBottomLeft(sportsCard).dy,
+      tester.getBottomLeft(studentReportCard).dy,
+    );
+    expect(tester.takeException(), isNull);
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('教务中心中屏下体育与第二课堂卡片行内等高', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
+      ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+      sportsAttendanceAutoRefreshEnabledOverride: true,
+      studentReportAutoRefreshEnabledOverride: true,
+    );
+
+    await pumpUntilFound(tester, find.text('总已获分数'));
+
+    final sportsCard = find.byKey(const Key('academic-sports-card'));
+    final studentReportCard = find.byKey(
+      const Key('academic-student-report-card'),
+    );
+    final sportsSize = tester.getSize(sportsCard);
+    final studentReportSize = tester.getSize(studentReportCard);
+    expect((sportsSize.height - studentReportSize.height).abs(), lessThan(1));
+    expect(
+      tester.getBottomLeft(sportsCard).dy,
+      tester.getBottomLeft(studentReportCard).dy,
+    );
+    expect(tester.takeException(), isNull);
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('教务中心窄屏下单列卡片不强制等高且无溢出', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(400, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
+      ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+      sportsAttendanceAutoRefreshEnabledOverride: true,
+      studentReportAutoRefreshEnabledOverride: true,
+    );
+
+    await pumpUntilFound(tester, find.text('总已获分数'));
+
+    final sportsCard = find.byKey(const Key('academic-sports-card'));
+    final studentReportCard = find.byKey(
+      const Key('academic-student-report-card'),
+    );
+    expect(
+      tester.getTopLeft(studentReportCard).dy,
+      greaterThan(tester.getBottomLeft(sportsCard).dy),
+    );
+    expect(tester.takeException(), isNull);
     await disposeAcademicPage(tester);
   });
 

@@ -13,13 +13,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/app.dart';
 import 'package:sspu_allinone/controllers/settings_wechat_controller.dart';
+import 'package:sspu_allinone/models/channel_config.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/services/campus_network_status_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/services/wxmp_config_service.dart';
 import 'package:sspu_allinone/widgets/app_feedback.dart';
 import 'package:sspu_allinone/widgets/campus_network_status_indicator.dart';
+import 'package:sspu_allinone/widgets/channel_list_section.dart';
 import 'package:sspu_allinone/widgets/settings_auto_refresh_section.dart';
+import 'package:sspu_allinone/widgets/settings_general_section.dart';
+import 'package:sspu_allinone/widgets/settings_wechat_config_dialog.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_section.dart';
 
 /// 等待目标组件出现，避免页面异步加载尚未完成时提前断言。
@@ -48,6 +52,7 @@ void main() {
     WidgetTester tester, {
     double topPadding = 0,
     double bottomPadding = 0,
+    double keyboardInset = 0,
   }) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
@@ -59,12 +64,14 @@ void main() {
       top: topPadding,
       bottom: bottomPadding,
     );
+    tester.view.viewInsets = FakeViewPadding(bottom: keyboardInset);
     await tester.binding.setSurfaceSize(const Size(390, 844));
   }
 
   Future<void> resetMobileView(WidgetTester tester) async {
     tester.view.resetPadding();
     tester.view.resetViewPadding();
+    tester.view.resetViewInsets();
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
     await tester.binding.setSurfaceSize(null);
@@ -129,9 +136,11 @@ void main() {
       await tester.tap(find.text('更多'));
       await tester.pumpAndSettle();
 
-      expect(find.text('更多功能'), findsOneWidget);
+      expect(find.text('更多'), findsWidgets);
       expect(find.text('设置'), findsOneWidget);
-      expect(find.text('关于'), findsOneWidget);
+      expect(find.text('邮箱'), findsAtLeastNWidgets(1));
+      expect(find.text('跳转'), findsOneWidget);
+      expect(find.text('关于'), findsNothing);
 
       // 首页使用 flutter_animate，补一段时间让一次性动画定时器自然完成。
       await tester.pump(const Duration(milliseconds: 300));
@@ -151,7 +160,13 @@ void main() {
   ) async {
     final previousTargetPlatform = debugDefaultTargetPlatformOverride;
     debugDefaultTargetPlatformOverride = platform;
-    await configureMobileView(tester, topPadding: 44, bottomPadding: 34);
+    final topPadding = platform == TargetPlatform.iOS ? 59.0 : 24.0;
+    final bottomPadding = platform == TargetPlatform.iOS ? 34.0 : 24.0;
+    await configureMobileView(
+      tester,
+      topPadding: topPadding,
+      bottomPadding: bottomPadding,
+    );
 
     try {
       SharedPreferences.setMockInitialValues({});
@@ -162,8 +177,15 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 100));
 
-      final titleTop = tester.getTopLeft(find.text('主页').first).dy;
-      expect(titleTop, greaterThanOrEqualTo(44));
+      final pageTitle = find
+          .descendant(
+            of: find.byType(FluentPageHeader),
+            matching: find.text('主页'),
+          )
+          .first;
+      final titleTop = tester.getTopLeft(pageTitle).dy;
+      expect(titleTop, greaterThanOrEqualTo(topPadding));
+      expect(titleTop, lessThanOrEqualTo(topPadding + 40));
 
       final bottomNavigation = find.byKey(
         const Key('mobile-bottom-navigation'),
@@ -174,7 +196,24 @@ void main() {
       final selectedHomeLabel = find
           .descendant(of: bottomNavigation, matching: find.text('主页'))
           .first;
-      expect(tester.getBottomLeft(selectedHomeLabel).dy, lessThanOrEqualTo(810));
+      expect(
+        tester.getBottomLeft(selectedHomeLabel).dy,
+        lessThanOrEqualTo(844 - bottomPadding),
+      );
+
+      await tester.tap(
+        find.descendant(of: bottomNavigation, matching: find.text('信息')).first,
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await pumpUntilFound(
+        tester,
+        find.byKey(const Key('info-mobile-controls')),
+      );
+      final infoControlsTop = tester
+          .getTopLeft(find.byKey(const Key('info-mobile-controls')))
+          .dy;
+      expect(infoControlsTop, greaterThanOrEqualTo(topPadding));
+      expect(infoControlsTop, lessThanOrEqualTo(topPadding + 40));
 
       await tester.pump(const Duration(milliseconds: 300));
     } finally {
@@ -187,11 +226,45 @@ void main() {
     }
   }
 
-  testWidgets('移动端安全区不遮挡页面标题且底部导航贴合手势区', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('移动端安全区不遮挡页面标题且底部导航贴合手势区', (WidgetTester tester) async {
     await expectMobileSafeAreaLayout(tester, TargetPlatform.android);
     await expectMobileSafeAreaLayout(tester, TargetPlatform.iOS);
+  });
+
+  testWidgets('移动端输入法弹出时外层底部导航不重复让位', (WidgetTester tester) async {
+    final previousTargetPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    await configureMobileView(tester, bottomPadding: 24);
+
+    try {
+      SharedPreferences.setMockInitialValues({});
+      StorageService.debugUseSharedPreferencesStorageForTesting(true);
+      final service = _buildCampusNetworkStatusService();
+      await tester.pumpWidget(
+        FluentApp(home: AppShell(campusNetworkStatusService: service)),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final bottomNavigation = find.byKey(
+        const Key('mobile-bottom-navigation'),
+      );
+      expect(bottomNavigation, findsOneWidget);
+      expect(tester.getBottomLeft(bottomNavigation).dy, 844);
+
+      await configureMobileView(tester, bottomPadding: 24, keyboardInset: 320);
+      await tester.pump();
+
+      expect(tester.getBottomLeft(bottomNavigation).dy, 844);
+
+      await tester.pump(const Duration(milliseconds: 300));
+    } finally {
+      debugDefaultTargetPlatformOverride = previousTargetPlatform;
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await resetMobileView(tester);
+    }
   });
 
   testWidgets('移动端安全区保护 FluentPage 标题区域', (tester) async {
@@ -208,10 +281,8 @@ void main() {
       );
       await tester.pump();
 
-      expect(
-        tester.getTopLeft(find.text('测试页面')).dy,
-        greaterThanOrEqualTo(44),
-      );
+      expect(tester.getTopLeft(find.text('测试页面')).dy, greaterThanOrEqualTo(44));
+      expect(tester.getTopLeft(find.text('测试页面')).dy, lessThanOrEqualTo(84));
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
@@ -248,6 +319,72 @@ void main() {
       );
 
       // 首页入场动画会保留短计时器，测试结束前推进时间以清理动画状态。
+      await tester.pump(const Duration(milliseconds: 300));
+    } finally {
+      debugDefaultTargetPlatformOverride = previousTargetPlatform;
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    }
+  });
+
+  testWidgets('桌面侧边栏展开和收起时菜单按钮与导航项对齐', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+    final previousTargetPlatform = debugDefaultTargetPlatformOverride;
+    final service = _buildCampusNetworkStatusService();
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+
+    ({Offset menu, Offset home}) readNavigationCenters() {
+      return (
+        menu: tester.getCenter(find.byIcon(WindowsIcons.global_nav_button)),
+        home: tester.getCenter(find.byIcon(FluentIcons.home).first),
+      );
+    }
+
+    Future<({Offset menu, Offset home})> pumpAndReadCenters(Size size) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      await tester.binding.setSurfaceSize(size);
+      await tester.pumpWidget(
+        FluentApp(home: AppShell(campusNetworkStatusService: service)),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      final menuIcon = find.byIcon(WindowsIcons.global_nav_button);
+      expect(menuIcon, findsOneWidget);
+      return readNavigationCenters();
+    }
+
+    try {
+      final expanded = await pumpAndReadCenters(const Size(1280, 800));
+      final compactClosed = await pumpAndReadCenters(const Size(900, 800));
+      await tester.tap(find.byIcon(WindowsIcons.global_nav_button));
+      await tester.pumpAndSettle();
+      final compactOpen = readNavigationCenters();
+      final narrowClosed = await pumpAndReadCenters(const Size(700, 800));
+      await tester.tap(find.byIcon(WindowsIcons.global_nav_button));
+      await tester.pumpAndSettle();
+      final narrowOpen = readNavigationCenters();
+
+      for (final centers in [
+        expanded,
+        compactClosed,
+        compactOpen,
+        narrowClosed,
+        narrowOpen,
+      ]) {
+        expect(centers.menu.dx, closeTo(centers.home.dx, 1));
+      }
+
+      expect(expanded.menu.dx, closeTo(compactClosed.menu.dx, 1));
+      expect(compactClosed.menu.dx, closeTo(narrowClosed.menu.dx, 1));
+      expect(compactClosed.menu.dy, closeTo(compactOpen.menu.dy, 3));
+      expect(narrowClosed.menu.dy, closeTo(narrowOpen.menu.dy, 3));
+
       await tester.pump(const Duration(milliseconds: 300));
     } finally {
       debugDefaultTargetPlatformOverride = previousTargetPlatform;
@@ -469,7 +606,113 @@ void main() {
     expect(selectedShortcut, 3);
   });
 
-  testWidgets('页面反馈连续显示时替换上一条信息条', (WidgetTester tester) async {
+  testWidgets('常规设置分区显示首页业务卡片开关', (WidgetTester tester) async {
+    var studentVisible = true;
+    var campusCardVisible = true;
+    var todayCoursesVisible = true;
+    var sportsVisible = true;
+    var studentReportVisible = true;
+    var messagesVisible = true;
+    var emailVisible = true;
+    var quickLinksVisible = true;
+    await tester.pumpWidget(
+      FluentApp(
+        home: ScaffoldPage(
+          content: SingleChildScrollView(
+            child: SettingsGeneralSection(
+              closeBehavior: 'ask',
+              notificationEnabled: true,
+              dndEnabled: false,
+              homeStudentProfileCardVisible: true,
+              homeCampusCardBalanceCardVisible: true,
+              homeTodayCoursesTileVisible: true,
+              homeSportsAttendanceTileVisible: true,
+              homeStudentReportTileVisible: true,
+              homeMessagesTileVisible: true,
+              homeEmailTileVisible: true,
+              homeQuickLinksTileVisible: true,
+              dndStartHour: 22,
+              dndStartMinute: 0,
+              dndEndHour: 7,
+              dndEndMinute: 0,
+              onCloseBehaviorChanged: (_) {},
+              onNotificationChanged: (_) {},
+              onDndChanged: (_) {},
+              onHomeStudentProfileCardVisibleChanged: (value) =>
+                  studentVisible = value,
+              onHomeCampusCardBalanceCardVisibleChanged: (value) =>
+                  campusCardVisible = value,
+              onHomeTodayCoursesTileVisibleChanged: (value) =>
+                  todayCoursesVisible = value,
+              onHomeSportsAttendanceTileVisibleChanged: (value) =>
+                  sportsVisible = value,
+              onHomeStudentReportTileVisibleChanged: (value) =>
+                  studentReportVisible = value,
+              onHomeMessagesTileVisibleChanged: (value) =>
+                  messagesVisible = value,
+              onHomeEmailTileVisibleChanged: (value) => emailVisible = value,
+              onHomeQuickLinksTileVisibleChanged: (value) =>
+                  quickLinksVisible = value,
+              onDndStartChanged: (_, _) async {},
+              onDndEndChanged: (_, _) async {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('首页显示'), findsOneWidget);
+    expect(find.text('显示学籍信息卡片'), findsOneWidget);
+    expect(find.text('显示校园卡余额卡片'), findsOneWidget);
+    expect(find.text('显示今日课程磁贴'), findsOneWidget);
+    expect(find.text('显示体育考勤磁贴'), findsOneWidget);
+    expect(find.text('显示第二课堂磁贴'), findsOneWidget);
+    expect(find.text('显示最新消息磁贴'), findsOneWidget);
+    expect(find.text('显示邮箱摘要磁贴'), findsOneWidget);
+    expect(find.text('显示快速跳转磁贴'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('settings-home-student-profile-card-switch')),
+    );
+    await tester.pump();
+    expect(studentVisible, isFalse);
+    await tester.tap(find.byKey(const Key('settings-home-campus-card-switch')));
+    await tester.pump();
+    expect(campusCardVisible, isFalse);
+    await tester.tap(
+      find.byKey(const Key('settings-home-today-courses-switch')),
+    );
+    await tester.pump();
+    expect(todayCoursesVisible, isFalse);
+    await tester.tap(
+      find.byKey(const Key('settings-home-sports-attendance-switch')),
+    );
+    await tester.pump();
+    expect(sportsVisible, isFalse);
+    await tester.tap(
+      find.byKey(const Key('settings-home-student-report-switch')),
+    );
+    await tester.pump();
+    expect(studentReportVisible, isFalse);
+    await tester.tap(find.byKey(const Key('settings-home-messages-switch')));
+    await tester.pump();
+    expect(messagesVisible, isFalse);
+    await tester.tap(find.byKey(const Key('settings-home-email-switch')));
+    await tester.pump();
+    expect(emailVisible, isFalse);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-home-quick-links-switch')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings-home-quick-links-switch')));
+    await tester.pump();
+    expect(quickLinksVisible, isFalse);
+    await tester.pump(const Duration(milliseconds: 120));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('页面反馈连续显示时替换上一条紧凑浮层', (WidgetTester tester) async {
     await tester.pumpWidget(
       FluentApp(
         home: ScaffoldPage(
@@ -491,9 +734,15 @@ void main() {
 
     expect(find.text('第一条反馈'), findsNothing);
     expect(find.text('第二条反馈'), findsOneWidget);
+    final toast = find.byKey(const Key('app-feedback-toast'));
+    expect(toast, findsOneWidget);
+    expect(tester.getTopLeft(toast).dy, lessThan(120));
+    expect(tester.getBottomLeft(toast).dy, lessThan(260));
+    expect(find.byType(FluentInfoBar), findsNothing);
 
     await tester.pump(const Duration(seconds: 3));
     await tester.pump();
+    expect(toast, findsNothing);
   });
 
   testWidgets('WebView 遇到无效链接时显示错误页', (WidgetTester tester) async {
@@ -522,7 +771,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // 仅覆盖响应式导航结构，避免完整设置页服务初始化拖慢组件测试。
-      expect(find.text('常规设置'), findsOneWidget);
+      expect(find.text('常规'), findsOneWidget);
       expect(find.text('系统设置'), findsNothing);
       expect(
         find.byKey(const Key('settings-narrow-tab-combo')),
@@ -535,7 +784,173 @@ void main() {
     }
   });
 
-  testWidgets('设置页显示内置编辑和配置目录按钮', (WidgetTester tester) async {
+  Future<void> expectSettingsSelectPopupAvoidsStatusBar(
+    WidgetTester tester,
+    TargetPlatform platform,
+  ) async {
+    final previousTargetPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = platform;
+    final topPadding = platform == TargetPlatform.iOS ? 59.0 : 24.0;
+    await configureMobileView(tester, topPadding: topPadding);
+
+    try {
+      await tester.pumpWidget(
+        const FluentApp(
+          home: ScaffoldPage(
+            padding: EdgeInsets.zero,
+            content: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: _NarrowSettingsNavigation(selectedValue: 6),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byKey(const Key('settings-narrow-tab-combo')));
+      await tester.pumpAndSettle();
+
+      final firstOption = find.byKey(
+        const ValueKey('fluent-select-popup-option-0'),
+      );
+      expect(firstOption, findsOneWidget);
+      expect(
+        tester.getTopLeft(firstOption).dy,
+        greaterThanOrEqualTo(topPadding),
+      );
+    } finally {
+      debugDefaultTargetPlatformOverride = previousTargetPlatform;
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await resetMobileView(tester);
+    }
+  }
+
+  testWidgets('设置页窄屏选择框弹层避开移动端状态栏', (WidgetTester tester) async {
+    await expectSettingsSelectPopupAvoidsStatusBar(
+      tester,
+      TargetPlatform.android,
+    );
+    await expectSettingsSelectPopupAvoidsStatusBar(tester, TargetPlatform.iOS);
+  });
+
+  testWidgets('Fluent 弹窗使用紧凑按钮区并支持点击外部取消', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      FluentApp(
+        home: Builder(
+          builder: (context) {
+            return FluentButton.primary(
+              child: const Text('打开弹窗'),
+              onPressed: () {
+                showFluentDialog<void>(
+                  context: context,
+                  builder: (dialogContext) => FluentDialog(
+                    title: const Text('关闭应用'),
+                    content: const FluentDialogMessage(
+                      icon: FluentIcons.clear,
+                      message: '请选择点击窗口关闭按钮时的处理方式。',
+                      details: '点击弹窗外的空白区域取消本次操作。',
+                    ),
+                    actions: [
+                      FluentButton.outline(
+                        child: const Text('最小化到托盘'),
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                      ),
+                      FluentButton.primary(
+                        child: const Text('退出应用'),
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('打开弹窗'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FluentDialog), findsOneWidget);
+    expect(find.text('最小化到托盘'), findsOneWidget);
+    expect(find.text('退出应用'), findsOneWidget);
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FluentDialog), findsNothing);
+  });
+
+  testWidgets('职能部门和教学单位设置使用总览与轻量频道卡布局', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+
+    Future<void> pumpChannelSection({
+      required double width,
+      required String title,
+      required List<ChannelConfig> channels,
+    }) async {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1.0;
+      await tester.binding.setSurfaceSize(Size(width, 900));
+      await tester.pumpWidget(
+        FluentApp(
+          home: ScaffoldPage(
+            content: SingleChildScrollView(
+              child: ChannelListSection(title: title, channels: channels),
+            ),
+          ),
+        ),
+      );
+      await pumpUntilFound(tester, find.text(title));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    try {
+      await pumpChannelSection(
+        width: 1280,
+        title: '职能部门',
+        channels: departmentChannels,
+      );
+      expect(find.text('统一管理学校官网消息来源，启用后会在信息中心筛选和刷新中生效。'), findsOneWidget);
+      expect(find.text('共 24 个渠道'), findsOneWidget);
+      expect(find.text('已接入 24 个'), findsOneWidget);
+      expect(find.text('刷新设置'), findsOneWidget);
+      expect(find.text('手动刷新'), findsOneWidget);
+      expect(find.text('自动抓取'), findsOneWidget);
+      expect(find.text('公开信息'), findsOneWidget);
+      expect(find.text('已接入'), findsWidgets);
+      expect(find.text('显示中'), findsWidgets);
+      expect(tester.takeException(), isNull);
+
+      await pumpChannelSection(
+        width: 390,
+        title: '教学单位',
+        channels: teachingChannels,
+      );
+      expect(find.text('教学单位'), findsOneWidget);
+      expect(find.text('共 20 个渠道'), findsOneWidget);
+      expect(find.text('计算机与信息工程学院'), findsOneWidget);
+      expect(find.text('内容分类'), findsWidgets);
+      expect(find.text('3 项'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    } finally {
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 300));
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    }
+  });
+
+  testWidgets('微信推文设置显示精简刷新卡片和认证操作', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final previousTargetPlatform = debugDefaultTargetPlatformOverride;
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
@@ -570,9 +985,20 @@ void main() {
       await pumpUntilFound(tester, find.text('编辑配置文件'));
 
       expect(find.text('编辑配置文件'), findsOneWidget);
-      expect(find.text('打开配置文件所在文件夹'), findsOneWidget);
-      expect(find.text('外部打开'), findsOneWidget);
+      expect(find.text('重新加载配置并校验'), findsOneWidget);
+      expect(find.text('清除认证'), findsOneWidget);
+      expect(find.text('打开配置文件所在文件夹'), findsNothing);
+      expect(find.text('外部打开'), findsNothing);
+      expect(find.text('校验有效性'), findsNothing);
       expect(find.text('使用 Visual Studio Code 打开配置文件'), findsNothing);
+      expect(find.text('刷新设置'), findsOneWidget);
+      expect(find.text('全部开启'), findsOneWidget);
+      expect(find.text('全部关闭'), findsOneWidget);
+      expect(find.textContaining('矩阵开关'), findsNothing);
+      expect(find.text('微信矩阵'), findsOneWidget);
+      expect(find.text('SSPU 微信矩阵'), findsNothing);
+      expect(find.text('微信公众平台注册方式'), findsNothing);
+      expect(find.textContaining('若频率过快'), findsNothing);
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(milliseconds: 300));
@@ -580,6 +1006,107 @@ void main() {
       StorageService.debugSetStateFilePathForTesting(null);
       debugDefaultTargetPlatformOverride = previousTargetPlatform;
       await tester.runAsync(() => deleteDirectoryWithRetry(configDirectory));
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    }
+  });
+
+  testWidgets('微信推文配置编辑器使用自适应字段表单', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+
+    try {
+      await tester.pumpWidget(
+        FluentApp(
+          home: ScaffoldPage(
+            content: Center(
+              child: FluentButton(
+                onPressed: () {
+                  showSettingsWechatConfigDialog(
+                    context: tester.element(find.text('打开编辑器')),
+                    initialConfig: WxmpConfig.defaults(),
+                  );
+                },
+                child: const Text('打开编辑器'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('打开编辑器'));
+      await pumpUntilFound(tester, find.text('cookie'));
+
+      expect(find.text('cookie'), findsOneWidget);
+      expect(find.text('token'), findsOneWidget);
+      expect(find.text('app_id'), findsOneWidget);
+      expect(find.text('user_agent'), findsOneWidget);
+      expect(find.text('per_request_article_count'), findsOneWidget);
+      expect(find.text('request_delay_ms'), findsOneWidget);
+      expect(find.textContaining('保存后会立即重新加载配置'), findsNothing);
+
+      final dialogBox = tester.renderObject<RenderBox>(
+        find.byType(FluentDialog),
+      );
+      expect(dialogBox.size.width <= 390, isTrue);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 300));
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    }
+  });
+
+  testWidgets('微信推文配置编辑器宽屏使用双列布局', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(1280, 800));
+
+    try {
+      await tester.pumpWidget(
+        FluentApp(
+          home: ScaffoldPage(
+            content: Center(
+              child: FluentButton(
+                onPressed: () {
+                  showSettingsWechatConfigDialog(
+                    context: tester.element(find.text('打开编辑器')),
+                    initialConfig: WxmpConfig.defaults(),
+                  );
+                },
+                child: const Text('打开编辑器'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('打开编辑器'));
+      await pumpUntilFound(tester, find.text('cookie'));
+
+      final contentBox = tester.renderObject<RenderBox>(
+        find.byKey(const Key('wechat-config-dialog-content')),
+      );
+      expect(contentBox.size.width >= 760, isTrue);
+      expect(contentBox.size.width <= 920, isTrue);
+
+      final cookieTop = tester.getTopLeft(find.text('cookie')).dy;
+      final tokenTop = tester.getTopLeft(find.text('token')).dy;
+      expect((cookieTop - tokenTop).abs() < 1, isTrue);
+
+      final appIdTop = tester.getTopLeft(find.text('app_id')).dy;
+      final userAgentTop = tester.getTopLeft(find.text('user_agent')).dy;
+      expect(userAgentTop < appIdTop, isTrue);
+
+      final cancelLeft = tester.getTopLeft(find.text('取消')).dx;
+      final contentLeft = tester
+          .getTopLeft(find.byKey(const Key('wechat-config-dialog-content')))
+          .dx;
+      expect(cancelLeft > contentLeft + contentBox.size.width / 2, isTrue);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 300));
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
       await tester.binding.setSurfaceSize(null);
@@ -704,7 +1231,9 @@ class _SettingsNavigationLayoutHarness extends StatelessWidget {
 }
 
 class _NarrowSettingsNavigation extends StatelessWidget {
-  const _NarrowSettingsNavigation();
+  const _NarrowSettingsNavigation({this.selectedValue = 0});
+
+  final int selectedValue;
 
   @override
   Widget build(BuildContext context) {
@@ -715,15 +1244,17 @@ class _NarrowSettingsNavigation extends StatelessWidget {
         Expanded(
           child: FluentSelect<int>(
             key: const Key('settings-narrow-tab-combo'),
-            value: 0,
+            value: selectedValue,
             isExpanded: true,
             items: const [
-              FluentSelectItem(value: 0, child: Text('常规设置')),
-              FluentSelectItem(value: 1, child: Text('自动刷新设置')),
-              FluentSelectItem(value: 2, child: Text('安全设置')),
-              FluentSelectItem(value: 3, child: Text('职能部门')),
-              FluentSelectItem(value: 4, child: Text('教学单位')),
-              FluentSelectItem(value: 5, child: Text('微信推文')),
+              FluentSelectItem(value: 0, child: Text('常规')),
+              FluentSelectItem(value: 1, child: Text('学期')),
+              FluentSelectItem(value: 2, child: Text('自动刷新')),
+              FluentSelectItem(value: 3, child: Text('安全')),
+              FluentSelectItem(value: 4, child: Text('职能部门')),
+              FluentSelectItem(value: 5, child: Text('教学单位')),
+              FluentSelectItem(value: 6, child: Text('微信推文')),
+              FluentSelectItem(value: 7, child: Text('关于')),
             ],
             onChanged: (_) {},
           ),
@@ -740,7 +1271,7 @@ class _WideSettingsNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [Text('系统设置'), SizedBox(height: 8), Text('常规设置')],
+      children: const [Text('系统设置'), SizedBox(height: 8), Text('常规')],
     );
   }
 }

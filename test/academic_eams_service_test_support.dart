@@ -35,11 +35,16 @@ class FakeAcademicEamsGateway implements AcademicEamsGateway {
   FakeAcademicEamsGateway({
     this.requireAuthFirst = false,
     this.failFreeClassroomMenuOnce = false,
+    this.studentProfileSnapshot,
+    this.disableNumberedStudentProfileMenu = false,
   });
 
   final bool requireAuthFirst;
   final bool failFreeClassroomMenuOnce;
+  final AcademicEamsHttpSnapshot? studentProfileSnapshot;
+  final bool disableNumberedStudentProfileMenu;
   final List<Map<String, String>> resetCookieHeaders = [];
+  final List<Uri> requestedPageUris = [];
   int openCount = 0;
   String? lastSubmittedMethod;
   Map<String, String>? lastSubmittedFields;
@@ -65,12 +70,21 @@ class FakeAcademicEamsGateway implements AcademicEamsGateway {
     Uri pageUri,
     Duration timeout,
   ) async {
+    requestedPageUris.add(pageUri);
     final path = pageUri.path;
+    if (path.contains('home!submenus.action') &&
+        (pageUri.queryParameters['menu.id'] == null ||
+            pageUri.queryParameters['menu.id'] == '')) {
+      return academicEamsRootSubmenuSnapshot;
+    }
     if (path.contains('home!submenus.action') &&
         pageUri.queryParameters['menu.id'] == '5') {
       if (failFreeClassroomMenuOnce && !_hasFailedFreeClassroomMenu) {
         _hasFailedFreeClassroomMenu = true;
         throw TimeoutException('menu timeout');
+      }
+      if (disableNumberedStudentProfileMenu) {
+        return academicEamsSubmenuWithoutStudentProfileSnapshot;
       }
       return academicEamsSubmenuSnapshot;
     }
@@ -78,6 +92,9 @@ class FakeAcademicEamsGateway implements AcademicEamsGateway {
       return academicEamsEmptySubmenuSnapshot;
     }
     if (path.contains('home!index.action')) return academicEamsHomeSnapshot;
+    if (path.contains('studentDetail.action') || path.contains('std.action')) {
+      return studentProfileSnapshot ?? academicEamsStudentProfileSnapshot;
+    }
     if (path.contains('courseTableForStd.action')) {
       return academicEamsCourseTableSnapshot;
     }
@@ -177,6 +194,31 @@ final AcademicEamsHttpSnapshot academicEamsEmptySubmenuSnapshot =
       body: '<html><body></body></html>',
     );
 
+final AcademicEamsHttpSnapshot academicEamsRootSubmenuSnapshot =
+    AcademicEamsHttpSnapshot(
+      finalUri: Uri.parse(
+        'https://jx.sspu.edu.cn/eams/home!submenus.action?menu.id=',
+      ),
+      statusCode: 200,
+      body: '''
+<html>
+  <body>
+    <ul class="menu">
+      <li class="expand">
+        <a class="first_menu" href="#">学籍信息</a>
+        <ul class="scroll_box">
+          <li>
+            <a class="p_1" href="/eams/studentDetail.action"
+               onclick="return bg.Go(this,'main',true)">个人信息</a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </body>
+</html>
+''',
+    );
+
 final AcademicEamsHttpSnapshot academicEamsSubmenuSnapshot =
     AcademicEamsHttpSnapshot(
       finalUri: Uri.parse(
@@ -187,6 +229,45 @@ final AcademicEamsHttpSnapshot academicEamsSubmenuSnapshot =
 <html>
   <body>
     <a href="/eams/freeClassroom.action">空闲教室查询</a>
+    <a href="/eams/std.action">学籍信息-个人信息</a>
+  </body>
+</html>
+''',
+    );
+
+final AcademicEamsHttpSnapshot
+academicEamsSubmenuWithoutStudentProfileSnapshot = AcademicEamsHttpSnapshot(
+  finalUri: Uri.parse(
+    'https://jx.sspu.edu.cn/eams/home!submenus.action?menu.id=5',
+  ),
+  statusCode: 200,
+  body: '''
+<html>
+  <body>
+    <a href="/eams/freeClassroom.action">空闲教室查询</a>
+  </body>
+</html>
+''',
+);
+
+final AcademicEamsHttpSnapshot academicEamsStudentProfileSnapshot =
+    AcademicEamsHttpSnapshot(
+      finalUri: Uri.parse('https://jx.sspu.edu.cn/eams/studentDetail.action'),
+      statusCode: 200,
+      body: '''
+<html>
+  <body>
+    <h2>学籍信息</h2>
+    <table>
+      <tr>
+        <th>学号</th><th>姓名</th><th>性别</th><th>院系</th>
+        <th>专业</th><th>行政班级</th><th>学制</th><th>学历层次</th>
+      </tr>
+      <tr>
+        <td>20260001</td><td>张三</td><td>男</td><td>计算机与信息工程学院</td>
+        <td>软件工程</td><td>软件 241</td><td>4 年</td><td>本科</td>
+      </tr>
+    </table>
   </body>
 </html>
 ''',

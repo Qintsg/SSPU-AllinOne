@@ -11,9 +11,14 @@ import 'dart:async';
 import '../design/fluent_ui.dart';
 
 import '../models/academic_eams.dart';
+import '../models/course_period.dart';
 import '../services/academic_credentials_service.dart';
+import '../services/academic_calendar_service.dart';
 import '../services/academic_eams_service.dart';
 import '../theme/fluent_tokens.dart';
+import '../utils/course_week_parser.dart';
+import 'academic_calendar_page.dart';
+import 'course_schedule_summary_card.dart';
 
 /// 独立课程表页面。
 class CourseSchedulePage extends StatefulWidget {
@@ -29,12 +34,16 @@ class CourseSchedulePage extends StatefulWidget {
   /// 测试专用：覆盖自动刷新间隔。
   final int? autoRefreshIntervalOverride;
 
+  /// 校历客户端，测试中可替换为 fake。
+  final AcademicCalendarClient? academicCalendarService;
+
   const CourseSchedulePage({
     super.key,
     this.academicEamsService,
     this.initialResult,
     this.autoRefreshEnabledOverride,
     this.autoRefreshIntervalOverride,
+    this.academicCalendarService,
   });
 
   @override
@@ -49,6 +58,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
       AcademicEamsService.defaultAutoRefreshIntervalMinutes;
   Timer? _autoRefreshTimer;
   StreamSubscription<int>? _credentialChangeSubscription;
+  int _selectedMobileWeekday = DateTime.now().weekday;
 
   AcademicEamsClient get _academicEamsService {
     return widget.academicEamsService ?? AcademicEamsService.instance;
@@ -139,6 +149,15 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
         Duration(minutes: intervalMinutes);
   }
 
+  void _openAcademicCalendar() {
+    Navigator.of(context).push(
+      FluentPageRoute(
+        builder: (_) =>
+            AcademicCalendarPage(service: widget.academicCalendarService),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _credentialChangeSubscription?.cancel();
@@ -155,59 +174,38 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     return FluentPage.scrollable(
       header: FluentPageHeader(
         title: const Text('课程表'),
-        commandBar: Row(
-          mainAxisSize: MainAxisSize.min,
+        commandBar: Wrap(
+          spacing: FluentSpacing.s,
+          runSpacing: FluentSpacing.xs,
+          alignment: WrapAlignment.end,
           children: [
-            if (canPop) ...[
+            if (canPop)
               FluentButton.outline(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('返回'),
               ),
-              const SizedBox(width: FluentSpacing.s),
-            ],
-            FluentButton.primary(
+            FluentButton.outlineIcon(
+              key: const Key('open-academic-calendar'),
+              onPressed: _openAcademicCalendar,
+              icon: const Icon(FluentIcons.calendarWeek, size: 14),
+              label: const Text('校历'),
+            ),
+            FluentButton.primaryIcon(
               key: const Key('course-schedule-refresh'),
               onPressed: _isLoading ? null : _loadCourseTable,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_isLoading)
-                    const SizedBox(
+              icon: _isLoading
+                  ? const SizedBox(
                       width: 14,
                       height: 14,
                       child: FluentProgressRing(strokeWidth: 2),
                     )
-                  else
-                    const Icon(FluentIcons.refresh, size: 14),
-                  const SizedBox(width: 6),
-                  const Text('刷新课表'),
-                ],
-              ),
+                  : const Icon(FluentIcons.refresh, size: 14),
+              label: const Text('刷新课表'),
             ),
           ],
         ),
       ),
       children: [
-        FluentSurface(
-          padding: const EdgeInsets.all(FluentSpacing.l),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const FluentSectionHeader(
-                title: '课程表说明',
-                subtitle: '只展示课程名称、时间、地点、教师和周次，不提供写入型入口。',
-                icon: FluentIcons.calendar,
-              ),
-              const SizedBox(height: FluentSpacing.m),
-              Text(
-                _autoRefreshEnabled
-                    ? '自动刷新已开启，每 $_autoRefreshIntervalMinutes 分钟更新一次；也可手动刷新。'
-                    : '自动刷新未开启。点击“刷新课表”可手动读取；本专科教务需要校园网或学校 VPN。',
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: FluentSpacing.m),
         if (_isLoading && _result == null)
           const FluentSurface(
             padding: EdgeInsets.all(FluentSpacing.xl),
@@ -236,12 +234,20 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
             severity: _severityOf(_result!.status),
           )
         else ...[
-          _CourseScheduleSummaryCard(
+          CourseScheduleSummaryCard(
             snapshot: snapshot!,
             checkedAt: _result!.checkedAt,
+            autoRefreshEnabled: _autoRefreshEnabled,
+            autoRefreshIntervalMinutes: _autoRefreshIntervalMinutes,
           ),
           const SizedBox(height: FluentSpacing.m),
-          ..._buildWeekdaySections(courseTable),
+          _CourseScheduleAdaptiveView(
+            courseTable: courseTable,
+            selectedMobileWeekday: _selectedMobileWeekday,
+            onSelectedMobileWeekdayChanged: (weekday) {
+              setState(() => _selectedMobileWeekday = weekday);
+            },
+          ),
         ],
       ],
     );
@@ -264,206 +270,327 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
       AcademicEamsQueryStatus.unexpectedError => FluentInfoSeverity.error,
     };
   }
-
-  List<Widget> _buildWeekdaySections(AcademicCourseTableSnapshot courseTable) {
-    final groupedEntries = <int, List<AcademicCourseTableEntry>>{};
-    for (final entry in courseTable.entries) {
-      groupedEntries.putIfAbsent(entry.weekday, () => []).add(entry);
-    }
-
-    final widgets = <Widget>[];
-    for (final weekday in groupedEntries.keys.toList()..sort()) {
-      final entries = groupedEntries[weekday]!
-        ..sort((a, b) => a.startUnit.compareTo(b.startUnit));
-      widgets.add(
-        _CourseScheduleWeekdaySection(weekday: weekday, entries: entries),
-      );
-      widgets.add(const SizedBox(height: FluentSpacing.m));
-    }
-    if (widgets.isNotEmpty) widgets.removeLast();
-    return widgets;
-  }
 }
 
-class _CourseScheduleSummaryCard extends StatelessWidget {
-  const _CourseScheduleSummaryCard({
-    required this.snapshot,
-    required this.checkedAt,
+class _CourseScheduleAdaptiveView extends StatelessWidget {
+  const _CourseScheduleAdaptiveView({
+    required this.courseTable,
+    required this.selectedMobileWeekday,
+    required this.onSelectedMobileWeekdayChanged,
   });
 
-  final AcademicEamsSnapshot snapshot;
-  final DateTime checkedAt;
+  final AcademicCourseTableSnapshot courseTable;
+  final int selectedMobileWeekday;
+  final ValueChanged<int> onSelectedMobileWeekdayChanged;
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final profile = snapshot.profile;
-    final courseTable = snapshot.courseTable!;
-    final completion = snapshot.programCompletion;
-
-    return FluentSurface(
-      padding: const EdgeInsets.all(FluentSpacing.l),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('本学期概览', style: theme.typography.bodyStrong),
-          const SizedBox(height: FluentSpacing.s),
-          Wrap(
-            spacing: FluentSpacing.s,
-            runSpacing: FluentSpacing.s,
-            children: [
-              _CourseSummaryTag(
-                label: '学期',
-                value: courseTable.termName ?? '当前学期',
-              ),
-              _CourseSummaryTag(
-                label: '课程数',
-                value: '${courseTable.entries.length} 门',
-              ),
-              _CourseSummaryTag(
-                label: '刷新时间',
-                value:
-                    '${checkedAt.hour.toString().padLeft(2, '0')}:${checkedAt.minute.toString().padLeft(2, '0')}',
-              ),
-              if (completion != null)
-                _CourseSummaryTag(
-                  label: '培养计划',
-                  value:
-                      '${completion.completedCredits.toStringAsFixed(1)}/${(completion.completedCredits + completion.pendingCredits).toStringAsFixed(1)} 学分',
-                ),
-            ],
-          ),
-          if (profile != null && profile.hasAnyValue) ...[
-            const SizedBox(height: FluentSpacing.m),
-            Text(
-              [
-                if (profile.name != null && profile.name!.isNotEmpty)
-                  '姓名：${profile.name}',
-                if (profile.department != null &&
-                    profile.department!.isNotEmpty)
-                  '院系：${profile.department}',
-                if (profile.major != null && profile.major!.isNotEmpty)
-                  '专业：${profile.major}',
-                if (profile.className != null && profile.className!.isNotEmpty)
-                  '班级：${profile.className}',
-              ].join('  ·  '),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 720) {
+          return _CourseDayScheduleView(
+            entries: _entriesForWeekday(
+              courseTable.entries,
+              selectedMobileWeekday,
             ),
-          ],
-          if (snapshot.warnings.isNotEmpty) ...[
-            const SizedBox(height: FluentSpacing.m),
-            FluentInfoBar(
-              title: const Text('课表已可用，部分教务模块仍在降级'),
-              content: Text(snapshot.warnings.join('；')),
-              severity: FluentInfoSeverity.warning,
-            ),
-          ],
-        ],
-      ),
+            selectedWeekday: selectedMobileWeekday,
+            onWeekdayChanged: onSelectedMobileWeekdayChanged,
+          );
+        }
+        return _CourseWeekGridView(entries: courseTable.entries);
+      },
     );
   }
 }
 
-class _CourseSummaryTag extends StatelessWidget {
-  const _CourseSummaryTag({required this.label, required this.value});
+class _CourseWeekGridView extends StatelessWidget {
+  const _CourseWeekGridView({required this.entries});
 
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: FluentSpacing.m,
-        vertical: FluentSpacing.s,
-      ),
-      decoration: BoxDecoration(
-        color: theme.accentColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: theme.accentColor.withValues(alpha: 0.16)),
-      ),
-      child: Text('$label：$value'),
-    );
-  }
-}
-
-class _CourseScheduleWeekdaySection extends StatelessWidget {
-  const _CourseScheduleWeekdaySection({
-    required this.weekday,
-    required this.entries,
-  });
-
-  final int weekday;
   final List<AcademicCourseTableEntry> entries;
 
   @override
   Widget build(BuildContext context) {
-    final title = switch (weekday) {
-      1 => '周一',
-      2 => '周二',
-      3 => '周三',
-      4 => '周四',
-      5 => '周五',
-      6 => '周六',
-      7 => '周日',
-      _ => '未知',
-    };
+    final colors = context.fluentColors;
+    final metrics = context.appMetrics;
+    const periodTable = CoursePeriodTable.standard;
+    final nowWeekday = DateTime.now().weekday;
+    final minWidth = metrics.schedulePeriodColumnWidth + 7 * 156;
 
     return FluentSurface(
-      padding: const EdgeInsets.all(FluentSpacing.l),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: FluentTheme.of(context).typography.subtitle),
-          const SizedBox(height: FluentSpacing.m),
-          ...entries.map(
-            (entry) => Padding(
-              padding: const EdgeInsets.only(bottom: FluentSpacing.s),
-              child: _CourseScheduleEntryCard(entry: entry),
+      padding: EdgeInsets.zero,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        primary: false,
+        child: SizedBox(
+          width: minWidth,
+          child: Column(
+            children: [
+              _CourseGridHeader(currentWeekday: nowWeekday),
+              for (final period in periodTable.periods)
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _CoursePeriodCell(period: period),
+                      for (var weekday = 1; weekday <= 7; weekday++)
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: weekday == nowWeekday
+                                  ? colors.brandStroke2.withValues(alpha: 0.10)
+                                  : null,
+                              border: Border(
+                                left: BorderSide(
+                                  color: colors.neutralStrokeDivider,
+                                ),
+                                top: BorderSide(
+                                  color: colors.neutralStrokeDivider,
+                                ),
+                              ),
+                            ),
+                            constraints: BoxConstraints(
+                              minHeight: metrics.scheduleCellMinHeight,
+                            ),
+                            padding: const EdgeInsets.all(FluentSpacing.xs),
+                            child: _CourseGridCell(
+                              entries: _entriesStartingAt(
+                                entries,
+                                weekday,
+                                period.unit,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CourseGridHeader extends StatelessWidget {
+  const _CourseGridHeader({required this.currentWeekday});
+
+  final int currentWeekday;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.fluentColors;
+    final type = context.fluentType;
+    final metrics = context.appMetrics;
+    return Row(
+      children: [
+        SizedBox(
+          width: metrics.schedulePeriodColumnWidth,
+          child: Padding(
+            padding: const EdgeInsets.all(FluentSpacing.s),
+            child: Text('节次', style: type.caption1Strong),
+          ),
+        ),
+        for (var weekday = 1; weekday <= 7; weekday++)
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(FluentSpacing.s),
+              decoration: BoxDecoration(
+                color: weekday == currentWeekday
+                    ? colors.brandStroke2.withValues(alpha: 0.16)
+                    : colors.neutralBackground2,
+                border: Border(
+                  left: BorderSide(color: colors.neutralStrokeDivider),
+                ),
+              ),
+              child: Text(
+                _weekdayLabel(weekday),
+                textAlign: TextAlign.center,
+                style: type.body1Strong.copyWith(
+                  color: weekday == currentWeekday
+                      ? colors.brandForeground1
+                      : colors.neutralForeground1,
+                ),
+              ),
             ),
           ),
+      ],
+    );
+  }
+}
+
+class _CoursePeriodCell extends StatelessWidget {
+  const _CoursePeriodCell({required this.period});
+
+  final CoursePeriod period;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.fluentColors;
+    final type = context.fluentType;
+    final metrics = context.appMetrics;
+    return Container(
+      width: metrics.schedulePeriodColumnWidth,
+      constraints: BoxConstraints(minHeight: metrics.scheduleCellMinHeight),
+      padding: const EdgeInsets.all(FluentSpacing.s),
+      decoration: BoxDecoration(
+        color: colors.neutralBackground2,
+        border: Border(top: BorderSide(color: colors.neutralStrokeDivider)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('${period.unit}', style: type.body1Strong),
+          const SizedBox(height: FluentSpacing.xxs),
+          Text(period.timeRange, style: type.caption2),
         ],
       ),
     );
   }
 }
 
-class _CourseScheduleEntryCard extends StatelessWidget {
-  const _CourseScheduleEntryCard({required this.entry});
+class _CourseGridCell extends StatelessWidget {
+  const _CourseGridCell({required this.entries});
 
-  final AcademicCourseTableEntry entry;
+  final List<AcademicCourseTableEntry> entries;
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    if (entries.isEmpty) return const SizedBox.shrink();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < entries.length; i++) ...[
+          Expanded(child: _CourseBlock(entry: entries[i], compact: true)),
+          if (i < entries.length - 1) const SizedBox(width: FluentSpacing.xs),
+        ],
+      ],
+    );
+  }
+}
+
+class _CourseDayScheduleView extends StatelessWidget {
+  const _CourseDayScheduleView({
+    required this.entries,
+    required this.selectedWeekday,
+    required this.onWeekdayChanged,
+  });
+
+  final List<AcademicCourseTableEntry> entries;
+  final int selectedWeekday;
+  final ValueChanged<int> onWeekdayChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return FluentSurface(
+      padding: const EdgeInsets.all(FluentSpacing.l),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: FluentSpacing.xs,
+            runSpacing: FluentSpacing.xs,
+            children: [
+              for (var weekday = 1; weekday <= 7; weekday++)
+                ToggleButton(
+                  checked: weekday == selectedWeekday,
+                  onChanged: (_) => onWeekdayChanged(weekday),
+                  child: Text(_weekdayLabel(weekday)),
+                ),
+            ],
+          ),
+          const SizedBox(height: FluentSpacing.l),
+          if (entries.isEmpty)
+            Text(
+              '${_weekdayLabel(selectedWeekday)}暂无课程',
+              style: context.fluentType.body1.copyWith(
+                color: context.fluentColors.neutralForeground2,
+              ),
+            )
+          else
+            Column(
+              children: [
+                for (final entry in entries) ...[
+                  _CourseBlock(entry: entry),
+                  if (entry != entries.last)
+                    const SizedBox(height: FluentSpacing.s),
+                ],
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CourseBlock extends StatelessWidget {
+  const _CourseBlock({required this.entry, this.compact = false});
+
+  final AcademicCourseTableEntry entry;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.fluentColors;
+    final type = context.fluentType;
+    final radii = context.fluentRadii;
+    final color = context.fluentCoursePalette.colorFor(entry.courseName);
+    const periodTable = CoursePeriodTable.standard;
+    final timeRange = periodTable.rangeText(entry.startUnit, entry.endUnit);
+    final weekResult = CourseWeekParser.parse(entry.weekDescription);
+    final parsedWeeks = weekResult.weeks.isEmpty
+        ? entry.weekDescription
+        : '${weekResult.weeks.length}周';
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(FluentSpacing.m),
+      padding: EdgeInsets.all(compact ? FluentSpacing.s : FluentSpacing.m),
       decoration: BoxDecoration(
-        color: theme.resources.controlAltFillColorSecondary,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.resources.controlStrokeColorDefault),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: radii.largeBorder,
+        border: Border.all(color: color.withValues(alpha: 0.34)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(entry.courseName, style: theme.typography.bodyStrong),
+          Text(
+            entry.courseName,
+            maxLines: compact ? 2 : 1,
+            overflow: TextOverflow.ellipsis,
+            style: type.body1Strong.copyWith(color: color),
+          ),
           const SizedBox(height: FluentSpacing.xs),
           Wrap(
-            spacing: FluentSpacing.s,
+            spacing: compact ? FluentSpacing.xs : FluentSpacing.s,
             runSpacing: FluentSpacing.xs,
             children: [
-              _buildMeta(context, FluentIcons.clock, entry.timeText),
+              _buildMeta(
+                context,
+                FluentIcons.clock,
+                '$timeRange · ${entry.timeText}',
+                compact: compact,
+              ),
               if (entry.location != null && entry.location!.isNotEmpty)
-                _buildMeta(context, FluentIcons.location, entry.location!),
+                _buildMeta(
+                  context,
+                  FluentIcons.location,
+                  entry.location!,
+                  compact: compact,
+                ),
               if (entry.teacher != null && entry.teacher!.isNotEmpty)
-                _buildMeta(context, FluentIcons.contact, entry.teacher!),
-              if (entry.weekDescription != null &&
-                  entry.weekDescription!.isNotEmpty)
+                _buildMeta(
+                  context,
+                  FluentIcons.contact,
+                  entry.teacher!,
+                  compact: compact,
+                ),
+              if (parsedWeeks != null && parsedWeeks.isNotEmpty)
                 _buildMeta(
                   context,
                   FluentIcons.calendarWeek,
-                  entry.weekDescription!,
+                  parsedWeeks,
+                  compact: compact,
                 ),
             ],
           ),
@@ -474,9 +601,7 @@ class _CourseScheduleEntryCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: FluentSpacing.xs),
               child: Text(
                 entry.rawText,
-                style: theme.typography.caption?.copyWith(
-                  color: theme.resources.textFillColorSecondary,
-                ),
+                style: type.caption1.copyWith(color: colors.neutralForeground3),
               ),
             ),
         ],
@@ -484,20 +609,68 @@ class _CourseScheduleEntryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMeta(BuildContext context, IconData icon, String text) {
-    final theme = FluentTheme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 12, color: theme.resources.textFillColorSecondary),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: theme.typography.caption?.copyWith(
-            color: theme.resources.textFillColorSecondary,
+  Widget _buildMeta(
+    BuildContext context,
+    IconData icon,
+    String text, {
+    required bool compact,
+  }) {
+    final colors = context.fluentColors;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: compact ? 112 : 260),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: colors.neutralForeground3),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.fluentType.caption1.copyWith(
+                color: colors.neutralForeground3,
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
+}
+
+List<AcademicCourseTableEntry> _entriesForWeekday(
+  List<AcademicCourseTableEntry> entries,
+  int weekday,
+) {
+  final filtered = entries.where((entry) => entry.weekday == weekday).toList();
+  filtered.sort((a, b) => a.startUnit.compareTo(b.startUnit));
+  return filtered;
+}
+
+List<AcademicCourseTableEntry> _entriesStartingAt(
+  List<AcademicCourseTableEntry> entries,
+  int weekday,
+  int startUnit,
+) {
+  final filtered = entries
+      .where(
+        (entry) => entry.weekday == weekday && entry.startUnit == startUnit,
+      )
+      .toList();
+  filtered.sort((a, b) => a.courseName.compareTo(b.courseName));
+  return filtered;
+}
+
+String _weekdayLabel(int weekday) {
+  return switch (weekday) {
+    1 => '周一',
+    2 => '周二',
+    3 => '周三',
+    4 => '周四',
+    5 => '周五',
+    6 => '周六',
+    7 => '周日',
+    _ => '未知',
+  };
 }

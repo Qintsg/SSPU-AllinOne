@@ -11,6 +11,7 @@
 
 import 'package:fluent_ui/fluent_ui.dart';
 
+import 'tokens/fluent_accent_tokens.dart';
 import 'tokens/fluent_color_tokens.dart';
 import 'tokens/fluent_elevation.dart';
 import 'tokens/fluent_motion.dart';
@@ -26,6 +27,15 @@ const String kFluentFontFamily = 'MiSans';
 FluentThemeData buildFluentTheme(Brightness brightness) {
   final bool isDark = brightness == Brightness.dark;
   final FluentColors colors = isDark ? FluentColors.dark : FluentColors.light;
+  final FluentAccentColors accents = isDark
+      ? FluentAccentColors.dark
+      : FluentAccentColors.light;
+  final FluentCoursePalette coursePalette = isDark
+      ? FluentCoursePalette.dark
+      : FluentCoursePalette.light;
+  final FluentGradients gradients = isDark
+      ? FluentGradients.dark
+      : FluentGradients.light;
   final FluentElevation elevation = isDark
       ? FluentElevation.dark
       : FluentElevation.light;
@@ -33,6 +43,7 @@ FluentThemeData buildFluentTheme(Brightness brightness) {
   const FluentSpacing spacing = FluentSpacing();
   const FluentStroke stroke = FluentStroke();
   const FluentMotion motion = FluentMotion();
+  const AppMetrics metrics = AppMetrics();
   final FluentTypography typography = const FluentTypography(
     fontFamily: kFluentFontFamily,
   );
@@ -48,11 +59,15 @@ FluentThemeData buildFluentTheme(Brightness brightness) {
     visualDensity: VisualDensity.adaptivePlatformDensity,
     extensions: <ThemeExtension<dynamic>>[
       colors,
+      accents,
+      coursePalette,
+      gradients,
       elevation,
       radii,
       spacing,
       stroke,
       motion,
+      metrics,
       typography,
     ],
   );

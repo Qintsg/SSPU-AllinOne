@@ -46,23 +46,30 @@ extension _AcademicEamsDiscovery on AcademicEamsService {
       ..._extractReadonlyEntries(homeSnapshot),
     ];
     var discoveryHadFailure = false;
-    for (var menuId = 1; menuId <= 60; menuId++) {
+    final attemptedSubmenuUris = <String>{};
+
+    Future<void> fetchSubmenu(Uri submenuUri) async {
+      if (!attemptedSubmenuUris.add(submenuUri.toString())) return;
       try {
-        final snapshot = await _gateway.fetchPage(
-          submenuBaseUri.replace(queryParameters: {'menu.id': '$menuId'}),
-          timeout,
-        );
+        final snapshot = await _gateway.fetchPage(submenuUri, timeout);
         if (_isAuthenticationRequired(snapshot) || _isUnavailable(snapshot)) {
-          continue;
+          return;
         }
         entries.addAll(_extractReadonlyEntries(snapshot));
       } on DioException catch (_) {
         discoveryHadFailure = true;
-        continue;
       } on TimeoutException catch (_) {
         discoveryHadFailure = true;
-        continue;
       }
+    }
+
+    for (final submenuUri in _rootSubmenuUris()) {
+      await fetchSubmenu(submenuUri);
+    }
+    for (var menuId = 1; menuId <= 60; menuId++) {
+      await fetchSubmenu(
+        submenuBaseUri.replace(queryParameters: {'menu.id': '$menuId'}),
+      );
     }
 
     final featureUris = <_AcademicFeature, Uri>{};
@@ -74,19 +81,25 @@ extension _AcademicEamsDiscovery on AcademicEamsService {
       if (!matchedEntry.isEmpty) featureUris[feature] = matchedEntry.uri;
     }
 
-    final fallbackCandidates = <_AcademicFeature, String>{
-      _AcademicFeature.courseTable: 'courseTableForStd.action',
-      _AcademicFeature.gradeCurrent: 'teach/grade/course/person.action',
-      _AcademicFeature.gradeHistory:
-          'teach/grade/course/person!historyCourseGrade.action?projectType=MAJOR',
-      _AcademicFeature.programPlan: 'teach/program/student/myPlan.action',
-      _AcademicFeature.exams: 'stdExamTable.action',
-      _AcademicFeature.courseOfferingsEntry: 'publicSearch.action',
+    final fallbackCandidates = <_AcademicFeature, List<String>>{
+      _AcademicFeature.studentProfile: ['studentDetail.action', 'std.action'],
+      _AcademicFeature.courseTable: ['courseTableForStd.action'],
+      _AcademicFeature.gradeCurrent: ['teach/grade/course/person.action'],
+      _AcademicFeature.gradeHistory: [
+        'teach/grade/course/person!historyCourseGrade.action?projectType=MAJOR',
+      ],
+      _AcademicFeature.programPlan: ['teach/program/student/myPlan.action'],
+      _AcademicFeature.exams: ['stdExamTable.action'],
+      _AcademicFeature.courseOfferingsEntry: ['publicSearch.action'],
     };
     for (final entry in fallbackCandidates.entries) {
       if (featureUris.containsKey(entry.key)) continue;
-      if (await _verifyReadonlyPage(homeUri.resolve(entry.value))) {
-        featureUris[entry.key] = homeUri.resolve(entry.value);
+      for (final candidate in entry.value) {
+        final candidateUri = homeUri.resolve(candidate);
+        if (await _verifyReadonlyPage(candidateUri)) {
+          featureUris[entry.key] = candidateUri;
+          break;
+        }
       }
     }
 
@@ -112,6 +125,13 @@ extension _AcademicEamsDiscovery on AcademicEamsService {
     final label = entry.label.replaceAll(RegExp(r'\s+'), '');
     final path = entry.uri.path.toLowerCase();
     return switch (feature) {
+      _AcademicFeature.studentProfile =>
+        path.contains('/studentdetail.action') ||
+            path.contains('/std.action') ||
+            path.contains('student') && label.contains('个人') ||
+            label.contains('学籍信息') ||
+            label.contains('个人信息') ||
+            label.contains('学生信息'),
       _AcademicFeature.courseTable =>
         path.contains('coursetableforstd.action') || label.contains('课表'),
       _AcademicFeature.gradeCurrent =>
@@ -133,6 +153,11 @@ extension _AcademicEamsDiscovery on AcademicEamsService {
             path.contains('free') ||
             path.contains('classroom'),
     };
+  }
+
+  Iterable<Uri> _rootSubmenuUris() sync* {
+    yield submenuBaseUri.replace(queryParameters: {'menu.id': ''});
+    yield submenuBaseUri;
   }
 
   bool _isAuthenticationRequired(AcademicEamsHttpSnapshot snapshot) {
@@ -188,6 +213,7 @@ extension _AcademicEamsDiscovery on AcademicEamsService {
   String _featureLabel(_AcademicFeature feature) {
     return switch (feature) {
       _AcademicFeature.courseTable => '课表',
+      _AcademicFeature.studentProfile => '学籍信息',
       _AcademicFeature.gradeCurrent => '当前成绩',
       _AcademicFeature.gradeHistory => '历史成绩',
       _AcademicFeature.programPlan => '培养计划',

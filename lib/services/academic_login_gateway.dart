@@ -11,21 +11,19 @@ part of 'academic_login_validation_service.dart';
 /// Dio 版 OA 登录网关，手动维护 Cookie 和 302 跳转链路。
 class DioAcademicLoginGateway implements AcademicLoginGateway {
   DioAcademicLoginGateway({Dio? dio, Uri? publicKeyUri})
-    : _dio = dio ?? Dio(_baseOptions),
+    : _dio = HttpService.buildConfiguredDio(dio, _baseOptions),
       publicKeyUri =
           publicKeyUri ?? Uri.parse('https://id.sspu.edu.cn/cas/jwt/publicKey');
 
-  static final BaseOptions _baseOptions = BaseOptions(
+  static BaseOptions get _baseOptions => BaseOptions(
     connectTimeout: const Duration(seconds: 15),
     receiveTimeout: const Duration(seconds: 15),
     sendTimeout: const Duration(seconds: 15),
     responseType: ResponseType.plain,
-    headers: const {
+    headers: {
       'Accept':
           'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-          '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'User-Agent': HttpService.userAgent,
     },
   );
 

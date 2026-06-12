@@ -39,6 +39,8 @@ abstract class CampusCardBalanceClient {
     DateTime? startDate,
     DateTime? endDate,
     bool requireCampusNetwork = true,
+    bool queryTransactions = false,
+    bool syncAllTransactions = false,
   });
 }
 
@@ -79,6 +81,7 @@ abstract class CampusCardGateway {
     required Uri queryUri,
     required Map<String, String> fields,
     required Duration timeout,
+    Uri? refererUri,
   });
 }
 
@@ -128,17 +131,17 @@ class CampusCardService implements CampusCardBalanceClient {
 
   /// 同类 epay 系统常见余额页；真实页面结构以运行时解析为准。
   static final Uri defaultHomeUri = Uri.parse(
-    'http://card.sspu.edu.cn/epay/myepay/index',
+    'https://card.sspu.edu.cn/epay/myepay/index',
   );
 
   /// 同类 epay 系统常见交易记录页。
   static final Uri defaultTransactionIndexUri = Uri.parse(
-    'http://card.sspu.edu.cn/epay/consume/index',
+    'https://card.sspu.edu.cn/epay/consume/index',
   );
 
   /// 同类 epay 系统常见交易记录查询接口。
   static final Uri defaultTransactionQueryUri = Uri.parse(
-    'http://card.sspu.edu.cn/epay/consume/query',
+    'https://card.sspu.edu.cn/epay/consume/query',
   );
 
   /// 校园卡余额默认自动刷新间隔，单位分钟。
@@ -221,6 +224,8 @@ class CampusCardService implements CampusCardBalanceClient {
     DateTime? startDate,
     DateTime? endDate,
     bool requireCampusNetwork = true,
+    bool queryTransactions = false,
+    bool syncAllTransactions = false,
   }) async {
     CampusNetworkStatus? campusStatus;
     try {
@@ -277,6 +282,8 @@ class CampusCardService implements CampusCardBalanceClient {
         endDate: endDate,
         campusNetworkStatus: campusStatus,
         requireCampusNetwork: requireCampusNetwork,
+        queryTransactions: queryTransactions,
+        syncAllTransactions: syncAllTransactions,
       );
       if (result.isSuccess && result.snapshot != null) {
         if (!await _hasSameOaCredentials(studentId, oaPassword)) {
@@ -355,6 +362,8 @@ class CampusCardService implements CampusCardBalanceClient {
     DateTime? endDate,
     required CampusNetworkStatus? campusNetworkStatus,
     required bool requireCampusNetwork,
+    required bool queryTransactions,
+    required bool syncAllTransactions,
   }) async {
     var sessionSnapshot = await _credentialsService.readOaLoginSession();
     var refreshedBeforeEntry = false;
@@ -454,22 +463,45 @@ class CampusCardService implements CampusCardBalanceClient {
 
     final snapshots = <CampusCardHttpSnapshot>[entrySnapshot];
     await _appendPageIfAvailable(snapshots, homeUri);
-    await _appendPageIfAvailable(snapshots, transactionIndexUri);
+    final discoveredTransactionIndexUri = _findTransactionIndexUri(snapshots);
+    await _appendPageIfAvailable(snapshots, discoveredTransactionIndexUri);
     final transactionIndexSnapshot = snapshots.lastWhere(
-      (snapshot) => snapshot.finalUri.path.contains('/consume/'),
+      (snapshot) => snapshot.finalUri == discoveredTransactionIndexUri,
       orElse: () => entrySnapshot,
     );
 
-    if (startDate != null || endDate != null) {
-      final querySnapshot = await _queryTransactionsIfAvailable(
+    final shouldQueryTransactions =
+        queryTransactions ||
+        syncAllTransactions ||
+        startDate != null ||
+        endDate != null;
+    final snapshotsForParsing = List<CampusCardHttpSnapshot>.of(snapshots);
+    var syncedTransactionPageCount = 0;
+    if (shouldQueryTransactions) {
+      final queryAttempt = await _queryTransactionsIfAvailable(
         transactionIndexSnapshot,
         startDate: startDate,
         endDate: endDate,
+        syncAllTransactions: syncAllTransactions,
       );
-      if (querySnapshot != null) snapshots.add(querySnapshot);
+      if (!queryAttempt.isSuccess) {
+        return _buildResult(
+          queryAttempt.status!,
+          message: queryAttempt.message!,
+          detail: queryAttempt.detail!,
+          finalUri: queryAttempt.finalUri ?? snapshots.last.finalUri,
+          campusNetworkStatus: campusNetworkStatus,
+        );
+      }
+      snapshotsForParsing
+        ..removeWhere(
+          (snapshot) => snapshot.finalUri == discoveredTransactionIndexUri,
+        )
+        ..addAll(queryAttempt.snapshots);
+      syncedTransactionPageCount = queryAttempt.snapshots.length;
     }
 
-    final snapshot = CampusCardPageParser.parse(snapshots);
+    var snapshot = CampusCardPageParser.parse(snapshotsForParsing);
     if (snapshot == null) {
       return _buildResult(
         CampusCardQueryStatus.parseFailed,
@@ -477,6 +509,16 @@ class CampusCardService implements CampusCardBalanceClient {
         detail: '校园卡页面结构与预期不一致，未提取到余额、卡状态或交易记录。',
         finalUri: snapshots.last.finalUri,
         campusNetworkStatus: campusNetworkStatus,
+      );
+    }
+    if (shouldQueryTransactions && syncAllTransactions) {
+      snapshot = await _mergeWithCachedTransactions(
+        snapshot,
+        syncedPageCount: syncedTransactionPageCount,
+      );
+    } else if (syncedTransactionPageCount > 0) {
+      snapshot = snapshot.copyWith(
+        transactionPageCount: syncedTransactionPageCount,
       );
     }
 
@@ -488,6 +530,58 @@ class CampusCardService implements CampusCardBalanceClient {
       campusNetworkStatus: campusNetworkStatus,
       snapshot: snapshot,
     );
+  }
+
+  Future<CampusCardSnapshot> _mergeWithCachedTransactions(
+    CampusCardSnapshot freshSnapshot, {
+    required int syncedPageCount,
+  }) async {
+    final cachedSnapshot = (await readLatestCachedCampusCard())?.snapshot;
+    if (cachedSnapshot == null || cachedSnapshot.records.isEmpty) {
+      return freshSnapshot.copyWith(transactionPageCount: syncedPageCount);
+    }
+    if (freshSnapshot.records.isEmpty) {
+      return freshSnapshot.copyWith(
+        records: cachedSnapshot.records,
+        transactionPageCount: cachedSnapshot.transactionPageCount,
+      );
+    }
+    final merged = _mergeTransactionRecords(
+      freshSnapshot.records,
+      cachedSnapshot.records,
+    );
+    return freshSnapshot.copyWith(
+      records: List.unmodifiable(merged),
+      transactionPageCount: syncedPageCount == 0
+          ? cachedSnapshot.transactionPageCount
+          : syncedPageCount,
+    );
+  }
+
+  List<CampusCardTransactionRecord> _mergeTransactionRecords(
+    List<CampusCardTransactionRecord> freshRecords,
+    List<CampusCardTransactionRecord> cachedRecords,
+  ) {
+    final merged = <CampusCardTransactionRecord>[];
+    final seen = <String>{};
+    for (final record in [...freshRecords, ...cachedRecords]) {
+      if (!seen.add(_transactionRecordKey(record))) continue;
+      merged.add(record);
+    }
+    return merged;
+  }
+
+  String _transactionRecordKey(CampusCardTransactionRecord record) {
+    final transactionId = record.transactionId?.trim();
+    if (transactionId != null && transactionId.isNotEmpty) {
+      return 'id:$transactionId';
+    }
+    return [
+      record.occurredAt,
+      record.title ?? '',
+      record.counterparty ?? record.merchant ?? '',
+      record.amount.toStringAsFixed(2),
+    ].join('|');
   }
 
   String _campusCardDetailWithNetworkHint(

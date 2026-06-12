@@ -11,6 +11,7 @@
 
 import 'package:fluent_ui/fluent_ui.dart';
 
+import 'tokens/fluent_accent_tokens.dart';
 import 'tokens/fluent_color_tokens.dart';
 import 'tokens/fluent_elevation.dart';
 import 'tokens/fluent_motion.dart';
@@ -24,6 +25,21 @@ extension FluentThemeX on BuildContext {
   /// 颜色令牌（随明暗主题切换）。
   FluentColors get fluentColors =>
       FluentTheme.of(this).extension<FluentColors>() ?? FluentColors.light;
+
+  /// 业务域强调色令牌（随明暗主题切换）。
+  FluentAccentColors get fluentAccents =>
+      FluentTheme.of(this).extension<FluentAccentColors>() ??
+      FluentAccentColors.light;
+
+  /// 课程色板令牌（随明暗主题切换）。
+  FluentCoursePalette get fluentCoursePalette =>
+      FluentTheme.of(this).extension<FluentCoursePalette>() ??
+      FluentCoursePalette.light;
+
+  /// 渐变令牌（随明暗主题切换）。
+  FluentGradients get fluentGradients =>
+      FluentTheme.of(this).extension<FluentGradients>() ??
+      FluentGradients.light;
 
   /// 字阶令牌。
   FluentTypography get fluentType =>
@@ -44,9 +60,14 @@ extension FluentThemeX on BuildContext {
 
   /// 阴影令牌（随明暗主题切换）。
   FluentElevation get fluentElevation =>
-      FluentTheme.of(this).extension<FluentElevation>() ?? FluentElevation.light;
+      FluentTheme.of(this).extension<FluentElevation>() ??
+      FluentElevation.light;
 
   /// 动效令牌。
   FluentMotion get fluentMotion =>
       FluentTheme.of(this).extension<FluentMotion>() ?? const FluentMotion();
+
+  /// 应用级布局度量令牌。
+  AppMetrics get appMetrics =>
+      FluentTheme.of(this).extension<AppMetrics>() ?? const AppMetrics();
 }

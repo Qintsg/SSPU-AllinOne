@@ -25,7 +25,7 @@ Closes #
 - [ ] Flutter 前端（`lib/`）
 - [ ] 服务层 / 外部站点 / 数据模型
 - [ ] 本地存储 / 凭据 / 隐私数据
-- [ ] 平台工程（Android / iOS / macOS / Linux / Windows / Web）
+- [ ] 平台工程（Android / iOS / macOS / Linux / Windows）
 - [ ] 安装器 / 更新 / Release
 - [ ] GitHub Actions / Issue 或 PR 模板 / 仓库治理
 - [ ] 文档

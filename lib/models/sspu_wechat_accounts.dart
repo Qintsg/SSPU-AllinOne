@@ -1,6 +1,6 @@
 /*
- * SSPU 微信公众号推荐列表 — 来源于校园+微信矩阵
- * 数据通过 CampusPlus API 获取（appId=52, newMediaType=16）
+ * SSPU 微信公众号推荐列表 — 来源于校园+微信矩阵与补充政务 / 招考来源
+ * 校园账号数据通过 CampusPlus API 获取（appId=52, newMediaType=16）
  * @Project : SSPU-AllinOne
  * @File : sspu_wechat_accounts.dart
  * @Author : Qintsg
@@ -29,7 +29,7 @@ class SspuWechatAccount {
   });
 }
 
-/// 来自校园+微信矩阵的 SSPU 官方公众号列表
+/// 来自校园+微信矩阵和补充来源的推荐公众号列表。
 /// 数据源：https://weixin.campusplus.com/sspu/youthmedia
 const List<SspuWechatAccount> sspuWechatAccounts = [
   SspuWechatAccount(
@@ -290,5 +290,19 @@ const List<SspuWechatAccount> sspuWechatAccounts = [
     iconUrl:
         'http://weixin.campusplus.com/uploads/images/tqeditor/3693483f-41ba-4e87-b6d5-d752a230324f.jpg',
     articleUrl: 'https://mp.weixin.qq.com/s/s6a0uAhBfYqXkH6Qt3PhfA',
+  ),
+  SspuWechatAccount(
+    name: '上海发布',
+    wxAccount: 'shanghaifabu',
+    iconUrl:
+        'http://mmbiz.qpic.cn/mmbiz_png/qdWB7wH8tTpjV5H3S9ia43nXK9ttRGcyVNJPzRtpGZdQcMaLdvPtsted5lvyu79bNK7nlWzBC89KsicGPiaSRhXYw/0?wx_fmt=png',
+    articleUrl: 'https://www.shanghai.gov.cn/',
+  ),
+  SspuWechatAccount(
+    name: '上海市教育考试院',
+    wxAccount: 'shmeea_fabu',
+    iconUrl:
+        'http://mmbiz.qpic.cn/mmbiz_png/xvBgR37VHkyDgicicoQ6RGcN1DoNKoqsJdxahq0ThHIfXmQ9LZJCFtjzKQScNuEkw8I2WecF3w9LNwn6zPVjIp8Q/0?wx_fmt=png',
+    articleUrl: 'https://www.shmeea.edu.cn/',
   ),
 ];
