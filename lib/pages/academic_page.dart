@@ -28,6 +28,7 @@ import 'course_schedule_page.dart';
 
 part 'academic_eams_summary_card.dart';
 part 'academic_sports_attendance_card.dart';
+part 'academic_sports_attendance_detail_page.dart';
 part 'academic_student_report_card.dart';
 part 'academic_student_report_summary.dart';
 part 'academic_student_report_detail_page.dart';
@@ -397,6 +398,7 @@ class _AcademicPageState extends State<AcademicPage> {
                   isLoading: _sportsAttendanceRefreshController.isLoading,
                   autoRefreshEnabled:
                       _sportsAttendanceRefreshController.autoRefreshEnabled,
+                  refreshFeedback: _sportsAttendanceRefreshController.feedback,
                   onRefresh: _loadSportsAttendance,
                 ),
                 secondClassroom: AcademicStudentReportCard(
