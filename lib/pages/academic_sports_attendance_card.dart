@@ -120,40 +120,17 @@ class _SportsAttendanceCardHeader extends StatelessWidget {
     );
     final detailAction = _buildDetailAction(context);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 360;
-        if (compact) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              FluentSurfaceIcon(icon: FluentIcons.running, color: accentColor),
-              const SizedBox(width: FluentSpacing.m),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    title,
-                    const SizedBox(height: FluentSpacing.xs),
-                    Align(alignment: Alignment.centerLeft, child: detailAction),
-                  ],
-                ),
-              ),
-            ],
-          );
-        }
-
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            FluentSurfaceIcon(icon: FluentIcons.running, color: accentColor),
-            const SizedBox(width: FluentSpacing.m),
-            Expanded(child: title),
-            const SizedBox(width: FluentSpacing.s),
-            detailAction,
-          ],
-        );
-      },
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FluentSurfaceIcon(icon: FluentIcons.running, color: accentColor),
+        const SizedBox(width: FluentSpacing.m),
+        Expanded(child: title),
+        const SizedBox(width: FluentSpacing.s),
+        Flexible(
+          child: Align(alignment: Alignment.centerRight, child: detailAction),
+        ),
+      ],
     );
   }
 
@@ -171,7 +148,7 @@ class _SportsAttendanceCardHeader extends StatelessWidget {
         children: [
           Icon(FluentIcons.list, size: 14),
           SizedBox(width: 6),
-          Text('查看考勤记录'),
+          Flexible(child: Text('查看考勤记录')),
         ],
       ),
     );
