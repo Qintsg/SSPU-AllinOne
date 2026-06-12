@@ -68,4 +68,58 @@ void main() {
     expect(workflow, contains('Flutter Analyze（Dart 静态分析）'));
     expect(workflow, contains('Flutter Test（Dart / Widget 测试）'));
   });
+
+  test('User-Agent Policy workflow 在 PR 阶段运行策略脚本', () {
+    final workflow = _readWorkflow('user-agent-policy.yml');
+
+    expect(workflow, contains('name: User-Agent Policy'));
+    expect(workflow, contains('pull_request:'));
+    expect(workflow, contains('contents: read'));
+    expect(
+      workflow,
+      contains('python scripts/ci/validate_user_agent_policy.py'),
+    );
+  });
+
+  test('User-Agent Policy 脚本接受当前带说明的运行时代码例外', () async {
+    final result = await Process.run('python', [
+      'scripts/ci/validate_user_agent_policy.py',
+    ]);
+
+    expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');
+  });
+
+  test('User-Agent Policy 脚本拒绝未说明的非标准 UA', () async {
+    final result = await Process.run('python', [
+      '-c',
+      r'''
+from pathlib import Path
+from scripts.ci import validate_user_agent_policy as policy
+
+samples = [
+    ("standard.dart", ["'User-Agent': HttpService.userAgent,"], 0),
+    ("custom.dart", ["'User-Agent': 'ExternalProbe/1.0',"], 1),
+    (
+        "allowed.dart",
+        [
+            "// UA-POLICY-ALLOW: 外部平台要求固定探测 UA，限定在兼容接口使用。",
+            "'User-Agent': 'ExternalProbe/1.0',",
+        ],
+        0,
+    ),
+]
+
+for name, lines, expected_count in samples:
+    violations = []
+    for index, _ in enumerate(lines):
+        reason = policy.user_agent_policy_reason(lines, index)
+        if reason is not None and not policy.has_policy_allow_comment(lines, index):
+            violations.append(reason)
+    if len(violations) != expected_count:
+        raise SystemExit(f"{name}: expected {expected_count}, got {len(violations)}")
+''',
+    ]);
+
+    expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');
+  });
 }

@@ -96,7 +96,7 @@ class WxmpArticleService {
   /// 本地关注列表存储键（JSON：{fakeid: {name, alias, avatar}}）
   static const String _keyFollowedMps = 'wxmp_followed_mps';
 
-  /// 标准 User-Agent
+  /// UA-POLICY-ALLOW: 微信公众号平台 API 需要浏览器 UA 兼容登录态与反爬校验，不能使用 OA/CAS 应用 UA。
   static const String _userAgent =
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
       '(KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36';
@@ -116,6 +116,7 @@ class WxmpArticleService {
         responseType: ResponseType.plain,
         headers: {
           'Cookie': cookie,
+          // UA-POLICY-ALLOW: 微信公众号首页用于刷新 token，平台要求浏览器 UA 保持登录态兼容。
           'User-Agent': config.userAgent.isEmpty
               ? _userAgent
               : config.userAgent,
@@ -170,6 +171,7 @@ class WxmpArticleService {
     final config = await _loadConfigOrDefault();
     return {
       'Cookie': cookie ?? '',
+      // UA-POLICY-ALLOW: 微信公众号 JSON API 与扫码登录使用同一浏览器态，不适用 OA/CAS 应用 UA。
       'User-Agent': config.userAgent.isEmpty ? _userAgent : config.userAgent,
       'Accept': 'application/json, text/javascript, */*; q=0.01',
       'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',

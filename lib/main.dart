@@ -15,6 +15,7 @@ import 'app.dart';
 import 'pages/lock_page.dart';
 import 'services/app_exit_service.dart';
 import 'services/app_display_name_service.dart';
+import 'services/app_user_agent_service.dart';
 import 'services/password_service.dart';
 import 'services/campus_network_status_service.dart';
 import 'services/storage_service.dart';
@@ -37,6 +38,7 @@ bool get _supportsDesktopShell =>
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppUserAgentService.initialize();
 
   if (_supportsDesktopShell) {
     // 桌面端拦截关闭事件并提供系统托盘入口。

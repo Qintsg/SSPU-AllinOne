@@ -10,19 +10,18 @@ part of 'academic_eams_service.dart';
 
 /// Dio 版本专科教务网关，保持只读 GET / 查询 POST 边界。
 class DioAcademicEamsGateway implements AcademicEamsGateway {
-  DioAcademicEamsGateway({Dio? dio}) : _dio = dio ?? Dio(_baseOptions);
+  DioAcademicEamsGateway({Dio? dio})
+    : _dio = HttpService.buildConfiguredDio(dio, _baseOptions);
 
-  static final BaseOptions _baseOptions = BaseOptions(
+  static BaseOptions get _baseOptions => BaseOptions(
     connectTimeout: const Duration(seconds: 15),
     receiveTimeout: const Duration(seconds: 15),
     sendTimeout: const Duration(seconds: 15),
     responseType: ResponseType.bytes,
-    headers: const {
+    headers: {
       'Accept':
           'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) '
-          'Gecko/20100101 Firefox/125.0',
+      'User-Agent': HttpService.userAgent,
     },
   );
 

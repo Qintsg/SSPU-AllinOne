@@ -68,6 +68,7 @@ class WxmpConfig {
       cookie: '',
       token: '',
       appId: '',
+      // UA-POLICY-ALLOW: 微信公众号平台接口对浏览器 UA 有兼容要求，默认配置保留平台登录使用的浏览器标识。
       userAgent:
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
           '(KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
