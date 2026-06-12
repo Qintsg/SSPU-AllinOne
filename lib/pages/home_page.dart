@@ -888,11 +888,7 @@ class _HomePageState extends State<HomePage> {
         // 标记已读并在 iOS 使用 Safari View Controller 打开。
         MessageStateService.instance.markAsRead(msg.id);
         if (!context.mounted) return;
-        await openAppWebUrl(
-          context,
-          url: msg.url,
-          title: msg.title,
-        );
+        await openAppWebUrl(context, url: msg.url, title: msg.title);
       },
       builder: (context, states) {
         final isHovered = states.isHovered;

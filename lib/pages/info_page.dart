@@ -213,11 +213,7 @@ class _InfoPageState extends State<InfoPage> {
   Future<void> _openMessage(MessageItem message) async {
     await _stateService.markAsRead(message.id);
     if (mounted) {
-      await openAppWebUrl(
-        context,
-        url: message.url,
-        title: message.title,
-      );
+      await openAppWebUrl(context, url: message.url, title: message.title);
       setState(() {});
     }
   }
