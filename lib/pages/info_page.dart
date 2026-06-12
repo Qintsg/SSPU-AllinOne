@@ -21,8 +21,7 @@ import '../widgets/app_feedback.dart';
 import '../widgets/message_tile.dart';
 import '../widgets/responsive_layout.dart';
 import '../services/message_state_service.dart';
-import '../utils/webview_env.dart';
-import 'webview_page.dart';
+import '../utils/app_web_launcher.dart';
 
 part 'info_page_filters.dart';
 part 'info_page_controls.dart';
@@ -213,16 +212,11 @@ class _InfoPageState extends State<InfoPage> {
   /// WebView 初始化失败时自动 fallback 到外部浏览器
   Future<void> _openMessage(MessageItem message) async {
     await _stateService.markAsRead(message.id);
-    final webViewEnvironment = await ensureGlobalWebViewEnvironment();
     if (mounted) {
-      Navigator.of(context).push(
-        FluentPageRoute(
-          builder: (_) => WebViewPage(
-            url: message.url,
-            initialTitle: message.title,
-            webViewEnvironment: webViewEnvironment,
-          ),
-        ),
+      await openAppWebUrl(
+        context,
+        url: message.url,
+        title: message.title,
       );
       setState(() {});
     }
