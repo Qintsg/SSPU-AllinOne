@@ -13,6 +13,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 String _read(String path) => File(path).readAsStringSync();
 
+const _legacyAppleBundleStem =
+    'sspuAll'
+    'inOne';
+
 Map<String, Object?> _readJson(String path) {
   return jsonDecode(_read(path)) as Map<String, Object?>;
 }
@@ -64,6 +68,81 @@ void main() {
         contains('"CFBundleDisplayName" = "工大聚合";'),
       );
     }
+  });
+
+  test('Apple Bundle Identifier 使用标准驼峰命名', () {
+    final iosProject = _read('ios/Runner.xcodeproj/project.pbxproj');
+    final macosProject = _read('macos/Runner.xcodeproj/project.pbxproj');
+    final macosAppInfo = _read('macos/Runner/Configs/AppInfo.xcconfig');
+    final macosDebugEntitlements = _read(
+      'macos/Runner/DebugProfile.entitlements',
+    );
+    final macosReleaseEntitlements = _read('macos/Runner/Release.entitlements');
+
+    for (final content in [
+      iosProject,
+      macosProject,
+      macosAppInfo,
+      macosDebugEntitlements,
+      macosReleaseEntitlements,
+    ]) {
+      expect(content, isNot(contains(_legacyAppleBundleStem)));
+    }
+
+    expect(
+      iosProject,
+      contains('PRODUCT_BUNDLE_IDENTIFIER = cn.qintsg.sspuAllInOne;'),
+    );
+    expect(
+      iosProject,
+      contains(
+        'PRODUCT_BUNDLE_IDENTIFIER = cn.qintsg.sspuAllInOne.RunnerTests;',
+      ),
+    );
+    expect(
+      macosProject,
+      contains(
+        'PRODUCT_BUNDLE_IDENTIFIER = cn.qintsg.sspuAllInOne.RunnerTests;',
+      ),
+    );
+    expect(
+      macosAppInfo,
+      contains('PRODUCT_BUNDLE_IDENTIFIER = cn.qintsg.sspuAllInOne'),
+    );
+    expect(
+      macosDebugEntitlements,
+      contains('8LDARH2S3X.cn.qintsg.sspuAllInOne'),
+    );
+    expect(
+      macosReleaseEntitlements,
+      contains('8LDARH2S3X.cn.qintsg.sspuAllInOne'),
+    );
+  });
+
+  test('Apple Xcode 版本号跟随 Flutter 构建元数据', () {
+    final iosProject = _read('ios/Runner.xcodeproj/project.pbxproj');
+    final macosAppInfo = _read('macos/Runner/Configs/AppInfo.xcconfig');
+
+    expect(
+      RegExp(
+        r'MARKETING_VERSION = "\$\(FLUTTER_BUILD_NAME\)";',
+      ).allMatches(iosProject).length,
+      3,
+    );
+    expect(
+      RegExp(
+        r'CURRENT_PROJECT_VERSION = "\$\(FLUTTER_BUILD_NUMBER\)";',
+      ).allMatches(iosProject).length,
+      3,
+    );
+    expect(
+      macosAppInfo,
+      contains('MARKETING_VERSION = \$(FLUTTER_BUILD_NAME)'),
+    );
+    expect(
+      macosAppInfo,
+      contains('CURRENT_PROJECT_VERSION = \$(FLUTTER_BUILD_NUMBER)'),
+    );
   });
 
   test('Windows 和 Linux 原生入口按语言环境显示应用名', () {

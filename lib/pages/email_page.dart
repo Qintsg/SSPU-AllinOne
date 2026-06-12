@@ -57,6 +57,8 @@ class _EmailPageState extends State<EmailPage> {
   bool _emailAutoRefreshEnabled = false;
   Timer? _emailAutoRefreshTimer;
   StreamSubscription<int>? _credentialChangeSubscription;
+  int _credentialGeneration = 0;
+  int _mailboxGeneration = 0;
   final TextEditingController _toController = TextEditingController();
   final TextEditingController _ccController = TextEditingController();
   final TextEditingController _bccController = TextEditingController();
@@ -77,6 +79,9 @@ class _EmailPageState extends State<EmailPage> {
 
   void _clearAuthenticatedState() {
     if (!mounted) return;
+    _credentialGeneration++;
+    _mailboxGeneration++;
+    _clearComposeInputs();
     setState(() {
       _mailboxResult = null;
       _validationResult = null;
@@ -126,10 +131,16 @@ class _EmailPageState extends State<EmailPage> {
   }
 
   Future<void> _loadCachedMessagesForSelectedProtocol() async {
+    final credentialGeneration = _credentialGeneration;
+    final mailboxGeneration = _mailboxGeneration;
     final cachedResult = await _emailService.readLatestCachedMessages(
       _selectedProtocol,
     );
-    if (!mounted) return;
+    if (!mounted ||
+        credentialGeneration != _credentialGeneration ||
+        mailboxGeneration != _mailboxGeneration) {
+      return;
+    }
     setState(() {
       _mailboxResult = cachedResult;
       _selectedMessageId = cachedResult?.snapshot?.messages.isNotEmpty == true
@@ -141,13 +152,19 @@ class _EmailPageState extends State<EmailPage> {
   /// 使用当前选择的只读协议读取最近邮件。
   Future<void> _fetchMessages({bool silent = false}) async {
     if (_isFetchingMessages || _selectedProtocol == EmailProtocol.smtp) return;
+    final credentialGeneration = _credentialGeneration;
+    final mailboxGeneration = _mailboxGeneration;
     if (!silent) setState(() => _isFetchingMessages = true);
 
     final result = await _emailService.fetchMessages(
       protocol: _selectedProtocol,
       messageCount: 10,
     );
-    if (!mounted) return;
+    if (!mounted ||
+        credentialGeneration != _credentialGeneration ||
+        mailboxGeneration != _mailboxGeneration) {
+      return;
+    }
     if (silent && !result.isSuccess) return;
     setState(() {
       _mailboxResult = result;
@@ -211,10 +228,11 @@ class _EmailPageState extends State<EmailPage> {
         _isSendingMessage) {
       return;
     }
+    final generation = _credentialGeneration;
     setState(() => _validatingProtocol = protocol);
 
     final result = await _emailService.validateLogin(protocol);
-    if (!mounted) return;
+    if (!mounted || generation != _credentialGeneration) return;
     setState(() {
       _validationResult = result;
       _validatingProtocol = null;
@@ -229,6 +247,7 @@ class _EmailPageState extends State<EmailPage> {
       return;
     }
 
+    final generation = _credentialGeneration;
     setState(() {
       _isSendingMessage = true;
       _sendResult = null;
@@ -241,10 +260,14 @@ class _EmailPageState extends State<EmailPage> {
       body: _bodyController.text,
     );
     final result = await _emailService.sendMessage(request);
-    if (!mounted) return;
+    if (!mounted || generation != _credentialGeneration) return;
     setState(() {
       _sendResult = result;
       _isSendingMessage = false;
+      if (result.isSuccess) {
+        _clearComposeInputs();
+        _showComposePane = false;
+      }
     });
     showAppFeedback(
       context,
@@ -253,14 +276,6 @@ class _EmailPageState extends State<EmailPage> {
           ? AppFeedbackSeverity.success
           : AppFeedbackSeverity.error,
     );
-    if (result.isSuccess) {
-      _toController.clear();
-      _ccController.clear();
-      _bccController.clear();
-      _subjectController.clear();
-      _bodyController.clear();
-      _showComposePane = false;
-    }
   }
 
   void _startCompose() {
@@ -268,11 +283,26 @@ class _EmailPageState extends State<EmailPage> {
   }
 
   void _closeCompose() {
+    _clearComposeInputs();
     setState(() => _showComposePane = false);
   }
 
   void _selectProtocol(EmailProtocol protocol) {
-    setState(() => _selectedProtocol = protocol);
+    setState(() {
+      _mailboxGeneration++;
+      _selectedProtocol = protocol;
+      _mailboxResult = null;
+      _selectedMessageId = null;
+      _isFetchingMessages = false;
+    });
+  }
+
+  void _clearComposeInputs() {
+    _toController.clear();
+    _ccController.clear();
+    _bccController.clear();
+    _subjectController.clear();
+    _bodyController.clear();
   }
 
   List<String> _parseAddressInput(String input) {

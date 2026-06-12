@@ -6,10 +6,14 @@
  * @Date : 2026-05-01
  */
 
+import 'dart:async';
+
 import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/models/email_mailbox.dart';
 import 'package:sspu_allinone/pages/email_page.dart';
+import 'package:sspu_allinone/services/academic_credentials_service.dart';
 import 'package:sspu_allinone/services/email_service.dart';
 
 /// 等待目标组件出现，覆盖异步收信和动画后的首帧。
@@ -38,6 +42,10 @@ Future<void> pumpEmailPage(
 }
 
 void main() {
+  setUp(() {
+    FlutterSecureStorage.setMockInitialValues({});
+  });
+
   testWidgets('邮箱页面可读取 IMAP 邮件并进入正文详情', (tester) async {
     final service = _FakeEmailClient();
     await pumpEmailPage(
@@ -93,6 +101,35 @@ void main() {
     await tester.pump(const Duration(milliseconds: 120));
   });
 
+  testWidgets('凭据变更后邮箱页丢弃未完成的协议校验结果', (tester) async {
+    final service = _FakeEmailClient(deferValidation: true);
+    await pumpEmailPage(
+      tester,
+      emailService: service,
+      emailAutoRefreshEnabledOverride: false,
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.ensureVisible(find.text('校验 SMTP'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('校验 SMTP'));
+    await tester.pump();
+
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      emailPassword: 'new-mail-pass',
+    );
+    await tester.pump();
+    service.completeValidation();
+    await tester.pumpAndSettle();
+
+    expect(service.validateCount, 1);
+    expect(find.text('SMTP 登录校验通过'), findsNothing);
+    expect(find.byType(FluentInfoBar), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 120));
+  });
+
   testWidgets('邮箱页面可通过撰写面板触发 SMTP 发信', (tester) async {
     final service = _FakeEmailClient();
     await pumpEmailPage(
@@ -125,6 +162,7 @@ void main() {
     expect(service.lastComposeRequest?.to, ['to@example.com']);
     expect(service.lastComposeRequest?.cc, ['cc@example.com']);
     expect(service.lastComposeRequest?.subject, '测试主题');
+    expect(find.byKey(const Key('email-compose-panel')), findsNothing);
     expect(find.byKey(const Key('app-feedback-toast')), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpWidget(const SizedBox.shrink());
@@ -232,9 +270,11 @@ void main() {
 }
 
 class _FakeEmailClient implements EmailMailboxClient {
-  _FakeEmailClient({this.cachedResult});
+  _FakeEmailClient({this.cachedResult, this.deferValidation = false});
 
   final EmailMailboxQueryResult? cachedResult;
+  final bool deferValidation;
+  Completer<void>? _validationCompleter;
   int fetchCount = 0;
   int validateCount = 0;
   int sendCount = 0;
@@ -277,6 +317,10 @@ class _FakeEmailClient implements EmailMailboxClient {
   ) async {
     validateCount++;
     lastValidatedProtocol = protocol;
+    if (deferValidation) {
+      _validationCompleter = Completer<void>();
+      await _validationCompleter!.future;
+    }
     return EmailLoginValidationResult(
       status: EmailQueryStatus.success,
       protocol: protocol,
@@ -301,6 +345,12 @@ class _FakeEmailClient implements EmailMailboxClient {
       endpoint: _smtpEndpoint,
       recipientsCount: request.recipientCount,
     );
+  }
+
+  void completeValidation() {
+    final completer = _validationCompleter;
+    if (completer == null || completer.isCompleted) return;
+    completer.complete();
   }
 }
 

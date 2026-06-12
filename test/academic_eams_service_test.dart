@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/academic_login_validation.dart';
+import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
 import 'package:sspu_allinone/services/academic_eams_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
@@ -185,9 +186,426 @@ void main() {
     expect(result.snapshot?.courseTable?.entries.length, 1);
     expect(result.snapshot?.grades?.historyRecords.length, 1);
     expect(result.snapshot?.programCompletion?.completedCredits, 7);
-    expect(result.snapshot?.exams?.records.single.location, '综合楼 A201');
+    final overviewExamRecords = result.snapshot?.exams?.records ?? const [];
+    final overviewMathExam = overviewExamRecords.firstWhere(
+      (record) => record.courseName == '高等数学',
+    );
+    expect(overviewMathExam.examLocation, '综合楼 A201');
     expect(result.snapshot?.hasCourseOfferingEntry, isTrue);
     expect(result.snapshot?.hasFreeClassroomEntry, isTrue);
+  });
+
+  test('考试安排按全局学期映射 EAMS semester.id 并保留无日期但有说明的记录', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final gateway = FakeAcademicEamsGateway(includeUndatedExamRows: true);
+    final service = buildAcademicEamsServiceForTest(
+      gateway: gateway,
+      campusReachable: true,
+    );
+
+    final result = await service.fetchExamSchedule(
+      term: const AcademicTermChoice(
+        academicYear: 2025,
+        season: AcademicTermSeason.spring,
+      ),
+    );
+
+    expect(result.status, AcademicEamsQueryStatus.success);
+    expect(result.snapshot?.exams?.selectedSemester?.id, '1042');
+    // 默认查询期末考试（examType.id=1），并保留可切换的考试类型选项。
+    expect(result.snapshot?.exams?.selectedExamType, '1');
+    expect(result.snapshot?.exams?.examTypeOptions, isNotEmpty);
+    final records = result.snapshot?.exams?.records ?? const [];
+    expect(records.map((record) => record.courseName), [
+      '高等数学D2',
+      '大学生心理健康教育',
+      '通用学术英语B',
+    ]);
+    // 未发布考试日期但带说明的行应保留。
+    final undatedRecord = records.firstWhere(
+      (record) => record.courseName == '高等数学D2',
+    );
+    expect(undatedRecord.examType, '期末考试');
+    expect(undatedRecord.courseSequence, '2291');
+    expect(undatedRecord.hasScheduledExamDate, isFalse);
+    expect(undatedRecord.displayExamDate, isEmpty);
+    expect(undatedRecord.otherExplanation, '第17周期末考试');
+    final psychologyRecord = records.firstWhere(
+      (record) => record.courseName == '大学生心理健康教育',
+    );
+    expect(psychologyRecord.examType, '期末考试');
+    expect(psychologyRecord.examDate, '2026-06-17');
+    expect(psychologyRecord.examLocation, '4201');
+    expect(psychologyRecord.hasScheduledExamDate, isTrue);
+    expect(
+      gateway.requestedPageUris.any(
+        (uri) =>
+            uri.path.contains('stdExamTable!examTable.action') &&
+            uri.queryParameters['semester.id'] == '1042' &&
+            uri.queryParameters['examType.id'] == '1',
+      ),
+      isTrue,
+    );
+    expect(gateway.lastSubmittedFields?['dataType'], 'semesterCalendar');
+  });
+
+  test('考试安排支持使用下拉选中的其它学期重新查询', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final gateway = FakeAcademicEamsGateway();
+    final service = buildAcademicEamsServiceForTest(
+      gateway: gateway,
+      campusReachable: true,
+    );
+
+    final result = await service.fetchExamSchedule(
+      semester: AcademicEamsSemesterOption.fromEamsFields(
+        id: '1041',
+        schoolYear: '2025-2026',
+        termCode: '1',
+      ),
+    );
+
+    expect(result.status, AcademicEamsQueryStatus.success);
+    expect(result.snapshot?.exams?.selectedSemester?.id, '1041');
+    expect(result.snapshot?.exams?.records.single.courseName, '程序设计基础');
+    expect(
+      gateway.requestedPageUris.any(
+        (uri) =>
+            uri.path.contains('stdExamTable!examTable.action') &&
+            uri.queryParameters['semester.id'] == '1041',
+      ),
+      isTrue,
+    );
+  });
+
+  test('考试安排在网站仅返回部分学期时按目标学期推断查询 id', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final gateway = FakeAcademicEamsGateway(springOnlySemesterCalendar: true);
+    final service = buildAcademicEamsServiceForTest(
+      gateway: gateway,
+      campusReachable: true,
+    );
+
+    final result = await service.fetchExamSchedule(
+      term: const AcademicTermChoice(
+        academicYear: 2025,
+        season: AcademicTermSeason.fall,
+      ),
+    );
+
+    expect(result.status, AcademicEamsQueryStatus.success);
+    expect(result.snapshot?.exams?.selectedSemester?.id, '1041');
+    expect(result.snapshot?.exams?.records.single.courseName, '程序设计基础');
+    expect(
+      gateway.requestedPageUris.any(
+        (uri) =>
+            uri.path.contains('stdExamTable!examTable.action') &&
+            uri.queryParameters['semester.id'] == '1041',
+      ),
+      isTrue,
+    );
+  });
+
+  test('考试安排识别网站返回的中文学期名称并使用真实 semester.id', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final gateway = FakeAcademicEamsGateway(chineseNamedSemesterCalendar: true);
+    final service = buildAcademicEamsServiceForTest(
+      gateway: gateway,
+      campusReachable: true,
+    );
+
+    final result = await service.fetchExamSchedule(
+      term: const AcademicTermChoice(
+        academicYear: 2025,
+        season: AcademicTermSeason.spring,
+      ),
+    );
+
+    expect(result.status, AcademicEamsQueryStatus.success);
+    expect(result.snapshot?.exams?.selectedSemester?.id, '1042');
+    expect(
+      result.snapshot?.exams?.selectedSemester?.termChoice?.season,
+      AcademicTermSeason.spring,
+    );
+    expect(
+      result.snapshot?.exams?.records.map((record) => record.courseName),
+      contains('高等数学'),
+    );
+    expect(
+      gateway.requestedPageUris.any(
+        (uri) =>
+            uri.path.contains('stdExamTable!examTable.action') &&
+            uri.queryParameters['semester.id'] == '1042',
+      ),
+      isTrue,
+    );
+    expect(
+      gateway.requestedPageUris.any(
+        (uri) =>
+            uri.path.contains('stdExamTable!examTable.action') &&
+            uri.queryParameters['semester.id'] == '66',
+      ),
+      isFalse,
+    );
+  });
+
+  test('考试安排优先使用网站学期列表而不是旧缓存推断出的错误 semester.id', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final gateway = FakeAcademicEamsGateway(chineseNamedSemesterCalendar: true);
+    final service = buildAcademicEamsServiceForTest(
+      gateway: gateway,
+      campusReachable: true,
+    );
+
+    final result = await service.fetchExamSchedule(
+      term: const AcademicTermChoice(
+        academicYear: 2025,
+        season: AcademicTermSeason.spring,
+      ),
+      semester: AcademicEamsSemesterOption.fromEamsFields(
+        id: '66',
+        schoolYear: '2025-2026',
+        termCode: '2',
+      ),
+    );
+
+    expect(result.status, AcademicEamsQueryStatus.success);
+    expect(result.snapshot?.exams?.selectedSemester?.id, '1042');
+    expect(
+      result.snapshot?.exams?.records.map((record) => record.courseName),
+      contains('高等数学'),
+    );
+    expect(
+      gateway.requestedPageUris.any(
+        (uri) =>
+            uri.path.contains('stdExamTable!examTable.action') &&
+            uri.queryParameters['semester.id'] == '1042',
+      ),
+      isTrue,
+    );
+    expect(
+      gateway.requestedPageUris.any(
+        (uri) =>
+            uri.path.contains('stdExamTable!examTable.action') &&
+            uri.queryParameters['semester.id'] == '66',
+      ),
+      isFalse,
+    );
+  });
+
+  test('考试安排忽略与目标学期不一致的旧 semester.id', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final gateway = FakeAcademicEamsGateway();
+    final service = buildAcademicEamsServiceForTest(
+      gateway: gateway,
+      campusReachable: true,
+    );
+
+    final result = await service.fetchExamSchedule(
+      term: const AcademicTermChoice(
+        academicYear: 2025,
+        season: AcademicTermSeason.fall,
+      ),
+      semester: AcademicEamsSemesterOption.fromEamsFields(
+        id: '1042',
+        schoolYear: '2025-2026',
+        termCode: '2',
+      ),
+    );
+
+    expect(result.status, AcademicEamsQueryStatus.success);
+    expect(result.snapshot?.exams?.selectedSemester?.id, '1041');
+    expect(result.snapshot?.exams?.records.single.courseName, '程序设计基础');
+    expect(
+      gateway.requestedPageUris.any(
+        (uri) =>
+            uri.path.contains('stdExamTable!examTable.action') &&
+            uri.queryParameters['semester.id'] == '1041',
+      ),
+      isTrue,
+    );
+  });
+
+  test('考试安排过滤仅有占位详情的课程行', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final gateway = FakeAcademicEamsGateway(placeholderOnlyExamRow: true);
+    final service = buildAcademicEamsServiceForTest(
+      gateway: gateway,
+      campusReachable: true,
+    );
+
+    final result = await service.fetchExamSchedule(
+      term: const AcademicTermChoice(
+        academicYear: 2025,
+        season: AcademicTermSeason.spring,
+      ),
+      examTypeId: '5',
+    );
+
+    expect(result.status, AcademicEamsQueryStatus.success);
+    expect(result.snapshot?.exams?.selectedExamType, '5');
+    final records = result.snapshot?.exams?.records ?? const [];
+    // 仅含 "-"/占位信息（含备注）的考试不展示。
+    expect(records.any((record) => record.courseName == '只含占位信息课程'), isFalse);
+    expect(records, isEmpty);
+  });
+
+  test('考试安排解析保留跨列未发布行并对齐其它说明列', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final gateway = FakeAcademicEamsGateway(includeUndatedExamRows: true);
+    final service = buildAcademicEamsServiceForTest(
+      gateway: gateway,
+      campusReachable: true,
+    );
+
+    final result = await service.fetchExamSchedule(
+      term: const AcademicTermChoice(
+        academicYear: 2025,
+        season: AcademicTermSeason.spring,
+      ),
+    );
+
+    expect(result.status, AcademicEamsQueryStatus.success);
+    final records = result.snapshot?.exams?.records ?? const [];
+    expect(
+      records.map((record) => record.courseName),
+      containsAll(['高等数学D2', '大学生心理健康教育', '通用学术英语B']),
+    );
+    final mathRecord = records.firstWhere(
+      (record) => record.courseName == '高等数学D2',
+    );
+    expect(mathRecord.displayExamDate, isEmpty);
+    expect(mathRecord.displayExamArrange, isEmpty);
+    expect(mathRecord.displayExamLocation, isEmpty);
+    expect(mathRecord.displayExamSituation, isEmpty);
+    expect(mathRecord.otherExplanation, '第17周期末考试');
+    expect(mathRecord.displayOtherExplanation, '第17周期末考试');
+    final psychologyRecord = records.firstWhere(
+      (record) => record.courseName == '大学生心理健康教育',
+    );
+    expect(psychologyRecord.displayExamDate, '2026-06-17');
+    expect(psychologyRecord.displayExamArrange, '第16周 星期三 13:00-14:30');
+    final englishRecord = records.firstWhere(
+      (record) => record.courseName == '通用学术英语B',
+    );
+    expect(englishRecord.displayExamDate, isEmpty);
+    expect(englishRecord.displayExamArrange, isEmpty);
+    expect(englishRecord.displayOtherExplanation, '第17周期末考试');
+  });
+
+  test('考试安排在学期列表接口失败时使用壳页默认学期兜底', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final gateway = FakeAcademicEamsGateway(failSemesterCalendar: true);
+    final service = buildAcademicEamsServiceForTest(
+      gateway: gateway,
+      campusReachable: true,
+    );
+
+    final result = await service.fetchExamSchedule(
+      term: const AcademicTermChoice(
+        academicYear: 2025,
+        season: AcademicTermSeason.spring,
+      ),
+    );
+
+    expect(result.status, AcademicEamsQueryStatus.partialSuccess);
+    expect(result.snapshot?.exams?.selectedSemester?.id, '1042');
+    expect(
+      result.snapshot?.exams?.records.map((record) => record.courseName),
+      contains('高等数学'),
+    );
+    expect(result.snapshot?.warnings.join('；'), contains('考试学期列表读取超时'));
+    expect(
+      gateway.requestedPageUris.any(
+        (uri) =>
+            uri.path.contains('stdExamTable!examTable.action') &&
+            uri.queryParameters['semester.id'] == '1042',
+      ),
+      isTrue,
+    );
+  });
+
+  test('考试安排短课程表头不会误把课程序号当课程名称', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final gateway = FakeAcademicEamsGateway(useShortExamCourseHeader: true);
+    final service = buildAcademicEamsServiceForTest(
+      gateway: gateway,
+      campusReachable: true,
+    );
+
+    final result = await service.fetchExamSchedule(
+      term: const AcademicTermChoice(
+        academicYear: 2025,
+        season: AcademicTermSeason.spring,
+      ),
+    );
+
+    expect(result.status, AcademicEamsQueryStatus.success);
+    final records = result.snapshot?.exams?.records ?? const [];
+    final mathRecord = records.firstWhere(
+      (record) => record.courseName == '高等数学',
+    );
+    expect(mathRecord.courseSequence, 'MATH101');
   });
 
   test('从空根菜单发现真实学籍个人信息入口', () async {

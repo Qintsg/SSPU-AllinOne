@@ -22,7 +22,10 @@ const double _kSelectViewportMargin = 6;
 
 /// Fluent 选择器选项。
 class FluentSelectItem<T> {
-  const FluentSelectItem({required this.value, required this.child});
+  const FluentSelectItem({this.key, required this.value, required this.child});
+
+  /// 选项键，用于测试和保持弹出层项身份稳定。
+  final Key? key;
 
   /// 选项值。
   final T value;
@@ -568,7 +571,7 @@ class _FluentSelectPopupMenuState<T> extends State<_FluentSelectPopupMenu<T>> {
                         : hovered || active
                         ? colors.neutralBackground1Hover
                         : fluent.Colors.transparent;
-                    return Container(
+                    final option = Container(
                       key: ValueKey('fluent-select-popup-option-$index'),
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       padding: const EdgeInsetsDirectional.only(
@@ -612,6 +615,9 @@ class _FluentSelectPopupMenuState<T> extends State<_FluentSelectPopupMenu<T>> {
                         ],
                       ),
                     );
+                    final itemKey = widget.items[index].key;
+                    if (itemKey == null) return option;
+                    return KeyedSubtree(key: itemKey, child: option);
                   },
                 );
               },

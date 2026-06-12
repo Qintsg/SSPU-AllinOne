@@ -11,6 +11,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
+import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/models/campus_card.dart';
 import 'package:sspu_allinone/pages/home_page.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
@@ -783,6 +784,21 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedOverview() async {
     return null;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedExamSchedule() async {
+    return null;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult> fetchExamSchedule({
+    AcademicTermChoice? term,
+    AcademicEamsSemesterOption? semester,
+    String? examTypeId,
+    bool requireCampusNetwork = true,
+  }) async {
+    throw UnimplementedError();
   }
 }
 

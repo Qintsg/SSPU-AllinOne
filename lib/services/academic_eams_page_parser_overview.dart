@@ -233,40 +233,154 @@ AcademicProgramCompletionSnapshot? _deriveProgramCompletion(
 AcademicExamSnapshot? _parseExams(AcademicEamsHttpSnapshot? snapshot) {
   if (snapshot == null) return null;
   final document = html_parser.parse(snapshot.body);
+  final selectedSemester = _readExamSemester(snapshot.metadata);
+  final semesterOptions = _readExamSemesterOptions(snapshot.metadata);
+  final selectedExamType = snapshot.metadata['selectedExamType'] as String?;
+  final examTypeOptions = _readExamTypeOptions(snapshot.metadata);
+  final records = <AcademicExamRecord>[];
+  var foundExamTable = false;
   for (final table in _parseTables(document)) {
     final headers = table.headers
         .map((header) => header.toLowerCase())
         .toList();
     if (!_containsAny(headers, ['课程名称', '课程', 'course name']) ||
-        !_containsAny(headers, ['考试时间', '时间', 'exam time', 'time'])) {
+        !_containsAny(headers, [
+          '考试日期',
+          '考试时间',
+          '时间',
+          'exam date',
+          'exam time',
+          'examination date',
+          'time',
+        ])) {
       continue;
     }
 
-    final records = <AcademicExamRecord>[];
+    foundExamTable = true;
     for (final row in table.rows) {
       final rowMap = _rowToMap(table.headers, row);
-      final courseName = _pickValue(rowMap, ['课程名称', '课程', 'Course Name']);
+      final courseName =
+          _pickValue(rowMap, ['课程名称', 'Course Name']) ??
+          _pickExactValue(rowMap, ['课程', 'course']);
       if (courseName == null || courseName.isEmpty) continue;
-      records.add(
-        AcademicExamRecord(
-          courseName: courseName,
-          examTime: _pickValue(rowMap, ['考试时间', '时间', 'Exam Time', 'Time']),
-          location: _pickValue(rowMap, ['考试地点', '地点', 'Exam Room', 'Place']),
-          seatNumber: _pickValue(rowMap, ['座位号', '座位', 'Seat No', 'Seat']),
-          status: _pickValue(rowMap, ['状态', '备注', 'Status', 'Remark']),
-          rawCells: row,
-        ),
+      final record = AcademicExamRecord(
+        examType: _pickValue(rowMap, ['考试类型', '类型', 'Exam Type']),
+        courseSequence: _pickValue(rowMap, ['课程序号', '课程代码', '课程编号', 'Number']),
+        courseName: courseName,
+        examDate: _pickValue(rowMap, [
+          '考试日期',
+          '考试时间',
+          '时间',
+          'Examination Date',
+          'Exam Date',
+          'Exam Time',
+          'Time',
+        ]),
+        examArrange: _pickValue(rowMap, [
+          '考试安排',
+          '安排',
+          'Examination Arrange',
+          'Exam Arrange',
+        ]),
+        examLocation: _pickValue(rowMap, [
+          '考试地点',
+          '地点',
+          'Examination Address',
+          'Exam Room',
+          'Place',
+        ]),
+        examSituation: _pickValue(rowMap, [
+          '考试情况',
+          '情况',
+          '状态',
+          '座位号',
+          '座位',
+          'Examination Situation',
+          'Status',
+          'Seat No',
+          'Seat',
+        ]),
+        otherExplanation: _pickValue(rowMap, [
+          '其它说明',
+          '其他说明',
+          '说明',
+          '备注',
+          'Other Explanation',
+          'Remark',
+        ]),
+        rawCells: row,
       );
-    }
-    if (records.isNotEmpty) {
-      return AcademicExamSnapshot(
-        records: List.unmodifiable(records),
-        fetchedAt: DateTime.now(),
-        sourceUri: snapshot.finalUri,
-      );
+      if (!record.hasDisplayableExamInfo) continue;
+      records.add(record);
     }
   }
+  if (foundExamTable) {
+    return AcademicExamSnapshot(
+      records: List.unmodifiable(records),
+      selectedSemester: selectedSemester,
+      semesterOptions: semesterOptions,
+      selectedExamType: selectedExamType,
+      examTypeOptions: examTypeOptions,
+      fetchedAt: DateTime.now(),
+      sourceUri: snapshot.finalUri,
+    );
+  }
+  if (selectedSemester != null ||
+      semesterOptions.isNotEmpty ||
+      examTypeOptions.isNotEmpty) {
+    return AcademicExamSnapshot(
+      records: const [],
+      selectedSemester: selectedSemester,
+      semesterOptions: semesterOptions,
+      selectedExamType: selectedExamType,
+      examTypeOptions: examTypeOptions,
+      fetchedAt: DateTime.now(),
+      sourceUri: snapshot.finalUri,
+    );
+  }
   return null;
+}
+
+Map<String, String> _readExamTypeOptions(Map<String, Object?> metadata) {
+  final value = metadata['examTypeOptions'];
+  if (value is Map) {
+    return value.map((key, item) => MapEntry('$key', '$item'));
+  }
+  return const {};
+}
+
+AcademicEamsSemesterOption? _readExamSemester(Map<String, Object?> metadata) {
+  final value = metadata['selectedSemester'];
+  if (value is Map<String, dynamic>) {
+    return AcademicEamsSemesterOption.fromJson(value);
+  }
+  if (value is Map) {
+    return AcademicEamsSemesterOption.fromJson(
+      value.map((key, item) => MapEntry(key.toString(), item)),
+    );
+  }
+  return null;
+}
+
+List<AcademicEamsSemesterOption> _readExamSemesterOptions(
+  Map<String, Object?> metadata,
+) {
+  final value = metadata['semesterOptions'];
+  if (value is! List) return const [];
+  return value
+      .map((item) {
+        if (item is Map<String, dynamic>) {
+          return AcademicEamsSemesterOption.fromJson(item);
+        }
+        if (item is Map) {
+          return AcademicEamsSemesterOption.fromJson(
+            item.map((key, value) => MapEntry(key.toString(), value)),
+          );
+        }
+        return null;
+      })
+      .nonNulls
+      .toList();
 }
 
 AcademicCourseOfferingSearchResult? _parseCourseOfferings(

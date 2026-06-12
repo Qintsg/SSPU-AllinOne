@@ -37,17 +37,30 @@ class FakeAcademicEamsGateway implements AcademicEamsGateway {
     this.failFreeClassroomMenuOnce = false,
     this.studentProfileSnapshot,
     this.disableNumberedStudentProfileMenu = false,
+    this.failSemesterCalendar = false,
+    this.springOnlySemesterCalendar = false,
+    this.chineseNamedSemesterCalendar = false,
+    this.placeholderOnlyExamRow = false,
+    this.includeUndatedExamRows = false,
+    this.useShortExamCourseHeader = false,
   });
 
   final bool requireAuthFirst;
   final bool failFreeClassroomMenuOnce;
   final AcademicEamsHttpSnapshot? studentProfileSnapshot;
   final bool disableNumberedStudentProfileMenu;
+  final bool failSemesterCalendar;
+  final bool springOnlySemesterCalendar;
+  final bool chineseNamedSemesterCalendar;
+  final bool placeholderOnlyExamRow;
+  final bool includeUndatedExamRows;
+  final bool useShortExamCourseHeader;
   final List<Map<String, String>> resetCookieHeaders = [];
   final List<Uri> requestedPageUris = [];
   int openCount = 0;
   String? lastSubmittedMethod;
   Map<String, String>? lastSubmittedFields;
+  final List<Map<String, String>> submittedFieldsHistory = [];
   bool _hasFailedFreeClassroomMenu = false;
 
   @override
@@ -108,7 +121,20 @@ class FakeAcademicEamsGateway implements AcademicEamsGateway {
     if (path.contains('/teach/program/student/myPlan.action')) {
       return academicEamsProgramPlanSnapshot;
     }
-    if (path.contains('stdExamTable.action')) return academicEamsExamSnapshot;
+    if (path.contains('stdExamTable!examTable.action')) {
+      final semesterId = pageUri.queryParameters['semester.id'] ?? '';
+      final examTypeId = pageUri.queryParameters['examType.id'] ?? '';
+      return academicEamsExamResultSnapshot(
+        semesterId: semesterId,
+        examTypeId: examTypeId,
+        includeUndatedExamRows: includeUndatedExamRows,
+        placeholderOnlyExamRow: placeholderOnlyExamRow,
+        useShortCourseHeader: useShortExamCourseHeader,
+      );
+    }
+    if (path.contains('stdExamTable.action')) {
+      return academicEamsExamShellSnapshot;
+    }
     if (path.contains('publicSearch.action')) {
       return academicEamsCourseOfferingEntrySnapshot;
     }
@@ -131,6 +157,18 @@ class FakeAcademicEamsGateway implements AcademicEamsGateway {
   }) async {
     lastSubmittedMethod = method;
     lastSubmittedFields = fields;
+    submittedFieldsHistory.add(Map<String, String>.from(fields));
+    if (formUri.path.contains('dataQuery.action') &&
+        fields['dataType'] == 'semesterCalendar') {
+      if (failSemesterCalendar) throw TimeoutException('semester timeout');
+      if (chineseNamedSemesterCalendar) {
+        return academicEamsChineseNamedSemesterCalendarSnapshot;
+      }
+      if (springOnlySemesterCalendar) {
+        return academicEamsSpringOnlySemesterCalendarSnapshot;
+      }
+      return academicEamsSemesterCalendarSnapshot;
+    }
     if (formUri.path.contains('publicSearch!search.action')) {
       return academicEamsCourseOfferingResultSnapshot;
     }
@@ -359,21 +397,123 @@ final AcademicEamsHttpSnapshot academicEamsProgramPlanSnapshot =
 ''',
     );
 
-final AcademicEamsHttpSnapshot academicEamsExamSnapshot =
+final AcademicEamsHttpSnapshot academicEamsExamShellSnapshot =
     AcademicEamsHttpSnapshot(
       finalUri: Uri.parse('https://jx.sspu.edu.cn/eams/stdExamTable.action'),
       statusCode: 200,
       body: '''
 <html>
   <body>
-    <table>
-      <tr><th>课程名称</th><th>考试时间</th><th>考试地点</th><th>座位号</th></tr>
-      <tr><td>高等数学</td><td>2026-06-20 08:30</td><td>综合楼 A201</td><td>18</td></tr>
-    </table>
+    <form name="semesterForm">
+      <input type="hidden" id="semesterBar" name="semester.id" value="1042" />
+      <select name="examType.id">
+        <option value="1" selected>期末考试</option>
+        <option value="2">期中考试</option>
+        <option value="3">补考</option>
+        <option value="4">缓考</option>
+        <option value="5">平时考试</option>
+      </select>
+    </form>
+    <script>
+      var semesterBar = {tagId:"semesterBar", dataType:"semesterCalendar", value:"1042"};
+      function getExams() {
+        var actions = "stdExamTable!examTable.action?semester.id=1042&examType.id=1";
+        bg.Go(actions, "examTableFrame");
+      }
+    </script>
   </body>
 </html>
 ''',
     );
+
+final AcademicEamsHttpSnapshot academicEamsSemesterCalendarSnapshot =
+    AcademicEamsHttpSnapshot(
+      finalUri: Uri.parse('https://jx.sspu.edu.cn/eams/dataQuery.action'),
+      statusCode: 200,
+      body: '''
+({semesters:{y0:[
+  {id:1041,schoolYear:"2025-2026",name:"1"},
+  {id:1042,schoolYear:"2025-2026",name:"2"},
+  {id:1043,schoolYear:"2025-2026",name:"3"}
+]}})
+''',
+    );
+
+final AcademicEamsHttpSnapshot academicEamsSpringOnlySemesterCalendarSnapshot =
+    AcademicEamsHttpSnapshot(
+      finalUri: Uri.parse('https://jx.sspu.edu.cn/eams/dataQuery.action'),
+      statusCode: 200,
+      body: '''
+({semesters:{y0:[
+  {id:1042,schoolYear:"2025-2026",name:"2"}
+]}})
+''',
+    );
+
+final AcademicEamsHttpSnapshot
+academicEamsChineseNamedSemesterCalendarSnapshot = AcademicEamsHttpSnapshot(
+  finalUri: Uri.parse('https://jx.sspu.edu.cn/eams/dataQuery.action'),
+  statusCode: 200,
+  body: '''
+({semesters:{y0:[
+  {id:1062,schoolYear:"2025-2026",name:"夏季"},
+  {id:1042,schoolYear:"2025-2026",name:"春季"},
+  {id:1022,schoolYear:"2025-2026",name:"秋季"},
+  {id:1082,schoolYear:"2026-2027",name:"秋季"}
+]}})
+''',
+);
+
+AcademicEamsHttpSnapshot academicEamsExamResultSnapshot({
+  required String semesterId,
+  required String examTypeId,
+  bool includeUndatedExamRows = false,
+  bool placeholderOnlyExamRow = false,
+  bool useShortCourseHeader = false,
+}) {
+  final row =
+      placeholderOnlyExamRow && semesterId == '1042' && examTypeId == '5'
+      ? '<tr><td>PLACEHOLDER</td><td>只含占位信息课程</td><td>-</td><td>-</td><td></td><td>-</td><td>暂无信息</td></tr>'
+      : includeUndatedExamRows && semesterId == '1042' && examTypeId == '1'
+      ? '''
+<tr><td>2291</td><td>高等数学D2</td><td colspan="4">[考试情况尚未发布]</td><td>第17周期末考试</td></tr>
+<tr><td>2564</td><td>大学生心理健康教育</td><td>2026-06-17</td><td>第16周 星期三 13:00-14:30</td><td>4201</td><td>正常</td><td>心理健康期末考试</td></tr>
+<tr><td>2645</td><td>通用学术英语B</td><td colspan="4">[考试情况尚未发布]</td><td>第17周期末考试</td></tr>
+'''
+      : semesterId == '1041' && examTypeId == '1'
+      ? '<tr><td>CS100</td><td>程序设计基础</td><td>2026-01-10</td><td>闭卷</td><td>综合楼 B101</td><td>正常</td><td></td></tr>'
+      : semesterId == '1042' && examTypeId == '1'
+      ? '<tr><td>MATH101</td><td>高等数学</td><td>2026-06-20</td><td>闭卷</td><td>综合楼 A201</td><td>正常</td><td>带学生证</td></tr>'
+      : semesterId == '1042' && examTypeId == '2'
+      ? '<tr><td>ENG201</td><td>大学英语</td><td></td><td>随堂</td><td>教学楼 C201</td><td>正常</td><td></td></tr>'
+      : semesterId == '1042' && examTypeId == '5'
+      ? '<tr><td>PSY101</td><td>大学生心理健康教育</td><td>-</td><td>课程论文</td><td></td><td>待发布</td><td>暂无信息</td></tr>'
+      : '';
+  final courseHeader = useShortCourseHeader ? '课程' : '课程名称';
+  return AcademicEamsHttpSnapshot(
+    finalUri: Uri.parse(
+      'https://jx.sspu.edu.cn/eams/stdExamTable!examTable.action?semester.id=$semesterId&examType.id=$examTypeId',
+    ),
+    statusCode: 200,
+    body:
+        '''
+<html>
+  <body>
+    <table>
+      <tr>
+        <th>课程序号</th><th>$courseHeader</th><th>考试日期</th><th>考试安排</th>
+        <th>考试地点</th><th>考试情况</th><th>其它说明</th>
+      </tr>
+      $row
+    </table>
+  </body>
+</html>
+''',
+  );
+}
+
+final AcademicEamsHttpSnapshot academicEamsExamSnapshot =
+    academicEamsExamResultSnapshot(semesterId: '1042', examTypeId: '1');
 
 final AcademicEamsHttpSnapshot academicEamsCourseOfferingEntrySnapshot =
     AcademicEamsHttpSnapshot(

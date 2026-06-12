@@ -6,8 +6,10 @@
  * @Date : 2026-05-01
  */
 
+import 'dart:async';
 import 'dart:io';
 
+import 'package:enough_mail/enough_mail.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -255,6 +257,63 @@ void main() {
     expect(storedState.toString(), isNot(contains('recipient@example.com')));
     expect(storedState.toString(), isNot(contains('敏感主题')));
     expect(storedState.toString(), isNot(contains('敏感正文')));
+  });
+
+  test('SMTP 发信网络或超时失败时返回安全网络错误', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      emailPassword: 'mail-pass',
+    );
+    final request = const EmailComposeRequest(
+      to: ['recipient@example.com'],
+      subject: '敏感主题',
+      body: '敏感正文',
+    );
+
+    for (final error in <Object>[
+      const SocketException('offline'),
+      TimeoutException('timeout'),
+    ]) {
+      final service = EmailService(gateway: _FakeEmailGateway(error: error));
+
+      final result = await service.sendMessage(request);
+
+      expect(result.status, EmailQueryStatus.networkError);
+      expect(
+        '${result.message} ${result.detail}',
+        isNot(contains('recipient')),
+      );
+      expect('${result.message} ${result.detail}', isNot(contains('敏感主题')));
+      expect('${result.message} ${result.detail}', isNot(contains('敏感正文')));
+    }
+  });
+
+  test('SMTP 服务端拒绝发信时返回登录拒绝且不回显输入', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      emailPassword: 'mail-pass',
+    );
+    final service = EmailService(
+      gateway: _FakeEmailGateway(
+        error: SmtpException.message(
+          SmtpClient(EmailService.defaultDomain),
+          'raw recipient@example.com 敏感正文',
+        ),
+      ),
+    );
+
+    final result = await service.sendMessage(
+      const EmailComposeRequest(
+        to: ['recipient@example.com'],
+        subject: '敏感主题',
+        body: '敏感正文',
+      ),
+    );
+
+    expect(result.status, EmailQueryStatus.loginRejected);
+    expect('${result.message} ${result.detail}', isNot(contains('recipient')));
+    expect('${result.message} ${result.detail}', isNot(contains('敏感主题')));
+    expect('${result.message} ${result.detail}', isNot(contains('敏感正文')));
   });
 }
 

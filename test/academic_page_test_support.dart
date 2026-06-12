@@ -60,13 +60,22 @@ class _FakeStudentReportClient implements StudentReportClient {
 }
 
 class _FakeAcademicEamsClient implements AcademicEamsClient {
-  _FakeAcademicEamsClient({required this.result});
+  _FakeAcademicEamsClient({required this.result, this.examResultResolver});
 
   final AcademicEamsQueryResult result;
+  final AcademicEamsQueryResult Function(
+    AcademicTermChoice? term,
+    AcademicEamsSemesterOption? semester,
+  )?
+  examResultResolver;
   int overviewFetchCount = 0;
   int courseTableFetchCount = 0;
+  int examFetchCount = 0;
   final List<bool> overviewRequireCampusNetworkValues = [];
   final List<bool> courseTableRequireCampusNetworkValues = [];
+  final List<AcademicTermChoice?> examTermValues = [];
+  final List<AcademicEamsSemesterOption?> examSemesterValues = [];
+  final List<String?> examTypeValues = [];
 
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
@@ -75,6 +84,11 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
 
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedOverview() async {
+    return null;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedExamSchedule() async {
     return null;
   }
 
@@ -106,6 +120,20 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
     overviewFetchCount++;
     overviewRequireCampusNetworkValues.add(requireCampusNetwork);
     return result;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult> fetchExamSchedule({
+    AcademicTermChoice? term,
+    AcademicEamsSemesterOption? semester,
+    String? examTypeId,
+    bool requireCampusNetwork = true,
+  }) async {
+    examFetchCount++;
+    examTermValues.add(term);
+    examSemesterValues.add(semester);
+    examTypeValues.add(examTypeId);
+    return examResultResolver?.call(term, semester) ?? result;
   }
 }
 
@@ -400,3 +428,295 @@ final AcademicEamsQueryResult _academicEamsResult = AcademicEamsQueryResult(
     ),
   ),
 );
+
+final AcademicEamsQueryResult _academicExamResult = AcademicEamsQueryResult(
+  status: AcademicEamsQueryStatus.success,
+  message: '考试安排读取成功',
+  detail: '已读取所选学期考试安排。',
+  checkedAt: DateTime(2026, 6, 11, 10, 0),
+  entranceUri: Uri.parse(
+    'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
+  ),
+  finalUri: Uri.parse(
+    'https://jx.sspu.edu.cn/eams/stdExamTable!examTable.action?semester.id=1042&examType.id=1',
+  ),
+  snapshot: AcademicEamsSnapshot(
+    fetchedAt: DateTime(2026, 6, 11, 10, 0),
+    sourceUri: Uri.parse(
+      'https://jx.sspu.edu.cn/eams/stdExamTable!examTable.action',
+    ),
+    warnings: const [],
+    hasCourseOfferingEntry: true,
+    hasFreeClassroomEntry: true,
+    exams: AcademicExamSnapshot(
+      selectedSemester: AcademicEamsSemesterOption.fromEamsFields(
+        id: '1042',
+        schoolYear: '2025-2026',
+        termCode: '2',
+      ),
+      semesterOptions: [
+        AcademicEamsSemesterOption.fromEamsFields(
+          id: '1041',
+          schoolYear: '2025-2026',
+          termCode: '1',
+        ),
+        AcademicEamsSemesterOption.fromEamsFields(
+          id: '1042',
+          schoolYear: '2025-2026',
+          termCode: '2',
+        ),
+        AcademicEamsSemesterOption.fromEamsFields(
+          id: '1043',
+          schoolYear: '2025-2026',
+          termCode: '3',
+        ),
+      ],
+      records: const [
+        AcademicExamRecord(
+          examType: '期末考试',
+          courseSequence: '2291',
+          courseName: '高等数学D2',
+          examDate: '[考试情况尚未发布]',
+          otherExplanation: '第17周期末考试',
+          rawCells: [
+            '期末考试',
+            '2291',
+            '高等数学D2',
+            '[考试情况尚未发布]',
+            '',
+            '',
+            '',
+            '第17周期末考试',
+          ],
+        ),
+        AcademicExamRecord(
+          examType: '期末考试',
+          courseSequence: '2564',
+          courseName: '大学生心理健康教育',
+          examDate: '2026-06-17',
+          examArrange: '第16周 星期三 13:00-14:30',
+          examLocation: '4201',
+          examSituation: '正常',
+          otherExplanation: '心理健康期末考试',
+          rawCells: [
+            '期末考试',
+            '2564',
+            '大学生心理健康教育',
+            '2026-06-17',
+            '第16周 星期三 13:00-14:30',
+            '4201',
+            '正常',
+            '心理健康期末考试',
+          ],
+        ),
+        AcademicExamRecord(
+          examType: '期末考试',
+          courseSequence: '2645',
+          courseName: '通用学术英语B',
+          examDate: '[考试情况尚未发布]',
+          otherExplanation: '第17周期末考试',
+          rawCells: [
+            '期末考试',
+            '2645',
+            '通用学术英语B',
+            '[考试情况尚未发布]',
+            '',
+            '',
+            '',
+            '第17周期末考试',
+          ],
+        ),
+      ],
+      fetchedAt: DateTime(2026, 6, 11, 10, 0),
+      sourceUri: Uri.parse(
+        'https://jx.sspu.edu.cn/eams/stdExamTable!examTable.action',
+      ),
+    ),
+  ),
+);
+
+/// 明显过期的考试缓存（2020-2021 秋），用于校验缓存学期与全局默认学期不一致时不展示。
+final AcademicEamsQueryResult _staleExamCacheResult = AcademicEamsQueryResult(
+  status: AcademicEamsQueryStatus.success,
+  message: '考试安排读取成功',
+  detail: '已读取所选学期考试安排。',
+  checkedAt: DateTime(2020, 9, 1, 10, 0),
+  entranceUri: Uri.parse(
+    'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
+  ),
+  finalUri: Uri.parse(
+    'https://jx.sspu.edu.cn/eams/stdExamTable!examTable.action?semester.id=801&examType.id=1',
+  ),
+  snapshot: AcademicEamsSnapshot(
+    fetchedAt: DateTime(2020, 9, 1, 10, 0),
+    sourceUri: Uri.parse(
+      'https://jx.sspu.edu.cn/eams/stdExamTable!examTable.action',
+    ),
+    warnings: const [],
+    hasCourseOfferingEntry: true,
+    hasFreeClassroomEntry: true,
+    exams: AcademicExamSnapshot(
+      selectedSemester: AcademicEamsSemesterOption.fromEamsFields(
+        id: '801',
+        schoolYear: '2020-2021',
+        termCode: '1',
+      ),
+      semesterOptions: [
+        AcademicEamsSemesterOption.fromEamsFields(
+          id: '801',
+          schoolYear: '2020-2021',
+          termCode: '1',
+        ),
+      ],
+      records: const [
+        AcademicExamRecord(
+          examType: '期末考试',
+          courseSequence: 'OLD100',
+          courseName: '陈旧学期课程',
+          examDate: '2021-01-05',
+          examArrange: '闭卷',
+          examLocation: '老楼 101',
+          examSituation: '正常',
+          rawCells: [
+            '期末考试',
+            'OLD100',
+            '陈旧学期课程',
+            '2021-01-05',
+            '闭卷',
+            '老楼 101',
+            '正常',
+            '',
+          ],
+        ),
+      ],
+      fetchedAt: DateTime(2020, 9, 1, 10, 0),
+      sourceUri: Uri.parse(
+        'https://jx.sspu.edu.cn/eams/stdExamTable!examTable.action',
+      ),
+    ),
+  ),
+);
+
+AcademicEamsQueryResult _academicExamResultForSeason(
+  AcademicTermSeason season,
+) {
+  if (season == AcademicTermSeason.spring) return _academicExamResult;
+  if (season == AcademicTermSeason.summer) {
+    final summerSemester = AcademicEamsSemesterOption.fromEamsFields(
+      id: '1043',
+      schoolYear: '2025-2026',
+      termCode: '3',
+    );
+    return AcademicEamsQueryResult(
+      status: AcademicEamsQueryStatus.success,
+      message: '当前学期暂无考试安排',
+      detail: '已读取所选学期考试安排，未发现可展示的考试信息。',
+      checkedAt: DateTime(2026, 6, 11, 10, 8),
+      entranceUri: Uri.parse(
+        'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
+      ),
+      finalUri: Uri.parse(
+        'https://jx.sspu.edu.cn/eams/stdExamTable!examTable.action?semester.id=1043&examType.id=1',
+      ),
+      snapshot: AcademicEamsSnapshot(
+        fetchedAt: DateTime(2026, 6, 11, 10, 8),
+        sourceUri: Uri.parse(
+          'https://jx.sspu.edu.cn/eams/stdExamTable!examTable.action',
+        ),
+        warnings: const [],
+        hasCourseOfferingEntry: true,
+        hasFreeClassroomEntry: true,
+        exams: AcademicExamSnapshot(
+          selectedSemester: summerSemester,
+          semesterOptions: [summerSemester],
+          records: const [],
+          fetchedAt: DateTime(2026, 6, 11, 10, 8),
+          sourceUri: Uri.parse(
+            'https://jx.sspu.edu.cn/eams/stdExamTable!examTable.action',
+          ),
+        ),
+      ),
+    );
+  }
+  final fallSemester = AcademicEamsSemesterOption.fromEamsFields(
+    id: '1041',
+    schoolYear: '2025-2026',
+    termCode: '1',
+  );
+  return AcademicEamsQueryResult(
+    status: AcademicEamsQueryStatus.success,
+    message: '考试安排读取成功',
+    detail: '已读取所选学期考试安排。',
+    checkedAt: DateTime(2026, 6, 11, 10, 5),
+    entranceUri: Uri.parse(
+      'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
+    ),
+    finalUri: Uri.parse(
+      'https://jx.sspu.edu.cn/eams/stdExamTable!examTable.action?semester.id=1041&examType.id=1',
+    ),
+    snapshot: AcademicEamsSnapshot(
+      fetchedAt: DateTime(2026, 6, 11, 10, 5),
+      sourceUri: Uri.parse(
+        'https://jx.sspu.edu.cn/eams/stdExamTable!examTable.action',
+      ),
+      warnings: const [],
+      hasCourseOfferingEntry: true,
+      hasFreeClassroomEntry: true,
+      exams: AcademicExamSnapshot(
+        selectedSemester: fallSemester,
+        semesterOptions: [
+          fallSemester,
+          AcademicEamsSemesterOption.fromEamsFields(
+            id: '1042',
+            schoolYear: '2025-2026',
+            termCode: '2',
+          ),
+        ],
+        records: const [
+          AcademicExamRecord(
+            examType: '期末考试',
+            courseSequence: 'CS100',
+            courseName: '程序设计基础',
+            examDate: '2026-01-10',
+            examArrange: '闭卷',
+            examLocation: '综合楼 B101',
+            examSituation: '正常',
+            rawCells: [
+              '期末考试',
+              'CS100',
+              '程序设计基础',
+              '2026-01-10',
+              '闭卷',
+              '综合楼 B101',
+              '正常',
+              '',
+            ],
+          ),
+          AcademicExamRecord(
+            examType: '平时考试',
+            courseSequence: 'PHY100',
+            courseName: '大学物理',
+            examDate: '2026-01-12',
+            examArrange: '开卷',
+            examLocation: '综合楼 B102',
+            examSituation: '正常',
+            rawCells: [
+              '平时考试',
+              'PHY100',
+              '大学物理',
+              '2026-01-12',
+              '开卷',
+              '综合楼 B102',
+              '正常',
+              '',
+            ],
+          ),
+        ],
+        fetchedAt: DateTime(2026, 6, 11, 10, 5),
+        sourceUri: Uri.parse(
+          'https://jx.sspu.edu.cn/eams/stdExamTable!examTable.action',
+        ),
+      ),
+    ),
+  );
+}

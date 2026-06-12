@@ -66,6 +66,8 @@ flutter pub get
 | `local_auth` | 可选系统快速验证，用于密码保护开启后的本机认证解锁 |
 | `url_launcher` | 打开外部链接，例如 GitHub Release 页面 |
 | `open_filex` | 打开本地安装器、安装包或文件夹入口 |
+| `window_manager` | 桌面窗口控制与自绘标题栏 |
+| `tray_manager` | 桌面系统托盘入口 |
 | `dio` | HTTP 请求与应用内更新下载 |
 | `gbk_codec` | GBK / GB2312 解码，用于体育部查询系统旧版页面 |
 | `enough_mail` | IMAP / POP / SMTP 邮箱协议客户端，用于学校邮箱只读收信、登录校验和用户主动发信 |
@@ -272,7 +274,7 @@ flutter build appbundle --release
 flutter build ios --release
 ```
 
-iOS Bundle ID 已迁移为 `cn.qintsg.sspuAllinOne`。Bundle ID 变化后，需要在 Apple Developer 账号中准备新的 App ID，并重新生成匹配的 provisioning profile；证书本身不因显示名称变化而重取，但 profile 必须覆盖新的 Bundle ID。
+iOS Bundle ID 已迁移为 `cn.qintsg.sspuAllInOne`。Bundle ID 变化后，需要在 Apple Developer 账号中准备新的 App ID，并重新生成匹配的 provisioning profile；证书本身不因显示名称变化而重取，但 profile 必须覆盖新的 Bundle ID。
 
 iOS 系统快速验证通过 `local_auth` 调用系统能力，`Info.plist` 已配置 `NSFaceIDUsageDescription`。启用该功能仍需先开启应用密码保护并输入当前密码确认。
 
@@ -311,6 +313,7 @@ flutter build macos --release
 - 分发生成的 `.app` 包
 - 当前 GitHub Release 默认产出 Developer ID 签名并公证的 DMG：`SSPU-AllinOne-v{version}-macos-universal.dmg`
 - 若自行本地构建且未做 Apple 签名与公证，首次运行可能需要在系统安全设置中手动允许
+- macOS 标题栏保留系统原生红绿灯窗口按钮，位于左上角并支持关闭、最小化和缩放
 - macOS 系统快速验证通过 `local_auth` 调用系统能力，`Info.plist` 已配置 `NSFaceIDUsageDescription`
 
 ### 7.5 Linux 桌面

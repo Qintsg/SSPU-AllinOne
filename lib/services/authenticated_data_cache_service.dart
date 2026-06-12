@@ -306,6 +306,7 @@ class AuthenticatedDataCacheService {
     StorageKeys.studentReportCacheCollection,
     StorageKeys.academicEamsOverviewCacheCollection,
     StorageKeys.academicEamsCourseTableCacheCollection,
+    StorageKeys.academicEamsExamScheduleCacheCollection,
     StorageKeys.emailMailboxCacheCollection,
     '${StorageKeys.emailMailboxCacheCollection}_imap',
     '${StorageKeys.emailMailboxCacheCollection}_pop',
