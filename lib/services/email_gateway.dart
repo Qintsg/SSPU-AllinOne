@@ -1,5 +1,5 @@
 /*
- * 学校邮箱协议网关 — 封装 IMAP / POP / SMTP 只读与认证边界
+ * 学校邮箱协议网关 — 封装 IMAP / POP 收信与 SMTP 发信
  * @Project : SSPU-AllinOne
  * @File : email_gateway.dart
  * @Author : Qintsg
@@ -8,7 +8,7 @@
 
 part of 'email_service.dart';
 
-/// enough_mail 低层协议适配器，封装只读命令边界。
+/// enough_mail 低层协议适配器，封装收信、认证和用户主动发信。
 class EnoughMailGateway implements EmailGateway {
   @override
   Future<List<EmailMessageSnapshot>> fetchImapMessages({
@@ -140,6 +140,40 @@ class EnoughMailGateway implements EmailGateway {
     }
   }
 
+  @override
+  Future<void> sendSmtpMessage({
+    required EmailServerEndpoint endpoint,
+    required String account,
+    required String password,
+    required EmailComposeRequest request,
+    required Duration timeout,
+  }) async {
+    final client = SmtpClient(EmailService.defaultDomain);
+    try {
+      await client.connectToServer(
+        endpoint.host,
+        endpoint.port,
+        isSecure: endpoint.isSecure,
+        timeout: timeout,
+      );
+      await client.ehlo().timeout(timeout);
+      await client
+          .authenticate(account, password, _preferredSmtpAuthMechanism(client))
+          .timeout(timeout);
+      final builder = MessageBuilder.buildSimpleTextMessage(
+        MailAddress(null, account),
+        _mailAddresses(request.to),
+        request.body,
+        cc: _optionalMailAddresses(request.cc),
+        bcc: _optionalMailAddresses(request.bcc),
+        subject: request.subject,
+      );
+      await client.sendMessage(builder).timeout(timeout);
+    } finally {
+      await _quitSmtpSilently(client);
+    }
+  }
+
   Future<Mailbox> _findInboxMailbox(ImapClient client, Duration timeout) async {
     final mailboxes = await client.listMailboxes().timeout(timeout);
     for (final mailbox in mailboxes) {
@@ -228,6 +262,17 @@ class EnoughMailGateway implements EmailGateway {
     return '${body.substring(0, 140)}...';
   }
 
+  List<MailAddress> _mailAddresses(List<String> addresses) {
+    return addresses
+        .map((address) => MailAddress.parse(address.trim()))
+        .toList();
+  }
+
+  List<MailAddress>? _optionalMailAddresses(List<String> addresses) {
+    if (addresses.isEmpty) return null;
+    return _mailAddresses(addresses);
+  }
+
   String _normalizeText(String value) {
     return value.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
@@ -254,7 +299,7 @@ class EnoughMailGateway implements EmailGateway {
     try {
       if (client.isLoggedIn) await client.quit();
     } catch (_) {
-      // SMTP 仅完成认证校验，不发送邮件；退出失败时关闭连接即可。
+      // 退出失败不改变认证或发信主结果；随后仍会关闭 socket。
     }
     await client.disconnect();
   }

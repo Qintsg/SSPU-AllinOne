@@ -228,4 +228,23 @@ void main() {
       isNotNull,
     );
   });
+
+  test('邮箱和体育密码变化会广播凭据状态变化', () async {
+    final changes = <int>[];
+    final subscription = service.changes.listen(changes.add);
+    addTearDown(subscription.cancel);
+
+    await service.saveCredentials(
+      oaAccount: '20260001',
+      emailPassword: 'mail-pass',
+    );
+    await service.saveCredentials(
+      oaAccount: '20260001',
+      sportsQueryPassword: 'sports-pass',
+    );
+    await service.clearSecret(AcademicCredentialSecret.emailPassword);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(changes.length, 3);
+  });
 }

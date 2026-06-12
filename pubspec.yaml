@@ -81,7 +81,7 @@ dependencies:
   # 读取应用版本号与包信息，避免关于页手写版本常量
   package_info_plus: ^10.1.0
 
-  # 邮箱协议客户端，用于学校邮箱 IMAP / POP 只读收信和 SMTP 认证校验
+  # 邮箱协议客户端，用于学校邮箱 IMAP / POP 只读收信和 SMTP 主动发信
   enough_mail: ^2.1.7
   pdfrx: ^2.4.3
   pdfrx_engine: ^0.4.2

@@ -10,6 +10,7 @@
 
 ### 新增
 
+- 学校邮箱页面新增 SMTP 主动发信入口，支持 To / Cc / Bcc / 主题 / 正文的普通文本邮件发送，并继续保持 IMAP / POP 收信只读边界。
 - 新增高级 CodeQL、Gitleaks 密钥扫描与 Flutter 覆盖率 workflow，并将 Dart / Flutter 质量门禁文案整合到现有 CI。
 - 新增 User-Agent Policy PR workflow，阻止未写明例外原因的非标准 UA 进入运行时代码。
 - macOS 桌面窗口保留系统原生红绿灯控制按钮，并让自绘标题栏避让左上角系统按钮区域。
@@ -21,6 +22,10 @@
 ### 修复
 
 - 修正 macOS Bundle ID、RunnerTests 标识和钥匙串访问组大小写，统一使用 `cn.qintsg.sspuAllInOne`。
+
+### 文档
+
+- 新增学校邮箱 IMAP / POP / SMTP 规则文档，更新仓库边界、法律与隐私说明和协议确认键，明确 SMTP 发信的数据提交与不缓存正文/收件人策略。
 
 ## [0.2.8-alpha] - 2026-06-12
 
