@@ -1,5 +1,5 @@
 /*
- * 学校邮箱服务测试 — 校验凭据读取、协议边界与账号规范化
+ * 学校邮箱服务测试 — 校验凭据读取、协议边界、发信与账号规范化
  * @Project : SSPU-AllinOne
  * @File : email_service_test.dart
  * @Author : Qintsg
@@ -175,7 +175,7 @@ void main() {
     expect(cachedResult, isNull);
   });
 
-  test('SMTP 仅允许登录校验不允许收信', () async {
+  test('SMTP 不允许收信但允许用户主动发信', () async {
     await AcademicCredentialsService.instance.saveCredentials(
       oaAccount: '20260001',
       emailPassword: 'mail-pass',
@@ -187,11 +187,74 @@ void main() {
       protocol: EmailProtocol.smtp,
     );
     final validationResult = await service.validateLogin(EmailProtocol.smtp);
+    final sendResult = await service.sendMessage(
+      const EmailComposeRequest(
+        to: ['student@example.com'],
+        cc: ['teacher@example.com'],
+        subject: '测试主题',
+        body: '测试正文',
+      ),
+    );
 
     expect(fetchResult.status, EmailQueryStatus.loginRejected);
     expect(validationResult.status, EmailQueryStatus.success);
+    expect(sendResult.status, EmailQueryStatus.success);
     expect(gateway.validateSmtpCount, 1);
+    expect(gateway.sendSmtpCount, 1);
     expect(gateway.fetchImapCount + gateway.fetchPopCount, 0);
+    expect(gateway.lastAccount, '20260001@sspu.edu.cn');
+    expect(gateway.lastComposeRequest?.recipientCount, 2);
+  });
+
+  test('SMTP 发信输入不完整时不访问协议网关', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      emailPassword: 'mail-pass',
+    );
+    final gateway = _FakeEmailGateway();
+    final service = EmailService(gateway: gateway);
+
+    final result = await service.sendMessage(
+      const EmailComposeRequest(
+        to: ['invalid-address'],
+        subject: '测试主题',
+        body: '测试正文',
+      ),
+    );
+
+    expect(result.status, EmailQueryStatus.invalidInput);
+    expect(gateway.sendSmtpCount, 0);
+  });
+
+  test('SMTP 发信不会把收件人或正文写入普通缓存', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      emailPassword: 'mail-pass',
+    );
+    final service = EmailService(gateway: _FakeEmailGateway());
+
+    final result = await service.sendMessage(
+      const EmailComposeRequest(
+        to: ['recipient@example.com'],
+        subject: '敏感主题',
+        body: '敏感正文',
+      ),
+    );
+    final imapCache = await StorageService.getAllData(
+      '${StorageKeys.emailMailboxCacheCollection}_imap',
+    );
+    final popCache = await StorageService.getAllData(
+      '${StorageKeys.emailMailboxCacheCollection}_pop',
+    );
+    final smtpCache = await StorageService.getAllData(
+      '${StorageKeys.emailMailboxCacheCollection}_smtp',
+    );
+    final storedState = '$imapCache $popCache $smtpCache';
+
+    expect(result.status, EmailQueryStatus.success);
+    expect(storedState.toString(), isNot(contains('recipient@example.com')));
+    expect(storedState.toString(), isNot(contains('敏感主题')));
+    expect(storedState.toString(), isNot(contains('敏感正文')));
   });
 }
 
@@ -204,7 +267,9 @@ class _FakeEmailGateway implements EmailGateway {
   int fetchImapCount = 0;
   int fetchPopCount = 0;
   int validateSmtpCount = 0;
+  int sendSmtpCount = 0;
   String? lastAccount;
+  EmailComposeRequest? lastComposeRequest;
 
   @override
   Future<List<EmailMessageSnapshot>> fetchImapMessages({
@@ -267,6 +332,22 @@ class _FakeEmailGateway implements EmailGateway {
   }) async {
     validateSmtpCount++;
     lastAccount = account;
+  }
+
+  @override
+  Future<void> sendSmtpMessage({
+    required EmailServerEndpoint endpoint,
+    required String account,
+    required String password,
+    required EmailComposeRequest request,
+    required Duration timeout,
+  }) async {
+    sendSmtpCount++;
+    lastAccount = account;
+    lastComposeRequest = request;
+    final error = this.error;
+    if (error != null) throw error;
+    await beforeReturn?.call();
   }
 }
 

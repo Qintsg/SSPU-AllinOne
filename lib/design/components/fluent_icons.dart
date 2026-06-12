@@ -22,6 +22,7 @@ class FluentIcons {
   static const IconData info = system.FluentIcons.info_24_regular;
   static const IconData infoSolid = system.FluentIcons.info_24_filled;
   static const IconData mail = system.FluentIcons.mail_24_regular;
+  static const IconData send = system.FluentIcons.send_24_regular;
   static const IconData link = system.FluentIcons.link_24_regular;
   static const IconData linkDismiss =
       system.FluentIcons.link_dismiss_24_regular;

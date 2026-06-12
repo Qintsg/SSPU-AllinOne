@@ -1,5 +1,5 @@
 /*
- * 学校邮箱页面测试 — 校验只读收信、正文详情与 SMTP 校验入口
+ * 学校邮箱页面测试 — 校验收信、正文详情、SMTP 校验与发信入口
  * @Project : SSPU-AllinOne
  * @File : email_page_test.dart
  * @Author : Qintsg
@@ -47,9 +47,13 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('SSPU 邮箱只读收件箱'), findsOneWidget);
-    expect(find.textContaining('SMTP 仅用于认证与连通性校验'), findsOneWidget);
+    expect(find.text('SSPU 邮箱'), findsOneWidget);
+    expect(find.text('写邮件'), findsOneWidget);
+    expect(find.byKey(const Key('email-compose-panel')), findsNothing);
+    expect(find.textContaining('SMTP 只在点击发送时提交文本邮件'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('读取最近邮件'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('读取最近邮件'));
     await pumpUntilFound(tester, find.text('教务通知'));
 
@@ -77,12 +81,113 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 100));
 
+    await tester.ensureVisible(find.text('校验 SMTP'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('校验 SMTP'));
     await pumpUntilFound(tester, find.text('SMTP 登录校验通过'));
 
     expect(service.validateCount, 1);
     expect(service.lastValidatedProtocol, EmailProtocol.smtp);
     expect(service.fetchCount, 0);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 120));
+  });
+
+  testWidgets('邮箱页面可通过撰写面板触发 SMTP 发信', (tester) async {
+    final service = _FakeEmailClient();
+    await pumpEmailPage(
+      tester,
+      emailService: service,
+      emailAutoRefreshEnabledOverride: false,
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text('写邮件'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('email-compose-panel')), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(FluentTextField, '收件人'),
+      'to@example.com',
+    );
+    await tester.enterText(
+      find.widgetWithText(FluentTextField, '抄送'),
+      'cc@example.com',
+    );
+    await tester.enterText(find.widgetWithText(FluentTextField, '主题'), '测试主题');
+    await tester.enterText(find.widgetWithText(FluentTextField, '正文'), '测试正文');
+    await tester.ensureVisible(find.text('发送邮件'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('发送邮件'));
+    await pumpUntilFound(tester, find.text('邮件已提交发送'));
+
+    expect(service.sendCount, 1);
+    expect(service.lastComposeRequest?.to, ['to@example.com']);
+    expect(service.lastComposeRequest?.cc, ['cc@example.com']);
+    expect(service.lastComposeRequest?.subject, '测试主题');
+    expect(find.byKey(const Key('app-feedback-toast')), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 120));
+  });
+
+  testWidgets('邮箱撰写面板在窄屏下不溢出', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() async {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final service = _FakeEmailClient();
+    await pumpEmailPage(
+      tester,
+      emailService: service,
+      emailAutoRefreshEnabledOverride: false,
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.text('写邮件'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('撰写邮件'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 120));
+  });
+
+  testWidgets('邮箱页面桌面端使用三栏邮件客户端布局', (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(1280, 800));
+    addTearDown(() async {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final service = _FakeEmailClient(cachedResult: _cachedMailboxResult);
+    await pumpEmailPage(
+      tester,
+      emailService: service,
+      emailAutoRefreshEnabledOverride: false,
+    );
+    await pumpUntilFound(
+      tester,
+      find.byKey(const Key('email-desktop-client-layout')),
+    );
+
+    expect(find.byKey(const Key('email-sidebar')), findsOneWidget);
+    expect(find.byKey(const Key('email-mailbox-list-pane')), findsOneWidget);
+    expect(find.text('缓存通知'), findsWidgets);
+
+    await tester.tap(find.text('写邮件'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('email-compose-panel')), findsOneWidget);
+    expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 120));
   });
@@ -132,7 +237,9 @@ class _FakeEmailClient implements EmailMailboxClient {
   final EmailMailboxQueryResult? cachedResult;
   int fetchCount = 0;
   int validateCount = 0;
+  int sendCount = 0;
   EmailProtocol? lastValidatedProtocol;
+  EmailComposeRequest? lastComposeRequest;
 
   @override
   Future<EmailMailboxQueryResult?> readLatestCachedMessages(
@@ -181,11 +288,31 @@ class _FakeEmailClient implements EmailMailboxClient {
       endpoint: _endpoint,
     );
   }
+
+  @override
+  Future<EmailSendResult> sendMessage(EmailComposeRequest request) async {
+    sendCount++;
+    lastComposeRequest = request;
+    return EmailSendResult(
+      status: EmailQueryStatus.success,
+      message: '邮件已提交发送',
+      detail: '已通过 SMTP 提交普通文本邮件。',
+      checkedAt: DateTime(2026, 5, 1, 9, 30),
+      endpoint: _smtpEndpoint,
+      recipientsCount: request.recipientCount,
+    );
+  }
 }
 
 const EmailServerEndpoint _endpoint = EmailServerEndpoint(
   host: 'imap.exmail.qq.com',
   port: 993,
+  isSecure: true,
+);
+
+const EmailServerEndpoint _smtpEndpoint = EmailServerEndpoint(
+  host: 'smtp.exmail.qq.com',
+  port: 465,
   isSecure: true,
 );
 

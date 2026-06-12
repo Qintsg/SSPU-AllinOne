@@ -528,6 +528,17 @@ class _FakeEmailMailboxClient implements EmailMailboxClient {
     validatedProtocols.add(protocol);
     return result;
   }
+
+  @override
+  Future<EmailSendResult> sendMessage(EmailComposeRequest request) async {
+    return EmailSendResult(
+      status: EmailQueryStatus.unexpectedError,
+      message: '测试不发送邮件',
+      detail: '测试不发送邮件',
+      checkedAt: DateTime(2026, 6, 11),
+      endpoint: EmailService.defaultSmtpEndpoint,
+    );
+  }
 }
 
 AcademicLoginValidationResult _successResult() {
