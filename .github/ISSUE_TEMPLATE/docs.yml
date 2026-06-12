@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        请指出具体文件或页面。若文档涉及账号、截图或日志，请先脱敏。
+        请指出具体文件或页面。若涉及账号、截图或日志，请先脱敏。
 
   - type: input
     id: page

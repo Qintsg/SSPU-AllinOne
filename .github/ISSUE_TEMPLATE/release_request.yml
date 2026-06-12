@@ -6,16 +6,14 @@ body:
   - type: markdown
     attributes:
       value: |
-        公开 Release 由带 `release` label 的 PR merge 自动触发，但本 Issue 模板不会自动添加 `release` label。
-        alpha / beta / rc 使用 `release/v... -> develop` 并在 Release PR 上人工添加 `release` label。
-        stable / lts / hotfix 先走 `release/v... -> develop` 且不携带 `release` label，再走 `develop -> main` 并在第二段 PR 上人工添加 `release` label。
-        版本号只维护 `pubspec.yaml` 与 `docs/CHANGELOG.md`；安装包文件名、Release 标题和 Release 描述不得显式写出 `+build`。
+        公开 Release 由带 `release` label 的 PR merge 自动触发，本 Issue 不会自动添加该标签。
+        版本号只维护 `pubspec.yaml` 与 `docs/CHANGELOG.md`；安装包文件名和 Release 标题不得写出 `+build`。
 
   - type: input
     id: public_version
     attributes:
       label: 公开版本
-      description: 不含 `+build`，格式为 `X.X.X[-channel]` 或 `X.X.X.X[-channel]`。
+      description: 不含 `+build`，格式为 `X.X.X[-channel]`。
       placeholder: 例如：1.0.0-alpha
     validations:
       required: true
@@ -24,7 +22,7 @@ body:
     id: pubspec_version
     attributes:
       label: pubspec.yaml 完整版本
-      description: 必须包含 `+build`，例如 `1.0.0-alpha+1`。
+      description: 必须包含 `+build`。
       placeholder: 例如：1.0.0-alpha+1
     validations:
       required: true
@@ -89,19 +87,14 @@ body:
       required: true
 
   - type: dropdown
-    id: changed_areas
+    id: priority
     attributes:
-      label: 发布准备影响范围
-      multiple: true
+      label: 优先级建议
       options:
-        - 版本号 / Changelog
-        - Release notes
-        - GitHub Actions / Release workflow
-        - Windows 安装器
-        - Android 签名 / 构建
-        - 平台元数据
-        - 文档
-        - 其它
+        - P0 阻塞 / 紧急：当前发布被阻塞
+        - P1 高优先级：近期版本发版准备
+        - P2 中优先级：排入后续发版计划
+        - P3 低优先级：长期发布治理优化
     validations:
       required: true
 
@@ -109,40 +102,19 @@ body:
     id: highlights
     attributes:
       label: 发布亮点
-      description: 简述本次发布的主要新增、修复和优化，不要显式写出 `+build`。
-      placeholder: |
-        - 新增 ...
-        - 修复 ...
-        - 优化 ...
-    validations:
-      required: true
-
-  - type: textarea
-    id: missing_platforms
-    attributes:
-      label: 缺失或异常平台说明
-      description: 若某些平台本次不发布或存在限制，请写明原因；若无请写“无”。
-      placeholder: 例如：macOS 签名或公证材料缺失，本次不发布 macOS 产物。
+      description: 简述本次发布的主要新增、修复和优化，不要写出 `+build`。
+      value: |
+        - 新增：
+        - 修复：
+        - 优化：
     validations:
       required: true
 
   - type: textarea
     id: known_issues
     attributes:
-      label: 已知问题
-      description: 发布后仍存在但可接受的问题；若无请写“无已知问题”。
-    validations:
-      required: true
-
-  - type: dropdown
-    id: priority
-    attributes:
-      label: 优先级建议
-      options:
-        - P1 高优先级：近期版本发版准备
-        - P0 阻塞 / 紧急：当前发布被阻塞
-        - P2 中优先级：排入后续发版计划
-        - P3 低优先级：长期发布治理优化
+      label: 已知问题与缺失平台
+      description: 发布后仍存在的问题；若某些平台本次不发布请写明原因；若无请写"无"。
     validations:
       required: true
 
@@ -151,17 +123,13 @@ body:
     attributes:
       label: 发布前检查
       options:
-        - label: 我已确认本 Issue 不会自动添加 `release` label，实际触发发布需在对应 PR 人工添加
+        - label: 我已确认本 Issue 不会自动添加 `release` label，需在 PR 人工添加
           required: true
-        - label: 我已确认 `flutter analyze` 通过，或会在 PR 中说明未执行原因
-          required: true
-        - label: 我已确认 `flutter test` 通过，或会在 PR 中说明未执行原因
+        - label: 我已确认 `flutter analyze` 和 `flutter test` 通过
           required: true
         - label: 我已确认版本号只修改 `pubspec.yaml` 与 `docs/CHANGELOG.md`
           required: true
-        - label: 我已确认 Tag、Release 标题和资产命名使用公开版本且不包含 `+build`
-          required: true
-        - label: 我已确认 PR 正文将按 Release 模板填写
+        - label: 我已确认 Tag 和 Release 标题不包含 `+build`
           required: true
         - label: 我已确认 `docs/CHANGELOG.md` 和 `docs/RELEASE.md` 已同步
           required: true
