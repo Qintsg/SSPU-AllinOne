@@ -12,6 +12,7 @@
 
 - 新增高级 CodeQL、Gitleaks 密钥扫描与 Flutter 覆盖率 workflow，并将 Dart / Flutter 质量门禁文案整合到现有 CI。
 - 新增 User-Agent Policy PR workflow，阻止未写明例外原因的非标准 UA 进入运行时代码。
+- macOS 桌面窗口保留系统原生红绿灯控制按钮，并让自绘标题栏避让左上角系统按钮区域。
 
 ### 变更
 
