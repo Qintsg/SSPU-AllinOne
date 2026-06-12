@@ -13,6 +13,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 String _read(String path) => File(path).readAsStringSync();
 
+const _legacyAppleBundleStem =
+    'sspuAll'
+    'inOne';
+
 Map<String, Object?> _readJson(String path) {
   return jsonDecode(_read(path)) as Map<String, Object?>;
 }
@@ -64,6 +68,55 @@ void main() {
         contains('"CFBundleDisplayName" = "工大聚合";'),
       );
     }
+  });
+
+  test('Apple Bundle Identifier 使用标准驼峰命名', () {
+    final iosProject = _read('ios/Runner.xcodeproj/project.pbxproj');
+    final macosProject = _read('macos/Runner.xcodeproj/project.pbxproj');
+    final macosAppInfo = _read('macos/Runner/Configs/AppInfo.xcconfig');
+    final macosDebugEntitlements = _read(
+      'macos/Runner/DebugProfile.entitlements',
+    );
+    final macosReleaseEntitlements = _read('macos/Runner/Release.entitlements');
+
+    for (final content in [
+      iosProject,
+      macosProject,
+      macosAppInfo,
+      macosDebugEntitlements,
+      macosReleaseEntitlements,
+    ]) {
+      expect(content, isNot(contains(_legacyAppleBundleStem)));
+    }
+
+    expect(
+      iosProject,
+      contains('PRODUCT_BUNDLE_IDENTIFIER = cn.qintsg.sspuAllInOne;'),
+    );
+    expect(
+      iosProject,
+      contains(
+        'PRODUCT_BUNDLE_IDENTIFIER = cn.qintsg.sspuAllInOne.RunnerTests;',
+      ),
+    );
+    expect(
+      macosProject,
+      contains(
+        'PRODUCT_BUNDLE_IDENTIFIER = cn.qintsg.sspuAllInOne.RunnerTests;',
+      ),
+    );
+    expect(
+      macosAppInfo,
+      contains('PRODUCT_BUNDLE_IDENTIFIER = cn.qintsg.sspuAllInOne'),
+    );
+    expect(
+      macosDebugEntitlements,
+      contains('8LDARH2S3X.cn.qintsg.sspuAllInOne'),
+    );
+    expect(
+      macosReleaseEntitlements,
+      contains('8LDARH2S3X.cn.qintsg.sspuAllInOne'),
+    );
   });
 
   test('Windows 和 Linux 原生入口按语言环境显示应用名', () {

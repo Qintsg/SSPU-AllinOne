@@ -17,6 +17,10 @@
 
 - OA/CAS 与校园受限 HTTP 请求改用 `SSPU-AllinOne/{version} ({platform}; {os_version})` 应用身份 User-Agent，微信公众号和通用 WebView 保留带注释说明的浏览器 UA 例外。
 
+### 修复
+
+- 修正 macOS Bundle ID、RunnerTests 标识和钥匙串访问组大小写，统一使用 `cn.qintsg.sspuAllInOne`。
+
 ## [0.2.8-alpha] - 2026-06-12
 
 ### 发布

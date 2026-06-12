@@ -272,7 +272,7 @@ flutter build appbundle --release
 flutter build ios --release
 ```
 
-iOS Bundle ID 已迁移为 `cn.qintsg.sspuAllinOne`。Bundle ID 变化后，需要在 Apple Developer 账号中准备新的 App ID，并重新生成匹配的 provisioning profile；证书本身不因显示名称变化而重取，但 profile 必须覆盖新的 Bundle ID。
+iOS Bundle ID 已迁移为 `cn.qintsg.sspuAllInOne`。Bundle ID 变化后，需要在 Apple Developer 账号中准备新的 App ID，并重新生成匹配的 provisioning profile；证书本身不因显示名称变化而重取，但 profile 必须覆盖新的 Bundle ID。
 
 iOS 系统快速验证通过 `local_auth` 调用系统能力，`Info.plist` 已配置 `NSFaceIDUsageDescription`。启用该功能仍需先开启应用密码保护并输入当前密码确认。
 
