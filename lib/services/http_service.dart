@@ -10,6 +10,8 @@
 
 import 'package:dio/dio.dart';
 
+import 'app_user_agent_service.dart';
+
 /// HTTP 请求服务（单例）
 /// 封装 dio 实例，提供统一的 GET/POST/PUT/DELETE 方法
 /// 自动附加请求日志、超时处理与错误码映射
@@ -23,18 +25,34 @@ class HttpService {
 
   late final Dio _dio;
 
+  /// OA/CAS 相关请求使用的标准应用 User-Agent。
+  static String get userAgent => AppUserAgentService.userAgent;
+
+  /// 为可替换 Dio 实例套用网关默认配置。
+  ///
+  /// :param dio: 可选外部 Dio，测试或高级场景可注入 adapter / interceptor。
+  /// :param baseOptions: 该网关的默认请求配置。
+  /// :returns: 已配置默认请求选项的 Dio 实例。
+  static Dio buildConfiguredDio(Dio? dio, BaseOptions baseOptions) {
+    if (dio == null) return Dio(baseOptions);
+    dio.options = baseOptions;
+    return dio;
+  }
+
+  /// 测试专用：读取当前默认请求头，不触碰全局 Dio 单例。
+  static Map<String, dynamic> debugDefaultHeadersForTesting() {
+    return Map<String, dynamic>.unmodifiable(_defaultOptions.headers);
+  }
+
   /// 默认请求配置：30 秒超时，JSON 响应
-  static final BaseOptions _defaultOptions = BaseOptions(
+  static BaseOptions get _defaultOptions => BaseOptions(
     connectTimeout: const Duration(seconds: 15),
     receiveTimeout: const Duration(seconds: 30),
     sendTimeout: const Duration(seconds: 15),
     responseType: ResponseType.json,
     headers: {
       'Accept': 'application/json',
-      // 模拟浏览器 UA，避免被目标站点拒绝
-      'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-          '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'User-Agent': HttpService.userAgent,
     },
   );
 

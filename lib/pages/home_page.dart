@@ -31,13 +31,11 @@ import '../services/storage_service.dart';
 import '../services/student_report_service.dart';
 import '../theme/fluent_tokens.dart';
 import '../utils/query_result_messages.dart';
-import '../utils/webview_env.dart';
+import '../utils/app_web_launcher.dart';
 import '../widgets/campus_network_status_indicator.dart';
 import '../widgets/refresh_feedback_action.dart';
 import '../widgets/responsive_layout.dart';
 import 'course_schedule_page.dart';
-import 'webview_page.dart';
-
 part 'home_campus_card_balance_card.dart';
 part 'home_campus_card_detail_page.dart';
 part 'home_student_profile_card.dart';
@@ -887,19 +885,10 @@ class _HomePageState extends State<HomePage> {
     final theme = FluentTheme.of(context);
     return FluentHoverButton(
       onPressed: () async {
-        // 标记已读并跳转内嵌 WebView。
+        // 标记已读并在 iOS 使用 Safari View Controller 打开。
         MessageStateService.instance.markAsRead(msg.id);
-        final webViewEnvironment = await ensureGlobalWebViewEnvironment();
         if (!context.mounted) return;
-        Navigator.of(context).push(
-          FluentPageRoute(
-            builder: (_) => WebViewPage(
-              url: msg.url,
-              initialTitle: msg.title,
-              webViewEnvironment: webViewEnvironment,
-            ),
-          ),
-        );
+        await openAppWebUrl(context, url: msg.url, title: msg.title);
       },
       builder: (context, states) {
         final isHovered = states.isHovered;

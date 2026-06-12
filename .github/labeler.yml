@@ -106,6 +106,7 @@ ci:
   - changed-files:
       - any-glob-to-any-file:
           - '.github/workflows/**'
+          - 'scripts/ci/**'
 
 # Release 相关文件变更
 # 注意：`release` 标签保留给人工触发 Release 工作流，不在这里自动添加。
