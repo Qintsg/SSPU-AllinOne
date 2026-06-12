@@ -1,0 +1,43 @@
+# OSV Scanner — 依赖漏洞扫描
+name: OSV Scanner
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+  pull_request:
+    branches: [develop]
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+  schedule:
+    - cron: '15 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    name: OSV Scanner
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Run OSV Scanner
+        uses: google/osv-scanner-action@764c91816374ff2d8fc2095dab36eecd42d61638 # v1.9.2
+        with:
+          scan-args: |-
+            --output-format=sarif
+            --output=osv-results.sarif
+            .
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
+        with:
+          sarif_file: osv-results.sarif

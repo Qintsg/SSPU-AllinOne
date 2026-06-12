@@ -36,7 +36,7 @@ void main() {
     expect(
       releaseWorkflow,
       contains(
-        'dist/SSPU-AllinOne-v\${{ needs.prepare.outputs.version }}-macos-universal.dmg',
+        'dist/SSPU-AllinOne-v\${{ needs.prepare.outputs.version }}-macos-arm64.dmg',
       ),
     );
   });

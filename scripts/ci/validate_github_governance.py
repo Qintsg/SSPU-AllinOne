@@ -21,6 +21,9 @@ GITHUB_DIR = PROJECT_ROOT / ".github"
 ISSUE_TEMPLATE_DIR = GITHUB_DIR / "ISSUE_TEMPLATE"
 PR_TEMPLATE_DIR = GITHUB_DIR / "PULL_REQUEST_TEMPLATE"
 LABELER_PATH = GITHUB_DIR / "labeler.yml"
+CONTRIBUTE_PATH = PROJECT_ROOT / "CONTRIBUTE.md"
+CODE_OF_CONDUCT_PATH = PROJECT_ROOT / "CODE_OF_CONDUCT.md"
+SECURITY_PATH = PROJECT_ROOT / "SECURITY.md"
 
 REQUIRED_COMPOSITE_ACTIONS = {
     "generate-release-metadata",
@@ -32,14 +35,6 @@ REQUIRED_COMPOSITE_ACTIONS = {
 }
 
 REQUIRED_LABELER_LABELS = {
-    "frontend",
-    "services",
-    "models",
-    "storage",
-    "installer",
-    "update",
-    "auth",
-    "notification",
     "test",
     "android",
     "ios",
@@ -219,6 +214,21 @@ def validate_composite_actions() -> None:
         )
 
 
+def validate_contribute_doc() -> None:
+    """
+    校验 CONTRIBUTE.md、CODE_OF_CONDUCT.md 和 SECURITY.md 存在。
+
+    :return: None。
+    :raises GovernanceValidationError: 文件不存在时抛出。
+    """
+    if not CONTRIBUTE_PATH.is_file():
+        raise GovernanceValidationError("缺少贡献指南 CONTRIBUTE.md。")
+    if not CODE_OF_CONDUCT_PATH.is_file():
+        raise GovernanceValidationError("缺少行为准则 CODE_OF_CONDUCT.md。")
+    if not SECURITY_PATH.is_file():
+        raise GovernanceValidationError("缺少安全政策 SECURITY.md。")
+
+
 def main() -> int:
     """
     程序主入口。
@@ -232,6 +242,7 @@ def main() -> int:
     validate_pr_templates()
     validate_labeler()
     validate_composite_actions()
+    validate_contribute_doc()
     print("GitHub governance files are valid.")
     return 0
 

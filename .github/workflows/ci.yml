@@ -56,6 +56,16 @@ jobs:
               print("PR 标题摘要必须包含中文说明。", file=sys.stderr)
               sys.exit(1)
 
+          # 校验分支命名（仅 Warning，不阻断）
+          branch_pattern = re.compile(
+              r"^(.*/)?(feature|fix|hotfix|release|docs|chore|refactor|test|ci)/.+$"
+          )
+          if branch_pattern.fullmatch(head_ref) is None:
+              print(
+                  f"::warning::分支名 `{head_ref}` 不符合命名规范。"
+                  "推荐格式：[prefix/](feature|fix|hotfix|release|docs|chore|refactor|test|ci)/<topic-kebab-case>",
+              )
+
           has_release_label = "release" in labels
           release_branch = re.fullmatch(
               r"release/v\d+\.\d+\.\d+(\.\d+)?(-(alpha|beta|rc|lts|hotfix))?",
@@ -102,6 +112,35 @@ jobs:
 
       - name: 校验 GitHub 治理配置
         run: python scripts/ci/validate_github_governance.py
+
+  lore-gate:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 安装 Lore Protocol
+        run: npm install -g lore-protocol
+
+      - name: 校验 Lore 配置
+        run: lore doctor
+
+      - name: 校验 PR 提交的 Lore 合规性
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          lore validate "$BASE_SHA..$HEAD_SHA" || {
+            echo "::warning::部分 commit 缺少 Lore 元数据，建议使用 lore commit 补充决策记录。"
+          }
 
   quality-gate:
     name: Dart / Flutter Quality Gate

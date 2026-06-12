@@ -5,6 +5,7 @@
 [![License: Artistic-2.0](https://img.shields.io/badge/License-Artistic--2.0-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev)
 [![Version](https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2FQintsg%2FSSPU-AllinOne%2Fmain%2Fpubspec.yaml&query=%24.version&label=version&color=orange)](docs/CHANGELOG.md)
+[![OSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/Qintsg/SSPU-AllinOne?label=OSSF%20Scorecard)](https://securityscorecards.dev/viewer/?uri=github.com/Qintsg/SSPU-AllinOne)
 
 ## 简介
 
@@ -53,20 +54,26 @@ flutter build linux          # Linux
   `ANDROID_KEYSTORE_PASSWORD`
   `ANDROID_KEY_ALIAS`
   `ANDROID_KEY_PASSWORD`
-- 公开 Release 默认上传通用 APK：
-  `SSPU-AllinOne-v{version}-android-universal.apk`
+- 公开 Release 默认上传分架构 APK：
+  `SSPU-AllinOne-v{version}-android-arm64-v8a.apk`
+  `SSPU-AllinOne-v{version}-android-armeabi-v7a.apk`
+  `SSPU-AllinOne-v{version}-android-x86_64.apk`
+  `SSPU-AllinOne-v{version}-android-x86.apk`
 - 构建命令：
 
 ```bash
-flutter build apk --release
+flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64,android-x64,android-x86
 flutter build appbundle --release
 ```
 
 - 产物位置：
-  `build/app/outputs/flutter-apk/app-release.apk`
+  `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`
+  `build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk`
+  `build/app/outputs/flutter-apk/app-x86_64-release.apk`
+  `build/app/outputs/flutter-apk/app-x86-release.apk`
   `build/app/outputs/bundle/release/app-release.aab`
 - 使用方式：
-  `app-release.apk` 可直接分发安装
+  `app-*-release.apk` 可直接分发安装（根据设备架构选择）
   `app-release.aab` 用于应用商店上架，不适合直接本地安装
 
 ### Windows
@@ -83,9 +90,9 @@ flutter build windows --release
 - 使用方式：
   将 `x64` 架构的整个 `Release/` 目录连同其中的 DLL 和 `data/` 一起分发；直接运行目录中的 `sspu_allinone.exe`
   Release workflow 会同时生成：
-  `SSPU-AllinOne-v{version}-windows-x64-installer.exe`
+  `SSPU-AllinOne-v{version}-windows-x64-setup.exe`
   `SSPU-AllinOne-v{version}-windows-x64-portable.zip`
-  `SSPU-AllinOne-v{version}-windows-arm64-installer.exe`
+  `SSPU-AllinOne-v{version}-windows-arm64-setup.exe`
   `SSPU-AllinOne-v{version}-windows-arm64-portable.zip`
 
 ### Linux
@@ -102,14 +109,14 @@ flutter build linux --release
 - 使用方式：
   打包并分发整个 `bundle/` 目录；目标机器上运行 `./sspu_allinone`
   对公开 Release，workflow 会统一生成：
-  `SSPU-AllinOne-v{version}-linux-x64-appimage.AppImage`
-  `SSPU-AllinOne-v{version}-linux-x64-deb.deb`
-  `SSPU-AllinOne-v{version}-linux-x64-rpm.rpm`
-  `SSPU-AllinOne-v{version}-linux-x64-portable.tar.gz`
-  `SSPU-AllinOne-v{version}-linux-arm64-appimage.AppImage`
-  `SSPU-AllinOne-v{version}-linux-arm64-deb.deb`
-  `SSPU-AllinOne-v{version}-linux-arm64-rpm.rpm`
-  `SSPU-AllinOne-v{version}-linux-arm64-portable.tar.gz`
+  `SSPU-AllinOne-v{version}-linux-x64.AppImage`
+  `SSPU-AllinOne-v{version}-linux-x64.deb`
+  `SSPU-AllinOne-v{version}-linux-x64.rpm`
+  `SSPU-AllinOne-v{version}-linux-x64.tar.gz`
+  `SSPU-AllinOne-v{version}-linux-arm64.AppImage`
+  `SSPU-AllinOne-v{version}-linux-arm64.deb`
+  `SSPU-AllinOne-v{version}-linux-arm64.rpm`
+  `SSPU-AllinOne-v{version}-linux-arm64.tar.gz`
 
 ### macOS
 
@@ -122,12 +129,42 @@ flutter build macos --release
 - 产物位置：
   `build/macos/Build/Products/Release/`
 - 使用方式：
-  分发生成的 `.app` 包；首次运行若被系统拦截，需要在“系统设置 → 隐私与安全性”中手动放行
-  公开 Release 当前默认提供未签名 DMG：
-  `SSPU-AllinOne-v{version}-macos-universal-unsigned.dmg`
+  分发生成的 `.app` 包；首次运行若被系统拦截，需要在"系统设置 → 隐私与安全性"中手动放行
+  公开 Release 当前默认提供多架构 DMG：
+  `SSPU-AllinOne-v{version}-macos-arm64.dmg`
+  `SSPU-AllinOne-v{version}-macos-x86_64.dmg`
+
+### iOS
+
+- 构建命令：
+
+```bash
+flutter build ios --release --no-codesign
+```
+
+- 产物位置：
+  `build/ios/iphoneos/Runner.app`
+- 使用方式：
+  未签名 `.app` 仅可用于 Xcode 模拟器运行；真机安装需要 Apple Developer 账号签名
+  公开 Release 当前默认提供未签名 .app：
+  `SSPU-AllinOne-v{version}-ios-arm64.app`
+
+## 安全扫描
+
+本仓库配置了多层安全扫描：
+
+| 扫描工具 | 用途 | 触发条件 |
+|----------|------|---------|
+| [CodeQL](https://github.com/Qintsg/SSPU-AllinOne/actions/workflows/codeql.yml) | 静态代码分析（Actions、Python、C/C++） | push / PR / 每周 |
+| [Semgrep](https://github.com/Qintsg/SSPU-AllinOne/actions/workflows/semgrep.yml) | 安全规则扫描（1000+ 社区规则） | push / PR / 每周 |
+| [OSV Scanner](https://github.com/Qintsg/SSPU-AllinOne/actions/workflows/osv-scanner.yml) | 依赖漏洞扫描 | 依赖变更 / 每周 |
+| [Secret Scanning](https://github.com/Qintsg/SSPU-AllinOne/actions/workflows/secret-scanning.yml) | 密钥泄漏检测（Gitleaks） | push / PR / 每周 |
+| [Dependency Review](https://github.com/Qintsg/SSPU-AllinOne/actions/workflows/dependency-review.yml) | 依赖供应链审查 | PR 依赖变更 |
+| [OSSF Scorecard](https://github.com/Qintsg/SSPU-AllinOne/actions/workflows/scorecard.yml) | 供应链安全态势评估 | push to main / 每周 |
 
 ## 文档
 
+- [贡献指南](CONTRIBUTE.md) — Git Flow 工作流、开发环境、提交与 PR 规范
 - [设计文档](docs/DESIGN.md) — 架构、功能设计、技术选型
 - [发布规则](docs/RELEASE.md) — 版本、Tag、资产命名、发布门槛与 Release Notes 模板
 - [使用文档](docs/USAGE.md) — 开发环境、运行、测试、构建

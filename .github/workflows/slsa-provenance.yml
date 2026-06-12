@@ -1,0 +1,42 @@
+# SLSA Provenance — 为 Release 生成 SLSA3 供应链溯源证明
+name: SLSA Provenance
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Collect Release Assets
+    runs-on: ubuntu-latest
+    if: "!github.event.release.prerelease"
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+    steps:
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p release-assets
+          gh release download "${{ github.event.release.tag_name }}" \
+            --dir release-assets \
+            --repo "${{ github.repository }}"
+
+      - name: Generate hashes
+        id: hash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          echo "hashes=$(sha256sum * | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+  provenance:
+    name: Generate Provenance
+    needs: [build]
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: "${{ needs.build.outputs.hashes }}"
+      upload-assets: true
