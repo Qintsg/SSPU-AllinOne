@@ -81,6 +81,7 @@ void main() {
 
     expect(find.text('课外活动考勤'), findsOneWidget);
     expect(find.textContaining('体育部查询系统只读汇总'), findsNothing);
+    expect(find.textContaining('展示晨跑'), findsNothing);
     expect(find.text('总次数'), findsOneWidget);
     expect(find.text('早操 2 次'), findsOneWidget);
     expect(find.text('课外活动 3 次'), findsOneWidget);
@@ -91,9 +92,11 @@ void main() {
     final sportsLastRefreshCenter = tester.getCenter(
       find.text('上次刷新：2026-04-30 00:00'),
     );
-    final sportsSummaryTop = tester.getTopLeft(find.text('总次数')).dy;
+    final sportsSummaryBottom = tester.getBottomLeft(find.text('总次数')).dy;
+    final sportsButtonCenter = tester.getCenter(find.text('查看考勤记录'));
     expect(sportsLastRefreshCenter.dy, greaterThan(sportsTitleCenter.dy));
-    expect(sportsLastRefreshCenter.dy, lessThan(sportsSummaryTop));
+    expect(sportsLastRefreshCenter.dy, greaterThan(sportsSummaryBottom));
+    expect((sportsButtonCenter.dy - sportsTitleCenter.dy).abs(), lessThan(20));
     expect(sportsService.requireCampusNetworkValues, [false]);
 
     await tester.ensureVisible(find.text('查看考勤记录'));
@@ -102,7 +105,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('课外活动考勤记录'), findsOneWidget);
-    expect(find.textContaining('明细 2 条'), findsOneWidget);
+    expect(find.text('2 条'), findsOneWidget);
+    expect(find.text('总次数'), findsWidgets);
+    expect(find.text('晨跑次数'), findsOneWidget);
+    expect(find.text('类别'), findsOneWidget);
+    expect(find.text('日期/时间'), findsOneWidget);
+    expect(find.text('项目'), findsOneWidget);
+    expect(find.text('地点'), findsOneWidget);
+    expect(find.text('次数'), findsOneWidget);
     expect(find.textContaining('2026-04-01'), findsWidgets);
     expect(find.textContaining('体育长廊'), findsWidgets);
     await disposeAcademicPage(tester);
@@ -372,6 +382,35 @@ void main() {
     expect(find.text('必修'), findsWidgets);
     expect(find.text('通过'), findsWidgets);
     expect(find.text('参与情况'), findsWidgets);
+    expect(tester.takeException(), isNull);
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('体育考勤详情页在移动端以横向表格展示且不溢出', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
+      ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+    );
+
+    await tester.tap(find.byKey(const Key('academic-sports-refresh')));
+    await pumpUntilFound(tester, find.text('8'));
+
+    await tester.ensureVisible(find.text('查看考勤记录'));
+    await tester.tap(find.text('查看考勤记录'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('汇总表'), findsOneWidget);
+    expect(find.text('明细表'), findsOneWidget);
+    expect(find.text('晨跑次数'), findsOneWidget);
+    expect(find.byType(Table), findsWidgets);
+    expect(find.text('2026-04-01 06:50'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await disposeAcademicPage(tester);
   });
