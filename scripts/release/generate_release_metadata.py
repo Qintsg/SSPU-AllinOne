@@ -21,18 +21,20 @@ from typing import Dict, List, Tuple
 FILENAME_PATTERN = re.compile(
     r"^SSPU-AllinOne-v(?P<version>.+?)-"
     r"(?P<platform>android|ios|windows|macos|linux)-"
-    r"(?P<arch>universal|x64|arm64|armv7)"
-    r"(?:-(?P<kind>installer|portable|bundle|static|unsigned|appimage|deb|rpm))?"
-    r"(?P<ext>\.AppImage|\.tar\.gz|\.zip|\.exe|\.dmg|\.deb|\.rpm|\.apk)$"
+    r"(?P<arch>armeabi-v7a|arm64-v8a|x64|arm64|x86_64)"
+    r"(?:-(?P<kind>setup|portable|unsigned))?"
+    r"(?P<ext>\.AppImage|\.tar\.gz|\.zip|\.exe|\.dmg|\.deb|\.rpm|\.apk|\.app)$"
 )
 
 EXPECTED_PRODUCT_ASSETS = {
-    ("android", "universal", "bundle"),
-    ("windows", "x64", "installer"),
+    ("android", "armeabi-v7a", "apk"),
+    ("android", "arm64-v8a", "apk"),
+    ("windows", "x64", "setup"),
     ("windows", "x64", "portable"),
-    ("windows", "arm64", "installer"),
+    ("windows", "arm64", "setup"),
     ("windows", "arm64", "portable"),
-    ("macos", "universal", "dmg"),
+    ("macos", "arm64", "dmg"),
+    ("macos", "x86_64", "dmg"),
     ("linux", "x64", "appimage"),
     ("linux", "x64", "deb"),
     ("linux", "x64", "rpm"),
@@ -41,6 +43,7 @@ EXPECTED_PRODUCT_ASSETS = {
     ("linux", "arm64", "deb"),
     ("linux", "arm64", "rpm"),
     ("linux", "arm64", "portable"),
+    ("ios", "arm64", "app"),
 }
 
 
@@ -89,9 +92,19 @@ def infer_kind(platform_name: str, extension_name: str) -> str:
     :raises ValueError: 无法推断时抛出异常
     """
     if platform_name == "android" and extension_name == ".apk":
-        return "bundle"
+        return "apk"
     if platform_name == "macos" and extension_name == ".dmg":
         return "dmg"
+    if platform_name == "ios" and extension_name == ".app":
+        return "app"
+    if platform_name == "linux" and extension_name == ".AppImage":
+        return "appimage"
+    if platform_name == "linux" and extension_name == ".deb":
+        return "deb"
+    if platform_name == "linux" and extension_name == ".rpm":
+        return "rpm"
+    if platform_name == "linux" and extension_name == ".tar.gz":
+        return "portable"
 
     raise ValueError(
         f"资产文件名缺少 kind 且无法推断：platform={platform_name}, ext={extension_name}",
