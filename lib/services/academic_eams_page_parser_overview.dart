@@ -265,12 +265,7 @@ AcademicExamSnapshot? _parseExams(AcademicEamsHttpSnapshot? snapshot) {
       if (courseName == null || courseName.isEmpty) continue;
       final record = AcademicExamRecord(
         examType: _pickValue(rowMap, ['考试类型', '类型', 'Exam Type']),
-        courseSequence: _pickValue(rowMap, [
-          '课程序号',
-          '课程代码',
-          '课程编号',
-          'Number',
-        ]),
+        courseSequence: _pickValue(rowMap, ['课程序号', '课程代码', '课程编号', 'Number']),
         courseName: courseName,
         examDate: _pickValue(rowMap, [
           '考试日期',

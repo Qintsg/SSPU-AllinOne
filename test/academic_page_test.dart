@@ -672,9 +672,7 @@ void main() {
       expect(
         find.text(header),
         // “考试类型”同时出现在筛选下拉与表头，“考试安排”出现在表头与字段。
-        (header == '考试安排' || header == '考试类型')
-            ? findsWidgets
-            : findsOneWidget,
+        (header == '考试安排' || header == '考试类型') ? findsWidgets : findsOneWidget,
       );
     }
     expect(find.text('高等数学D2'), findsOneWidget);
@@ -770,7 +768,10 @@ void main() {
     // 学期不一致（春季缓存 vs 秋季默认）时不展示该缓存，避免标题与记录错位。
     expect(displayableExamCacheForTerm(_academicExamResult, fallTerm), isNull);
     // 明显过期的缓存（2020 秋）对任何近期学期都不展示。
-    expect(displayableExamCacheForTerm(_staleExamCacheResult, springTerm), isNull);
+    expect(
+      displayableExamCacheForTerm(_staleExamCacheResult, springTerm),
+      isNull,
+    );
     // 缺省入参时安全返回 null。
     expect(displayableExamCacheForTerm(null, springTerm), isNull);
     expect(displayableExamCacheForTerm(_academicExamResult, null), isNull);

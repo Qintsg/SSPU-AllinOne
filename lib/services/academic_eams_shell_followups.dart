@@ -153,7 +153,9 @@ extension _AcademicEamsShellFollowups on AcademicEamsService {
         '<th>考试情况</th><th>其它说明</th></tr></table></body></html>';
     final metadata = <String, Object?>{
       'selectedSemester': defaultSemester.toJson(),
-      'semesterOptions': [for (final option in semesterOptions) option.toJson()],
+      'semesterOptions': [
+        for (final option in semesterOptions) option.toJson(),
+      ],
       'examTypeOptions': typeOptions,
       'selectedExamType': selectedType,
     };

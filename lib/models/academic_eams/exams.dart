@@ -298,8 +298,9 @@ class AcademicExamSnapshot {
           .toList(),
       selectedExamType: json['selectedExamType'] as String?,
       examTypeOptions:
-          (json['examTypeOptions'] as Map<dynamic, dynamic>? ?? const {})
-              .map((key, value) => MapEntry('$key', '$value')),
+          (json['examTypeOptions'] as Map<dynamic, dynamic>? ?? const {}).map(
+            (key, value) => MapEntry('$key', '$value'),
+          ),
       fetchedAt:
           DateTime.tryParse(json['fetchedAt'] as String? ?? '')?.toLocal() ??
           DateTime.fromMillisecondsSinceEpoch(0),

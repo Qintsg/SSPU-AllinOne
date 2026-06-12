@@ -488,10 +488,7 @@ void main() {
     expect(result.snapshot?.exams?.selectedExamType, '5');
     final records = result.snapshot?.exams?.records ?? const [];
     // 仅含 "-"/占位信息（含备注）的考试不展示。
-    expect(
-      records.any((record) => record.courseName == '只含占位信息课程'),
-      isFalse,
-    );
+    expect(records.any((record) => record.courseName == '只含占位信息课程'), isFalse);
     expect(records, isEmpty);
   });
 
