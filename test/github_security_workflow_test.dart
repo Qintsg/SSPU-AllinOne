@@ -35,6 +35,13 @@ void main() {
     final workflow = _readWorkflow('code-coverage.yml');
 
     expect(workflow, contains('name: Code Coverage'));
+    expect(
+      workflow,
+      contains(
+        'subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2',
+      ),
+    );
+    expect(workflow, isNot(contains('subosito/flutter-action@v2.23.0')));
     expect(workflow, contains('flutter test --coverage'));
     expect(workflow, contains('actions/upload-artifact@'));
     expect(workflow, contains('name: flutter-coverage-lcov'));
