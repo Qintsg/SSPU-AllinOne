@@ -21,7 +21,6 @@ REQUIRED_SECTION_TITLES: List[str] = [
     "修复",
     "优化",
     "破坏性变更",
-    "安装 / 升级说明",
     "已知问题",
 ]
 

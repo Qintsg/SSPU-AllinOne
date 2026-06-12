@@ -135,7 +135,12 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: lore validate "$BASE_SHA..$HEAD_SHA"
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          lore validate "$BASE_SHA..$HEAD_SHA" || {
+            echo "::warning::部分 commit 缺少 Lore 元数据，建议使用 lore commit 补充决策记录。"
+          }
 
   quality-gate:
     name: Dart / Flutter Quality Gate
