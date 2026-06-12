@@ -18,6 +18,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const issue = context.payload.issue;
+            const action = context.payload.action;
             if (issue.pull_request) return;
 
             const owner = context.repo.owner;
@@ -40,20 +41,15 @@ jobs:
               ['Web', 'web'],
             ]);
             const SCOPE_LABELS = new Map([
-              ['前端界面 / 交互', ['frontend']],
-              ['服务层 / 外部站点', ['services']],
-              ['数据模型', ['models']],
-              ['本地存储 / 缓存 / 加密', ['storage']],
-              ['本地存储 / 缓存', ['storage']],
-              ['安装器 / 更新 / Release', ['installer', 'update', 'release-files']],
-              ['Release / 安装器', ['installer', 'release-files']],
-              ['Windows 安装器', ['installer', 'windows']],
-              ['通知 / 后台刷新', ['notification']],
+              ['安装器 / 更新 / Release', ['release-files']],
+              ['Release / 安装器', ['release-files']],
+              ['Windows 安装器', ['release-files']],
+              ['通知 / 后台刷新', []],
               ['CI / 仓库治理', ['ci', 'governance']],
               ['文档', ['documentation']],
               ['测试', ['test']],
               ['依赖治理', ['dependencies']],
-              ['Android 签名 / 构建', ['android', 'release-files']],
+              ['Android 签名 / 构建', ['release-files']],
               ['GitHub Actions / Release', ['ci', 'release-files']],
               ['安装包 / 构建产物', ['release-files']],
               ['平台工程', []],
@@ -105,12 +101,13 @@ jobs:
               if (title.startsWith('[Task]')) return 'task';
               if (title.startsWith('[Docs]')) return 'docs';
               if (title.startsWith('[Release]')) return 'release';
-              if (title.startsWith('[Info Site]')) return 'info-site';
+              if (title.startsWith('[Question]')) return 'question';
 
               if (currentLabels.has('bug')) return 'bug';
               if (currentLabels.has('enhancement')) return 'feature';
               if (currentLabels.has('task')) return 'task';
               if (currentLabels.has('documentation')) return 'docs';
+              if (currentLabels.has('question')) return 'question';
               return 'unknown';
             }
 
@@ -118,9 +115,10 @@ jobs:
             const templateType = detectTemplateType();
 
             if (templateType === 'bug') add('bug');
-            if (templateType === 'feature' || templateType === 'info-site') add('enhancement');
+            if (templateType === 'feature') add('enhancement');
             if (templateType === 'task') add('task');
             if (templateType === 'docs') add('documentation');
+            if (templateType === 'question') add('question');
             if (templateType === 'release') {
               add('task');
               add('release-files');
@@ -146,7 +144,7 @@ jobs:
               if (
                 sectionContains(
                   sections,
-                  ['影响模块 / 范围', '影响范围', '发布准备影响范围', '任务类型'],
+                  ['影响模块', '影响范围', '发布准备影响范围', '任务类型'],
                   value,
                 )
               ) {
@@ -156,13 +154,15 @@ jobs:
 
             const hasStatusLabel = [...STATUS_LABELS].some((label) => currentLabels.has(label));
             if (!hasStatusLabel) {
-              const hasRequiredPlan =
-                (sections.get('待办清单') || '').replace(/-\s*\[\s*\]\s*/g, '').trim() &&
-                (sections.get('验收标准') || '').trim();
-              if (templateType === 'task' && hasRequiredPlan) {
-                add('ready');
-              } else {
-                add('needs-triage');
+              if (action === 'opened') {
+                const hasRequiredPlan =
+                  (sections.get('待办清单') || '').replace(/-\s*\[\s*\]\s*/g, '').trim() &&
+                  (sections.get('验收标准') || '').trim();
+                if (templateType === 'task' && hasRequiredPlan) {
+                  add('ready');
+                } else {
+                  add('needs-triage');
+                }
               }
             }
 
@@ -183,6 +183,7 @@ jobs:
               .addHeading('Issue Triage')
               .addList([
                 `Template type: ${templateType}`,
+                `Action: ${action}`,
                 `Added labels: ${missingLabels.join(', ')}`,
               ])
               .write();
