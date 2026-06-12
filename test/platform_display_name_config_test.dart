@@ -119,6 +119,32 @@ void main() {
     );
   });
 
+  test('Apple Xcode 版本号跟随 Flutter 构建元数据', () {
+    final iosProject = _read('ios/Runner.xcodeproj/project.pbxproj');
+    final macosAppInfo = _read('macos/Runner/Configs/AppInfo.xcconfig');
+
+    expect(
+      RegExp(
+        r'MARKETING_VERSION = "\$\(FLUTTER_BUILD_NAME\)";',
+      ).allMatches(iosProject).length,
+      3,
+    );
+    expect(
+      RegExp(
+        r'CURRENT_PROJECT_VERSION = "\$\(FLUTTER_BUILD_NUMBER\)";',
+      ).allMatches(iosProject).length,
+      3,
+    );
+    expect(
+      macosAppInfo,
+      contains('MARKETING_VERSION = \$(FLUTTER_BUILD_NAME)'),
+    );
+    expect(
+      macosAppInfo,
+      contains('CURRENT_PROJECT_VERSION = \$(FLUTTER_BUILD_NUMBER)'),
+    );
+  });
+
   test('Windows 和 Linux 原生入口按语言环境显示应用名', () {
     expect(
       _read('windows/runner/main.cpp'),
