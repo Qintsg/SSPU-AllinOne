@@ -231,10 +231,11 @@ Android、iOS、macOS、Linux、portable 与压缩包等当前没有仓库统一
 2. `flutter analyze --no-fatal-infos` 通过。
 3. `flutter test` 通过。
 4. 变更 Dart 文件通过 `dart format --set-exit-if-changed` 检查。
-5. 版本号只在 `pubspec.yaml` 与 `docs/CHANGELOG.md` 中维护。
-6. Release PR 的目标分支、`release` label 使用方式与本规则一致。
-7. 构建产物文件名不包含 `+build`。
-8. 发布说明列明支持平台、已知问题、安装方式和校验方式。
+5. GitHub Actions 安全门禁保持启用：高级 CodeQL、Secret Scanning、Dependency Review 与 Coverage workflow 不应被 Release 改动绕过。
+6. 版本号只在 `pubspec.yaml` 与 `docs/CHANGELOG.md` 中维护。
+7. Release PR 的目标分支、`release` label 使用方式与本规则一致。
+8. 构建产物文件名不包含 `+build`。
+9. 发布说明列明支持平台、已知问题、安装方式和校验方式。
 
 ---
 

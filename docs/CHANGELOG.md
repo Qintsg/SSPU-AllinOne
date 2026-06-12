@@ -8,6 +8,10 @@
 
 ## [Unreleased]
 
+### 新增
+
+- 新增高级 CodeQL、Gitleaks 密钥扫描与 Flutter 覆盖率 workflow，并将 Dart / Flutter 质量门禁文案整合到现有 CI。
+
 ## [0.2.8-alpha] - 2026-06-12
 
 ### 发布

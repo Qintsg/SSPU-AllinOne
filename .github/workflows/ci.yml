@@ -104,6 +104,7 @@ jobs:
         run: python scripts/ci/validate_github_governance.py
 
   quality-gate:
+    name: Dart / Flutter Quality Gate
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
@@ -141,10 +142,10 @@ jobs:
 
           dart format --set-exit-if-changed "${dart_files[@]}"
 
-      - name: Flutter Analyze
+      - name: Flutter Analyze（Dart 静态分析）
         run: flutter analyze --no-fatal-infos
 
-      - name: Flutter Test
+      - name: Flutter Test（Dart / Widget 测试）
         run: flutter test
 
   release-policy:
