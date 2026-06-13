@@ -58,12 +58,12 @@ jobs:
 
           # 校验分支命名（仅 Warning，不阻断）
           branch_pattern = re.compile(
-              r"^(.*/)?(feature|fix|hotfix|release|docs|chore|refactor|test|ci)/.+$"
+              r"^(.*/)?(feature|bugfix|hotfix|release|docs|chore|refactor|test|ci|deps)/.+$"
           )
           if branch_pattern.fullmatch(head_ref) is None:
               print(
                   f"::warning::分支名 `{head_ref}` 不符合命名规范。"
-                  "推荐格式：[prefix/](feature|fix|hotfix|release|docs|chore|refactor|test|ci)/<topic-kebab-case>",
+                  "推荐格式：[prefix/](feature|bugfix|hotfix|release|docs|chore|refactor|test|ci|deps)/<topic-kebab-case>",
               )
 
           has_release_label = "release" in labels

@@ -84,7 +84,7 @@ version: 1.0.0.1-hotfix+12
 ### 3.1 日常代码工作流
 
 1. 默认从 `develop` 签出新分支。
-2. 按 `.github/分支命名规范.md` 选择分支名，例如 `feature/<topic>`、`fix/<topic>`、`refactor/<topic>`、`docs/<topic>`、`ci/<topic>`。
+2. 按 `.github/分支命名规范.md` 选择分支名，例如 `feature/<topic>`、`bugfix/<topic>`、`refactor/<topic>`、`docs/<topic>`、`ci/<topic>`。Bug 修复分支使用 Git Flow 前缀 `bugfix/`，对应 PR / commit type 仍是 `fix`。
 3. 完成开发、测试与文档同步后，创建 PR 合并回 `develop`。
 4. 常规 PR 默认使用 `.github/pull_request_template.md` 通用模板；Release PR 使用 `.github/PULL_REQUEST_TEMPLATE/release.md`，并填写变更说明、验证记录、影响范围和风险。关联 Issue 默认写 `Refs #123`；需要合并后关闭时保留 `Closes #123` / `Fixes #123` / `Resolves #123` 等关闭关键字。
 5. PR 合并入 `develop` 后，`Close Linked Issues` workflow 会自动关闭同仓库内通过关闭关键字或 GitHub closing reference 识别到的 Issue。
