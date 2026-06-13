@@ -27,6 +27,7 @@ jobs:
               ['feat', 'enhancement'],
               ['feature', 'enhancement'],
               ['fix', 'bug'],
+              ['bugfix', 'bug'],
               ['hotfix', 'bug'],
               ['docs', 'documentation'],
               ['deps', 'dependencies'],
@@ -123,7 +124,7 @@ jobs:
 
               const branch = pr.head.ref || '';
               const branchMatch = branch.match(
-                /^(?:qintsg\/)?(feature|feat|fix|hotfix|docs|chore|refactor|test|ci|deps|dependabot|release)\//i,
+                /^(?:(?!feature\/|feat\/|bugfix\/|hotfix\/|docs\/|chore\/|refactor\/|test\/|ci\/|deps\/|dependabot\/|release\/)[^/]+\/)?(feature|feat|bugfix|hotfix|docs|chore|refactor|test|ci|deps|dependabot|release)\//i,
               );
               if (branchMatch) {
                 return TYPE_LABELS.get(branchMatch[1].toLowerCase());

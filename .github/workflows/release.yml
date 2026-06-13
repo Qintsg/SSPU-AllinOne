@@ -57,21 +57,27 @@ jobs:
 
       - name: 校验触发分支
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_BASE_REF: ${{ github.event.inputs.base_ref }}
+          CURRENT_REF: ${{ github.ref_name }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          RELEASE_CHANNEL: ${{ steps.release.outputs.channel }}
         run: |
           set -euo pipefail
 
-          if [[ '${{ github.event_name }}' == 'workflow_dispatch' ]]; then
-            base_ref='${{ github.event.inputs.base_ref }}'
-            current_ref='${{ github.ref_name }}'
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            base_ref="$MANUAL_BASE_REF"
+            current_ref="$CURRENT_REF"
             if [[ "$current_ref" != "$base_ref" ]]; then
               echo "手动发布的当前 ref 必须与 base_ref 一致：current_ref=$current_ref, base_ref=$base_ref。" >&2
               exit 1
             fi
           else
-            base_ref='${{ github.event.pull_request.base.ref }}'
+            base_ref="$PR_BASE_REF"
           fi
 
-          channel='${{ steps.release.outputs.channel }}'
+          channel="$RELEASE_CHANNEL"
 
           if [[ "$channel" == "stable" || "$channel" == "lts" || "$channel" == "hotfix" ]]; then
             [[ "$base_ref" == "main" ]] || {
@@ -790,12 +796,13 @@ jobs:
       - name: 生成 Release Notes
         shell: bash
         env:
+          EVENT_NAME: ${{ github.event_name }}
           PR_BODY: ${{ github.event.pull_request.body }}
           MANUAL_RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
         run: |
           set -euo pipefail
 
-          if [[ '${{ github.event_name }}' == 'workflow_dispatch' ]]; then
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
             printf '%s' "$MANUAL_RELEASE_NOTES" > pr-body.md
           else
             printf '%s' "$PR_BODY" > pr-body.md

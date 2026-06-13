@@ -1,68 +1,80 @@
 ---
 name: branch-checkout
-description: Use when checking out a new branch to work on an issue in SSPU-AllinOne. Covers the full flow from issue to ready-to-commit branch.
+description: Use when checking out a new branch to work on an issue in SSPU-AllinOne. Covers the issue-to-branch flow, Git Flow bugfix naming, manual branch classes, and ready-to-edit verification.
 ---
 
 # Branch Checkout
 
-Create a branch for an issue, ready for development.
+Create a task branch before investigating or editing an issue.
 
 ## Flow
 
-```
-Issue → git checkout develop → git pull → gitflow <type> start <name> → ready to code
+```text
+Issue -> sync develop -> choose branch type -> create branch -> verify branch -> investigate/edit
 ```
 
-## Steps
-
-### 1. Sync develop
+## Sync develop
 
 ```bash
+git status --short --branch
 git checkout develop
-git pull origin develop
+git pull --ff-only origin develop
 ```
 
-### 2. Determine Branch Type
+If unrelated local changes exist, do not discard them unless the user explicitly asks. Stash only when needed and safe.
 
-From issue labels/title:
+## Choose Branch Type
 
-| Issue Type | Branch Type | Command |
-|------------|-------------|---------|
-| `[Feature]` | feature | `gitflow feature start <name>` |
-| `[Bug]` | fix | `gitflow bugfix start <name>` |
-| `[Docs]` | docs | `gitflow docs start <name>` |
-| `[Task]` (CI) | ci | `gitflow ci start <name>` |
-| `[Task]` (other) | chore | `gitflow chore start <name>` |
+| Issue or task | Branch prefix | Command |
+| --- | --- | --- |
+| `[Feature]` / enhancement | `feature/` | `<git-flow> feature start <name>` |
+| `[Bug]` / failing behavior | `bugfix/` | `<git-flow> bugfix start <name>` |
+| `[Docs]` | `docs/` | `git checkout -b docs/<name>` |
+| CI / workflow / governance | `ci/` | `git checkout -b ci/<name>` |
+| Dependency update | `deps/` | `git checkout -b deps/<name>` |
+| Refactor | `refactor/` | `git checkout -b refactor/<name>` |
+| Tests | `test/` | `git checkout -b test/<name>` |
+| Maintenance task | `chore/` | `git checkout -b chore/<name>` |
+| Release prep | `release/` | `<git-flow> release start vX.X.X[-channel]` |
+| Emergency hotfix coordination | `hotfix/` | `<git-flow> hotfix start <name>` |
 
-### 3. Name the Branch
+The branch prefix for bug fixes is `bugfix/`, not `fix/`. Commit and PR titles still use `fix(scope): 中文摘要`.
 
-From issue title/number. Use kebab-case:
+## Create The Branch
+
+Examples:
 
 ```bash
-# Issue #278: "全面配置并启用git flow工作流"
-gitflow feature start git-flow-setup
+# Issue #278: 全面配置并启用 Git Flow 工作流
+<git-flow> feature start git-flow-setup
 
-# Issue #123: "修复 macOS 登录崩溃"
-gitflow bugfix start macos-login-crash
+# Issue #287: Scorecard SHA 错误
+<git-flow> bugfix start scorecard-243-sha
+
+# Documentation task
+git checkout -b docs/release-governance
+
+# Workflow task
+git checkout -b ci/github-actions-upgrade
 ```
 
-### 4. Verify
+Use a short kebab-case topic. Include the issue number only when it improves traceability.
+
+`<git-flow>` means the command surface available on the machine: `gitflow` on this Windows checkout, or `git flow` on installations that expose Git Flow as a Git subcommand.
+
+## Verify
 
 ```bash
-git branch  # Should show new branch with * prefix
-git status  # Should be clean, on new branch
+git branch --show-current
+git status --short --branch
 ```
 
-## Rules
+The active branch must not be `develop` or `main`.
 
-- Always branch from `develop` (never `main`)
-- Use kebab-case for branch names
-- Optional personal prefix: `qintsg/feature/xxx`
-- Do NOT push to `develop` or `main` directly
+## After Checkout
 
-## After Branch
-
-1. Make changes
-2. Commit with `type(scope): 中文摘要`
-3. Push: `git push -u origin <branch>`
-4. Create PR targeting `develop`
+1. Investigate and edit on the task branch.
+2. Verify with targeted tests or governance scripts.
+3. Commit with Lore.
+4. Push with `git push -u origin <branch>`.
+5. Create a PR targeting `develop`, except explicit `develop -> main` promotion.

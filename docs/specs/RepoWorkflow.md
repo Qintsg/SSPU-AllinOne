@@ -17,7 +17,7 @@ Scope: repo
 ## 日常开发流程
 
 1. 从 `develop` 同步最新代码。
-2. 根据 `.github/分支命名规范.md` 签出任务分支，例如 `feature/<topic>`、`fix/<topic>`、`refactor/<topic>`、`docs/<topic>`。
+2. 根据 `.github/分支命名规范.md` 签出任务分支，例如 `feature/<topic>`、`bugfix/<topic>`、`refactor/<topic>`、`docs/<topic>`。Bug 修复分支使用 `bugfix/`，但 PR 标题和 commit message 仍使用 `fix(scope): 中文摘要`。
 3. 完成开发、测试、文档和模板更新。
 4. 默认使用 `.github/pull_request_template.md` 通用 PR 模板创建合并到 `develop` 的 PR；Release PR 使用 `.github/PULL_REQUEST_TEMPLATE/release.md`，也可在创建 PR URL 中指定 `?template=release.md`。
 5. 关联 Issue 默认使用 `Refs #123`；需要合并后自动关闭时，必须在 PR 正文保留 `Closes #123` / `Fixes #123` / `Resolves #123` 等关闭关键字。
@@ -27,7 +27,7 @@ Scope: repo
 
 ## Issue 与 PR 模板
 
-- 普通 PR 只保留一个默认通用模板，覆盖 bugfix、feature、docs、refactor、chore、CI / 依赖 / 仓库治理等常规改动。
+- 普通 PR 只保留一个默认通用模板，覆盖 `bugfix/`、`feature/`、`docs/`、`refactor/`、`chore/`、CI / 依赖 / 仓库治理等常规改动。
 - Release PR 只使用 Release 专项模板，并保持发布说明章节与 `docs/RELEASE.md` 的校验规则一致。
 - Issue 表单优先使用结构化字段描述优先级、目标平台、影响模块和验证/验收标准；可多选字段用于平台、模块、任务类型、影响范围等天然多值信息。
 - Issue 表单中的优先级建议与 `P0` / `P1` / `P2` / `P3` 标签语义对齐，最终优先级仍由维护者确认。

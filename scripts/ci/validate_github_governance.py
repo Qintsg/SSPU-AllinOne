@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Iterable
+import re
 
 import yaml
 
@@ -24,6 +25,27 @@ LABELER_PATH = GITHUB_DIR / "labeler.yml"
 CONTRIBUTE_PATH = PROJECT_ROOT / "CONTRIBUTE.md"
 CODE_OF_CONDUCT_PATH = PROJECT_ROOT / "CODE_OF_CONDUCT.md"
 SECURITY_PATH = PROJECT_ROOT / "SECURITY.md"
+GITATTRIBUTES_PATH = PROJECT_ROOT / ".gitattributes"
+README_AGENTS_PATH = PROJECT_ROOT / "README_agents.md"
+BRANCH_NAMING_PATH = GITHUB_DIR / "分支命名规范.md"
+CI_WORKFLOW_PATH = GITHUB_DIR / "workflows" / "ci.yml"
+PR_METADATA_WORKFLOW_PATH = GITHUB_DIR / "workflows" / "pr-metadata.yml"
+
+REQUIRED_PROJECT_SKILLS = {
+    "branch-checkout",
+    "commit-messages",
+    "git-flow",
+    "issue-writing",
+    "lore-usage",
+    "pr-writing",
+}
+
+REQUIRED_HELPER_SCRIPTS = {
+    "scripts/gitflow/check_config.ps1",
+    "scripts/gitflow/check_config.sh",
+    "scripts/lore/status.ps1",
+    "scripts/lore/status.sh",
+}
 
 REQUIRED_COMPOSITE_ACTIONS = {
     "generate-release-metadata",
@@ -47,6 +69,24 @@ REQUIRED_LABELER_LABELS = {
     "governance",
     "documentation",
     "dependencies",
+}
+
+FORBIDDEN_FIX_BRANCH_PATTERN = re.compile(
+    r"(?<![a-zA-Z0-9_-])(?:[a-zA-Z0-9_-]+/)?fix/[a-zA-Z0-9][a-zA-Z0-9._-]*",
+)
+
+BRANCH_POLICY_FILES = {
+    README_AGENTS_PATH,
+    BRANCH_NAMING_PATH,
+    CONTRIBUTE_PATH,
+    PROJECT_ROOT / "docs" / "specs" / "RepoWorkflow.md",
+    PROJECT_ROOT / "docs" / "RELEASE.md",
+    PROJECT_ROOT / ".agents" / "skills" / "branch-checkout" / "SKILL.md",
+    PROJECT_ROOT / ".agents" / "skills" / "commit-messages" / "SKILL.md",
+    PROJECT_ROOT / ".agents" / "skills" / "git-flow" / "SKILL.md",
+    PROJECT_ROOT / ".agents" / "skills" / "issue-writing" / "SKILL.md",
+    PROJECT_ROOT / ".agents" / "skills" / "lore-usage" / "SKILL.md",
+    PROJECT_ROOT / ".agents" / "skills" / "pr-writing" / "SKILL.md",
 }
 
 
@@ -216,7 +256,7 @@ def validate_composite_actions() -> None:
 
 def validate_contribute_doc() -> None:
     """
-    校验 CONTRIBUTE.md、CODE_OF_CONDUCT.md 和 SECURITY.md 存在。
+    校验 CONTRIBUTE.md、CODE_OF_CONDUCT.md、SECURITY.md 和 .gitattributes 存在。
 
     :return: None。
     :raises GovernanceValidationError: 文件不存在时抛出。
@@ -227,6 +267,89 @@ def validate_contribute_doc() -> None:
         raise GovernanceValidationError("缺少行为准则 CODE_OF_CONDUCT.md。")
     if not SECURITY_PATH.is_file():
         raise GovernanceValidationError("缺少安全政策 SECURITY.md。")
+    if not GITATTRIBUTES_PATH.is_file():
+        raise GovernanceValidationError("缺少行尾治理文件 .gitattributes。")
+    gitattributes = GITATTRIBUTES_PATH.read_text(encoding="utf-8")
+    if "* text=auto eol=lf" not in gitattributes:
+        raise GovernanceValidationError(".gitattributes 必须声明默认文本 LF 行尾。")
+
+
+def validate_project_skills() -> None:
+    """
+    校验项目级 agent skills 与治理辅助脚本存在。
+
+    :return: None。
+    :raises GovernanceValidationError: 必要 skill 或脚本缺失时抛出。
+    """
+    skills_dir = PROJECT_ROOT / ".agents" / "skills"
+    missing_skills = sorted(
+        skill_name
+        for skill_name in REQUIRED_PROJECT_SKILLS
+        if not (skills_dir / skill_name / "SKILL.md").is_file()
+    )
+    if missing_skills:
+        raise GovernanceValidationError(
+            ".agents/skills/ 缺少必要项目 skill："
+            + ", ".join(missing_skills),
+        )
+
+    missing_scripts = sorted(
+        script_path
+        for script_path in REQUIRED_HELPER_SCRIPTS
+        if not (PROJECT_ROOT / script_path).is_file()
+    )
+    if missing_scripts:
+        raise GovernanceValidationError(
+            "缺少必要治理辅助脚本："
+            + ", ".join(missing_scripts),
+        )
+
+
+def validate_branch_governance() -> None:
+    """
+    校验 Git Flow 分支命名治理规则。
+
+    :return: None。
+    :raises GovernanceValidationError: 分支前缀或 workflow 规则漂移时抛出。
+    """
+    for policy_path in sorted(BRANCH_POLICY_FILES):
+        if not policy_path.is_file():
+            raise GovernanceValidationError(f"缺少分支治理文件：{policy_path}")
+
+        text = policy_path.read_text(encoding="utf-8")
+        forbidden_matches = sorted(set(FORBIDDEN_FIX_BRANCH_PATTERN.findall(text)))
+        if forbidden_matches:
+            relative_path = policy_path.relative_to(PROJECT_ROOT)
+            raise GovernanceValidationError(
+                f"{relative_path} 仍包含旧 fix/ 分支前缀："
+                + ", ".join(forbidden_matches)
+                + "。Bugfix 分支必须使用 bugfix/，commit/PR type 才使用 fix。",
+            )
+
+    ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
+    if "bugfix" not in ci_workflow:
+        raise GovernanceValidationError("CI workflow 分支命名 warning 必须包含 bugfix。")
+    if "feature|fix|hotfix" in ci_workflow:
+        raise GovernanceValidationError("CI workflow 仍在推荐旧 fix/ 分支前缀。")
+
+    pr_metadata = PR_METADATA_WORKFLOW_PATH.read_text(encoding="utf-8")
+    if "['bugfix', 'bug']" not in pr_metadata:
+        raise GovernanceValidationError("PR Metadata workflow 必须将 bugfix 分支映射为 bug label。")
+    if "feature|feat|fix|hotfix" in pr_metadata:
+        raise GovernanceValidationError("PR Metadata workflow 仍在匹配旧 fix/ 分支前缀。")
+
+    for command_policy_path in [
+        README_AGENTS_PATH,
+        CONTRIBUTE_PATH,
+        PROJECT_ROOT / ".agents" / "skills" / "git-flow" / "SKILL.md",
+        PROJECT_ROOT / ".agents" / "skills" / "branch-checkout" / "SKILL.md",
+    ]:
+        text = command_policy_path.read_text(encoding="utf-8")
+        if "gitflow" not in text or "git flow" not in text:
+            relative_path = command_policy_path.relative_to(PROJECT_ROOT)
+            raise GovernanceValidationError(
+                f"{relative_path} 必须说明 Git Flow 命令可能是 gitflow 或 git flow。",
+            )
 
 
 def main() -> int:
@@ -243,6 +366,8 @@ def main() -> int:
     validate_labeler()
     validate_composite_actions()
     validate_contribute_doc()
+    validate_project_skills()
+    validate_branch_governance()
     print("GitHub governance files are valid.")
     return 0
 

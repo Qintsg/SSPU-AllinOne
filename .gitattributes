@@ -1,0 +1,24 @@
+# 仓库文本文件默认使用 LF，避免 Windows / macOS / Linux 间行尾漂移。
+* text=auto eol=lf
+
+# Windows 原生命令脚本保留 CRLF。
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 常见二进制产物不做文本规范化。
+*.aab binary
+*.apk binary
+*.dmg binary
+*.exe binary
+*.gif binary
+*.icns binary
+*.ico binary
+*.jpeg binary
+*.jpg binary
+*.jks binary
+*.keystore binary
+*.pdf binary
+*.png binary
+*.so binary
+*.webp binary
+*.zip binary
