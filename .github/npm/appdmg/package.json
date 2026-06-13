@@ -1,0 +1,7 @@
+{
+  "name": "sspu-aio-release-appdmg",
+  "private": true,
+  "dependencies": {
+    "appdmg": "0.6.6"
+  }
+}

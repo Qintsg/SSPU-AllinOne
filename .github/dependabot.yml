@@ -38,3 +38,33 @@ updates:
       github-actions:
         patterns:
           - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/.github/npm/lore"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 2
+    labels:
+      - "ci"
+      - "dependencies"
+      - "P2"
+    rebase-strategy: "auto"
+    commit-message:
+      prefix: "deps(ci)"
+
+  - package-ecosystem: "npm"
+    directory: "/.github/npm/appdmg"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 2
+    labels:
+      - "ci"
+      - "dependencies"
+      - "P2"
+    rebase-strategy: "auto"
+    commit-message:
+      prefix: "deps(release)"
