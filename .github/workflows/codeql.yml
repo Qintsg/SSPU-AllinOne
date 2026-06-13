@@ -4,33 +4,9 @@ name: CodeQL Analysis
 on:
   push:
     branches: [develop, main]
-    paths:
-      - '.github/actions/**'
-      - '.github/workflows/**'
-      - 'linux/**/*.c'
-      - 'linux/**/*.cc'
-      - 'linux/**/*.h'
-      - 'linux/**/CMakeLists.txt'
-      - 'scripts/**/*.py'
-      - 'windows/**/*.c'
-      - 'windows/**/*.cpp'
-      - 'windows/**/*.h'
-      - 'windows/**/CMakeLists.txt'
   pull_request:
     branches: [develop]
     types: [opened, reopened, synchronize, ready_for_review]
-    paths:
-      - '.github/actions/**'
-      - '.github/workflows/**'
-      - 'linux/**/*.c'
-      - 'linux/**/*.cc'
-      - 'linux/**/*.h'
-      - 'linux/**/CMakeLists.txt'
-      - 'scripts/**/*.py'
-      - 'windows/**/*.c'
-      - 'windows/**/*.cpp'
-      - 'windows/**/*.h'
-      - 'windows/**/CMakeLists.txt'
   schedule:
     - cron: '20 2 * * 1'
   workflow_dispatch:
