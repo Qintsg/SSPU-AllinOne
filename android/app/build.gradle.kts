@@ -51,6 +51,8 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+            // 禁用资源混淆，避免图标等资源被删除
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
