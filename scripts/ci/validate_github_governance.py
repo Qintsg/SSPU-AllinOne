@@ -74,6 +74,8 @@ REQUIRED_LABELER_LABELS = {
 FORBIDDEN_FIX_BRANCH_PATTERN = re.compile(
     r"(?<![a-zA-Z0-9_-])(?:[a-zA-Z0-9_-]+/)?fix/[a-zA-Z0-9][a-zA-Z0-9._-]*",
 )
+PINNED_ACTION_REF_PATTERN = re.compile(r"^[^@\s]+@[0-9a-f]{40}$")
+PINNED_CONTAINER_IMAGE_PATTERN = re.compile(r"@sha256:[0-9a-f]{64}(?:$|\s)")
 
 BRANCH_POLICY_FILES = {
     README_AGENTS_PATH,
@@ -124,6 +126,24 @@ def iter_yaml_files() -> Iterable[Path]:
     yield from sorted((GITHUB_DIR / "actions").glob("*/action.yml"))
     yield GITHUB_DIR / "dependabot.yml"
     yield LABELER_PATH
+
+
+def iter_yaml_values(node: Any, key: str) -> Iterable[Any]:
+    """
+    递归枚举 YAML 对象中指定键的值。
+
+    :param node: 当前 YAML 节点。
+    :param key: 需要匹配的键名。
+    :return: 匹配值的迭代器。
+    """
+    if isinstance(node, dict):
+        for item_key, item_value in node.items():
+            if item_key == key:
+                yield item_value
+            yield from iter_yaml_values(item_value, key)
+    elif isinstance(node, list):
+        for item in node:
+            yield from iter_yaml_values(item, key)
 
 
 def validate_issue_forms() -> None:
@@ -305,6 +325,50 @@ def validate_project_skills() -> None:
         )
 
 
+def validate_workflow_supply_chain() -> None:
+    """
+    校验 workflow 供应链依赖固定策略。
+
+    :return: None。
+    :raises GovernanceValidationError: Action、容器镜像或运行时包安装未固定时抛出。
+    """
+    workflow_dir = GITHUB_DIR / "workflows"
+    errors: list[str] = []
+
+    for workflow_path in sorted(workflow_dir.glob("*.yml")):
+        workflow = load_yaml_file(workflow_path)
+        relative_path = workflow_path.relative_to(PROJECT_ROOT)
+
+        for uses_value in iter_yaml_values(workflow, "uses"):
+            if not isinstance(uses_value, str):
+                continue
+            if uses_value.startswith("./"):
+                continue
+            if uses_value.startswith("docker://"):
+                if PINNED_CONTAINER_IMAGE_PATTERN.search(uses_value) is None:
+                    errors.append(f"{relative_path}: docker uses 未固定 digest：{uses_value}")
+                continue
+            if PINNED_ACTION_REF_PATTERN.fullmatch(uses_value) is None:
+                errors.append(f"{relative_path}: uses 未固定 40 位 commit SHA：{uses_value}")
+
+        for image_value in iter_yaml_values(workflow, "image"):
+            if not isinstance(image_value, str):
+                continue
+            if PINNED_CONTAINER_IMAGE_PATTERN.search(image_value) is None:
+                errors.append(f"{relative_path}: container image 未固定 digest：{image_value}")
+
+        for run_value in iter_yaml_values(workflow, "run"):
+            if not isinstance(run_value, str):
+                continue
+            if re.search(r"\bpython\s+-m\s+pip\s+install\b", run_value) and "--require-hashes" not in run_value:
+                errors.append(f"{relative_path}: pip install 必须使用 --require-hashes。")
+            if re.search(r"\bnpm\s+install\b", run_value):
+                errors.append(f"{relative_path}: npm install 必须改用 npm ci + package-lock。")
+
+    if errors:
+        raise GovernanceValidationError("Workflow 供应链固定校验失败：\n" + "\n".join(errors))
+
+
 def validate_branch_governance() -> None:
     """
     校验 Git Flow 分支命名治理规则。
@@ -367,6 +431,7 @@ def main() -> int:
     validate_composite_actions()
     validate_contribute_doc()
     validate_project_skills()
+    validate_workflow_supply_chain()
     validate_branch_governance()
     print("GitHub governance files are valid.")
     return 0

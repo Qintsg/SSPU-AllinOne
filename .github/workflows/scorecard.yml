@@ -8,7 +8,13 @@ on:
     - cron: '30 2 * * 1'
   workflow_dispatch:
 
-permissions: read-all
+permissions:
+  actions: read
+  checks: read
+  contents: read
+  issues: read
+  pull-requests: read
+  statuses: read
 
 jobs:
   analysis:
@@ -16,10 +22,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      security-events: write
+      actions: read
+      checks: read
+      contents: read
       id-token: write
+      issues: read
+      pull-requests: read
+      security-events: write
+      statuses: read
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
         with:
           persist-credentials: false
 
