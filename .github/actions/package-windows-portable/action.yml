@@ -14,9 +14,12 @@ runs:
   steps:
     - name: 生成 Windows Portable ZIP
       shell: pwsh
+      env:
+        WINDOWS_BUNDLE_DIR: ${{ inputs.bundle-dir }}
+        WINDOWS_PORTABLE_OUTPUT_PATH: ${{ inputs.output-path }}
       run: |
-        $bundleDir = '${{ inputs.bundle-dir }}'
-        $outputPath = '${{ inputs.output-path }}'
+        $bundleDir = $env:WINDOWS_BUNDLE_DIR
+        $outputPath = $env:WINDOWS_PORTABLE_OUTPUT_PATH
         $portableRoot = Join-Path $env:RUNNER_TEMP 'SSPU-AllinOne'
         $outputParent = Split-Path -Parent $outputPath
 

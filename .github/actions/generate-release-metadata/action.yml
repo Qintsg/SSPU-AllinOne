@@ -34,15 +34,25 @@ runs:
   using: composite
   steps:
     - shell: bash
+      env:
+        RELEASE_ASSET_DIR: ${{ inputs.asset-dir }}
+        RELEASE_VERSION: ${{ inputs.version }}
+        RELEASE_PUBSPEC_VERSION: ${{ inputs.pubspec-version }}
+        RELEASE_CHANNEL: ${{ inputs.channel }}
+        RELEASE_BUILD_NUMBER: ${{ inputs.build-number }}
+        RELEASE_TAG: ${{ inputs.tag }}
+        RELEASE_DATE: ${{ inputs.release-date }}
+        RELEASE_FLUTTER_VERSION: ${{ inputs.flutter-version }}
+        RELEASE_DART_VERSION: ${{ inputs.dart-version }}
       run: |
         set -euo pipefail
         python scripts/release/generate_release_metadata.py \
-          --asset-dir '${{ inputs.asset-dir }}' \
-          --version '${{ inputs.version }}' \
-          --pubspec-version '${{ inputs.pubspec-version }}' \
-          --channel '${{ inputs.channel }}' \
-          --build-number '${{ inputs.build-number }}' \
-          --tag '${{ inputs.tag }}' \
-          --release-date '${{ inputs.release-date }}' \
-          --flutter-version '${{ inputs.flutter-version }}' \
-          --dart-version '${{ inputs.dart-version }}'
+          --asset-dir "$RELEASE_ASSET_DIR" \
+          --version "$RELEASE_VERSION" \
+          --pubspec-version "$RELEASE_PUBSPEC_VERSION" \
+          --channel "$RELEASE_CHANNEL" \
+          --build-number "$RELEASE_BUILD_NUMBER" \
+          --tag "$RELEASE_TAG" \
+          --release-date "$RELEASE_DATE" \
+          --flutter-version "$RELEASE_FLUTTER_VERSION" \
+          --dart-version "$RELEASE_DART_VERSION"

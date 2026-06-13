@@ -9,6 +9,8 @@ jobs:
   build:
     name: Collect Release Assets
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: "!github.event.release.prerelease"
     outputs:
       hashes: ${{ steps.hash.outputs.hashes }}
@@ -16,11 +18,13 @@ jobs:
       - name: Download release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
         run: |
           mkdir -p release-assets
-          gh release download "${{ github.event.release.tag_name }}" \
+          gh release download "$RELEASE_TAG_NAME" \
             --dir release-assets \
-            --repo "${{ github.repository }}"
+            --repo "$RELEASE_REPOSITORY"
 
       - name: Generate hashes
         id: hash

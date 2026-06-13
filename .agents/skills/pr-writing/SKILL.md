@@ -1,71 +1,102 @@
 ---
 name: pr-writing
-description: Use when creating or editing pull requests in SSPU-AllinOne. Covers PR title format, template, linking issues, and merge rules.
+description: Use when creating or editing pull requests in SSPU-AllinOne. Covers PR title format, target branch rules, issue links, templates, release labels, merge rules, and Git Flow branch naming.
 ---
 
 # Pull Requests
 
+Use this skill before creating or editing a PR.
+
 ## Title
 
-Format: `type(scope): 中文摘要`
+Format:
 
-Same as commit message format. Allowed types: feat/fix/docs/style/refactor/test/chore/ci/build/perf/deps/release
+```text
+type(scope): 中文摘要
+```
+
+Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `ci`, `build`, `perf`, `deps`, `release`.
+
+Bug-fix branches are named `bugfix/<topic>`, but PR title type remains `fix`.
 
 ## Target Branch
 
-- All regular PRs → `develop`
-- Never target `main` directly (except develop→main sync)
+- Regular PRs target `develop`.
+- Documentation, CI, dependencies, refactors, chores, and bug fixes also target `develop`.
+- The normal PR into `main` is `develop -> main` release promotion or default-branch synchronization.
+- Do not open feature or bugfix branches directly into `main`.
+
+## Branch Naming Check
+
+Expected source branches:
+
+```text
+feature/<topic>
+bugfix/<topic>
+docs/<topic>
+chore/<topic>
+refactor/<topic>
+test/<topic>
+ci/<topic>
+deps/<topic>
+release/vX.X.X[-channel]
+hotfix/<topic-or-version>
+```
+
+Optional personal prefixes such as `qintsg/feature/<topic>` are allowed.
 
 ## Link Issues
 
-In PR body:
+Use the PR body:
 
+```text
+Closes #278
+Refs #123
 ```
-Closes #278    # Auto-close on merge to develop
-Refs #123      # Reference only
+
+Use closing keywords only when merging the PR should close the issue.
+
+## Template
+
+Use `.github/pull_request_template.md` for regular PRs. Fill:
+
+- 变更说明
+- 关联 Issue
+- 变更类型
+- 影响范围
+- 验证记录
+- 风险与回滚
+- 检查清单
+
+Use `.github/PULL_REQUEST_TEMPLATE/release.md` for Release PRs.
+
+## Release Labels
+
+Only manually add `release` to legal Release PRs:
+
+```text
+release/vX.X.X-alpha|beta|rc -> develop   # with release label
+develop -> main                           # with release label for stable/lts/hotfix
 ```
 
-## PR Template
+Do not add `release` to the first `release/vX.X.X -> develop` stable/lts/hotfix prep PR.
 
-Fill `.github/pull_request_template.md`:
+## Verification Before PR
 
-- **变更说明**: What changed and why
-- **关联 Issue**: `Closes #X` or `Refs #X`
-- **变更类型**: Check applicable boxes
-- **影响范围**: Check affected areas
-- **验证记录**: `flutter analyze`, `flutter test`, platform builds
-- **风险与回滚**: Risk level, rollback plan
-- **检查清单**: No secrets, docs updated, etc.
-
-## Before Submit
+Run checks that match the changed surface:
 
 ```bash
+dart format --set-exit-if-changed <changed-dart-files>
 flutter analyze --no-fatal-infos
 flutter test
-dart format --set-exit-if-changed <changed-files>
+python scripts/ci/validate_github_governance.py
+lore validate origin/develop..HEAD
 ```
 
-## Auto-Labels
-
-PR Metadata workflow auto-applies:
-
-- Type label from title/branch (enhancement, bug, documentation, etc.)
-- Priority from linked issue (P0-P3)
-- Platform/module labels from linked issue
-- `needs-issue` if no linked issue (exempt: docs/chore/deps/release)
+If a check cannot run on the current platform, state the reason and the next-best validation.
 
 ## Merge Rules
 
-- develop↔main: **merge commit only** (no squash/rebase)
-- Regular PRs: squash or merge (maintainer preference)
-- `release` label: manually added to release PRs only
-
-## Checklist
-
-- [ ] Title: `type(scope): 中文摘要`
-- [ ] Target: `develop`
-- [ ] Linked issue: `Closes #X` or `Refs #X`
-- [ ] `flutter analyze` passes
-- [ ] `flutter test` passes
-- [ ] Docs updated if needed
-- [ ] No secrets/credentials
+- `develop -> main`: merge commit only; no squash or rebase.
+- Regular PRs: maintainer preference unless a release/sync rule says otherwise.
+- Do not directly push to `develop` or `main`.
