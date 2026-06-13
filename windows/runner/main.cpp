@@ -45,10 +45,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   }
   window.SetQuitOnClose(true);
 
-  ::MSG msg;
-  while (::GetMessage(&msg, nullptr, 0, 0)) {
-    ::TranslateMessage(&msg);
-    ::DispatchMessage(&msg);
+  ::MSG window_message;
+  while (::GetMessage(&window_message, nullptr, 0, 0)) {
+    ::TranslateMessage(&window_message);
+    ::DispatchMessage(&window_message);
   }
 
   ::CoUninitialize();
