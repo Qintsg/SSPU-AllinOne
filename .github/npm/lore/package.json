@@ -1,0 +1,7 @@
+{
+  "name": "sspu-aio-ci-lore",
+  "private": true,
+  "dependencies": {
+    "lore-protocol": "0.5.0"
+  }
+}

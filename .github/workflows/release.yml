@@ -50,7 +50,7 @@ jobs:
       prerelease: ${{ steps.release.outputs.prerelease }}
       release_title: ${{ steps.release.outputs.release_title }}
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
 
       - id: release
         uses: ./.github/actions/release-context
@@ -111,9 +111,9 @@ jobs:
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
 
-      - uses: actions/setup-java@v5.2.0
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
         with:
           distribution: temurin
           java-version: '17'
@@ -169,7 +169,7 @@ jobs:
           cp build/app/outputs/flutter-apk/app-x86-release.apk \
             "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-android-x86.apk"
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: android-assets
           path: |
@@ -184,7 +184,7 @@ jobs:
     env:
       APP_VERSION: ${{ needs.prepare.outputs.version }}
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
 
       - uses: ./.github/actions/setup-flutter
         with:
@@ -213,7 +213,7 @@ jobs:
           bundle-dir: build\windows\x64\runner\Release
           output-path: dist\SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-windows-x64-portable.zip
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-assets
           path: |
@@ -226,9 +226,9 @@ jobs:
     env:
       APP_VERSION: ${{ needs.prepare.outputs.version }}
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
 
-      - uses: actions/setup-java@v5.2.0
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
         with:
           distribution: temurin
           java-version: '21'
@@ -283,7 +283,7 @@ jobs:
           bundle-dir: ${{ steps.windows-arm64-bundle.outputs.bundle-dir }}
           output-path: dist\SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-windows-arm64-portable.zip
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-arm64-assets
           path: |
@@ -300,7 +300,7 @@ jobs:
       MACOS_NOTARY_TEAM_ID: ${{ secrets.MACOS_NOTARY_TEAM_ID }}
       MACOS_NOTARY_PASSWORD: ${{ secrets.MACOS_NOTARY_PASSWORD }}
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
 
       - uses: ./.github/actions/setup-flutter
         with:
@@ -388,7 +388,7 @@ jobs:
 
           macos_app_bundle="$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
 
-          npm install -g appdmg
+          npm ci --prefix .github/npm/appdmg
 
           staging="dmg-staging"
           mkdir -p "$staging"
@@ -420,7 +420,7 @@ jobs:
           }
           APPDMG_EOF
 
-          appdmg "$staging/config.json" \
+          ./.github/npm/appdmg/node_modules/.bin/appdmg "$staging/config.json" \
             "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-arm64.dmg"
 
           rm -rf "$staging"
@@ -452,7 +452,7 @@ jobs:
           xcrun stapler staple "$dmg_path"
           echo "装订完成"
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: macos-dmg
           path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-${{ steps.dmg.outputs.dmg_suffix }}.dmg
@@ -467,7 +467,7 @@ jobs:
       MACOS_NOTARY_TEAM_ID: ${{ secrets.MACOS_NOTARY_TEAM_ID }}
       MACOS_NOTARY_PASSWORD: ${{ secrets.MACOS_NOTARY_PASSWORD }}
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
 
       - uses: ./.github/actions/setup-flutter
         with:
@@ -555,7 +555,7 @@ jobs:
 
           macos_app_bundle="$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
 
-          npm install -g appdmg
+          npm ci --prefix .github/npm/appdmg
 
           staging="dmg-staging"
           mkdir -p "$staging"
@@ -587,7 +587,7 @@ jobs:
           }
           APPDMG_EOF
 
-          appdmg "$staging/config.json" \
+          ./.github/npm/appdmg/node_modules/.bin/appdmg "$staging/config.json" \
             "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-x86_64.dmg"
 
           rm -rf "$staging"
@@ -618,7 +618,7 @@ jobs:
           xcrun stapler staple "$dmg_path"
           echo "装订完成"
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: macos-x86_64-dmg
           path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-x86_64.dmg
@@ -631,7 +631,7 @@ jobs:
       RELEASE_CHANNEL: ${{ needs.prepare.outputs.channel }}
       RELEASE_BUILD_NUMBER: ${{ needs.prepare.outputs.build_number }}
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
 
       - name: 安装 Linux 打包依赖
         run: |
@@ -670,7 +670,7 @@ jobs:
           rpm-architecture: x86_64
           appimagetool-architecture: x86_64
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: linux-assets
           path: |
@@ -687,7 +687,7 @@ jobs:
       RELEASE_CHANNEL: ${{ needs.prepare.outputs.channel }}
       RELEASE_BUILD_NUMBER: ${{ needs.prepare.outputs.build_number }}
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
 
       - name: 安装 Linux arm64 打包依赖
         run: |
@@ -728,7 +728,7 @@ jobs:
           rpm-architecture: aarch64
           appimagetool-architecture: aarch64
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: linux-arm64-assets
           path: |
@@ -741,7 +741,7 @@ jobs:
     needs: prepare
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
 
       - uses: ./.github/actions/setup-flutter
         with:
@@ -758,7 +758,7 @@ jobs:
           cp -R build/ios/iphoneos/Runner.app \
             "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-ios-arm64.app"
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ios-app
           path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-ios-arm64.app
@@ -781,14 +781,14 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
 
       - uses: ./.github/actions/setup-flutter
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           run-pub-get: 'false'
 
-      - uses: actions/download-artifact@v8.0.1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: dist
           merge-multiple: true

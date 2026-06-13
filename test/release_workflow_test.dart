@@ -37,7 +37,10 @@ void main() {
 
     expect(windowsArm64Job, isNotNull);
     expect(windowsArm64Job, contains('runs-on: windows-11-arm'));
-    expect(windowsArm64Job, contains('actions/setup-java@v5.2.0'));
+    expect(
+      windowsArm64Job,
+      matches(RegExp(r'actions/setup-java@[0-9a-f]{40} # v5\.2\.0')),
+    );
     expect(windowsArm64Job, contains("java-version: '21'"));
     expect(windowsArm64Job, contains('architecture: arm64'));
     expect(windowsArm64Job, isNot(contains('architecture: x64')));
