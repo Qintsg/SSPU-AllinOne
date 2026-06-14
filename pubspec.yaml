@@ -83,7 +83,7 @@ dependencies:
 
   # 邮箱协议客户端，用于学校邮箱 IMAP / POP 只读收信和 SMTP 主动发信
   enough_mail: ^2.1.7
-  pdfrx: ^2.4.3
+  pdfrx: ^2.4.4
   pdfrx_engine: ^0.4.2
 
 dev_dependencies:
