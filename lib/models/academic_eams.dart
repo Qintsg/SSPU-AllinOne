@@ -10,6 +10,7 @@ export 'academic_eams/course_offerings.dart';
 export 'academic_eams/course_table.dart';
 export 'academic_eams/exams.dart';
 export 'academic_eams/free_classrooms.dart';
+export 'academic_eams/grade_process.dart';
 export 'academic_eams/grades.dart';
 export 'academic_eams/profile.dart';
 export 'academic_eams/program_plan.dart';

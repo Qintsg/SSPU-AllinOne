@@ -10,6 +10,7 @@ import 'course_offerings.dart';
 import 'course_table.dart';
 import 'exams.dart';
 import 'free_classrooms.dart';
+import 'grade_process.dart';
 import 'grades.dart';
 import 'profile.dart';
 import 'program_plan.dart';
@@ -25,6 +26,7 @@ class AcademicEamsSnapshot {
     this.profile,
     this.courseTable,
     this.grades,
+    this.gradeProcess,
     this.programPlan,
     this.programCompletion,
     this.exams,
@@ -55,6 +57,9 @@ class AcademicEamsSnapshot {
 
   /// 成绩快照。
   final AcademicGradeSnapshot? grades;
+
+  /// 过程化成绩快照。
+  final AcademicGradeProcessSnapshot? gradeProcess;
 
   /// 培养计划。
   final AcademicProgramPlanSnapshot? programPlan;
@@ -87,6 +92,10 @@ class AcademicEamsSnapshot {
         AcademicCourseTableSnapshot.fromJson,
       ),
       grades: _readObject(json['grades'], AcademicGradeSnapshot.fromJson),
+      gradeProcess: _readObject(
+        json['gradeProcess'],
+        AcademicGradeProcessSnapshot.fromJson,
+      ),
       programPlan: _readObject(
         json['programPlan'],
         AcademicProgramPlanSnapshot.fromJson,
@@ -118,6 +127,7 @@ class AcademicEamsSnapshot {
       'profile': profile?.toPublicCacheJson(),
       'courseTable': courseTable?.toJson(),
       'grades': grades?.toJson(),
+      'gradeProcess': gradeProcess?.toJson(),
       'programPlan': programPlan?.toJson(),
       'programCompletion': programCompletion?.toJson(),
       'exams': exams?.toJson(),
