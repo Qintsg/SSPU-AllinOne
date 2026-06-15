@@ -133,6 +133,10 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
           ? StorageKeys.academicEamsCourseTableCacheCollection
           : scope == _AcademicFetchScope.examScheduleOnly
           ? StorageKeys.academicEamsExamScheduleCacheCollection
+          : scope == _AcademicFetchScope.gradesOnly
+          ? StorageKeys.academicEamsGradeCacheCollection
+          : scope == _AcademicFetchScope.gradeProcessOnly
+          ? StorageKeys.academicEamsGradeProcessCacheCollection
           : StorageKeys.academicEamsOverviewCacheCollection,
       accountKey: accountKey,
       fetchedAt: snapshot.fetchedAt,
@@ -361,6 +365,27 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
         finalUri: exams.sourceUri,
         campusNetworkStatus: campusNetworkStatus,
         snapshot: snapshot,
+      );
+    }
+
+    if (scope == _AcademicFetchScope.gradesOnly) {
+      return _buildGradesOnlyResult(
+        homeSnapshot: homeSnapshot,
+        featureUris: featureUris,
+        featureSnapshots: featureSnapshots,
+        warnings: warnings,
+        campusNetworkStatus: campusNetworkStatus,
+      );
+    }
+
+    if (scope == _AcademicFetchScope.gradeProcessOnly) {
+      return _buildGradeProcessResult(
+        homeSnapshot: homeSnapshot,
+        featureUris: featureUris,
+        warnings: warnings,
+        campusNetworkStatus: campusNetworkStatus,
+        targetTerm: examTerm,
+        targetSemester: examSemester,
       );
     }
 
