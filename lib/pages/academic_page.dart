@@ -31,6 +31,9 @@ import 'course_schedule_page.dart';
 part 'academic_eams_summary_card.dart';
 part 'academic_eams_exam_card.dart';
 part 'academic_eams_exam_detail_page.dart';
+part 'academic_eams_grade_card.dart';
+part 'academic_eams_grade_detail_page.dart';
+part 'academic_eams_grade_process_page.dart';
 part 'academic_sports_attendance_card.dart';
 part 'academic_sports_attendance_detail_page.dart';
 part 'academic_student_report_card.dart';
@@ -109,6 +112,9 @@ class _AcademicPageState extends State<AcademicPage> {
   _academicEamsRefreshController;
   late final CardAutoRefreshController<AcademicEamsQueryResult>
   _academicExamRefreshController;
+  AcademicEamsQueryResult? _academicGradeResult;
+  late final CardAutoRefreshController<AcademicEamsQueryResult>
+  _academicGradeRefreshController;
 
   SportsAttendanceQueryResult? _sportsAttendanceResult;
   late final CardAutoRefreshController<SportsAttendanceQueryResult>
@@ -150,6 +156,14 @@ class _AcademicPageState extends State<AcademicPage> {
           checkedAt: () => _academicExamResult?.checkedAt,
           failureReason: _academicEamsRefreshFailureReason,
         )..addListener(_handleRefreshControllerChanged);
+    _academicGradeRefreshController =
+        CardAutoRefreshController<AcademicEamsQueryResult>(
+          refreshTask: _fetchAcademicGradeForController,
+          isSuccess: (result) => result.isSuccess,
+          applyResult: _applyAcademicGradeResult,
+          checkedAt: () => _academicGradeResult?.checkedAt,
+          failureReason: _academicEamsRefreshFailureReason,
+        )..addListener(_handleRefreshControllerChanged);
     _sportsAttendanceRefreshController =
         CardAutoRefreshController<SportsAttendanceQueryResult>(
           refreshTask: _fetchSportsAttendanceForController,
@@ -182,12 +196,14 @@ class _AcademicPageState extends State<AcademicPage> {
     if (!mounted) return;
     _academicEamsRefreshController.clearTransientState();
     _academicExamRefreshController.clearTransientState();
+    _academicGradeRefreshController.clearTransientState();
     _sportsAttendanceRefreshController.clearTransientState();
     _studentReportRefreshController.clearTransientState();
     setState(() {
       _academicEamsResult = null;
       _academicExamResult = null;
       _academicExamSelectedSemester = null;
+      _academicGradeResult = null;
       _sportsAttendanceResult = null;
       _studentReportResult = null;
     });
@@ -218,7 +234,15 @@ class _AcademicPageState extends State<AcademicPage> {
       setState(() => _academicEamsResult = cachedResult);
     }
     await _loadAcademicExamCacheAndDefaultTerm();
+    await _loadAcademicGradeCache();
     await _loadAcademicEamsAutoRefreshSettings();
+  }
+
+  /// 读取成绩缓存以便先展示本地数据，再按刷新策略决定是否联网。
+  Future<void> _loadAcademicGradeCache() async {
+    final cachedResult = await _academicEamsService.readLatestCachedGrades();
+    if (!mounted || cachedResult == null) return;
+    setState(() => _academicGradeResult = cachedResult);
   }
 
   /// 读取考试安排缓存，并把卡片学期默认到全局查询学期。
@@ -264,6 +288,7 @@ class _AcademicPageState extends State<AcademicPage> {
       final examResult = _academicExamResult;
       _academicEamsLastRefreshHadExamFailure =
           !silent && examResult != null && !examResult.isSuccess;
+      await _academicGradeRefreshController.runRefresh(silent: silent);
     }
     return result;
   }
@@ -298,6 +323,29 @@ class _AcademicPageState extends State<AcademicPage> {
             selectedSemester.termChoice ?? _academicExamSelectedTerm;
       }
     });
+  }
+
+  Future<AcademicEamsQueryResult> _fetchAcademicGradeForController({
+    required bool silent,
+  }) {
+    return _academicEamsService.fetchGrades(requireCampusNetwork: silent);
+  }
+
+  void _applyAcademicGradeResult(AcademicEamsQueryResult result) {
+    if (!mounted) return;
+    setState(() => _academicGradeResult = result);
+  }
+
+  void _openAcademicGradeDetail() {
+    Navigator.of(context).push(
+      FluentPageRoute(
+        builder: (_) => AcademicEamsGradeDetailPage(
+          academicEamsService: _academicEamsService,
+          initialResult: _academicGradeResult,
+          onResultChanged: _applyAcademicGradeResult,
+        ),
+      ),
+    );
   }
 
   void _openAcademicExamDetail() {
@@ -503,6 +551,9 @@ class _AcademicPageState extends State<AcademicPage> {
     _academicExamRefreshController
       ..removeListener(_handleRefreshControllerChanged)
       ..dispose();
+    _academicGradeRefreshController
+      ..removeListener(_handleRefreshControllerChanged)
+      ..dispose();
     _sportsAttendanceRefreshController
       ..removeListener(_handleRefreshControllerChanged)
       ..dispose();
@@ -551,6 +602,12 @@ class _AcademicPageState extends State<AcademicPage> {
                     isLoading: _academicExamRefreshController.isLoading,
                     selectedTerm: _academicExamSelectedTerm,
                     onOpenDetail: _openAcademicExamDetail,
+                  ),
+                  gradeResult: _academicGradeResult,
+                  gradeCard: AcademicEamsGradeCard(
+                    result: _academicGradeResult,
+                    isLoading: _academicGradeRefreshController.isLoading,
+                    onOpenDetail: _openAcademicGradeDetail,
                   ),
                 ),
                 sports: AcademicSportsAttendanceCard(
