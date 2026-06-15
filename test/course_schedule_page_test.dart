@@ -264,6 +264,32 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   }) async {
     return result;
   }
+
+  @override
+  Future<AcademicEamsQueryResult> fetchGrades({
+    bool requireCampusNetwork = true,
+  }) async {
+    return result;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedGrades() async {
+    return null;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult> fetchGradeProcess({
+    AcademicTermChoice? term,
+    AcademicEamsSemesterOption? semester,
+    bool requireCampusNetwork = true,
+  }) async {
+    return result;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedGradeProcess() async {
+    return null;
+  }
 }
 
 class _FakeAcademicCalendarClient implements AcademicCalendarClient {

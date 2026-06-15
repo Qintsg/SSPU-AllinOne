@@ -76,6 +76,9 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   final List<AcademicTermChoice?> examTermValues = [];
   final List<AcademicEamsSemesterOption?> examSemesterValues = [];
   final List<String?> examTypeValues = [];
+  int gradeFetchCount = 0;
+  final List<bool> gradeRequireCampusNetworkValues = [];
+  int gradeProcessFetchCount = 0;
 
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
@@ -134,6 +137,35 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
     examSemesterValues.add(semester);
     examTypeValues.add(examTypeId);
     return examResultResolver?.call(term, semester) ?? result;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult> fetchGrades({
+    bool requireCampusNetwork = true,
+  }) async {
+    gradeFetchCount++;
+    gradeRequireCampusNetworkValues.add(requireCampusNetwork);
+    return result;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedGrades() async {
+    return null;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult> fetchGradeProcess({
+    AcademicTermChoice? term,
+    AcademicEamsSemesterOption? semester,
+    bool requireCampusNetwork = true,
+  }) async {
+    gradeProcessFetchCount++;
+    return _gradeProcessResult;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedGradeProcess() async {
+    return null;
   }
 }
 
@@ -425,6 +457,51 @@ final AcademicEamsQueryResult _academicEamsResult = AcademicEamsQueryResult(
       ],
       fetchedAt: DateTime(2026, 5, 2),
       sourceUri: Uri.parse('https://jx.sspu.edu.cn/eams/stdExamTable.action'),
+    ),
+  ),
+);
+
+final AcademicEamsQueryResult _gradeProcessResult = AcademicEamsQueryResult(
+  status: AcademicEamsQueryStatus.success,
+  message: '过程化成绩读取成功',
+  detail: '已读取所选学期的平时成绩明细。',
+  checkedAt: DateTime(2026, 6, 15),
+  entranceUri: Uri.parse(
+    'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
+  ),
+  finalUri: Uri.parse(
+    'https://jx.sspu.edu.cn/eams/teach/grade/course/person!processGrade.action',
+  ),
+  snapshot: AcademicEamsSnapshot(
+    fetchedAt: DateTime(2026, 6, 15),
+    sourceUri: Uri.parse(
+      'https://jx.sspu.edu.cn/eams/teach/grade/course/person!processGrade.action',
+    ),
+    warnings: const [],
+    hasCourseOfferingEntry: false,
+    hasFreeClassroomEntry: false,
+    gradeProcess: AcademicGradeProcessSnapshot(
+      records: const [
+        AcademicGradeProcessRecord(
+          courseName: '高等数学D1',
+          termName: '2025-2026-1',
+          category: '公共基础课',
+          credit: 5,
+          items: [AcademicGradeProcessItem(label: '平时成绩Ⅰ', value: '95.0/10%')],
+          rawCells: [],
+        ),
+      ],
+      selectedSemester: AcademicEamsSemesterOption(
+        id: '1042',
+        label: '2025-2026-2',
+      ),
+      semesterOptions: [
+        AcademicEamsSemesterOption(id: '1042', label: '2025-2026-2'),
+      ],
+      fetchedAt: DateTime(2026, 6, 15),
+      sourceUri: Uri.parse(
+        'https://jx.sspu.edu.cn/eams/teach/grade/course/person!processGrade.action',
+      ),
     ),
   ),
 );

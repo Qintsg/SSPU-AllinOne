@@ -175,6 +175,9 @@ class FakeAcademicEamsGateway implements AcademicEamsGateway {
     if (formUri.path.contains('freeClassroom!search.action')) {
       return academicEamsFreeClassroomResultSnapshot;
     }
+    if (formUri.path.contains('person!processGrade.action')) {
+      return academicEamsGradeProcessSnapshot;
+    }
     return AcademicEamsHttpSnapshot(
       finalUri: formUri,
       statusCode: 404,
@@ -371,6 +374,35 @@ academicEamsHistoryGradeSnapshot = AcademicEamsHttpSnapshot(
     <table>
       <tr><th>课程名称</th><th>成绩</th><th>学分</th><th>学年学期</th></tr>
       <tr><td>程序设计基础</td><td>85</td><td>4</td><td>2025-2026-1</td></tr>
+    </table>
+  </body>
+</html>
+''',
+);
+
+final AcademicEamsHttpSnapshot
+academicEamsGradeProcessSnapshot = AcademicEamsHttpSnapshot(
+  finalUri: Uri.parse(
+    'https://jx.sspu.edu.cn/eams/teach/grade/course/person!processGrade.action',
+  ),
+  statusCode: 200,
+  body: '''
+<html>
+  <body>
+    <table>
+      <tr>
+        <th>学年学期</th><th>课程代码</th><th>课程序号</th><th>课程名称</th>
+        <th>课程类别</th><th>学分</th>
+        <th>平时成绩Ⅰ/占比（描述）</th><th>平时成绩Ⅱ/占比（描述）</th>
+      </tr>
+      <tr>
+        <td>2025-2026-春季</td><td>b1020108</td><td>3006</td><td>线性代数</td>
+        <td>公共基础课</td><td>3</td><td>100.0/15%</td><td>无</td>
+      </tr>
+      <tr>
+        <td>2025-2026-春季</td><td>b2012231</td><td>2758</td><td>数据结构与算法</td>
+        <td>专业基础课</td><td>4</td><td>95.0/10%</td><td>无</td>
+      </tr>
     </table>
   </body>
 </html>
