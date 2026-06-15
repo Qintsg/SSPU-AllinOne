@@ -34,6 +34,7 @@ part 'academic_eams_page_parser_forms.dart';
 part 'academic_eams_page_parser_overview.dart';
 part 'academic_eams_page_parser_profile.dart';
 part 'academic_eams_page_parser_tables.dart';
+part 'academic_eams_grade_flow.dart';
 part 'academic_eams_search_flow.dart';
 part 'academic_eams_shell_followups.dart';
 
@@ -56,6 +57,12 @@ abstract class AcademicEamsClient {
   /// 读取最近一次本地考试安排缓存。
   Future<AcademicEamsQueryResult?> readLatestCachedExamSchedule();
 
+  /// 读取最近一次本地成绩缓存。
+  Future<AcademicEamsQueryResult?> readLatestCachedGrades();
+
+  /// 读取最近一次本地过程化成绩缓存。
+  Future<AcademicEamsQueryResult?> readLatestCachedGradeProcess();
+
   /// 读取教务摘要，尽量覆盖个人信息、课表、成绩、考试和培养计划。
   Future<AcademicEamsQueryResult> fetchOverview({
     bool requireCampusNetwork = true,
@@ -73,6 +80,23 @@ abstract class AcademicEamsClient {
     AcademicTermChoice? term,
     AcademicEamsSemesterOption? semester,
     String? examTypeId,
+    bool requireCampusNetwork = true,
+  });
+
+  /// 读取成绩查询结果。
+  ///
+  /// 一次性拉取当前学期与历史成绩，学期切换由前端按学年学期分组实现，
+  /// 不再逐学期重复请求。
+  Future<AcademicEamsQueryResult> fetchGrades({
+    bool requireCampusNetwork = true,
+  });
+
+  /// 读取指定学期的过程化成绩（平时成绩明细）。
+  ///
+  /// 过程化成绩为 EAMS 中按学期独立请求的页面，需逐学期查询。
+  Future<AcademicEamsQueryResult> fetchGradeProcess({
+    AcademicTermChoice? term,
+    AcademicEamsSemesterOption? semester,
     bool requireCampusNetwork = true,
   });
 }
@@ -128,7 +152,13 @@ typedef AcademicEamsOaLoginRefresher =
       bool requireCampusNetwork,
     });
 
-enum _AcademicFetchScope { overview, courseTableOnly, examScheduleOnly }
+enum _AcademicFetchScope {
+  overview,
+  courseTableOnly,
+  examScheduleOnly,
+  gradesOnly,
+  gradeProcessOnly,
+}
 
 enum _AcademicFeature {
   studentProfile,
@@ -276,6 +306,30 @@ class AcademicEamsService implements AcademicEamsClient {
     );
   }
 
+  @override
+  Future<AcademicEamsQueryResult> fetchGrades({
+    bool requireCampusNetwork = true,
+  }) async {
+    return _fetchSnapshot(
+      _AcademicFetchScope.gradesOnly,
+      requireCampusNetwork: requireCampusNetwork,
+    );
+  }
+
+  @override
+  Future<AcademicEamsQueryResult> fetchGradeProcess({
+    AcademicTermChoice? term,
+    AcademicEamsSemesterOption? semester,
+    bool requireCampusNetwork = true,
+  }) async {
+    return _fetchSnapshot(
+      _AcademicFetchScope.gradeProcessOnly,
+      requireCampusNetwork: requireCampusNetwork,
+      examTerm: term,
+      examSemester: semester,
+    );
+  }
+
   /// 只读查询开课列表；仅提交搜索表单，不执行选课或其它写操作。
   Future<AcademicEamsQueryResult> searchCourseOfferings(
     AcademicCourseOfferingSearchCriteria criteria,
@@ -409,6 +463,26 @@ class AcademicEamsService implements AcademicEamsClient {
     );
   }
 
+  /// 读取最近一次本地成绩缓存。
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedGrades() async {
+    return _readLatestCachedResult(
+      collection: StorageKeys.academicEamsGradeCacheCollection,
+      message: '已显示本地成绩缓存',
+      detail: '显示最近一次成功读取并保存的本专科教务成绩。',
+    );
+  }
+
+  /// 读取最近一次本地过程化成绩缓存。
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedGradeProcess() async {
+    return _readLatestCachedResult(
+      collection: StorageKeys.academicEamsGradeProcessCacheCollection,
+      message: '已显示本地过程化成绩缓存',
+      detail: '显示最近一次成功读取并保存的本专科教务过程化成绩。',
+    );
+  }
+
   Future<AcademicEamsQueryResult?> _readLatestCachedResult({
     required String collection,
     required String message,
@@ -434,6 +508,7 @@ class AcademicEamsService implements AcademicEamsClient {
             profile: secureProfile,
             courseTable: snapshot.courseTable,
             grades: snapshot.grades,
+            gradeProcess: snapshot.gradeProcess,
             programPlan: snapshot.programPlan,
             programCompletion: snapshot.programCompletion,
             exams: snapshot.exams,

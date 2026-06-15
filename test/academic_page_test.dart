@@ -577,6 +577,70 @@ void main() {
     await disposeAcademicPage(tester);
   });
 
+  testWidgets('本专科教务成绩卡片只展示GPA与门数并可进入详情和过程化成绩页', (tester) async {
+    final academicService = _FakeAcademicEamsClient(
+      result: _academicEamsResult,
+    );
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: academicService,
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
+      ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+    );
+
+    final refresh = find.byKey(const Key('academic-eams-refresh'));
+    await tester.ensureVisible(refresh);
+    await tester.tap(refresh);
+    final gradeCard = find.byKey(const Key('academic-eams-grade-card'));
+    await pumpUntilFound(
+      tester,
+      find.descendant(of: gradeCard, matching: find.text('成绩门数')),
+    );
+
+    final primaryCard = find.byType(AcademicEamsSummaryCard);
+    expect(
+      find.descendant(of: primaryCard, matching: gradeCard),
+      findsOneWidget,
+    );
+    // 卡片仅展示 GPA 与成绩门数指标块，不再列课程预览。
+    expect(
+      find.descendant(of: gradeCard, matching: find.textContaining('GPA')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: gradeCard, matching: find.text('高等数学')),
+      findsNothing,
+    );
+    expect(academicService.gradeFetchCount, 1);
+
+    final detailButton = find.byKey(const Key('academic-eams-grade-detail'));
+    await tester.ensureVisible(detailButton);
+    await tester.tap(detailButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('成绩详情'), findsOneWidget);
+    expect(
+      find.byKey(const Key('academic-eams-grade-term-select')),
+      findsOneWidget,
+    );
+    // 默认查看全部学期。
+    expect(find.text('全部学期'), findsWidgets);
+    expect(find.text('高等数学'), findsWidgets);
+
+    // 命令栏进入过程化成绩三级页（按学期独立请求平时成绩明细）。
+    final processEntry = find.byKey(
+      const Key('academic-eams-grade-process-entry'),
+    );
+    expect(processEntry, findsOneWidget);
+    await tester.tap(processEntry);
+    await pumpUntilFound(tester, find.text('平时成绩Ⅰ'));
+    expect(find.text('高等数学D1'), findsWidgets);
+    expect(academicService.gradeProcessFetchCount, 1);
+    await disposeAcademicPage(tester);
+  });
+
   testWidgets('本专科教务考试卡片预览并在详情页切换学期', (tester) async {
     final academicService = _FakeAcademicEamsClient(
       result: _academicEamsResult,
@@ -707,7 +771,7 @@ void main() {
     );
     // 下拉解析出的真实 semester.id 会随查询传入，便于学期接口失败时复用。
     expect(academicService.examSemesterValues.last?.id, '1041');
-    expect(find.textContaining('有考试信息的课程 2 门'), findsOneWidget);
+    expect(find.textContaining('考试汇总'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('academic-eams-exam-season-select')));
     await tester.pumpAndSettle();

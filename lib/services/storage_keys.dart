@@ -142,6 +142,14 @@ class StorageKeys {
   static const String academicEamsExamScheduleCacheCollection =
       'cache_academic_eams_exam_schedule';
 
+  /// 本专科教务成绩业务快照缓存集合。
+  static const String academicEamsGradeCacheCollection =
+      'cache_academic_eams_grade';
+
+  /// 本专科教务过程化成绩业务快照缓存集合。
+  static const String academicEamsGradeProcessCacheCollection =
+      'cache_academic_eams_grade_process';
+
   /// 教务处校历缓存集合。
   static const String academicCalendarCollection = 'cache_academic_calendar';
 

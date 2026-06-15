@@ -800,6 +800,32 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   }) async {
     throw UnimplementedError();
   }
+
+  @override
+  Future<AcademicEamsQueryResult> fetchGrades({
+    bool requireCampusNetwork = true,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedGrades() async {
+    return null;
+  }
+
+  @override
+  Future<AcademicEamsQueryResult> fetchGradeProcess({
+    AcademicTermChoice? term,
+    AcademicEamsSemesterOption? semester,
+    bool requireCampusNetwork = true,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<AcademicEamsQueryResult?> readLatestCachedGradeProcess() async {
+    return null;
+  }
 }
 
 const AcademicEamsProfile _studentProfile = AcademicEamsProfile(

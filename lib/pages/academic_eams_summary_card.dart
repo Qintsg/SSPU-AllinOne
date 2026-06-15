@@ -37,6 +37,12 @@ class AcademicEamsSummaryCard extends StatelessWidget {
   /// 本专科教务内嵌考试安排子卡片。
   final Widget examSchedule;
 
+  /// 当前成绩查询结果，用于让摘要指标跟随内嵌成绩子卡片。
+  final AcademicEamsQueryResult? gradeResult;
+
+  /// 本专科教务内嵌成绩子卡片。
+  final Widget gradeCard;
+
   const AcademicEamsSummaryCard({
     super.key,
     required this.result,
@@ -48,6 +54,8 @@ class AcademicEamsSummaryCard extends StatelessWidget {
     required this.onOpenCourseSchedule,
     required this.examResult,
     required this.examSchedule,
+    required this.gradeResult,
+    required this.gradeCard,
   });
 
   @override
@@ -90,6 +98,7 @@ class AcademicEamsSummaryCard extends StatelessWidget {
             _AcademicEamsSnapshotView(
               snapshot: snapshot,
               examSnapshot: examResult?.snapshot?.exams ?? snapshot.exams,
+              gradeSnapshot: gradeResult?.snapshot?.grades ?? snapshot.grades,
               status: result!.status,
               onOpenCourseSchedule: onOpenCourseSchedule,
             ),
@@ -101,7 +110,7 @@ class AcademicEamsSummaryCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: FluentSpacing.l),
-          _AcademicEamsSubcardWrap(children: [examSchedule]),
+          _AcademicEamsSubcardWrap(children: [examSchedule, gradeCard]),
           const SizedBox(height: FluentSpacing.m),
           Align(
             alignment: Alignment.centerRight,
@@ -198,12 +207,14 @@ class _AcademicEamsSnapshotView extends StatelessWidget {
   const _AcademicEamsSnapshotView({
     required this.snapshot,
     required this.examSnapshot,
+    required this.gradeSnapshot,
     required this.status,
     required this.onOpenCourseSchedule,
   });
 
   final AcademicEamsSnapshot snapshot;
   final AcademicExamSnapshot? examSnapshot;
+  final AcademicGradeSnapshot? gradeSnapshot;
   final AcademicEamsQueryStatus status;
   final VoidCallback onOpenCourseSchedule;
 
@@ -212,9 +223,7 @@ class _AcademicEamsSnapshotView extends StatelessWidget {
     final theme = FluentTheme.of(context);
     final profile = snapshot.profile;
     final courseCount = snapshot.courseTable?.entries.length ?? 0;
-    final gradeCount =
-        (snapshot.grades?.historyRecords.length ?? 0) +
-        (snapshot.grades?.currentTermRecords.length ?? 0);
+    final gradeCount = gradeSnapshot?.allRecords.length ?? 0;
     // 统计全部考试记录，避免考试时间未公布时摘要误显示为 0。
     final examCount = examSnapshot?.records.length ?? 0;
     final completion = snapshot.programCompletion;
