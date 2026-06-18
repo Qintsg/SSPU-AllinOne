@@ -214,7 +214,7 @@ Release PR bodies must include:
 
 ## Data And Privacy
 
-- User data stays local: desktop `~/.sspu-aio/`, mobile app data directory.
+- User data stays local in each platform's system-default application data directory (resolved via `path_provider`): Windows `%APPDATA%`, macOS sandbox container, Linux `$XDG_DATA_HOME`, and the mobile app data directory. Do not use a `~/.sspu-aio` directory.
 - Academic credentials are stored in system secure storage (`flutter_secure_storage`), not in `app_state.json`.
 - The app provides read-only queries only; do not add enrollment, payment, recharge, or other write actions.
 
