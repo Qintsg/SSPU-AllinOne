@@ -819,7 +819,7 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        const FluentApp(home: _SettingsNavigationLayoutHarness()),
+        const qingyuan.YhApp(home: _SettingsNavigationLayoutHarness()),
       );
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -848,10 +848,9 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        const FluentApp(
-          home: ScaffoldPage(
-            padding: EdgeInsets.zero,
-            content: Align(
+        const qingyuan.YhApp(
+          home: qingyuan.YhPageScaffold(
+            body: Align(
               alignment: Alignment.topCenter,
               child: Padding(
                 padding: EdgeInsets.only(top: 8),
@@ -861,14 +860,12 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('settings-narrow-tab-combo')));
       await tester.pumpAndSettle();
 
-      final firstOption = find.byKey(
-        const ValueKey('fluent-select-popup-option-0'),
-      );
+      final firstOption = find.text('常规');
       expect(firstOption, findsOneWidget);
       expect(
         tester.getTopLeft(firstOption).dy,
@@ -1266,8 +1263,8 @@ class _SettingsNavigationLayoutHarness extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScaffoldPage(
-      content: LayoutBuilder(
+    return qingyuan.YhPageScaffold(
+      body: LayoutBuilder(
         builder: (context, constraints) {
           final isNarrow = constraints.maxWidth < 720;
           return isNarrow
@@ -1288,22 +1285,23 @@ class _NarrowSettingsNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Icon(FluentIcons.globalNavButton, size: 16),
+        const Icon(qingyuan.YhIcons.menu, size: 24),
         const SizedBox(width: 8),
         Expanded(
-          child: FluentSelect<int>(
+          child: qingyuan.YhSelect<int>(
             key: const Key('settings-narrow-tab-combo'),
+            label: '设置分区',
+            showLabel: false,
             value: selectedValue,
-            isExpanded: true,
-            items: const [
-              FluentSelectItem(value: 0, child: Text('常规')),
-              FluentSelectItem(value: 1, child: Text('学期')),
-              FluentSelectItem(value: 2, child: Text('自动刷新')),
-              FluentSelectItem(value: 3, child: Text('安全')),
-              FluentSelectItem(value: 4, child: Text('职能部门')),
-              FluentSelectItem(value: 5, child: Text('教学单位')),
-              FluentSelectItem(value: 6, child: Text('微信推文')),
-              FluentSelectItem(value: 7, child: Text('关于')),
+            options: const [
+              qingyuan.YhSelectOption(value: 0, label: '常规'),
+              qingyuan.YhSelectOption(value: 1, label: '学期'),
+              qingyuan.YhSelectOption(value: 2, label: '自动刷新'),
+              qingyuan.YhSelectOption(value: 3, label: '安全'),
+              qingyuan.YhSelectOption(value: 4, label: '职能部门'),
+              qingyuan.YhSelectOption(value: 5, label: '教学单位'),
+              qingyuan.YhSelectOption(value: 6, label: '微信推文'),
+              qingyuan.YhSelectOption(value: 7, label: '关于'),
             ],
             onChanged: (_) {},
           ),

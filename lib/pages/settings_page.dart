@@ -9,7 +9,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import '../design/fluent_ui.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 import '../models/channel_config.dart';
 import '../services/academic_eams_service.dart';
@@ -25,7 +25,6 @@ import '../services/sports_attendance_service.dart';
 import '../services/storage_service.dart';
 import '../services/student_report_service.dart';
 import '../services/system_auth_service.dart';
-import '../theme/fluent_tokens.dart';
 import '../widgets/channel_list_section.dart';
 import '../widgets/app_feedback.dart';
 import '../widgets/password_dialogs.dart';
@@ -223,14 +222,18 @@ class _SettingsPageState extends State<SettingsPage>
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const FluentPage(content: Center(child: FluentProgressRing()));
+      return const YhPageScaffold(
+        body: Center(
+          child: SizedBox(width: 240, child: YhProgress(showPercent: false)),
+        ),
+      );
     }
 
-    return FluentPage(
-      header: const FluentPageHeader(title: Text('设置')),
-      content: ResponsiveBuilder(
-        builder: (context, deviceType, constraints) {
-          return deviceType == DeviceType.phone
+    return YhPageScaffold(
+      appBar: const YhAppBar(title: '设置'),
+      body: ResponsiveBuilder(
+        builder: (context, _, constraints) {
+          return constraints.maxWidth < context.yhTheme.breakpoint.compact
               ? _buildNarrowSettingsLayout(context)
               : _buildWideSettingsLayout(context);
         },

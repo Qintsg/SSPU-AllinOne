@@ -14,28 +14,32 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
 
   /// 宽屏布局。
   Widget _buildWideSettingsLayout(BuildContext context) {
+    final theme = context.yhTheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 180,
+          width: theme.spacing.xl2 * 4,
           child: Padding(
-            padding: const EdgeInsets.only(
-              left: FluentSpacing.l,
-              top: FluentSpacing.s,
+            padding: EdgeInsets.only(
+              left: theme.spacing.l,
+              top: theme.spacing.s,
             ),
             child: _buildSettingsNavigation(context),
           ),
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: FluentSpacing.s),
-          child: Divider(direction: Axis.vertical),
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: theme.spacing.s),
+          child: SizedBox(
+            width: 1,
+            child: ColoredBox(color: theme.color.border),
+          ),
         ),
         Expanded(
           child: _buildScrollableContent(
-            responsivePagePadding(
-              DeviceType.desktop,
-              vertical: FluentSpacing.s,
+            EdgeInsets.symmetric(
+              horizontal: theme.spacing.l,
+              vertical: theme.spacing.s,
             ),
           ),
         ),
@@ -45,22 +49,30 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
 
   /// 窄屏布局。
   Widget _buildNarrowSettingsLayout(BuildContext context) {
+    final theme = context.yhTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(
-            FluentSpacing.l,
+          padding: EdgeInsets.fromLTRB(
+            theme.spacing.m,
             0,
-            FluentSpacing.l,
-            FluentSpacing.s,
+            theme.spacing.m,
+            theme.spacing.s,
           ),
           child: _buildSettingsTabCombo(context),
         ),
-        const Divider(),
+        SizedBox(
+          height: 1,
+          width: double.infinity,
+          child: ColoredBox(color: theme.color.border),
+        ),
         Expanded(
           child: _buildScrollableContent(
-            responsivePagePadding(DeviceType.phone, vertical: FluentSpacing.s),
+            EdgeInsets.symmetric(
+              horizontal: theme.spacing.m,
+              vertical: theme.spacing.s,
+            ),
           ),
         ),
       ],
@@ -69,96 +81,100 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
 
   /// 左侧导航。
   Widget _buildSettingsNavigation(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final captionStyle = theme.typography.caption?.copyWith(
-      color: theme.resources.textFillColorSecondary,
+    final theme = context.yhTheme;
+    final captionStyle = theme.typography.caption.copyWith(
+      color: theme.color.muted,
     );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+          padding: EdgeInsets.fromLTRB(
+            theme.spacing.s,
+            theme.spacing.xs,
+            theme.spacing.s,
+            theme.spacing.s,
+          ),
           child: Text('系统设置', style: captionStyle),
         ),
         buildSettingsNavItem(
           context: context,
           index: 0,
           selectedIndex: _selectedTab,
-          icon: FluentIcons.settings,
+          icon: YhIcons.settings,
           label: '常规',
           onTap: () => setState(() => _selectedTab = 0),
         ),
-        const SizedBox(height: FluentSpacing.xxs),
+        SizedBox(height: theme.spacing.xs),
         buildSettingsNavItem(
           context: context,
           index: 1,
           selectedIndex: _selectedTab,
-          icon: FluentIcons.calendar,
+          icon: YhIcons.calendar,
           label: '学期',
           onTap: () => setState(() => _selectedTab = 1),
         ),
-        const SizedBox(height: FluentSpacing.xxs),
+        SizedBox(height: theme.spacing.xs),
         buildSettingsNavItem(
           context: context,
           index: 2,
           selectedIndex: _selectedTab,
-          icon: FluentIcons.sync,
+          icon: YhIcons.sync,
           label: '自动刷新',
           onTap: () => setState(() => _selectedTab = 2),
         ),
-        const SizedBox(height: FluentSpacing.xxs),
+        SizedBox(height: theme.spacing.xs),
         buildSettingsNavItem(
           context: context,
           index: 3,
           selectedIndex: _selectedTab,
-          icon: FluentIcons.lock,
+          icon: YhIcons.lock,
           label: '安全',
           onTap: () => setState(() => _selectedTab = 3),
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-          child: Divider(),
-        ),
+        _buildSettingsDivider(context),
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          padding: EdgeInsets.fromLTRB(
+            theme.spacing.s,
+            0,
+            theme.spacing.s,
+            theme.spacing.s,
+          ),
           child: Text('消息推送设置', style: captionStyle),
         ),
         buildSettingsNavItem(
           context: context,
           index: 4,
           selectedIndex: _selectedTab,
-          icon: FluentIcons.education,
+          icon: YhIcons.education,
           label: '职能部门',
           onTap: () => setState(() => _selectedTab = 4),
         ),
-        const SizedBox(height: FluentSpacing.xxs),
+        SizedBox(height: theme.spacing.xs),
         buildSettingsNavItem(
           context: context,
           index: 5,
           selectedIndex: _selectedTab,
-          icon: FluentIcons.library,
+          icon: YhIcons.library,
           label: '教学单位',
           onTap: () => setState(() => _selectedTab = 5),
         ),
-        const SizedBox(height: FluentSpacing.xxs),
+        SizedBox(height: theme.spacing.xs),
         buildSettingsNavItem(
           context: context,
           index: 6,
           selectedIndex: _selectedTab,
-          icon: FluentIcons.chat,
+          icon: YhIcons.chat,
           label: '微信推文',
           onTap: () => setState(() => _selectedTab = 6),
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-          child: Divider(),
-        ),
+        _buildSettingsDivider(context),
         buildSettingsNavItem(
           context: context,
           index: 7,
           selectedIndex: _selectedTab,
-          icon: FluentIcons.info,
+          icon: YhIcons.info,
           label: '关于',
           onTap: () => setState(() => _selectedTab = 7),
         ),
@@ -166,26 +182,43 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
     );
   }
 
+  Widget _buildSettingsDivider(BuildContext context) {
+    final theme = context.yhTheme;
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        vertical: theme.spacing.s,
+        horizontal: theme.spacing.s,
+      ),
+      child: SizedBox(
+        height: 1,
+        width: double.infinity,
+        child: ColoredBox(color: theme.color.border),
+      ),
+    );
+  }
+
   /// 窄屏顶部下拉。
   Widget _buildSettingsTabCombo(BuildContext context) {
+    final theme = context.yhTheme;
     return Row(
       children: [
-        const Icon(FluentIcons.globalNavButton, size: 16),
-        const SizedBox(width: FluentSpacing.s),
+        Icon(YhIcons.menu, size: theme.spacing.l, color: theme.color.muted),
+        SizedBox(width: theme.spacing.s),
         Expanded(
-          child: FluentSelect<int>(
+          child: YhSelect<int>(
             key: const Key('settings-narrow-tab-combo'),
+            label: '设置分区',
+            showLabel: false,
             value: _selectedTab,
-            isExpanded: true,
-            items: const [
-              FluentSelectItem(value: 0, child: Text('常规')),
-              FluentSelectItem(value: 1, child: Text('学期')),
-              FluentSelectItem(value: 2, child: Text('自动刷新')),
-              FluentSelectItem(value: 3, child: Text('安全')),
-              FluentSelectItem(value: 4, child: Text('职能部门')),
-              FluentSelectItem(value: 5, child: Text('教学单位')),
-              FluentSelectItem(value: 6, child: Text('微信推文')),
-              FluentSelectItem(value: 7, child: Text('关于')),
+            options: const [
+              YhSelectOption(value: 0, label: '常规'),
+              YhSelectOption(value: 1, label: '学期'),
+              YhSelectOption(value: 2, label: '自动刷新'),
+              YhSelectOption(value: 3, label: '安全'),
+              YhSelectOption(value: 4, label: '职能部门'),
+              YhSelectOption(value: 5, label: '教学单位'),
+              YhSelectOption(value: 6, label: '微信推文'),
+              YhSelectOption(value: 7, label: '关于'),
             ],
             onChanged: (value) {
               if (value != null) setState(() => _selectedTab = value);
@@ -198,13 +231,35 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
 
   /// 带动画的滚动内容区。
   Widget _buildScrollableContent(EdgeInsets padding) {
+    final theme = context.yhTheme;
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final duration = theme.motion.effective(
+      theme.motion.slow,
+      disableAnimations: disableAnimations,
+    );
     return SingleChildScrollView(
       primary: false,
       padding: padding,
-      child: _buildContentPanel(context)
-          .animate(key: ValueKey(_selectedTab))
-          .fadeIn(duration: FluentDuration.slow, curve: FluentEasing.decelerate)
-          .slideY(begin: 0.02, end: 0),
+      child: AnimatedSwitcher(
+        duration: duration,
+        switchInCurve: theme.motion.curve,
+        switchOutCurve: theme.motion.curve,
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.02),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
+          ),
+        ),
+        child: KeyedSubtree(
+          key: ValueKey(_selectedTab),
+          child: _buildContentPanel(context),
+        ),
+      ),
     );
   }
 

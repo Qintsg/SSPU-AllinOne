@@ -22,6 +22,7 @@ class YhIcons {
   static const IconData finance = system.FluentIcons.payment_24_regular;
   static const IconData clock = system.FluentIcons.clock_24_regular;
   static const IconData more = system.FluentIcons.more_horizontal_24_regular;
+  static const IconData menu = system.FluentIcons.line_horizontal_3_24_regular;
   static const IconData profile = system.FluentIcons.person_24_regular;
   static const IconData notification = system.FluentIcons.alert_24_regular;
   static const IconData close = system.FluentIcons.dismiss_24_regular;

@@ -126,6 +126,7 @@ class _YhTextFieldState extends State<YhTextField> {
       child: Opacity(
         opacity: widget.enabled ? 1 : 0.45,
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (widget.showLabel) ...[

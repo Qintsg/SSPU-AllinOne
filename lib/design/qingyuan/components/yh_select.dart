@@ -186,6 +186,7 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
     return Opacity(
       opacity: _enabled ? 1 : 0.45,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (widget.showLabel) ...[
