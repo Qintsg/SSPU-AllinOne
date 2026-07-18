@@ -161,9 +161,9 @@ def _capture_mail_state_references(
         compose = page.locator('[data-mail-compose-panel]:visible')
         _assert(compose.count() == 1, f"邮箱撰写 {state} 状态未显示")
         if state == "content":
-            compose.locator('input[name="to"]').fill("mentor@example.invalid")
-            compose.locator('input[name="subject"]').fill("暑期项目进度确认")
-            compose.locator('textarea[name="body"]').fill("老师您好，附件事项已确认，将按计划完成。")
+            compose.locator('input[name="to"]').fill("advisor@example.invalid")
+            compose.locator('input[name="subject"]').fill("课程安排确认")
+            compose.locator('textarea[name="body"]').fill("老师您好，我已核对本学期课程安排，谢谢。")
         if state == "loading":
             _assert(compose.locator('[data-mail-send]').is_disabled(), "邮箱撰写 loading 状态仍可提交")
         if state == "error":

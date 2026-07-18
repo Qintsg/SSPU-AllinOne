@@ -310,7 +310,7 @@ button, input { font: inherit; }
 .mail-body { padding-top: var(--space-m); border-top: 1px solid var(--border); color: var(--muted); line-height: 1.75; }
 .mail-back { display: none; min-height: 48px; margin-bottom: var(--space-m); padding: 0 var(--space-m); border: 0; border-radius: var(--radius-s); color: var(--brand-ink); background: var(--brand-tint); cursor: pointer; }
 .mail-write-icon { display: none; }
-.prototype-page.is-composing .page-actions { visibility: hidden; }
+.prototype-page.is-composing .page-actions { display: none; }
 .mail-stale-banner { max-width: none; margin-bottom: var(--space-m); }
 .mail-compose-panel { max-width: var(--layout-form-content-width); margin-inline: auto; }
 .mail-compose-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-l); margin-bottom: var(--space-l); }
@@ -320,6 +320,7 @@ button, input { font: inherit; }
 .mail-compose-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-m); }
 .mail-compose-form .yh-field { max-width: none; }
 .mail-compose-to, .mail-compose-subject, .mail-compose-body, .mail-compose-error, .mail-compose-actions { grid-column: 1 / -1; }
+.mail-compose-body .control { height: calc(var(--control-regular) * 4); align-items: flex-start; }
 .mail-compose-actions { display: flex; justify-content: flex-end; gap: var(--space-s); }
 .mail-state-panel { min-height: calc(var(--layout-popover-width) + var(--space-xl)); display: grid; place-items: center; }
 .mail-state-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-s); }
