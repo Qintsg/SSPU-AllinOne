@@ -85,6 +85,50 @@
     mailPage.querySelector('.page-heading p:not(.page-kicker)').textContent = '邮件原文只在本机读取；桌面采用列表—详情并列，移动端进入独立详情页。';
   }
 
+  function setInfoState(state) {
+    var infoPage = document.querySelector('[data-screen="info"]');
+    if (!infoPage) return;
+    var showContent = state === 'content' || state === 'stale';
+    infoPage.dataset.infoState = state;
+    infoPage.querySelectorAll('[data-info-content]').forEach(function (item) {
+      item.hidden = !showContent;
+    });
+    var staleBanner = infoPage.querySelector('.info-stale-banner');
+    if (staleBanner) staleBanner.hidden = state !== 'stale';
+    infoPage.querySelectorAll('[data-info-state-panel]').forEach(function (panel) {
+      panel.hidden = panel.dataset.infoStatePanel !== state;
+    });
+  }
+
+  function setInfoFilterState(state) {
+    var infoPage = document.querySelector('[data-screen="info"]');
+    if (!infoPage) return;
+    infoPage.dataset.infoFilterState = state;
+    var list = infoPage.querySelector('[data-info-feed-list]');
+    if (list) list.hidden = state === 'empty';
+    infoPage.querySelectorAll('[data-info-filter-panel]').forEach(function (panel) {
+      panel.hidden = panel.dataset.infoFilterPanel !== state;
+    });
+  }
+
+  function applyInfoFilters() {
+    var infoPage = document.querySelector('[data-screen="info"]');
+    if (!infoPage) return;
+    var active = infoPage.querySelector('[data-info-source][aria-pressed="true"]');
+    var source = active ? active.dataset.infoSource : '全部信息';
+    var search = infoPage.querySelector('[data-info-search]');
+    var query = search ? search.value.trim().toLowerCase() : '';
+    var visible = 0;
+    infoPage.querySelectorAll('[data-info-entry]').forEach(function (entry) {
+      var matchesSource = source === '全部信息' || entry.dataset.source === source;
+      var matchesSearch = !query || entry.textContent.toLowerCase().indexOf(query) >= 0;
+      var matches = matchesSource && matchesSearch;
+      entry.hidden = !matches;
+      if (matches) visible += 1;
+    });
+    setInfoFilterState(visible === 0 ? 'empty' : 'content');
+  }
+
   function setMailComposeState(state) {
     var mailPage = document.querySelector('[data-screen="mail"]');
     if (!mailPage) return;
@@ -216,13 +260,21 @@
       return;
     }
 
-    var sourceFilter = event.target.closest('.filter-panel .filter-list button');
+    var sourceFilter = event.target.closest('[data-info-source]');
     if (sourceFilter) {
       selectOne(Array.from(sourceFilter.parentElement.querySelectorAll('button')), sourceFilter, 'aria-pressed');
-      var source = sourceFilter.textContent.split('·')[0].trim();
-      document.querySelectorAll('.feed-entry').forEach(function (entry) {
-        entry.hidden = source !== '全部信息' && entry.textContent.indexOf(source) < 0;
-      });
+      applyInfoFilters();
+      return;
+    }
+
+    var clearInfoFilter = event.target.closest('[data-info-clear-filter]');
+    if (clearInfoFilter) {
+      var infoPage = clearInfoFilter.closest('[data-screen="info"]');
+      var allSources = Array.from(infoPage.querySelectorAll('[data-info-source]'));
+      selectOne(allSources, allSources[0], 'aria-pressed');
+      infoPage.querySelector('[data-info-search]').value = '';
+      applyInfoFilters();
+      infoPage.querySelector('[data-info-search]').focus();
       return;
     }
 
@@ -266,7 +318,7 @@
 
     var clearSearch = event.target.closest('[data-clear-search]');
     if (clearSearch) {
-      var searchInput = document.querySelector('.search-box input[type="search"]');
+      var searchInput = clearSearch.closest('[data-screen]').querySelector('.search-box input[type="search"]');
       searchInput.value = '';
       searchInput.dispatchEvent(new Event('input', { bubbles: true }));
       searchInput.focus();
@@ -283,6 +335,10 @@
   document.addEventListener('input', function (event) {
     var search = event.target.closest('.search-box input[type="search"]');
     if (!search) return;
+    if (search.matches('[data-info-search]')) {
+      applyInfoFilters();
+      return;
+    }
     var query = search.value.trim().toLowerCase();
     document.querySelectorAll('.link-groups .section-card').forEach(function (section) {
       var visible = 0;
@@ -362,6 +418,8 @@
     if (tab) panel.setAttribute('aria-labelledby', tab.id);
   });
   window.qingyuanPrototype = {
+    setInfoState: setInfoState,
+    setInfoFilterState: setInfoFilterState,
     setMailState: setMailState,
     setMailComposeState: setMailComposeState,
     setLinksState: setLinksState,

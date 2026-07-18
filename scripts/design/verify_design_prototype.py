@@ -103,6 +103,10 @@ def _assert_screen_interactions(page: Page, screen: str, viewport_width: int) ->
         school_filter.focus()
         page.keyboard.press("ArrowRight")
         _assert(page.get_by_role("button", name="教务处 · 4").get_attribute("aria-pressed") == "true", "信息筛选方向键未切换来源")
+        page.locator('[data-info-search]').fill("不存在的资讯")
+        _assert(page.locator('[data-info-filter-panel="empty"]:visible').count() == 1, "资讯搜索没有明确筛选空状态")
+        page.locator('[data-info-clear-filter]:visible').click()
+        _assert(page.locator('[data-info-entry]:visible').count() == 3, "清除资讯筛选未恢复全部内容")
     elif screen == "mail":
         page.locator('.mail-item').first.focus()
         page.keyboard.press("ArrowDown")
@@ -118,10 +122,10 @@ def _assert_screen_interactions(page: Page, screen: str, viewport_width: int) ->
         _assert(favorites.count() == 6, "快速跳转未完整表达六个收藏入口")
         favorites.first.click()
         _assert(favorites.first.get_attribute("aria-pressed") == "true", "快速跳转收藏状态未同步语义")
-        page.locator('.search-box input').fill("图书馆")
+        page.locator('[data-screen="links"] .search-box input').fill("图书馆")
         _assert(page.locator('.link-groups .action-row:visible').count() == 1, "快速跳转搜索结果不唯一")
         _assert("图书馆" in page.locator('.link-groups .action-row:visible').inner_text(), "快速跳转搜索结果不正确")
-        page.locator('.search-box input').fill("不存在的入口")
+        page.locator('[data-screen="links"] .search-box input').fill("不存在的入口")
         _assert(page.locator('[data-search-empty]:visible').count() == 1, "快速跳转没有明确空状态")
         page.locator('[data-clear-search]:visible').click()
         _assert(page.locator('.link-groups .action-row:visible').count() == 6, "清除搜索未恢复全部入口")
@@ -190,6 +194,47 @@ def _capture_mail_state_references(
         )
 
     page.evaluate("window.qingyuanPrototype.setMailState('content')")
+
+
+def _capture_info_state_references(
+    page: Page,
+    output_dir: Path,
+    theme: str,
+    width: int,
+    height: int,
+) -> None:
+    for state in ("initial", "loading", "empty", "stale", "error"):
+        page.evaluate("state => window.qingyuanPrototype.setInfoState(state)", state)
+        if state == "stale":
+            _assert(page.locator('.info-stale-banner:visible').count() == 1, "资讯 stale 状态未显示缓存提示")
+            _assert(page.locator('[data-info-feed-list]:visible').count() == 1, "资讯 stale 状态丢失已有内容")
+        else:
+            panel = page.locator(f'[data-info-state-panel="{state}"]:visible')
+            _assert(panel.count() == 1, f"资讯 {state} 状态面板未显示")
+        _capture_reference(
+            page,
+            output_dir / f"info.feed--{state}--{theme}--{width}x{height}.png",
+            width,
+            height,
+        )
+
+    page.evaluate("window.qingyuanPrototype.setInfoState('content')")
+    page.evaluate("window.qingyuanPrototype.setInfoFilterState('content')")
+    _capture_reference(
+        page,
+        output_dir / f"info.filters--content--{theme}--{width}x{height}.png",
+        width,
+        height,
+    )
+    page.evaluate("window.qingyuanPrototype.setInfoFilterState('empty')")
+    _assert(page.locator('[data-info-filter-panel="empty"]:visible').count() == 1, "资讯筛选 empty 状态未显示")
+    _capture_reference(
+        page,
+        output_dir / f"info.filters--empty--{theme}--{width}x{height}.png",
+        width,
+        height,
+    )
+    page.evaluate("window.qingyuanPrototype.setInfoFilterState('content')")
 
 
 def _capture_links_state_references(
@@ -288,6 +333,8 @@ def verify(output_dir: Path) -> None:
                     width,
                     height,
                 )
+                if screen == "info":
+                    _capture_info_state_references(page, output_dir, "light", width, height)
                 if screen == "mail":
                     _capture_mail_state_references(page, output_dir, "light", width, height)
                 if screen == "links":
@@ -330,6 +377,8 @@ def verify(output_dir: Path) -> None:
                     width,
                     height,
                 )
+                if screen == "info":
+                    _capture_info_state_references(page, output_dir, "dark", width, height)
                 if screen == "mail":
                     _capture_mail_state_references(page, output_dir, "dark", width, height)
                 if screen == "links":

@@ -149,6 +149,47 @@ class DesignSystemValidatorTest(unittest.TestCase):
             ):
                 validate_design_system(root)
 
+    def test_info_prototype_requires_all_feed_and_filter_states(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            prototype = root / "docs" / "design" / "patterns" / "samples" / "app-shell.html"
+            prototype.write_text(
+                prototype.read_text(encoding="utf-8").replace(
+                    'data-info-state-panel="empty"',
+                    'data-info-state-panel="missing-empty"',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                DesignSystemValidationError,
+                r"资讯原型缺少信息流状态：empty",
+            ):
+                validate_design_system(root)
+
+    def test_info_prototype_requires_deterministic_state_setters(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            prototype_js = root / "docs" / "design" / "patterns" / "samples" / "_app-shell.js"
+            prototype_js.write_text(
+                prototype_js.read_text(encoding="utf-8").replace(
+                    "setInfoFilterState",
+                    "missingInfoFilterState",
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                DesignSystemValidationError,
+                r"页面原型缺少确定性状态接口 setInfoFilterState",
+            ):
+                validate_design_system(root)
+
     def test_links_prototype_requires_external_confirmation_boundary(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

@@ -413,6 +413,19 @@ def _validate_page_prototype(project_root: Path) -> None:
         if marker not in prototype:
             errors.append(f"邮箱原型缺少{label}")
 
+    required_info_states = {"initial", "loading", "empty", "error"}
+    info_states = set(re.findall(r'data-info-state-panel="([a-z-]+)"', prototype))
+    missing_info_states = sorted(required_info_states - info_states)
+    if missing_info_states:
+        errors.append(f"资讯原型缺少信息流状态：{', '.join(missing_info_states)}")
+    for marker, label in (
+        ("info-stale-banner", "stale 缓存提示"),
+        ('data-info-filter-panel="empty"', "筛选无结果状态"),
+        ("data-info-search", "搜索入口"),
+    ):
+        if marker not in prototype:
+            errors.append(f"资讯原型缺少{label}")
+
     for marker, label in (
         ('data-screen="link-confirmation"', "外部网页确认页"),
         ('data-link-confirmation-state="content"', "外部确认 content 状态"),
@@ -423,13 +436,25 @@ def _validate_page_prototype(project_root: Path) -> None:
             errors.append(f"快捷入口原型缺少{label}")
 
     prototype_js = (project_root / "docs/design/patterns/samples/_app-shell.js").read_text(encoding="utf-8")
-    for setter in ("setMailState", "setMailComposeState", "setLinkConfirmationState"):
+    for setter in (
+        "setInfoState",
+        "setInfoFilterState",
+        "setMailState",
+        "setMailComposeState",
+        "setLinkConfirmationState",
+    ):
         if setter not in prototype_js:
             errors.append(f"页面原型缺少确定性状态接口 {setter}")
     verifier_path = project_root / "scripts/design/verify_design_prototype.py"
     if verifier_path.exists():
         verifier = verifier_path.read_text(encoding="utf-8")
-        for surface in ("mail.inbox", "mail.compose", "links.external-confirmation"):
+        for surface in (
+            "info.feed",
+            "info.filters",
+            "mail.inbox",
+            "mail.compose",
+            "links.external-confirmation",
+        ):
             if surface not in verifier:
                 errors.append(f"浏览器核验未采集 {surface} 多状态参考稿")
 

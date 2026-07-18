@@ -299,11 +299,23 @@ button, input { font: inherit; }
 .filter-list { display: grid; gap: var(--space-s); }
 .filter-list button { min-height: 48px; padding: 0 var(--space-m); border: 0; border-radius: var(--radius-s); color: var(--muted); background: transparent; text-align: left; cursor: pointer; }
 .filter-list button.is-active { color: var(--brand-ink); background: var(--brand-tint); font-weight: 600; }
-.feed-stack { display: grid; gap: var(--space-s); }
+.feed-stack,
+[data-info-feed-list] { display: grid; gap: var(--space-s); }
 .feed-entry { padding: var(--space-l); border: 1px solid var(--border); border-radius: var(--radius-l); background: var(--surface); }
 .feed-meta { display: flex; justify-content: space-between; gap: var(--space-m); margin-bottom: var(--space-s); color: var(--muted); font-size: var(--type-caption); }
 .feed-entry h2 { margin: 0 0 var(--space-s); font: 600 var(--type-body)/1.45 var(--font); }
 .feed-entry p { margin: 0; color: var(--muted); font-size: var(--type-small); line-height: 1.65; }
+.info-stale-banner { max-width: none; margin-bottom: var(--space-m); }
+.info-state-panel,
+.info-filter-empty { min-height: calc(var(--layout-popover-width) + var(--space-xl)); display: grid; place-items: center; }
+.info-state-panel .yh-empty > svg,
+.info-filter-empty .yh-empty > svg { width: var(--control-regular); height: var(--control-regular); padding: var(--space-s); border-radius: var(--radius-m); color: var(--brand-strong); background: var(--brand-tint); fill: none; stroke: currentColor; stroke-width: 1.8; }
+.info-state-panel .yh-empty h2,
+.info-state-panel .yh-empty p,
+.info-filter-empty .yh-empty h2,
+.info-filter-empty .yh-empty p { margin: 0; }
+.info-state-panel .yh-empty h2,
+.info-filter-empty .yh-empty h2 { color: var(--fg); font: 600 var(--type-h3)/var(--line-height-h3) var(--font); }
 
 .mail-list { overflow: hidden; padding: 0; }
 .mail-item { width: 100%; min-height: 78px; display: block; padding: var(--space-m); border: 0; border-bottom: 1px solid var(--border); color: var(--fg); background: transparent; text-align: left; cursor: pointer; }

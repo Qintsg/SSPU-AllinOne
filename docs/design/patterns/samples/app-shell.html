@@ -89,12 +89,22 @@
       </section>
 
       <section class="prototype-page" data-screen="info" aria-labelledby="info-title" hidden>
-        <header class="page-heading"><div><p class="page-kicker">校园信息</p><h1 id="info-title">与我有关的消息，按来源说清楚。</h1><p>筛选器稳定保留，文章卡先给来源和时间，再给标题与摘要。</p></div><div class="page-actions"><button class="icon-button" type="button" aria-label="刷新校园信息"><svg><use href="#i-refresh"/></svg></button></div></header>
-        <div class="feed-layout"><aside class="section-card filter-panel"><h2>来源</h2><p>3 个来源已启用</p><div class="filter-list" role="group" aria-label="信息来源" data-roving="filters"><button class="is-active" type="button" aria-pressed="true" tabindex="0">全部信息 · 12</button><button type="button" aria-pressed="false" tabindex="-1">学校官网 · 5</button><button type="button" aria-pressed="false" tabindex="-1">教务处 · 4</button><button type="button" aria-pressed="false" tabindex="-1">微信公众号 · 3</button></div></aside><div class="feed-stack">
-          <article class="feed-entry"><div class="feed-meta"><span class="yh-pill info">教务处</span><time>今天 08:30</time></div><h2>关于 2025–2026 学年夏季学期考试安排的通知</h2><p>请同学们在教务系统中核对考试时间和地点，如有冲突及时联系学院教务老师。</p></article>
-          <article class="feed-entry"><div class="feed-meta"><span class="yh-pill info">学校官网</span><time>昨天 17:20</time></div><h2>图书馆暑期开放时间调整</h2><p>暑期开放区域与服务时间有所调整，入馆前请查看最新安排。</p></article>
-          <article class="feed-entry"><div class="feed-meta"><span class="yh-pill info">微信公众号</span><time>7 月 16 日</time></div><h2>校园夏日服务指南</h2><p>集中查看餐饮、班车、场馆与值班服务信息。</p></article>
+        <header class="page-heading"><div><p class="page-kicker">校园信息</p><h1 id="info-title">校园资讯</h1><p>先说明来源与更新时间，再提供标题和两行摘要；刷新时保留已有内容。</p></div><div class="page-actions"><button class="icon-button" type="button" aria-label="刷新校园资讯"><svg><use href="#i-refresh"/></svg></button></div></header>
+        <div class="status-row" data-info-content><span class="yh-pill info">3 个来源</span><span class="yh-pill info">12 条资讯</span><span class="yh-pill">09:30 更新</span></div>
+        <div class="yh-banner warn info-stale-banner" data-info-content hidden><svg aria-hidden="true"><use href="#i-info"/></svg><span>当前显示 09:30 的本地资讯缓存；网络恢复后可手动刷新。</span></div>
+        <label class="search-box info-search" data-info-content><svg width="20" height="20" fill="none" stroke="currentColor"><use href="#i-search"/></svg><span class="sr-only">搜索校园资讯</span><input type="search" placeholder="搜索标题、摘要或来源" data-info-search /></label>
+        <div class="feed-layout" data-info-content><aside class="section-card filter-panel"><h2>来源</h2><p>3 个来源已启用</p><div class="filter-list" role="group" aria-label="信息来源" data-roving="filters"><button class="is-active" type="button" aria-pressed="true" tabindex="0" data-info-source="全部信息">全部信息 · 12</button><button type="button" aria-pressed="false" tabindex="-1" data-info-source="学校官网">学校官网 · 5</button><button type="button" aria-pressed="false" tabindex="-1" data-info-source="教务处">教务处 · 4</button><button type="button" aria-pressed="false" tabindex="-1" data-info-source="微信公众号">微信公众号 · 3</button></div></aside><div class="feed-stack">
+          <div data-info-feed-list>
+            <article class="feed-entry" data-info-entry data-source="教务处"><div class="feed-meta"><span class="yh-pill info">教务处</span><time>今天 08:30</time></div><h2>关于 2025–2026 学年夏季学期考试安排的通知</h2><p>请同学们在教务系统中核对考试时间和地点，如有冲突及时联系学院教务老师。</p></article>
+            <article class="feed-entry" data-info-entry data-source="学校官网"><div class="feed-meta"><span class="yh-pill info">学校官网</span><time>昨天 17:20</time></div><h2>图书馆暑期开放时间调整</h2><p>暑期开放区域与服务时间有所调整，入馆前请查看最新安排。</p></article>
+            <article class="feed-entry" data-info-entry data-source="微信公众号"><div class="feed-meta"><span class="yh-pill info">微信公众号</span><time>7 月 16 日</time></div><h2>校园夏日服务指南</h2><p>集中查看餐饮、班车、场馆与值班服务信息。</p></article>
+          </div>
+          <section class="section-card info-filter-empty" data-info-filter-panel="empty" hidden><div class="yh-empty"><svg aria-hidden="true"><use href="#i-search"/></svg><h2>当前筛选没有结果</h2><p>更换来源或清除搜索词后，可恢复显示全部校园资讯。</p><button class="yh-button secondary" type="button" data-info-clear-filter>清除筛选</button></div></section>
         </div></div>
+        <section class="section-card info-state-panel" data-info-state-panel="initial" hidden><div class="yh-empty"><svg aria-hidden="true"><use href="#i-info"/></svg><h2>尚未读取校园资讯</h2><p>先从本机缓存读取；只有手动刷新时才访问已启用的校园来源。</p><button class="yh-button primary" type="button">读取校园资讯</button></div></section>
+        <section class="section-card info-state-panel" data-info-state-panel="loading" hidden><div class="mail-state-progress"><span class="yh-spinner" aria-hidden="true"></span><div><h2>正在读取校园资讯</h2><p>正在载入固定的脱敏资讯数据。</p></div></div></section>
+        <section class="section-card info-state-panel" data-info-state-panel="empty" hidden><div class="yh-empty"><svg aria-hidden="true"><use href="#i-info"/></svg><h2>尚未认证可用的资讯来源</h2><p>请先在设置中完成来源认证；当前没有可展示的本地缓存。</p><button class="yh-button secondary" type="button">来源与认证设置</button></div></section>
+        <section class="section-card info-state-panel" data-info-state-panel="error" hidden><div class="yh-empty"><svg aria-hidden="true"><use href="#i-info"/></svg><h2>无法刷新校园资讯</h2><p>请检查网络与来源认证后重试；已有本地缓存不会被删除。</p><button class="yh-button primary" type="button">重试</button></div></section>
       </section>
 
       <section class="prototype-page" data-screen="mail" aria-labelledby="mail-title" hidden>
