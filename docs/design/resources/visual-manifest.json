@@ -56,7 +56,7 @@
     {"id": "info.filters", "group": "info", "states": ["content", "empty"]},
 
     {"id": "mail.inbox", "group": "mail", "states": ["initial", "loading", "content", "empty", "stale", "error"]},
-    {"id": "mail.message-detail", "group": "mail", "states": ["loading", "content", "error"]},
+    {"id": "mail.message-detail", "group": "mail", "states": ["content"]},
     {"id": "mail.compose", "group": "mail", "states": ["initial", "loading", "content", "error"]},
 
     {"id": "links.directory", "group": "links", "states": ["loading", "content", "empty", "error"]},

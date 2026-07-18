@@ -11,7 +11,7 @@
 - HTML 参考稿显式加载 MiSans 四档字重，并校验排版字体 token，避免浏览器回退字体造成伪差异。
 - 课表周视图在 medium 以上压缩为完整七列，CourseBlock 统一为业务域 tint，当前日整列使用青雾强调。
 - 页面内容宽度、流式边距、状态药丸、NavRail、Tabs 与 IconButton 的 Flutter 契约同步到参考原型。
-- 邮箱参考稿补齐收件箱 initial/loading/empty/stale/error 与撰写 initial/content/loading/error，四档视口和亮暗主题均可确定性采集。
+- 邮箱参考稿补齐收件箱 initial/loading/empty/stale/error、独立只读详情 content 与撰写 initial/content/loading/error，四档视口和亮暗主题均可确定性采集。
 
 ## 0.3.0 - 2026-07-18
 

@@ -13,9 +13,9 @@
     []
   ];
   var mailDetails = [
-    { sender: '财务处', time: '今天 08:12', title: '校园卡消费提醒', body: '您于 08:10 在学生食堂完成一笔 12.50 元消费，当前校园卡余额为 128.50 元。' },
-    { sender: '教务处', time: '昨天 16:42', title: '夏季学期选课确认', body: '请在规定时间内确认选课结果；如课程与培养方案不一致，请联系学院教务老师。' },
-    { sender: '图书馆', time: '7 月 16 日', title: '图书归还提醒', body: '您借阅的图书将在 3 天后到期，可在图书馆入口查看详情或办理续借。' }
+    { sender: '教务处', time: '今天 08:12', title: '选课结果确认通知', body: '本学期选课结果已生效，请在课程表中核对上课时间与地点。' },
+    { sender: '图书馆', time: '昨天 16:42', title: '图书馆借阅到期提醒', body: '您有 2 本图书即将到期，可在线办理续借。' },
+    { sender: '信息化办公室', time: '7 月 16 日', title: '校园网络维护公告', body: '周日凌晨将进行短时网络维护。' }
   ];
   var settingsHeadings = {
     account: ['数据与连接', '先说明数据存在哪里、连接是否有效，再提供修改操作；高风险动作保持隔离。'],
@@ -129,6 +129,7 @@
       page.classList.toggle('is-active', active);
       page.hidden = !active;
     });
+    document.body.classList.toggle('standalone-screen', name === 'mail-detail');
     document.querySelectorAll('[data-page]').forEach(function (button) {
       if (button.dataset.page === name) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');

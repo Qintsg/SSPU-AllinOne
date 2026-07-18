@@ -12,13 +12,14 @@ from playwright.sync_api import Page, sync_playwright
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROTOTYPE = PROJECT_ROOT / "docs" / "design" / "patterns" / "samples" / "app-shell.html"
-SCREENS = ("home", "academic", "schedule", "info", "mail", "links", "settings")
+SCREENS = ("home", "academic", "schedule", "info", "mail", "mail-detail", "links", "settings")
 SCREEN_SURFACES = {
     "home": "home.dashboard",
     "academic": "academic.overview",
     "schedule": "schedule.calendar",
     "info": "info.feed",
     "mail": "mail.inbox",
+    "mail-detail": "mail.message-detail",
     "links": "links.directory",
     "settings": "settings.account",
 }
@@ -104,7 +105,7 @@ def _assert_screen_interactions(page: Page, screen: str, viewport_width: int) ->
         page.keyboard.press("ArrowDown")
         _assert(page.locator('.mail-item.is-active').count() == 1, "邮件列表存在多个选中项")
         _assert(page.locator('.mail-item').nth(1).get_attribute("aria-selected") == "true", "邮件方向键未同步选中语义")
-        _assert(page.locator('.mail-content:visible h2').inner_text() == "夏季学期选课确认", "可见邮件详情未随选择更新")
+        _assert(page.locator('.mail-content:visible h2').inner_text() == "图书馆借阅到期提醒", "可见邮件详情未随选择更新")
         if viewport_width <= 900:
             _assert(page.locator('.mail-list:visible').count() == 0, "compact/medium 邮件详情未替换列表")
             page.locator('.mail-back:visible').click()
