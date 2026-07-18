@@ -174,7 +174,7 @@ void main() {
 
     expect(find.text('校历'), findsWidgets);
     expect(find.text('2025-2026学年'), findsWidgets);
-    expect(find.text('外部打开'), findsOneWidget);
+    expect(find.bySemanticsLabel('外部打开'), findsOneWidget);
     expect(find.text('秋季学期'), findsNothing);
     await disposeCourseSchedulePage(tester);
   });

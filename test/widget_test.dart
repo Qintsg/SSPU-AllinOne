@@ -214,11 +214,14 @@ void main() {
         tester,
         find.byKey(const Key('info-mobile-controls')),
       );
-      final infoControlsTop = tester
-          .getTopLeft(find.byKey(const Key('info-mobile-controls')))
-          .dy;
-      expect(infoControlsTop, greaterThanOrEqualTo(topPadding));
-      expect(infoControlsTop, lessThanOrEqualTo(topPadding + 40));
+      final infoTitle = find.text('信息中心');
+      final infoTitleTop = tester.getTopLeft(infoTitle).dy;
+      expect(infoTitleTop, greaterThanOrEqualTo(topPadding));
+      expect(infoTitleTop, lessThanOrEqualTo(topPadding + 40));
+      expect(
+        tester.getTopLeft(find.byKey(const Key('info-mobile-controls'))).dy,
+        greaterThan(tester.getBottomLeft(infoTitle).dy),
+      );
 
       await tester.pump(const Duration(milliseconds: 300));
     } finally {
