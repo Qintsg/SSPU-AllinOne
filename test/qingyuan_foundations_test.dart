@@ -6,7 +6,7 @@
  * @Date : 2026-07-18
  */
 
-import 'dart:ui' show Tristate;
+import 'dart:ui' show PointerDeviceKind, Tristate;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
@@ -182,5 +182,27 @@ void main() {
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
     expect(result, isFalse);
+  });
+
+  testWidgets('清源工具提示在鼠标悬停后通过 Overlay 展示', (tester) async {
+    await tester.pumpWidget(
+      const YhApp(
+        home: Center(
+          child: YhTooltip(message: '重新检测校园网', child: Text('网络状态')),
+        ),
+      ),
+    );
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    await mouse.moveTo(tester.getCenter(find.text('网络状态')));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('重新检测校园网'), findsOneWidget);
+
+    await mouse.moveTo(Offset.zero);
+    await tester.pump();
+    expect(find.text('重新检测校园网'), findsNothing);
+    await mouse.removePointer();
   });
 }

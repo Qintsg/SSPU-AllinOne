@@ -9,7 +9,7 @@
 import 'dart:async';
 import 'package:window_manager/window_manager.dart';
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import '../services/app_display_name_service.dart';
 import '../services/campus_network_status_service.dart';
 import 'campus_network_status_indicator.dart';
@@ -74,14 +74,14 @@ class _DesktopWindowFrameState extends State<DesktopWindowFrame>
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
+    final theme = context.yhTheme;
 
     return Overlay(
       initialEntries: [
         OverlayEntry(
           builder: (context) => VirtualWindowFrame(
             child: ColoredBox(
-              color: colors.neutralBackground1,
+              color: theme.color.background,
               child: Column(
                 children: [
                   _DesktopWindowTitleBar(
@@ -127,39 +127,41 @@ class _DesktopWindowTitleBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final spacing = context.fluentSpacing;
-    final type = context.fluentType;
-    final brightness = FluentTheme.of(context).brightness;
+    final theme = context.yhTheme;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colors.neutralBackground2,
-        border: Border(bottom: BorderSide(color: colors.neutralStrokeDivider)),
+        color: theme.color.surface,
+        border: Border(bottom: BorderSide(color: theme.color.border)),
       ),
       child: SizedBox(
-        height: 40,
+        height: theme.control.regular,
         child: Row(
           children: [
             Expanded(
               child: DragToMoveArea(
                 child: Padding(
                   padding: EdgeInsetsDirectional.only(
-                    start: _usesNativeMacOSWindowControls ? 84 : spacing.l,
+                    start: _usesNativeMacOSWindowControls
+                        ? theme.spacing.xl2 +
+                              theme.spacing.xl +
+                              theme.spacing.xs
+                        : theme.spacing.l,
                   ),
                   child: Row(
                     children: [
                       Icon(
-                        FluentIcons.home,
-                        size: 16,
-                        color: colors.brandForeground1,
+                        YhIcons.home,
+                        size: theme.spacing.m,
+                        color: theme.color.brandStrong,
                       ),
-                      SizedBox(width: spacing.s),
+                      SizedBox(width: theme.spacing.s),
                       Text(
                         AppDisplayName.of(context),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: type.caption1Strong.copyWith(
-                          color: colors.neutralForeground1,
+                        style: theme.typography.small.copyWith(
+                          color: theme.color.foreground,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -173,29 +175,76 @@ class _DesktopWindowTitleBar extends StatelessWidget {
                 variant: CampusNetworkStatusIndicatorVariant.titleBar,
                 indicatorKey: const Key('campus-network-status-titlebar'),
               ),
-              SizedBox(width: spacing.xs),
+              SizedBox(width: theme.spacing.xs),
             ],
             if (!_usesNativeMacOSWindowControls) ...[
-              WindowCaptionButton.minimize(
-                brightness: brightness,
+              _WindowButton(
+                icon: YhIcons.minimize,
+                label: '最小化',
                 onPressed: () => unawaited(windowManager.minimize()),
               ),
-              isMaximized
-                  ? WindowCaptionButton.unmaximize(
-                      brightness: brightness,
-                      onPressed: onToggleMaximized,
-                    )
-                  : WindowCaptionButton.maximize(
-                      brightness: brightness,
-                      onPressed: onToggleMaximized,
-                    ),
-              WindowCaptionButton.close(
-                brightness: brightness,
+              _WindowButton(
+                icon: isMaximized ? YhIcons.restore : YhIcons.maximize,
+                label: isMaximized ? '还原' : '最大化',
+                onPressed: onToggleMaximized,
+              ),
+              _WindowButton(
+                icon: YhIcons.close,
+                label: '关闭',
+                danger: true,
                 onPressed: () => unawaited(windowManager.close()),
               ),
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _WindowButton extends StatelessWidget {
+  const _WindowButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.danger = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return YhTooltip(
+      message: label,
+      child: YhPressable(
+        semanticLabel: label,
+        onPressed: onPressed,
+        builder: (context, state, child) => ColoredBox(
+          color: state.pressed
+              ? (danger ? theme.color.danger : theme.color.brandStrong)
+              : state.hovered
+              ? (danger ? theme.color.danger : theme.color.brandTint)
+              : theme.color.surface.withValues(alpha: 0),
+          child: SizedBox.square(
+            dimension: theme.control.regular,
+            child: Icon(
+              icon,
+              size: theme.spacing.m,
+              color: danger && (state.hovered || state.pressed)
+                  ? theme.color.onBrand
+                  : state.pressed
+                  ? theme.color.onBrand
+                  : danger
+                  ? theme.color.danger
+                  : theme.color.foreground,
+            ),
+          ),
+        ),
+        child: const SizedBox.shrink(),
       ),
     );
   }

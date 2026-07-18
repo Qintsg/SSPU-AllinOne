@@ -28,7 +28,6 @@ import 'package:sspu_allinone/widgets/settings_auto_refresh_section.dart';
 import 'package:sspu_allinone/widgets/settings_general_section.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_config_dialog.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_section.dart';
-import 'package:window_manager/window_manager.dart' show WindowCaptionButton;
 
 /// 等待目标组件出现，避免页面异步加载尚未完成时提前断言。
 Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
@@ -401,7 +400,7 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        FluentApp(
+        qingyuan.YhApp(
           home: Row(
             children: [
               CampusNetworkStatusIndicator(
@@ -443,7 +442,7 @@ void main() {
       vpnReachable: true,
       campusReachable: true,
       label: 'VPN网络环境',
-      icon: FluentIcons.networkVpn,
+      icon: qingyuan.YhIcons.networkVpn,
       tooltip: '当前处于VPN网络环境下，部分校园内部服务可能无法访问',
     );
     await _expectTitleBarStatus(
@@ -460,7 +459,7 @@ void main() {
       vpnReachable: true,
       campusReachable: false,
       label: '校外网络环境',
-      icon: FluentIcons.networkOff,
+      icon: qingyuan.YhIcons.networkOff,
       tooltip: '当前处于非校园网络环境，访问校内服务需要连接校园网或打开VPN',
     );
     await _expectTitleBarStatus(
@@ -468,7 +467,7 @@ void main() {
       vpnReachable: false,
       campusReachable: false,
       label: '未知网络环境',
-      icon: FluentIcons.networkUnknown,
+      icon: qingyuan.YhIcons.networkUnknown,
       tooltip: '当前网络环境未知，可能是由于当前设备没有连接到网络、校园网内部错误、设备内部错误或网络波动等问题',
     );
   });
@@ -484,7 +483,7 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        FluentApp(
+        qingyuan.YhApp(
           home: Center(
             child: CampusNetworkStatusIndicator(
               service: service,
@@ -511,15 +510,12 @@ void main() {
       expect(
         find.descendant(
           of: indicator,
-          matching: find.byIcon(FluentIcons.networkVpn),
+          matching: find.byIcon(qingyuan.YhIcons.networkVpn),
         ),
         findsOneWidget,
       );
       expect(
-        find.descendant(
-          of: indicator,
-          matching: find.byType(FluentProgressRing),
-        ),
+        find.descendant(of: indicator, matching: find.text('检测中')),
         findsNothing,
       );
       await tester.pump(const Duration(milliseconds: 120));
@@ -546,13 +542,15 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        const FluentApp(home: DesktopWindowFrame(child: Text('桌面内容'))),
+        const qingyuan.YhApp(home: DesktopWindowFrame(child: Text('桌面内容'))),
       );
       await tester.pump();
 
-      expect(find.byType(WindowCaptionButton), findsNothing);
-      expect(find.text('SSPU-AllinOne'), findsOneWidget);
-      expect(tester.getTopLeft(find.text('SSPU-AllinOne')).dx, greaterThan(80));
+      expect(find.bySemanticsLabel('最小化'), findsNothing);
+      expect(find.bySemanticsLabel('最大化'), findsNothing);
+      expect(find.bySemanticsLabel('关闭'), findsNothing);
+      expect(find.text('工大聚合'), findsOneWidget);
+      expect(tester.getTopLeft(find.text('工大聚合')).dx, greaterThan(80));
       expect(calls, contains('isMaximized'));
     } finally {
       debugDefaultTargetPlatformOverride = previousTargetPlatform;
@@ -565,7 +563,7 @@ void main() {
     }
   });
 
-  testWidgets('非 macOS 桌面标题栏保留 Fluent 窗口按钮', (tester) async {
+  testWidgets('非 macOS 桌面标题栏使用清源窗口按钮', (tester) async {
     final previousTargetPlatform = debugDefaultTargetPlatformOverride;
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -578,13 +576,15 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        const FluentApp(home: DesktopWindowFrame(child: Text('桌面内容'))),
+        const qingyuan.YhApp(home: DesktopWindowFrame(child: Text('桌面内容'))),
       );
       await tester.pump();
 
-      expect(find.byType(WindowCaptionButton), findsNWidgets(3));
-      expect(find.text('SSPU-AllinOne'), findsOneWidget);
-      expect(tester.getTopLeft(find.text('SSPU-AllinOne')).dx, lessThan(80));
+      expect(find.bySemanticsLabel('最小化'), findsOneWidget);
+      expect(find.bySemanticsLabel('最大化'), findsOneWidget);
+      expect(find.bySemanticsLabel('关闭'), findsOneWidget);
+      expect(find.text('工大聚合'), findsOneWidget);
+      expect(tester.getTopLeft(find.text('工大聚合')).dx, lessThan(80));
     } finally {
       debugDefaultTargetPlatformOverride = previousTargetPlatform;
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -1182,7 +1182,7 @@ Future<void> _expectTitleBarStatus(
 
   try {
     await tester.pumpWidget(
-      FluentApp(
+      qingyuan.YhApp(
         home: Center(
           child: CampusNetworkStatusIndicator(
             service: service,
@@ -1200,11 +1200,7 @@ Future<void> _expectTitleBarStatus(
       const Key('campus-network-status-titlebar-test'),
     );
     expect(indicator, findsOneWidget);
-    expect(tester.getSize(indicator), const Size(142, 30));
-    expect(
-      find.descendant(of: indicator, matching: find.byType(DecoratedBox)),
-      findsNothing,
-    );
+    expect(tester.getSize(indicator), const Size(144, 32));
     if (usesCustomWifiIcon) {
       expect(
         find.descendant(of: indicator, matching: find.byType(CustomPaint)),
@@ -1213,7 +1209,7 @@ Future<void> _expectTitleBarStatus(
       expect(
         find.descendant(
           of: indicator,
-          matching: find.byIcon(FluentIcons.networkWifi),
+          matching: find.byIcon(qingyuan.YhIcons.globe),
         ),
         findsNothing,
       );
@@ -1225,7 +1221,7 @@ Future<void> _expectTitleBarStatus(
     }
     expect(
       find.byWidgetPredicate((widget) {
-        return widget is Tooltip && widget.message == tooltip;
+        return widget is qingyuan.YhTooltip && widget.message == tooltip;
       }),
       findsOneWidget,
     );

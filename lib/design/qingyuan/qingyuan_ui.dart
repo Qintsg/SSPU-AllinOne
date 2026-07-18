@@ -16,6 +16,7 @@ export 'components/yh_quick_link.dart';
 export 'components/yh_progress.dart';
 export 'components/yh_selectable_text.dart';
 export 'components/yh_text_field.dart';
+export 'components/yh_tooltip.dart';
 export 'navigation/yh_app_bar.dart';
 export 'navigation/yh_navigation.dart';
 export 'navigation/yh_page_scaffold.dart';
