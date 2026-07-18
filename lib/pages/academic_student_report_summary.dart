@@ -15,13 +15,15 @@ class _SecondClassroomSummaryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     final categories = _categoryProgressList(summary);
-    final sizeClass = AppBreakpoints.of(context);
-    final compact = sizeClass == WindowSizeClass.compact;
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.compact;
     return _SecondClassroomCompactSummary(
       summary: summary,
       categories: categories,
-      metricMinWidth: compact ? 96 : 112,
+      metricMinWidth: compact
+          ? theme.spacing.xl2 * 2
+          : theme.spacing.xl2 * 2 + theme.spacing.m,
       categoryColumns: compact ? 1 : 2,
     );
   }
@@ -31,8 +33,8 @@ class _SecondClassroomCompactSummary extends StatelessWidget {
   const _SecondClassroomCompactSummary({
     required this.summary,
     required this.categories,
-    this.metricMinWidth = 112,
-    this.categoryColumns = 2,
+    required this.metricMinWidth,
+    required this.categoryColumns,
     this.title,
   });
 
@@ -45,7 +47,7 @@ class _SecondClassroomCompactSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final totals = summary.totals;
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     final status = totals?.passStatus;
     final metrics = [
       _SummaryMetric(
@@ -67,27 +69,24 @@ class _SecondClassroomCompactSummary extends StatelessWidget {
     return DecoratedBox(
       decoration: _summaryPanelDecoration(context),
       child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.m),
+        padding: EdgeInsets.all(theme.spacing.m),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (title != null) ...[
-              Text(title!, style: theme.typography.bodyStrong),
-              const SizedBox(height: FluentSpacing.s),
+              Text(title!, style: theme.typography.h3),
+              SizedBox(height: theme.spacing.s),
             ],
             _SummaryMetricWrap(metrics: metrics, minWidth: metricMinWidth),
-            const SizedBox(height: FluentSpacing.s),
-            Container(
-              height: 1,
-              color: FluentTheme.of(context).resources.cardStrokeColorDefault,
-            ),
-            const SizedBox(height: FluentSpacing.s),
+            SizedBox(height: theme.spacing.s),
+            Container(height: 1, color: theme.color.border),
+            SizedBox(height: theme.spacing.s),
             _CategoryProgressStrip(
               categories: categories,
               columnCount: categoryColumns,
             ),
             if (summary.warning != null) ...[
-              const SizedBox(height: FluentSpacing.s),
+              SizedBox(height: theme.spacing.s),
               _SecondClassroomWarningText(summary.warning!),
             ],
           ],
@@ -105,9 +104,10 @@ class _SummaryMetricWrap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return Wrap(
-      spacing: FluentSpacing.l,
-      runSpacing: FluentSpacing.s,
+      spacing: theme.spacing.l,
+      runSpacing: theme.spacing.s,
       crossAxisAlignment: WrapCrossAlignment.end,
       children: [
         for (final metric in metrics)
@@ -135,34 +135,24 @@ class _SummaryMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           value,
-          style:
-              (emphasized
-                      ? theme.typography.title
-                      : theme.typography.bodyStrong)
-                  ?.copyWith(
-                    color:
-                        valueColor ??
-                        (emphasized
-                            ? theme.accentColor.defaultBrushFor(
-                                theme.brightness,
-                              )
-                            : null),
-                    fontWeight: FontWeight.w700,
-                  ),
+          style: (emphasized ? theme.typography.h2 : theme.typography.body)
+              .copyWith(
+                color:
+                    valueColor ?? (emphasized ? theme.color.brandStrong : null),
+                fontWeight: FontWeight.w700,
+              ),
         ),
-        const SizedBox(height: FluentSpacing.xxs),
+        SizedBox(height: theme.spacing.xs),
         Text(
           label,
-          style: theme.typography.caption?.copyWith(
-            color: theme.resources.textFillColorSecondary,
-          ),
+          style: theme.typography.caption.copyWith(color: theme.color.muted),
         ),
       ],
     );
@@ -180,6 +170,7 @@ class _CategoryProgressStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     final effectiveColumnCount = categories.isEmpty
         ? 1
         : columnCount.clamp(1, categories.length).toInt();
@@ -191,7 +182,7 @@ class _CategoryProgressStrip extends StatelessWidget {
           columnIndex < effectiveColumnCount;
           columnIndex++
         ) ...[
-          if (columnIndex > 0) const SizedBox(width: FluentSpacing.s),
+          if (columnIndex > 0) SizedBox(width: theme.spacing.s),
           Expanded(
             child: Column(
               children: [
@@ -201,7 +192,7 @@ class _CategoryProgressStrip extends StatelessWidget {
                   itemIndex += effectiveColumnCount
                 ) ...[
                   if (itemIndex != columnIndex)
-                    const SizedBox(height: FluentSpacing.s),
+                    SizedBox(height: theme.spacing.s),
                   _CategoryProgressPill(category: categories[itemIndex]),
                 ],
               ],
@@ -220,25 +211,24 @@ class _CategoryProgressPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final colors = context.fluentColors;
+    final theme = context.yhTheme;
     final textColor = _categoryColor(context, category.status);
     final borderColor = textColor.withValues(alpha: 0.48);
     final backgroundColor = _isFailStatus(category.status)
-        ? colors.statusDangerBackground
+        ? theme.color.dangerTint
         : _isPassStatus(category.status)
-        ? colors.statusSuccessBackground
-        : theme.resources.subtleFillColorSecondary;
-    return FluentCard(
-      bordered: true,
-      elevated: false,
-      padding: EdgeInsets.zero,
-      backgroundColor: backgroundColor,
-      borderColor: borderColor,
+        ? theme.color.successTint
+        : theme.color.sunken;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(theme.radius.input),
+      ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: FluentSpacing.s,
-          vertical: FluentSpacing.xs,
+        padding: EdgeInsets.symmetric(
+          horizontal: theme.spacing.s,
+          vertical: theme.spacing.xs,
         ),
         child: Row(
           children: [
@@ -248,7 +238,7 @@ class _CategoryProgressPill extends StatelessWidget {
                 color: textColor,
               ),
             ),
-            const SizedBox(width: FluentSpacing.s),
+            SizedBox(width: theme.spacing.s),
             Flexible(
               child: Align(
                 alignment: Alignment.centerRight,
@@ -273,13 +263,15 @@ class _CategoryProgressLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return Text(
       text,
       maxLines: 2,
       overflow: TextOverflow.visible,
-      style: FluentTheme.of(
-        context,
-      ).typography.caption?.copyWith(color: color, fontWeight: FontWeight.w700),
+      style: theme.typography.caption.copyWith(
+        color: color,
+        fontWeight: FontWeight.w700,
+      ),
     );
   }
 }
@@ -292,13 +284,14 @@ class _CategoryProgressValue extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerLeft,
       child: Text(
         text,
         maxLines: 1,
-        style: FluentTheme.of(context).typography.bodyStrong?.copyWith(
+        style: theme.typography.body.copyWith(
           color: color,
           fontWeight: FontWeight.w700,
         ),
@@ -308,12 +301,11 @@ class _CategoryProgressValue extends StatelessWidget {
 }
 
 BoxDecoration _summaryPanelDecoration(BuildContext context) {
-  final theme = FluentTheme.of(context);
-  final colors = context.fluentColors;
+  final theme = context.yhTheme;
   return BoxDecoration(
-    color: theme.resources.controlAltFillColorSecondary,
-    borderRadius: BorderRadius.circular(context.fluentRadii.medium),
-    border: Border.all(color: colors.neutralStroke2),
+    color: theme.color.sunken,
+    borderRadius: BorderRadius.circular(theme.radius.m),
+    border: Border.all(color: theme.color.border),
   );
 }
 
@@ -324,12 +316,10 @@ class _SecondClassroomWarningText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     return Text(
       message,
-      style: theme.typography.caption?.copyWith(
-        color: context.fluentColors.statusWarningForeground,
-      ),
+      style: theme.typography.caption.copyWith(color: theme.color.warning),
     );
   }
 }
@@ -417,15 +407,12 @@ bool _categoryMatches(String source, String target) {
 }
 
 Color _categoryColor(BuildContext context, String status) {
-  return _statusTextColor(context, status) ??
-      FluentTheme.of(context).resources.textFillColorSecondary;
+  return _statusTextColor(context, status) ?? context.yhTheme.color.muted;
 }
 
 Color? _statusTextColor(BuildContext context, String? status) {
-  if (_isFailStatus(status)) return context.fluentColors.statusDangerForeground;
-  if (_isPassStatus(status)) {
-    return context.fluentColors.statusSuccessForeground;
-  }
+  if (_isFailStatus(status)) return context.yhTheme.color.danger;
+  if (_isPassStatus(status)) return context.yhTheme.color.success;
   return null;
 }
 

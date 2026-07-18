@@ -23,7 +23,6 @@ import '../services/academic_term_service.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/student_report_service.dart';
 import '../theme/fluent_tokens.dart';
-import '../theme/app_breakpoints.dart';
 import '../utils/query_result_messages.dart';
 import '../widgets/refresh_feedback_action.dart';
 import 'course_schedule_page.dart';

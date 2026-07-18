@@ -280,7 +280,7 @@ void main() {
     expect(find.text('总已获分数'), findsOneWidget);
     expect(find.text('已获积分详情'), findsOneWidget);
     expect(find.text('规则矩阵'), findsOneWidget);
-    expect(find.byIcon(FluentIcons.chevronDown), findsOneWidget);
+    expect(find.bySemanticsLabel('收起已获积分详情'), findsOneWidget);
     expect(find.text('名称'), findsOneWidget);
     expect(find.text('获得积分'), findsOneWidget);
     expect(find.textContaining('志愿服务'), findsWidgets);
@@ -290,14 +290,14 @@ void main() {
       find.byKey(const Key('academic-student-report-detail-collapse')),
     );
     await tester.pumpAndSettle();
-    expect(find.byIcon(FluentIcons.chevronRight), findsOneWidget);
+    expect(find.bySemanticsLabel('展开已获积分详情'), findsOneWidget);
     expect(find.textContaining('创新训练项目'), findsNothing);
 
     await tester.tap(
       find.byKey(const Key('academic-student-report-detail-collapse')),
     );
     await tester.pumpAndSettle();
-    expect(find.byIcon(FluentIcons.chevronDown), findsOneWidget);
+    expect(find.bySemanticsLabel('收起已获积分详情'), findsOneWidget);
     expect(find.textContaining('创新训练项目'), findsWidgets);
     await disposeAcademicPage(tester);
   });
