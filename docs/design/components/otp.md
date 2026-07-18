@@ -45,7 +45,7 @@
 | `--brand` | `brandPrimary`（已填格） | `0xFF6FA3A4` | `0xFF7FB0B1` |
 | `--border` | `border` | `0xFFD1CEC9` | `0xFF353A3F` |
 | `--danger` | `danger` | `0xFFC23B33` | `0xFFE5564B` |
-| `--mono` | `fontFamilyMono` | JetBrains Mono | 同 |
+| `--mono` | `fontFamilyMono` | 系统等宽字体栈 | 同 |
 
 ---
 

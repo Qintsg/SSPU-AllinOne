@@ -54,7 +54,7 @@
 | **focus** | 外轮廓 2px 品牌色 | `outline: 2px solid --brand` |
 | **disabled** | 不透明度 40% + 指针禁用 | `opacity: 0.4`, `cursor: not-allowed` |
 
-**动效**：状态切换 150ms `cubic-bezier(0.4, 0, 0.2, 1)`。
+**动效**：状态切换 120ms `cubic-bezier(0.33, 0, 0.2, 1)`。
 
 ---
 

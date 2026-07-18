@@ -205,11 +205,13 @@ Release PR bodies must include:
 
 ## Design System
 
-- Single UI import: `import 'design/fluent_ui.dart'`
-- Do not import `package:fluent_ui` directly outside the design facade.
-- Use the project `FluentIcons` facade, not Material `Icons.*`.
+- Existing Fluent pages use the single UI import `import 'design/fluent_ui.dart'`.
+- Qingyuan pages and components use `import 'design/qingyuan/qingyuan_ui.dart'` once that facade exists; do not mix both facades in a new component.
+- Do not import `package:fluent_ui`, Material visual controls, or Cupertino visual controls directly inside Qingyuan components.
+- Existing pages use the project `FluentIcons` facade. Qingyuan code uses the project `YhIcons` facade; neither may use Material `Icons.*` directly.
 - Avoid raw design tokens: no direct `Color(0xFF...)`, `Colors.*`, bare `EdgeInsets`, or bare `fontSize` in product UI.
-- Prefer components from `design/components/`.
+- Existing pages prefer components from `design/components/`; new Qingyuan work belongs under `design/qingyuan/`.
+- `docs/design/resources/tokens.json` is the machine-readable source of truth. Generated or mirrored Flutter/CSS values must be validated against it.
 - Full rules live in `DESIGN.md`.
 
 ## Data And Privacy

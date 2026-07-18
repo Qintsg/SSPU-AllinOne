@@ -42,7 +42,7 @@
 |---|---|---|
 | `--surface` / `--border` | `#FFFFFF` / `#D1CEC9` | `#1E2226` / `#353A3F` |
 | `--brand-strong`（时间） | `#478384` | `#5C9A9B` |
-| `--mono`（时间） | JetBrains Mono | 同 |
+| `--mono`（时间） | 系统等宽字体栈 | 同 |
 
 ---
 

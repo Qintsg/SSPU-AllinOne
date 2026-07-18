@@ -7,10 +7,9 @@
 | Token | 值 | 用途 |
 |---|---|---|
 | `--e0` | `none` | 扁平表面（tile / inline card） |
-| `--e1` | `0 1px 2px rgba(20,48,77,0.08)` | 悬浮卡片 hover |
-| `--e2` | `0 2px 8px rgba(20,48,77,0.12)` | 下拉菜单、弹出层 |
-| `--e3` | `0 4px 16px rgba(20,48,77,0.16)` | 对话框、抽屉 |
-| `--e4` | `0 8px 32px rgba(20,48,77,0.2)` | 模态遮罩（极少用） |
+| `--e1` | `0 1px 3px rgba(0,0,0,0.08)` | 悬浮卡片 hover |
+| `--e2` | `0 4px 12px rgba(0,0,0,0.12)` | 下拉菜单、弹出层 |
+| `--e3` | `0 8px 28px rgba(0,0,0,0.16)` | 对话框、抽屉 |
 
 暗色主题时，阴影改用 `rgba(0,0,0,0.4/0.5/0.6)` 避免不可见。
 
@@ -20,16 +19,16 @@
 class YhElevation {
   static const e0 = BoxShadow(color: Colors.transparent);
   static const e1 = BoxShadow(
-    color: Color(0x14143041), // rgba(20,48,77,0.08)
-    blurRadius: 2,
+    color: Color(0x14000000),
+    blurRadius: 3,
     offset: Offset(0, 1),
   );
   static const e2 = BoxShadow(
-    color: Color(0x1F143041),
-    blurRadius: 8,
-    offset: Offset(0, 2),
+    color: Color(0x1F000000),
+    blurRadius: 12,
+    offset: Offset(0, 4),
   );
-  // e3 / e4 同理
+  // e3 同理
 }
 ```
 

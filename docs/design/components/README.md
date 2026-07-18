@@ -35,12 +35,12 @@
 
 ## 样例约定（重要）
 
-所有 `samples/*.html` **共享单一真源样式与脚本**，自己只写组件标记：
+所有 `samples/*.html` 共享样式与脚本，自己只写组件标记；视觉值必须与机器真源 `../resources/tokens.json` 一致：
 
 - [`samples/_qingyuan.css`](./samples/_qingyuan.css) — token（#478384）+ 全组件基础类 + 页面骨架，亮/暗双主题。
 - [`samples/_qingyuan.js`](./samples/_qingyuan.js) — 主题切换（持久化 + 跟随系统）+ 通用交互（switch/check/radio/seg/chip/tab/stepper）。
 
-样例文件头部固定两行引用，**禁止内联硬编码 hex**——全局换色只改 `_qingyuan.css` 一处：
+样例文件头部固定两行引用，**禁止内联硬编码 hex**。全局换色先改 `tokens.json`，再生成或同步 `_qingyuan.css`：
 
 ```html
 <link rel="stylesheet" href="_qingyuan.css" />
@@ -54,14 +54,16 @@
 
 | 清源组件 | Flutter 实现骨架 | 说明 |
 |---|---|---|
-| `YhButton` | `InkWell` + 自绘容器 | 不继承 Material/Cupertino |
+| `YhButton` | `FocusableActionDetector` + `GestureDetector` + 自绘容器 | 不继承 Material/Cupertino/Fluent 视觉控件 |
 | `YhTextField` | `EditableText` + 自绘外壳 | 不用 Material `TextField` |
 | `YhCard` | `Container` + token | 无依赖 |
 | `YhAppBar` | 仅用布局槽位 | 视觉全自绘 |
 | ... | ... | 设计系统即真源 |
 
-主题通过 `YhTheme extends ThemeExtension<YhTheme>` 注入，每个组件从 `Theme.of(context).extension<YhTheme>()!` 读 token。
+迁移期主题通过 `YhTheme extends ThemeExtension<YhTheme>` 注入现有宿主，并由 `BuildContext` 扩展读取。组件不直接依赖宿主是 Fluent 还是未来的纯 Flutter 壳。
+
+图标统一使用 `YhIcons` 门面。规格中的 `Icons.*` 旧示例在实现前必须替换，不构成允许直接依赖 Material 图标的例外。
 
 ---
 
-**进度**：逐类按 `_template.md` 填全规格 + 写样例。
+**进度**：44 份规格与样例已建立；v0.3 开始先冻结基础契约，再按依赖顺序实现核心组件与首页纵向切片。

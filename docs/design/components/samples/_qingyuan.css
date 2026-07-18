@@ -1,12 +1,12 @@
 /*
- * 清源设计系统 · 组件样例共享样式表（单一真源）
+ * 清源设计系统 · 组件样例共享样式表（由 tokens.json 约束）
  * @Project : SSPU-AllinOne / 工大聚合
  * @File    : docs/design/components/samples/_qingyuan.css
  * @Author  : Qintsg
  * @Date    : 2026-06-16
  *
  * 所有 samples/*.html 只 link 本文件，禁止内联硬编码 hex。
- * 全局换色 = 改这里的 token 一处即可（践行 foundations/color.md「方便全局换色」原则）。
+ * 全局换色先改 docs/design/resources/tokens.json，再同步或生成本文件。
  * 响应色（行动色）：#478384。
  */
 
@@ -27,6 +27,10 @@
   --brand-ink: #356263;      /* 浅底上的深字 */
   --on-brand: #FFFFFF;
 
+  /* 墨蓝结构色 */
+  --structural: #14304D;
+  --on-structural: #FFFFFF;
+
   /* 状态色 */
   --success: #1F8F57;
   --warn: #B26A12;
@@ -35,24 +39,61 @@
   --warn-tint: #FBF1E0;
   --danger-tint: #FBECEA;
 
+  /* 校园业务域色 */
+  --service-academic: #3D7EA6;
+  --service-schedule: #6B5B95;
+  --service-news: #C97D4A;
+  --service-mail: #5C8C6E;
+  --service-finance: #B85C6A;
+  --service-sports: #8A6B3D;
+  --service-secondclass: #6A8C5C;
+  --service-quicklink: #7A7A8C;
+  --scrim: rgba(0,0,0,0.45);
+
   /* 圆角 / 间距 / 字体 */
   --radius-s: 10px;
+  --radius-input: 12px;
   --radius-m: 16px;
+  --radius-tile: 18px;
   --radius-l: 24px;
   --radius-full: 999px;
   --space-xs: 4px;
   --space-s: 8px;
   --space-m: 16px;
   --space-l: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
   --font: 'MiSans', -apple-system, system-ui, sans-serif;
-  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --mono: ui-monospace, 'Cascadia Mono', 'SF Mono', 'Roboto Mono', Consolas, monospace;
+  --type-display: 36px;
+  --type-h1: 28px;
+  --type-h2: 22px;
+  --type-h3: 18px;
+  --type-body: 15px;
+  --type-small: 13px;
+  --type-caption: 11px;
+
+  /* 响应式与交互契约 */
+  --breakpoint-compact: 600px;
+  --breakpoint-medium: 768px;
+  --breakpoint-expanded: 1200px;
+  --breakpoint-large: 1600px;
+  --control-compact: 40px;
+  --control-regular: 48px;
+  --control-touch: 48px;
+  --minimum-target: 48px;
+  --focus-ring-width: 2px;
+  --focus-ring-gap: 2px;
 
   /* 阴影 */
   --shadow-1: 0 1px 3px rgba(0,0,0,0.08);
   --shadow-2: 0 4px 12px rgba(0,0,0,0.12);
   --shadow-3: 0 8px 28px rgba(0,0,0,0.16);
 
-  --curve: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --curve: cubic-bezier(0.33, 0, 0.2, 1);
 }
 
 [data-theme="dark"] {
@@ -76,6 +117,18 @@
   --warn-tint: #2A2113;
   --danger-tint: #2C1715;
 
+  --structural: #2A4A6E;
+  --on-structural: #FFFFFF;
+  --service-academic: #5599C2;
+  --service-schedule: #9486C0;
+  --service-news: #E0995F;
+  --service-mail: #7DB091;
+  --service-finance: #D67D8A;
+  --service-sports: #B08E5C;
+  --service-secondclass: #8DAF7F;
+  --service-quicklink: #9C9CAE;
+  --scrim: rgba(0,0,0,0.6);
+
   --shadow-1: 0 1px 3px rgba(0,0,0,0.4);
   --shadow-2: 0 4px 12px rgba(0,0,0,0.5);
   --shadow-3: 0 8px 28px rgba(0,0,0,0.6);
@@ -90,7 +143,7 @@ body {
   font: 15px/1.5 var(--font);
   padding: 40px 24px;
   -webkit-font-smoothing: antialiased;
-  transition: background 200ms var(--curve), color 200ms var(--curve);
+  transition: background var(--duration-base) var(--curve), color var(--duration-base) var(--curve);
 }
 .container { max-width: 960px; margin: 0 auto; }
 h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 8px; }
@@ -102,7 +155,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
   border-radius: var(--radius-m);
   padding: 28px;
   margin-bottom: 20px;
-  transition: background 200ms var(--curve), border-color 200ms var(--curve);
+  transition: background var(--duration-base) var(--curve), border-color var(--duration-base) var(--curve);
 }
 .section h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
 .section > .label { margin-bottom: 18px; }
@@ -122,7 +175,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
   color: var(--fg);
   font: 600 13px/1 var(--font);
   cursor: pointer;
-  transition: border-color 150ms, background 200ms var(--curve), color 150ms;
+  transition: border-color var(--duration-fast), background var(--duration-base) var(--curve), color var(--duration-fast);
   z-index: 100;
 }
 .theme-toggle:hover { border-color: var(--brand-strong); color: var(--brand-strong); }
@@ -140,7 +193,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
   border: none; border-radius: var(--radius-m);
   font: 500 15px/1 var(--font); letter-spacing: 0.01em;
   cursor: pointer; user-select: none;
-  transition: all 150ms var(--curve);
+  transition: all var(--duration-fast) var(--curve);
 }
 .yh-button .icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .yh-button.sm { height: 40px; min-width: 80px; font-size: 14px; }
@@ -163,7 +216,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
   display: grid; place-items: center;
   background: transparent; color: var(--muted);
   border: 1.5px solid var(--border); border-radius: var(--radius-s);
-  cursor: pointer; transition: all 150ms var(--curve);
+  cursor: pointer; transition: all var(--duration-fast) var(--curve);
 }
 .yh-icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .yh-icon-btn:hover:not(:disabled) { border-color: var(--brand-strong); color: var(--brand-strong); }
@@ -179,7 +232,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
   background: var(--brand-strong); color: var(--on-brand);
   border: none; border-radius: var(--radius-m);
   box-shadow: var(--shadow-2); cursor: pointer;
-  transition: all 150ms var(--curve);
+  transition: all var(--duration-fast) var(--curve);
 }
 .yh-fab svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .yh-fab:hover { filter: brightness(0.95); box-shadow: var(--shadow-3); }
@@ -192,7 +245,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 .yh-seg button {
   background: transparent; color: var(--muted); border: none; border-radius: 8px;
   padding: 7px 16px; font: 500 13px/1 var(--font); cursor: pointer;
-  transition: all 150ms var(--curve);
+  transition: all var(--duration-fast) var(--curve);
 }
 .yh-seg button.on { background: var(--surface); color: var(--brand-strong); box-shadow: var(--shadow-1); }
 
@@ -202,7 +255,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
   background: transparent; color: var(--muted);
   border: 1px solid var(--border); border-radius: var(--radius-full);
   padding: 7px 14px; font: 500 12.5px/1 var(--font); cursor: pointer;
-  transition: all 150ms var(--curve);
+  transition: all var(--duration-fast) var(--curve);
 }
 .yh-chip svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .yh-chip:hover { border-color: var(--brand); }
@@ -212,12 +265,12 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 .yh-switch {
   width: 44px; height: 26px; flex-shrink: 0;
   background: var(--border); border: none; border-radius: var(--radius-full);
-  position: relative; cursor: pointer; transition: background 200ms var(--curve);
+  position: relative; cursor: pointer; transition: background var(--duration-base) var(--curve);
 }
 .yh-switch::after {
   content: ""; position: absolute; top: 3px; left: 3px;
   width: 20px; height: 20px; background: #fff; border-radius: 50%;
-  box-shadow: var(--shadow-1); transition: left 200ms var(--curve);
+  box-shadow: var(--shadow-1); transition: left var(--duration-base) var(--curve);
 }
 .yh-switch.on { background: var(--brand-strong); }
 .yh-switch.on::after { left: 21px; }
@@ -227,7 +280,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 .yh-check {
   width: 22px; height: 22px; flex-shrink: 0;
   background: var(--surface); border: 1.5px solid var(--border); border-radius: 6px;
-  display: grid; place-items: center; cursor: pointer; transition: all 150ms var(--curve);
+  display: grid; place-items: center; cursor: pointer; transition: all var(--duration-fast) var(--curve);
 }
 .yh-check.on { background: var(--brand-strong); border-color: var(--brand-strong); }
 .yh-check.on::after { content: "✓"; color: var(--on-brand); font-size: 13px; line-height: 1; }
@@ -236,7 +289,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 .yh-radio {
   width: 22px; height: 22px; flex-shrink: 0;
   background: var(--surface); border: 1.5px solid var(--border); border-radius: 50%;
-  position: relative; cursor: pointer; transition: all 150ms var(--curve);
+  position: relative; cursor: pointer; transition: all var(--duration-fast) var(--curve);
 }
 .yh-radio.on { border-color: var(--brand-strong); }
 .yh-radio.on::after { content: ""; position: absolute; top: 5px; left: 5px; width: 10px; height: 10px; background: var(--brand-strong); border-radius: 50%; }
@@ -248,7 +301,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 .yh-stepper { display: inline-flex; align-items: center; border: 1.5px solid var(--border); border-radius: var(--radius-s); overflow: hidden; }
 .yh-stepper button {
   width: 40px; height: 40px; background: var(--surface); color: var(--brand-strong);
-  border: none; font-size: 20px; cursor: pointer; transition: background 150ms;
+  border: none; font-size: 20px; cursor: pointer; transition: background var(--duration-fast);
 }
 .yh-stepper button:hover { background: var(--brand-tint); }
 .yh-stepper button:disabled { color: var(--muted); cursor: not-allowed; background: var(--surface); }
@@ -264,7 +317,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
   height: 48px; padding: 0 14px;
   background: var(--surface);
   border: 1.5px solid var(--border); border-radius: 12px;
-  transition: border-color 150ms var(--curve), background 200ms var(--curve);
+  transition: border-color var(--duration-fast) var(--curve), background var(--duration-base) var(--curve);
 }
 .yh-field .control:focus-within { border-color: var(--brand-strong); }
 .yh-field .control input,
@@ -302,7 +355,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 .yh-select .control { cursor: pointer; }
 .yh-select .control .val { flex: 1; color: var(--fg); }
 .yh-select .control .val.placeholder { color: var(--muted); }
-.yh-select .control .chev { width: 18px; height: 18px; flex-shrink: 0; display: block; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 150ms var(--curve); }
+.yh-select .control .chev { width: 18px; height: 18px; flex-shrink: 0; display: block; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform var(--duration-fast) var(--curve); }
 .yh-select.open .control { border-color: var(--brand-strong); }
 .yh-select.open .control .chev { transform: rotate(180deg); stroke: var(--brand-strong); }
 .yh-select-menu {
@@ -324,7 +377,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 .yh-cal { width: 300px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-m); padding: 16px; }
 .yh-cal__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .yh-cal__head .m { font: 600 15px/1 var(--font); }
-.yh-cal__head button { width: 32px; height: 32px; border: none; background: transparent; color: var(--muted); border-radius: 8px; cursor: pointer; display: grid; place-items: center; transition: all 150ms var(--curve); }
+.yh-cal__head button { width: 32px; height: 32px; border: none; background: transparent; color: var(--muted); border-radius: 8px; cursor: pointer; display: grid; place-items: center; transition: all var(--duration-fast) var(--curve); }
 .yh-cal__head button:hover { background: var(--sunken); color: var(--brand-strong); }
 .yh-cal__head svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .yh-cal__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
@@ -342,7 +395,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
   width: 48px; height: 56px; text-align: center;
   font: 600 22px/1 var(--mono); color: var(--fg); caret-color: var(--brand-strong);
   background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
-  outline: none; transition: border-color 150ms var(--curve);
+  outline: none; transition: border-color var(--duration-fast) var(--curve);
 }
 .yh-otp input.filled { border-color: var(--brand); }
 .yh-otp input:focus { border-color: var(--brand-strong); }
@@ -357,7 +410,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 .yh-card .foot { margin-top: 16px; display: flex; gap: 10px; }
 
 /* Tile 磁贴（图标 + 标题 + 副标，纵向可点） */
-.yh-tile { display: flex; flex-direction: column; gap: 10px; width: 150px; padding: 16px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-l); cursor: pointer; transition: all 150ms var(--curve); }
+.yh-tile { display: flex; flex-direction: column; gap: 10px; width: 150px; padding: 16px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-l); cursor: pointer; transition: all var(--duration-fast) var(--curve); }
 .yh-tile:hover { border-color: var(--brand); transform: translateY(-2px); box-shadow: var(--shadow-2); }
 .yh-tile .ico { width: 40px; height: 40px; border-radius: 12px; background: var(--brand-tint); color: var(--brand-strong); display: grid; place-items: center; }
 .yh-tile .ico svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -366,7 +419,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 
 /* ListItem 列表行（前导 + 主次文 + 尾随） */
 .yh-list { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-m); overflow: hidden; max-width: 460px; }
-.yh-list .row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 150ms; }
+.yh-list .row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background var(--duration-fast); }
 .yh-list .row:last-child { border-bottom: none; }
 .yh-list .row:hover { background: var(--sunken); }
 .yh-list .row .lead { width: 38px; height: 38px; border-radius: 10px; background: var(--brand-tint); color: var(--brand-strong); display: grid; place-items: center; font: 600 14px/1 var(--font); flex-shrink: 0; }
@@ -382,9 +435,9 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 .yh-accordion .item { border-bottom: 1px solid var(--border); }
 .yh-accordion .item:last-child { border-bottom: none; }
 .yh-accordion .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; cursor: pointer; font: 500 15px/1.3 var(--font); }
-.yh-accordion .head svg { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 200ms var(--curve); }
+.yh-accordion .head svg { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform var(--duration-base) var(--curve); }
 .yh-accordion .item.open .head svg { transform: rotate(180deg); stroke: var(--brand-strong); }
-.yh-accordion .body { max-height: 0; overflow: hidden; transition: max-height 250ms var(--curve); }
+.yh-accordion .body { max-height: 0; overflow: hidden; transition: max-height var(--duration-base) var(--curve); }
 .yh-accordion .body p { padding: 0 16px 16px; font-size: 14px; color: var(--muted); line-height: 1.6; }
 .yh-accordion .item.open .body { max-height: 260px; }
 
@@ -430,7 +483,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 /* AppBar 顶栏 */
 .yh-appbar { display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 8px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-m); max-width: 460px; }
 .yh-appbar .ttl { flex: 1; min-width: 0; padding: 0 4px; font: 600 17px/1.2 var(--font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.yh-appbar .ib { width: 40px; height: 40px; flex-shrink: 0; border: none; background: transparent; color: var(--fg); border-radius: 10px; display: grid; place-items: center; cursor: pointer; transition: background 150ms; }
+.yh-appbar .ib { width: 40px; height: 40px; flex-shrink: 0; border: none; background: transparent; color: var(--fg); border-radius: 10px; display: grid; place-items: center; cursor: pointer; transition: background var(--duration-fast); }
 .yh-appbar .ib:hover { background: var(--sunken); }
 .yh-appbar .ib svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .yh-appbar.brand { background: var(--brand-strong); border-color: transparent; color: var(--on-brand); }
@@ -439,27 +492,27 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 
 /* BottomNav 底部导航 */
 .yh-bottomnav { display: flex; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-m); padding: 6px; max-width: 460px; }
-.yh-bottomnav .item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; border: none; background: transparent; color: var(--muted); font: 500 11px/1 var(--font); cursor: pointer; border-radius: 12px; transition: color 150ms; }
+.yh-bottomnav .item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; border: none; background: transparent; color: var(--muted); font: 500 11px/1 var(--font); cursor: pointer; border-radius: 12px; transition: color var(--duration-fast); }
 .yh-bottomnav .item svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .yh-bottomnav .item.on { color: var(--brand-strong); }
 .yh-bottomnav .item.on svg { stroke-width: 2.2; }
 
 /* NavRail 侧边导航轨 */
 .yh-navrail { display: inline-flex; flex-direction: column; gap: 6px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-m); padding: 8px; width: 80px; }
-.yh-navrail .item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0; border: none; background: transparent; color: var(--muted); font: 500 11px/1 var(--font); cursor: pointer; border-radius: 12px; transition: all 150ms; }
+.yh-navrail .item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0; border: none; background: transparent; color: var(--muted); font: 500 11px/1 var(--font); cursor: pointer; border-radius: 12px; transition: all var(--duration-fast); }
 .yh-navrail .item svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .yh-navrail .item:hover { background: var(--sunken); }
 .yh-navrail .item.on { background: var(--brand-tint); color: var(--brand-strong); }
 
 /* Tabs 标签页（下划线） */
 .yh-tabs { display: inline-flex; gap: 4px; border-bottom: 1.5px solid var(--border); }
-.yh-tabs button { background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--muted); padding: 10px 16px; font: 500 14px/1 var(--font); cursor: pointer; margin-bottom: -1.5px; transition: all 150ms; }
+.yh-tabs button { background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--muted); padding: 10px 16px; font: 500 14px/1 var(--font); cursor: pointer; margin-bottom: -1.5px; transition: all var(--duration-fast); }
 .yh-tabs button:hover { color: var(--fg); }
 .yh-tabs button.on { color: var(--brand-strong); border-bottom-color: var(--brand-strong); }
 
 /* Pagination 分页 */
 .yh-pagination { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-.yh-pagination button { min-width: 36px; height: 36px; padding: 0 8px; border: 1.5px solid var(--border); background: var(--surface); color: var(--fg); border-radius: 10px; font: 500 14px/1 var(--mono); cursor: pointer; transition: all 150ms; display: grid; place-items: center; }
+.yh-pagination button { min-width: 36px; height: 36px; padding: 0 8px; border: 1.5px solid var(--border); background: var(--surface); color: var(--fg); border-radius: 10px; font: 500 14px/1 var(--mono); cursor: pointer; transition: all var(--duration-fast); display: grid; place-items: center; }
 .yh-pagination button:hover:not(:disabled):not(.on) { border-color: var(--brand); color: var(--brand-strong); }
 .yh-pagination button.on { background: var(--brand-strong); border-color: var(--brand-strong); color: var(--on-brand); }
 .yh-pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -506,7 +559,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 /* Progress 线性进度 */
 .yh-progress { display: flex; align-items: center; gap: 10px; max-width: 320px; }
 .yh-progress .track { flex: 1; height: 8px; background: var(--border); border-radius: var(--radius-full); overflow: hidden; }
-.yh-progress .track i { display: block; height: 100%; background: var(--brand-strong); border-radius: var(--radius-full); transition: width 300ms var(--curve); }
+.yh-progress .track i { display: block; height: 100%; background: var(--brand-strong); border-radius: var(--radius-full); transition: width var(--duration-slow) var(--curve); }
 .yh-progress .pct { font: 600 12px/1 var(--mono); color: var(--muted); min-width: 36px; text-align: right; }
 
 /* Ring 环形进度 */
@@ -514,7 +567,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 .yh-ring i { width: 48px; height: 48px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; font: 600 13px/1 var(--mono); color: var(--brand-strong); }
 
 /* FeedItem 资讯条目 */
-.yh-feed { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-m); padding: 16px; max-width: 460px; cursor: pointer; transition: border-color 150ms; }
+.yh-feed { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-m); padding: 16px; max-width: 460px; cursor: pointer; transition: border-color var(--duration-fast); }
 .yh-feed:hover { border-color: var(--brand); }
 .yh-feed .top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; color: var(--muted); }
 .yh-feed .top .src { display: inline-flex; align-items: center; gap: 5px; color: var(--brand-ink); background: var(--brand-tint); padding: 3px 8px; border-radius: var(--radius-full); font-weight: 600; }
@@ -556,11 +609,11 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 .yh-balance .lab { font-size: 12px; opacity: 0.82; }
 .yh-balance .v { font: 600 30px/1.1 var(--mono); margin-top: 6px; }
 .yh-balance .acts { display: flex; gap: 10px; margin-top: 18px; }
-.yh-balance .acts button { flex: 1; height: 38px; border: none; border-radius: 10px; background: rgba(255,255,255,0.18); color: #FFFFFF; font: 600 13px/1 var(--font); cursor: pointer; transition: background 150ms; }
+.yh-balance .acts button { flex: 1; height: 38px; border: none; border-radius: 10px; background: rgba(255,255,255,0.18); color: #FFFFFF; font: 600 13px/1 var(--font); cursor: pointer; transition: background var(--duration-fast); }
 .yh-balance .acts button:hover { background: rgba(255,255,255,0.28); }
 
 /* QuickLink 快捷入口（跳外部服务） */
-.yh-quicklink { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-m); cursor: pointer; max-width: 360px; transition: border-color 150ms; }
+.yh-quicklink { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-m); cursor: pointer; max-width: 360px; transition: border-color var(--duration-fast); }
 .yh-quicklink:hover { border-color: var(--brand); }
 .yh-quicklink .ico { width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: var(--brand-tint); color: var(--brand-strong); display: grid; place-items: center; }
 .yh-quicklink .ico svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }

@@ -1,6 +1,6 @@
 # 设计令牌 Tokens
 
-清源的所有视觉值（颜色 / 字阶 / 间距 / 阴影 / 圆角）都通过 **token** 声明，代码层通过 `YhTheme` 单一真源读取。
+清源的所有视觉值（颜色 / 字阶 / 间距 / 阴影 / 圆角 / 动效 / 断点 / 控件尺寸）都通过 token 声明。`docs/design/resources/tokens.json` 是唯一机器真源，代码层通过 `YhTheme` 读取其生成或校验后的 Flutter 映射。
 
 ## Token 结构
 
@@ -16,12 +16,15 @@ YhTheme
 │  ├─ display / h1 / h2 / h3 / body / small / caption
 │  └─ fontFamilyDisplay / fontFamilyBody / fontFamilyMono
 ├─ spacing                # 间距（见 spacing.md）
-│  └─ xs / s / m / l / xl / xl2 / xl3
+│  └─ xs / s / m / l / xl / xl2
 ├─ elevation              # 阴影（见 elevation.md）
-│  └─ e0 / e1 / e2 / e3 / e4
+│  └─ e0 / e1 / e2 / e3
 ├─ radius                 # 圆角
 │  └─ s(10) / m(16) / l(24) / full(999)
-└─ duration / curves      # 动效（见 motion.md）
+├─ duration / curves      # 动效（见 motion.md）
+├─ breakpoint             # compact / medium / expanded / large
+├─ control                # compact / regular / touch / minimumTarget
+└─ focus                  # ringWidth / ringGap
 ```
 
 ## Flutter 实现（骨架）
@@ -49,14 +52,10 @@ final yhDarkTheme = YhTheme(
   // ...
 );
 
-// 全局注入
-MaterialApp(
-  theme: ThemeData(extensions: [yhLightTheme]),
-  darkTheme: ThemeData(extensions: [yhDarkTheme]),
-);
+// 迁移期注入现有 FluentThemeData.extensions；未来宿主可替换，组件接口不变。
 
 // 组件内读取
-final theme = Theme.of(context).extension<YhTheme>()!;
+final theme = context.yhTheme;
 Container(
   color: theme.color.neutral.surface,
   padding: EdgeInsets.all(theme.spacing.l),
@@ -65,31 +64,12 @@ Container(
 
 ## JSON 导出（供设计工具 / Web 复用）
 
-`docs/design/resources/tokens.json` 维护机器可读版本：
+`docs/design/resources/tokens.json` 维护机器可读版本。文档不再复制一份可被误认为权威的完整 JSON；具体值直接查看该文件。
 
-```json
-{
-  "color": {
-    "neutral": {
-      "bg":      { "light": "#F7F6F5", "dark": "#14171A" },
-      "surface": { "light": "#FFFFFF", "dark": "#1E2226" },
-      "fg":      { "light": "#1C1B1A", "dark": "#E8E6E3" },
-      "border":  { "light": "#D1CEC9", "dark": "#353A3F" }
-    },
-    "brand": {
-      "base":   { "light": "#6FA3A4", "dark": "#7FB0B1" },
-      "strong": { "light": "#478384", "dark": "#5C9A9B" },
-      "tint":   { "light": "#E9F0F0", "dark": "#1E3233" },
-      "ink":    { "light": "#356263", "dark": "#A8CFCF" }
-    }
-  },
-  "spacing": { "xs": 4, "s": 8, "m": 16, "l": 24, "xl": 32 },
-  "radius": { "s": 10, "m": 16, "l": 24, "full": 999 }
-}
-```
+CI 必须验证 JSON、样例 CSS 与 Flutter 映射一致；任何镜像值漂移都视为构建失败。
 
 ## 原则
 
-- **所有组件禁止硬编码数值**——颜色必须 `theme.color.*`，间距必须 `theme.spacing.*`。
+- 所有会跨组件复用的视觉值禁止硬编码——颜色必须 `theme.color.*`，间距必须 `theme.spacing.*`。
 - Token 分组按"用途"，不按"数值"（不搞 `blue500 / spacing16` 这种无语义命名）。
-- 新增 token 前先问"这个值会在 3+ 处复用吗"——单次用的值直接写，别污染 token 表。
+- 新增 token 前先问“这个值是否表达稳定语义且会在 3+ 处复用”；单次布局计算可以留在实现内部，不进入公共接口。

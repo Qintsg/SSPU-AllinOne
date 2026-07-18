@@ -40,7 +40,7 @@
 |---|---|---|---|
 | `--brand-strong` | brandStrong（色面） | `#478384` | `#5C9A9B` |
 | 白字 | 固定 `#FFFFFF`（色面上常驻白字） | — | — |
-| `--mono` | fontFamilyMono（余额） | JetBrains Mono | 同 |
+| `--mono` | fontFamilyMono（余额） | 系统等宽字体栈 | 同 |
 
 > 余额面用青雾实心 + 白字（两主题一致），靠色面与页面区分；不随主题翻成浅底。
 

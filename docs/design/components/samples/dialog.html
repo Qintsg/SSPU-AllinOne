@@ -9,7 +9,7 @@
     /* 样例级：真实模态遮罩 */
     .scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; place-items: center; z-index: 200; padding: 20px; }
     .scrim.show { display: grid; }
-    .scrim .yh-dialog { animation: dlg-in 180ms cubic-bezier(0.4,0,0.2,1); }
+    .scrim .yh-dialog { animation: dlg-in var(--duration-base) var(--curve); }
     @keyframes dlg-in { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
   </style>
 </head>

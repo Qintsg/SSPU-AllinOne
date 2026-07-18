@@ -39,7 +39,7 @@
 | 设计 token | `YhTheme` 字段 | 亮色 | 暗色 |
 |---|---|---|---|
 | `--surface` | surface | `#FFFFFF` | `#1E2226` |
-| `--mono` | fontFamilyMono（数值） | JetBrains Mono | 同 |
+| `--mono` | fontFamilyMono（数值） | 系统等宽字体栈 | 同 |
 | `--success` / `--danger` | success / danger | `#1F8F57` / `#C23B33` | `#28C26B` / `#E5564B` |
 
 > 数值必用等宽 `--mono` + `tabular-nums`，多卡并排时小数点对齐。

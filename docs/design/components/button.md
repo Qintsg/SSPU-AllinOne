@@ -47,7 +47,7 @@
 | **focus** | 外轮廓 2px `--brand` | 外轮廓 2px `--brand` | 外轮廓 2px `--brand` |
 | **disabled** | 不透明度 40% + `not-allowed` | 同左 | 同左 |
 
-**动效**：状态切换 150ms `cubic-bezier(0.4, 0, 0.2, 1)`。
+**动效**：状态切换 120ms `cubic-bezier(0.33, 0, 0.2, 1)`。
 
 ---
 
