@@ -1,56 +1,26 @@
 /*
- * Fluent 2 页面反馈工具 — 统一紧凑浮层反馈入口
+ * 清源页面反馈工具 — 统一紧凑浮层反馈入口
  * @Project : SSPU-AllinOne
  * @File : app_feedback.dart
  * @Author : Qintsg
  * @Date : 2026-05-16
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
+import '../models/app_feedback_severity.dart';
+
+export '../models/app_feedback_severity.dart';
 
 OverlayEntry? _activeFeedbackEntry;
 int _feedbackGeneration = 0;
 
 const _feedbackVisibleDuration = Duration(seconds: 3);
 
-/// 页面反馈级别。
-enum AppFeedbackSeverity {
-  /// 普通信息。
-  info,
-
-  /// 成功反馈。
-  success,
-
-  /// 警告反馈。
-  warning,
-
-  /// 错误反馈。
-  error,
-}
-
-/// 显示 Fluent 2 紧凑反馈。
 void showAppFeedback(
   BuildContext context, {
   required String message,
+  String? details,
   AppFeedbackSeverity severity = AppFeedbackSeverity.info,
-}) {
-  final infoSeverity = switch (severity) {
-    AppFeedbackSeverity.info => FluentInfoSeverity.info,
-    AppFeedbackSeverity.success => FluentInfoSeverity.success,
-    AppFeedbackSeverity.warning => FluentInfoSeverity.warning,
-    AppFeedbackSeverity.error => FluentInfoSeverity.error,
-  };
-
-  showFluentInfoBar(context, title: Text(message), severity: infoSeverity);
-}
-
-/// 显示自定义 Fluent 2 紧凑反馈。
-void showFluentInfoBar(
-  BuildContext context, {
-  required Widget title,
-  Widget? content,
-  FluentInfoSeverity severity = FluentInfoSeverity.info,
-  Widget Function(VoidCallback close)? actionBuilder,
 }) {
   _activeFeedbackEntry?.remove();
   _activeFeedbackEntry = null;
@@ -66,42 +36,36 @@ void showFluentInfoBar(
   }
 
   entry = OverlayEntry(
-    builder: (context) {
-      final spacing = context.fluentSpacing;
-      final media = MediaQuery.of(context);
-      final maxWidth =
-          (media.size.width -
-                  media.padding.left -
-                  media.padding.right -
-                  spacing.l * 2)
-              .clamp(0.0, context.appMetrics.feedbackToastMaxWidth)
-              .toDouble();
+    builder: (overlayContext) {
+      final theme = overlayContext.yhTheme;
+      final media = MediaQuery.of(overlayContext);
+      final availableWidth =
+          media.size.width -
+          media.padding.left -
+          media.padding.right -
+          theme.spacing.l * 2;
+      final preferredWidth = theme.breakpoint.medium / 2 + theme.spacing.xl2;
+      final maxWidth = availableWidth.clamp(0.0, preferredWidth).toDouble();
       return PositionedDirectional(
-        top: media.padding.top + spacing.l,
-        end: media.padding.right + spacing.l,
+        top: media.padding.top + theme.spacing.l,
+        end: media.padding.right + theme.spacing.l,
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: maxWidth),
-          child: _CompactFeedbackToast(
-            title: title,
-            content: content,
+          child: _YhFeedbackToast(
+            message: message,
+            details: details,
             severity: severity,
-            action:
-                actionBuilder?.call(close) ??
-                FluentIconButton(
-                  icon: const Icon(FluentIcons.clear),
-                  onPressed: close,
-                  tooltip: '关闭反馈',
-                  size: 28,
-                  iconSize: 14,
-                ),
+            onClose: close,
           ),
         ),
       );
     },
   );
 
+  final overlay = Overlay.maybeOf(context);
+  if (overlay == null) return;
   _activeFeedbackEntry = entry;
-  Overlay.of(context).insert(entry);
+  overlay.insert(entry);
   Future<void>.delayed(_feedbackVisibleDuration, () {
     if (generation == _feedbackGeneration &&
         identical(_activeFeedbackEntry, entry)) {
@@ -110,132 +74,94 @@ void showFluentInfoBar(
   });
 }
 
-/// 紧凑页面反馈浮层，不占据页面布局高度。
-class _CompactFeedbackToast extends StatelessWidget {
-  const _CompactFeedbackToast({
-    required this.title,
+class _YhFeedbackToast extends StatelessWidget {
+  const _YhFeedbackToast({
+    required this.message,
     required this.severity,
-    this.content,
-    this.action,
+    required this.onClose,
+    this.details,
   });
 
-  /// 标题。
-  final Widget title;
-
-  /// 详情。
-  final Widget? content;
-
-  /// 级别。
-  final FluentInfoSeverity severity;
-
-  /// 右侧操作。
-  final Widget? action;
+  final String message;
+  final String? details;
+  final AppFeedbackSeverity severity;
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final spacing = context.fluentSpacing;
-    final radii = context.fluentRadii;
-    final theme = FluentTheme.of(context);
-    final severityColors = _severityColors(colors);
+    final theme = context.yhTheme;
+    final color = switch (severity) {
+      AppFeedbackSeverity.info => theme.color.brandStrong,
+      AppFeedbackSeverity.success => theme.color.success,
+      AppFeedbackSeverity.warning => theme.color.warning,
+      AppFeedbackSeverity.error => theme.color.danger,
+    };
+    final icon = switch (severity) {
+      AppFeedbackSeverity.info => YhIcons.info,
+      AppFeedbackSeverity.success => YhIcons.check,
+      AppFeedbackSeverity.warning => YhIcons.warning,
+      AppFeedbackSeverity.error => YhIcons.close,
+    };
 
-    return ConstrainedBox(
-      key: const Key('app-feedback-toast'),
-      constraints: BoxConstraints(
-        minWidth: 0,
-        maxWidth: context.appMetrics.feedbackToastMaxWidth,
-      ),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: radii.xLargeBorder,
-          border: Border.all(color: colors.neutralStroke2),
-          boxShadow: context.fluentElevation.shadow16,
+    return Semantics(
+      liveRegion: true,
+      child: ConstrainedBox(
+        key: const Key('app-feedback-toast'),
+        constraints: BoxConstraints(
+          maxWidth: theme.breakpoint.medium / 2 + theme.spacing.xl2,
         ),
-        child: Padding(
-          padding: EdgeInsetsDirectional.symmetric(
-            horizontal: spacing.m,
-            vertical: spacing.s,
+        child: YhCard(
+          elevated: true,
+          padding: EdgeInsets.symmetric(
+            horizontal: theme.spacing.m,
+            vertical: theme.spacing.s,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: EdgeInsetsDirectional.only(top: spacing.xxs),
-                child: Icon(
-                  _severityIcon,
-                  size: 16,
-                  color: severityColors.foreground,
-                ),
+                padding: EdgeInsets.only(top: theme.spacing.xs),
+                child: Icon(icon, size: theme.spacing.m, color: color),
               ),
-              SizedBox(width: spacing.s),
+              SizedBox(width: theme.spacing.s),
               Flexible(
-                child: DefaultTextStyle.merge(
-                  style: context.fluentType.body1.copyWith(
-                    color: colors.neutralForeground1,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      title,
-                      if (content != null) ...[
-                        SizedBox(height: spacing.xs),
-                        DefaultTextStyle.merge(
-                          style: context.fluentType.caption1.copyWith(
-                            color: colors.neutralForeground2,
-                          ),
-                          maxLines: 4,
-                          overflow: TextOverflow.ellipsis,
-                          child: content!,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      message,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.typography.body.copyWith(
+                        color: theme.color.foreground,
+                      ),
+                    ),
+                    if (details != null) ...[
+                      SizedBox(height: theme.spacing.xs),
+                      Text(
+                        details!,
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.typography.small.copyWith(
+                          color: theme.color.muted,
                         ),
-                      ],
+                      ),
                     ],
-                  ),
+                  ],
                 ),
               ),
-              if (action != null) ...[SizedBox(width: spacing.s), action!],
+              SizedBox(width: theme.spacing.s),
+              YhIconButton(
+                icon: YhIcons.close,
+                semanticLabel: '关闭反馈',
+                onTap: onClose,
+              ),
             ],
           ),
         ),
       ),
     );
   }
-
-  IconData get _severityIcon {
-    return switch (severity) {
-      FluentInfoSeverity.success => FluentIcons.checkMark,
-      FluentInfoSeverity.warning => FluentIcons.warning,
-      FluentInfoSeverity.error => FluentIcons.networkOff,
-      FluentInfoSeverity.info => FluentIcons.info,
-    };
-  }
-
-  _FeedbackSeverityColors _severityColors(FluentColors colors) {
-    return switch (severity) {
-      FluentInfoSeverity.success => _FeedbackSeverityColors(
-        foreground: colors.statusSuccessForeground,
-      ),
-      FluentInfoSeverity.warning => _FeedbackSeverityColors(
-        foreground: colors.statusWarningForeground,
-      ),
-      FluentInfoSeverity.error => _FeedbackSeverityColors(
-        foreground: colors.statusDangerForeground,
-      ),
-      FluentInfoSeverity.info => _FeedbackSeverityColors(
-        foreground: colors.brandForeground1,
-      ),
-    };
-  }
-}
-
-/// 紧凑反馈的语义色。
-class _FeedbackSeverityColors {
-  const _FeedbackSeverityColors({required this.foreground});
-
-  /// 前景色。
-  final Color foreground;
 }

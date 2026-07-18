@@ -214,19 +214,19 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
   /// 显示操作成功提示。
   void _showSuccessBar(String message) {
-    showFluentInfoBar(
+    showAppFeedback(
       context,
-      title: Text(message),
-      severity: FluentInfoSeverity.success,
+      message: message,
+      severity: AppFeedbackSeverity.success,
     );
   }
 
   /// 显示操作失败提示。
   void _showErrorBar(String message) {
-    showFluentInfoBar(
+    showAppFeedback(
       context,
-      title: Text(message),
-      severity: FluentInfoSeverity.error,
+      message: message,
+      severity: AppFeedbackSeverity.error,
     );
   }
 
@@ -567,14 +567,10 @@ mixin _SettingsPageActions on State<SettingsPage> {
       await StorageService.remove(MessageChannelKeys.persistedMessages);
       await StorageService.remove(MessageChannelKeys.readMessageIds);
       if (!mounted) return;
-      showFluentInfoBar(
+      showAppFeedback(
         context,
-        title: const Text('信息中心缓存已清理'),
-        severity: FluentInfoSeverity.success,
-        actionBuilder: (close) => FluentIconButton(
-          icon: const Icon(FluentIcons.clear),
-          onPressed: close,
-        ),
+        message: '信息中心缓存已清理',
+        severity: AppFeedbackSeverity.success,
       );
     }
   }

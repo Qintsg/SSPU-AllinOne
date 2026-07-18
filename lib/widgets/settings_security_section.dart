@@ -192,11 +192,11 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
               (enteredOaPassword != null && enteredOaPassword.isNotEmpty),
         ),
       );
-      _showCredentialInfoBar('教务凭据已保存', FluentInfoSeverity.success);
+      _showCredentialInfoBar('教务凭据已保存', AppFeedbackSeverity.success);
     } catch (_) {
       if (!mounted) return;
       setState(() => _isSavingCredentials = false);
-      _showCredentialInfoBar('保存失败，请确认系统安全存储可用', FluentInfoSeverity.error);
+      _showCredentialInfoBar('保存失败，请确认系统安全存储可用', AppFeedbackSeverity.error);
     }
   }
 
@@ -216,12 +216,12 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
       });
       _showCredentialInfoBar(
         '${_secretLabel(secret)}已清除',
-        FluentInfoSeverity.info,
+        AppFeedbackSeverity.info,
       );
     } catch (_) {
       if (!mounted) return;
       setState(() => _isSavingCredentials = false);
-      _showCredentialInfoBar('清除失败，请确认系统安全存储可用', FluentInfoSeverity.error);
+      _showCredentialInfoBar('清除失败，请确认系统安全存储可用', AppFeedbackSeverity.error);
     }
   }
 
@@ -249,7 +249,7 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
       if (validations.isEmpty) {
         if (!mounted) return;
         setState(() => _isValidatingAcademicLogin = false);
-        _showCredentialInfoBar('没有可验证的已保存密码', FluentInfoSeverity.warning);
+        _showCredentialInfoBar('没有可验证的已保存密码', AppFeedbackSeverity.warning);
         return;
       }
 
@@ -264,7 +264,7 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _isValidatingAcademicLogin = false);
-      _showCredentialInfoBar('登录验证失败，请稍后重试', FluentInfoSeverity.error);
+      _showCredentialInfoBar('登录验证失败，请稍后重试', AppFeedbackSeverity.error);
     }
   }
 
@@ -332,16 +332,8 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
   }
 
   /// 显示教务凭据操作反馈。
-  void _showCredentialInfoBar(String message, FluentInfoSeverity severity) {
-    showFluentInfoBar(
-      context,
-      title: Text(message),
-      severity: severity,
-      actionBuilder: (close) => FluentIconButton(
-        icon: const Icon(FluentIcons.clear),
-        onPressed: close,
-      ),
-    );
+  void _showCredentialInfoBar(String message, AppFeedbackSeverity severity) {
+    showAppFeedback(context, message: message, severity: severity);
   }
 
   @override

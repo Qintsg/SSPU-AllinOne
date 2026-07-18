@@ -42,15 +42,11 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
 
   Future<void> _showFeedback(SettingsWechatFeedback feedback) async {
     if (!mounted) return;
-    showFluentInfoBar(
+    showAppFeedback(
       context,
-      title: Text(feedback.title),
-      content: feedback.content == null ? null : Text(feedback.content!),
+      message: feedback.title,
+      details: feedback.content,
       severity: feedback.severity,
-      actionBuilder: (close) => FluentIconButton(
-        icon: const Icon(FluentIcons.clear),
-        onPressed: close,
-      ),
     );
   }
 
@@ -77,7 +73,7 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
         SettingsWechatFeedback(
           title: '读取配置文件失败',
           content: '$error',
-          severity: FluentInfoSeverity.error,
+          severity: AppFeedbackSeverity.error,
         ),
       );
       return;

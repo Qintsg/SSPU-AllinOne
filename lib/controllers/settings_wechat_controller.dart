@@ -8,8 +8,7 @@
 
 import 'package:flutter/foundation.dart';
 
-import '../design/fluent.dart';
-
+import '../models/app_feedback_severity.dart';
 import '../models/sspu_wechat_accounts.dart';
 import '../services/auto_refresh_service.dart';
 import '../services/message_state_service.dart';
@@ -31,7 +30,7 @@ class SettingsWechatFeedback {
   final String? content;
 
   /// 提示等级。
-  final FluentInfoSeverity severity;
+  final AppFeedbackSeverity severity;
 
   const SettingsWechatFeedback({
     required this.title,
@@ -185,7 +184,7 @@ class SettingsWechatController extends ChangeNotifier {
       notifyListeners();
       return const SettingsWechatFeedback(
         title: '已打开配置文件',
-        severity: FluentInfoSeverity.success,
+        severity: AppFeedbackSeverity.success,
       );
     } catch (error) {
       _wxmpConfigMessage = '打开配置文件失败：$error';
@@ -193,7 +192,7 @@ class SettingsWechatController extends ChangeNotifier {
       return SettingsWechatFeedback(
         title: '打开配置文件失败',
         content: '$error',
-        severity: FluentInfoSeverity.error,
+        severity: AppFeedbackSeverity.error,
       );
     }
   }
@@ -222,7 +221,7 @@ class SettingsWechatController extends ChangeNotifier {
       notifyListeners();
       return const SettingsWechatFeedback(
         title: '配置文件已保存',
-        severity: FluentInfoSeverity.success,
+        severity: AppFeedbackSeverity.success,
       );
     } catch (error) {
       _wxmpConfigMessage = '保存配置文件失败：$error';
@@ -230,7 +229,7 @@ class SettingsWechatController extends ChangeNotifier {
       return SettingsWechatFeedback(
         title: '保存配置文件失败',
         content: '$error',
-        severity: FluentInfoSeverity.error,
+        severity: AppFeedbackSeverity.error,
       );
     }
   }
@@ -247,7 +246,7 @@ class SettingsWechatController extends ChangeNotifier {
       notifyListeners();
       return const SettingsWechatFeedback(
         title: '配置文件已保存',
-        severity: FluentInfoSeverity.success,
+        severity: AppFeedbackSeverity.success,
       );
     } catch (error) {
       _wxmpConfigMessage = '保存配置文件失败：$error';
@@ -255,7 +254,7 @@ class SettingsWechatController extends ChangeNotifier {
       return SettingsWechatFeedback(
         title: '保存配置文件失败',
         content: '$error',
-        severity: FluentInfoSeverity.error,
+        severity: AppFeedbackSeverity.error,
       );
     }
   }
@@ -269,7 +268,7 @@ class SettingsWechatController extends ChangeNotifier {
       notifyListeners();
       return const SettingsWechatFeedback(
         title: '已打开配置文件目录',
-        severity: FluentInfoSeverity.success,
+        severity: AppFeedbackSeverity.success,
       );
     } catch (error) {
       _wxmpConfigMessage = '打开配置文件目录失败：$error';
@@ -277,7 +276,7 @@ class SettingsWechatController extends ChangeNotifier {
       return SettingsWechatFeedback(
         title: '打开配置文件目录失败',
         content: '$error',
-        severity: FluentInfoSeverity.error,
+        severity: AppFeedbackSeverity.error,
       );
     }
   }
@@ -287,7 +286,7 @@ class SettingsWechatController extends ChangeNotifier {
     if (_wxmpValidating) {
       return const SettingsWechatFeedback(
         title: '正在校验中',
-        severity: FluentInfoSeverity.info,
+        severity: AppFeedbackSeverity.info,
       );
     }
 
@@ -308,8 +307,8 @@ class SettingsWechatController extends ChangeNotifier {
         title: validation.isValid ? '配置已重新加载并通过校验' : '配置已重新加载但认证不可用',
         content: _wxmpConfigMessage,
         severity: validation.isValid
-            ? FluentInfoSeverity.success
-            : FluentInfoSeverity.warning,
+            ? AppFeedbackSeverity.success
+            : AppFeedbackSeverity.warning,
       );
     } catch (error) {
       _wxmpValidating = false;
@@ -318,7 +317,7 @@ class SettingsWechatController extends ChangeNotifier {
       return SettingsWechatFeedback(
         title: '重新加载配置失败',
         content: '$error',
-        severity: FluentInfoSeverity.error,
+        severity: AppFeedbackSeverity.error,
       );
     }
   }
@@ -328,7 +327,7 @@ class SettingsWechatController extends ChangeNotifier {
     if (_wxmpValidating) {
       return const SettingsWechatFeedback(
         title: '正在校验中',
-        severity: FluentInfoSeverity.info,
+        severity: AppFeedbackSeverity.info,
       );
     }
 
@@ -347,8 +346,8 @@ class SettingsWechatController extends ChangeNotifier {
       title: validation.isValid ? '认证有效' : '认证不可用',
       content: validation.message,
       severity: validation.isValid
-          ? FluentInfoSeverity.success
-          : FluentInfoSeverity.warning,
+          ? AppFeedbackSeverity.success
+          : AppFeedbackSeverity.warning,
     );
   }
 
@@ -358,7 +357,9 @@ class SettingsWechatController extends ChangeNotifier {
     await setWechatMatrixEnabled(enabled);
     return SettingsWechatFeedback(
       title: enabled ? '已启用微信推文页全部开关' : '已关闭微信推文页全部开关',
-      severity: enabled ? FluentInfoSeverity.success : FluentInfoSeverity.info,
+      severity: enabled
+          ? AppFeedbackSeverity.success
+          : AppFeedbackSeverity.info,
     );
   }
 
@@ -373,7 +374,9 @@ class SettingsWechatController extends ChangeNotifier {
     notifyListeners();
     return SettingsWechatFeedback(
       title: enabled ? '已启用微信矩阵全部公众号' : '已关闭微信矩阵全部公众号',
-      severity: enabled ? FluentInfoSeverity.success : FluentInfoSeverity.info,
+      severity: enabled
+          ? AppFeedbackSeverity.success
+          : AppFeedbackSeverity.info,
     );
   }
 
@@ -390,7 +393,7 @@ class SettingsWechatController extends ChangeNotifier {
     notifyListeners();
     return const SettingsWechatFeedback(
       title: '公众号平台登录成功',
-      severity: FluentInfoSeverity.success,
+      severity: AppFeedbackSeverity.success,
     );
   }
 
@@ -407,7 +410,7 @@ class SettingsWechatController extends ChangeNotifier {
     notifyListeners();
     return const SettingsWechatFeedback(
       title: '公众号平台认证已清除',
-      severity: FluentInfoSeverity.info,
+      severity: AppFeedbackSeverity.info,
     );
   }
 

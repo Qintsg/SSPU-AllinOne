@@ -127,15 +127,7 @@ class _InfoPageState extends State<InfoPage> {
   Future<void> _refreshSchoolWebsite() async {
     final started = await _refreshService.startSchoolWebsiteRefresh();
     if (!started && mounted) {
-      showFluentInfoBar(
-        context,
-        title: const Text('已有刷新任务正在进行'),
-        severity: FluentInfoSeverity.info,
-        actionBuilder: (close) => FluentIconButton(
-          icon: const Icon(FluentIcons.clear),
-          onPressed: close,
-        ),
-      );
+      showAppFeedback(context, message: '已有刷新任务正在进行');
     }
   }
 
@@ -146,15 +138,11 @@ class _InfoPageState extends State<InfoPage> {
     if (!isConfigured) {
       _wechatSourceConfigured = false;
       if (mounted) {
-        showFluentInfoBar(
+        showAppFeedback(
           context,
-          title: const Text('未获取到微信公众号文章'),
-          content: const Text('请先在设置中完成公众号平台认证并关注目标公众号'),
-          severity: FluentInfoSeverity.warning,
-          actionBuilder: (close) => FluentIconButton(
-            icon: const Icon(FluentIcons.clear),
-            onPressed: close,
-          ),
+          message: '未获取到微信公众号文章',
+          details: '请先在设置中完成公众号平台认证并关注目标公众号',
+          severity: AppFeedbackSeverity.warning,
         );
         setState(() {});
       }
@@ -164,15 +152,7 @@ class _InfoPageState extends State<InfoPage> {
     _wechatSourceConfigured = true;
     final started = await _refreshService.startWechatRefresh();
     if (!started && mounted) {
-      showFluentInfoBar(
-        context,
-        title: const Text('已有刷新任务正在进行'),
-        severity: FluentInfoSeverity.info,
-        actionBuilder: (close) => FluentIconButton(
-          icon: const Icon(FluentIcons.clear),
-          onPressed: close,
-        ),
-      );
+      showAppFeedback(context, message: '已有刷新任务正在进行');
     }
   }
 
