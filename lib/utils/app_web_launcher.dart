@@ -6,7 +6,7 @@
  * @Date : 2026-06-10
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../pages/webview_page.dart';
@@ -69,7 +69,7 @@ Future<void> openAppWebUrl(
   final webViewEnvironment = await ensureGlobalWebViewEnvironment();
   if (!context.mounted) return;
   Navigator.of(context).push(
-    FluentPageRoute(
+    YhPageRoute<void>(
       builder: (_) => WebViewPage(
         url: url,
         initialTitle: title,
