@@ -88,6 +88,7 @@ class EmailComposePanel extends StatelessWidget {
                 YhIconButton(
                   icon: YhIcons.close,
                   semanticLabel: '关闭撰写邮件',
+                  variant: YhIconButtonVariant.ghost,
                   onTap: isSending ? null : onCancel,
                 ),
               ],

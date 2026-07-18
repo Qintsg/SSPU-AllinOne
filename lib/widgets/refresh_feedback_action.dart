@@ -63,9 +63,11 @@ class RefreshStatusLine extends StatelessWidget {
           ),
         ),
         SizedBox(width: theme.spacing.s),
-        ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: actionReservedWidth),
-          child: action,
+        Flexible(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: actionReservedWidth),
+            child: action,
+          ),
         ),
       ],
     );

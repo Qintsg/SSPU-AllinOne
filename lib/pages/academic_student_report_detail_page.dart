@@ -24,6 +24,7 @@ class StudentReportDetailPage extends StatelessWidget {
         leading: YhIconButton(
           icon: YhIcons.back,
           semanticLabel: '返回',
+          variant: YhIconButtonVariant.ghost,
           onTap: () => Navigator.of(context).pop(),
         ),
       ),
@@ -231,6 +232,7 @@ class _CollapsiblePanelHeader extends StatelessWidget {
               key: const Key('academic-student-report-detail-collapse'),
               icon: YhIcons.chevronRight,
               semanticLabel: expanded ? '收起已获积分详情' : '展开已获积分详情',
+              variant: YhIconButtonVariant.ghost,
               onTap: onToggle,
             ),
           ),

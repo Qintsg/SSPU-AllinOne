@@ -8,7 +8,6 @@ import 'pages/home_page.dart';
 import 'pages/info_page.dart';
 import 'pages/quick_links_page.dart';
 import 'pages/settings_page.dart';
-import 'services/app_display_name_service.dart';
 import 'services/campus_network_status_service.dart';
 
 bool get _supportsMobileBottomNavigation {
@@ -305,12 +304,26 @@ class _DesktopNavigationShell extends StatelessWidget {
             extended: extended,
             header: Padding(
               padding: EdgeInsets.symmetric(horizontal: theme.spacing.s),
-              child: Text(
-                extended ? AppDisplayName.of(context) : '工大',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.typography.h3.copyWith(
-                  color: theme.color.structural,
+              child: Semantics(
+                label: '工大聚合',
+                child: ExcludeSemantics(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: theme.color.structural,
+                      borderRadius: BorderRadius.circular(theme.radius.input),
+                    ),
+                    child: SizedBox.square(
+                      dimension: theme.control.regular - theme.spacing.xs,
+                      child: Center(
+                        child: Text(
+                          '工',
+                          style: theme.typography.h3.copyWith(
+                            color: theme.color.onStructural,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),

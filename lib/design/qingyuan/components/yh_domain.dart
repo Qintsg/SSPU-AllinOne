@@ -2,6 +2,7 @@
 
 import 'package:flutter/widgets.dart';
 
+import '../foundations/yh_pressable.dart';
 import '../theme/yh_theme.dart';
 import 'yh_card.dart';
 import 'yh_data_display.dart';
@@ -50,6 +51,8 @@ class YhCourseBlock extends StatelessWidget {
     required this.time,
     this.location,
     this.color,
+    this.ongoing = false,
+    this.conflict = false,
     this.onTap,
   });
 
@@ -57,50 +60,85 @@ class YhCourseBlock extends StatelessWidget {
   final String time;
   final String? location;
   final Color? color;
+  final bool ongoing;
+  final bool conflict;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     final accent = color ?? theme.color.serviceSchedule;
-    return YhCard(
-      semanticLabel: name,
-      onTap: onTap,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border(
-            left: BorderSide(color: accent, width: theme.spacing.xs),
-          ),
-        ),
-        child: Padding(
-          padding: EdgeInsetsDirectional.only(start: theme.spacing.m),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: theme.typography.body.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(height: theme.spacing.xs),
-              Text(
-                time,
-                style: theme.typography.small.copyWith(
-                  color: theme.color.muted,
-                ),
-              ),
-              if (location != null)
-                Text(
-                  location!,
-                  style: theme.typography.caption.copyWith(
-                    color: theme.color.muted,
-                  ),
-                ),
-            ],
-          ),
-        ),
+    final base = conflict ? theme.color.danger : accent;
+    final background = conflict
+        ? theme.color.dangerTint
+        : Color.alphaBlend(base.withValues(alpha: 0.13), theme.color.surface);
+    final foreground = conflict ? theme.color.danger : base;
+    final semanticLabel = [
+      name,
+      time,
+      if (location?.trim().isNotEmpty == true) location!.trim(),
+      if (ongoing) '进行中',
+      if (conflict) '时间冲突',
+    ].join('，');
+
+    Widget surface({bool hovered = false}) => AnimatedContainer(
+      duration: theme.motion.fast,
+      padding: EdgeInsets.symmetric(
+        horizontal: theme.spacing.m - theme.spacing.xs,
+        vertical: theme.spacing.s + theme.spacing.xs / 2,
       ),
+      decoration: BoxDecoration(
+        color: hovered
+            ? Color.alphaBlend(base.withValues(alpha: 0.06), background)
+            : background,
+        border: ongoing || conflict
+            ? Border.all(color: foreground, width: theme.layout.controlBorder)
+            : null,
+        borderRadius: BorderRadius.circular(theme.radius.input),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.typography.small.copyWith(
+              color: foreground,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: theme.spacing.xs),
+          Text(
+            time,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.typography.caption.copyWith(
+              color: foreground.withValues(alpha: 0.85),
+            ),
+          ),
+          if (location?.trim().isNotEmpty == true)
+            Text(
+              location!.trim(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.typography.caption.copyWith(
+                color: foreground.withValues(alpha: 0.85),
+              ),
+            ),
+        ],
+      ),
+    );
+
+    if (onTap == null) {
+      return Semantics(container: true, label: semanticLabel, child: surface());
+    }
+    return YhPressable(
+      semanticLabel: semanticLabel,
+      onPressed: onTap,
+      builder: (context, state, child) => surface(hovered: state.hovered),
+      child: const SizedBox.shrink(),
     );
   }
 }

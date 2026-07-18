@@ -38,6 +38,7 @@ class WebViewCompactToolbar extends StatelessWidget {
         key: const Key('webview-back-close-button'),
         icon: YhIcons.back,
         semanticLabel: backSemanticLabel,
+        variant: YhIconButtonVariant.ghost,
         onTap: onBackPressed,
       ),
       actions: actions,

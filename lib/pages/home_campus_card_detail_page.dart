@@ -148,6 +148,7 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
         leading: YhIconButton(
           icon: YhIcons.back,
           semanticLabel: '返回',
+          variant: YhIconButtonVariant.ghost,
           onTap: () => Navigator.of(context).pop(),
         ),
       ),

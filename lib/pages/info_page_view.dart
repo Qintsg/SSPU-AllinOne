@@ -220,6 +220,7 @@ class _InfoSearchField extends StatelessWidget {
           : YhIconButton(
               icon: YhIcons.close,
               semanticLabel: '清空搜索',
+              variant: YhIconButtonVariant.ghost,
               onTap: () {
                 state._searchController.clear();
                 state._searchQuery = '';

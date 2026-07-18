@@ -91,6 +91,7 @@ class YhQuickLink extends StatelessWidget {
               child: YhIconButton(
                 icon: favorite ? YhIcons.favoriteFilled : YhIcons.favorite,
                 semanticLabel: favorite ? '取消常用入口' : '标记为常用入口',
+                variant: YhIconButtonVariant.ghost,
                 onTap: onToggleFavorite,
               ),
             ),

@@ -97,7 +97,7 @@ class YhNavRail extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: theme.spacing.s,
-                    vertical: theme.spacing.xs,
+                    vertical: theme.spacing.xs / 2,
                   ),
                   child: _YhNavigationButton(
                     item: items[itemIndex],
@@ -155,7 +155,13 @@ class _YhNavigationButton extends StatelessWidget {
                   : theme.color.surface.withValues(alpha: 0),
               borderRadius: BorderRadius.circular(theme.radius.full),
             ),
-            child: child,
+            child: SizedBox(
+              width: horizontal
+                  ? double.infinity
+                  : theme.control.regular + theme.spacing.m + theme.spacing.xs,
+              height: theme.control.regular + theme.spacing.s,
+              child: child,
+            ),
           ),
           child: Padding(
             padding: EdgeInsets.symmetric(

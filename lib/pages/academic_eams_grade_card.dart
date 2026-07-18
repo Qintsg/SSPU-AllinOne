@@ -139,6 +139,7 @@ class _AcademicGradeCardHeader extends StatelessWidget {
             key: const Key('academic-eams-grade-detail'),
             icon: YhIcons.chevronRight,
             semanticLabel: '查看成绩详情',
+            variant: YhIconButtonVariant.ghost,
             onTap: onOpenDetail,
           ),
         ),

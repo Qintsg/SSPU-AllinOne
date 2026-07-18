@@ -69,12 +69,31 @@ class YhStatusPill extends StatelessWidget {
       ),
       child: Padding(
         padding: EdgeInsets.symmetric(
-          horizontal: theme.spacing.s,
+          horizontal: theme.spacing.s + theme.spacing.xs / 2,
           vertical: theme.spacing.xs,
         ),
-        child: Text(
-          label,
-          style: theme.typography.small.copyWith(color: foreground),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: foreground,
+                shape: BoxShape.circle,
+              ),
+              child: SizedBox.square(
+                dimension: theme.spacing.s - theme.spacing.xs / 2,
+              ),
+            ),
+            SizedBox(width: theme.spacing.xs),
+            Text(
+              label,
+              style: theme.typography.caption.copyWith(
+                color: foreground,
+                height: YhTypographyTokens.compactLineHeight,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );

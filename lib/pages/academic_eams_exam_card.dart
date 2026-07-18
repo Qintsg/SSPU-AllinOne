@@ -156,6 +156,7 @@ class _AcademicExamCardHeader extends StatelessWidget {
             key: const Key('academic-eams-exam-detail'),
             icon: YhIcons.chevronRight,
             semanticLabel: '查看考试安排详情',
+            variant: YhIconButtonVariant.ghost,
             onTap: onOpenDetail,
           ),
         ),

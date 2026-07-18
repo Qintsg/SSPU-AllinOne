@@ -64,6 +64,7 @@ class YhBanner extends StatelessWidget {
                 YhIconButton(
                   icon: YhIcons.close,
                   semanticLabel: '关闭提示',
+                  variant: YhIconButtonVariant.ghost,
                   onTap: onClose,
                 ),
             ],

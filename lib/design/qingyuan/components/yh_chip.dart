@@ -107,6 +107,7 @@ class _ChipSurface extends StatelessWidget {
               YhIconButton(
                 icon: YhIcons.close,
                 semanticLabel: '删除 $label',
+                variant: YhIconButtonVariant.ghost,
                 onTap: onDeleted,
               ),
           ],

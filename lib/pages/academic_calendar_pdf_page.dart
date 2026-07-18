@@ -74,6 +74,7 @@ class AcademicCalendarPdfPage extends StatelessWidget {
           key: const Key('webview-back-close-button'),
           icon: YhIcons.back,
           semanticLabel: '返回',
+          variant: YhIconButtonVariant.ghost,
           onTap: () => Navigator.of(context).maybePop(),
         ),
         actions: [

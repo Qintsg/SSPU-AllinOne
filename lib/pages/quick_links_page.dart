@@ -245,6 +245,7 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
                 ? YhIconButton(
                     icon: YhIcons.close,
                     semanticLabel: '清除搜索',
+                    variant: YhIconButtonVariant.ghost,
                     onTap: _clearSearch,
                   )
                 : null,

@@ -131,6 +131,90 @@ void main() {
     expect(completed, '123456');
   });
 
+  testWidgets('清源页签在窄宽度横向滚动并露出当前项', (tester) async {
+    await tester.pumpWidget(
+      const YhApp(
+        home: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 320,
+            child: YhTabs<int>(
+              tabs: [
+                YhTab(value: 1, label: '周一'),
+                YhTab(value: 2, label: '周二'),
+                YhTab(value: 3, label: '周三'),
+                YhTab(value: 4, label: '周四'),
+                YhTab(value: 5, label: '周五'),
+                YhTab(value: 6, label: '周六 · 今天'),
+                YhTab(value: 7, label: '周日'),
+              ],
+              value: 6,
+              onChanged: null,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final selected = tester.getRect(find.text('周六 · 今天'));
+    expect(selected.left, greaterThanOrEqualTo(0));
+    expect(selected.right, lessThanOrEqualTo(320));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('清源页签响应左右方向键并更新当前项', (tester) async {
+    var value = 1;
+    await tester.pumpWidget(
+      YhApp(
+        home: StatefulBuilder(
+          builder: (context, setState) => YhTabs<int>(
+            tabs: const [
+              YhTab(value: 1, label: '甲'),
+              YhTab(value: 2, label: '乙'),
+              YhTab(value: 3, label: '丙'),
+            ],
+            value: value,
+            onChanged: (next) => setState(() => value = next),
+          ),
+        ),
+      ),
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(value, 2);
+  });
+
+  testWidgets('清源状态药丸与课程块遵守紧凑视觉和状态语义', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(
+      const YhApp(
+        home: Column(
+          children: [
+            YhStatusPill(label: '正常', kind: YhStatusKind.success),
+            YhCourseBlock(
+              name: '软件工程实践',
+              time: '实训中心 405',
+              ongoing: true,
+              conflict: true,
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      tester.getSize(find.byType(YhStatusPill)).height,
+      lessThanOrEqualTo(20),
+    );
+    final courseSemantics = tester.getSemantics(find.byType(YhCourseBlock));
+    expect(courseSemantics.label, contains('进行中'));
+    expect(courseSemantics.label, contains('时间冲突'));
+    semantics.dispose();
+  });
+
   testWidgets('清源容器、数据与校园域组件在亮暗主题完整渲染', (tester) async {
     for (final mode in [YhThemeMode.light, YhThemeMode.dark]) {
       await tester.pumpWidget(

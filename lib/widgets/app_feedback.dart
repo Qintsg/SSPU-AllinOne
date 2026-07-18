@@ -156,6 +156,7 @@ class _YhFeedbackToast extends StatelessWidget {
               YhIconButton(
                 icon: YhIcons.close,
                 semanticLabel: '关闭反馈',
+                variant: YhIconButtonVariant.ghost,
                 onTap: onClose,
               ),
             ],

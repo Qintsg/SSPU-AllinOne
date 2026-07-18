@@ -204,6 +204,7 @@ class _SecondClassroomCardHeader extends StatelessWidget {
             key: const Key('academic-student-report-detail'),
             icon: YhIcons.chevronRight,
             semanticLabel: '查看第二课堂学分详情',
+            variant: YhIconButtonVariant.ghost,
             onTap: canOpenDetail && summary != null
                 ? () => Navigator.of(context).push(
                     YhPageRoute(

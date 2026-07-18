@@ -186,6 +186,7 @@ class AboutPage extends StatelessWidget {
         leading: YhIconButton(
           icon: YhIcons.back,
           semanticLabel: '返回',
+          variant: YhIconButtonVariant.ghost,
           onTap: () => Navigator.of(context).maybePop(),
         ),
       ),
