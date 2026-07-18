@@ -166,6 +166,7 @@ class YhTypographyTokens {
   static const fontFamilyDisplay = 'MiSans';
   static const fontFamilyBody = 'MiSans';
   static const fontFamilyMono = 'MiSans';
+  static const compactLineHeight = 1.0;
 
   static const standard = YhTypographyTokens(
     display: TextStyle(
@@ -277,6 +278,7 @@ class YhLayoutTokens {
     this.formFieldWidth = 340,
     this.dialogWidth = 480,
     this.formContentWidth = 560,
+    this.pageContentWidth = 1180,
   });
 
   final double divider;
@@ -293,6 +295,7 @@ class YhLayoutTokens {
   final double formFieldWidth;
   final double dialogWidth;
   final double formContentWidth;
+  final double pageContentWidth;
 }
 
 @immutable

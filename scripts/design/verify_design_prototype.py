@@ -45,6 +45,8 @@ def _assert_targets(page: Page, viewport_width: int, screen: str) -> None:
 
 def _open_screen(page: Page, prototype_url: str, screen: str) -> None:
     page.goto(f"{prototype_url}#{screen}", wait_until="networkidle")
+    # file:// 同文档仅改变 hash 不会重建 DOM，必须显式重载才能清除上一页交互状态。
+    page.reload(wait_until="networkidle")
     _assert(page.locator(f'[data-screen="{screen}"]:visible').count() == 1, f"{screen} 页面未唯一显示")
     _assert(page.locator("[data-screen]:visible").count() == 1, f"{screen} 页面切换后存在多个活动页面")
 
@@ -63,6 +65,16 @@ def _assert_screen_interactions(page: Page, screen: str, viewport_width: int) ->
         page.get_by_role("button", name="刷新首页").click()
         _assert("刷新首页已完成" in page.locator('.prototype-toast:visible').inner_text(), "页面行动缺少可感知反馈")
     elif screen == "schedule":
+        if viewport_width < 768:
+            selected_box = page.locator('.domain-tab[aria-selected="true"]').bounding_box()
+            strip_box = page.locator('.domain-tabs').bounding_box()
+            _assert(
+                selected_box is not None
+                and strip_box is not None
+                and selected_box["x"] >= strip_box["x"]
+                and selected_box["x"] + selected_box["width"] <= strip_box["x"] + strip_box["width"],
+                "compact 课表未露出当天 Tab",
+            )
         first_tab = page.locator('.domain-tab').first
         first_tab.click()
         _assert(first_tab.get_attribute("aria-selected") == "true", "课表日期 Tab 未更新选择状态")
@@ -70,7 +82,7 @@ def _assert_screen_interactions(page: Page, screen: str, viewport_width: int) ->
         if viewport_width < 768:
             _assert(page.locator('.schedule-board:visible').count() == 0, "compact 课表仍显示桌面周网格")
             _assert(page.locator('.schedule-day-list:visible').count() == 1, "compact 课表未显示按天列表")
-            _assert("高等数学" in page.locator('.schedule-day-list:visible').inner_text(), "课表 Tab 未切换当天课程")
+            _assert("数据结构" in page.locator('.schedule-day-list:visible').inner_text(), "课表 Tab 未切换当天课程")
         else:
             _assert(page.locator('.schedule-board:visible').count() == 1, "非 compact 课表未显示周网格")
         first_tab.focus()

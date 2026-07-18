@@ -71,7 +71,7 @@ class YhIconButton extends StatelessWidget {
     this.onTap,
     this.variant = YhIconButtonVariant.outline,
     this.disabled = false,
-    this.size = 44.0,
+    this.size = 48.0,
   });
   // icon: IconData / 自绘 SVG path；semanticLabel 喂给 Semantics(button:true,label:)
 }

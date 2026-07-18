@@ -123,6 +123,21 @@ def _validate_css_tokens(project_root: Path, tokens: dict[str, Any]) -> None:
         if light.get(f"weight-{name}") != expected:
             errors.append(f"typography.weight.{name} 与 --weight-{name} 漂移：期望 {expected}，实际 {light.get(f'weight-{name}')}")
 
+    for name, value in tokens["typography"]["lineHeight"].items():
+        expected = f"{value:g}"
+        if light.get(f"line-height-{name}") != expected:
+            errors.append(f"typography.lineHeight.{name} 与 --line-height-{name} 漂移：期望 {expected}，实际 {light.get(f'line-height-{name}')}")
+
+    family_names = {
+        "fontFamilyDisplay": "font-family-display",
+        "fontFamilyBody": "font-family-body",
+        "fontFamilyMono": "font-family-mono",
+    }
+    for name, css_name in family_names.items():
+        expected = f"'{tokens['typography'][name]}'"
+        if light.get(css_name) != expected:
+            errors.append(f"typography.{name} 与 --{css_name} 漂移：期望 {expected}，实际 {light.get(css_name)}")
+
     for name, value in tokens["elevation"].items():
         css_name = f"shadow-{name[1:]}"
         for theme_name, declarations in (("light", light), ("dark", dark)):
@@ -257,6 +272,14 @@ def _validate_flutter_scalars(project_root: Path, tokens: dict[str, Any]) -> Non
     for name, value in tokens["typography"]["weight"].items():
         if re.search(rf"fontWeight:\s*FontWeight\.w{value:g},", typography_blocks[name]) is None:
             errors.append(f"typography.weight.{name} 与 Flutter YhTypographyTokens.{name} 漂移：期望 {value:g}")
+
+    for name, value in tokens["typography"]["lineHeight"].items():
+        if name == "compact":
+            if re.search(rf"compactLineHeight\s*=\s*{value:.1f}", source) is None:
+                errors.append(f"typography.lineHeight.compact 与 Flutter YhTypographyTokens.compactLineHeight 漂移：期望 {value:g}")
+            continue
+        if re.search(rf"height:\s*{value:g},", typography_blocks[name]) is None:
+            errors.append(f"typography.lineHeight.{name} 与 Flutter YhTypographyTokens.{name} 漂移：期望 {value:g}")
 
     family_names = {"fontFamilyDisplay": "fontFamilyDisplay", "fontFamilyBody": "fontFamilyBody", "fontFamilyMono": "fontFamilyMono"}
     for token_name, field in family_names.items():

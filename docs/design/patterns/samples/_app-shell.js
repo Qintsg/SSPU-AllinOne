@@ -4,11 +4,13 @@
   var moreSheet = document.querySelector('.more-sheet');
   var moreTrigger = null;
   var scheduleDays = [
-    [{ time: '08:00 · 1–2 节', title: '高等数学', place: '教三 401', domain: 'academic' }],
-    [{ time: '10:00 · 3–4 节', title: '离散数学', place: '教一 201', domain: 'schedule' }],
-    [{ time: '08:00 · 1–2 节', title: '大学英语', place: '教二 302', domain: 'schedule' }, { time: '10:00 · 3–4 节', title: '数据结构', place: '教二 302', domain: 'academic' }],
-    [{ time: '13:30 · 5–6 节', title: '大学体育', place: '南操场', domain: 'sports' }],
-    [{ time: '08:00 · 1–2 节', title: '操作系统', place: '实训楼 205', domain: 'academic' }]
+    [{ time: '08:00 · 1–2 节', title: '数据结构', place: '计算机楼 301', domain: 'schedule' }],
+    [],
+    [{ time: '11:25 · 5–6 节', title: '人机交互设计', place: '艺术楼 B204', domain: 'schedule' }],
+    [],
+    [],
+    [{ time: '09:50 · 3–4 节', title: '软件工程实践', place: '实训中心 405', domain: 'schedule' }],
+    []
   ];
   var mailDetails = [
     { sender: '财务处', time: '今天 08:12', title: '校园卡消费提醒', body: '您于 08:10 在学生食堂完成一笔 12.50 元消费，当前校园卡余额为 128.50 元。' },
@@ -51,6 +53,16 @@
     dayList.innerHTML = scheduleDays[tabs.indexOf(tab)].map(function (course) {
       return '<article class="day-course"><time>' + course.time + '</time><div class="course-chip" style="--domain:var(--service-' + course.domain + ')"><b>' + course.title + '</b><span>' + course.place + '</span></div></article>';
     }).join('');
+    revealScheduleTab(tab);
+  }
+
+  function revealScheduleTab(tab) {
+    if (!tab) return;
+    var strip = tab.closest('.domain-tabs');
+    if (!strip) return;
+    var tabs = Array.from(strip.querySelectorAll('.domain-tab'));
+    var start = tabs[Math.max(0, tabs.indexOf(tab) - 2)];
+    strip.scrollLeft = start ? Math.max(0, start.offsetLeft - strip.offsetLeft) : 0;
   }
 
   function closeMore(restoreFocus) {
@@ -92,6 +104,7 @@
     window.clearTimeout(toastTimer);
     if (main) main.scrollTop = 0;
     window.scrollTo(0, 0);
+    revealScheduleTab(target.querySelector('.domain-tab[aria-selected="true"]'));
     if (updateHash) history.replaceState(null, '', '#' + name);
   }
 

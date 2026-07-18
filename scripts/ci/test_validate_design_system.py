@@ -54,6 +54,48 @@ class DesignSystemValidatorTest(unittest.TestCase):
             ):
                 validate_design_system(root)
 
+    def test_css_font_family_drift_reports_the_semantic_token(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            css_path = root / "docs" / "design" / "components" / "samples" / "_qingyuan.css"
+            css_path.write_text(
+                css_path.read_text(encoding="utf-8").replace(
+                    "--font-family-mono: 'MiSans'",
+                    "--font-family-mono: 'Cascadia Mono'",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                DesignSystemValidationError,
+                r"typography\.fontFamilyMono.*--font-family-mono",
+            ):
+                validate_design_system(root)
+
+    def test_css_line_height_drift_reports_the_semantic_token(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            css_path = root / "docs" / "design" / "components" / "samples" / "_qingyuan.css"
+            css_path.write_text(
+                css_path.read_text(encoding="utf-8").replace(
+                    "--line-height-compact: 1",
+                    "--line-height-compact: 1.2",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                DesignSystemValidationError,
+                r"typography\.lineHeight\.compact.*--line-height-compact",
+            ):
+                validate_design_system(root)
+
     def test_broken_relative_markdown_link_reports_source_and_target(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
