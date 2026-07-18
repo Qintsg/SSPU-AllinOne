@@ -35,6 +35,7 @@ Future<void> pumpCourseSchedulePage(
   AcademicEamsQueryResult? initialResult,
   bool autoRefreshEnabledOverride = false,
   int autoRefreshIntervalOverride = 30,
+  DateTime? nowOverride,
   AcademicCalendarClient? academicCalendarService,
 }) async {
   await tester.pumpWidget(
@@ -44,6 +45,7 @@ Future<void> pumpCourseSchedulePage(
         initialResult: initialResult,
         autoRefreshEnabledOverride: autoRefreshEnabledOverride,
         autoRefreshIntervalOverride: autoRefreshIntervalOverride,
+        nowOverride: nowOverride,
         academicCalendarService: academicCalendarService,
       ),
     ),
@@ -200,6 +202,42 @@ void main() {
     expect(find.textContaining('培养计划'), findsNothing);
     expect(find.textContaining('0.0/0.0'), findsNothing);
     expect(tester.takeException(), isNull);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表可通过固定时钟锁定移动端当日选中态', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _successResult),
+      initialResult: _successResult,
+      nowOverride: DateTime(2026, 5, 4),
+    );
+    await pumpUntilFound(tester, find.text('高等数学'));
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is YhChip && widget.label == '周一' && widget.selected,
+      ),
+      findsOneWidget,
+    );
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表在成功返回空记录时展示明确空态', (tester) async {
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(
+        result: _successResultWithEmptyCourseTable,
+      ),
+      initialResult: _successResultWithEmptyCourseTable,
+    );
+    await tester.pump();
+
+    expect(find.text('本学期暂无课程'), findsOneWidget);
+    expect(find.textContaining('如果刚完成选课'), findsOneWidget);
     await disposeCourseSchedulePage(tester);
   });
 }
@@ -481,6 +519,35 @@ final AcademicEamsQueryResult _successResultWithEmptyProgramCompletion =
           completedCredits: 0,
           pendingCredits: 0,
           moduleProgress: [],
+        ),
+      ),
+    );
+
+final AcademicEamsQueryResult _successResultWithEmptyCourseTable =
+    AcademicEamsQueryResult(
+      status: AcademicEamsQueryStatus.success,
+      message: '本专科教务只读查询成功',
+      detail: '当前学期没有课程记录。',
+      checkedAt: DateTime(2026, 5, 2, 10, 0),
+      entranceUri: Uri.parse(
+        'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
+      ),
+      snapshot: AcademicEamsSnapshot(
+        fetchedAt: DateTime(2026, 5, 2, 10, 0),
+        sourceUri: Uri.parse(
+          'https://jx.sspu.edu.cn/eams/courseTableForStd.action',
+        ),
+        warnings: const [],
+        hasCourseOfferingEntry: true,
+        hasFreeClassroomEntry: true,
+        profile: _successResult.snapshot!.profile,
+        courseTable: AcademicCourseTableSnapshot(
+          termName: '2025-2026 第2学期',
+          entries: const [],
+          fetchedAt: DateTime(2026, 5, 2, 10, 0),
+          sourceUri: Uri.parse(
+            'https://jx.sspu.edu.cn/eams/courseTableForStd.action',
+          ),
         ),
       ),
     );

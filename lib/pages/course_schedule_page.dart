@@ -32,6 +32,9 @@ class CourseSchedulePage extends StatefulWidget {
   /// 测试专用：覆盖自动刷新间隔。
   final int? autoRefreshIntervalOverride;
 
+  /// 测试专用：锁定当前时间，确保星期高亮和刷新判定可重现。
+  final DateTime? nowOverride;
+
   /// 校历客户端，测试中可替换为 fake。
   final AcademicCalendarClient? academicCalendarService;
 
@@ -41,6 +44,7 @@ class CourseSchedulePage extends StatefulWidget {
     this.initialResult,
     this.autoRefreshEnabledOverride,
     this.autoRefreshIntervalOverride,
+    this.nowOverride,
     this.academicCalendarService,
   });
 
@@ -56,7 +60,9 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
       AcademicEamsService.defaultAutoRefreshIntervalMinutes;
   Timer? _autoRefreshTimer;
   StreamSubscription<int>? _credentialChangeSubscription;
-  int _selectedMobileWeekday = DateTime.now().weekday;
+  late int _selectedMobileWeekday;
+
+  DateTime get _now => widget.nowOverride ?? DateTime.now();
 
   AcademicEamsClient get _academicEamsService {
     return widget.academicEamsService ?? AcademicEamsService.instance;
@@ -65,6 +71,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   @override
   void initState() {
     super.initState();
+    _selectedMobileWeekday = _now.weekday;
     _credentialChangeSubscription = AcademicCredentialsService.instance.changes
         .listen((_) => _clearAuthenticatedState());
     _result = widget.initialResult;
@@ -143,8 +150,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   bool _shouldAutoRefresh(DateTime? fetchedAt, int intervalMinutes) {
     if (intervalMinutes <= 0) return false;
     if (fetchedAt == null) return true;
-    return DateTime.now().difference(fetchedAt) >=
-        Duration(minutes: intervalMinutes);
+    return _now.difference(fetchedAt) >= Duration(minutes: intervalMinutes);
   }
 
   void _openAcademicCalendar() {
@@ -261,13 +267,23 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
           autoRefreshIntervalMinutes: _autoRefreshIntervalMinutes,
         ),
         SizedBox(height: theme.spacing.m),
-        _CourseScheduleAdaptiveView(
-          courseTable: courseTable,
-          selectedMobileWeekday: _selectedMobileWeekday,
-          onSelectedMobileWeekdayChanged: (weekday) {
-            setState(() => _selectedMobileWeekday = weekday);
-          },
-        ),
+        if (courseTable.entries.isEmpty)
+          const YhCard(
+            child: YhEmptyState(
+              icon: YhIcons.calendar,
+              title: '本学期暂无课程',
+              message: '如果刚完成选课，可稍后刷新课表查看最新安排。',
+            ),
+          )
+        else
+          _CourseScheduleAdaptiveView(
+            courseTable: courseTable,
+            currentWeekday: _now.weekday,
+            selectedMobileWeekday: _selectedMobileWeekday,
+            onSelectedMobileWeekdayChanged: (weekday) {
+              setState(() => _selectedMobileWeekday = weekday);
+            },
+          ),
       ],
     );
   }
@@ -293,11 +309,13 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
 class _CourseScheduleAdaptiveView extends StatelessWidget {
   const _CourseScheduleAdaptiveView({
     required this.courseTable,
+    required this.currentWeekday,
     required this.selectedMobileWeekday,
     required this.onSelectedMobileWeekdayChanged,
   });
 
   final AcademicCourseTableSnapshot courseTable;
+  final int currentWeekday;
   final int selectedMobileWeekday;
   final ValueChanged<int> onSelectedMobileWeekdayChanged;
 
@@ -317,22 +335,28 @@ class _CourseScheduleAdaptiveView extends StatelessWidget {
             onWeekdayChanged: onSelectedMobileWeekdayChanged,
           );
         }
-        return _CourseWeekGridView(entries: courseTable.entries);
+        return _CourseWeekGridView(
+          entries: courseTable.entries,
+          currentWeekday: currentWeekday,
+        );
       },
     );
   }
 }
 
 class _CourseWeekGridView extends StatelessWidget {
-  const _CourseWeekGridView({required this.entries});
+  const _CourseWeekGridView({
+    required this.entries,
+    required this.currentWeekday,
+  });
 
   final List<AcademicCourseTableEntry> entries;
+  final int currentWeekday;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     const periodTable = CoursePeriodTable.standard;
-    final nowWeekday = DateTime.now().weekday;
     final periodColumnWidth =
         theme.spacing.xl2 + theme.spacing.xl + theme.spacing.xs / 2;
     final weekdayColumnWidth =
@@ -351,7 +375,7 @@ class _CourseWeekGridView extends StatelessWidget {
           child: Column(
             children: [
               _CourseGridHeader(
-                currentWeekday: nowWeekday,
+                currentWeekday: currentWeekday,
                 periodColumnWidth: periodColumnWidth,
               ),
               for (final period in periodTable.periods)
@@ -368,7 +392,7 @@ class _CourseWeekGridView extends StatelessWidget {
                         Expanded(
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: weekday == nowWeekday
+                              color: weekday == currentWeekday
                                   ? theme.color.brandTint
                                   : theme.color.surface,
                               border: BorderDirectional(

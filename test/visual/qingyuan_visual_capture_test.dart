@@ -7,11 +7,15 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
+import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/pages/about_page.dart';
+import 'package:sspu_allinone/pages/course_schedule_page.dart';
 import 'package:sspu_allinone/pages/legal_notice_page.dart';
 import 'package:sspu_allinone/pages/quick_links_page.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/services/quick_links_config_service.dart';
+
+import '../support/qingyuan_visual_fixtures.dart';
 
 const _captureEnabled = bool.fromEnvironment('QINGYUAN_VISUAL_CAPTURE');
 const _platform = String.fromEnvironment(
@@ -71,6 +75,8 @@ void main() {
               ),
             );
             await tester.pump(YhTheme.light.motion.slow);
+            await surface.prepare?.call(tester);
+            await tester.pump();
             final target = File(
               '${output.path}/${surface.id}--${surface.state}--$themeName--'
               '${viewport.width.toInt()}x${viewport.height.toInt()}.png',
@@ -162,11 +168,17 @@ class _CapturedPng {
 }
 
 class _VisualSurface {
-  const _VisualSurface(this.id, this.builder, {this.state = 'content'});
+  const _VisualSurface(
+    this.id,
+    this.builder, {
+    this.state = 'content',
+    this.prepare,
+  });
 
   final String id;
   final String state;
   final Widget Function() builder;
+  final Future<void> Function(WidgetTester tester)? prepare;
 }
 
 final _surfaces = <_VisualSurface>[
@@ -176,6 +188,17 @@ final _surfaces = <_VisualSurface>[
   _VisualSurface('components.navigation', _navigationPanel),
   _VisualSurface('components.data', _dataPanel),
   _VisualSurface('components.domain', _domainPanel),
+  _VisualSurface('schedule.calendar', _scheduleInitial, state: 'initial'),
+  _VisualSurface(
+    'schedule.calendar',
+    _scheduleLoading,
+    state: 'loading',
+    prepare: _startScheduleLoading,
+  ),
+  _VisualSurface('schedule.calendar', _scheduleContent),
+  _VisualSurface('schedule.calendar', _scheduleEmpty, state: 'empty'),
+  _VisualSurface('schedule.calendar', _scheduleStale, state: 'stale'),
+  _VisualSurface('schedule.calendar', _scheduleError, state: 'error'),
   _VisualSurface('links.directory', _quickLinksContent),
   _VisualSurface('links.directory', _quickLinksLoading, state: 'loading'),
   _VisualSurface('links.directory', _quickLinksEmpty, state: 'empty'),
@@ -188,6 +211,63 @@ final _surfaces = <_VisualSurface>[
     state: 'error',
   ),
 ];
+
+Widget _schedulePage({
+  required QingyuanVisualAcademicEamsClient service,
+  AcademicEamsQueryResult? initialResult,
+}) {
+  return CourseSchedulePage(
+    academicEamsService: service,
+    initialResult: initialResult,
+    autoRefreshEnabledOverride: false,
+    nowOverride: qingyuanVisualNow,
+  );
+}
+
+Widget _scheduleInitial() => _schedulePage(
+  service: QingyuanVisualAcademicEamsClient(
+    result: qingyuanScheduleContentResult,
+  ),
+);
+
+Widget _scheduleLoading() => _schedulePage(
+  service: QingyuanVisualAcademicEamsClient(
+    result: qingyuanScheduleContentResult,
+    pendingCourseTable: Completer<AcademicEamsQueryResult>(),
+  ),
+);
+
+Future<void> _startScheduleLoading(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('course-schedule-refresh')));
+}
+
+Widget _scheduleContent() => _schedulePage(
+  service: QingyuanVisualAcademicEamsClient(
+    result: qingyuanScheduleContentResult,
+  ),
+  initialResult: qingyuanScheduleContentResult,
+);
+
+Widget _scheduleEmpty() => _schedulePage(
+  service: QingyuanVisualAcademicEamsClient(
+    result: qingyuanScheduleEmptyResult,
+  ),
+  initialResult: qingyuanScheduleEmptyResult,
+);
+
+Widget _scheduleStale() => _schedulePage(
+  service: QingyuanVisualAcademicEamsClient(
+    result: qingyuanScheduleStaleResult,
+  ),
+  initialResult: qingyuanScheduleStaleResult,
+);
+
+Widget _scheduleError() => _schedulePage(
+  service: QingyuanVisualAcademicEamsClient(
+    result: qingyuanScheduleErrorResult,
+  ),
+  initialResult: qingyuanScheduleErrorResult,
+);
 
 const _quickLinkGroups = <QuickLinkGroupConfig>[
   QuickLinkGroupConfig(
