@@ -29,6 +29,7 @@ Future<void> pumpEmailPage(
   required EmailMailboxClient emailService,
   required bool emailAutoRefreshEnabledOverride,
   int emailAutoRefreshIntervalOverride = 30,
+  DateTime? nowOverride,
 }) async {
   await tester.pumpWidget(
     YhApp(
@@ -36,6 +37,7 @@ Future<void> pumpEmailPage(
         emailService: emailService,
         emailAutoRefreshEnabledOverride: emailAutoRefreshEnabledOverride,
         emailAutoRefreshIntervalOverride: emailAutoRefreshIntervalOverride,
+        nowOverride: nowOverride,
       ),
     ),
   );
@@ -267,6 +269,21 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 120));
   });
+
+  testWidgets('邮箱页面通过固定时钟标记超时本地缓存', (tester) async {
+    await pumpEmailPage(
+      tester,
+      emailService: _FakeEmailClient(cachedResult: _staleMailboxResult),
+      emailAutoRefreshEnabledOverride: false,
+      emailAutoRefreshIntervalOverride: 30,
+      nowOverride: DateTime(2026, 7, 18, 9, 30),
+    );
+    await pumpUntilFound(tester, find.text('缓存通知'));
+
+    expect(find.textContaining('刷新时间已超过 30 分钟'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 120));
+  });
 }
 
 class _FakeEmailClient implements EmailMailboxClient {
@@ -398,6 +415,32 @@ final EmailMailboxQueryResult _cachedMailboxResult = EmailMailboxQueryResult(
       ),
     ],
     fetchedAt: DateTime.now(),
+    endpoint: _endpoint,
+  ),
+);
+
+final EmailMailboxQueryResult _staleMailboxResult = EmailMailboxQueryResult(
+  status: EmailQueryStatus.success,
+  protocol: EmailProtocol.imap,
+  message: '已显示本地邮箱缓存',
+  detail: '显示最近一次成功读取并保存的 IMAP 邮件快照。',
+  checkedAt: DateTime(2026, 7, 17, 18),
+  endpoint: _endpoint,
+  snapshot: EmailMailboxSnapshot(
+    protocol: EmailProtocol.imap,
+    account: 'student@sspu.edu.cn',
+    messages: const [
+      EmailMessageSnapshot(
+        id: 'IMAP:cached',
+        subject: '缓存通知',
+        senderName: '教务处',
+        senderAddress: 'notice@sspu.edu.cn',
+        preview: '缓存邮件内容。',
+        body: '缓存邮件内容。',
+        receivedAt: null,
+      ),
+    ],
+    fetchedAt: DateTime(2026, 7, 17, 18),
     endpoint: _endpoint,
   ),
 );

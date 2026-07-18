@@ -30,11 +30,15 @@ class EmailPage extends StatefulWidget {
   /// 测试专用：覆盖学校邮箱自动刷新间隔。
   final int? emailAutoRefreshIntervalOverride;
 
+  /// 测试专用：锁定当前时间，确保缓存新鲜度判定可重现。
+  final DateTime? nowOverride;
+
   const EmailPage({
     super.key,
     this.emailService,
     this.emailAutoRefreshEnabledOverride,
     this.emailAutoRefreshIntervalOverride,
+    this.nowOverride,
   });
 
   @override
@@ -52,6 +56,8 @@ class _EmailPageState extends State<EmailPage> {
   bool _isSendingMessage = false;
   bool _showComposePane = false;
   bool _emailAutoRefreshEnabled = false;
+  int _emailAutoRefreshIntervalMinutes =
+      EmailService.defaultAutoRefreshIntervalMinutes;
   Timer? _emailAutoRefreshTimer;
   StreamSubscription<int>? _credentialChangeSubscription;
   int _credentialGeneration = 0;
@@ -65,6 +71,8 @@ class _EmailPageState extends State<EmailPage> {
   EmailMailboxClient get _emailService {
     return widget.emailService ?? EmailService.instance;
   }
+
+  DateTime get _now => widget.nowOverride ?? DateTime.now();
 
   @override
   void initState() {
@@ -100,7 +108,10 @@ class _EmailPageState extends State<EmailPage> {
         widget.emailAutoRefreshIntervalOverride ??
         await EmailService.instance.getAutoRefreshIntervalMinutes();
     if (!mounted) return;
-    setState(() => _emailAutoRefreshEnabled = enabled);
+    setState(() {
+      _emailAutoRefreshEnabled = enabled;
+      _emailAutoRefreshIntervalMinutes = interval;
+    });
     _restartEmailAutoRefreshTimer(enabled, interval);
     if (enabled && _shouldAutoRefresh(_mailboxResult?.checkedAt, interval)) {
       unawaited(_fetchMessages(silent: true));
@@ -202,8 +213,14 @@ class _EmailPageState extends State<EmailPage> {
   bool _shouldAutoRefresh(DateTime? fetchedAt, int intervalMinutes) {
     if (intervalMinutes <= 0) return false;
     if (fetchedAt == null) return true;
-    return DateTime.now().difference(fetchedAt) >=
-        Duration(minutes: intervalMinutes);
+    return _now.difference(fetchedAt) >= Duration(minutes: intervalMinutes);
+  }
+
+  bool _isMailboxSnapshotStale(EmailMailboxSnapshot snapshot) {
+    return _shouldAutoRefresh(
+      snapshot.fetchedAt,
+      _emailAutoRefreshIntervalMinutes,
+    );
   }
 
   @override

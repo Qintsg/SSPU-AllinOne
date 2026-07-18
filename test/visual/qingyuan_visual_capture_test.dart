@@ -8,8 +8,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
+import 'package:sspu_allinone/models/email_mailbox.dart';
 import 'package:sspu_allinone/pages/about_page.dart';
 import 'package:sspu_allinone/pages/course_schedule_page.dart';
+import 'package:sspu_allinone/pages/email_page.dart';
 import 'package:sspu_allinone/pages/legal_notice_page.dart';
 import 'package:sspu_allinone/pages/quick_links_page.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
@@ -83,6 +85,7 @@ void main() {
             );
             await _capture(tester, boundaryKey, target, viewport);
             expect(target.lengthSync(), greaterThan(0));
+            await surface.cleanup?.call(tester);
           } finally {
             debugDefaultTargetPlatformOverride = null;
           }
@@ -173,12 +176,14 @@ class _VisualSurface {
     this.builder, {
     this.state = 'content',
     this.prepare,
+    this.cleanup,
   });
 
   final String id;
   final String state;
   final Widget Function() builder;
   final Future<void> Function(WidgetTester tester)? prepare;
+  final Future<void> Function(WidgetTester tester)? cleanup;
 }
 
 final _surfaces = <_VisualSurface>[
@@ -199,6 +204,45 @@ final _surfaces = <_VisualSurface>[
   _VisualSurface('schedule.calendar', _scheduleEmpty, state: 'empty'),
   _VisualSurface('schedule.calendar', _scheduleStale, state: 'stale'),
   _VisualSurface('schedule.calendar', _scheduleError, state: 'error'),
+  _VisualSurface('mail.inbox', _mailInitial, state: 'initial'),
+  _VisualSurface(
+    'mail.inbox',
+    _mailLoading,
+    state: 'loading',
+    prepare: _startMailLoading,
+  ),
+  _VisualSurface('mail.inbox', _mailContent),
+  _VisualSurface('mail.inbox', _mailEmpty, state: 'empty'),
+  _VisualSurface('mail.inbox', _mailStale, state: 'stale'),
+  _VisualSurface('mail.inbox', _mailError, state: 'error'),
+  _VisualSurface(
+    'mail.message-detail',
+    () => EmailMessageDetailPage(message: qingyuanEmailMessages.first),
+  ),
+  _VisualSurface(
+    'mail.compose',
+    _mailContent,
+    state: 'initial',
+    prepare: _openMailCompose,
+  ),
+  _VisualSurface(
+    'mail.compose',
+    _mailContent,
+    prepare: _prepareMailComposeContent,
+  ),
+  _VisualSurface(
+    'mail.compose',
+    _mailComposeLoading,
+    state: 'loading',
+    prepare: _prepareMailComposeLoading,
+  ),
+  _VisualSurface(
+    'mail.compose',
+    _mailComposeError,
+    state: 'error',
+    prepare: _prepareMailComposeError,
+    cleanup: _clearMailFeedback,
+  ),
   _VisualSurface('links.directory', _quickLinksContent),
   _VisualSurface('links.directory', _quickLinksLoading, state: 'loading'),
   _VisualSurface('links.directory', _quickLinksEmpty, state: 'empty'),
@@ -268,6 +312,113 @@ Widget _scheduleError() => _schedulePage(
   ),
   initialResult: qingyuanScheduleErrorResult,
 );
+
+Widget _mailPage(QingyuanVisualEmailClient service) {
+  return EmailPage(
+    emailService: service,
+    emailAutoRefreshEnabledOverride: false,
+    emailAutoRefreshIntervalOverride: 30,
+    nowOverride: qingyuanVisualNow,
+  );
+}
+
+Widget _mailInitial() => _mailPage(QingyuanVisualEmailClient());
+
+Widget _mailLoading() => _mailPage(
+  QingyuanVisualEmailClient(pendingFetch: Completer<EmailMailboxQueryResult>()),
+);
+
+Future<void> _startMailLoading(WidgetTester tester) async {
+  await tester.tap(find.text('读取最近邮件').first);
+}
+
+Widget _mailContent() => _mailPage(
+  QingyuanVisualEmailClient(cachedResult: qingyuanEmailContentResult),
+);
+
+Widget _mailEmpty() => _mailPage(
+  QingyuanVisualEmailClient(cachedResult: qingyuanEmailEmptyResult),
+);
+
+Widget _mailStale() => _mailPage(
+  QingyuanVisualEmailClient(cachedResult: qingyuanEmailStaleResult),
+);
+
+Widget _mailError() => _mailPage(
+  QingyuanVisualEmailClient(cachedResult: qingyuanEmailErrorResult),
+);
+
+Future<void> _openMailCompose(WidgetTester tester) async {
+  await tester.tap(find.text('写邮件').first);
+  await tester.pump();
+}
+
+Future<void> _prepareMailComposeContent(WidgetTester tester) async {
+  await _openMailCompose(tester);
+  await _fillMailCompose(tester);
+}
+
+Future<void> _fillMailCompose(WidgetTester tester) async {
+  await tester.enterText(
+    find.widgetWithText(YhTextField, '收件人'),
+    'advisor@example.invalid',
+  );
+  await tester.enterText(find.widgetWithText(YhTextField, '主题'), '课程安排确认');
+  await tester.enterText(
+    find.widgetWithText(YhTextField, '正文'),
+    '老师您好，我已核对本学期课程安排，谢谢。',
+  );
+}
+
+Widget _mailComposeLoading() => _mailPage(
+  QingyuanVisualEmailClient(
+    cachedResult: qingyuanEmailContentResult,
+    pendingSend: Completer<EmailSendResult>(),
+  ),
+);
+
+Widget _mailComposeError() => _mailPage(
+  QingyuanVisualEmailClient(
+    cachedResult: qingyuanEmailContentResult,
+    sendResult: qingyuanEmailSendErrorResult,
+  ),
+);
+
+Future<void> _prepareMailComposeSending(WidgetTester tester) async {
+  await _openMailCompose(tester);
+  await _fillMailCompose(tester);
+  final sendButton = tester.widget<YhButton>(
+    find.widgetWithText(YhButton, '发送邮件'),
+  );
+  sendButton.onTap?.call();
+}
+
+Future<void> _prepareMailComposeLoading(WidgetTester tester) async {
+  await _prepareMailComposeSending(tester);
+  await tester.pump();
+  await _centerInScrollable(tester, find.text('正在发送'));
+  await tester.pump();
+}
+
+Future<void> _prepareMailComposeError(WidgetTester tester) async {
+  await _prepareMailComposeSending(tester);
+  await tester.pump();
+  await tester.pump();
+  await _centerInScrollable(tester, find.text('邮件未发送').first);
+  await tester.pump();
+}
+
+Future<void> _centerInScrollable(WidgetTester tester, Finder finder) async {
+  await Scrollable.ensureVisible(
+    tester.element(finder),
+    alignment: 0.5,
+    duration: Duration.zero,
+  );
+}
+
+Future<void> _clearMailFeedback(WidgetTester tester) async {
+  await tester.pump(const Duration(seconds: 3));
+}
 
 const _quickLinkGroups = <QuickLinkGroupConfig>[
   QuickLinkGroupConfig(

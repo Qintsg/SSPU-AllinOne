@@ -297,6 +297,7 @@ extension _EmailPageLayout on _EmailPageState {
 
     final snapshot = result.snapshot!;
     final messages = snapshot.messages;
+    final isStale = _isMailboxSnapshotStale(snapshot);
     _selectFirstMessageIfNeeded(messages);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,6 +316,15 @@ extension _EmailPageLayout on _EmailPageState {
             ],
           ),
         ),
+        if (isStale) ...[
+          SizedBox(height: theme.spacing.m),
+          YhBanner(
+            text:
+                '当前显示的是本地邮件缓存，刷新时间已超过 '
+                '$_emailAutoRefreshIntervalMinutes 分钟。',
+            kind: YhBannerKind.warn,
+          ),
+        ],
         SizedBox(height: theme.spacing.m),
         if (messages.isEmpty)
           YhCard(
@@ -394,15 +404,28 @@ extension _EmailPageLayout on _EmailPageState {
     final snapshot = result.snapshot!;
     final messages = snapshot.messages;
     _selectFirstMessageIfNeeded(messages);
-    return _EmailMailboxListPanel(
-      snapshot: snapshot,
-      messages: messages,
-      selectedMessageId: _selectedMessageId,
-      refreshing: _isFetchingMessages,
-      senderLabel: _senderLabel,
-      formatDateTime: _formatOptionalDateTime,
-      onMessagePressed: (message) =>
-          _openOrSelectMessage(message, inline: true),
+    return Column(
+      children: [
+        if (_isMailboxSnapshotStale(snapshot)) ...[
+          YhBanner(
+            text:
+                '当前显示的是本地邮件缓存，刷新时间已超过 '
+                '$_emailAutoRefreshIntervalMinutes 分钟。',
+            kind: YhBannerKind.warn,
+          ),
+          SizedBox(height: theme.spacing.m),
+        ],
+        _EmailMailboxListPanel(
+          snapshot: snapshot,
+          messages: messages,
+          selectedMessageId: _selectedMessageId,
+          refreshing: _isFetchingMessages,
+          senderLabel: _senderLabel,
+          formatDateTime: _formatOptionalDateTime,
+          onMessagePressed: (message) =>
+              _openOrSelectMessage(message, inline: true),
+        ),
+      ],
     );
   }
 
