@@ -78,7 +78,7 @@ YhCheckbox(value: agreed, onChanged: (v) => setState(() => agreed = v ?? false))
 
 ## 无障碍 Accessibility
 
-- `Semantics(checked: value, label: ...)`；含文字标签整体触控区 ≥ 44dp。
+- `Semantics(checked: value, label: ...)`；含文字标签整体触控区 ≥ 48dp。
 
 ---
 

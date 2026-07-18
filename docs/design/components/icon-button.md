@@ -14,11 +14,11 @@
 
 ```
 ┌──────┐
-│  ⌕   │  ← 容器 44×44dp, radius=10；图标 20×20 居中
+│  ⌕   │  ← 容器 48×48dp, radius=10；图标 20×20 居中
 └──────┘
 ```
 
-**必需元素**：方形容器（44×44dp，满足最小触控区）、单个线性图标（20×20，1.8px 描边，`currentColor`）。
+**必需元素**：方形容器（48×48dp，满足最小触控区）、单个线性图标（20×20，1.8px 描边，`currentColor`）。
 **禁止**：图标 + 文字混排（那是 Button 的职责）。
 
 ---
@@ -78,8 +78,8 @@ class YhIconButton extends StatelessWidget {
 ```
 
 ```dart
-YhIconButton(icon: Icons.search, semanticLabel: '搜索', onTap: openSearch);
-YhIconButton(icon: Icons.more_vert, semanticLabel: '更多', variant: YhIconButtonVariant.ghost);
+YhIconButton(icon: YhIcons.search, semanticLabel: '搜索', onTap: openSearch);
+YhIconButton(icon: YhIcons.more, semanticLabel: '更多', variant: YhIconButtonVariant.ghost);
 ```
 
 ---
@@ -88,7 +88,7 @@ YhIconButton(icon: Icons.more_vert, semanticLabel: '更多', variant: YhIconButt
 
 ### ✅ Do
 - **必给 `semanticLabel`**——图标按钮无文字，无障碍只能靠它。
-- 容器 ≥ 44×44dp，即使图标只有 20px。
+- 容器 ≥ 48×48dp，即使图标只有 20px。
 - 同一工具栏图标风格一致（同为 1.8px 线性）。
 
 ### ❌ Don't
@@ -104,7 +104,7 @@ YhIconButton(icon: Icons.more_vert, semanticLabel: '更多', variant: YhIconButt
 
 ## 无障碍 Accessibility
 
-- 触控区域 44×44dp；`Semantics(button: true, label: semanticLabel)` 必填。
+- 触控区域 48×48dp；`Semantics(button: true, label: semanticLabel)` 必填。
 - hover/focus 反馈明确，键盘 Tab 可达。
 
 ---

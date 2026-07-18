@@ -28,7 +28,7 @@ class YhCurves {
 ## 原则
 
 - **优先用 opacity / transform**；避免 width / height 动画（触发重排）。
-- 按钮 pressed 状态：`transform: scale(0.98)` + `120ms`，不用 translate 下沉（太重）。
+- 按钮 pressed 状态：`transform: scale(var(--pressed-scale))` + `120ms`，默认 `interaction.pressedScale = 0.98`，不用 translate 下沉（太重）。
 - 页面转场：淡入 + 轻微上移 `translateY(8px → 0)`，不用左右滑（校园工具不是社交 App）。
 - 骨架屏脉动：`opacity 0.5 ↔ 1` + `1500ms ease-in-out infinite`，背景用 `--c-muted`。
 - 系统请求减少动态时，位移与缩放动画归零；必要反馈只保留不超过 `120ms` 的透明度变化。

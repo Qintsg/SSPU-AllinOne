@@ -29,7 +29,7 @@
 ## 如何使用
 
 - **实现新组件**：先查 [tokens.md](./tokens.md) 找到对应令牌，再到 `components/` 读组件规格，拿 Flutter 骨架落地。
-- **定制主题**：改 `tokens.md` 里的 `--brand`/`--brand-strong` 两行即可全局换色；其余 token 保持相对关系自动推导。
+- **定制主题**：先改 [`resources/tokens.json`](../resources/tokens.json) 的 `color.brand`，再同步文档与镜像并运行契约校验。
 - **校验对比度**：颜色规范里已标明所有前景/背景配对的 WCAG 等级；若自定义颜色需重新跑 [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/)。
 
 ---

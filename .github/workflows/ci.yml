@@ -124,6 +124,33 @@ jobs:
       - name: 校验清源设计契约
         run: python scripts/ci/validate_design_system.py
 
+  design-prototype-gate:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: 安装页面原型核验依赖
+        run: >
+          python -m pip install
+          --disable-pip-version-check
+          --only-binary=:all:
+          --require-hashes
+          -r .github/requirements/design-prototype.txt
+
+      - name: 安装 Playwright Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: 浏览器核验清源页面原型
+        run: python scripts/design/verify_design_prototype.py --output build/design-review
+
+      - name: 上传页面原型核验截图
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: qingyuan-design-review
+          path: build/design-review
+
   lore-gate:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest

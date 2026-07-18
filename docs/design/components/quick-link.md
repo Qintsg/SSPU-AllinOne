@@ -54,7 +54,7 @@ class YhQuickLink extends StatelessWidget {
 ```
 
 ```dart
-YhQuickLink(icon: Icons.school, title: '超星学习通', subtitle: '课程学习 · 在线考试', onTap: openChaoxing);
+YhQuickLink(icon: YhIcons.academic, title: '超星学习通', subtitle: '课程学习 · 在线考试', onTap: openChaoxing);
 ```
 
 ---

@@ -55,7 +55,7 @@ class YhMetricCard extends StatelessWidget {
 ```
 
 ```dart
-YhMetricCard(label: '校园卡余额', value: '¥128.50', delta: '本月 +¥40', deltaUp: true, icon: Icons.credit_card);
+YhMetricCard(label: '校园卡余额', value: '¥128.50', delta: '本月 +¥40', deltaUp: true, icon: YhIcons.finance);
 ```
 
 ---

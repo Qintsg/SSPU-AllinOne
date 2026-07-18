@@ -14,6 +14,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TOKENS_PATH = Path("docs/design/resources/tokens.json")
 SAMPLE_CSS_PATH = Path("docs/design/components/samples/_qingyuan.css")
 FLUTTER_THEME_PATH = Path("lib/design/qingyuan/theme/yh_theme.dart")
+PAGE_PROTOTYPE_PATH = Path("docs/design/patterns/samples/app-shell.html")
+PAGE_PROTOTYPE_CSS_PATH = Path("docs/design/patterns/samples/_app-shell.css")
 MARKDOWN_LINK_PATTERN = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
 
@@ -99,10 +101,19 @@ def _validate_css_tokens(project_root: Path, tokens: dict[str, Any]) -> None:
         if light.get(f"duration-{name}") != expected:
             errors.append(f"duration.{name} 与 --duration-{name} 漂移：期望 {expected}，实际 {light.get(f'duration-{name}')}")
 
+    pressed_scale = f"{tokens['interaction']['pressedScale']:g}"
+    if light.get("pressed-scale") != pressed_scale:
+        errors.append(f"interaction.pressedScale 与 --pressed-scale 漂移：期望 {pressed_scale}，实际 {light.get('pressed-scale')}")
+
     for name, value in tokens["typography"]["scale"].items():
         expected = f"{value:g}px"
         if light.get(f"type-{name}") != expected:
             errors.append(f"typography.scale.{name} 与 --type-{name} 漂移：期望 {expected}，实际 {light.get(f'type-{name}')}")
+
+    for name, value in tokens["typography"]["weight"].items():
+        expected = f"{value:g}"
+        if light.get(f"weight-{name}") != expected:
+            errors.append(f"typography.weight.{name} 与 --weight-{name} 漂移：期望 {expected}，实际 {light.get(f'weight-{name}')}")
 
     for name, value in tokens["elevation"].items():
         css_name = f"shadow-{name[1:]}"
@@ -185,6 +196,83 @@ def _validate_flutter_colors(project_root: Path, tokens: dict[str, Any]) -> None
         raise DesignSystemValidationError("\n".join(errors))
 
 
+def _validate_flutter_scalars(project_root: Path, tokens: dict[str, Any]) -> None:
+    theme_path = project_root / FLUTTER_THEME_PATH
+    if not theme_path.exists():
+        return
+    source = theme_path.read_text(encoding="utf-8")
+    errors: list[str] = []
+
+    groups = {
+        "spacing": "YhSpacingTokens",
+        "radius": "YhRadiusTokens",
+        "breakpoint": "YhBreakpointTokens",
+        "control": "YhControlTokens",
+        "focus": "YhFocusTokens",
+    }
+    for group, class_name in groups.items():
+        constructor_match = re.search(
+            rf"class {class_name}\s*\{{.*?const {class_name}\(\{{(.*?)\n  \}}\);",
+            source,
+            re.DOTALL,
+        )
+        constructor = constructor_match.group(1) if constructor_match else ""
+        for name, value in tokens[group].items():
+            pattern = rf"this\.{re.escape(name)}\s*=\s*{re.escape(f'{value:g}')}\b"
+            if re.search(pattern, constructor) is None:
+                errors.append(f"{group}.{name} 与 Flutter {class_name}.{name} 漂移：期望 {value:g}")
+
+    for name, value in tokens["duration"].items():
+        pattern = rf"this\.{name}\s*=\s*const Duration\(milliseconds:\s*{value:g}\)"
+        if re.search(pattern, source) is None:
+            errors.append(f"duration.{name} 与 Flutter YhMotionTokens.{name} 漂移：期望 {value:g}ms")
+
+    pressed_scale = tokens["interaction"]["pressedScale"]
+    if re.search(rf"this\.pressedScale\s*=\s*{re.escape(f'{pressed_scale:g}')}\b", source) is None:
+        errors.append(f"interaction.pressedScale 与 Flutter YhMotionTokens.pressedScale 漂移：期望 {pressed_scale:g}")
+
+    curve = tokens["curve"]
+    curve_values = r"\s*,\s*".join(re.escape(f"{curve[key]:g}") for key in ("x1", "y1", "x2", "y2"))
+    if re.search(rf"this\.curve\s*=\s*const Cubic\({curve_values}\)", source) is None:
+        errors.append("curve 与 Flutter YhMotionTokens.curve 漂移")
+
+    typography_blocks: dict[str, str] = {}
+    for name in tokens["typography"]["scale"]:
+        match = re.search(rf"{name}:\s*TextStyle\((.*?)\n    \),", source, re.DOTALL)
+        typography_blocks[name] = match.group(1) if match else ""
+
+    for name, value in tokens["typography"]["scale"].items():
+        if re.search(rf"fontSize:\s*{value:g},", typography_blocks[name]) is None:
+            errors.append(f"typography.scale.{name} 与 Flutter YhTypographyTokens.{name} 漂移：期望 {value:g}")
+
+    for name, value in tokens["typography"]["weight"].items():
+        if re.search(rf"fontWeight:\s*FontWeight\.w{value:g},", typography_blocks[name]) is None:
+            errors.append(f"typography.weight.{name} 与 Flutter YhTypographyTokens.{name} 漂移：期望 {value:g}")
+
+    family_names = {"fontFamilyDisplay": "fontFamilyDisplay", "fontFamilyBody": "fontFamilyBody", "fontFamilyMono": "fontFamilyMono"}
+    for token_name, field in family_names.items():
+        expected = tokens["typography"][token_name]
+        if re.search(rf"{field}\s*=\s*'{re.escape(expected)}'", source) is None:
+            errors.append(f"typography.{token_name} 与 Flutter {field} 漂移：期望 {expected}")
+
+    for theme_name in ("light", "dark"):
+        for token_name, shadow in tokens["elevation"].items():
+            match = re.fullmatch(r"0 (\d+)px (\d+)px rgba\(0,0,0,([0-9.]+)\)", shadow[theme_name])
+            if match is None:
+                errors.append(f"elevation.{token_name}.{theme_name} 格式无法映射 Flutter")
+                continue
+            offset, blur, alpha = match.groups()
+            color = f"{int(float(alpha) * 255 + 0.5):02X}000000"
+            block_match = re.search(rf"static const {theme_name} = YhElevationTokens\((.*?)\n  \);", source, re.DOTALL)
+            block = block_match.group(1) if block_match else ""
+            shadow_pattern = rf"{token_name}:\s*\[\s*BoxShadow\(\s*color:\s*Color\(0x{color}\),\s*blurRadius:\s*{blur},\s*offset:\s*Offset\(0,\s*{offset}\)"
+            if re.search(shadow_pattern, block, re.DOTALL) is None:
+                errors.append(f"elevation.{token_name}.{theme_name} 与 Flutter YhElevationTokens.{token_name} 漂移")
+
+    if errors:
+        raise DesignSystemValidationError("\n".join(errors))
+
+
 def _validate_component_samples(project_root: Path) -> None:
     components = project_root / "docs" / "design" / "components"
     documents = [path for path in components.glob("*.md") if path.name not in {"README.md", "_template.md"}]
@@ -202,6 +290,75 @@ def _validate_component_samples(project_root: Path) -> None:
         raise DesignSystemValidationError("\n".join(errors))
 
 
+def _validate_document_contract(project_root: Path) -> None:
+    design_root = project_root / "docs" / "design"
+    components = design_root / "components"
+    documents = [path for path in components.glob("*.md") if path.name not in {"README.md", "_template.md"}]
+    errors: list[str] = []
+    for document in documents:
+        text = document.read_text(encoding="utf-8")
+        relative = document.relative_to(project_root).as_posix()
+        if re.search(r"\bIcons\.", text):
+            errors.append(f"{relative} 直接引用 Material Icons.*，应使用 YhIcons 门面")
+        if re.search(r"44(?:×44)?dp", text):
+            errors.append(f"{relative} 仍使用 44dp 触控区，清源最小目标为 48dp")
+
+    legacy_rules = {
+        design_root / "foundations" / "color.md": "颜色单一真源",
+        design_root / "foundations" / "typography.md": "w550",
+    }
+    for document, legacy_text in legacy_rules.items():
+        if legacy_text in document.read_text(encoding="utf-8"):
+            relative = document.relative_to(project_root).as_posix()
+            errors.append(f"{relative} 仍包含过期契约：{legacy_text}")
+    if errors:
+        raise DesignSystemValidationError("\n".join(errors))
+
+
+def _validate_page_prototype(project_root: Path) -> None:
+    required_documents = (
+        Path("docs/design/patterns/application-map.md"),
+        Path("docs/design/patterns/states-and-flows.md"),
+        PAGE_PROTOTYPE_PATH,
+        PAGE_PROTOTYPE_CSS_PATH,
+        Path("docs/design/patterns/samples/_app-shell.js"),
+    )
+    if (project_root / ".git").exists():
+        required_documents += (
+            Path("scripts/design/verify_design_prototype.py"),
+            Path("scripts/design/README.md"),
+            Path(".github/requirements/design-prototype.txt"),
+        )
+    errors = [f"页面设计缺少 {path.as_posix()}" for path in required_documents if not (project_root / path).exists()]
+    if errors:
+        raise DesignSystemValidationError("\n".join(errors))
+
+    prototype = (project_root / PAGE_PROTOTYPE_PATH).read_text(encoding="utf-8")
+    required_screens = {"home", "academic", "schedule", "info", "mail", "links", "settings"}
+    screens = set(re.findall(r'data-screen="([a-z-]+)"', prototype))
+    destinations = set(re.findall(r'data-page="([a-z-]+)"', prototype))
+    missing_screens = sorted(required_screens - screens)
+    missing_destinations = sorted(required_screens - destinations)
+    if missing_screens:
+        errors.append(f"页面原型缺少主页面：{', '.join(missing_screens)}")
+    if missing_destinations:
+        errors.append(f"页面原型缺少导航目的地：{', '.join(missing_destinations)}")
+
+    prototype_css = (project_root / PAGE_PROTOTYPE_CSS_PATH).read_text(encoding="utf-8")
+    if re.search(r"#[0-9A-Fa-f]{3,8}\b", prototype_css):
+        errors.append(f"{PAGE_PROTOTYPE_CSS_PATH} 包含裸颜色值，应复用清源 token")
+    reusable_raw_value = re.search(
+        r"(?:gap|padding(?:-(?:top|right|bottom|left))?|margin(?:-(?:top|right|bottom|left))?|font-size)\s*:[^;{}]*-?\d+(?:\.\d+)?px",
+        prototype_css,
+    )
+    if reusable_raw_value:
+        errors.append(f"页面原型包含裸间距或字号：{reusable_raw_value.group(0)}")
+    if "prefers-reduced-motion: reduce" not in prototype_css:
+        errors.append(f"{PAGE_PROTOTYPE_CSS_PATH} 缺少减少动态适配")
+    if errors:
+        raise DesignSystemValidationError("\n".join(errors))
+
+
 def validate_design_system(project_root: Path) -> None:
     """通过公开仓库目录校验清源设计契约。"""
     tokens = _load_tokens(project_root)
@@ -209,7 +366,10 @@ def validate_design_system(project_root: Path) -> None:
         raise DesignSystemValidationError("tokens.json meta.version 必须是 0.3.0。")
     _validate_css_tokens(project_root, tokens)
     _validate_flutter_colors(project_root, tokens)
+    _validate_flutter_scalars(project_root, tokens)
     _validate_component_samples(project_root)
+    _validate_document_contract(project_root)
+    _validate_page_prototype(project_root)
     _validate_markdown_links(project_root)
 
 

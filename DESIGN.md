@@ -78,8 +78,8 @@ docs/design/
 └─ resources/                  # tokens.json（机器可读）等
 ```
 
-- 当前可视化入口是 [`components/samples/`](docs/design/components/samples/) 下的逐组件亮/暗样例。
-- 页面模式以“导航壳 + 首页今日学程时间轨”为首个纵向切片，见 [`patterns/`](docs/design/patterns/README.md)。
+- 组件可视化入口是 [`components/samples/`](docs/design/components/samples/) 下的逐组件亮/暗样例。
+- 页面级可视化入口是 [`patterns/samples/app-shell.html`](docs/design/patterns/samples/app-shell.html)，覆盖七个主目的地；首个实现纵向切片仍是“导航壳 + 首页今日学程时间轨”。
 
 ---
 

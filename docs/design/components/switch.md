@@ -81,7 +81,7 @@ YhSwitch(value: pushOn, onChanged: (v) => setState(() => pushOn = v));
 
 ## 无障碍 Accessibility
 
-- `Semantics(toggled: value, label: ...)`；触控区域含轨道周边补足 ≥ 44dp。
+- `Semantics(toggled: value, label: ...)`；触控区域含轨道周边补足 ≥ 48dp。
 
 ---
 

@@ -61,7 +61,7 @@ YhListItem(
   leading: YhAvatar(text: '图'),
   title: '图书馆开放公告',
   subtitle: '信息公开网 · 今天',
-  trailing: const Icon(Icons.chevron_right),
+  trailing: const Icon(YhIcons.chevronRight),
   onTap: open,
 );
 ```

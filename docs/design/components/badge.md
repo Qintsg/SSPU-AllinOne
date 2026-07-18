@@ -61,7 +61,7 @@ class YhBadge extends StatelessWidget {
 ```
 
 ```dart
-YhBadge(count: 3, child: Icon(Icons.notifications));
+YhBadge(count: 3, child: Icon(YhIcons.notification));
 YhBadge(dot: true, child: YhAvatar(text: '饶'));
 ```
 

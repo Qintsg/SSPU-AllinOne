@@ -59,8 +59,8 @@ class YhEmptyState extends StatelessWidget {
 ```
 
 ```dart
-YhEmptyState(icon: Icons.notifications_none, title: '暂无消息', message: '新通知会出现在这里');
-YhEmptyState(icon: Icons.search_off, title: '没有找到相关结果', message: '换个关键词试试', action: YhButton(label: '清除筛选', variant: YhButtonVariant.text));
+YhEmptyState(icon: YhIcons.notification, title: '暂无消息', message: '新通知会出现在这里');
+YhEmptyState(icon: YhIcons.search, title: '没有找到相关结果', message: '换个关键词试试', action: YhButton(label: '清除筛选', variant: YhButtonVariant.text));
 ```
 
 ---

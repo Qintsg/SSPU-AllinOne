@@ -13,12 +13,11 @@
   var KEY = 'qingyuan:samples:theme';
   function applyTheme(t) {
     document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : '');
-    var btn = document.querySelector('.theme-toggle');
-    if (btn) {
+    document.querySelectorAll('.theme-toggle').forEach(function (btn) {
       var lab = btn.querySelector('.tt-label');
       if (lab) lab.textContent = t === 'dark' ? '浅色' : '深色';
       btn.setAttribute('aria-pressed', String(t === 'dark'));
-    }
+    });
   }
   var saved = null;
   try { saved = localStorage.getItem(KEY); } catch (e) {}
@@ -82,6 +81,9 @@
     if (toggle) {
       if (!toggle.disabled && !toggle.closest('[aria-disabled="true"], .is-disabled')) {
         toggle.classList.toggle('on');
+        if (toggle.classList.contains('yh-switch')) {
+          toggle.setAttribute('aria-checked', String(toggle.classList.contains('on')));
+        }
       }
       return;
     }
@@ -110,8 +112,12 @@
     // Segmented / Tabs / BottomNav / NavRail：组内互斥高亮
     var segBtn = e.target.closest('.yh-seg button, .yh-tabs button, .yh-bottomnav .item, .yh-navrail .item');
     if (segBtn) {
-      segBtn.parentElement.querySelectorAll('button, .item').forEach(function (b) { b.classList.remove('on'); });
+      segBtn.parentElement.querySelectorAll('button, .item').forEach(function (b) {
+        b.classList.remove('on');
+        if (b.hasAttribute('aria-selected')) b.setAttribute('aria-selected', 'false');
+      });
       segBtn.classList.add('on');
+      if (segBtn.hasAttribute('aria-selected')) segBtn.setAttribute('aria-selected', 'true');
       return;
     }
     // Pagination：仅页码按钮互斥高亮（上下页除外）

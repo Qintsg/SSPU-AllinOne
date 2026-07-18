@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>清源全应用页面设计核验原型</title>
+  <link rel="stylesheet" href="_app-shell.css" />
+</head>
+<body>
+  <svg width="0" height="0" aria-hidden="true" style="position:absolute">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10M9.5 20v-6h5v6"/></symbol>
+    <symbol id="i-academic" viewBox="0 0 24 24"><path d="m3 9 9-5 9 5-9 5-9-5Z"/><path d="M7 12v5c3 2 7 2 10 0v-5M21 9v6"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 14h2M14 14h2M8 17h2"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.4 1.4"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1.4-1.4"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18.5 9A7 7 0 0 0 6.7 6.7L4 11M5.5 15A7 7 0 0 0 17.3 17.3L20 13"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></symbol>
+  </svg>
+
+  <div class="prototype">
+    <nav class="prototype-rail" aria-label="主导航">
+      <div class="prototype-mark" aria-label="工大聚合">工</div>
+      <button class="prototype-nav-button" data-page="home" aria-current="page"><svg><use href="#i-home"/></svg><span>主页</span></button>
+      <button class="prototype-nav-button" data-page="academic"><svg><use href="#i-academic"/></svg><span>教务</span></button>
+      <button class="prototype-nav-button" data-page="schedule"><svg><use href="#i-calendar"/></svg><span>课表</span></button>
+      <button class="prototype-nav-button" data-page="info"><svg><use href="#i-info"/></svg><span>信息</span></button>
+      <button class="prototype-nav-button" data-page="mail"><svg><use href="#i-mail"/></svg><span>邮箱</span></button>
+      <button class="prototype-nav-button" data-page="links"><svg><use href="#i-link"/></svg><span>跳转</span></button>
+      <button class="prototype-nav-button" data-page="settings"><svg><use href="#i-settings"/></svg><span>设置</span></button>
+      <button class="theme-toggle" type="button" aria-label="切换主题" aria-pressed="false"><svg class="ic-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><svg class="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span class="tt-label">深色</span></button>
+    </nav>
+
+    <main class="prototype-main" id="main-content">
+      <section class="prototype-page is-active" data-screen="home" aria-labelledby="home-title">
+        <header class="page-heading"><div><p class="page-kicker">7 月 18 日 · 星期六</p><h1 id="home-title">早上好，先看清今天。</h1><p>课程、待办和校园服务状态集中在同一条时间语境里，数据均保留在本机。</p></div><div class="page-actions"><button class="yh-button secondary" type="button">自定义首页</button><button class="icon-button" type="button" aria-label="刷新首页"><svg><use href="#i-refresh"/></svg></button></div></header>
+        <div class="status-row"><span class="yh-pill ok">校园网可用</span><span class="yh-pill info">本地数据 · 08:42 更新</span></div>
+        <div class="home-layout">
+          <article class="timeline-panel" aria-label="今日学程时间轨">
+            <div class="timeline-date"><span>今日学程时间轨</span><span>2 节课 · 1 项待办</span></div>
+            <h2>下一项是 <strong>数据结构</strong><br />还有 42 分钟开始</h2>
+            <div class="timeline">
+              <div class="timeline-item"><span class="timeline-time">08:00</span><span class="timeline-track"><i class="timeline-dot"></i></span><span class="timeline-content"><b>高等数学</b><span>教学楼 3 号楼 · 401</span></span></div>
+              <div class="timeline-item is-current"><span class="timeline-time">10:00</span><span class="timeline-track"><i class="timeline-dot"></i></span><span class="timeline-content"><b>数据结构</b><span>教学楼 2 号楼 · 302 · 当前</span></span></div>
+              <div class="timeline-item"><span class="timeline-time">16:00</span><span class="timeline-track"><i class="timeline-dot"></i></span><span class="timeline-content"><b>大学英语作业截止</b><span>在教务系统提交</span></span></div>
+            </div>
+          </article>
+          <aside class="overview-stack" aria-label="校园服务概览">
+            <article class="overview-card" style="--domain:var(--service-academic)"><span class="service-icon"><svg><use href="#i-academic"/></svg></span><span><b>培养方案</b><span>已修 86 / 150 学分</span></span><strong class="overview-value">57%</strong></article>
+            <article class="overview-card" style="--domain:var(--service-finance)"><span class="service-icon"><svg><use href="#i-card"/></svg></span><span><b>校园卡</b><span>今日消费 ¥18.50</span></span><strong class="overview-value">¥128.50</strong></article>
+            <article class="overview-card" style="--domain:var(--service-mail)"><span class="service-icon"><svg><use href="#i-mail"/></svg></span><span><b>学校邮箱</b><span>2 封未读邮件</span></span><strong class="overview-value">2</strong></article>
+            <article class="overview-card" style="--domain:var(--service-sports)"><span class="service-icon"><svg><use href="#i-calendar"/></svg></span><span><b>体育考勤</b><span>本学期出勤正常</span></span><strong class="overview-value">12 / 12</strong></article>
+          </aside>
+        </div>
+      </section>
+
+      <section class="prototype-page" data-screen="academic" aria-labelledby="academic-title" hidden>
+        <header class="page-heading"><div><p class="page-kicker">教务中心</p><h1 id="academic-title">学习进度，一处看全。</h1><p>成绩、考试、培养方案与体育考勤保持只读，原始来源和更新时间始终可见。</p></div><div class="page-actions"><button class="yh-button primary" type="button">刷新教务数据</button></div></header>
+        <div class="status-row"><span class="yh-pill ok">OA 登录有效</span><span class="yh-pill info">只读访问</span></div>
+        <div class="content-grid">
+          <article class="section-card span-8"><h2>本学期概览</h2><p>2025–2026 学年夏季学期</p><div class="metric-row"><div class="metric-box"><span>平均绩点</span><strong>3.62</strong></div><div class="metric-box"><span>已获学分</span><strong>86.0</strong></div><div class="metric-box"><span>专业排名</span><strong>12 / 96</strong></div></div></article>
+          <article class="section-card span-4"><h2>下一场考试</h2><p>离考试还有 4 天</p><div class="action-row"><span class="service-icon"><svg><use href="#i-calendar"/></svg></span><span><b>离散数学</b><span>7 月 22 日 09:00 · 教一 201</span></span><span class="trail">4天</span></div></article>
+          <article class="section-card span-7"><h2>学习档案</h2><p>进入详情后仍保留来源、学期和返回上下文。</p><div class="action-list"><button class="action-row"><span class="service-icon"><svg><use href="#i-academic"/></svg></span><span><b>课程成绩</b><span>按学期查看成绩与过程分</span></span><span class="trail">›</span></button><button class="action-row"><span class="service-icon"><svg><use href="#i-calendar"/></svg></span><span><b>考试安排</b><span>时间、地点与考试类型</span></span><span class="trail">›</span></button><button class="action-row"><span class="service-icon"><svg><use href="#i-info"/></svg></span><span><b>培养方案</b><span>模块学分和未完成课程</span></span><span class="trail">›</span></button></div></article>
+          <article class="section-card span-5"><h2>完成度</h2><p>状态色只表达完成情况，不替代教务域色。</p><div class="metric-box"><span>毕业要求</span><strong>57%</strong><div class="yh-progress metric-progress"><span class="track"><i style="width:57%"></i></span><span class="pct">86/150</span></div></div></article>
+        </div>
+      </section>
+
+      <section class="prototype-page" data-screen="schedule" aria-labelledby="schedule-title" hidden>
+        <header class="page-heading"><div><p class="page-kicker">第 4 周</p><h1 id="schedule-title">课程表</h1><p>周视图在桌面保持空间关系，窄屏切换为按天列表；课程颜色只标识来源域。</p></div><div class="page-actions"><button class="yh-button secondary" type="button">查看校历</button><button class="icon-button" type="button" aria-label="刷新课程表"><svg><use href="#i-refresh"/></svg></button></div></header>
+        <div class="domain-tabs" role="tablist" aria-label="课表日期"><button class="domain-tab" role="tab" aria-selected="false">周一</button><button class="domain-tab" role="tab" aria-selected="false">周二</button><button class="domain-tab" role="tab" aria-selected="true">周三 · 今天</button><button class="domain-tab" role="tab" aria-selected="false">周四</button><button class="domain-tab" role="tab" aria-selected="false">周五</button></div>
+        <div class="schedule-board" tabindex="0" aria-label="本周课程表，可横向滚动"><div class="schedule-grid">
+          <div class="schedule-cell is-header">节次</div><div class="schedule-cell is-header">周一</div><div class="schedule-cell is-header">周二</div><div class="schedule-cell is-header">周三</div><div class="schedule-cell is-header">周四</div><div class="schedule-cell is-header">周五</div>
+          <div class="schedule-cell is-time">1–2<br/>08:00</div><div class="schedule-cell"><div class="course-chip" style="--domain:var(--service-academic)"><b>高等数学</b><span>教三 401</span></div></div><div class="schedule-cell"></div><div class="schedule-cell"><div class="course-chip" style="--domain:var(--service-schedule)"><b>大学英语</b><span>教二 302</span></div></div><div class="schedule-cell"></div><div class="schedule-cell"><div class="course-chip" style="--domain:var(--service-academic)"><b>操作系统</b><span>实训楼 205</span></div></div>
+          <div class="schedule-cell is-time">3–4<br/>10:00</div><div class="schedule-cell"></div><div class="schedule-cell"><div class="course-chip" style="--domain:var(--service-schedule)"><b>离散数学</b><span>教一 201</span></div></div><div class="schedule-cell"><div class="course-chip" style="--domain:var(--service-academic)"><b>数据结构</b><span>教二 302</span></div></div><div class="schedule-cell"></div><div class="schedule-cell"></div>
+          <div class="schedule-cell is-time">5–6<br/>13:30</div><div class="schedule-cell"></div><div class="schedule-cell"></div><div class="schedule-cell"></div><div class="schedule-cell"><div class="course-chip" style="--domain:var(--service-sports)"><b>大学体育</b><span>南操场</span></div></div><div class="schedule-cell"></div>
+        </div></div>
+        <div class="schedule-day-list" aria-live="polite" aria-label="周三课程"><article class="day-course"><time>08:00 · 1–2 节</time><div class="course-chip" style="--domain:var(--service-schedule)"><b>大学英语</b><span>教二 302</span></div></article><article class="day-course"><time>10:00 · 3–4 节</time><div class="course-chip" style="--domain:var(--service-academic)"><b>数据结构</b><span>教二 302</span></div></article></div>
+      </section>
+
+      <section class="prototype-page" data-screen="info" aria-labelledby="info-title" hidden>
+        <header class="page-heading"><div><p class="page-kicker">校园信息</p><h1 id="info-title">与我有关的消息，按来源说清楚。</h1><p>筛选器稳定保留，文章卡先给来源和时间，再给标题与摘要。</p></div><div class="page-actions"><button class="icon-button" type="button" aria-label="刷新校园信息"><svg><use href="#i-refresh"/></svg></button></div></header>
+        <div class="feed-layout"><aside class="section-card filter-panel"><h2>来源</h2><p>3 个来源已启用</p><div class="filter-list"><button class="is-active">全部信息 · 12</button><button>学校官网 · 5</button><button>教务处 · 4</button><button>微信公众号 · 3</button></div></aside><div class="feed-stack">
+          <article class="feed-entry"><div class="feed-meta"><span class="yh-pill info">教务处</span><time>今天 08:30</time></div><h2>关于 2025–2026 学年夏季学期考试安排的通知</h2><p>请同学们在教务系统中核对考试时间和地点，如有冲突及时联系学院教务老师。</p></article>
+          <article class="feed-entry"><div class="feed-meta"><span class="yh-pill info">学校官网</span><time>昨天 17:20</time></div><h2>图书馆暑期开放时间调整</h2><p>暑期开放区域与服务时间有所调整，入馆前请查看最新安排。</p></article>
+          <article class="feed-entry"><div class="feed-meta"><span class="yh-pill info">微信公众号</span><time>7 月 16 日</time></div><h2>校园夏日服务指南</h2><p>集中查看餐饮、班车、场馆与值班服务信息。</p></article>
+        </div></div>
+      </section>
+
+      <section class="prototype-page" data-screen="mail" aria-labelledby="mail-title" hidden>
+        <header class="page-heading"><div><p class="page-kicker">学校邮箱</p><h1 id="mail-title">收件箱</h1><p>邮件原文只在本机读取；桌面采用列表—详情并列，移动端进入独立详情页。</p></div><div class="page-actions"><button class="icon-button" type="button" aria-label="刷新邮箱"><svg><use href="#i-refresh"/></svg></button></div></header>
+        <div class="status-row"><span class="yh-pill ok">IMAP 已连接</span><span class="yh-pill info">2 封未读</span></div>
+        <div class="mail-layout"><section class="section-card mail-list" aria-label="邮件列表"><button class="mail-item is-active"><b>校园卡消费提醒</b><span>财务处 · 今天 08:12</span><span>您于学生食堂消费 12.50 元…</span></button><button class="mail-item"><b>夏季学期选课确认</b><span>教务处 · 昨天 16:42</span><span>请在规定时间内确认选课结果…</span></button><button class="mail-item"><b>图书归还提醒</b><span>图书馆 · 7 月 16 日</span><span>您借阅的图书将在 3 天后到期…</span></button></section><article class="section-card mail-content" tabindex="-1"><button class="mail-back" type="button">返回收件箱</button><div class="feed-meta"><span>财务处</span><time>今天 08:12</time></div><h2>校园卡消费提醒</h2><p>发送至 202412345@sspu.edu.cn</p><div class="mail-body">同学你好：<br/><br/>您于 08:10 在学生食堂完成一笔 12.50 元消费，当前校园卡余额为 128.50 元。<br/><br/>本邮件为系统自动发送，请勿直接回复。</div></article></div>
+      </section>
+
+      <section class="prototype-page" data-screen="links" aria-labelledby="links-title" hidden>
+        <header class="page-heading"><div><p class="page-kicker">快速跳转</p><h1 id="links-title">常用校园入口</h1><p>名称使用学生熟悉的任务语言；跳转前明确外部网站与当前登录要求。</p></div></header>
+        <label class="search-box"><svg width="20" height="20" fill="none" stroke="currentColor"><use href="#i-search"/></svg><span class="sr-only">搜索校园入口</span><input type="search" placeholder="搜索教务、图书馆、学习平台" /></label>
+        <div class="link-groups"><section class="section-card"><h2>学习与教务</h2><p>课程、考试与学习资源</p><div class="action-list"><button class="action-row"><span class="service-icon"><svg><use href="#i-academic"/></svg></span><span><b>教务系统</b><span>成绩、选课与考试</span></span><span class="trail">↗</span></button><button class="action-row"><span class="service-icon"><svg><use href="#i-link"/></svg></span><span><b>超星学习通</b><span>课程学习与作业</span></span><span class="trail">↗</span></button></div></section><section class="section-card"><h2>校园服务</h2><p>生活与公共资源</p><div class="action-list"><button class="action-row"><span class="service-icon"><svg><use href="#i-link"/></svg></span><span><b>图书馆</b><span>检索、借阅与续借</span></span><span class="trail">↗</span></button><button class="action-row"><span class="service-icon"><svg><use href="#i-card"/></svg></span><span><b>校园卡服务</b><span>余额与消费记录</span></span><span class="trail">↗</span></button></div></section><section class="section-card"><h2>学校信息</h2><p>办事与公开信息</p><div class="action-list"><button class="action-row"><span class="service-icon"><svg><use href="#i-info"/></svg></span><span><b>学校官网</b><span>通知与部门入口</span></span><span class="trail">↗</span></button><button class="action-row"><span class="service-icon"><svg><use href="#i-mail"/></svg></span><span><b>统一身份认证</b><span>登录学校在线服务</span></span><span class="trail">↗</span></button></div></section></div>
+      </section>
+
+      <section class="prototype-page" data-screen="settings" aria-labelledby="settings-title" hidden>
+        <header class="page-heading"><div><p class="page-kicker">设置</p><h1 id="settings-title">数据与连接</h1><p>先说明数据存在哪里、连接是否有效，再提供修改操作；高风险动作保持隔离。</p></div><div class="page-actions"><button class="yh-button secondary" type="button">立即锁定</button></div></header>
+        <div class="settings-layout">
+          <aside class="section-card settings-nav"><div class="filter-list"><button class="is-active" data-settings-section="account">账户与连接</button><button data-settings-section="home">首页与通知</button><button data-settings-section="appearance">外观</button><button data-settings-section="privacy">数据与隐私</button><button data-settings-section="about">关于</button></div></aside>
+          <div class="setting-group">
+            <div class="settings-panel" data-settings-panel="account"><section class="section-card"><h2>账户与连接</h2><p>凭据仅保存在系统安全存储中。</p><div class="setting-row"><span><b>统一身份认证</b><span>连接有效 · 202412345</span></span><span class="yh-pill ok">已连接</span></div><div class="setting-row"><span><b>学校邮箱</b><span>IMAP 连接正常</span></span><button class="yh-button text" type="button">管理</button></div><div class="setting-row"><span><b>微信公众号</b><span>尚未完成平台认证</span></span><button class="yh-button secondary" type="button">去认证</button></div></section><section class="section-card"><h2>本地保护</h2><p>离开设备时自动保护本地校园数据。</p><div class="setting-row"><span><b>自动锁定</b><span>离开应用 5 分钟后</span></span><button class="yh-switch on" type="button" role="switch" aria-label="自动锁定" aria-checked="true"><span></span></button></div></section></div>
+            <div class="settings-panel" data-settings-panel="home" hidden><section class="section-card"><h2>首页与通知</h2><p>选择首页概览卡和允许发送本地通知的业务域。</p><div class="setting-row"><span><b>校园卡概览</b><span>在首页显示余额和今日消费</span></span><button class="yh-switch on" type="button" role="switch" aria-label="首页显示校园卡概览" aria-checked="true"><span></span></button></div><div class="setting-row"><span><b>考试提醒</b><span>考试前一天发送本地通知</span></span><button class="yh-switch on" type="button" role="switch" aria-label="考试提醒" aria-checked="true"><span></span></button></div></section></div>
+            <div class="settings-panel" data-settings-panel="appearance" hidden><section class="section-card"><h2>外观</h2><p>主题跟随系统；减少动态与系统辅助功能设置保持一致。</p><div class="setting-row"><span><b>颜色主题</b><span>当前：跟随系统</span></span><button class="yh-button secondary" type="button">选择主题</button></div><div class="setting-row"><span><b>内容密度</b><span>当前：舒适</span></span><button class="yh-button text" type="button">调整</button></div></section></div>
+            <div class="settings-panel" data-settings-panel="privacy" hidden><section class="section-card"><h2>数据与隐私</h2><p>查看本地数据范围、缓存时间和逐项清除入口。</p><div class="setting-row"><span><b>本地缓存</b><span>最近更新：今天 08:42</span></span><button class="yh-button text" type="button">查看</button></div><div class="setting-row"><span><b>清除本地数据</b><span>删除缓存、登录状态和个性化设置</span></span><button class="yh-button text" type="button" style="color:var(--danger)">查看选项</button></div></section></div>
+            <div class="settings-panel" data-settings-panel="about" hidden><section class="section-card"><h2>关于工大聚合</h2><p>版本、开源许可、隐私政策与反馈入口。</p><div class="setting-row"><span><b>当前版本</b><span>清源设计预览 · v0.3</span></span><span class="yh-pill info">本地构建</span></div><div class="setting-row"><span><b>开源许可</b><span>查看第三方软件与字体许可</span></span><button class="yh-button text" type="button">查看</button></div></section></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <nav class="mobile-bar" aria-label="移动端主导航">
+    <button class="prototype-nav-button" data-page="home" aria-current="page"><svg><use href="#i-home"/></svg><span>主页</span></button>
+    <button class="prototype-nav-button" data-page="academic"><svg><use href="#i-academic"/></svg><span>教务</span></button>
+    <button class="prototype-nav-button" data-page="schedule"><svg><use href="#i-calendar"/></svg><span>课表</span></button>
+    <button class="prototype-nav-button" data-page="info"><svg><use href="#i-info"/></svg><span>信息</span></button>
+    <button class="prototype-nav-button" data-more aria-expanded="false"><svg><use href="#i-more"/></svg><span>更多</span></button>
+  </nav>
+  <div class="more-sheet" role="dialog" aria-modal="true" aria-label="更多目的地"><button class="more-item" data-page="mail">学校邮箱</button><button class="more-item" data-page="links">快速跳转</button><button class="more-item" data-page="settings">设置</button><button class="more-item theme-toggle" type="button" aria-label="切换主题" aria-pressed="false"><span class="tt-label">切换深色模式</span></button></div>
+
+  <script src="../../components/samples/_qingyuan.js"></script>
+  <script src="_app-shell.js"></script>
+</body>
+</html>

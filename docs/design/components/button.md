@@ -101,7 +101,7 @@ class YhButton extends StatefulWidget {
 ```dart
 // 用法
 YhButton(label: '提交申请', onTap: submit);
-YhButton(label: '取消', variant: YhButtonVariant.secondary, leadingIcon: Icons.close);
+YhButton(label: '取消', variant: YhButtonVariant.secondary, leadingIcon: YhIcons.close);
 YhButton(label: '了解更多', variant: YhButtonVariant.text);
 YhButton(label: '删除', variant: YhButtonVariant.danger, onTap: confirmDelete);
 YhButton(label: '不可用', disabled: true);

@@ -24,7 +24,8 @@ YhTheme
 ├─ duration / curves      # 动效（见 motion.md）
 ├─ breakpoint             # compact / medium / expanded / large
 ├─ control                # compact / regular / touch / minimumTarget
-└─ focus                  # ringWidth / ringGap
+├─ focus                  # ringWidth / ringGap
+└─ interaction            # pressedScale
 ```
 
 ## Flutter 实现（骨架）

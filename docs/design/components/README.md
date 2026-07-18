@@ -62,7 +62,7 @@
 
 迁移期主题通过 `YhTheme extends ThemeExtension<YhTheme>` 注入现有宿主，并由 `BuildContext` 扩展读取。组件不直接依赖宿主是 Fluent 还是未来的纯 Flutter 壳。
 
-图标统一使用 `YhIcons` 门面。规格中的 `Icons.*` 旧示例在实现前必须替换，不构成允许直接依赖 Material 图标的例外。
+图标统一使用 `YhIcons` 门面；规格和实现都不得直接引用 Material `Icons.*`。
 
 ---
 

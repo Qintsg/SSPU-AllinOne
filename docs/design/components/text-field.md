@@ -86,8 +86,8 @@ class YhTextField extends StatelessWidget {
 
 ```dart
 YhTextField(label: '学号', hint: '请输入 10 位学号', helper: '10 位数字');
-YhTextField(label: '用户名', prefixIcon: Icons.person_outline);
-YhTextField(label: '密码', obscure: true, suffixIcon: Icons.visibility_outlined);
+YhTextField(label: '用户名', prefixIcon: YhIcons.profile);
+YhTextField(label: '密码', obscure: true, suffixIcon: YhIcons.visibility);
 YhTextField(label: '意见反馈', maxLines: 3, helper: '请文明发言');
 ```
 

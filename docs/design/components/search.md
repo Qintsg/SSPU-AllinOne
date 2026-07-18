@@ -99,7 +99,7 @@ YhSearchField(hint: '搜索课程、通知、同学…', onChanged: doSearch, on
 
 ## 无障碍 Accessibility
 
-- `Semantics(textField:true, label:'搜索')`；清除 × 单独 `label:'清除'`，触控区 ≥ 44dp。
+- `Semantics(textField:true, label:'搜索')`；清除 × 单独 `label:'清除'`，触控区 ≥ 48dp。
 
 ---
 

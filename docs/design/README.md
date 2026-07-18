@@ -13,7 +13,8 @@
 
 ## 当前阶段
 
-- v0.3 冻结基础契约，并建立 JSON、CSS、Flutter 与文档的一致性校验。
+- v0.3 冻结基础与页面级契约，并建立 JSON、CSS、Flutter、文档与页面原型的一致性校验。
+- 七个主目的地、详情边界和关键状态均已进入页面设计范围；[`patterns/samples/app-shell.html`](./patterns/samples/app-shell.html) 是统一视觉核验入口。
 - Flutter 实现先与既有 Fluent 页面并存，再以首页纵向切片验证清源。
 - 完成一条切片的视觉、无障碍、响应式与回归验证后，才迁移下一批页面。
 
@@ -31,3 +32,5 @@
 python scripts/ci/test_validate_design_system.py
 python scripts/ci/validate_design_system.py
 ```
+
+页面级浏览器核验的锁定依赖、Chromium 安装与执行命令见 [`../../scripts/design/README.md`](../../scripts/design/README.md)；CI 使用同一命令并保存四档视口截图。

@@ -72,6 +72,13 @@
   --type-body: 15px;
   --type-small: 13px;
   --type-caption: 11px;
+  --weight-display: 600;
+  --weight-h1: 600;
+  --weight-h2: 500;
+  --weight-h3: 500;
+  --weight-body: 400;
+  --weight-small: 400;
+  --weight-caption: 400;
 
   /* 响应式与交互契约 */
   --breakpoint-compact: 600px;
@@ -84,6 +91,7 @@
   --minimum-target: 48px;
   --focus-ring-width: 2px;
   --focus-ring-gap: 2px;
+  --pressed-scale: 0.98;
 
   /* 阴影 */
   --shadow-1: 0 1px 3px rgba(0,0,0,0.08);

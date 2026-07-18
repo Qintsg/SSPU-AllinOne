@@ -80,5 +80,57 @@ class DesignSystemValidatorTest(unittest.TestCase):
             with self.assertRaisesRegex(DesignSystemValidationError, r"color\.brand\.strong.*brandStrong"):
                 validate_design_system(root)
 
+    def test_flutter_scalar_token_drift_reports_theme_field(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            theme_target = root / "lib" / "design" / "qingyuan" / "theme" / "yh_theme.dart"
+            theme_target.parent.mkdir(parents=True)
+            shutil.copy2(PROJECT_ROOT / theme_target.relative_to(root), theme_target)
+            theme_target.write_text(
+                theme_target.read_text(encoding="utf-8").replace("this.m = 16", "this.m = 17", 1),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(DesignSystemValidationError, r"spacing\.m.*YhSpacingTokens\.m"):
+                validate_design_system(root)
+
+    def test_material_icon_in_component_spec_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            spec = root / "docs" / "design" / "components" / "button.md"
+            spec.write_text(spec.read_text(encoding="utf-8") + "\n`Icons.add`\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(DesignSystemValidationError, r"button\.md.*Material Icons"):
+                validate_design_system(root)
+
+    def test_page_prototype_requires_every_primary_destination(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            prototype = root / "docs" / "design" / "patterns" / "samples" / "app-shell.html"
+            prototype.write_text(
+                prototype.read_text(encoding="utf-8").replace('data-screen="mail"', 'data-screen="missing"', 1),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(DesignSystemValidationError, r"页面原型缺少.*mail"):
+                validate_design_system(root)
+
+    def test_page_prototype_rejects_reusable_raw_spacing(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            stylesheet = root / "docs" / "design" / "patterns" / "samples" / "_app-shell.css"
+            stylesheet.write_text(stylesheet.read_text(encoding="utf-8") + "\n.drift { gap: 14px; }\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(DesignSystemValidationError, r"页面原型.*裸间距或字号"):
+                validate_design_system(root)
+
 if __name__ == "__main__":
     unittest.main()

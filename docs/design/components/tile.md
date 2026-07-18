@@ -56,8 +56,8 @@ class YhTile extends StatelessWidget {
 
 ```dart
 GridView.count(crossAxisCount: 4, children: [
-  YhTile(icon: Icons.school, title: '教务', subtitle: '成绩查询', onTap: openEams),
-  YhTile(icon: Icons.calendar_today, title: '课表', onTap: openSchedule),
+  YhTile(icon: YhIcons.academic, title: '教务', subtitle: '成绩查询', onTap: openEams),
+  YhTile(icon: YhIcons.calendar, title: '课表', onTap: openSchedule),
 ]);
 ```
 

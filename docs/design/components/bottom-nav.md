@@ -55,10 +55,10 @@ class YhBottomNav extends StatelessWidget {
 
 ```dart
 YhBottomNav(index: tab, onChanged: (i) => setState(() => tab = i), items: const [
-  (icon: Icons.home, label: '首页', badge: 0),
-  (icon: Icons.calendar_today, label: '课表', badge: 0),
-  (icon: Icons.article, label: '资讯', badge: 3),
-  (icon: Icons.person, label: '我的', badge: 0),
+  (icon: YhIcons.home, label: '首页', badge: 0),
+  (icon: YhIcons.calendar, label: '课表', badge: 0),
+  (icon: YhIcons.info, label: '资讯', badge: 3),
+  (icon: YhIcons.profile, label: '我的', badge: 0),
 ]);
 ```
 

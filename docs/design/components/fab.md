@@ -75,8 +75,8 @@ class YhFab extends StatelessWidget {
 ```
 
 ```dart
-YhFab(icon: Icons.add, semanticLabel: '新建', onTap: create);
-YhFab(icon: Icons.edit, semanticLabel: '写反馈', label: '写反馈', onTap: openForm);
+YhFab(icon: YhIcons.add, semanticLabel: '新建', onTap: create);
+YhFab(icon: YhIcons.edit, semanticLabel: '写反馈', label: '写反馈', onTap: openForm);
 ```
 
 ---

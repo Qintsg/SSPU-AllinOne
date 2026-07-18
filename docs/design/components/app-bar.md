@@ -61,7 +61,7 @@ class YhAppBar extends StatelessWidget implements PreferredSizeWidget {
 ```
 
 ```dart
-YhAppBar(title: '课程表', leading: YhIconButton(icon: Icons.arrow_back, semanticLabel: '返回', onTap: pop), actions: [YhIconButton(icon: Icons.search, semanticLabel: '搜索')]);
+YhAppBar(title: '课程表', leading: YhIconButton(icon: YhIcons.back, semanticLabel: '返回', onTap: pop), actions: [YhIconButton(icon: YhIcons.search, semanticLabel: '搜索')]);
 ```
 
 ---

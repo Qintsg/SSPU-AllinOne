@@ -2,7 +2,7 @@
 
 清源的颜色体系分六层：**中性色（70–90% 占比）+ 品牌青雾（行动色 #478384）+ 墨蓝结构（图表/深色强调）+ 八业务域分类色 + 状态色 + 效果色（<1%）**。
 
-> 本文件是颜色单一真源，与 [`components/samples/_qingyuan.css`](../components/samples/_qingyuan.css) 及机器可读的 [`resources/tokens.json`](../resources/tokens.json) **逐值对齐**。改色只改这三处（且 tokens.json 为机器读取入口）。
+> 本文件解释颜色语义；[`resources/tokens.json`](../resources/tokens.json) 是唯一机器真源，并由 CI 校验 [`components/samples/_qingyuan.css`](../components/samples/_qingyuan.css) 与 Flutter 映射。改色先改 JSON，再同步说明与镜像。
 
 ---
 
