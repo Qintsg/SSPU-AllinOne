@@ -8,13 +8,12 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/models/academic_calendar.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/services/academic_calendar_service.dart';
 import 'package:sspu_allinone/services/academic_term_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
-import 'package:sspu_allinone/theme/app_theme.dart';
 import 'package:sspu_allinone/widgets/settings_academic_term_section.dart';
 
 void main() {
@@ -31,15 +30,13 @@ void main() {
   testWidgets('设置页学期分区展示内置校历定位结果', (tester) async {
     var calendarOpened = false;
     await tester.pumpWidget(
-      FluentApp(
-        theme: AppTheme.build(Brightness.light),
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
-            child: SettingsAcademicTermSection(
-              service: _buildTermService(),
-              now: DateTime(2026, 3, 2),
-              onOpenAcademicCalendar: () => calendarOpened = true,
-            ),
+      YhApp(
+        themeMode: YhThemeMode.light,
+        home: SingleChildScrollView(
+          child: SettingsAcademicTermSection(
+            service: _buildTermService(),
+            now: DateTime(2026, 3, 2),
+            onOpenAcademicCalendar: () => calendarOpened = true,
           ),
         ),
       ),
@@ -85,14 +82,12 @@ void main() {
     );
 
     await tester.pumpWidget(
-      FluentApp(
-        theme: AppTheme.build(Brightness.light),
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
-            child: SettingsAcademicTermSection(
-              service: service,
-              now: DateTime(2025, 2, 17),
-            ),
+      YhApp(
+        themeMode: YhThemeMode.light,
+        home: SingleChildScrollView(
+          child: SettingsAcademicTermSection(
+            service: service,
+            now: DateTime(2025, 2, 17),
           ),
         ),
       ),
@@ -116,15 +111,13 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
-      FluentApp(
-        theme: AppTheme.build(Brightness.light),
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
-            child: SettingsAcademicTermSection(
-              service: _buildTermService(),
-              now: DateTime(2026, 6, 8),
-              onOpenAcademicCalendar: () {},
-            ),
+      YhApp(
+        themeMode: YhThemeMode.light,
+        home: SingleChildScrollView(
+          child: SettingsAcademicTermSection(
+            service: _buildTermService(),
+            now: DateTime(2026, 6, 8),
+            onOpenAcademicCalendar: () {},
           ),
         ),
       ),
