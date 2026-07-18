@@ -6,9 +6,6 @@
  * @Date : 2025-04-17
  */
 
-import 'package:fluent_ui/fluent_ui.dart' show IconData;
-
-import '../design/components/fluent_icons.dart';
 import 'message_item.dart';
 
 part 'channel_config_department.dart';
@@ -31,6 +28,25 @@ enum ChannelGroup {
   const ChannelGroup(this.label);
 }
 
+/// 渠道图标的稳定业务语义，由具体展示层映射到图标资源。
+enum ChannelIcon {
+  chat,
+  contact,
+  database,
+  education,
+  event,
+  globe,
+  home,
+  library,
+  lock,
+  mail,
+  megaphone,
+  news,
+  people,
+  settings,
+  video,
+}
+
 /// 信息渠道配置
 /// 定义每个数据源渠道的标识、显示名称、描述、图标及实现状态
 class ChannelConfig {
@@ -44,7 +60,7 @@ class ChannelConfig {
   final String description;
 
   /// 渠道图标
-  final IconData icon;
+  final ChannelIcon icon;
 
   /// 所属分组
   final ChannelGroup group;

@@ -47,4 +47,11 @@ class YhIcons {
   static const IconData networkUnknown = system.FluentIcons.question_24_regular;
   static const IconData filter = system.FluentIcons.filter_24_regular;
   static const IconData sync = system.FluentIcons.arrow_sync_24_regular;
+  static const IconData chat = system.FluentIcons.chat_24_regular;
+  static const IconData contact = profile;
+  static const IconData education = academic;
+  static const IconData event = calendar;
+  static const IconData megaphone = system.FluentIcons.megaphone_24_regular;
+  static const IconData news = system.FluentIcons.news_24_regular;
+  static const IconData people = system.FluentIcons.people_24_regular;
 }

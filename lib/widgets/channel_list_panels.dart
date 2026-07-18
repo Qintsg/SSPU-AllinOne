@@ -11,6 +11,7 @@ import '../design/fluent_ui.dart';
 import '../models/channel_config.dart';
 import '../models/message_item.dart';
 import '../theme/app_spacing.dart';
+import 'channel_icon_resolver.dart';
 import 'responsive_layout.dart';
 import 'settings_widgets.dart';
 
@@ -368,7 +369,7 @@ class ChannelListItemCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       FluentSurfaceIcon(
-                        icon: channel.icon,
+                        icon: resolveChannelIcon(channel.icon),
                         color: enabled
                             ? colors.brandForeground1
                             : colors.neutralForegroundDisabled,
