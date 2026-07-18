@@ -60,4 +60,5 @@ class YhIcons {
   static const IconData people = system.FluentIcons.people_24_regular;
   static const IconData certificate = system.FluentIcons.certificate_24_regular;
   static const IconData task = system.FluentIcons.clipboard_task_24_regular;
+  static const IconData qrCode = system.FluentIcons.qr_code_24_regular;
 }
