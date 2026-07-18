@@ -6,11 +6,10 @@
  * @Date : 2026-04-23
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 import '../models/channel_config.dart';
 import '../models/message_item.dart';
-import '../theme/app_spacing.dart';
 import 'channel_icon_resolver.dart';
 import 'responsive_layout.dart';
 import 'settings_widgets.dart';
@@ -44,149 +43,140 @@ class ChannelGroupRefreshPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    final foreground = enabled
-        ? colors.neutralForeground2
-        : colors.neutralForegroundDisabled;
+    final theme = context.yhTheme;
+    final foreground = enabled ? theme.color.muted : theme.color.border;
 
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      bordered: true,
-      child: Padding(
-        padding: const EdgeInsetsDirectional.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final shouldStack = shouldStackSettingsControls(constraints);
-                final titleBlock = Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    FluentSurfaceIcon(
-                      icon: FluentIcons.sync,
-                      color: enabled
-                          ? colors.brandForeground1
-                          : colors.neutralForegroundDisabled,
-                      size: 40,
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Semantics(
-                            header: true,
-                            child: Text('刷新设置', style: type.body1Strong),
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            hasImplementedChannel
-                                ? '统一配置本分区已接入渠道的抓取条数和自动刷新频率。'
-                                : '当前分区没有已接入的数据源，刷新设置暂不可用。',
-                            style: type.caption1.copyWith(color: foreground),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-                final statusChip = FluentStatusChip(
-                  label: groupAutoRefreshEnabled ? '自动刷新开启' : '自动刷新关闭',
-                  tone: groupAutoRefreshEnabled
-                      ? FluentStatusChipTone.success
-                      : FluentStatusChipTone.neutral,
-                  icon: groupAutoRefreshEnabled
-                      ? FluentIcons.sync
-                      : FluentIcons.blocked,
-                );
-
-                if (shouldStack) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      titleBlock,
-                      const SizedBox(height: AppSpacing.sm),
-                      Padding(
-                        padding: const EdgeInsetsDirectional.only(
-                          start: AppSpacing.xxl + AppSpacing.sm,
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final shouldStack = shouldStackSettingsControls(constraints);
+              final titleBlock = Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ChannelSurfaceIcon(icon: YhIcons.sync, enabled: enabled),
+                  SizedBox(width: theme.spacing.m),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Semantics(
+                          header: true,
+                          child: Text('刷新设置', style: theme.typography.h3),
                         ),
-                        child: statusChip,
-                      ),
-                    ],
-                  );
-                }
+                        SizedBox(height: theme.spacing.xs),
+                        Text(
+                          hasImplementedChannel
+                              ? '统一配置本分区已接入渠道的抓取条数和自动刷新频率。'
+                              : '当前分区没有已接入的数据源，刷新设置暂不可用。',
+                          style: theme.typography.small.copyWith(
+                            color: foreground,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+              final statusChip = YhChip(
+                label: groupAutoRefreshEnabled ? '自动刷新开启' : '自动刷新关闭',
+                selected: groupAutoRefreshEnabled,
+                disabled: !hasImplementedChannel,
+              );
 
-                return Row(
+              if (shouldStack) {
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: titleBlock),
-                    const SizedBox(width: AppSpacing.sm),
-                    statusChip,
+                    titleBlock,
+                    SizedBox(height: theme.spacing.s),
+                    Padding(
+                      padding: EdgeInsetsDirectional.only(
+                        start: theme.spacing.xl2 + theme.spacing.s,
+                      ),
+                      child: statusChip,
+                    ),
                   ],
                 );
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Wrap(
-              spacing: AppSpacing.md,
-              runSpacing: AppSpacing.md,
-              children: [
-                _RefreshSettingBlock(
-                  icon: FluentIcons.download,
-                  title: '手动刷新',
-                  description: '点击信息中心刷新时，每个渠道最多抓取',
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: titleBlock),
+                  SizedBox(width: theme.spacing.s),
+                  statusChip,
+                ],
+              );
+            },
+          ),
+          SizedBox(height: theme.spacing.l),
+          Wrap(
+            spacing: theme.spacing.l,
+            runSpacing: theme.spacing.l,
+            children: [
+              _RefreshSettingBlock(
+                icon: YhIcons.download,
+                title: '手动刷新',
+                description: '点击信息中心刷新时，每个渠道最多抓取',
+                enabled: hasImplementedChannel,
+                child: _RefreshCountBox(
+                  value: groupManualCount,
                   enabled: hasImplementedChannel,
-                  child: _RefreshCountBox(
-                    value: groupManualCount,
-                    enabled: hasImplementedChannel,
-                    onChanged: onGroupManualCountChanged,
-                  ),
+                  onChanged: onGroupManualCountChanged,
                 ),
-                _RefreshSettingBlock(
-                  icon: groupAutoRefreshEnabled
-                      ? FluentIcons.ringer
-                      : FluentIcons.ringerOff,
-                  title: '自动刷新',
-                  description: '后台定时读取已启用渠道',
-                  enabled: hasImplementedChannel,
-                  child: Wrap(
-                    spacing: AppSpacing.sm,
-                    runSpacing: AppSpacing.xs,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      FluentSwitch(
-                        value: groupAutoRefreshEnabled,
-                        onChanged: hasImplementedChannel
-                            ? onGroupAutoRefreshToggled
-                            : null,
-                      ),
-                      Text(
-                        groupAutoRefreshEnabled ? '已开启' : '已关闭',
-                        style: type.caption1.copyWith(color: foreground),
-                      ),
-                    ],
-                  ),
+              ),
+              _RefreshSettingBlock(
+                icon: groupAutoRefreshEnabled
+                    ? YhIcons.notification
+                    : YhIcons.notificationOff,
+                title: '自动刷新',
+                description: '后台定时读取已启用渠道',
+                enabled: hasImplementedChannel,
+                child: Wrap(
+                  spacing: theme.spacing.s,
+                  runSpacing: theme.spacing.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    YhSwitch(
+                      value: groupAutoRefreshEnabled,
+                      semanticLabel: '分区自动刷新',
+                      onChanged: hasImplementedChannel
+                          ? onGroupAutoRefreshToggled
+                          : null,
+                    ),
+                    Text(
+                      groupAutoRefreshEnabled ? '已开启' : '已关闭',
+                      style: theme.typography.small.copyWith(color: foreground),
+                    ),
+                  ],
                 ),
-                _RefreshSettingBlock(
-                  icon: FluentIcons.clock,
-                  title: '刷新间隔',
-                  description: '每轮自动刷新之间的等待时间',
-                  enabled: enabled && groupAutoRefreshEnabled,
-                  child: FluentSelect<int>(
+              ),
+              _RefreshSettingBlock(
+                icon: YhIcons.clock,
+                title: '刷新间隔',
+                description: '每轮自动刷新之间的等待时间',
+                enabled: enabled && groupAutoRefreshEnabled,
+                child: SizedBox(
+                  width: theme.spacing.xl2 * 3,
+                  child: YhSelect<int>(
+                    label: '刷新间隔',
+                    showLabel: false,
                     value: kIntervalOptions.containsKey(groupInterval)
                         ? groupInterval
                         : 60,
-                    items: kIntervalOptions.entries
-                        .where((entry) => entry.key > 0)
-                        .map(
-                          (entry) => FluentSelectItem<int>(
-                            value: entry.key,
-                            child: Text(entry.value),
-                          ),
-                        )
-                        .toList(),
+                    options: [
+                      for (final entry in kIntervalOptions.entries.where(
+                        (entry) => entry.key > 0,
+                      ))
+                        YhSelectOption<int>(
+                          value: entry.key,
+                          label: entry.value,
+                        ),
+                    ],
+                    enabled: enabled && groupAutoRefreshEnabled,
                     onChanged: enabled && groupAutoRefreshEnabled
                         ? (value) {
                             if (value != null) {
@@ -196,20 +186,47 @@ class ChannelGroupRefreshPanel extends StatelessWidget {
                         : null,
                   ),
                 ),
-                _RefreshSettingBlock(
-                  icon: FluentIcons.news,
-                  title: '自动抓取',
-                  description: '每次自动刷新时，每个渠道最多抓取',
+              ),
+              _RefreshSettingBlock(
+                icon: YhIcons.news,
+                title: '自动抓取',
+                description: '每次自动刷新时，每个渠道最多抓取',
+                enabled: enabled && groupAutoRefreshEnabled,
+                child: _RefreshCountBox(
+                  value: groupAutoCount,
                   enabled: enabled && groupAutoRefreshEnabled,
-                  child: _RefreshCountBox(
-                    value: groupAutoCount,
-                    enabled: enabled && groupAutoRefreshEnabled,
-                    onChanged: onGroupAutoCountChanged,
-                  ),
+                  onChanged: onGroupAutoCountChanged,
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 频道设置卡片使用的清源图标底板。
+class _ChannelSurfaceIcon extends StatelessWidget {
+  const _ChannelSurfaceIcon({required this.icon, required this.enabled});
+
+  final IconData icon;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: enabled ? theme.color.brandTint : theme.color.sunken,
+        borderRadius: BorderRadius.circular(theme.radius.s),
+      ),
+      child: SizedBox.square(
+        dimension: theme.spacing.xl2,
+        child: Icon(
+          icon,
+          size: theme.spacing.l,
+          color: enabled ? theme.color.brandStrong : theme.color.border,
         ),
       ),
     );
@@ -226,56 +243,48 @@ class _RefreshSettingBlock extends StatelessWidget {
     required this.child,
   });
 
-  /// 图标。
   final IconData icon;
-
-  /// 标题。
   final String title;
-
-  /// 描述。
   final String description;
-
-  /// 是否启用。
   final bool enabled;
-
-  /// 控件内容。
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    final foreground = enabled
-        ? colors.neutralForeground2
-        : colors.neutralForegroundDisabled;
+    final theme = context.yhTheme;
+    final foreground = enabled ? theme.color.muted : theme.color.border;
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 220, maxWidth: 300),
+      constraints: BoxConstraints(
+        minWidth: theme.breakpoint.medium / 4,
+        maxWidth: theme.breakpoint.compact / 2,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             icon,
-            size: 18,
-            color: enabled
-                ? colors.brandForeground1
-                : colors.neutralForegroundDisabled,
+            size: theme.spacing.l,
+            color: enabled ? theme.color.brandStrong : theme.color.border,
           ),
-          const SizedBox(width: AppSpacing.sm),
+          SizedBox(width: theme.spacing.s),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: type.caption1Strong.copyWith(color: foreground),
+                  style: theme.typography.small.copyWith(
+                    color: foreground,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                const SizedBox(height: AppSpacing.xs),
+                SizedBox(height: theme.spacing.xs),
                 Text(
                   description,
-                  style: type.caption1.copyWith(color: foreground),
+                  style: theme.typography.small.copyWith(color: foreground),
                 ),
-                const SizedBox(height: AppSpacing.sm),
+                SizedBox(height: theme.spacing.s),
                 child,
               ],
             ),
@@ -294,23 +303,21 @@ class _RefreshCountBox extends StatelessWidget {
     required this.onChanged,
   });
 
-  /// 当前条数。
   final int value;
-
-  /// 是否可编辑。
   final bool enabled;
-
-  /// 条数变化回调。
   final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return SizedBox(
-      width: 132,
-      child: FluentNumberBox(
+      width: theme.spacing.xl2 * 2 + theme.spacing.xl + theme.spacing.xs,
+      child: YhNumberField(
+        label: '抓取条数',
+        showLabel: false,
         value: value,
         enabled: enabled,
-        suffixText: '条',
+        suffix: '条',
         min: 1,
         max: 200,
         onChanged: onChanged,
@@ -339,172 +346,137 @@ class ChannelListItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
+    final theme = context.yhTheme;
     final subtitle = channel.implemented
         ? channel.description
         : '${channel.description}（暂未接入）';
-    final foreground = enabled
-        ? colors.neutralForeground1
-        : colors.neutralForeground2;
+    final foreground = enabled ? theme.color.foreground : theme.color.muted;
 
-    return Padding(
-      padding: EdgeInsets.zero,
-      child: FluentCard(
-        padding: EdgeInsets.zero,
-        bordered: true,
-        backgroundColor: enabled
-            ? FluentTheme.of(context).cardColor
-            : colors.neutralBackground2,
-        borderColor: enabled ? colors.neutralStroke1 : colors.neutralStroke2,
-        child: Padding(
-          padding: const EdgeInsetsDirectional.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final shouldStack = shouldStackSettingsControls(constraints);
-                  final description = Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      FluentSurfaceIcon(
-                        icon: resolveChannelIcon(channel.icon),
-                        color: enabled
-                            ? colors.brandForeground1
-                            : colors.neutralForegroundDisabled,
-                        size: 40,
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final shouldStack = shouldStackSettingsControls(constraints);
+              final description = Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ChannelSurfaceIcon(
+                    icon: resolveChannelIcon(channel.icon),
+                    enabled: enabled,
+                  ),
+                  SizedBox(width: theme.spacing.m),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: theme.spacing.s,
+                          runSpacing: theme.spacing.xs,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Wrap(
-                              spacing: AppSpacing.sm,
-                              runSpacing: AppSpacing.xs,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                Text(
-                                  channel.name,
-                                  style: type.body1Strong.copyWith(
-                                    color: foreground,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                FluentStatusChip(
-                                  label: channel.implemented ? '已接入' : '未接入',
-                                  tone: channel.implemented
-                                      ? FluentStatusChipTone.brand
-                                      : FluentStatusChipTone.warning,
-                                  icon: channel.implemented
-                                      ? FluentIcons.plugConnected
-                                      : FluentIcons.plugDisconnected,
-                                ),
-                                FluentStatusChip(
-                                  label: enabled ? '显示中' : '已隐藏',
-                                  tone: enabled
-                                      ? FluentStatusChipTone.success
-                                      : FluentStatusChipTone.neutral,
-                                  icon: enabled
-                                      ? FluentIcons.checkMark
-                                      : FluentIcons.blocked,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: AppSpacing.xs),
                             Text(
-                              subtitle,
-                              style: type.caption1.copyWith(
-                                color: enabled
-                                    ? colors.neutralForeground2
-                                    : colors.neutralForegroundDisabled,
+                              channel.name,
+                              style: theme.typography.body.copyWith(
+                                color: foreground,
+                                fontWeight: FontWeight.w600,
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            YhChip(
+                              label: channel.implemented ? '已接入' : '未接入',
+                              selected: channel.implemented,
+                            ),
+                            YhChip(
+                              label: enabled ? '显示中' : '已隐藏',
+                              selected: enabled,
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  );
-
-                  if (shouldStack) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        description,
-                        const SizedBox(height: AppSpacing.sm),
-                        Padding(
-                          padding: const EdgeInsetsDirectional.only(
-                            start: AppSpacing.xxl + AppSpacing.sm,
-                          ),
-                          child: FluentSwitch(
-                            value: enabled,
-                            onChanged: onToggled,
+                        SizedBox(height: theme.spacing.xs),
+                        Text(
+                          subtitle,
+                          style: theme.typography.small.copyWith(
+                            color: enabled
+                                ? theme.color.muted
+                                : theme.color.border,
                           ),
                         ),
                       ],
-                    );
-                  }
+                    ),
+                  ),
+                ],
+              );
+              final toggle = YhSwitch(
+                value: enabled,
+                semanticLabel: '${channel.name}显示状态',
+                onChanged: onToggled,
+              );
 
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: description),
-                      const SizedBox(width: AppSpacing.sm),
-                      Padding(
-                        padding: const EdgeInsetsDirectional.only(
-                          top: AppSpacing.xs,
-                        ),
-                        child: FluentSwitch(
-                          value: enabled,
-                          onChanged: onToggled,
-                        ),
+              if (shouldStack) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    description,
+                    SizedBox(height: theme.spacing.s),
+                    Padding(
+                      padding: EdgeInsetsDirectional.only(
+                        start: theme.spacing.xl2 + theme.spacing.s,
                       ),
-                    ],
-                  );
-                },
-              ),
-              if (channel.implemented &&
-                  channelSubcategories.containsKey(channel.id)) ...[
-                const SizedBox(height: AppSpacing.sm),
-                _ChannelSubcategoryButtons(
-                  channelId: channel.id,
-                  channelEnabled: enabled,
-                  categoryEnabledMap: categoryEnabledMap,
-                  onToggleCategory: onToggleCategory,
-                ),
-              ],
-              if (!channel.implemented) ...[
-                const SizedBox(height: AppSpacing.sm),
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(
-                    start: AppSpacing.xxl,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        FluentIcons.info,
-                        size: 14,
-                        color: colors.neutralForeground2,
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                      Expanded(
-                        child: Text(
-                          '此渠道数据源尚未接入，开关仅作为预配置使用。',
-                          style: type.caption1.copyWith(
-                            color: colors.neutralForeground2,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
+                      child: toggle,
+                    ),
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: description),
+                  SizedBox(width: theme.spacing.s),
+                  toggle,
+                ],
+              );
+            },
           ),
-        ),
+          if (channel.implemented &&
+              channelSubcategories.containsKey(channel.id)) ...[
+            SizedBox(height: theme.spacing.s),
+            _ChannelSubcategoryButtons(
+              channelId: channel.id,
+              channelEnabled: enabled,
+              categoryEnabledMap: categoryEnabledMap,
+              onToggleCategory: onToggleCategory,
+            ),
+          ],
+          if (!channel.implemented) ...[
+            SizedBox(height: theme.spacing.s),
+            Padding(
+              padding: EdgeInsetsDirectional.only(start: theme.spacing.xl2),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    YhIcons.info,
+                    size: theme.spacing.m,
+                    color: theme.color.muted,
+                  ),
+                  SizedBox(width: theme.spacing.xs),
+                  Expanded(
+                    child: Text(
+                      '此渠道数据源尚未接入，开关仅作为预配置使用。',
+                      style: theme.typography.small.copyWith(
+                        color: theme.color.muted,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -525,116 +497,48 @@ class _ChannelSubcategoryButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
+    final theme = context.yhTheme;
     final subcategories = channelSubcategories[channelId]!;
-    final labelColor = channelEnabled
-        ? colors.neutralForeground2
-        : colors.neutralForegroundDisabled;
+    final labelColor = channelEnabled ? theme.color.muted : theme.color.border;
 
     return Padding(
-      padding: const EdgeInsetsDirectional.only(
-        start: AppSpacing.xxl + AppSpacing.sm,
+      padding: EdgeInsetsDirectional.only(
+        start: theme.spacing.xl2 + theme.spacing.s,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.xs,
+            spacing: theme.spacing.s,
+            runSpacing: theme.spacing.xs,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text('内容分类', style: type.caption1.copyWith(color: labelColor)),
-              FluentStatusChip(
+              Text(
+                '内容分类',
+                style: theme.typography.small.copyWith(color: labelColor),
+              ),
+              YhChip(
                 label: '${subcategories.length} 项',
-                tone: FluentStatusChipTone.neutral,
+                disabled: !channelEnabled,
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.xs),
+          SizedBox(height: theme.spacing.xs),
           Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: subcategories.map((subcategory) {
-              final isEnabled =
-                  categoryEnabledMap[subcategory.category.name] ?? true;
-              return _ChannelSubcategoryButton(
-                name: subcategory.name,
-                enabled: isEnabled,
-                interactive: channelEnabled,
-                onPressed: () => onToggleCategory(subcategory.category),
-              );
-            }).toList(),
+            spacing: theme.spacing.s,
+            runSpacing: theme.spacing.s,
+            children: [
+              for (final subcategory in subcategories)
+                YhChip(
+                  label: subcategory.name,
+                  selected:
+                      categoryEnabledMap[subcategory.category.name] ?? true,
+                  disabled: !channelEnabled,
+                  onTap: () => onToggleCategory(subcategory.category),
+                ),
+            ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ChannelSubcategoryButton extends StatelessWidget {
-  final String name;
-  final bool enabled;
-  final bool interactive;
-  final VoidCallback onPressed;
-
-  const _ChannelSubcategoryButton({
-    required this.name,
-    required this.enabled,
-    required this.interactive,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final radii = context.fluentRadii;
-    final stroke = context.fluentStroke;
-    final type = context.fluentType;
-    final foreground = !interactive
-        ? colors.neutralForegroundDisabled
-        : enabled
-        ? colors.brandForeground1
-        : colors.neutralForeground2;
-    final background = enabled
-        ? colors.brandStroke2.withValues(alpha: 0.22)
-        : colors.neutralBackground1;
-    final border = enabled ? colors.brandStroke2 : colors.neutralStroke1;
-
-    return Semantics(
-      button: interactive,
-      toggled: enabled,
-      enabled: interactive,
-      child: MouseRegion(
-        cursor: interactive ? SystemMouseCursors.click : MouseCursor.defer,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: interactive ? onPressed : null,
-          child: AnimatedContainer(
-            duration: context.fluentMotion.durationFaster,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm,
-              vertical: AppSpacing.xs,
-            ),
-            decoration: BoxDecoration(
-              color: background,
-              borderRadius: BorderRadius.circular(radii.circular),
-              border: Border.all(color: border, width: stroke.thin),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  enabled ? FluentIcons.checkMark : FluentIcons.blocked,
-                  size: 12,
-                  color: foreground,
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                Text(name, style: type.caption1.copyWith(color: foreground)),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
