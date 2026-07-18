@@ -14,6 +14,7 @@
 - 邮箱参考稿补齐收件箱 initial/loading/empty/stale/error、独立只读详情 content 与撰写 initial/content/loading/error，四档视口和亮暗主题均可确定性采集。
 - 快捷入口参考稿补齐 loading/content/empty/error，保留任务分组、搜索无结果和明确恢复动作。
 - 快捷入口目录补齐六个独立 48px 收藏按钮、按压语义与收藏反馈，避免迁移时丢失既有收藏能力。
+- 快捷入口参考稿按配置语义固定教务、馆藏、校园卡、官网与认证图标，并使用对应业务域色。
 
 ## 0.3.0 - 2026-07-18
 

@@ -24,6 +24,8 @@
     <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
     <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></symbol>
     <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z"/></symbol>
+    <symbol id="i-library" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z"/><path d="M4 19a2 2 0 0 1 2-2h14M8 7h8"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
   </svg>
 
   <div class="prototype">
@@ -129,16 +131,16 @@
         <div class="search-empty" id="link-search-status" role="status" data-search-empty hidden><div><b>没有找到这个入口</b><span>试试“教务”“图书馆”或“校园卡”。</span></div><button class="yh-button text" type="button" data-clear-search>清除搜索</button></div>
         <div class="link-groups" data-links-content>
           <section class="section-card"><h2>学习与教务</h2><p>课程、考试与学习资源</p><div class="action-list">
-            <div class="action-row"><button class="link-open" type="button"><span class="service-icon"><svg><use href="#i-academic"/></svg></span><span><b>教务系统</b><span>成绩、选课与考试</span></span><span class="trail">↗</span></button><button class="link-favorite" type="button" aria-label="收藏教务系统" aria-pressed="false"><svg><use href="#i-star"/></svg></button></div>
-            <div class="action-row"><button class="link-open" type="button"><span class="service-icon"><svg><use href="#i-link"/></svg></span><span><b>超星学习通</b><span>课程学习与作业</span></span><span class="trail">↗</span></button><button class="link-favorite" type="button" aria-label="收藏超星学习通" aria-pressed="false"><svg><use href="#i-star"/></svg></button></div>
+            <div class="action-row"><button class="link-open" type="button"><span class="service-icon" style="--domain:var(--service-academic)"><svg><use href="#i-academic"/></svg></span><span><b>教务系统</b><span>成绩、选课与考试</span></span><span class="trail">↗</span></button><button class="link-favorite" type="button" aria-label="收藏教务系统" aria-pressed="false"><svg><use href="#i-star"/></svg></button></div>
+            <div class="action-row"><button class="link-open" type="button"><span class="service-icon" style="--domain:var(--service-academic)"><svg><use href="#i-academic"/></svg></span><span><b>超星学习通</b><span>课程学习与作业</span></span><span class="trail">↗</span></button><button class="link-favorite" type="button" aria-label="收藏超星学习通" aria-pressed="false"><svg><use href="#i-star"/></svg></button></div>
           </div></section>
           <section class="section-card"><h2>校园服务</h2><p>生活与公共资源</p><div class="action-list">
-            <div class="action-row"><button class="link-open" type="button"><span class="service-icon"><svg><use href="#i-link"/></svg></span><span><b>图书馆</b><span>检索、借阅与续借</span></span><span class="trail">↗</span></button><button class="link-favorite" type="button" aria-label="收藏图书馆" aria-pressed="false"><svg><use href="#i-star"/></svg></button></div>
-            <div class="action-row"><button class="link-open" type="button"><span class="service-icon"><svg><use href="#i-card"/></svg></span><span><b>校园卡服务</b><span>余额与消费记录</span></span><span class="trail">↗</span></button><button class="link-favorite" type="button" aria-label="收藏校园卡服务" aria-pressed="false"><svg><use href="#i-star"/></svg></button></div>
+            <div class="action-row"><button class="link-open" type="button"><span class="service-icon" style="--domain:var(--service-quick-link)"><svg><use href="#i-library"/></svg></span><span><b>图书馆</b><span>检索、借阅与续借</span></span><span class="trail">↗</span></button><button class="link-favorite" type="button" aria-label="收藏图书馆" aria-pressed="false"><svg><use href="#i-star"/></svg></button></div>
+            <div class="action-row"><button class="link-open" type="button"><span class="service-icon" style="--domain:var(--service-finance)"><svg><use href="#i-card"/></svg></span><span><b>校园卡服务</b><span>余额与消费记录</span></span><span class="trail">↗</span></button><button class="link-favorite" type="button" aria-label="收藏校园卡服务" aria-pressed="false"><svg><use href="#i-star"/></svg></button></div>
           </div></section>
           <section class="section-card"><h2>学校信息</h2><p>办事与公开信息</p><div class="action-list">
-            <div class="action-row"><button class="link-open" type="button"><span class="service-icon"><svg><use href="#i-info"/></svg></span><span><b>学校官网</b><span>通知与部门入口</span></span><span class="trail">↗</span></button><button class="link-favorite" type="button" aria-label="收藏学校官网" aria-pressed="false"><svg><use href="#i-star"/></svg></button></div>
-            <div class="action-row"><button class="link-open" type="button"><span class="service-icon"><svg><use href="#i-mail"/></svg></span><span><b>统一身份认证</b><span>登录学校在线服务</span></span><span class="trail">↗</span></button><button class="link-favorite" type="button" aria-label="收藏统一身份认证" aria-pressed="false"><svg><use href="#i-star"/></svg></button></div>
+            <div class="action-row"><button class="link-open" type="button"><span class="service-icon" style="--domain:var(--service-quick-link)"><svg><use href="#i-globe"/></svg></span><span><b>学校官网</b><span>通知与部门入口</span></span><span class="trail">↗</span></button><button class="link-favorite" type="button" aria-label="收藏学校官网" aria-pressed="false"><svg><use href="#i-star"/></svg></button></div>
+            <div class="action-row"><button class="link-open" type="button"><span class="service-icon" style="--domain:var(--service-quick-link)"><svg><use href="#i-lock"/></svg></span><span><b>统一身份认证</b><span>登录学校在线服务</span></span><span class="trail">↗</span></button><button class="link-favorite" type="button" aria-label="收藏统一身份认证" aria-pressed="false"><svg><use href="#i-star"/></svg></button></div>
           </div></section>
         </div>
         <section class="section-card links-state-panel" data-links-state-panel="loading" hidden><div class="mail-state-progress"><span class="yh-spinner" aria-hidden="true"></span><div><h2>正在读取校园入口</h2><p>正在加载本地快捷入口配置。</p></div></div></section>
