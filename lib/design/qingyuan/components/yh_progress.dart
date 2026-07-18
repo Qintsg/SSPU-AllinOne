@@ -89,14 +89,26 @@ class _IndeterminateProgress extends StatefulWidget {
 
 class _IndeterminateProgressState extends State<_IndeterminateProgress>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: context.yhTheme.motion.slow * 3,
-  )..repeat(reverse: true);
+  AnimationController? _controller;
+  late Duration _animationDuration;
+
+  AnimationController get _animationController {
+    return _controller ??= AnimationController(
+      vsync: this,
+      duration: _animationDuration,
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _animationDuration = context.yhTheme.motion.slow * 3;
+    _controller?.duration = _animationDuration;
+  }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -112,10 +124,11 @@ class _IndeterminateProgressState extends State<_IndeterminateProgress>
         child: ColoredBox(color: theme.color.brandStrong),
       );
     }
+    final controller = _animationController;
     return AnimatedBuilder(
-      animation: _controller,
+      animation: controller,
       builder: (context, child) => Align(
-        alignment: Alignment(-1 + _controller.value * 2, 0),
+        alignment: Alignment(-1 + controller.value * 2, 0),
         child: FractionallySizedBox(widthFactor: 0.4, child: child),
       ),
       child: ColoredBox(color: theme.color.brandStrong),

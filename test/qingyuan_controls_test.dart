@@ -68,6 +68,30 @@ void main() {
     expect(deleted, isTrue);
   });
 
+  testWidgets('紧凑筹码在换行容器中保持内在宽度', (tester) async {
+    await tester.pumpWidget(
+      const YhApp(
+        home: SizedBox(
+          width: 320,
+          child: Wrap(
+            spacing: 8,
+            children: [
+              YhChip(label: '周一', onTap: _noop),
+              YhChip(label: '周二', onTap: _noop),
+              YhChip(label: '周三', onTap: _noop),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final first = tester.getRect(find.text('周一'));
+    final second = tester.getRect(find.text('周二'));
+    final third = tester.getRect(find.text('周三'));
+    expect(second.center.dy, first.center.dy);
+    expect(third.center.dy, first.center.dy);
+  });
+
   testWidgets('清源分页只展示首尾和当前邻页并可跳转', (tester) async {
     var selected = 5;
     final semantics = tester.ensureSemantics();
@@ -164,6 +188,22 @@ void main() {
     expect(tester.getSemantics(find.bySemanticsLabel('正在同步')).value, '加载中');
     semantics.dispose();
     await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('减少动态时未知进度可安全卸载', (tester) async {
+    await tester.pumpWidget(
+      const YhApp(
+        home: MediaQuery(
+          data: MediaQueryData(disableAnimations: true),
+          child: YhProgress(value: null, showPercent: false),
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('清源披露面板支持键盘展开与状态语义', (tester) async {

@@ -136,7 +136,6 @@ class _YhPressableState extends State<YhPressable> {
               minWidth: context.yhTheme.control.minimumTarget,
               minHeight: context.yhTheme.control.minimumTarget,
             ),
-            alignment: Alignment.center,
             decoration: BoxDecoration(
               border: Border.all(
                 color: _focused
@@ -148,11 +147,15 @@ class _YhPressableState extends State<YhPressable> {
                 context.yhTheme.radius.s + context.yhTheme.focus.ringGap,
               ),
             ),
-            child: AnimatedScale(
-              scale: _pressed ? context.yhTheme.motion.pressedScale : 1,
-              duration: duration,
-              curve: context.yhTheme.motion.curve,
-              child: content,
+            child: Center(
+              widthFactor: 1,
+              heightFactor: 1,
+              child: AnimatedScale(
+                scale: _pressed ? context.yhTheme.motion.pressedScale : 1,
+                duration: duration,
+                curve: context.yhTheme.motion.curve,
+                child: content,
+              ),
             ),
           ),
         ),
