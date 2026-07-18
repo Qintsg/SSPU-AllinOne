@@ -154,6 +154,22 @@ def _validate_css_tokens(project_root: Path, tokens: dict[str, Any]) -> None:
         raise DesignSystemValidationError("\n".join(errors))
 
 
+def _validate_css_variable_references(project_root: Path) -> None:
+    css_paths = (SAMPLE_CSS_PATH, PAGE_PROTOTYPE_CSS_PATH)
+    combined = "\n".join(
+        (project_root / path).read_text(encoding="utf-8") for path in css_paths
+    )
+    definitions = set(re.findall(r"(--[a-z0-9-]+)\s*:", combined))
+    references = set(re.findall(r"var\(\s*(--[a-z0-9-]+)", combined))
+    # CourseBlock 通过元素内联样式为每个课程实例注入业务域颜色。
+    dynamic_variables = {"--domain"}
+    unresolved = sorted(references - definitions - dynamic_variables)
+    if unresolved:
+        raise DesignSystemValidationError(
+            "页面原型引用了未定义 CSS 自定义属性：" + ", ".join(unresolved)
+        )
+
+
 def _validate_markdown_links(project_root: Path) -> None:
     files = [project_root / "DESIGN.md", *(project_root / "docs" / "design").rglob("*.md")]
     errors: list[str] = []
@@ -584,6 +600,7 @@ def validate_design_system(project_root: Path) -> None:
     if tokens.get("meta", {}).get("version") != "0.3.0":
         raise DesignSystemValidationError("tokens.json meta.version 必须是 0.3.0。")
     _validate_css_tokens(project_root, tokens)
+    _validate_css_variable_references(project_root)
     _validate_flutter_colors(project_root, tokens)
     _validate_flutter_scalars(project_root, tokens)
     _validate_component_samples(project_root)

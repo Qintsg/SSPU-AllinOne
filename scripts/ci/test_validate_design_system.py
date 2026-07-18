@@ -54,6 +54,27 @@ class DesignSystemValidatorTest(unittest.TestCase):
             ):
                 validate_design_system(root)
 
+    def test_page_prototype_rejects_undefined_css_variable(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            css_path = root / "docs" / "design" / "patterns" / "samples" / "_app-shell.css"
+            css_path.write_text(
+                css_path.read_text(encoding="utf-8").replace(
+                    "--layout-app-bar-height",
+                    "--layout-appbar-height",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                DesignSystemValidationError,
+                r"未定义 CSS 自定义属性.*--layout-appbar-height",
+            ):
+                validate_design_system(root)
+
     def test_css_font_family_drift_reports_the_semantic_token(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
