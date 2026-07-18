@@ -85,12 +85,11 @@ void main() {
 
     expect(find.text('课程表'), findsOneWidget);
     expect(find.text('课程表说明'), findsNothing);
-    expect(find.text('本学期概览'), findsOneWidget);
-    expect(find.text('2025-2026 第2学期'), findsOneWidget);
-    expect(find.textContaining('自动刷新每 1 分钟运行一次'), findsOneWidget);
+    expect(find.text('2025–2026 第2学期'), findsOneWidget);
+    expect(find.text('1 门课程'), findsOneWidget);
     expect(find.text('高等数学'), findsOneWidget);
-    expect(find.text('周一'), findsOneWidget);
-    expect(find.textContaining('08:00-09:35'), findsOneWidget);
+    expect(find.text('周一'), findsWidgets);
+    expect(find.text('08:00'), findsOneWidget);
     expect(find.text('返回'), findsNothing);
     expect(service.courseTableFetchCount, 1);
 
@@ -181,7 +180,7 @@ void main() {
     await disposeCourseSchedulePage(tester);
   });
 
-  testWidgets('课程表概览隐藏无效培养计划并在窄屏自适应', (tester) async {
+  testWidgets('课程表页头推断缺失学期并在窄屏自适应', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
     await tester.binding.setSurfaceSize(const Size(390, 844));
@@ -199,8 +198,7 @@ void main() {
 
     expect(find.text('课程表说明'), findsNothing);
     expect(find.text('2025-2026 学年春季学期（按校历推断）'), findsOneWidget);
-    expect(find.textContaining('培养计划'), findsNothing);
-    expect(find.textContaining('0.0/0.0'), findsNothing);
+    expect(find.textContaining('周视图在桌面保持七天空间关系'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await disposeCourseSchedulePage(tester);
   });
@@ -219,7 +217,7 @@ void main() {
 
     expect(
       find.byWidgetPredicate(
-        (widget) => widget is YhChip && widget.label == '周一' && widget.selected,
+        (widget) => widget is YhTabs<int> && widget.value == 1,
       ),
       findsOneWidget,
     );

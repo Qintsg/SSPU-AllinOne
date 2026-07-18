@@ -408,7 +408,9 @@ void main() {
       studentReportService: _FakeStudentReportClient(result: _creditResult),
     );
 
-    await tester.tap(find.byKey(const Key('academic-sports-refresh')));
+    final sportsRefresh = find.byKey(const Key('academic-sports-refresh'));
+    await tester.ensureVisible(sportsRefresh);
+    await tester.tap(sportsRefresh);
     await pumpUntilFound(tester, find.text('8'));
 
     await tester.ensureVisible(find.text('查看考勤记录'));
@@ -571,9 +573,10 @@ void main() {
     await tester.tap(openCourseSchedule);
     await tester.pumpAndSettle();
 
-    expect(find.text('课程表'), findsOneWidget);
+    expect(find.text('课程表'), findsWidgets);
     expect(find.text('高等数学'), findsOneWidget);
-    expect(find.textContaining('周一 第1-2节'), findsOneWidget);
+    expect(find.text('1–2'), findsOneWidget);
+    expect(find.text('08:00'), findsOneWidget);
     await disposeAcademicPage(tester);
   });
 
