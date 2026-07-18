@@ -9,6 +9,7 @@
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart' as qingyuan;
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/pages/wxmp_login_page.dart';
 
@@ -152,7 +153,7 @@ void main() {
     await _configureMobileView(tester);
 
     try {
-      await tester.pumpWidget(const FluentApp(home: WxmpLoginPage()));
+      await tester.pumpWidget(const qingyuan.YhApp(home: WxmpLoginPage()));
       await tester.pump();
 
       final toolbar = find.byKey(const Key('webview-compact-toolbar'));

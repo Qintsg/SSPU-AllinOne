@@ -7,12 +7,11 @@
  * @Date : 2026-04-22
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../services/wxmp_article_service.dart';
 import '../services/wxmp_auth_service.dart';
-import '../theme/fluent_tokens.dart';
 import '../widgets/webview_compact_toolbar.dart';
 
 /// 公众号平台登录 URL
@@ -255,11 +254,9 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return FluentPage(
-      content: Column(
+    final theme = context.yhTheme;
+    return YhPageScaffold(
+      body: Column(
         children: [
           WebViewCompactToolbar(
             title: _title,
@@ -268,31 +265,29 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
                 Navigator.of(context).pop(_result?.success ?? false),
             actions: [
               if (_extracting)
-                const SizedBox.square(
-                  dimension: 48,
+                SizedBox.square(
+                  dimension: theme.control.minimumTarget,
                   child: Center(
-                    child: SizedBox.square(
-                      dimension: 16,
-                      child: FluentProgressRing(strokeWidth: 2),
+                    child: SizedBox(
+                      width: theme.spacing.xl,
+                      child: const YhProgress(
+                        value: null,
+                        showPercent: false,
+                        semanticLabel: '正在提取登录凭据',
+                      ),
                     ),
                   ),
                 ),
               if (_result != null)
                 SizedBox.square(
-                  dimension: 48,
+                  dimension: theme.control.minimumTarget,
                   child: Center(
                     child: Icon(
-                      _result!.success
-                          ? FluentIcons.checkMark
-                          : FluentIcons.warning,
-                      size: 18,
+                      _result!.success ? YhIcons.check : YhIcons.warning,
+                      size: theme.spacing.l,
                       color: _result!.success
-                          ? (isDark
-                                ? FluentDarkColors.statusSuccess
-                                : FluentLightColors.statusSuccess)
-                          : (isDark
-                                ? FluentDarkColors.statusError
-                                : FluentLightColors.statusError),
+                          ? theme.color.success
+                          : theme.color.danger,
                     ),
                   ),
                 ),
@@ -305,61 +300,29 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
   }
 
   Widget _buildContent(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final colors = context.fluentColors;
-    final spacing = context.fluentSpacing;
-    final type = context.fluentType;
-    final resultColor = _result?.success == true
-        ? colors.statusSuccessForeground
-        : colors.statusDangerForeground;
+    final theme = context.yhTheme;
 
     if (_initFailed) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(FluentIcons.warning, size: 48, color: theme.inactiveColor),
-            const SizedBox(height: 12),
-            Text('WebView 初始化失败', style: theme.typography.bodyStrong),
-            const SizedBox(height: 8),
-            Text(
-              '请确保系统已安装 Microsoft Edge WebView2 运行时',
-              style: theme.typography.caption,
-            ),
-          ],
-        ),
+      return const YhEmptyState(
+        icon: YhIcons.warning,
+        title: 'WebView 初始化失败',
+        message: '请确保系统已安装 Microsoft Edge WebView2 运行时。',
       );
     }
 
     return Column(
       children: [
-        if (_result != null)
-          _WxmpLoginInlineStatus(result: _result!, color: resultColor),
+        if (_result != null) _WxmpLoginInlineStatus(result: _result!),
         if (!_isReady && _result == null)
           Padding(
             padding: EdgeInsetsDirectional.fromSTEB(
-              spacing.l,
-              spacing.s,
-              spacing.l,
-              spacing.xs,
+              theme.spacing.l,
+              theme.spacing.s,
+              theme.spacing.l,
+              theme.spacing.xs,
             ),
-            child: Row(
-              children: [
-                Icon(
-                  FluentIcons.info,
-                  size: 14,
-                  color: colors.brandForeground1,
-                ),
-                SizedBox(width: spacing.xs),
-                Expanded(
-                  child: Text(
-                    '请使用拥有公众号的微信账号扫码登录。个人订阅号即可（mp.weixin.qq.com 免费注册）。',
-                    style: type.caption1.copyWith(
-                      color: colors.neutralForeground2,
-                    ),
-                  ),
-                ),
-              ],
+            child: const YhBanner(
+              text: '请使用拥有公众号的微信账号扫码登录。个人订阅号即可（mp.weixin.qq.com 免费注册）。',
             ),
           ),
         Expanded(
@@ -405,44 +368,25 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
 
 /// 公众号平台登录结果的内联短状态。
 class _WxmpLoginInlineStatus extends StatelessWidget {
-  const _WxmpLoginInlineStatus({required this.result, required this.color});
+  const _WxmpLoginInlineStatus({required this.result});
 
   /// 登录结果。
   final _LoginResult result;
 
-  /// 状态语义色。
-  final Color color;
-
   @override
   Widget build(BuildContext context) {
-    final spacing = context.fluentSpacing;
-    final type = context.fluentType;
-
+    final theme = context.yhTheme;
     return Padding(
       key: const Key('wxmp-login-inline-status'),
       padding: EdgeInsetsDirectional.fromSTEB(
-        spacing.l,
-        spacing.s,
-        spacing.l,
-        spacing.xs,
+        theme.spacing.l,
+        theme.spacing.s,
+        theme.spacing.l,
+        theme.spacing.xs,
       ),
-      child: Row(
-        children: [
-          Icon(
-            result.success ? FluentIcons.checkMark : FluentIcons.warning,
-            size: 14,
-            color: color,
-          ),
-          SizedBox(width: spacing.xs),
-          Expanded(
-            child: Text(
-              result.message,
-              style: type.caption1.copyWith(color: color),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
+      child: YhBanner(
+        text: result.message,
+        kind: result.success ? YhBannerKind.success : YhBannerKind.danger,
       ),
     );
   }

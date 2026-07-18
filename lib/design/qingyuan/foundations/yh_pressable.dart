@@ -58,6 +58,7 @@ class YhPressable extends StatefulWidget {
 }
 
 class _YhPressableState extends State<YhPressable> {
+  final FocusNode _focusNode = FocusNode(debugLabel: 'YhPressable');
   bool _hovered = false;
   bool _focused = false;
   bool _pressed = false;
@@ -66,6 +67,12 @@ class _YhPressableState extends State<YhPressable> {
 
   void _activate() {
     if (_enabled) widget.onPressed!();
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
   }
 
   @override
@@ -94,9 +101,14 @@ class _YhPressableState extends State<YhPressable> {
       toggled: widget.toggled,
       hint: widget.hint,
       inMutuallyExclusiveGroup: widget.inMutuallyExclusiveGroup,
+      onTap: _enabled ? _activate : null,
+      focusable: _enabled,
+      focused: _focused,
+      onFocus: _enabled ? _focusNode.requestFocus : null,
       child: FocusableActionDetector(
         enabled: _enabled,
         autofocus: widget.autofocus,
+        focusNode: _focusNode,
         shortcuts: const <ShortcutActivator, Intent>{
           SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
