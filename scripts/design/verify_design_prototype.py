@@ -40,7 +40,10 @@ def _open_screen(page: Page, prototype_url: str, screen: str) -> None:
 
 
 def _assert_screen_interactions(page: Page, screen: str, viewport_width: int) -> None:
-    if screen == "schedule":
+    if screen == "home":
+        page.get_by_role("button", name="刷新首页").click()
+        _assert("刷新首页已完成" in page.locator('.prototype-toast:visible').inner_text(), "页面行动缺少可感知反馈")
+    elif screen == "schedule":
         first_tab = page.locator('.domain-tab').first
         first_tab.click()
         _assert(first_tab.get_attribute("aria-selected") == "true", "课表日期 Tab 未更新选择状态")
@@ -51,13 +54,25 @@ def _assert_screen_interactions(page: Page, screen: str, viewport_width: int) ->
             _assert("高等数学" in page.locator('.schedule-day-list:visible').inner_text(), "课表 Tab 未切换当天课程")
         else:
             _assert(page.locator('.schedule-board:visible').count() == 1, "非 compact 课表未显示周网格")
+        first_tab.focus()
+        page.keyboard.press("ArrowRight")
+        second_tab = page.locator('.domain-tab').nth(1)
+        _assert(second_tab.get_attribute("aria-selected") == "true", "课表方向键未切换 Tab")
+        _assert(second_tab.evaluate("element => element === document.activeElement"), "课表方向键未移动焦点")
     elif screen == "info":
         page.get_by_role("button", name="学校官网 · 5").click()
         _assert(page.locator('.feed-entry:visible').count() == 1, "信息来源筛选未过滤文章")
         _assert("学校官网" in page.locator('.feed-entry:visible').inner_text(), "信息来源筛选结果不正确")
+        school_filter = page.get_by_role("button", name="学校官网 · 5")
+        _assert(school_filter.get_attribute("aria-pressed") == "true", "信息筛选未同步按压语义")
+        school_filter.focus()
+        page.keyboard.press("ArrowRight")
+        _assert(page.get_by_role("button", name="教务处 · 4").get_attribute("aria-pressed") == "true", "信息筛选方向键未切换来源")
     elif screen == "mail":
-        page.locator('.mail-item').nth(1).click()
+        page.locator('.mail-item').first.focus()
+        page.keyboard.press("ArrowDown")
         _assert(page.locator('.mail-item.is-active').count() == 1, "邮件列表存在多个选中项")
+        _assert(page.locator('.mail-item').nth(1).get_attribute("aria-selected") == "true", "邮件方向键未同步选中语义")
         _assert(page.locator('.mail-content:visible h2').inner_text() == "夏季学期选课确认", "可见邮件详情未随选择更新")
         if viewport_width <= 900:
             _assert(page.locator('.mail-list:visible').count() == 0, "compact/medium 邮件详情未替换列表")
@@ -67,14 +82,25 @@ def _assert_screen_interactions(page: Page, screen: str, viewport_width: int) ->
         page.locator('.search-box input').fill("图书馆")
         _assert(page.locator('.link-groups .action-row:visible').count() == 1, "快速跳转搜索结果不唯一")
         _assert("图书馆" in page.locator('.link-groups .action-row:visible').inner_text(), "快速跳转搜索结果不正确")
+        page.locator('.search-box input').fill("不存在的入口")
+        _assert(page.locator('[data-search-empty]:visible').count() == 1, "快速跳转没有明确空状态")
+        page.locator('[data-clear-search]:visible').click()
+        _assert(page.locator('.link-groups .action-row:visible').count() == 6, "清除搜索未恢复全部入口")
     elif screen == "settings":
         switch = page.get_by_role("switch", name="自动锁定")
         switch.click()
         _assert(switch.get_attribute("aria-checked") == "false", "设置开关 ARIA 状态未同步")
-        page.get_by_role("button", name="外观", exact=True).click()
+        account_tab = page.get_by_role("tab", name="账户与连接")
+        account_tab.focus()
+        page.keyboard.press("ArrowRight")
+        page.keyboard.press("ArrowRight")
         appearance = page.locator('[data-settings-panel="appearance"]:visible')
         _assert(appearance.count() == 1 and "颜色主题" in appearance.inner_text(), "设置外观分区内容未切换")
         _assert(page.locator('[data-settings-panel="account"]:visible').count() == 0, "设置切换后仍显示账户内容")
+        _assert(page.locator('#settings-title').inner_text() == "外观", "设置分区切换未同步页面标题")
+        if viewport_width <= 900:
+            nav_box = page.locator('.settings-nav').bounding_box()
+            _assert(nav_box is not None and nav_box["height"] <= 64, "compact/medium 设置导航仍占用过多纵向空间")
 
 
 def verify(output_dir: Path) -> None:
