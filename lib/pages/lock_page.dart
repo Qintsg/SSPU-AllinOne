@@ -9,13 +9,11 @@
 
 import 'dart:async';
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 import '../services/app_display_name_service.dart';
 import '../services/password_service.dart';
 import '../services/system_auth_service.dart';
-import '../theme/app_motion.dart';
-import '../theme/app_spacing.dart';
 
 /// 锁定页面。
 /// 当用户设置密码保护后，应用启动时显示此页面。
@@ -68,29 +66,56 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _shakeController = AnimationController(
-      duration: AppMotion.long,
+      duration: YhTheme.light.motion.slow,
       vsync: this,
     );
+    final shakeDistance =
+        YhTheme.light.spacing.s + YhTheme.light.spacing.xs / 2;
     _shakeAnimation =
         TweenSequence<double>([
-          TweenSequenceItem(tween: Tween(begin: 0, end: -10), weight: 1),
-          TweenSequenceItem(tween: Tween(begin: -10, end: 10), weight: 2),
-          TweenSequenceItem(tween: Tween(begin: 10, end: -10), weight: 2),
-          TweenSequenceItem(tween: Tween(begin: -10, end: 10), weight: 2),
-          TweenSequenceItem(tween: Tween(begin: 10, end: 0), weight: 1),
+          TweenSequenceItem(
+            tween: Tween(begin: 0, end: -shakeDistance),
+            weight: 1,
+          ),
+          TweenSequenceItem(
+            tween: Tween(begin: -shakeDistance, end: shakeDistance),
+            weight: 2,
+          ),
+          TweenSequenceItem(
+            tween: Tween(begin: shakeDistance, end: -shakeDistance),
+            weight: 2,
+          ),
+          TweenSequenceItem(
+            tween: Tween(begin: -shakeDistance, end: shakeDistance),
+            weight: 2,
+          ),
+          TweenSequenceItem(
+            tween: Tween(begin: shakeDistance, end: 0),
+            weight: 1,
+          ),
         ]).animate(
-          CurvedAnimation(parent: _shakeController, curve: Curves.easeInOut),
+          CurvedAnimation(
+            parent: _shakeController,
+            curve: YhTheme.light.motion.curve,
+          ),
         );
 
     _unlockController = AnimationController(
-      duration: AppMotion.long,
+      duration: YhTheme.light.motion.slow,
       vsync: this,
     );
-    _unlockScale = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _unlockController, curve: Curves.easeOutCubic),
+    final unlockScale = 1 + (1 - YhTheme.light.motion.pressedScale) * 4;
+    _unlockScale = Tween<double>(begin: 1, end: unlockScale).animate(
+      CurvedAnimation(
+        parent: _unlockController,
+        curve: YhTheme.light.motion.curve,
+      ),
     );
-    _unlockOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(parent: _unlockController, curve: Curves.easeInCubic),
+    _unlockOpacity = Tween<double>(begin: 1, end: 0).animate(
+      CurvedAnimation(
+        parent: _unlockController,
+        curve: YhTheme.light.motion.curve,
+      ),
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -201,7 +226,7 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
 
     return AnimatedBuilder(
       animation: Listenable.merge([_unlockScale, _unlockOpacity]),
@@ -211,37 +236,41 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
           child: Transform.scale(scale: _unlockScale.value, child: child),
         );
       },
-      child: ScaffoldPage(
-        content: SafeArea(
+      child: YhPageScaffold(
+        body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: AppSpacing.regularPagePadding,
+              padding: EdgeInsets.all(theme.spacing.m),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 360),
+                constraints: BoxConstraints(
+                  maxWidth: theme.breakpoint.compact - theme.spacing.xl2 * 5,
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Image.asset(
                       'assets/images/logo.png',
-                      width: 80,
-                      height: 80,
+                      width: theme.control.regular + theme.spacing.xl,
+                      height: theme.control.regular + theme.spacing.xl,
                     ),
-                    const SizedBox(height: AppSpacing.lg),
+                    SizedBox(height: theme.spacing.l),
                     Semantics(
                       header: true,
                       child: Text(
                         AppDisplayName.of(context),
-                        style: theme.typography.titleLarge,
+                        style: theme.typography.h1.copyWith(
+                          color: theme.color.foreground,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.sm),
+                    SizedBox(height: theme.spacing.s),
                     Text(
                       '应用已锁定',
-                      style: theme.typography.bodyLarge?.copyWith(
-                        color: theme.resources.textFillColorSecondary,
+                      style: theme.typography.body.copyWith(
+                        color: theme.color.muted,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xl),
+                    SizedBox(height: theme.spacing.xl),
                     _buildPasswordForm(context),
                   ],
                 ),
@@ -255,7 +284,7 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
 
   /// 构建密码输入和解锁操作区。
   Widget _buildPasswordForm(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
 
     return AnimatedBuilder(
       animation: _shakeAnimation,
@@ -267,68 +296,38 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
       },
       child: Column(
         children: [
-          FluentTextField(
+          YhTextField(
             controller: _passwordController,
             focusNode: _focusNode,
-            obscureText: true,
+            obscure: true,
             label: '密码',
-            placeholder: '输入密码以解锁',
-            prefixIcon: FluentIcons.lock,
+            hint: '输入密码以解锁',
+            prefixIcon: YhIcons.lock,
             errorText: _errorMessage,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _handleUnlock(),
           ),
-          if (_errorMessage != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Row(
-              children: [
-                Icon(
-                  FluentIcons.warning,
-                  color: theme.resources.systemFillColorCritical,
-                  size: 20,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    _errorMessage!,
-                    style: theme.typography.caption?.copyWith(
-                      color: theme.resources.systemFillColorCritical,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: AppSpacing.md),
+          SizedBox(height: theme.spacing.m),
           SizedBox(
             width: double.infinity,
-            child: FluentButton.primary(
-              onPressed: _isVerifying ? null : _handleUnlock,
-              expand: true,
-              child: _isVerifying
-                  ? const SizedBox.square(
-                      dimension: 20,
-                      child: FluentProgressRing(strokeWidth: 2),
-                    )
-                  : const Text('解锁'),
+            child: YhButton(
+              label: _isVerifying ? '正在验证…' : '解锁',
+              onTap: _isVerifying ? null : _handleUnlock,
+              disabled: _isVerifying,
             ),
           ),
           if (_isSystemAuthEnabled) ...[
-            const SizedBox(height: AppSpacing.sm),
+            SizedBox(height: theme.spacing.s),
             SizedBox(
               width: double.infinity,
-              child: FluentButton.outlineIcon(
-                onPressed: _isSystemAuthenticating
+              child: YhButton(
+                label: _isSystemAuthenticating ? '等待系统认证' : '使用系统认证',
+                variant: YhButtonVariant.secondary,
+                leadingIcon: YhIcons.fingerprint,
+                onTap: _isSystemAuthenticating
                     ? null
                     : () => _handleSystemUnlock(),
-                icon: _isSystemAuthenticating
-                    ? const SizedBox.square(
-                        dimension: 20,
-                        child: FluentProgressRing(strokeWidth: 2),
-                      )
-                    : const Icon(FluentIcons.fingerprint),
-                expand: true,
-                label: Text(_isSystemAuthenticating ? '等待系统认证' : '使用系统认证'),
+                disabled: _isSystemAuthenticating,
               ),
             ),
           ],

@@ -17,37 +17,21 @@ class YhDialog extends StatelessWidget {
   final Widget content;
   final List<Widget> actions;
 
-  static Future<bool> confirm(
+  static Future<T?> show<T>(
     BuildContext context, {
-    required String title,
-    required String message,
-    String confirmText = '确认',
-    String cancelText = '取消',
-    bool danger = false,
-  }) async {
-    final result = await showGeneralDialog<bool>(
+    required WidgetBuilder builder,
+    bool barrierDismissible = true,
+    String barrierLabel = '关闭对话框',
+  }) {
+    final theme = context.yhTheme;
+    return showGeneralDialog<T>(
       context: context,
-      barrierDismissible: !danger,
-      barrierLabel: '关闭对话框',
-      barrierColor: context.yhTheme.color.scrim,
-      transitionDuration: context.yhTheme.motion.base,
-      pageBuilder: (dialogContext, animation, secondaryAnimation) => YhDialog(
-        title: title,
-        content: Text(message),
-        actions: [
-          YhButton(
-            label: cancelText,
-            variant: YhButtonVariant.secondary,
-            autofocus: true,
-            onTap: () => Navigator.of(dialogContext).pop(false),
-          ),
-          YhButton(
-            label: confirmText,
-            variant: danger ? YhButtonVariant.danger : YhButtonVariant.primary,
-            onTap: () => Navigator.of(dialogContext).pop(true),
-          ),
-        ],
-      ),
+      barrierDismissible: barrierDismissible,
+      barrierLabel: barrierLabel,
+      barrierColor: theme.color.scrim,
+      transitionDuration: theme.motion.base,
+      pageBuilder: (dialogContext, animation, secondaryAnimation) =>
+          builder(dialogContext),
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         final disableAnimations =
             MediaQuery.maybeOf(context)?.disableAnimations ?? false;
@@ -64,6 +48,38 @@ class YhDialog extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  static Future<bool> confirm(
+    BuildContext context, {
+    required String title,
+    required String message,
+    String confirmText = '确认',
+    String cancelText = '取消',
+    bool danger = false,
+  }) async {
+    final result = await show<bool>(
+      context,
+      barrierDismissible: !danger,
+      barrierLabel: '关闭对话框',
+      builder: (dialogContext) => YhDialog(
+        title: title,
+        content: Text(message),
+        actions: [
+          YhButton(
+            label: cancelText,
+            variant: YhButtonVariant.secondary,
+            autofocus: true,
+            onTap: () => Navigator.of(dialogContext).pop(false),
+          ),
+          YhButton(
+            label: confirmText,
+            variant: danger ? YhButtonVariant.danger : YhButtonVariant.primary,
+            onTap: () => Navigator.of(dialogContext).pop(true),
+          ),
+        ],
+      ),
     );
     return result ?? false;
   }

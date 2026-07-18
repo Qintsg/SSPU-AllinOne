@@ -29,4 +29,7 @@ class YhIcons {
   static const IconData add = system.FluentIcons.add_24_regular;
   static const IconData edit = system.FluentIcons.edit_24_regular;
   static const IconData visibility = system.FluentIcons.eye_24_regular;
+  static const IconData lock = system.FluentIcons.lock_closed_24_regular;
+  static const IconData warning = system.FluentIcons.warning_24_regular;
+  static const IconData fingerprint = system.FluentIcons.fingerprint_24_regular;
 }
