@@ -466,6 +466,58 @@ def _validate_qingyuan_runtime(project_root: Path) -> None:
     if errors:
         raise DesignSystemValidationError("\n".join(errors))
 
+
+def _validate_component_manifest(project_root: Path) -> None:
+    manifest_path = project_root / "docs" / "design" / "resources" / "component-manifest.json"
+    if not manifest_path.exists():
+        raise DesignSystemValidationError("缺少清源组件机器清单 component-manifest.json")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    components = manifest.get("components", [])
+    errors: list[str] = []
+    if manifest.get("version") != "0.3.0":
+        errors.append("组件清单 version 必须是 0.3.0")
+    if len(components) != 44:
+        errors.append(f"组件清单必须恰好包含 44 个组件，当前为 {len(components)}")
+    ids = [component.get("id") for component in components if isinstance(component, dict)]
+    classes = [component.get("class") for component in components if isinstance(component, dict)]
+    if len(ids) != len(set(ids)):
+        errors.append("组件清单存在重复 id")
+    if len(classes) != len(set(classes)):
+        errors.append("组件清单存在重复 Flutter class")
+
+    docs_root = project_root / "docs" / "design" / "components"
+    runtime_root = project_root / "lib" / "design" / "qingyuan"
+    facade_path = runtime_root / "qingyuan_ui.dart"
+    facade = facade_path.read_text(encoding="utf-8") if facade_path.exists() else ""
+    for component in components:
+        if not isinstance(component, dict):
+            errors.append("组件清单条目必须是对象")
+            continue
+        component_id = component.get("id")
+        class_name = component.get("class")
+        source_name = component.get("source")
+        if not all(isinstance(value, str) and value for value in (component_id, class_name, source_name)):
+            errors.append("组件清单条目必须包含非空 id、class、source")
+            continue
+        if not (docs_root / f"{component_id}.md").exists():
+            errors.append(f"组件清单 {component_id} 缺少规格文档")
+        if not (docs_root / "samples" / f"{component_id}.html").exists():
+            errors.append(f"组件清单 {component_id} 缺少 HTML 样例")
+        if not runtime_root.exists():
+            continue
+        source_path = runtime_root / source_name
+        if not source_path.exists():
+            errors.append(f"组件清单 {component_id} 缺少 Flutter 实现 {source_name}")
+            continue
+        source = source_path.read_text(encoding="utf-8")
+        if re.search(rf"\bclass\s+{re.escape(class_name)}(?:<|\s)", source) is None:
+            errors.append(f"组件清单 {component_id} 未声明 {class_name}")
+        export = f"export '{source_name}';"
+        if export not in facade:
+            errors.append(f"组件清单 {component_id} 未从 qingyuan_ui.dart 导出")
+    if errors:
+        raise DesignSystemValidationError("\n".join(errors))
+
 def validate_design_system(project_root: Path) -> None:
     """通过公开仓库目录校验清源设计契约。"""
     tokens = _load_tokens(project_root)
@@ -478,6 +530,7 @@ def validate_design_system(project_root: Path) -> None:
     _validate_document_contract(project_root)
     _validate_page_prototype(project_root)
     _validate_visual_manifest(project_root)
+    _validate_component_manifest(project_root)
     _validate_qingyuan_runtime(project_root)
     _validate_markdown_links(project_root)
 

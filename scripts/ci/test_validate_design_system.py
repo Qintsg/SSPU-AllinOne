@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import tempfile
 import unittest
@@ -158,6 +159,34 @@ class DesignSystemValidatorTest(unittest.TestCase):
             )
 
             with self.assertRaisesRegex(DesignSystemValidationError, r"视觉清单必须锁定"):
+                validate_design_system(root)
+
+    def test_component_manifest_requires_all_44_flutter_components(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            manifest = root / "docs" / "design" / "resources" / "component-manifest.json"
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            payload["components"].pop()
+            manifest.write_text(
+                json.dumps(payload, ensure_ascii=False),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(DesignSystemValidationError, r"恰好包含 44 个组件"):
+                validate_design_system(root)
+
+    def test_component_manifest_rejects_missing_flutter_implementation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            runtime = root / "lib" / "design" / "qingyuan"
+            shutil.copytree(PROJECT_ROOT / "lib" / "design" / "qingyuan", runtime)
+            (runtime / "components" / "yh_domain.dart").unlink()
+
+            with self.assertRaisesRegex(DesignSystemValidationError, r"attendance-item.*缺少 Flutter 实现"):
                 validate_design_system(root)
 
     def test_qingyuan_runtime_rejects_material_visual_imports(self) -> None:
