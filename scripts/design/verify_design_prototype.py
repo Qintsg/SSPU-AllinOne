@@ -53,6 +53,8 @@ def _open_screen(page: Page, prototype_url: str, screen: str) -> None:
 
 
 def _capture_reference(page: Page, target: Path, width: int, height: int) -> None:
+    # Playwright 的鼠标位置跨 reload 保留；截图前移出交互目标，避免默认态被 hover 污染。
+    page.mouse.move(0, 0)
     png = page.screenshot(path=target, full_page=False)
     actual_width, actual_height = struct.unpack(">II", png[16:24])
     _assert(
