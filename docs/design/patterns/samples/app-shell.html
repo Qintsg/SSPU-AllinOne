@@ -101,18 +101,19 @@
         <article class="section-card mail-compose-panel" data-mail-compose-panel hidden>
           <div class="mail-compose-heading"><div><p class="page-kicker">SMTP 主动发信</p><h2>撰写邮件</h2><p>仅在点击发送后提交普通文本；不保存草稿，不在后台重试。</p></div><button class="icon-button ghost" type="button" aria-label="关闭撰写邮件" data-mail-compose-close>×</button></div>
           <form class="mail-compose-form">
-            <label class="yh-field"><span class="flabel">收件人</span><span class="control"><input name="to" type="email" placeholder="name@example.com"/></span></label>
+            <label class="yh-field mail-compose-to"><span class="flabel">收件人</span><span class="control"><input name="to" type="email" placeholder="name@example.com"/></span></label>
             <label class="yh-field"><span class="flabel">抄送</span><span class="control"><input name="cc" type="email" placeholder="可选"/></span></label>
+            <label class="yh-field"><span class="flabel">密送</span><span class="control"><input name="bcc" type="email" placeholder="可选"/></span></label>
             <label class="yh-field mail-compose-subject"><span class="flabel">主题</span><span class="control"><input name="subject" placeholder="邮件主题"/></span></label>
             <label class="yh-field mail-compose-body"><span class="flabel">正文</span><span class="control"><textarea name="body" rows="8" placeholder="输入邮件正文"></textarea></span></label>
             <div class="yh-banner err mail-compose-error" role="alert" hidden><svg aria-hidden="true"><use href="#i-info"/></svg><span>SMTP 连接失败，请检查邮箱账户与网络后重试。</span></div>
             <div class="mail-compose-actions"><button class="yh-button secondary" type="button" data-mail-compose-close>取消</button><button class="yh-button primary" type="submit" data-mail-send>发送邮件</button></div>
           </form>
         </article>
-        <section class="section-card mail-state-panel" data-mail-state-panel="initial" hidden><div class="yh-empty"><svg aria-hidden="true"><use href="#i-mail"/></svg><h2>尚未读取邮箱</h2><p>连接学校邮箱后读取最近邮件，正文只保存在本机。</p><button class="yh-button primary" type="button">读取最近邮件</button></div></section>
+        <section class="section-card mail-state-panel" data-mail-state-panel="initial" hidden><div class="yh-empty"><svg aria-hidden="true"><use href="#i-mail"/></svg><h2>尚未读取邮箱</h2><p>连接学校邮箱后读取最近邮件，正文只保存在本机。</p><div class="mail-state-actions"><button class="yh-button primary" type="button">读取最近邮件</button><button class="yh-button secondary" type="button">邮箱连接设置</button></div></div></section>
         <section class="section-card mail-state-panel" data-mail-state-panel="loading" hidden><div class="mail-state-progress"><span class="yh-spinner" aria-hidden="true"></span><div><h2>正在读取最近邮件</h2><p>正在通过 IMAP 获取脱敏测试邮箱数据。</p></div></div></section>
         <section class="section-card mail-state-panel" data-mail-state-panel="empty" hidden><div class="yh-empty"><svg aria-hidden="true"><use href="#i-mail"/></svg><h2>收件箱暂无邮件</h2><p>连接正常，但当前查询范围没有可展示的邮件。</p><button class="yh-button secondary" type="button">重新读取</button></div></section>
-        <section class="section-card mail-state-panel" data-mail-state-panel="error" hidden><div class="yh-empty"><svg aria-hidden="true"><use href="#i-info"/></svg><h2>无法读取学校邮箱</h2><p>请检查邮箱账户、校园网或 VPN；已有本地缓存不会被删除。</p><button class="yh-button primary" type="button">重试</button></div></section>
+        <section class="section-card mail-state-panel" data-mail-state-panel="error" hidden><div class="yh-empty"><svg aria-hidden="true"><use href="#i-info"/></svg><h2>无法读取学校邮箱</h2><p>请检查邮箱账户、校园网或 VPN；已有本地缓存不会被删除。</p><div class="mail-state-actions"><button class="yh-button primary" type="button">重试</button><button class="yh-button secondary" type="button">邮箱连接设置</button></div></div></section>
       </section>
 
       <section class="prototype-page" data-screen="links" aria-labelledby="links-title" hidden>
