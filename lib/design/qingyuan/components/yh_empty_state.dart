@@ -9,13 +9,13 @@ class YhEmptyState extends StatelessWidget {
     super.key,
     required this.icon,
     required this.title,
-    required this.message,
+    this.message,
     this.action,
   });
 
   final IconData icon;
   final String title;
-  final String message;
+  final String? message;
   final Widget? action;
 
   @override
@@ -39,12 +39,14 @@ class YhEmptyState extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: theme.spacing.s),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: theme.typography.body.copyWith(color: theme.color.muted),
-            ),
+            if (message != null) ...[
+              SizedBox(height: theme.spacing.s),
+              Text(
+                message!,
+                textAlign: TextAlign.center,
+                style: theme.typography.body.copyWith(color: theme.color.muted),
+              ),
+            ],
             if (action != null) ...[SizedBox(height: theme.spacing.l), action!],
           ],
         ),

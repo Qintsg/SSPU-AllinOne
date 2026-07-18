@@ -7,9 +7,8 @@
  */
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/models/message_item.dart';
-import 'package:sspu_allinone/theme/app_theme.dart';
 import 'package:sspu_allinone/widgets/message_tile.dart';
 
 void main() {
@@ -19,10 +18,9 @@ void main() {
     double width = 900,
   }) async {
     await tester.pumpWidget(
-      FluentApp(
-        theme: AppTheme.build(Brightness.light),
-        home: ScaffoldPage(
-          content: SizedBox(
+      YhApp(
+        home: YhPageScaffold(
+          body: SizedBox(
             width: width,
             child: MessageTile(
               message: message,
@@ -112,7 +110,7 @@ void main() {
 
     expect(find.text('微信推文'), findsOneWidget);
     expect(find.text('青春二工大'), findsOneWidget);
-    expect(find.byIcon(FluentIcons.openInNewWindow), findsOneWidget);
-    expect(find.byIcon(FluentIcons.read), findsOneWidget);
+    expect(find.byIcon(YhIcons.open), findsOneWidget);
+    expect(find.byIcon(YhIcons.check), findsOneWidget);
   });
 }
