@@ -37,6 +37,10 @@ class YhPressable extends StatefulWidget {
     required this.child,
     this.builder,
     this.autofocus = false,
+    this.selected,
+    this.toggled,
+    this.hint,
+    this.inMutuallyExclusiveGroup = false,
   });
 
   final String semanticLabel;
@@ -44,6 +48,10 @@ class YhPressable extends StatefulWidget {
   final Widget child;
   final YhPressableBuilder? builder;
   final bool autofocus;
+  final bool? selected;
+  final bool? toggled;
+  final String? hint;
+  final bool inMutuallyExclusiveGroup;
 
   @override
   State<YhPressable> createState() => _YhPressableState();
@@ -78,9 +86,14 @@ class _YhPressableState extends State<YhPressable> {
     );
 
     return Semantics(
+      excludeSemantics: true,
       button: true,
       enabled: _enabled,
       label: widget.semanticLabel,
+      selected: widget.selected,
+      toggled: widget.toggled,
+      hint: widget.hint,
+      inMutuallyExclusiveGroup: widget.inMutuallyExclusiveGroup,
       child: FocusableActionDetector(
         enabled: _enabled,
         autofocus: widget.autofocus,
