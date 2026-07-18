@@ -94,6 +94,8 @@ button, input { font: inherit; }
 .filter-list button:focus-visible,
 .mail-item:focus-visible,
 .action-row:focus-visible,
+.link-open:focus-visible,
+.link-favorite:focus-visible,
 .yh-switch:focus-visible {
   outline: var(--focus-ring-width) solid var(--brand-strong);
   outline-offset: var(--focus-ring-gap);
@@ -354,6 +356,12 @@ button, input { font: inherit; }
 .search-empty b, .search-empty span { display: block; }
 .search-empty span { margin-top: var(--space-xs); color: var(--muted); font-size: var(--type-small); }
 .link-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-m); }
+.link-groups .action-row { grid-template-columns: minmax(0, 1fr) var(--control-regular); gap: 0; padding: 0; }
+.link-open { min-width: 0; min-height: 58px; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: var(--space-s); padding: var(--space-s) 0 var(--space-s) var(--space-s); border: 0; color: var(--fg); background: transparent; text-align: left; cursor: pointer; }
+.link-favorite { width: var(--control-regular); height: var(--control-regular); display: grid; place-items: center; align-self: center; border: 0; border-radius: var(--radius-input); color: var(--muted); background: transparent; cursor: pointer; }
+.link-favorite svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.link-open:hover, .link-favorite:hover, .link-favorite[aria-pressed="true"] { color: var(--brand-ink); background: var(--brand-tint); }
+.link-favorite[aria-pressed="true"] svg { fill: currentColor; }
 .links-state-panel { min-height: calc(var(--layout-popover-width) + var(--space-xl)); display: grid; place-items: center; }
 .links-state-panel .yh-empty h2, .links-state-panel .yh-empty p { margin: 0; }
 

@@ -111,6 +111,10 @@ def _assert_screen_interactions(page: Page, screen: str, viewport_width: int) ->
             page.locator('.mail-back:visible').click()
             _assert(page.locator('.mail-list:visible').count() == 1, "邮件详情无法返回收件箱")
     elif screen == "links":
+        favorites = page.locator('.link-favorite')
+        _assert(favorites.count() == 6, "快速跳转未完整表达六个收藏入口")
+        favorites.first.click()
+        _assert(favorites.first.get_attribute("aria-pressed") == "true", "快速跳转收藏状态未同步语义")
         page.locator('.search-box input').fill("图书馆")
         _assert(page.locator('.link-groups .action-row:visible').count() == 1, "快速跳转搜索结果不唯一")
         _assert("图书馆" in page.locator('.link-groups .action-row:visible').inner_text(), "快速跳转搜索结果不正确")

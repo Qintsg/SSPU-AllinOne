@@ -13,6 +13,7 @@
 - 页面内容宽度、流式边距、状态药丸、NavRail、Tabs 与 IconButton 的 Flutter 契约同步到参考原型。
 - 邮箱参考稿补齐收件箱 initial/loading/empty/stale/error、独立只读详情 content 与撰写 initial/content/loading/error，四档视口和亮暗主题均可确定性采集。
 - 快捷入口参考稿补齐 loading/content/empty/error，保留任务分组、搜索无结果和明确恢复动作。
+- 快捷入口目录补齐六个独立 48px 收藏按钮、按压语义与收藏反馈，避免迁移时丢失既有收藏能力。
 
 ## 0.3.0 - 2026-07-18
 

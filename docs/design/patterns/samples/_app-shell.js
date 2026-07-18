@@ -283,6 +283,14 @@
     document.querySelector('[data-search-empty]').hidden = results !== 0;
   });
 
+  document.addEventListener('click', function (event) {
+    var favorite = event.target.closest('.link-favorite');
+    if (!favorite) return;
+    var pressed = favorite.getAttribute('aria-pressed') === 'true';
+    favorite.setAttribute('aria-pressed', String(!pressed));
+    favorite.setAttribute('aria-label', (pressed ? '收藏' : '取消收藏') + favorite.getAttribute('aria-label').replace(/^(取消)?收藏/, ''));
+  });
+
   document.addEventListener('submit', function (event) {
     if (!event.target.matches('.mail-compose-form')) return;
     event.preventDefault();
