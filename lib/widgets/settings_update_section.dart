@@ -6,13 +6,12 @@
  * @Date : 2026-05-18
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/app_update_service.dart';
 import '../services/http_service.dart';
-import '../theme/app_spacing.dart';
 import 'settings_widgets.dart';
 
 /// 设置页应用更新检查卡片。
@@ -53,61 +52,61 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
 
   @override
   Widget build(BuildContext context) {
-    final type = context.fluentType;
+    final theme = context.yhTheme;
 
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: AppSpacing.cardPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Semantics(header: true, child: Text('应用更新', style: type.subtitle1)),
-            const SizedBox(height: AppSpacing.md),
-            buildResponsiveSettingsRow(
-              context: context,
-              icon: FluentIcons.download,
-              title: Text('检查更新', style: type.body1Strong),
-              subtitle: Text(
-                '从 GitHub Release 查询正式版或测试版更新，不会在启动时自动联网',
-                style: type.caption1,
-              ),
-              trailing: Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Wrap(
-                    spacing: AppSpacing.xs,
-                    runSpacing: AppSpacing.xs,
-                    children: [
-                      _buildChannelOption(AppUpdateChannel.stable, '正式版'),
-                      _buildChannelOption(AppUpdateChannel.preview, '测试版'),
-                    ],
-                  ),
-                  FluentButton.primaryIcon(
-                    onPressed: _isChecking ? null : _checkForUpdates,
-                    icon: _isChecking
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: FluentProgressRing(strokeWidth: 2),
-                          )
-                        : const Icon(FluentIcons.refresh),
-                    label: Text(_isChecking ? '检查中' : '检查更新'),
-                  ),
-                ],
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            header: true,
+            child: Text('应用更新', style: theme.typography.h3),
+          ),
+          SizedBox(height: theme.spacing.m),
+          buildResponsiveSettingsRow(
+            context: context,
+            icon: YhIcons.download,
+            title: Text(
+              '检查更新',
+              style: theme.typography.body.copyWith(
+                fontWeight: FontWeight.w600,
               ),
             ),
-            if (_errorMessage != null) ...[
-              const SizedBox(height: AppSpacing.md),
-              _buildErrorMessage(context, _errorMessage!),
-            ],
-            if (_result != null) ...[
-              const SizedBox(height: AppSpacing.md),
-              _buildResult(context, _result!),
-            ],
+            subtitle: Text(
+              '从 GitHub Release 查询正式版或测试版更新，不会在启动时自动联网',
+              style: theme.typography.small.copyWith(color: theme.color.muted),
+            ),
+            trailing: Wrap(
+              spacing: theme.spacing.s,
+              runSpacing: theme.spacing.s,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Wrap(
+                  spacing: theme.spacing.xs,
+                  runSpacing: theme.spacing.xs,
+                  children: [
+                    _buildChannelOption(AppUpdateChannel.stable, '正式版'),
+                    _buildChannelOption(AppUpdateChannel.preview, '测试版'),
+                  ],
+                ),
+                YhButton(
+                  label: _isChecking ? '检查中' : '检查更新',
+                  onTap: _isChecking ? null : _checkForUpdates,
+                  disabled: _isChecking,
+                  leadingIcon: _isChecking ? null : YhIcons.refresh,
+                ),
+              ],
+            ),
+          ),
+          if (_errorMessage != null) ...[
+            SizedBox(height: theme.spacing.m),
+            _buildErrorMessage(context, _errorMessage!),
           ],
-        ),
+          if (_result != null) ...[
+            SizedBox(height: theme.spacing.m),
+            _buildResult(context, _result!),
+          ],
+        ],
       ),
     );
   }
@@ -121,176 +120,167 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
             _channel = channel;
             _resetDownloadState();
           });
-    if (selected) {
-      return FluentButton.primary(onPressed: onPressed, child: Text(label));
-    }
-    return FluentButton.outline(onPressed: onPressed, child: Text(label));
-  }
-
-  Widget _buildErrorMessage(BuildContext context, String message) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: colors.statusDangerBackground,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        message,
-        style: type.caption1.copyWith(color: colors.statusDangerForeground),
-      ),
+    return YhButton(
+      label: label,
+      onTap: onPressed,
+      disabled: disabled,
+      variant: selected ? YhButtonVariant.primary : YhButtonVariant.secondary,
     );
   }
 
+  Widget _buildErrorMessage(BuildContext context, String message) {
+    return YhBanner(text: message, kind: YhBannerKind.danger);
+  }
+
   Widget _buildResult(BuildContext context, AppUpdateCheckResult result) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
+    final theme = context.yhTheme;
     final release = result.release;
     final resolvedAsset = result.recommendedAsset;
     final asset = resolvedAsset?.asset;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.md),
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: colors.neutralBackground2,
-        borderRadius: BorderRadius.circular(12),
+        color: theme.color.sunken,
+        borderRadius: BorderRadius.circular(theme.radius.input),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(_resultIcon(result.status), color: colors.brandForeground1),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(result.message, style: type.body1Strong),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      release == null
-                          ? '当前版本：${result.currentVersion}'
-                          : '当前版本：${result.currentVersion} · 最新版本：${release.version}',
-                      style: type.caption1.copyWith(
-                        color: colors.neutralForeground2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (release != null) ...[
-            const SizedBox(height: AppSpacing.md),
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
+      child: Padding(
+        padding: EdgeInsets.all(theme.spacing.m),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                FluentButton.outlineIcon(
-                  onPressed: release.htmlUrl.isEmpty
-                      ? null
-                      : () => _openExternalUrl(release.htmlUrl),
-                  icon: const Icon(FluentIcons.openInNewWindow),
-                  label: const Text('打开 Release'),
+                Icon(
+                  _resultIcon(result.status),
+                  color: theme.color.brandStrong,
                 ),
-                if (resolvedAsset?.installSupport ==
-                    AppUpdateInstallSupport.supported)
-                  FluentButton.primaryIcon(
-                    onPressed: _canStartDownload(resolvedAsset!)
-                        ? () => _startDownload(release, resolvedAsset)
-                        : null,
-                    icon: _isDownloading
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: FluentProgressRing(strokeWidth: 2),
-                          )
-                        : const Icon(FluentIcons.download),
-                    label: Text(_isDownloading ? '下载中' : '下载并校验'),
+                SizedBox(width: theme.spacing.s),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        result.message,
+                        style: theme.typography.body.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: theme.spacing.xs),
+                      Text(
+                        release == null
+                            ? '当前版本：${result.currentVersion}'
+                            : '当前版本：${result.currentVersion} · 最新版本：${release.version}',
+                        style: theme.typography.small.copyWith(
+                          color: theme.color.muted,
+                        ),
+                      ),
+                    ],
                   ),
-                if (_isDownloading)
-                  FluentButton.outlineIcon(
-                    onPressed: _cancelDownload,
-                    icon: const Icon(FluentIcons.clear),
-                    label: const Text('取消'),
-                  ),
-                if (_downloadResult?.isVerified == true)
-                  FluentButton.primaryIcon(
-                    onPressed: _isOpening ? null : _openInstaller,
-                    icon: _isOpening
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: FluentProgressRing(strokeWidth: 2),
-                          )
-                        : const Icon(FluentIcons.openInNewWindow),
-                    label: Text(resolvedAsset?.openActionLabel ?? '打开安装入口'),
-                  ),
+                ),
               ],
             ),
-            if (asset != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              _buildAssetSummary(context, resolvedAsset!),
-            ],
-            if (resolvedAsset?.installSupport ==
-                AppUpdateInstallSupport.unsupported) ...[
-              const SizedBox(height: AppSpacing.sm),
-              _buildStatusMessage(
-                context,
-                '当前平台不支持在应用内打开本地安装入口，请使用 GitHub Release 页面下载。',
-                severity: FluentInfoSeverity.warning,
+            if (release != null) ...[
+              SizedBox(height: theme.spacing.m),
+              Wrap(
+                spacing: theme.spacing.s,
+                runSpacing: theme.spacing.s,
+                children: [
+                  YhButton(
+                    label: '打开 Release',
+                    onTap: release.htmlUrl.isEmpty
+                        ? null
+                        : () => _openExternalUrl(release.htmlUrl),
+                    leadingIcon: YhIcons.open,
+                    variant: YhButtonVariant.secondary,
+                  ),
+                  if (resolvedAsset?.installSupport ==
+                      AppUpdateInstallSupport.supported)
+                    YhButton(
+                      label: _isDownloading ? '下载中' : '下载并校验',
+                      onTap: _canStartDownload(resolvedAsset!)
+                          ? () => _startDownload(release, resolvedAsset)
+                          : null,
+                      disabled: !_canStartDownload(resolvedAsset),
+                      leadingIcon: _isDownloading ? null : YhIcons.download,
+                    ),
+                  if (_isDownloading)
+                    YhButton(
+                      label: '取消',
+                      onTap: _cancelDownload,
+                      leadingIcon: YhIcons.close,
+                      variant: YhButtonVariant.secondary,
+                    ),
+                  if (_downloadResult?.isVerified == true)
+                    YhButton(
+                      label: resolvedAsset?.openActionLabel ?? '打开安装入口',
+                      onTap: _isOpening ? null : _openInstaller,
+                      disabled: _isOpening,
+                      leadingIcon: _isOpening ? null : YhIcons.open,
+                    ),
+                ],
               ),
-            ],
-            if (resolvedAsset != null && !resolvedAsset.hasChecksum) ...[
-              const SizedBox(height: AppSpacing.sm),
-              _buildStatusMessage(
-                context,
-                '未找到 SHA-256 校验值，应用会阻止打开安装入口。',
-                severity: FluentInfoSeverity.warning,
-              ),
-            ],
-            if (_downloadProgress != null || _isDownloading) ...[
-              const SizedBox(height: AppSpacing.md),
-              _buildDownloadProgress(context),
-            ],
-            if (_downloadResult != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              _buildStatusMessage(
-                context,
-                _downloadResult!.message ??
-                    _downloadStatusLabel(_downloadResult!.status),
-                severity: _downloadResult!.isVerified
-                    ? FluentInfoSeverity.success
-                    : _downloadResult!.status ==
-                          AppUpdateDownloadStatus.canceled
-                    ? FluentInfoSeverity.info
-                    : FluentInfoSeverity.error,
-              ),
-            ],
-            if (_openResult != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              _buildStatusMessage(
-                context,
-                _openResult!.message,
-                severity: _openResult!.isOpened
-                    ? FluentInfoSeverity.success
-                    : FluentInfoSeverity.warning,
-              ),
+              if (asset != null) ...[
+                SizedBox(height: theme.spacing.s),
+                _buildAssetSummary(context, resolvedAsset!),
+              ],
+              if (resolvedAsset?.installSupport ==
+                  AppUpdateInstallSupport.unsupported) ...[
+                SizedBox(height: theme.spacing.s),
+                _buildStatusMessage(
+                  context,
+                  '当前平台不支持在应用内打开本地安装入口，请使用 GitHub Release 页面下载。',
+                  kind: YhBannerKind.warn,
+                ),
+              ],
+              if (resolvedAsset != null && !resolvedAsset.hasChecksum) ...[
+                SizedBox(height: theme.spacing.s),
+                _buildStatusMessage(
+                  context,
+                  '未找到 SHA-256 校验值，应用会阻止打开安装入口。',
+                  kind: YhBannerKind.warn,
+                ),
+              ],
+              if (_downloadProgress != null || _isDownloading) ...[
+                SizedBox(height: theme.spacing.m),
+                _buildDownloadProgress(context),
+              ],
+              if (_downloadResult != null) ...[
+                SizedBox(height: theme.spacing.s),
+                _buildStatusMessage(
+                  context,
+                  _downloadResult!.message ??
+                      _downloadStatusLabel(_downloadResult!.status),
+                  kind: _downloadResult!.isVerified
+                      ? YhBannerKind.success
+                      : _downloadResult!.status ==
+                            AppUpdateDownloadStatus.canceled
+                      ? YhBannerKind.info
+                      : YhBannerKind.danger,
+                ),
+              ],
+              if (_openResult != null) ...[
+                SizedBox(height: theme.spacing.s),
+                _buildStatusMessage(
+                  context,
+                  _openResult!.message,
+                  kind: _openResult!.isOpened
+                      ? YhBannerKind.success
+                      : YhBannerKind.warn,
+                ),
+              ],
             ],
           ],
-        ],
+        ),
       ),
     );
   }
 
   IconData _resultIcon(AppUpdateStatus status) {
     return switch (status) {
-      AppUpdateStatus.available => FluentIcons.download,
-      AppUpdateStatus.upToDate => FluentIcons.checkMark,
-      AppUpdateStatus.unavailable => FluentIcons.info,
+      AppUpdateStatus.available => YhIcons.download,
+      AppUpdateStatus.upToDate => YhIcons.check,
+      AppUpdateStatus.unavailable => YhIcons.info,
     };
   }
 
@@ -298,50 +288,45 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
     BuildContext context,
     AppUpdateResolvedAsset resolvedAsset,
   ) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
+    final theme = context.yhTheme;
+    final mutedStyle = theme.typography.small.copyWith(
+      color: theme.color.muted,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '推荐资产：${resolvedAsset.asset.name}',
-          style: type.caption1.copyWith(color: colors.neutralForeground2),
+          style: mutedStyle,
           overflow: TextOverflow.ellipsis,
           maxLines: 2,
         ),
-        const SizedBox(height: AppSpacing.xs),
+        SizedBox(height: theme.spacing.xs),
         Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.xs,
+          spacing: theme.spacing.s,
+          runSpacing: theme.spacing.xs,
           children: [
-            Text(
-              resolvedAsset.asset.displaySize,
-              style: type.caption1.copyWith(color: colors.neutralForeground2),
-            ),
+            Text(resolvedAsset.asset.displaySize, style: mutedStyle),
             Text(
               '${resolvedAsset.platform} / ${resolvedAsset.arch}',
-              style: type.caption1.copyWith(color: colors.neutralForeground2),
+              style: mutedStyle,
             ),
             Text(
               '校验来源：${resolvedAsset.checksumSourceLabel}',
-              style: type.caption1.copyWith(color: colors.neutralForeground2),
+              style: mutedStyle,
             ),
           ],
         ),
         if (resolvedAsset.isPortable) ...[
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            '便携压缩包需要手动替换应用文件，应用不会自动解压或覆盖。',
-            style: type.caption1.copyWith(color: colors.neutralForeground2),
-          ),
+          SizedBox(height: theme.spacing.xs),
+          Text('便携压缩包需要手动替换应用文件，应用不会自动解压或覆盖。', style: mutedStyle),
         ],
       ],
     );
   }
 
   Widget _buildDownloadProgress(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
+    final theme = context.yhTheme;
     final progress = _downloadProgress;
     final percent = progress?.percent;
     final percentText = percent == null
@@ -350,16 +335,16 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FluentProgressBar(value: percent),
-        const SizedBox(height: AppSpacing.xs),
+        YhProgress(value: percent, showPercent: false, semanticLabel: '更新下载进度'),
+        SizedBox(height: theme.spacing.xs),
         Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.xs,
+          spacing: theme.spacing.s,
+          runSpacing: theme.spacing.xs,
           children: [
-            Text(percentText, style: type.caption1),
+            Text(percentText, style: theme.typography.small),
             Text(
               progress?.displayText ?? '等待网络响应',
-              style: type.caption1.copyWith(color: colors.neutralForeground2),
+              style: theme.typography.small.copyWith(color: theme.color.muted),
             ),
           ],
         ),
@@ -370,9 +355,9 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
   Widget _buildStatusMessage(
     BuildContext context,
     String message, {
-    required FluentInfoSeverity severity,
+    required YhBannerKind kind,
   }) {
-    return FluentInfoBar(severity: severity, title: Text(message));
+    return YhBanner(text: message, kind: kind);
   }
 
   Future<void> _checkForUpdates() async {

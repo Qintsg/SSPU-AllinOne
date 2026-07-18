@@ -38,6 +38,7 @@ class YhIcons {
   static const IconData favorite = system.FluentIcons.star_24_regular;
   static const IconData favoriteFilled = system.FluentIcons.star_24_filled;
   static const IconData open = system.FluentIcons.open_24_regular;
+  static const IconData download = system.FluentIcons.arrow_download_24_regular;
   static const IconData database = system.FluentIcons.database_24_regular;
   static const IconData video = system.FluentIcons.video_24_regular;
   static const IconData minimize = system.FluentIcons.subtract_24_regular;

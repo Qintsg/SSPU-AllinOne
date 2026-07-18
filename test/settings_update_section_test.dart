@@ -7,7 +7,7 @@
  */
 
 import 'package:dio/dio.dart';
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/services/app_update_service.dart';
 import 'package:sspu_allinone/widgets/settings_update_section.dart';
@@ -25,9 +25,9 @@ void main() {
       await tester.binding.setSurfaceSize(surfaceSize);
     }
     await tester.pumpWidget(
-      FluentApp(
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
+      YhApp(
+        home: YhPageScaffold(
+          body: SingleChildScrollView(
             child: SettingsUpdateSection(
               updateService: service,
               launchUrlOverride: launchUrlOverride,
