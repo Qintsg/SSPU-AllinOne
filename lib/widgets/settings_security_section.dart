@@ -8,7 +8,7 @@
 
 import 'dart:async';
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 import '../models/academic_credentials.dart';
 import '../models/email_mailbox.dart';
@@ -17,7 +17,6 @@ import '../services/academic_oa_session_prewarm_service.dart';
 import '../services/academic_login_validation_service.dart';
 import '../services/email_service.dart';
 import '../services/sports_attendance_service.dart';
-import '../theme/fluent_tokens.dart';
 import 'app_feedback.dart';
 import 'responsive_layout.dart';
 import 'settings_widgets.dart';
@@ -338,124 +337,124 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
 
   @override
   Widget build(BuildContext context) {
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('安全', style: FluentTheme.of(context).typography.subtitle),
-            const SizedBox(height: FluentSpacing.l),
+    final theme = context.yhTheme;
+    final titleStyle = theme.typography.body.copyWith(
+      fontWeight: FontWeight.w600,
+    );
+    final subtitleStyle = theme.typography.small.copyWith(
+      color: theme.color.muted,
+    );
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('安全', style: theme.typography.h2),
+          SizedBox(height: theme.spacing.l),
+          buildResponsiveSettingsRow(
+            context: context,
+            icon: YhIcons.lock,
+            title: Text('密码保护', style: titleStyle),
+            subtitle: Text(
+              widget.isPasswordEnabled
+                  ? '已开启 — 重新打开应用时需要输入密码'
+                  : '未开启 — 任何人可直接进入应用',
+              style: subtitleStyle,
+            ),
+            trailing: YhSwitch(
+              value: widget.isPasswordEnabled,
+              semanticLabel: '密码保护',
+              onChanged: widget.onPasswordProtectionChanged,
+            ),
+          ),
+          if (widget.isPasswordEnabled && widget.isQuickAuthAvailable) ...[
+            SizedBox(height: theme.spacing.l),
             buildResponsiveSettingsRow(
               context: context,
-              icon: FluentIcons.lock,
-              title: Text(
-                '密码保护',
-                style: FluentTheme.of(context).typography.bodyStrong,
-              ),
+              icon: YhIcons.fingerprint,
+              title: Text('系统快速验证', style: titleStyle),
               subtitle: Text(
-                widget.isPasswordEnabled
-                    ? '已开启 — 重新打开应用时需要输入密码'
-                    : '未开启 — 任何人可直接进入应用',
-                style: FluentTheme.of(context).typography.caption,
+                widget.isQuickAuthEnabled
+                    ? '已开启 — 锁定页会优先请求系统认证，仍可输入密码解锁'
+                    : '可使用设备 PIN、生物识别或平台支持的系统认证快速解锁',
+                style: subtitleStyle,
               ),
-              trailing: FluentSwitch(
-                value: widget.isPasswordEnabled,
-                onChanged: widget.onPasswordProtectionChanged,
-              ),
-            ),
-            if (widget.isPasswordEnabled && widget.isQuickAuthAvailable) ...[
-              const SizedBox(height: FluentSpacing.l),
-              buildResponsiveSettingsRow(
-                context: context,
-                icon: FluentIcons.fingerprint,
-                title: Text(
-                  '系统快速验证',
-                  style: FluentTheme.of(context).typography.bodyStrong,
-                ),
-                subtitle: Text(
-                  widget.isQuickAuthEnabled
-                      ? '已开启 — 锁定页会优先请求系统认证，仍可输入密码解锁'
-                      : '可使用设备 PIN、生物识别或平台支持的系统认证快速解锁',
-                  style: FluentTheme.of(context).typography.caption,
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (widget.isQuickAuthBusy) ...[
-                      const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: FluentProgressRing(strokeWidth: 2),
-                      ),
-                      const SizedBox(width: FluentSpacing.s),
-                    ],
-                    FluentSwitch(
-                      value: widget.isQuickAuthEnabled,
-                      onChanged: widget.isQuickAuthBusy
-                          ? null
-                          : widget.onQuickAuthChanged,
-                    ),
-                  ],
-                ),
-              ),
-            ] else if (widget.isPasswordEnabled) ...[
-              const SizedBox(height: FluentSpacing.l),
-              buildResponsiveSettingsRow(
-                context: context,
-                icon: FluentIcons.fingerprint,
-                title: Text(
-                  '系统快速验证不可用',
-                  style: FluentTheme.of(context).typography.bodyStrong,
-                ),
-                subtitle: Text(
-                  '当前平台、设备或系统认证未配置；仍可使用应用密码手动解锁。',
-                  style: FluentTheme.of(context).typography.caption,
-                ),
-                trailing: const Icon(FluentIcons.info, size: 16),
-              ),
-            ],
-            if (widget.isPasswordEnabled) ...[
-              const SizedBox(height: FluentSpacing.m),
-              Wrap(
-                spacing: FluentSpacing.m,
-                runSpacing: FluentSpacing.s,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  FluentButton.outline(
-                    onPressed: widget.onChangePassword,
-                    child: const Text('修改密码'),
-                  ),
-                  FluentButton.primary(
-                    onPressed: widget.onLock,
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(FluentIcons.lock, size: 14),
-                        SizedBox(width: FluentSpacing.xs + FluentSpacing.xxs),
-                        Text('立即上锁'),
-                      ],
+                  if (widget.isQuickAuthBusy) ...[
+                    SizedBox(
+                      width: theme.spacing.xl,
+                      child: const YhProgress(showPercent: false),
                     ),
+                    SizedBox(width: theme.spacing.s),
+                  ],
+                  YhSwitch(
+                    value: widget.isQuickAuthEnabled,
+                    semanticLabel: '系统快速验证',
+                    onChanged: widget.isQuickAuthBusy
+                        ? null
+                        : widget.onQuickAuthChanged,
                   ),
                 ],
               ),
-            ],
-            const SizedBox(height: FluentSpacing.xl),
-            const Divider(),
-            const SizedBox(height: FluentSpacing.l),
-            _buildAcademicCredentialsSection(context),
-            const SizedBox(height: FluentSpacing.xl),
-            const Divider(),
-            const SizedBox(height: FluentSpacing.l),
-            _DataManagementRow(
-              onClearMessageCache: widget.onClearMessageCache,
-              onClearAllData: widget.onClearAllData,
+            ),
+          ] else if (widget.isPasswordEnabled) ...[
+            SizedBox(height: theme.spacing.l),
+            buildResponsiveSettingsRow(
+              context: context,
+              icon: YhIcons.fingerprint,
+              title: Text('系统快速验证不可用', style: titleStyle),
+              subtitle: Text(
+                '当前平台、设备或系统认证未配置；仍可使用应用密码手动解锁。',
+                style: subtitleStyle,
+              ),
+              trailing: Icon(
+                YhIcons.info,
+                size: theme.spacing.m,
+                color: theme.color.muted,
+              ),
             ),
           ],
-        ),
+          if (widget.isPasswordEnabled) ...[
+            SizedBox(height: theme.spacing.m),
+            Wrap(
+              spacing: theme.spacing.m,
+              runSpacing: theme.spacing.s,
+              children: [
+                YhButton(
+                  label: '修改密码',
+                  onTap: widget.onChangePassword,
+                  variant: YhButtonVariant.secondary,
+                ),
+                YhButton(
+                  label: '立即上锁',
+                  onTap: widget.onLock,
+                  leadingIcon: YhIcons.lock,
+                ),
+              ],
+            ),
+          ],
+          SizedBox(height: theme.spacing.xl),
+          _securityDivider(context),
+          SizedBox(height: theme.spacing.l),
+          _buildAcademicCredentialsSection(context),
+          SizedBox(height: theme.spacing.xl),
+          _securityDivider(context),
+          SizedBox(height: theme.spacing.l),
+          _DataManagementRow(
+            onClearMessageCache: widget.onClearMessageCache,
+            onClearAllData: widget.onClearAllData,
+          ),
+        ],
       ),
     );
   }
+
+  Widget _securityDivider(BuildContext context) => SizedBox(
+    height: 1,
+    width: double.infinity,
+    child: ColoredBox(color: context.yhTheme.color.border),
+  );
 
   /// 返回密码字段展示名。
   String _secretLabel(AcademicCredentialSecret secret) {

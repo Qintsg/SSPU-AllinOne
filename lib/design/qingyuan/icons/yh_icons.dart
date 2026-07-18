@@ -61,4 +61,8 @@ class YhIcons {
   static const IconData certificate = system.FluentIcons.certificate_24_regular;
   static const IconData task = system.FluentIcons.clipboard_task_24_regular;
   static const IconData qrCode = system.FluentIcons.qr_code_24_regular;
+  static const IconData save = system.FluentIcons.save_24_regular;
+  static const IconData connect = system.FluentIcons.plug_connected_24_regular;
+  static const IconData delete = system.FluentIcons.delete_24_regular;
+  static const IconData clean = system.FluentIcons.broom_24_regular;
 }

@@ -11,50 +11,50 @@ part of 'settings_security_section.dart';
 extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
   /// 构建教务系统账号与密码保存区域。
   Widget _buildAcademicCredentialsSection(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     if (_isCredentialsLoading) {
-      return const Center(child: FluentProgressRing());
+      return const Center(
+        child: SizedBox(width: 240, child: YhProgress(showPercent: false)),
+      );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildAcademicCredentialsHeader(context),
-        const SizedBox(height: FluentSpacing.l),
+        SizedBox(height: theme.spacing.l),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              FluentInfoLabel(
+              YhTextField(
                 label: '学工号（OA账号）',
-                child: FluentTextField(
-                  controller: _oaAccountController,
-                  placeholder: '请输入学工号',
-                ),
+                controller: _oaAccountController,
+                hint: '请输入学工号',
               ),
-              const SizedBox(height: FluentSpacing.xs),
+              SizedBox(height: theme.spacing.xs),
               Text(
                 _credentialsStatus.emailAccount.isEmpty
                     ? '学校邮箱账号将自动使用“学工号@sspu.edu.cn”。'
                     : '学校邮箱账号：${_credentialsStatus.emailAccount}',
-                style: theme.typography.caption?.copyWith(
-                  color: theme.resources.textFillColorSecondary,
+                style: theme.typography.caption.copyWith(
+                  color: theme.color.muted,
                 ),
               ),
-              const SizedBox(height: FluentSpacing.m),
+              SizedBox(height: theme.spacing.m),
               _buildPasswordCredentialField(
                 label: 'OA账号密码',
                 controller: _oaPasswordController,
                 secret: AcademicCredentialSecret.oaPassword,
               ),
-              const SizedBox(height: FluentSpacing.m),
+              SizedBox(height: theme.spacing.m),
               _buildPasswordCredentialField(
                 label: '体育部查询密码',
                 controller: _sportsPasswordController,
                 secret: AcademicCredentialSecret.sportsQueryPassword,
               ),
-              const SizedBox(height: FluentSpacing.m),
+              SizedBox(height: theme.spacing.m),
               _buildPasswordCredentialField(
                 label: '邮箱密码',
                 controller: _emailPasswordController,
@@ -68,61 +68,36 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
   }
 
   Widget _buildAcademicCredentialsHeader(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     final summary = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('教务凭据', style: theme.typography.subtitle),
-        const SizedBox(height: FluentSpacing.xs),
+        Text('教务凭据', style: theme.typography.h3),
+        SizedBox(height: theme.spacing.xs),
         Text(
           '数据均加密存储在本地，不会上传至云端；密码框留空时不修改已保存密码。',
-          style: theme.typography.caption,
+          style: theme.typography.small.copyWith(color: theme.color.muted),
         ),
       ],
     );
     final actions = Wrap(
-      spacing: FluentSpacing.s,
-      runSpacing: FluentSpacing.s,
+      spacing: theme.spacing.s,
+      runSpacing: theme.spacing.s,
       children: [
-        FluentButton.primary(
-          onPressed: _isSavingCredentials ? null : _saveAcademicCredentials,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_isSavingCredentials) ...[
-                const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: FluentProgressRing(strokeWidth: 2),
-                ),
-              ] else ...[
-                const Icon(FluentIcons.save, size: 14),
-              ],
-              const SizedBox(width: 6),
-              const Text('保存教务凭据'),
-            ],
-          ),
+        YhButton(
+          label: _isSavingCredentials ? '保存中' : '保存教务凭据',
+          onTap: _isSavingCredentials ? null : _saveAcademicCredentials,
+          disabled: _isSavingCredentials,
+          leadingIcon: _isSavingCredentials ? null : YhIcons.save,
         ),
-        FluentButton.outline(
-          onPressed: _isSavingCredentials || _isValidatingAcademicLogin
+        YhButton(
+          label: _isValidatingAcademicLogin ? '验证中' : '验证登录',
+          onTap: _isSavingCredentials || _isValidatingAcademicLogin
               ? null
               : _validateAcademicLogin,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_isValidatingAcademicLogin) ...[
-                const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: FluentProgressRing(strokeWidth: 2),
-                ),
-              ] else ...[
-                const Icon(FluentIcons.plugConnected, size: 14),
-              ],
-              const SizedBox(width: 6),
-              const Text('验证登录'),
-            ],
-          ),
+          disabled: _isSavingCredentials || _isValidatingAcademicLogin,
+          leadingIcon: _isValidatingAcademicLogin ? null : YhIcons.connect,
+          variant: YhButtonVariant.secondary,
         ),
       ],
     );
@@ -135,7 +110,7 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               summary,
-              const SizedBox(height: FluentSpacing.m),
+              SizedBox(height: theme.spacing.m),
               actions,
             ],
           );
@@ -145,7 +120,7 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(child: summary),
-            const SizedBox(width: FluentSpacing.l),
+            SizedBox(width: theme.spacing.l),
             actions,
           ],
         );
@@ -164,33 +139,31 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _credentialFieldLabel(label, secret),
-        SizedBox(height: context.fluentSpacing.xs),
-        FluentTextField(
+        SizedBox(height: context.yhTheme.spacing.xs),
+        YhTextField(
+          label: label,
+          showLabel: false,
           controller: controller,
-          placeholder: '留空则不修改已保存密码',
-          obscureText: true,
-          prefixIcon: FluentIcons.lock,
+          hint: '留空则不修改已保存密码',
+          obscure: true,
+          prefixIcon: YhIcons.lock,
         ),
-        const SizedBox(height: FluentSpacing.xs),
+        SizedBox(height: context.yhTheme.spacing.xs),
         Wrap(
-          spacing: FluentSpacing.s,
-          runSpacing: FluentSpacing.xs,
+          spacing: context.yhTheme.spacing.s,
+          runSpacing: context.yhTheme.spacing.xs,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             _buildSecretStatus(hasSecret),
             if (hasSecret)
-              FluentButton.outline(
-                onPressed: _isSavingCredentials
+              YhButton(
+                label: '清除',
+                onTap: _isSavingCredentials
                     ? null
                     : () => _clearAcademicSecret(secret),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(FluentIcons.delete, size: 14),
-                    SizedBox(width: 6),
-                    Text('清除'),
-                  ],
-                ),
+                disabled: _isSavingCredentials,
+                leadingIcon: YhIcons.delete,
+                variant: YhButtonVariant.secondary,
               ),
           ],
         ),
@@ -199,16 +172,17 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
   }
 
   Widget _credentialFieldLabel(String label, AcademicCredentialSecret secret) {
-    final colors = context.fluentColors;
-    final labelStyle = context.fluentType.caption1Strong.copyWith(
-      color: colors.neutralForeground1,
+    final theme = context.yhTheme;
+    final labelStyle = theme.typography.small.copyWith(
+      color: theme.color.foreground,
+      fontWeight: FontWeight.w600,
     );
     final badge = _credentialValidationBadges[secret];
     if (badge == null) return Text(label, style: labelStyle);
 
     return Wrap(
-      spacing: FluentSpacing.xs,
-      runSpacing: FluentSpacing.xxs,
+      spacing: theme.spacing.xs,
+      runSpacing: theme.spacing.xs,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(label, style: labelStyle),
@@ -219,15 +193,7 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
 
   /// 构建已填写/未填写状态提示。
   Widget _buildSecretStatus(bool hasSecret) {
-    final theme = FluentTheme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(hasSecret ? FluentIcons.checkMark : FluentIcons.blocked, size: 14),
-        const SizedBox(width: FluentSpacing.xs),
-        Text(hasSecret ? '已填写' : '未填写', style: theme.typography.caption),
-      ],
-    );
+    return YhChip(label: hasSecret ? '已填写' : '未填写', selected: hasSecret);
   }
 }
 
@@ -258,16 +224,19 @@ class _CredentialValidationBadgeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
+    final theme = context.yhTheme;
     final foreground = badge.isSuccess
-        ? colors.statusSuccessForeground
-        : colors.statusDangerForeground;
+        ? theme.color.success
+        : theme.color.danger;
 
-    return Tooltip(
+    return YhTooltip(
       message: badge.message,
       child: Text(
         badge.isSuccess ? '验证通过' : '验证未通过',
-        style: context.fluentType.caption1Strong.copyWith(color: foreground),
+        style: theme.typography.small.copyWith(
+          color: foreground,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
