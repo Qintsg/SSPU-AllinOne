@@ -7,6 +7,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   overflow: hidden;
+  padding: 0;
 }
 
 button, input { font: inherit; }
