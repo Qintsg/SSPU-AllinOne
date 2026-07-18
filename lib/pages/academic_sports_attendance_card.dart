@@ -10,19 +10,10 @@ part of 'academic_page.dart';
 
 /// 教务中心体育部课外活动考勤卡片。
 class AcademicSportsAttendanceCard extends StatelessWidget {
-  /// 最近一次体育部考勤查询结果。
   final SportsAttendanceQueryResult? result;
-
-  /// 当前是否正在读取体育部系统。
   final bool isLoading;
-
-  /// 是否已开启自动刷新。
   final bool autoRefreshEnabled;
-
-  /// 手动刷新结束后的短暂反馈。
   final RefreshActionFeedback? refreshFeedback;
-
-  /// 手动刷新回调。
   final VoidCallback onRefresh;
 
   const AcademicSportsAttendanceCard({
@@ -36,50 +27,50 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = context.fluentAccents.sports;
+    final theme = context.yhTheme;
     final summary = result?.summary;
 
-    return FluentSurface(
+    return YhCard(
       key: const Key('academic-sports-card'),
-      accentColor: accent,
-      child: FluentStretchCardBody(
-        header: _SportsAttendanceCardHeader(
-          summary: summary,
-          canOpenDetail: result?.isSuccess == true && summary != null,
-          accentColor: accent,
-        ),
-        body: _SportsAttendanceCardContent(
-          result: result,
-          summary: summary,
-          isLoading: isLoading,
-          autoRefreshEnabled: autoRefreshEnabled,
-          severityForStatus: _sportsAttendanceSeverity,
-        ),
-        footer: _SportsAttendanceCardFooter(
-          lastRefreshLabel: _sportsAttendanceLastRefreshLabel(result),
-          isLoading: isLoading,
-          refreshFeedback: refreshFeedback,
-          onRefresh: onRefresh,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SportsAttendanceCardHeader(
+            summary: summary,
+            canOpenDetail: result?.isSuccess == true && summary != null,
+          ),
+          SizedBox(height: theme.spacing.m),
+          _SportsAttendanceCardContent(
+            result: result,
+            summary: summary,
+            isLoading: isLoading,
+            autoRefreshEnabled: autoRefreshEnabled,
+            kindForStatus: _sportsAttendanceBannerKind,
+          ),
+          SizedBox(height: theme.spacing.m),
+          _SportsAttendanceCardFooter(
+            lastRefreshLabel: _sportsAttendanceLastRefreshLabel(result),
+            isLoading: isLoading,
+            refreshFeedback: refreshFeedback,
+            onRefresh: onRefresh,
+          ),
+        ],
       ),
     );
   }
 
-  FluentInfoSeverity _sportsAttendanceSeverity(
-    SportsAttendanceQueryStatus status,
-  ) {
+  YhBannerKind _sportsAttendanceBannerKind(SportsAttendanceQueryStatus status) {
     return switch (status) {
-      SportsAttendanceQueryStatus.success => FluentInfoSeverity.success,
+      SportsAttendanceQueryStatus.success => YhBannerKind.success,
       SportsAttendanceQueryStatus.missingStudentId ||
       SportsAttendanceQueryStatus.missingSportsPassword ||
-      SportsAttendanceQueryStatus.campusNetworkUnavailable =>
-        FluentInfoSeverity.warning,
+      SportsAttendanceQueryStatus.campusNetworkUnavailable => YhBannerKind.warn,
       SportsAttendanceQueryStatus.loginPageUnavailable ||
       SportsAttendanceQueryStatus.credentialsRejected ||
       SportsAttendanceQueryStatus.sessionUnavailable ||
       SportsAttendanceQueryStatus.parseFailed ||
       SportsAttendanceQueryStatus.networkError ||
-      SportsAttendanceQueryStatus.unexpectedError => FluentInfoSeverity.error,
+      SportsAttendanceQueryStatus.unexpectedError => YhBannerKind.danger,
     };
   }
 
@@ -100,57 +91,51 @@ class _SportsAttendanceCardHeader extends StatelessWidget {
   const _SportsAttendanceCardHeader({
     required this.summary,
     required this.canOpenDetail,
-    required this.accentColor,
   });
 
   final SportsAttendanceSummary? summary;
   final bool canOpenDetail;
-  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    final title = Semantics(
-      header: true,
-      child: Text(
-        '课外活动考勤',
-        style: type.subtitle2.copyWith(color: colors.neutralForeground1),
-      ),
-    );
-    final detailAction = _buildDetailAction(context);
-
+    final theme = context.yhTheme;
+    final accent = theme.color.serviceSports;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FluentSurfaceIcon(icon: FluentIcons.running, color: accentColor),
-        const SizedBox(width: FluentSpacing.m),
-        Expanded(child: title),
-        const SizedBox(width: FluentSpacing.s),
-        Flexible(
-          child: Align(alignment: Alignment.centerRight, child: detailAction),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: theme.color.sunken,
+            border: Border.all(color: accent),
+            borderRadius: BorderRadius.circular(theme.radius.s),
+          ),
+          child: SizedBox.square(
+            dimension: theme.control.compact,
+            child: Icon(YhIcons.sports, color: accent),
+          ),
+        ),
+        SizedBox(width: theme.spacing.s),
+        Expanded(
+          child: Semantics(
+            header: true,
+            child: Text('课外活动考勤', style: theme.typography.h3),
+          ),
+        ),
+        SizedBox(width: theme.spacing.s),
+        YhButton(
+          label: '查看考勤记录',
+          leadingIcon: YhIcons.visibility,
+          variant: YhButtonVariant.secondary,
+          onTap: canOpenDetail && summary != null
+              ? () => Navigator.of(context).push(
+                  YhPageRoute(
+                    builder: (_) =>
+                        SportsAttendanceDetailPage(summary: summary!),
+                  ),
+                )
+              : null,
         ),
       ],
-    );
-  }
-
-  Widget _buildDetailAction(BuildContext context) {
-    return FluentButton.primary(
-      onPressed: canOpenDetail && summary != null
-          ? () => Navigator.of(context).push(
-              FluentPageRoute(
-                builder: (_) => SportsAttendanceDetailPage(summary: summary!),
-              ),
-            )
-          : null,
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(FluentIcons.list, size: 14),
-          SizedBox(width: 6),
-          Flexible(child: Text('查看考勤记录')),
-        ],
-      ),
     );
   }
 }
@@ -170,15 +155,16 @@ class _SportsAttendanceCardFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     return Align(
-      alignment: Alignment.centerLeft,
+      alignment: AlignmentDirectional.centerStart,
       child: RefreshStatusLine(
         label: lastRefreshLabel,
-        labelStyle: theme.typography.caption?.copyWith(
-          color: theme.resources.textFillColorSecondary,
-        ),
-        actionReservedWidth: refreshFeedback == null ? 32 : 180,
+        labelStyle: theme.typography.caption.copyWith(color: theme.color.muted),
+        minLineHeight: theme.control.minimumTarget,
+        actionReservedWidth: refreshFeedback == null
+            ? theme.control.minimumTarget
+            : theme.breakpoint.compact / 3,
         action: RefreshFeedbackAction(
           key: const Key('academic-sports-refresh'),
           tooltip: '手动刷新体育考勤',
@@ -186,10 +172,8 @@ class _SportsAttendanceCardFooter extends StatelessWidget {
           isLoading: isLoading,
           feedback: refreshFeedback,
           onPressed: onRefresh,
-          minTouchSize: 32,
-          size: 28,
-          iconSize: 15,
-          maxFeedbackWidth: 180,
+          minTouchSize: theme.control.minimumTarget,
+          maxFeedbackWidth: theme.breakpoint.compact / 3,
         ),
       ),
     );
@@ -202,28 +186,30 @@ class _SportsAttendanceCardContent extends StatelessWidget {
     required this.summary,
     required this.isLoading,
     required this.autoRefreshEnabled,
-    required this.severityForStatus,
+    required this.kindForStatus,
   });
 
   final SportsAttendanceQueryResult? result;
   final SportsAttendanceSummary? summary;
   final bool isLoading;
   final bool autoRefreshEnabled;
-  final FluentInfoSeverity Function(SportsAttendanceQueryStatus status)
-  severityForStatus;
+  final YhBannerKind Function(SportsAttendanceQueryStatus status) kindForStatus;
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     if (isLoading) {
-      return const Row(
+      return Row(
         children: [
           SizedBox(
-            width: 18,
-            height: 18,
-            child: FluentProgressRing(strokeWidth: 2),
+            width: theme.spacing.xl2 * 2,
+            child: const YhProgress(
+              showPercent: false,
+              semanticLabel: '正在读取体育部考勤',
+            ),
           ),
-          SizedBox(width: FluentSpacing.s),
-          Text('正在读取体育部考勤...'),
+          SizedBox(width: theme.spacing.s),
+          const Expanded(child: Text('正在读取体育部考勤...')),
         ],
       );
     }
@@ -233,6 +219,7 @@ class _SportsAttendanceCardContent extends StatelessWidget {
         autoRefreshEnabled
             ? '自动刷新已开启，等待下一次读取；也可点击卡片底部刷新图标。'
             : '自动刷新未开启。点击卡片底部刷新图标可手动读取；体育查询需要校园网或学校 VPN。',
+        style: theme.typography.body.copyWith(color: theme.color.muted),
       );
     }
 
@@ -240,10 +227,16 @@ class _SportsAttendanceCardContent extends StatelessWidget {
       return _SportsAttendanceSummaryView(summary: summary!);
     }
 
-    return FluentInfoBar(
-      title: Text(result!.message),
-      content: Text(result!.detail),
-      severity: severityForStatus(result!.status),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          result!.message,
+          style: theme.typography.body.copyWith(fontWeight: FontWeight.w600),
+        ),
+        SizedBox(height: theme.spacing.s),
+        YhBanner(text: result!.detail, kind: kindForStatus(result!.status)),
+      ],
     );
   }
 }
@@ -255,28 +248,68 @@ class _SportsAttendanceSummaryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final theme = context.yhTheme;
+    return Wrap(
+      spacing: theme.spacing.l,
+      runSpacing: theme.spacing.m,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Wrap(
-          spacing: FluentSpacing.l,
-          runSpacing: FluentSpacing.m,
-          crossAxisAlignment: WrapCrossAlignment.center,
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            minWidth:
+                theme.spacing.xl2 * 3 + theme.spacing.s + theme.spacing.xs,
+            maxWidth: theme.breakpoint.compact / 3 + theme.spacing.l,
+          ),
+          child: _SportsAttendanceTotalMetric(count: summary.totalCount),
+        ),
+        _SportsAttendanceCountWrap(summary: summary),
+      ],
+    );
+  }
+}
+
+class _SportsAttendanceTotalMetric extends StatelessWidget {
+  const _SportsAttendanceTotalMetric({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    final accent = theme.color.serviceSports;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.color.sunken,
+        border: Border.all(color: theme.color.border),
+        borderRadius: BorderRadius.circular(theme.radius.input),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(theme.spacing.m),
+        child: Row(
           children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 156, maxWidth: 220),
-              child: FluentMetricCard(
-                label: '总次数',
-                value: '${summary.totalCount}',
-                suffix: '次',
-                icon: FluentIcons.running,
-                tone: FluentStatusChipTone.success,
+            Icon(YhIcons.sports, color: accent),
+            SizedBox(width: theme.spacing.s),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '总次数',
+                    style: theme.typography.caption.copyWith(
+                      color: theme.color.muted,
+                    ),
+                  ),
+                  SizedBox(height: theme.spacing.xs),
+                  Text(
+                    '$count 次',
+                    style: theme.typography.h2.copyWith(color: accent),
+                  ),
+                ],
               ),
             ),
-            _SportsAttendanceCountWrap(summary: summary),
           ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -288,9 +321,10 @@ class _SportsAttendanceCountWrap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return Wrap(
-      spacing: FluentSpacing.s,
-      runSpacing: FluentSpacing.s,
+      spacing: theme.spacing.s,
+      runSpacing: theme.spacing.s,
       children: [
         _SportsAttendanceCountPill(
           category: SportsAttendanceCategory.morningExercise,
@@ -324,11 +358,6 @@ class _SportsAttendanceCountPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FluentStatusChip(
-      label: '${category.label} $count 次',
-      tone: count < 0
-          ? FluentStatusChipTone.warning
-          : FluentStatusChipTone.brand,
-    );
+    return YhChip(label: '${category.label} $count 次', selected: count >= 0);
   }
 }
