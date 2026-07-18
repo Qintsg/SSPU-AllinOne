@@ -9,6 +9,7 @@
 import 'dart:io';
 
 import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart' as qingyuan;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -337,21 +338,14 @@ void main() {
     }
   });
 
-  testWidgets('桌面侧边栏展开和收起时菜单按钮与导航项对齐', (WidgetTester tester) async {
+  testWidgets('清源导航按断点自动切换扩展轨紧凑轨和底栏', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     StorageService.debugUseSharedPreferencesStorageForTesting(true);
     final previousTargetPlatform = debugDefaultTargetPlatformOverride;
     final service = _buildCampusNetworkStatusService();
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
-    ({Offset menu, Offset home}) readNavigationCenters() {
-      return (
-        menu: tester.getCenter(find.byIcon(WindowsIcons.global_nav_button)),
-        home: tester.getCenter(find.byIcon(FluentIcons.home).first),
-      );
-    }
-
-    Future<({Offset menu, Offset home})> pumpAndReadCenters(Size size) async {
+    Future<void> pumpAt(Size size) async {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1.0;
       await tester.binding.setSurfaceSize(size);
@@ -359,36 +353,22 @@ void main() {
         FluentApp(home: AppShell(campusNetworkStatusService: service)),
       );
       await tester.pump(const Duration(milliseconds: 100));
-      final menuIcon = find.byIcon(WindowsIcons.global_nav_button);
-      expect(menuIcon, findsOneWidget);
-      return readNavigationCenters();
     }
 
     try {
-      final expanded = await pumpAndReadCenters(const Size(1280, 800));
-      final compactClosed = await pumpAndReadCenters(const Size(900, 800));
-      await tester.tap(find.byIcon(WindowsIcons.global_nav_button));
-      await tester.pumpAndSettle();
-      final compactOpen = readNavigationCenters();
-      final narrowClosed = await pumpAndReadCenters(const Size(700, 800));
-      await tester.tap(find.byIcon(WindowsIcons.global_nav_button));
-      await tester.pumpAndSettle();
-      final narrowOpen = readNavigationCenters();
+      await pumpAt(const Size(1280, 800));
+      expect(find.byType(qingyuan.YhNavRail), findsOneWidget);
+      expect(tester.getSize(find.byType(qingyuan.YhNavRail)).width, 220);
+      expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
 
-      for (final centers in [
-        expanded,
-        compactClosed,
-        compactOpen,
-        narrowClosed,
-        narrowOpen,
-      ]) {
-        expect(centers.menu.dx, closeTo(centers.home.dx, 1));
-      }
+      await pumpAt(const Size(900, 800));
+      expect(find.byType(qingyuan.YhNavRail), findsOneWidget);
+      expect(tester.getSize(find.byType(qingyuan.YhNavRail)).width, 80);
+      expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
 
-      expect(expanded.menu.dx, closeTo(compactClosed.menu.dx, 1));
-      expect(compactClosed.menu.dx, closeTo(narrowClosed.menu.dx, 1));
-      expect(compactClosed.menu.dy, closeTo(compactOpen.menu.dy, 3));
-      expect(narrowClosed.menu.dy, closeTo(narrowOpen.menu.dy, 3));
+      await pumpAt(const Size(700, 800));
+      expect(find.byType(qingyuan.YhNavRail), findsNothing);
+      expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
 
       await tester.pump(const Duration(milliseconds: 300));
     } finally {

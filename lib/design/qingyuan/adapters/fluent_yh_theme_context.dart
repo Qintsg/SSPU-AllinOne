@@ -19,3 +19,18 @@ class FluentYhThemeExtension extends ThemeExtension<FluentYhThemeExtension> {
     double t,
   ) => other != null && t >= 0.5 ? other : this;
 }
+
+class FluentYhThemeBridge extends StatelessWidget {
+  const FluentYhThemeBridge({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final host = FluentTheme.of(context);
+    final data =
+        host.extension<FluentYhThemeExtension>()?.data ??
+        (host.brightness == Brightness.dark ? YhTheme.dark : YhTheme.light);
+    return YhThemeScope(data: data, child: child);
+  }
+}

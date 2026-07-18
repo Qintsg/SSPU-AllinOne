@@ -1,12 +1,7 @@
-/*
- * 应用主体 — 根据 Fluent 2 窗口尺寸等级切换自适应导航结构
- * @Project : SSPU-AllinOne
- * @File : app.dart
- * @Author : Qintsg
- * @Date : 2026-04-18
- */
+/* 应用主体 — 清源响应式导航壳。 */
 
-import 'design/fluent_ui.dart';
+import 'design/qingyuan/adapters/fluent_yh_theme_context.dart';
+import 'design/qingyuan/qingyuan_ui.dart';
 import 'pages/academic_page.dart';
 import 'pages/course_schedule_page.dart';
 import 'pages/email_page.dart';
@@ -16,48 +11,34 @@ import 'pages/quick_links_page.dart';
 import 'pages/settings_page.dart';
 import 'services/app_display_name_service.dart';
 import 'services/campus_network_status_service.dart';
-import 'theme/app_breakpoints.dart';
-import 'theme/app_spacing.dart';
 
-part 'app_navigation_items.dart';
-
-/// 仅移动端原生平台需要优先启用底部导航。
 bool get _supportsMobileBottomNavigation {
   if (kIsWeb) return false;
-
   return switch (defaultTargetPlatform) {
     TargetPlatform.android || TargetPlatform.iOS => true,
     _ => false,
   };
 }
 
-/// 应用主体骨架。
-/// 管理 Fluent 2 自适应导航结构与页面切换。
 class AppShell extends StatefulWidget {
-  /// 手动上锁回调。
-  final VoidCallback? onLock;
-
-  /// 校园网 / VPN 状态检测服务，允许测试或后续平台实现注入。
-  final CampusNetworkStatusService? campusNetworkStatusService;
-
   const AppShell({super.key, this.onLock, this.campusNetworkStatusService});
+
+  final VoidCallback? onLock;
+  final CampusNetworkStatusService? campusNetworkStatusService;
 
   @override
   State<AppShell> createState() => _AppShellState();
 }
 
 class _AppShellState extends State<AppShell> {
-  /// 当前选中的导航项索引。
   int _selectedIndex = 0;
-
-  /// 已访问过的页面索引，用于懒加载并保留导航切换后的页面状态。
   final Set<int> _visitedDestinationIndexes = <int>{0};
+  SettingsLandingRequest? _settingsLandingRequest;
 
   List<_AppDestination> get _destinations => [
     _AppDestination(
       title: '主页',
-      icon: FluentIcons.home,
-      selectedIcon: FluentIcons.home,
+      icon: YhIcons.home,
       body: HomePage(
         campusNetworkStatusService: widget.campusNetworkStatusService,
         onOpenSettings: () => _openSettings(SettingsLandingSection.security),
@@ -65,38 +46,24 @@ class _AppShellState extends State<AppShell> {
     ),
     const _AppDestination(
       title: '教务',
-      icon: FluentIcons.education,
-      selectedIcon: FluentIcons.education,
+      icon: YhIcons.academic,
       body: AcademicPage(),
     ),
     const _AppDestination(
       title: '课表',
-      icon: FluentIcons.calendar,
-      selectedIcon: FluentIcons.calendar,
+      icon: YhIcons.calendar,
       body: CourseSchedulePage(),
     ),
-    const _AppDestination(
-      title: '信息',
-      icon: FluentIcons.info,
-      selectedIcon: FluentIcons.infoSolid,
-      body: InfoPage(),
-    ),
-    const _AppDestination(
-      title: '邮箱',
-      icon: FluentIcons.mail,
-      selectedIcon: FluentIcons.mail,
-      body: EmailPage(),
-    ),
+    const _AppDestination(title: '信息', icon: YhIcons.info, body: InfoPage()),
+    const _AppDestination(title: '邮箱', icon: YhIcons.mail, body: EmailPage()),
     const _AppDestination(
       title: '跳转',
-      icon: FluentIcons.link,
-      selectedIcon: FluentIcons.link,
+      icon: YhIcons.link,
       body: QuickLinksPage(),
     ),
     _AppDestination(
       title: '设置',
-      icon: FluentIcons.settings,
-      selectedIcon: FluentIcons.settings,
+      icon: YhIcons.settings,
       body: SettingsPage(
         onLock: widget.onLock,
         landingRequest: _settingsLandingRequest,
@@ -104,53 +71,46 @@ class _AppShellState extends State<AppShell> {
     ),
   ];
 
-  /// 设置页定位请求。
-  SettingsLandingRequest? _settingsLandingRequest;
-
   @override
   Widget build(BuildContext context) {
-    final destinations = _destinations;
-    final sizeClass = AppBreakpoints.of(context);
-    final orientation = MediaQuery.orientationOf(context);
-    final useBottomNavigation =
-        sizeClass == WindowSizeClass.compact ||
-        (_supportsMobileBottomNavigation &&
-            orientation == Orientation.portrait);
-
-    if (useBottomNavigation) {
-      return _CompactNavigationShell(
-        destinations: destinations,
-        selectedIndex: _selectedIndex,
-        visitedIndexes: _visitedDestinationIndexes,
-        onChanged: _selectDestination,
-      );
-    }
-
-    return _FluentNavigationShell(
-      destinations: destinations,
-      selectedIndex: _selectedIndex,
-      visitedIndexes: _visitedDestinationIndexes,
-      displayMode:
-          (sizeClass == WindowSizeClass.large ||
-              sizeClass == WindowSizeClass.extraLarge)
-          ? PaneDisplayMode.expanded
-          : PaneDisplayMode.compact,
-      onChanged: _selectDestination,
+    return FluentYhThemeBridge(
+      child: Builder(
+        builder: (context) {
+          final destinations = _destinations;
+          final width = MediaQuery.sizeOf(context).width;
+          final orientation = MediaQuery.orientationOf(context);
+          final useBottomNavigation =
+              width < context.yhTheme.breakpoint.medium ||
+              (_supportsMobileBottomNavigation &&
+                  orientation == Orientation.portrait);
+          if (useBottomNavigation) {
+            return _CompactNavigationShell(
+              destinations: destinations,
+              selectedIndex: _selectedIndex,
+              visitedIndexes: _visitedDestinationIndexes,
+              onChanged: _selectDestination,
+            );
+          }
+          return _DesktopNavigationShell(
+            destinations: destinations,
+            selectedIndex: _selectedIndex,
+            visitedIndexes: _visitedDestinationIndexes,
+            extended: width >= context.yhTheme.breakpoint.expanded,
+            onChanged: _selectDestination,
+          );
+        },
+      ),
     );
   }
 
-  /// 切换当前导航目的地。
   void _selectDestination(int index) {
-    final destinations = _destinations;
-    if (index < 0 || index >= destinations.length) return;
-
+    if (index < 0 || index >= _destinations.length) return;
     setState(() {
       _selectedIndex = index;
       _visitedDestinationIndexes.add(index);
     });
   }
 
-  /// 打开设置页并定位到指定分区。
   void _openSettings(SettingsLandingSection section) {
     setState(() {
       _settingsLandingRequest = SettingsLandingRequest(section);
@@ -164,33 +124,21 @@ class _AppShellState extends State<AppShell> {
 }
 
 class _AppDestination {
-  final String title;
-  final IconData icon;
-  final IconData selectedIcon;
-  final Widget body;
-
   const _AppDestination({
     required this.title,
     required this.icon,
-    required this.selectedIcon,
     required this.body,
   });
+
+  final String title;
+  final IconData icon;
+  final Widget body;
+
+  YhNavigationItem get navigationItem =>
+      YhNavigationItem(icon: icon, label: title);
 }
 
 class _CompactNavigationShell extends StatelessWidget {
-  final List<_AppDestination> destinations;
-  final int selectedIndex;
-  final Set<int> visitedIndexes;
-  final ValueChanged<int> onChanged;
-
-  static const List<int> _primaryIndexes = <int>[0, 1, 2, 3];
-  static const _moreDestination = _AppDestination(
-    title: '更多',
-    icon: FluentIcons.more,
-    selectedIcon: FluentIcons.more,
-    body: SizedBox.shrink(),
-  );
-
   const _CompactNavigationShell({
     required this.destinations,
     required this.selectedIndex,
@@ -198,219 +146,153 @@ class _CompactNavigationShell extends StatelessWidget {
     required this.onChanged,
   });
 
+  static const List<int> _primaryIndexes = <int>[0, 1, 2, 3];
+
+  final List<_AppDestination> destinations;
+  final int selectedIndex;
+  final Set<int> visitedIndexes;
+  final ValueChanged<int> onChanged;
+
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
     final primaryIndexes = _primaryIndexes
         .where((index) => index < destinations.length)
         .toList(growable: false);
     final hiddenIndexes = [
-      for (var i = 0; i < destinations.length; i++)
-        if (!primaryIndexes.contains(i)) i,
+      for (var index = 0; index < destinations.length; index++)
+        if (!primaryIndexes.contains(index)) index,
     ];
     final moreSelected = hiddenIndexes.contains(selectedIndex);
+    final navigationItems = [
+      for (final index in primaryIndexes) destinations[index].navigationItem,
+      if (hiddenIndexes.isNotEmpty)
+        const YhNavigationItem(icon: YhIcons.more, label: '更多'),
+    ];
+    final navigationIndex = moreSelected
+        ? navigationItems.length - 1
+        : primaryIndexes.indexOf(selectedIndex);
 
-    return ScaffoldPage(
-      padding: EdgeInsets.zero,
-      resizeToAvoidBottomInset: false,
-      content: MediaQuery.removePadding(
-        context: context,
-        removeBottom: true,
-        child: _NavigationBody(
-          destinations: destinations,
-          selectedIndex: selectedIndex,
-          visitedIndexes: visitedIndexes,
-        ),
-      ),
-      bottomBar: Container(
-        key: const Key('mobile-bottom-navigation'),
-        decoration: BoxDecoration(
-          color: colors.neutralBackground2,
-          border: Border(top: BorderSide(color: colors.neutralStrokeDivider)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.xs,
-              vertical: AppSpacing.xs,
-            ),
-            child: Row(
-              children: [
-                for (final i in primaryIndexes)
-                  Expanded(
-                    child: _FluentBottomNavigationItem(
-                      destination: destinations[i],
-                      selected: selectedIndex == i,
-                      onTap: () => onChanged(i),
-                    ),
-                  ),
-                if (hiddenIndexes.isNotEmpty)
-                  Expanded(
-                    child: _FluentBottomNavigationItem(
-                      destination: _moreDestination,
-                      selected: moreSelected,
-                      onTap: () => _openMoreDestinations(
-                        context,
-                        hiddenIndexes: hiddenIndexes,
-                      ),
-                    ),
-                  ),
-              ],
+    return ColoredBox(
+      color: context.yhTheme.color.background,
+      child: Column(
+        children: [
+          Expanded(
+            child: MediaQuery.removePadding(
+              context: context,
+              removeBottom: true,
+              child: _NavigationBody(
+                destinations: destinations,
+                selectedIndex: selectedIndex,
+                visitedIndexes: visitedIndexes,
+              ),
             ),
           ),
-        ),
+          Container(
+            key: const Key('mobile-bottom-navigation'),
+            color: context.yhTheme.color.surface,
+            child: SafeArea(
+              top: false,
+              child: YhBottomNav(
+                items: navigationItems,
+                index: navigationIndex < 0 ? 0 : navigationIndex,
+                onChanged: (index) {
+                  if (index < primaryIndexes.length) {
+                    onChanged(primaryIndexes[index]);
+                    return;
+                  }
+                  _openMoreDestinations(context, hiddenIndexes);
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  /// 打开移动端“更多”入口，承载低频页面避免底部导航拥挤。
   Future<void> _openMoreDestinations(
-    BuildContext context, {
-    required List<int> hiddenIndexes,
-  }) {
-    return showFluentBottomDrawer<void>(
-      context: context,
-      builder: (drawerContext) {
-        return FluentBottomDrawer(
-          title: const Text('更多'),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final index in hiddenIndexes)
-                Padding(
-                  padding: EdgeInsets.only(
-                    bottom: index == hiddenIndexes.last ? 0 : AppSpacing.sm,
-                  ),
-                  child: FluentSurface(
-                    subtle: true,
-                    elevated: false,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: AppSpacing.sm,
-                    ),
-                    semanticLabel: '打开${destinations[index].title}',
-                    onPressed: () {
-                      Navigator.of(drawerContext).pop();
-                      onChanged(index);
-                    },
-                    child: Row(
-                      children: [
-                        Icon(destinations[index].icon, size: 20),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(child: Text(destinations[index].title)),
-                        if (selectedIndex == index)
-                          Icon(
-                            FluentIcons.checkMark,
-                            size: 18,
-                            color: context.fluentColors.brandForeground1,
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
+    BuildContext context,
+    List<int> hiddenIndexes,
+  ) {
+    return YhBottomDrawer.show<void>(
+      context,
+      title: '更多',
+      builder: (drawerContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var offset = 0; offset < hiddenIndexes.length; offset++) ...[
+            YhButton(
+              label: destinations[hiddenIndexes[offset]].title,
+              leadingIcon: destinations[hiddenIndexes[offset]].icon,
+              trailingIcon: selectedIndex == hiddenIndexes[offset]
+                  ? YhIcons.check
+                  : YhIcons.chevronRight,
+              variant: YhButtonVariant.secondary,
+              onTap: () {
+                Navigator.of(drawerContext).pop();
+                onChanged(hiddenIndexes[offset]);
+              },
+            ),
+            if (offset < hiddenIndexes.length - 1)
+              SizedBox(height: context.yhTheme.spacing.s),
+          ],
+        ],
+      ),
     );
   }
 }
 
-class _FluentNavigationShell extends StatelessWidget {
-  final List<_AppDestination> destinations;
-  final int selectedIndex;
-  final Set<int> visitedIndexes;
-  final PaneDisplayMode displayMode;
-  final ValueChanged<int> onChanged;
-
-  const _FluentNavigationShell({
+class _DesktopNavigationShell extends StatelessWidget {
+  const _DesktopNavigationShell({
     required this.destinations,
     required this.selectedIndex,
     required this.visitedIndexes,
-    required this.displayMode,
+    required this.extended,
     required this.onChanged,
   });
 
+  final List<_AppDestination> destinations;
+  final int selectedIndex;
+  final Set<int> visitedIndexes;
+  final bool extended;
+  final ValueChanged<int> onChanged;
+
   @override
   Widget build(BuildContext context) {
-    final type = context.fluentType;
-
-    return NavigationView(
-      pane: NavigationPane(
-        selected: selectedIndex,
-        onChanged: onChanged,
-        displayMode: displayMode,
-        size: const NavigationPaneSize(
-          compactWidth: _AppNavigationMetrics.paneRailWidth,
-          openWidth: _AppNavigationMetrics.paneOpenWidth,
-          headerHeight: _AppNavigationMetrics.paneHeaderHeight,
-        ),
-        toggleButton: const _AppPaneToggleButton(),
-        header: Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: Text(
-            AppDisplayName.of(context),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: type.title2,
-          ),
-        ),
-        items: [
-          for (final destination in destinations)
-            PaneItem(
-              icon: Icon(destination.icon),
-              title: Text(destination.title),
-              body: const SizedBox.shrink(),
+    final theme = context.yhTheme;
+    return ColoredBox(
+      color: theme.color.background,
+      child: Row(
+        children: [
+          YhNavRail(
+            items: [
+              for (final destination in destinations)
+                destination.navigationItem,
+            ],
+            index: selectedIndex,
+            onChanged: onChanged,
+            extended: extended,
+            header: Padding(
+              padding: EdgeInsets.symmetric(horizontal: theme.spacing.s),
+              child: Text(
+                extended ? AppDisplayName.of(context) : '工大',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.typography.h3.copyWith(
+                  color: theme.color.structural,
+                ),
+              ),
             ),
-        ],
-      ),
-      paneBodyBuilder: (_, _) => _NavigationBody(
-        destinations: destinations,
-        selectedIndex: selectedIndex,
-        visitedIndexes: visitedIndexes,
-      ),
-    );
-  }
-}
-
-/// 主导航尺寸常量，确保展开 / 收起状态共用同一套头部轨道。
-class _AppNavigationMetrics {
-  const _AppNavigationMetrics._();
-
-  /// 收起态侧边轨道宽度。
-  static const double paneRailWidth = 50;
-
-  /// 展开态侧边栏宽度。
-  static const double paneOpenWidth = 232;
-
-  /// 顶部菜单按钮槽高度。
-  static const double paneHeaderHeight = 50;
-
-  /// 菜单按钮图标尺寸。
-  static const double paneToggleIconSize = 16;
-}
-
-/// 主导航菜单按钮。
-///
-/// 外部 `NavigationPane` 在 compact 和 expanded 下会给内置按钮套不同的
-/// 头部结构，因此这里固定按钮自身宽高，让三种状态的图标中心一致。
-class _AppPaneToggleButton extends StatelessWidget {
-  const _AppPaneToggleButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: _AppNavigationMetrics.paneRailWidth,
-      height: _AppNavigationMetrics.paneHeaderHeight,
-      child: Center(
-        child: IconButton(
-          icon: const Icon(
-            WindowsIcons.global_nav_button,
-            size: _AppNavigationMetrics.paneToggleIconSize,
           ),
-          onPressed: () => NavigationView.maybeOf(context)?.togglePane(),
-        ),
+          Expanded(
+            child: _NavigationBody(
+              destinations: destinations,
+              selectedIndex: selectedIndex,
+              visitedIndexes: visitedIndexes,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -432,11 +314,11 @@ class _NavigationBody extends StatelessWidget {
     return IndexedStack(
       index: selectedIndex,
       children: [
-        for (var i = 0; i < destinations.length; i++)
+        for (var index = 0; index < destinations.length; index++)
           KeyedSubtree(
-            key: ValueKey('app-destination-$i'),
-            child: visitedIndexes.contains(i)
-                ? destinations[i].body
+            key: ValueKey('app-destination-$index'),
+            child: visitedIndexes.contains(index)
+                ? destinations[index].body
                 : const SizedBox.shrink(),
           ),
       ],

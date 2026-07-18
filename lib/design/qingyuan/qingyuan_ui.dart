@@ -7,6 +7,7 @@ export 'package:flutter/widgets.dart';
 export 'app/yh_app.dart';
 export 'components/yh_button.dart';
 export 'components/yh_banner.dart';
+export 'components/yh_bottom_drawer.dart';
 export 'components/yh_card.dart';
 export 'components/yh_dialog.dart';
 export 'components/yh_icon_button.dart';

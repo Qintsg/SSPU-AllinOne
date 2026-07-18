@@ -64,12 +64,16 @@ class YhNavRail extends StatelessWidget {
     required this.index,
     required this.onChanged,
     this.extended = false,
+    this.header,
+    this.footer,
   });
 
   final List<YhNavigationItem> items;
   final int index;
   final ValueChanged<int> onChanged;
   final bool extended;
+  final Widget? header;
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +89,8 @@ class YhNavRail extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: theme.spacing.m),
           child: Column(
             children: [
+              ?header,
+              if (header != null) SizedBox(height: theme.spacing.m),
               for (var itemIndex = 0; itemIndex < items.length; itemIndex++)
                 Padding(
                   padding: EdgeInsets.symmetric(
@@ -98,6 +104,8 @@ class YhNavRail extends StatelessWidget {
                     horizontal: extended,
                   ),
                 ),
+              const Spacer(),
+              ?footer,
             ],
           ),
         ),
@@ -127,64 +135,69 @@ class _YhNavigationButton extends StatelessWidget {
         ? '${item.label}，${item.badge} 条未读'
         : item.label;
     return Semantics(
+      button: true,
       selected: selected,
+      label: label,
+      onTap: onPressed,
       container: true,
-      child: YhPressable(
-        semanticLabel: label,
-        onPressed: onPressed,
-        builder: (context, state, child) => DecoratedBox(
-          decoration: BoxDecoration(
-            color: selected
-                ? theme.color.brandTint
-                : state.hovered
-                ? theme.color.sunken
-                : theme.color.surface.withValues(alpha: 0),
-            borderRadius: BorderRadius.circular(theme.radius.full),
+      child: ExcludeSemantics(
+        child: YhPressable(
+          semanticLabel: label,
+          onPressed: onPressed,
+          builder: (context, state, child) => DecoratedBox(
+            decoration: BoxDecoration(
+              color: selected
+                  ? theme.color.brandTint
+                  : state.hovered
+                  ? theme.color.sunken
+                  : theme.color.surface.withValues(alpha: 0),
+              borderRadius: BorderRadius.circular(theme.radius.full),
+            ),
+            child: child,
           ),
-          child: child,
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: theme.spacing.s,
-            vertical: theme.spacing.xs,
-          ),
-          child: horizontal
-              ? Row(
-                  children: [
-                    Icon(item.icon, size: 22, color: foreground),
-                    SizedBox(width: theme.spacing.m),
-                    Expanded(
-                      child: Text(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: theme.spacing.s,
+              vertical: theme.spacing.xs,
+            ),
+            child: horizontal
+                ? Row(
+                    children: [
+                      Icon(item.icon, size: 22, color: foreground),
+                      SizedBox(width: theme.spacing.m),
+                      Expanded(
+                        child: Text(
+                          item.label,
+                          style: theme.typography.small.copyWith(
+                            color: foreground,
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(item.icon, size: 22, color: foreground),
+                      SizedBox(height: theme.spacing.xs),
+                      Text(
                         item.label,
-                        style: theme.typography.small.copyWith(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.typography.caption.copyWith(
                           color: foreground,
                           fontWeight: selected
                               ? FontWeight.w600
                               : FontWeight.w400,
                         ),
                       ),
-                    ),
-                  ],
-                )
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(item.icon, size: 22, color: foreground),
-                    SizedBox(height: theme.spacing.xs),
-                    Text(
-                      item.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.typography.caption.copyWith(
-                        color: foreground,
-                        fontWeight: selected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );
