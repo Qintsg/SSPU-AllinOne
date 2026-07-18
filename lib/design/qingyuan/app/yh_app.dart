@@ -17,6 +17,8 @@ class YhApp extends StatelessWidget {
     this.themeMode = YhThemeMode.system,
     this.debugShowCheckedModeBanner = false,
     this.title = '工大聚合',
+    this.onGenerateTitle,
+    this.builder,
     this.locale,
     this.localizationsDelegates = const <LocalizationsDelegate<dynamic>>[],
     this.supportedLocales = const <Locale>[Locale('zh', 'CN')],
@@ -29,6 +31,8 @@ class YhApp extends StatelessWidget {
   final YhThemeMode themeMode;
   final bool debugShowCheckedModeBanner;
   final String title;
+  final GenerateAppTitle? onGenerateTitle;
+  final TransitionBuilder? builder;
   final Locale? locale;
   final Iterable<LocalizationsDelegate<dynamic>> localizationsDelegates;
   final Iterable<Locale> supportedLocales;
@@ -49,6 +53,7 @@ class YhApp extends StatelessWidget {
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: debugShowCheckedModeBanner,
       title: title,
+      onGenerateTitle: onGenerateTitle,
       locale: locale,
       localizationsDelegates: localizationsDelegates,
       supportedLocales: supportedLocales,
@@ -59,14 +64,19 @@ class YhApp extends StatelessWidget {
         final resolved = _resolveTheme(context);
         return YhThemeScope(
           data: resolved,
-          child: ColoredBox(
-            color: resolved.color.background,
-            child: DefaultTextStyle(
-              style: resolved.typography.body.copyWith(
-                color: resolved.color.foreground,
-              ),
-              child: child ?? const SizedBox.shrink(),
-            ),
+          child: Builder(
+            builder: (themedContext) {
+              final content = ColoredBox(
+                color: resolved.color.background,
+                child: DefaultTextStyle(
+                  style: resolved.typography.body.copyWith(
+                    color: resolved.color.foreground,
+                  ),
+                  child: child ?? const SizedBox.shrink(),
+                ),
+              );
+              return builder?.call(themedContext, content) ?? content;
+            },
           ),
         );
       },

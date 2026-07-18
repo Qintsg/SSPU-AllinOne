@@ -1,5 +1,5 @@
 /*
- * 应用入口 — 初始化 FluentApp 并处理协议确认、密码保护、窗口关闭与托盘逻辑
+ * 应用入口 — 初始化清源宿主并处理协议确认、密码保护、窗口关闭与托盘逻辑
  * @Project : SSPU-AllinOne
  * @File : main.dart
  * @Author : Qintsg
@@ -8,7 +8,8 @@
 
 import 'dart:async';
 import 'dart:io';
-import 'design/fluent_ui.dart';
+
+import 'design/qingyuan/qingyuan_ui.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'app.dart';
@@ -26,11 +27,8 @@ import 'services/academic_oa_session_prewarm_service.dart';
 import 'widgets/desktop_window_frame.dart';
 import 'widgets/legal_consent_dialog.dart';
 
-import 'theme/app_spacing.dart';
-import 'theme/app_theme.dart';
-
-/// 字体族常量（已迁移至 AppTheme.fontFamily，保留兼容引用）
-const String kFontFamily = AppTheme.fontFamily;
+/// 字体族常量（保留历史公开引用，实际由清源排版 token 管理）。
+const String kFontFamily = YhTypographyTokens.fontFamilyBody;
 
 /// 桌面窗口插件仅在 Flutter 桌面平台注册。
 bool get _supportsDesktopShell =>
@@ -55,7 +53,7 @@ void main() async {
 /// 配置桌面端标题栏。
 ///
 /// macOS 保留系统红绿灯窗口控制按钮，Windows / Linux 继续隐藏原生按钮并使用
-/// Flutter 自绘 Fluent 标题栏按钮。
+/// Flutter 自绘清源标题栏按钮。
 Future<void> _configureDesktopTitleBar() async {
   await windowManager.setTitleBarStyle(
     TitleBarStyle.hidden,
@@ -64,7 +62,7 @@ Future<void> _configureDesktopTitleBar() async {
 }
 
 /// 应用根 Widget
-/// 配置 Fluent 主题、暗色模式支持、国际化代理
+/// 配置清源主题、暗色模式支持、国际化代理
 /// 同时监听窗口关闭事件和系统托盘交互
 class SSPUApp extends StatefulWidget {
   const SSPUApp({super.key});
@@ -92,7 +90,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 启动初始化失败时显示明确错误，避免长期停留在加载状态。
   String? _startupErrorMessage;
 
-  /// FluentApp 内部导航器 key，用于在 WindowListener 回调中弹出对话框
+  /// 清源应用内部导航器 key，用于在 WindowListener 回调中弹出对话框。
   final _navigatorKey = GlobalKey<NavigatorState>();
 
   /// 主界面共享的校园网 / VPN 状态检测服务。
@@ -203,39 +201,64 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     _closeDialogShowing = true;
     bool rememberChoice = false;
 
-    showFluentDialog<void>(
-      context: ctx,
+    YhDialog.show<void>(
+      ctx,
       barrierDismissible: true,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (_, setDialogState) {
-            return FluentDialog(
-              title: const Text('关闭应用'),
+            final theme = dialogContext.yhTheme;
+            return YhDialog(
+              title: '关闭应用',
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const FluentDialogMessage(
-                    icon: FluentIcons.clear,
-                    message: '请选择点击窗口关闭按钮时的处理方式。',
-                    details: '也可以点击弹窗外的空白区域取消本次操作，应用会继续保持打开。',
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(YhIcons.close, color: theme.color.brandStrong),
+                      SizedBox(width: theme.spacing.s),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '请选择点击窗口关闭按钮时的处理方式。',
+                              style: theme.typography.body.copyWith(
+                                color: theme.color.foreground,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            SizedBox(height: theme.spacing.xs),
+                            const Text('也可以点击弹窗外的空白区域取消本次操作，应用会继续保持打开。'),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  Checkbox(
-                    checked: rememberChoice,
-                    semanticLabel: '以后都使用此选项',
-                    content: const Text('以后都使用此选项'),
-                    onChanged: (value) {
-                      setDialogState(() => rememberChoice = value ?? false);
-                    },
+                  SizedBox(height: theme.spacing.m),
+                  Row(
+                    children: [
+                      const Expanded(child: Text('以后都使用此选项')),
+                      SizedBox(width: theme.spacing.s),
+                      YhSwitch(
+                        value: rememberChoice,
+                        semanticLabel: '以后都使用此选项',
+                        onChanged: (value) {
+                          setDialogState(() => rememberChoice = value);
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
               actions: [
-                FluentButton.outlineIcon(
-                  icon: const Icon(FluentIcons.blocked),
-                  label: const Text('最小化到托盘'),
-                  onPressed: () async {
+                YhButton(
+                  label: '最小化到托盘',
+                  leadingIcon: YhIcons.minimize,
+                  variant: YhButtonVariant.secondary,
+                  onTap: () async {
                     Navigator.pop(dialogContext);
                     if (rememberChoice) {
                       await StorageService.setCloseBehavior('minimize');
@@ -243,10 +266,11 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
                     await windowManager.hide();
                   },
                 ),
-                FluentButton.primaryIcon(
-                  icon: const Icon(FluentIcons.power),
-                  label: const Text('退出应用'),
-                  onPressed: () async {
+                YhButton(
+                  label: '退出应用',
+                  leadingIcon: YhIcons.power,
+                  variant: YhButtonVariant.danger,
+                  onTap: () async {
                     Navigator.pop(dialogContext);
                     if (rememberChoice) {
                       await StorageService.setCloseBehavior('exit');
@@ -331,13 +355,13 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
 
   @override
   Widget build(BuildContext context) {
-    return FluentApp(
+    return YhApp(
       navigatorKey: _navigatorKey,
       title: AppDisplayName.english,
       onGenerateTitle: AppDisplayName.of,
-      theme: AppTheme.build(Brightness.light),
-      darkTheme: AppTheme.build(Brightness.dark),
-      themeMode: ThemeMode.system,
+      theme: YhTheme.light,
+      darkTheme: YhTheme.dark,
+      themeMode: YhThemeMode.system,
       debugShowCheckedModeBanner: false,
       home: _buildHome(),
       builder: (context, child) {
@@ -365,18 +389,11 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 根据初始化、协议确认和密码验证状态构建首屏
   Widget _buildHome() {
     if (!_isInitialized) {
-      return const ScaffoldPage(content: Center(child: FluentProgressRing()));
+      return const _StartupStatus(progressLabel: '正在初始化应用');
     }
 
     if (_startupErrorMessage != null) {
-      return ScaffoldPage(
-        content: Center(
-          child: Padding(
-            padding: AppSpacing.regularPagePadding,
-            child: Text(_startupErrorMessage!),
-          ),
-        ),
-      );
+      return _StartupStatus(errorMessage: _startupErrorMessage!);
     }
 
     // 未接受协议时显示空白页并弹出协议对话框。
@@ -384,9 +401,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       return Builder(
         builder: (context) {
           _showAgreementDialog(context);
-          return const ScaffoldPage(
-            content: Center(child: FluentProgressRing()),
-          );
+          return const _StartupStatus(progressLabel: '正在准备法律与隐私说明');
         },
       );
     }
@@ -404,6 +419,50 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     return AppShell(
       onLock: _lockApp,
       campusNetworkStatusService: _campusNetworkStatusService,
+    );
+  }
+}
+
+/// 应用启动阶段的确定性占位页。
+class _StartupStatus extends StatelessWidget {
+  const _StartupStatus({this.progressLabel, this.errorMessage});
+
+  final String? progressLabel;
+  final String? errorMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return YhPageScaffold(
+      body: Center(
+        child: Padding(
+          padding: EdgeInsets.all(theme.spacing.l),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: theme.breakpoint.compact - theme.spacing.xl2 * 2,
+            ),
+            child: errorMessage != null
+                ? YhBanner(text: errorMessage!, kind: YhBannerKind.danger)
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      YhProgress(
+                        showPercent: false,
+                        semanticLabel: progressLabel,
+                      ),
+                      SizedBox(height: theme.spacing.m),
+                      Text(
+                        progressLabel ?? '正在启动',
+                        textAlign: TextAlign.center,
+                        style: theme.typography.small.copyWith(
+                          color: theme.color.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
     );
   }
 }

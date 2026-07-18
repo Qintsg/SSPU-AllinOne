@@ -46,6 +46,35 @@ void main() {
     expect(actual.color.background, const Color(0xFF14171A));
   });
 
+  testWidgets('清源宿主包装器继承已解析主题并保留动态标题', (tester) async {
+    late YhTheme wrapperTheme;
+
+    await tester.pumpWidget(
+      YhApp(
+        themeMode: YhThemeMode.dark,
+        onGenerateTitle: (_) => '清源动态标题',
+        builder: (context, child) {
+          wrapperTheme = context.yhTheme;
+          return KeyedSubtree(
+            key: const Key('app-wrapper'),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
+        home: const SizedBox.shrink(),
+      ),
+    );
+
+    expect(wrapperTheme, same(YhTheme.dark));
+    expect(find.byKey(const Key('app-wrapper')), findsOneWidget);
+    final widgetsApp = tester.widget<WidgetsApp>(find.byType(WidgetsApp));
+    expect(
+      widgetsApp.onGenerateTitle!(
+        tester.element(find.byKey(const Key('app-wrapper'))),
+      ),
+      '清源动态标题',
+    );
+  });
+
   test('清源亮暗主题覆盖完整基础契约', () {
     expect(YhTheme.light.color.background, const Color(0xFFF7F6F5));
     expect(YhTheme.dark.color.background, const Color(0xFF14171A));

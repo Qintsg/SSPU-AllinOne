@@ -45,6 +45,7 @@ class YhIcons {
   static const IconData database = system.FluentIcons.database_24_regular;
   static const IconData video = system.FluentIcons.video_24_regular;
   static const IconData minimize = system.FluentIcons.subtract_24_regular;
+  static const IconData power = system.FluentIcons.power_24_regular;
   static const IconData maximize = system.FluentIcons.maximize_24_regular;
   static const IconData restore = system.FluentIcons.square_multiple_24_regular;
   static const IconData networkVpn = system.FluentIcons.shield_lock_24_regular;
