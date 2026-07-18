@@ -8,7 +8,7 @@
 
 import 'dart:async';
 
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/models/email_mailbox.dart';
@@ -31,7 +31,7 @@ Future<void> pumpEmailPage(
   int emailAutoRefreshIntervalOverride = 30,
 }) async {
   await tester.pumpWidget(
-    FluentApp(
+    YhApp(
       home: EmailPage(
         emailService: emailService,
         emailAutoRefreshEnabledOverride: emailAutoRefreshEnabledOverride,
@@ -125,7 +125,7 @@ void main() {
 
     expect(service.validateCount, 1);
     expect(find.text('SMTP 登录校验通过'), findsNothing);
-    expect(find.byType(FluentInfoBar), findsOneWidget);
+    expect(find.byType(YhBanner), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 120));
   });
@@ -144,15 +144,15 @@ void main() {
     expect(find.byKey(const Key('email-compose-panel')), findsOneWidget);
 
     await tester.enterText(
-      find.widgetWithText(FluentTextField, '收件人'),
+      find.widgetWithText(YhTextField, '收件人'),
       'to@example.com',
     );
     await tester.enterText(
-      find.widgetWithText(FluentTextField, '抄送'),
+      find.widgetWithText(YhTextField, '抄送'),
       'cc@example.com',
     );
-    await tester.enterText(find.widgetWithText(FluentTextField, '主题'), '测试主题');
-    await tester.enterText(find.widgetWithText(FluentTextField, '正文'), '测试正文');
+    await tester.enterText(find.widgetWithText(YhTextField, '主题'), '测试主题');
+    await tester.enterText(find.widgetWithText(YhTextField, '正文'), '测试正文');
     await tester.ensureVisible(find.text('发送邮件'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('发送邮件'));

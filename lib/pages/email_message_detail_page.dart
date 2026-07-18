@@ -17,48 +17,52 @@ class EmailMessageDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return FluentPage.scrollable(
-      header: FluentPageHeader(
-        title: const Text('邮件正文'),
-        commandBar: FluentButton.outline(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('返回'),
+    final theme = context.yhTheme;
+    return YhPageScaffold(
+      appBar: YhAppBar(
+        title: '邮件正文',
+        leading: YhIconButton(
+          icon: YhIcons.back,
+          semanticLabel: '返回',
+          onTap: () => Navigator.of(context).pop(),
         ),
       ),
-      children: [
-        FluentCard(
-          padding: EdgeInsets.zero,
-          child: Padding(
-            padding: const EdgeInsets.all(FluentSpacing.l),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(theme.spacing.m),
+        child: Align(
+          alignment: AlignmentDirectional.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(message.subject, style: theme.typography.bodyStrong),
-                const SizedBox(height: FluentSpacing.s),
-                Text('发件人：${_senderLabel(message)}'),
-                Text('时间：${_formatOptionalDateTime(message.receivedAt)}'),
+                YhCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(message.subject, style: theme.typography.h3),
+                      SizedBox(height: theme.spacing.s),
+                      Text('发件人：${_senderLabel(message)}'),
+                      Text('时间：${_formatOptionalDateTime(message.receivedAt)}'),
+                    ],
+                  ),
+                ),
+                SizedBox(height: theme.spacing.m),
+                const YhBanner(
+                  text: '只读正文快照：正文来自本次收信结果，不会执行回复、转发、删除、移动或标记已读操作。',
+                ),
+                SizedBox(height: theme.spacing.m),
+                YhCard(
+                  child: YhSelectableText(
+                    message.body.isEmpty ? '无可展示正文。' : message.body,
+                    semanticLabel: '邮件正文内容',
+                  ),
+                ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: FluentSpacing.m),
-        const FluentInfoBar(
-          title: Text('只读正文快照'),
-          content: Text('正文来自本次收信结果，不会执行回复、转发、删除、移动或标记已读操作。'),
-          severity: FluentInfoSeverity.info,
-        ),
-        const SizedBox(height: FluentSpacing.m),
-        FluentCard(
-          padding: EdgeInsets.zero,
-          child: Padding(
-            padding: const EdgeInsets.all(FluentSpacing.l),
-            child: SelectableText(
-              message.body.isEmpty ? '无可展示正文。' : message.body,
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 

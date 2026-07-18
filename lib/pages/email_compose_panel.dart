@@ -46,7 +46,7 @@ class EmailComposePanel extends StatelessWidget {
   final EmailSendResult? result;
 
   /// 查询状态到信息等级的映射。
-  final FluentInfoSeverity Function(EmailQueryStatus status) severityOf;
+  final YhBannerKind Function(EmailQueryStatus status) severityOf;
 
   /// 点击发送。
   final VoidCallback onSend;
@@ -56,38 +56,49 @@ class EmailComposePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return FluentSurface(
+    final theme = context.yhTheme;
+    return YhCard(
       key: const Key('email-compose-panel'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FluentSectionHeader(
-            title: '撰写邮件',
-            subtitle: '通过学校邮箱 SMTP 发送普通文本邮件',
-            icon: FluentIcons.edit,
-            action: Wrap(
-              spacing: FluentSpacing.s,
-              runSpacing: FluentSpacing.xs,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                FluentStatusChip(
-                  label: 'SMTP 发信',
-                  icon: FluentIcons.send,
-                  tone: FluentStatusChipTone.brand,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(YhIcons.edit, color: theme.color.serviceMail),
+              SizedBox(width: theme.spacing.s),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('撰写邮件', style: theme.typography.h3),
+                    SizedBox(height: theme.spacing.xs),
+                    Text(
+                      '通过学校邮箱 SMTP 发送普通文本邮件',
+                      style: theme.typography.caption.copyWith(
+                        color: theme.color.muted,
+                      ),
+                    ),
+                  ],
                 ),
-                if (onCancel != null)
-                  IconButton(
-                    onPressed: isSending ? null : onCancel,
-                    icon: const Icon(FluentIcons.clear),
-                  ),
+              ),
+              YhChip(label: 'SMTP 发信', selected: true),
+              if (onCancel != null) ...[
+                SizedBox(width: theme.spacing.s),
+                YhIconButton(
+                  icon: YhIcons.close,
+                  semanticLabel: '关闭撰写邮件',
+                  onTap: isSending ? null : onCancel,
+                ),
               ],
-            ),
+            ],
           ),
-          const SizedBox(height: FluentSpacing.m),
+          SizedBox(height: theme.spacing.m),
           LayoutBuilder(
             builder: (context, constraints) {
-              final twoColumns = constraints.maxWidth >= 560;
+              final twoColumns =
+                  constraints.maxWidth >=
+                  theme.breakpoint.compact - theme.control.compact;
               if (!twoColumns) {
                 return Column(
                   children: [
@@ -96,13 +107,13 @@ class EmailComposePanel extends StatelessWidget {
                       controller: toController,
                       placeholder: 'name@example.com',
                     ),
-                    const SizedBox(height: FluentSpacing.s),
+                    SizedBox(height: theme.spacing.s),
                     _buildAddressField(
                       label: '抄送',
                       controller: ccController,
                       placeholder: '可选',
                     ),
-                    const SizedBox(height: FluentSpacing.s),
+                    SizedBox(height: theme.spacing.s),
                     _buildAddressField(
                       label: '密送',
                       controller: bccController,
@@ -119,7 +130,7 @@ class EmailComposePanel extends StatelessWidget {
                     controller: toController,
                     placeholder: 'name@example.com',
                   ),
-                  const SizedBox(height: FluentSpacing.s),
+                  SizedBox(height: theme.spacing.s),
                   Row(
                     children: [
                       Expanded(
@@ -129,7 +140,7 @@ class EmailComposePanel extends StatelessWidget {
                           placeholder: '可选',
                         ),
                       ),
-                      const SizedBox(width: FluentSpacing.s),
+                      SizedBox(width: theme.spacing.s),
                       Expanded(
                         child: _buildAddressField(
                           label: '密送',
@@ -143,71 +154,53 @@ class EmailComposePanel extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: FluentSpacing.s),
-          FluentTextField(
+          SizedBox(height: theme.spacing.s),
+          YhTextField(
             controller: subjectController,
             label: '主题',
-            placeholder: '邮件主题',
+            hint: '邮件主题',
             enabled: !isSending,
             textInputAction: TextInputAction.next,
           ),
-          const SizedBox(height: FluentSpacing.s),
-          FluentTextField(
+          SizedBox(height: theme.spacing.s),
+          YhTextField(
             controller: bodyController,
             label: '正文',
-            placeholder: '输入邮件正文',
+            hint: '输入邮件正文',
             enabled: !isSending,
-            minLines: 8,
-            maxLines: 12,
+            maxLines: 8,
             keyboardType: TextInputType.multiline,
           ),
-          const SizedBox(height: FluentSpacing.s),
+          SizedBox(height: theme.spacing.s),
           Text(
             '支持用逗号、分号或换行分隔多个地址；暂不支持附件、草稿或后台重试。',
-            style: theme.typography.caption?.copyWith(
-              color: theme.resources.textFillColorSecondary,
-            ),
+            style: theme.typography.caption.copyWith(color: theme.color.muted),
           ),
           if (result != null) ...[
-            const SizedBox(height: FluentSpacing.m),
-            FluentInfoBar(
-              title: Text(result!.message),
-              content: Text(result!.detail),
-              severity: severityOf(result!.status),
-            ),
+            SizedBox(height: theme.spacing.m),
+            Text(result!.message, style: theme.typography.h3),
+            SizedBox(height: theme.spacing.s),
+            YhBanner(text: result!.detail, kind: severityOf(result!.status)),
           ],
-          const SizedBox(height: FluentSpacing.m),
+          SizedBox(height: theme.spacing.m),
           Align(
             alignment: Alignment.centerRight,
             child: Wrap(
-              spacing: FluentSpacing.s,
-              runSpacing: FluentSpacing.xs,
+              spacing: theme.spacing.s,
+              runSpacing: theme.spacing.xs,
               alignment: WrapAlignment.end,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 if (onCancel != null)
-                  FluentButton.outline(
-                    onPressed: isSending ? null : onCancel,
-                    child: const Text('取消'),
+                  YhButton(
+                    label: '取消',
+                    variant: YhButtonVariant.secondary,
+                    onTap: isSending ? null : onCancel,
                   ),
-                FluentButton.primary(
-                  onPressed: isSending ? null : onSend,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isSending) ...[
-                        const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: FluentProgressRing(strokeWidth: 2),
-                        ),
-                      ] else ...[
-                        const Icon(FluentIcons.send, size: 14),
-                      ],
-                      const SizedBox(width: FluentSpacing.xs),
-                      Text(isSending ? '正在发送' : '发送邮件'),
-                    ],
-                  ),
+                YhButton(
+                  label: isSending ? '正在发送' : '发送邮件',
+                  leadingIcon: isSending ? null : YhIcons.send,
+                  onTap: isSending ? null : onSend,
                 ),
               ],
             ),
@@ -222,10 +215,10 @@ class EmailComposePanel extends StatelessWidget {
     required TextEditingController controller,
     required String placeholder,
   }) {
-    return FluentTextField(
+    return YhTextField(
       controller: controller,
       label: label,
-      placeholder: placeholder,
+      hint: placeholder,
       enabled: !isSending,
       textInputAction: TextInputAction.next,
     );

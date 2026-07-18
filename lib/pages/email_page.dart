@@ -8,13 +8,10 @@
 
 import 'dart:async';
 
-import '../design/fluent_ui.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-
+import '../design/qingyuan/qingyuan_ui.dart';
 import '../models/email_mailbox.dart';
 import '../services/academic_credentials_service.dart';
 import '../services/email_service.dart';
-import '../theme/fluent_tokens.dart';
 import '../widgets/app_feedback.dart';
 
 part 'email_compose_panel.dart';
@@ -315,31 +312,41 @@ class _EmailPageState extends State<EmailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return FluentPage.scrollable(
-      header: const FluentPageHeader(title: Text('学校邮箱')),
-      children: [
-        FluentContentWidth(maxWidth: 1440, child: _buildEmailContent(context)),
-      ],
+    final theme = context.yhTheme;
+    return YhPageScaffold(
+      appBar: const YhAppBar(title: '学校邮箱'),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(theme.spacing.m),
+        child: Align(
+          alignment: AlignmentDirectional.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: theme.breakpoint.expanded + theme.control.regular * 5,
+            ),
+            child: _buildEmailContent(context),
+          ),
+        ),
+      ),
     );
   }
 
   /// 打开邮件正文详情页；详情页仍只展示本地快照。
   void _openMessageDetail(EmailMessageSnapshot message) {
     Navigator.of(context).push(
-      FluentPageRoute(builder: (_) => EmailMessageDetailPage(message: message)),
+      YhPageRoute(builder: (_) => EmailMessageDetailPage(message: message)),
     );
   }
 
-  FluentInfoSeverity _severityOf(EmailQueryStatus status) {
+  YhBannerKind _severityOf(EmailQueryStatus status) {
     return switch (status) {
-      EmailQueryStatus.success => FluentInfoSeverity.success,
+      EmailQueryStatus.success => YhBannerKind.success,
       EmailQueryStatus.missingEmailAccount ||
       EmailQueryStatus.missingEmailPassword ||
-      EmailQueryStatus.invalidInput => FluentInfoSeverity.warning,
+      EmailQueryStatus.invalidInput => YhBannerKind.warn,
       EmailQueryStatus.loginRejected ||
       EmailQueryStatus.parseFailed ||
       EmailQueryStatus.networkError ||
-      EmailQueryStatus.unexpectedError => FluentInfoSeverity.error,
+      EmailQueryStatus.unexpectedError => YhBannerKind.danger,
     };
   }
 

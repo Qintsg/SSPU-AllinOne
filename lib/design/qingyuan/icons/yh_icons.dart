@@ -11,6 +11,8 @@ class YhIcons {
   static const IconData calendar = system.FluentIcons.calendar_month_24_regular;
   static const IconData info = system.FluentIcons.info_24_regular;
   static const IconData mail = system.FluentIcons.mail_24_regular;
+  static const IconData send = system.FluentIcons.send_24_regular;
+  static const IconData inbox = system.FluentIcons.mail_inbox_24_regular;
   static const IconData link = system.FluentIcons.link_24_regular;
   static const IconData settings = system.FluentIcons.settings_24_regular;
   static const IconData search = system.FluentIcons.search_24_regular;
