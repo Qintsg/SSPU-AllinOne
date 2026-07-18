@@ -8,10 +8,9 @@
 
 import 'dart:io';
 
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart' as qingyuan;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/app.dart';
 import 'package:sspu_allinone/controllers/settings_wechat_controller.dart';
@@ -92,7 +91,7 @@ void main() {
       StorageService.debugUseSharedPreferencesStorageForTesting(true);
       final service = _buildCampusNetworkStatusService();
       await tester.pumpWidget(
-        FluentApp(home: AppShell(campusNetworkStatusService: service)),
+        YhApp(home: AppShell(campusNetworkStatusService: service)),
       );
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -139,7 +138,7 @@ void main() {
       );
 
       await tester.tap(find.text('更多'));
-      await tester.pumpAndSettle();
+      await tester.pump(YhTheme.light.motion.slow);
 
       expect(find.text('更多'), findsWidgets);
       expect(find.text('设置'), findsOneWidget);
@@ -178,15 +177,12 @@ void main() {
       StorageService.debugUseSharedPreferencesStorageForTesting(true);
       final service = _buildCampusNetworkStatusService();
       await tester.pumpWidget(
-        FluentApp(home: AppShell(campusNetworkStatusService: service)),
+        YhApp(home: AppShell(campusNetworkStatusService: service)),
       );
       await tester.pump(const Duration(milliseconds: 100));
 
       final pageTitle = find
-          .descendant(
-            of: find.byType(FluentPageHeader),
-            matching: find.text('主页'),
-          )
+          .descendant(of: find.byType(YhAppBar), matching: find.text('主页'))
           .first;
       final titleTop = tester.getTopLeft(pageTitle).dy;
       expect(titleTop, greaterThanOrEqualTo(topPadding));
@@ -249,7 +245,7 @@ void main() {
       StorageService.debugUseSharedPreferencesStorageForTesting(true);
       final service = _buildCampusNetworkStatusService();
       await tester.pumpWidget(
-        FluentApp(home: AppShell(campusNetworkStatusService: service)),
+        YhApp(home: AppShell(campusNetworkStatusService: service)),
       );
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -275,15 +271,15 @@ void main() {
     }
   });
 
-  testWidgets('移动端安全区保护 FluentPage 标题区域', (tester) async {
+  testWidgets('移动端安全区保护清源页面标题区域', (tester) async {
     await configureMobileView(tester, topPadding: 44, bottomPadding: 34);
 
     try {
       await tester.pumpWidget(
-        const FluentApp(
-          home: FluentPage.scrollable(
-            header: FluentPageHeader(title: Text('测试页面')),
-            children: [Text('测试内容')],
+        const YhApp(
+          home: YhPageScaffold(
+            appBar: YhAppBar(title: '测试页面'),
+            body: Text('测试内容'),
           ),
         ),
       );
@@ -310,7 +306,7 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        FluentApp(home: AppShell(campusNetworkStatusService: service)),
+        YhApp(home: AppShell(campusNetworkStatusService: service)),
       );
       await tester.pump(const Duration(milliseconds: 100));
       await pumpUntilFound(tester, find.text('VPN'));
@@ -352,7 +348,7 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       await tester.binding.setSurfaceSize(size);
       await tester.pumpWidget(
-        FluentApp(home: AppShell(campusNetworkStatusService: service)),
+        YhApp(home: AppShell(campusNetworkStatusService: service)),
       );
       await tester.pump(const Duration(milliseconds: 100));
     }
@@ -605,9 +601,9 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
-      FluentApp(
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
+      YhApp(
+        home: YhPageScaffold(
+          body: SingleChildScrollView(
             child: SettingsAutoRefreshSection(
               campusNetworkDetectionIntervalMinutes: 15,
               sportsAttendanceAutoRefreshEnabled: true,
@@ -669,9 +665,9 @@ void main() {
     var emailVisible = true;
     var quickLinksVisible = true;
     await tester.pumpWidget(
-      FluentApp(
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
+      YhApp(
+        home: YhPageScaffold(
+          body: SingleChildScrollView(
             child: SettingsGeneralSection(
               closeBehavior: 'ask',
               notificationEnabled: true,
@@ -775,15 +771,15 @@ void main() {
 
   testWidgets('页面反馈连续显示时替换上一条紧凑浮层', (WidgetTester tester) async {
     await tester.pumpWidget(
-      FluentApp(
-        home: ScaffoldPage(
-          content: Builder(
-            builder: (context) => Button(
-              onPressed: () {
+      YhApp(
+        home: YhPageScaffold(
+          body: Builder(
+            builder: (context) => YhButton(
+              label: '显示反馈',
+              onTap: () {
                 showAppFeedback(context, message: '第一条反馈');
                 showAppFeedback(context, message: '第二条反馈');
               },
-              child: const Text('显示反馈'),
             ),
           ),
         ),
@@ -799,7 +795,7 @@ void main() {
     expect(toast, findsOneWidget);
     expect(tester.getTopLeft(toast).dy, lessThan(120));
     expect(tester.getBottomLeft(toast).dy, lessThan(260));
-    expect(find.byType(FluentInfoBar), findsNothing);
+    expect(find.byType(YhBanner), findsNothing);
 
     await tester.pump(const Duration(seconds: 3));
     await tester.pump();
@@ -808,7 +804,7 @@ void main() {
 
   testWidgets('WebView 遇到无效链接时显示错误页', (WidgetTester tester) async {
     await tester.pumpWidget(
-      const FluentApp(
+      const YhApp(
         home: WebViewPage(
           url: 'https://wywh.sspu.edu.cnjavascript:void(0);',
           initialTitle: '无效链接',
@@ -895,31 +891,30 @@ void main() {
     await expectSettingsSelectPopupAvoidsStatusBar(tester, TargetPlatform.iOS);
   });
 
-  testWidgets('Fluent 弹窗使用紧凑按钮区并支持点击外部取消', (WidgetTester tester) async {
+  testWidgets('清源弹窗使用紧凑按钮区并支持点击外部取消', (WidgetTester tester) async {
     await tester.pumpWidget(
-      FluentApp(
+      YhApp(
         home: Builder(
           builder: (context) {
-            return FluentButton.primary(
-              child: const Text('打开弹窗'),
-              onPressed: () {
-                showFluentDialog<void>(
-                  context: context,
-                  builder: (dialogContext) => FluentDialog(
-                    title: const Text('关闭应用'),
-                    content: const FluentDialogMessage(
-                      icon: FluentIcons.clear,
-                      message: '请选择点击窗口关闭按钮时的处理方式。',
-                      details: '点击弹窗外的空白区域取消本次操作。',
+            return YhButton(
+              label: '打开弹窗',
+              onTap: () {
+                YhDialog.show<void>(
+                  context,
+                  builder: (dialogContext) => YhDialog(
+                    title: '关闭应用',
+                    content: const Text(
+                      '请选择点击窗口关闭按钮时的处理方式。\n点击弹窗外的空白区域取消本次操作。',
                     ),
                     actions: [
-                      FluentButton.outline(
-                        child: const Text('最小化到托盘'),
-                        onPressed: () => Navigator.of(dialogContext).pop(),
+                      YhButton(
+                        label: '最小化到托盘',
+                        variant: YhButtonVariant.secondary,
+                        onTap: () => Navigator.of(dialogContext).pop(),
                       ),
-                      FluentButton.primary(
-                        child: const Text('退出应用'),
-                        onPressed: () => Navigator.of(dialogContext).pop(),
+                      YhButton(
+                        label: '退出应用',
+                        onTap: () => Navigator.of(dialogContext).pop(),
                       ),
                     ],
                   ),
@@ -934,14 +929,14 @@ void main() {
     await tester.tap(find.text('打开弹窗'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(FluentDialog), findsOneWidget);
+    expect(find.byType(YhDialog), findsOneWidget);
     expect(find.text('最小化到托盘'), findsOneWidget);
     expect(find.text('退出应用'), findsOneWidget);
 
     await tester.tapAt(const Offset(4, 4));
     await tester.pumpAndSettle();
 
-    expect(find.byType(FluentDialog), findsNothing);
+    expect(find.byType(YhDialog), findsNothing);
   });
 
   testWidgets('职能部门和教学单位设置使用总览与轻量频道卡布局', (WidgetTester tester) async {
@@ -957,9 +952,9 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       await tester.binding.setSurfaceSize(Size(width, 900));
       await tester.pumpWidget(
-        FluentApp(
-          home: ScaffoldPage(
-            content: SingleChildScrollView(
+        YhApp(
+          home: YhPageScaffold(
+            body: SingleChildScrollView(
               child: ChannelListSection(title: title, channels: channels),
             ),
           ),
@@ -1032,9 +1027,9 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        FluentApp(
-          home: ScaffoldPage(
-            content: SingleChildScrollView(
+        YhApp(
+          home: YhPageScaffold(
+            body: SingleChildScrollView(
               child: SettingsWechatSection(controller: controller),
             ),
           ),

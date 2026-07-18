@@ -8,7 +8,7 @@
 
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart' as qingyuan;
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/pages/wxmp_login_page.dart';
@@ -35,7 +35,7 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        const FluentApp(
+        const YhApp(
           home: WebViewPage(
             url: 'https://example.com/news',
             initialTitle: '这是一条非常非常非常长的网页标题用于验证标题栏不会换行撑高或挤压右侧操作按钮',
@@ -82,7 +82,7 @@ void main() {
     testPlatform.controller.canGoBackValue = true;
 
     await tester.pumpWidget(
-      const FluentApp(
+      const YhApp(
         home: WebViewPage(
           url: 'https://example.com/news',
           initialTitle: '网页标题',
@@ -101,12 +101,13 @@ void main() {
     testPlatform.controller.canGoBackValue = false;
 
     await tester.pumpWidget(
-      FluentApp(
+      YhApp(
         home: Builder(
-          builder: (context) => FluentButton(
-            onPressed: () {
+          builder: (context) => YhButton(
+            label: '打开 WebView',
+            onTap: () {
               Navigator.of(context).push(
-                FluentPageRoute(
+                YhPageRoute(
                   builder: (_) => const WebViewPage(
                     url: 'https://example.com/news',
                     initialTitle: '网页标题',
@@ -114,7 +115,6 @@ void main() {
                 ),
               );
             },
-            child: const Text('打开 WebView'),
           ),
         ),
       ),
@@ -135,7 +135,7 @@ void main() {
 
   testWidgets('WebView 无效链接状态页也保留顶部退出入口', (tester) async {
     await tester.pumpWidget(
-      const FluentApp(
+      const YhApp(
         home: WebViewPage(
           url: 'https://wywh.sspu.edu.cnjavascript:void(0);',
           initialTitle: '无效链接',

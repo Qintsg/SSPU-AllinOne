@@ -6,7 +6,7 @@
  * @Date : 2026-04-24
  */
 
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -66,9 +66,9 @@ void main() {
     EmailMailboxClient? emailMailboxService,
   }) async {
     await tester.pumpWidget(
-      FluentApp(
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
+      YhApp(
+        home: YhPageScaffold(
+          body: SingleChildScrollView(
             child: SettingsSecuritySection(
               isPasswordEnabled: isPasswordEnabled,
               onPasswordProtectionChanged: (_) {},
@@ -234,7 +234,7 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        FluentApp(
+        YhApp(
           home: PrimaryScrollController(
             controller: sharedController,
             child: Stack(

@@ -1,6 +1,5 @@
 /* 应用主体 — 清源响应式导航壳。 */
 
-import 'design/qingyuan/adapters/fluent_yh_theme_context.dart';
 import 'design/qingyuan/qingyuan_ui.dart';
 import 'pages/academic_page.dart';
 import 'pages/course_schedule_page.dart';
@@ -73,33 +72,27 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    return FluentYhThemeBridge(
-      child: Builder(
-        builder: (context) {
-          final destinations = _destinations;
-          final width = MediaQuery.sizeOf(context).width;
-          final orientation = MediaQuery.orientationOf(context);
-          final useBottomNavigation =
-              width < context.yhTheme.breakpoint.medium ||
-              (_supportsMobileBottomNavigation &&
-                  orientation == Orientation.portrait);
-          if (useBottomNavigation) {
-            return _CompactNavigationShell(
-              destinations: destinations,
-              selectedIndex: _selectedIndex,
-              visitedIndexes: _visitedDestinationIndexes,
-              onChanged: _selectDestination,
-            );
-          }
-          return _DesktopNavigationShell(
-            destinations: destinations,
-            selectedIndex: _selectedIndex,
-            visitedIndexes: _visitedDestinationIndexes,
-            extended: width >= context.yhTheme.breakpoint.expanded,
-            onChanged: _selectDestination,
-          );
-        },
-      ),
+    final destinations = _destinations;
+    final width = MediaQuery.sizeOf(context).width;
+    final orientation = MediaQuery.orientationOf(context);
+    final useBottomNavigation =
+        width < context.yhTheme.breakpoint.medium ||
+        (_supportsMobileBottomNavigation &&
+            orientation == Orientation.portrait);
+    if (useBottomNavigation) {
+      return _CompactNavigationShell(
+        destinations: destinations,
+        selectedIndex: _selectedIndex,
+        visitedIndexes: _visitedDestinationIndexes,
+        onChanged: _selectDestination,
+      );
+    }
+    return _DesktopNavigationShell(
+      destinations: destinations,
+      selectedIndex: _selectedIndex,
+      visitedIndexes: _visitedDestinationIndexes,
+      extended: width >= context.yhTheme.breakpoint.expanded,
+      onChanged: _selectDestination,
     );
   }
 

@@ -1,5 +1,5 @@
 /*
- * Fluent 交互无障碍测试 — 校验键盘选择与导航激活
+ * 清源交互无障碍测试 — 校验键盘选择与导航激活
  * @Project : SSPU-AllinOne
  * @File : fluent_accessibility_test.dart
  * @Author : Qintsg
@@ -9,8 +9,8 @@
 import 'dart:ui' show PointerDeviceKind, Tristate;
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_allinone/design/fluent_ui.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart' as qingyuan;
 import 'package:sspu_allinone/widgets/settings_widgets.dart';
 
@@ -82,42 +82,42 @@ void main() {
     return qingyuan.YhThemeScope.of(tester.element(find.text(label)));
   }
 
-  testWidgets('FluentSelect 支持键盘打开、移动并选择选项', (tester) async {
+  testWidgets('YhSelect 支持键盘打开、移动并选择选项', (tester) async {
     var selectedValue = 0;
 
     await tester.pumpWidget(
-      FluentApp(
-        home: ScaffoldPage(
-          content: StatefulBuilder(
-            builder: (context, setState) {
-              return Center(
-                child: FluentSelect<int>(
-                  value: selectedValue,
-                  items: const [
-                    FluentSelectItem(value: 0, child: Text('一')),
-                    FluentSelectItem(value: 1, child: Text('二')),
-                    FluentSelectItem(value: 2, child: Text('三')),
-                  ],
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() => selectedValue = value);
-                  },
-                ),
-              );
-            },
-          ),
+      qingyuan.YhApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            return Center(
+              child: qingyuan.YhSelect<int>(
+                label: '数字',
+                showLabel: false,
+                value: selectedValue,
+                options: const [
+                  qingyuan.YhSelectOption(value: 0, label: '一'),
+                  qingyuan.YhSelectOption(value: 1, label: '二'),
+                  qingyuan.YhSelectOption(value: 2, label: '三'),
+                ],
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => selectedValue = value);
+                },
+              ),
+            );
+          },
         ),
       ),
     );
 
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
-    expect(find.text('三'), findsOneWidget);
-
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pump();
+    expect(find.text('三'), findsOneWidget);
+
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
 
@@ -125,39 +125,41 @@ void main() {
     expect(find.text('三'), findsNothing);
   });
 
-  testWidgets('FluentSelect 支持点按弹层选项', (tester) async {
+  testWidgets('YhSelect 支持点按弹层选项', (tester) async {
     var selectedValue = 0;
 
     await tester.pumpWidget(
-      FluentApp(
-        home: ScaffoldPage(
-          content: StatefulBuilder(
-            builder: (context, setState) {
-              return Center(
-                child: FluentSelect<int>(
-                  value: selectedValue,
-                  items: const [
-                    FluentSelectItem(value: 0, child: Text('一')),
-                    FluentSelectItem(value: 1, child: Text('二')),
-                    FluentSelectItem(value: 2, child: Text('三')),
-                  ],
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() => selectedValue = value);
-                  },
-                ),
-              );
-            },
-          ),
+      qingyuan.YhApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            return Center(
+              child: qingyuan.YhSelect<int>(
+                label: '数字',
+                showLabel: false,
+                value: selectedValue,
+                options: const [
+                  qingyuan.YhSelectOption(value: 0, label: '一'),
+                  qingyuan.YhSelectOption(value: 1, label: '二'),
+                  qingyuan.YhSelectOption(
+                    key: ValueKey('yh-select-option-2'),
+                    value: 2,
+                    label: '三',
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => selectedValue = value);
+                },
+              ),
+            );
+          },
         ),
       ),
     );
 
     await tester.tap(find.text('一'));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const ValueKey('fluent-select-popup-option-2')),
-    );
+    await tester.tap(find.byKey(const ValueKey('yh-select-option-2')));
     await tester.pumpAndSettle();
 
     expect(selectedValue, 2);
@@ -283,25 +285,23 @@ void main() {
     expect(navItemDecoration(tester, '自动刷新设置').color, theme.color.sunken);
   });
 
-  testWidgets('FluentSurface 和 FluentCard 支持键盘激活', (tester) async {
+  testWidgets('YhCard 支持键盘激活', (tester) async {
     var activatedSurface = false;
     var activatedCard = false;
 
     await tester.pumpWidget(
-      FluentApp(
-        home: ScaffoldPage(
-          content: Column(
-            children: [
-              FluentSurface(
-                onPressed: () => activatedSurface = true,
-                child: const Text('可交互表面'),
-              ),
-              FluentCard(
-                onPressed: () => activatedCard = true,
-                child: const Text('可交互卡片'),
-              ),
-            ],
-          ),
+      qingyuan.YhApp(
+        home: Column(
+          children: [
+            qingyuan.YhCard(
+              onTap: () => activatedSurface = true,
+              child: const Text('可交互表面'),
+            ),
+            qingyuan.YhCard(
+              onTap: () => activatedCard = true,
+              child: const Text('可交互卡片'),
+            ),
+          ],
         ),
       ),
     );

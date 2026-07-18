@@ -6,7 +6,7 @@
  * @Date : 2026-05-02
  */
 
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/models/academic_calendar.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
@@ -38,7 +38,7 @@ Future<void> pumpCourseSchedulePage(
   AcademicCalendarClient? academicCalendarService,
 }) async {
   await tester.pumpWidget(
-    FluentApp(
+    YhApp(
       home: CourseSchedulePage(
         academicEamsService: academicEamsService,
         initialResult: initialResult,
@@ -136,17 +136,17 @@ void main() {
 
   testWidgets('课程表页面作为二级页面打开时显示返回按钮', (tester) async {
     await tester.pumpWidget(
-      FluentApp(
+      YhApp(
         home: Navigator(
           onGenerateRoute: (_) =>
-              FluentPageRoute(builder: (_) => const SizedBox.shrink()),
+              YhPageRoute(builder: (_) => const SizedBox.shrink()),
         ),
       ),
     );
 
     final context = tester.element(find.byType(SizedBox));
     Navigator.of(context).push(
-      FluentPageRoute(
+      YhPageRoute(
         builder: (_) => CourseSchedulePage(
           academicEamsService: _FakeAcademicEamsClient(result: _successResult),
         ),

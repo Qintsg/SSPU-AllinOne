@@ -176,5 +176,22 @@ class DesignSystemValidatorTest(unittest.TestCase):
             with self.assertRaisesRegex(DesignSystemValidationError, r"yh_button\.dart.*Material"):
                 validate_design_system(root)
 
+    def test_qingyuan_runtime_rejects_direct_icon_package_imports(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            runtime = root / "lib" / "design" / "qingyuan"
+            shutil.copytree(PROJECT_ROOT / "lib" / "design" / "qingyuan", runtime)
+            target = runtime / "components" / "yh_button.dart"
+            target.write_text(
+                "import 'package:fluentui_system_icons/fluentui_system_icons.dart';\n"
+                + target.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(DesignSystemValidationError, r"yh_button\.dart.*YhIcons"):
+                validate_design_system(root)
+
 if __name__ == "__main__":
     unittest.main()

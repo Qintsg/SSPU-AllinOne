@@ -6,7 +6,7 @@
  * @Date : 2026-04-30
  */
 
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
@@ -47,7 +47,7 @@ Future<void> pumpAcademicPage(
   int studentReportAutoRefreshIntervalOverride = 30,
 }) async {
   await tester.pumpWidget(
-    FluentApp(
+    YhApp(
       home: AcademicPage(
         academicEamsService: academicEamsService,
         sportsAttendanceService: sportsAttendanceService,
@@ -848,7 +848,7 @@ void main() {
           _academicExamResultForSeason(term?.season ?? AcademicTermSeason.fall),
     );
     await tester.pumpWidget(
-      FluentApp(
+      YhApp(
         home: AcademicEamsExamDetailPage(
           academicEamsService: academicService,
           initialResult: null,

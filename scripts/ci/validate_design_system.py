@@ -431,14 +431,12 @@ def _validate_visual_manifest(project_root: Path) -> None:
 
 
 def _validate_qingyuan_runtime(project_root: Path) -> None:
-    runtime = project_root / "lib" / "design" / "qingyuan"
+    runtime = project_root / "lib"
     if not runtime.exists():
         return
     errors: list[str] = []
     for source_path in runtime.rglob("*.dart"):
         relative = source_path.relative_to(project_root).as_posix()
-        if "/adapters/" in f"/{relative}":
-            continue
         source = source_path.read_text(encoding="utf-8")
         forbidden_imports = {
             "package:flutter/material.dart": "Material",
@@ -450,6 +448,21 @@ def _validate_qingyuan_runtime(project_root: Path) -> None:
                 errors.append(f"{relative} 直接导入 {family} 成品视觉库")
         if re.search(r"\bIcons\.", source):
             errors.append(f"{relative} 直接使用 Material Icons.*")
+        if (
+            "package:fluentui_system_icons/fluentui_system_icons.dart" in source
+            and relative != "lib/design/qingyuan/icons/yh_icons.dart"
+        ):
+            errors.append(f"{relative} 绕过 YhIcons 直接导入底层图标包")
+        if re.search(r"(?:design/fluent|theme/fluent_tokens|theme/app_theme)", source):
+            errors.append(f"{relative} 仍导入旧 Fluent 设计门面")
+
+    pubspec = project_root / "pubspec.yaml"
+    if pubspec.exists():
+        pubspec_text = pubspec.read_text(encoding="utf-8")
+        if re.search(r"^\s*fluent_ui\s*:", pubspec_text, re.MULTILINE):
+            errors.append("pubspec.yaml 仍依赖 fluent_ui")
+        if re.search(r"^\s*uses-material-design\s*:\s*true", pubspec_text, re.MULTILINE):
+            errors.append("pubspec.yaml 仍启用 Material Icons 字体")
     if errors:
         raise DesignSystemValidationError("\n".join(errors))
 

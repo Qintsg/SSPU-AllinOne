@@ -7,10 +7,9 @@
  */
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/services/academic_term_service.dart';
-import 'package:sspu_allinone/theme/app_theme.dart';
 import 'package:sspu_allinone/widgets/academic_term_selector.dart';
 
 void main() {
@@ -28,10 +27,10 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
-      FluentApp(
-        theme: AppTheme.build(Brightness.light),
-        home: ScaffoldPage(
-          content: SizedBox(
+      YhApp(
+        theme: YhTheme.light,
+        home: YhPageScaffold(
+          body: SizedBox(
             width: 320,
             child: StatefulBuilder(
               builder: (context, setState) {
