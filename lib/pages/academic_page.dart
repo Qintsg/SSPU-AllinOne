@@ -26,7 +26,6 @@ import '../theme/fluent_tokens.dart';
 import '../theme/app_breakpoints.dart';
 import '../utils/query_result_messages.dart';
 import '../widgets/refresh_feedback_action.dart';
-import '../widgets/responsive_layout.dart';
 import 'course_schedule_page.dart';
 
 part 'academic_eams_summary_card.dart';
@@ -339,7 +338,7 @@ class _AcademicPageState extends State<AcademicPage> {
 
   void _openAcademicGradeDetail() {
     Navigator.of(context).push(
-      FluentPageRoute(
+      YhPageRoute(
         builder: (_) => AcademicEamsGradeDetailPage(
           academicEamsService: _academicEamsService,
           initialResult: _academicGradeResult,
@@ -351,7 +350,7 @@ class _AcademicPageState extends State<AcademicPage> {
 
   void _openAcademicExamDetail() {
     Navigator.of(context).push(
-      FluentPageRoute(
+      YhPageRoute(
         builder: (_) => AcademicEamsExamDetailPage(
           academicEamsService: _academicEamsService,
           initialResult: _academicExamResult,
@@ -566,83 +565,91 @@ class _AcademicPageState extends State<AcademicPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveBuilder(
-      builder: (context, deviceType, constraints) {
-        return FluentPage.scrollable(
-          header: const FluentPageHeader(title: Text('教务中心')),
-          padding: responsivePagePadding(deviceType),
-          children: [
-            FluentContentWidth(
-              child: _AcademicDashboardGrid(
-                primary: AcademicEamsSummaryCard(
-                  result: _academicEamsResult,
-                  isLoading: _academicEamsRefreshController.isLoading,
-                  isRefreshActionLoading:
-                      _academicEamsRefreshController.isLoading ||
-                      _academicExamRefreshController.isLoading,
-                  autoRefreshEnabled:
-                      _academicEamsRefreshController.autoRefreshEnabled,
-                  refreshFeedback: _academicEamsRefreshController.feedback,
-                  onRefresh: _loadAcademicEamsOverview,
-                  onOpenCourseSchedule: () => Navigator.of(context).push(
-                    FluentPageRoute(
-                      builder: (_) => CourseSchedulePage(
-                        academicEamsService: _academicEamsService,
-                        initialResult: _academicEamsResult,
-                        autoRefreshEnabledOverride:
-                            _academicEamsRefreshController.autoRefreshEnabled,
-                        autoRefreshIntervalOverride:
-                            _academicEamsRefreshController
-                                .autoRefreshIntervalMinutes,
+    final theme = context.yhTheme;
+    return YhPageScaffold(
+      appBar: const YhAppBar(title: '教务中心'),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(
+          horizontal:
+              MediaQuery.sizeOf(context).width < theme.breakpoint.compact
+              ? theme.spacing.m
+              : theme.spacing.l,
+          vertical: theme.spacing.m,
+        ),
+        child: Align(
+          alignment: AlignmentDirectional.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
+            child: Column(
+              children: [
+                _AcademicDashboardGrid(
+                  primary: AcademicEamsSummaryCard(
+                    result: _academicEamsResult,
+                    isLoading: _academicEamsRefreshController.isLoading,
+                    isRefreshActionLoading:
+                        _academicEamsRefreshController.isLoading ||
+                        _academicExamRefreshController.isLoading,
+                    autoRefreshEnabled:
+                        _academicEamsRefreshController.autoRefreshEnabled,
+                    refreshFeedback: _academicEamsRefreshController.feedback,
+                    onRefresh: _loadAcademicEamsOverview,
+                    onOpenCourseSchedule: () => Navigator.of(context).push(
+                      YhPageRoute(
+                        builder: (_) => CourseSchedulePage(
+                          academicEamsService: _academicEamsService,
+                          initialResult: _academicEamsResult,
+                          autoRefreshEnabledOverride:
+                              _academicEamsRefreshController.autoRefreshEnabled,
+                          autoRefreshIntervalOverride:
+                              _academicEamsRefreshController
+                                  .autoRefreshIntervalMinutes,
+                        ),
                       ),
                     ),
+                    examResult: _academicExamResult,
+                    examSchedule: AcademicEamsExamCard(
+                      result: _academicExamResult,
+                      isLoading: _academicExamRefreshController.isLoading,
+                      selectedTerm: _academicExamSelectedTerm,
+                      onOpenDetail: _openAcademicExamDetail,
+                    ),
+                    gradeResult: _academicGradeResult,
+                    gradeCard: AcademicEamsGradeCard(
+                      result: _academicGradeResult,
+                      isLoading: _academicGradeRefreshController.isLoading,
+                      onOpenDetail: _openAcademicGradeDetail,
+                    ),
                   ),
-                  examResult: _academicExamResult,
-                  examSchedule: AcademicEamsExamCard(
-                    result: _academicExamResult,
-                    isLoading: _academicExamRefreshController.isLoading,
-                    selectedTerm: _academicExamSelectedTerm,
-                    onOpenDetail: _openAcademicExamDetail,
+                  sports: AcademicSportsAttendanceCard(
+                    result: _sportsAttendanceResult,
+                    isLoading: _sportsAttendanceRefreshController.isLoading,
+                    autoRefreshEnabled:
+                        _sportsAttendanceRefreshController.autoRefreshEnabled,
+                    refreshFeedback:
+                        _sportsAttendanceRefreshController.feedback,
+                    onRefresh: _loadSportsAttendance,
                   ),
-                  gradeResult: _academicGradeResult,
-                  gradeCard: AcademicEamsGradeCard(
-                    result: _academicGradeResult,
-                    isLoading: _academicGradeRefreshController.isLoading,
-                    onOpenDetail: _openAcademicGradeDetail,
+                  secondClassroom: AcademicStudentReportCard(
+                    result: _studentReportResult,
+                    isLoading: _studentReportRefreshController.isLoading,
+                    autoRefreshEnabled:
+                        _studentReportRefreshController.autoRefreshEnabled,
+                    refreshFeedback: _studentReportRefreshController.feedback,
+                    onRefresh: _loadStudentReport,
                   ),
                 ),
-                sports: AcademicSportsAttendanceCard(
-                  result: _sportsAttendanceResult,
-                  isLoading: _sportsAttendanceRefreshController.isLoading,
-                  autoRefreshEnabled:
-                      _sportsAttendanceRefreshController.autoRefreshEnabled,
-                  refreshFeedback: _sportsAttendanceRefreshController.feedback,
-                  onRefresh: _loadSportsAttendance,
+                SizedBox(height: theme.spacing.m),
+                const YhBanner(
+                  text:
+                      '只读边界：'
+                      '本专科教务仅接入个人信息、课表、成绩、考试、培养计划、开课检索和空闲教室等只读能力；'
+                      '不提供选课、退课、调课、教学评价、提交申请或任何状态变更入口。',
                 ),
-                secondClassroom: AcademicStudentReportCard(
-                  result: _studentReportResult,
-                  isLoading: _studentReportRefreshController.isLoading,
-                  autoRefreshEnabled:
-                      _studentReportRefreshController.autoRefreshEnabled,
-                  refreshFeedback: _studentReportRefreshController.feedback,
-                  onRefresh: _loadStudentReport,
-                ),
-              ),
+              ],
             ),
-            const SizedBox(height: FluentSpacing.m),
-            const FluentContentWidth(
-              child: FluentInfoBar(
-                title: Text('只读边界'),
-                content: Text(
-                  '本专科教务仅接入个人信息、课表、成绩、考试、培养计划、开课检索和空闲教室等只读能力；'
-                  '不提供选课、退课、调课、教学评价、提交申请或任何状态变更入口。',
-                ),
-                severity: FluentInfoSeverity.info,
-              ),
-            ),
-          ],
-        );
-      },
+          ),
+        ),
+      ),
     );
   }
 }
@@ -660,13 +667,17 @@ class _AcademicDashboardGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth >= 1040) {
+        if (constraints.maxWidth >=
+            theme.breakpoint.expanded -
+                theme.spacing.xl2 * 3 -
+                theme.spacing.m) {
           return Column(
             children: [
               _AcademicAnimatedCard(index: 0, child: primary),
-              const SizedBox(height: FluentSpacing.m),
+              SizedBox(height: theme.spacing.m),
               _AcademicEqualHeightRow(
                 left: _AcademicAnimatedCard(index: 1, child: sports),
                 right: _AcademicAnimatedCard(index: 2, child: secondClassroom),
@@ -675,11 +686,12 @@ class _AcademicDashboardGrid extends StatelessWidget {
           );
         }
 
-        if (constraints.maxWidth >= 720) {
+        if (constraints.maxWidth >=
+            theme.breakpoint.medium - theme.spacing.xl2) {
           return Column(
             children: [
               _AcademicAnimatedCard(index: 0, child: primary),
-              const SizedBox(height: FluentSpacing.m),
+              SizedBox(height: theme.spacing.m),
               _AcademicEqualHeightRow(
                 left: _AcademicAnimatedCard(index: 1, child: sports),
                 right: _AcademicAnimatedCard(index: 2, child: secondClassroom),
@@ -691,9 +703,9 @@ class _AcademicDashboardGrid extends StatelessWidget {
         return Column(
           children: [
             _AcademicAnimatedCard(index: 0, child: primary),
-            const SizedBox(height: FluentSpacing.m),
+            SizedBox(height: theme.spacing.m),
             _AcademicAnimatedCard(index: 1, child: sports),
-            const SizedBox(height: FluentSpacing.m),
+            SizedBox(height: theme.spacing.m),
             _AcademicAnimatedCard(index: 2, child: secondClassroom),
           ],
         );
@@ -710,12 +722,13 @@ class _AcademicEqualHeightRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(child: left),
-          const SizedBox(width: FluentSpacing.m),
+          SizedBox(width: theme.spacing.m),
           Expanded(child: right),
         ],
       ),
@@ -733,9 +746,10 @@ class _AcademicAnimatedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final disableAnimations = MediaQuery.disableAnimationsOf(context);
     if (disableAnimations) return child;
+    final theme = context.yhTheme;
     return child
-        .animate(delay: FluentDuration.stagger * index)
-        .fadeIn(duration: FluentDuration.slow, curve: FluentEasing.decelerate)
+        .animate(delay: theme.motion.fast * index)
+        .fadeIn(duration: theme.motion.slow, curve: theme.motion.curve)
         .slideY(begin: 0.05, end: 0);
   }
 }

@@ -179,16 +179,9 @@ class _SecondClassroomCardHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: theme.color.sunken,
-            border: Border.all(color: accent),
-            borderRadius: BorderRadius.circular(theme.radius.s),
-          ),
-          child: SizedBox.square(
-            dimension: theme.control.compact,
-            child: Icon(YhIcons.education, color: accent),
-          ),
+        SizedBox.square(
+          dimension: theme.spacing.l,
+          child: Icon(YhIcons.education, color: accent),
         ),
         SizedBox(width: theme.spacing.s),
         Expanded(
