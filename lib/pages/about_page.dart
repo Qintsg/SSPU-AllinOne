@@ -23,20 +23,8 @@ const List<_OpenSourceProject> _openSourceProjects = [
     url: 'https://flutter.dev',
   ),
   _OpenSourceProject(
-    name: 'Fluent 2 Design System',
-    description: 'Microsoft Fluent 2 设计系统，本项目前端视觉规范来源',
-    license: 'Microsoft Design Guidelines',
-    url: 'https://fluent2.microsoft.design/',
-  ),
-  _OpenSourceProject(
-    name: 'fluent_ui',
-    description: 'Fluent 风格桌面与跨平台控件',
-    license: 'BSD-3-Clause',
-    url: 'https://pub.dev/packages/fluent_ui',
-  ),
-  _OpenSourceProject(
     name: 'fluentui_system_icons',
-    description: 'Microsoft Fluent System Icons 图标库',
+    description: 'YhIcons 语义图标门面的底层字形资源',
     license: 'MIT',
     url: 'https://pub.dev/packages/fluentui_system_icons',
   ),

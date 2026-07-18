@@ -42,7 +42,7 @@ dart run tool/visual_compare.dart `
 
 ## 五平台 Flutter 候选采集
 
-组件候选图由真实 Flutter 渲染树生成，不复用 HTML 原型截图。CI 在 Android、iOS、Windows、macOS、Linux 五个平台标签下分别锁定目标平台，加载 MiSans 与 `YhIcons` 底层字体，并输出六类 44 组件面板的四档视口、亮暗主题矩阵：
+候选图由真实 Flutter 渲染树生成，不复用 HTML 原型截图。CI 在 Android、iOS、Windows、macOS、Linux 五个平台标签下分别锁定目标平台，加载 MiSans 与 `YhIcons` 底层字体，并输出六类 44 组件面板以及快捷入口、法律、关于、WebView 错误页的四档视口、亮暗主题矩阵：
 
 ```bash
 flutter test test/visual/qingyuan_visual_capture_test.dart \

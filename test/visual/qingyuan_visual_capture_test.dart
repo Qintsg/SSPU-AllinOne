@@ -1,11 +1,17 @@
 /* 清源 Flutter 视觉候选采集 — 四档视口、亮暗主题、六类组件面板。 */
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
+import 'package:sspu_allinone/pages/about_page.dart';
+import 'package:sspu_allinone/pages/legal_notice_page.dart';
+import 'package:sspu_allinone/pages/quick_links_page.dart';
+import 'package:sspu_allinone/pages/webview_page.dart';
+import 'package:sspu_allinone/services/quick_links_config_service.dart';
 
 const _captureEnabled = bool.fromEnvironment('QINGYUAN_VISUAL_CAPTURE');
 const _platform = String.fromEnvironment(
@@ -34,7 +40,7 @@ void main() {
     for (final viewport in _viewports) {
       for (final mode in [YhThemeMode.light, YhThemeMode.dark]) {
         final themeName = mode == YhThemeMode.light ? 'light' : 'dark';
-        testWidgets('采集 ${surface.id} $themeName '
+        testWidgets('采集 ${surface.id} ${surface.state} $themeName '
             '${viewport.width.toInt()}x${viewport.height.toInt()}', (
           tester,
         ) async {
@@ -66,7 +72,7 @@ void main() {
             );
             await tester.pump(YhTheme.light.motion.slow);
             final target = File(
-              '${output.path}/${surface.id}--content--$themeName--'
+              '${output.path}/${surface.id}--${surface.state}--$themeName--'
               '${viewport.width.toInt()}x${viewport.height.toInt()}.png',
             );
             await _capture(tester, boundaryKey, target, viewport);
@@ -156,9 +162,10 @@ class _CapturedPng {
 }
 
 class _VisualSurface {
-  const _VisualSurface(this.id, this.builder);
+  const _VisualSurface(this.id, this.builder, {this.state = 'content'});
 
   final String id;
+  final String state;
   final Widget Function() builder;
 }
 
@@ -169,7 +176,67 @@ final _surfaces = <_VisualSurface>[
   _VisualSurface('components.navigation', _navigationPanel),
   _VisualSurface('components.data', _dataPanel),
   _VisualSurface('components.domain', _domainPanel),
+  _VisualSurface('links.directory', _quickLinksContent),
+  _VisualSurface('links.directory', _quickLinksLoading, state: 'loading'),
+  _VisualSurface('links.directory', _quickLinksEmpty, state: 'empty'),
+  _VisualSurface('links.directory', _quickLinksError, state: 'error'),
+  _VisualSurface('legal.notice', () => const LegalNoticePage()),
+  _VisualSurface('settings.about', () => const AboutPage()),
+  _VisualSurface(
+    'external.webview',
+    () => const WebViewPage(url: 'invalid-url', initialTitle: '校园服务'),
+    state: 'error',
+  ),
 ];
+
+const _quickLinkGroups = <QuickLinkGroupConfig>[
+  QuickLinkGroupConfig(
+    category: '学习与资源',
+    items: [
+      QuickLinkItemConfig(
+        name: '图书馆',
+        url: 'https://library.example.invalid',
+        icon: 'library',
+      ),
+      QuickLinkItemConfig(
+        name: '在线教学平台',
+        url: 'https://learning.example.invalid',
+        icon: 'education',
+      ),
+    ],
+  ),
+  QuickLinkGroupConfig(
+    category: '校园服务',
+    items: [
+      QuickLinkItemConfig(
+        name: '校园邮箱',
+        url: 'https://mail.example.invalid',
+        icon: 'mail',
+      ),
+      QuickLinkItemConfig(
+        name: '信息门户',
+        url: 'https://portal.example.invalid',
+        icon: 'globe',
+      ),
+    ],
+  ),
+];
+
+Widget _quickLinksContent() => QuickLinksPage(
+  groupsLoader: () async => _quickLinkGroups,
+  onOpenUrl: (_) async {},
+);
+
+Widget _quickLinksLoading() {
+  final pending = Completer<List<QuickLinkGroupConfig>>();
+  return QuickLinksPage(groupsLoader: () => pending.future);
+}
+
+Widget _quickLinksEmpty() => QuickLinksPage(groupsLoader: () async => const []);
+
+Widget _quickLinksError() => QuickLinksPage(
+  groupsLoader: () => Future.error(StateError('fixture load failed')),
+);
 
 Widget _panel(String title, List<Widget> children) => YhPageScaffold(
   appBar: YhAppBar(title: title),

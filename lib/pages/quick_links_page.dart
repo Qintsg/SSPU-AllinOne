@@ -206,6 +206,12 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
                             searchResults,
                             constraints.maxWidth,
                           )
+                        else if (widget.groups.isEmpty)
+                          const YhEmptyState(
+                            icon: YhIcons.link,
+                            title: '暂无快捷入口',
+                            message: '当前没有可用的校园服务入口。',
+                          )
                         else
                           _buildGroups(constraints.maxWidth),
                       ],
@@ -226,37 +232,53 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
   ) {
     final theme = context.yhTheme;
     return YhCard(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: YhTextField(
-              controller: _searchController,
-              focusNode: _searchFocusNode,
-              label: '搜索快捷入口',
-              hint: '输入任务名称或网址',
-              prefixIcon: YhIcons.search,
-              suffix: hasSearchQuery
-                  ? YhIconButton(
-                      icon: YhIcons.close,
-                      semanticLabel: '清除搜索',
-                      onTap: _clearSearch,
-                    )
-                  : null,
-              onChanged: (value) => setState(() => _searchQuery = value),
-              onSubmitted: (_) => _openBestMatch(searchResults),
-            ),
-          ),
-          SizedBox(width: theme.spacing.s),
-          YhButton(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final field = YhTextField(
+            key: const Key('quick-links-search-field'),
+            controller: _searchController,
+            focusNode: _searchFocusNode,
+            label: '搜索快捷入口',
+            hint: '输入任务名称或网址',
+            prefixIcon: YhIcons.search,
+            suffix: hasSearchQuery
+                ? YhIconButton(
+                    icon: YhIcons.close,
+                    semanticLabel: '清除搜索',
+                    onTap: _clearSearch,
+                  )
+                : null,
+            onChanged: (value) => setState(() => _searchQuery = value),
+            onSubmitted: (_) => _openBestMatch(searchResults),
+          );
+          final button = YhButton(
+            key: const Key('quick-links-best-match'),
             label: '打开最佳匹配',
             leadingIcon: YhIcons.open,
             onTap: searchResults.isEmpty
                 ? null
                 : () => _openBestMatch(searchResults),
             disabled: searchResults.isEmpty,
-          ),
-        ],
+          );
+          if (constraints.maxWidth < theme.breakpoint.compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                field,
+                SizedBox(height: theme.spacing.s),
+                button,
+              ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(child: field),
+              SizedBox(width: theme.spacing.s),
+              button,
+            ],
+          );
+        },
       ),
     );
   }

@@ -311,7 +311,7 @@ jobs:
       - name: 安装 Flutter 依赖
         run: flutter pub get
 
-      - name: 采集清源 44 组件视觉候选
+      - name: 采集清源组件与静态页面视觉候选
         run: >
           flutter test test/visual/qingyuan_visual_capture_test.dart
           --dart-define=QINGYUAN_VISUAL_CAPTURE=true

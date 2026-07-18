@@ -71,4 +71,41 @@ void main() {
     expect(find.text('未找到匹配的快捷入口'), findsOneWidget);
     expect(find.text('清除搜索'), findsOneWidget);
   });
+
+  testWidgets('清源快速跳转在配置为空时显示明确空状态', (tester) async {
+    await tester.pumpWidget(
+      YhApp(
+        home: QuickLinksPage(
+          groupsLoader: () async => const [],
+          onOpenUrl: (_) async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('暂无快捷入口'), findsOneWidget);
+    expect(find.text('当前没有可用的校园服务入口。'), findsOneWidget);
+  });
+
+  testWidgets('清源快速跳转在紧凑宽度纵向堆叠搜索和操作', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      YhApp(
+        home: QuickLinksPage(
+          groupsLoader: () async => groups,
+          onOpenUrl: (_) async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final field = find.byKey(const Key('quick-links-search-field'));
+    final button = find.byKey(const Key('quick-links-best-match'));
+    expect(
+      tester.getTopLeft(button).dy,
+      greaterThan(tester.getBottomLeft(field).dy),
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
