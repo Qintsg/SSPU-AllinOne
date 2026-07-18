@@ -176,6 +176,8 @@ def verify(output_dir: Path) -> None:
                 _open_screen(page, prototype_url, screen)
                 _assert_targets(page, width, screen)
                 _assert_screen_interactions(page, screen, width)
+                # 交互验证会改变 Tab、筛选和详情选中态；参考稿必须回到默认内容态。
+                _open_screen(page, prototype_url, screen)
                 surface = SCREEN_SURFACES[screen]
                 _capture_reference(
                     page,
