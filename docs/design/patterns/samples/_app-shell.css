@@ -332,7 +332,7 @@ button, input { font: inherit; }
 .mail-state-panel .yh-empty h2, .mail-state-panel .yh-empty p { margin: 0; }
 .mail-state-panel .yh-empty h2 { color: var(--fg); font: 600 var(--type-h3)/var(--line-height-h3) var(--font); }
 .mail-state-progress { display: flex; align-items: center; gap: var(--space-m); }
-.mail-detail-page { padding: 0; }
+.mail-detail-page { width: 100%; max-width: none; margin: 0; padding: 0; }
 .detail-appbar { height: var(--layout-appbar-height); display: flex; align-items: center; gap: var(--space-s); padding: 0 var(--space-m); border-bottom: 1px solid var(--border); background: var(--surface); }
 .detail-appbar h1 { margin: 0; font: 500 var(--type-h3)/1.3 var(--font); }
 .detail-appbar .icon-button.ghost { border-color: transparent; background: transparent; }
@@ -399,6 +399,7 @@ button, input { font: inherit; }
   .standalone-screen .prototype-main { padding-bottom: 0; }
   .mail-detail-body { padding: var(--space-m); }
   .prototype-page { padding: var(--space-l) var(--space-m) var(--space-xl); }
+  .mail-detail-page { padding: 0; }
   .page-heading { margin-bottom: var(--space-l); }
   .page-heading h1 { font-size: var(--type-h1); }
   .page-heading p { font-size: var(--type-small); }
