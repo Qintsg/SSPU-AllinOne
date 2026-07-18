@@ -91,6 +91,23 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('清源分页在紧凑宽度自动降级且不产生布局溢出', (tester) async {
+    await tester.pumpWidget(
+      YhApp(
+        home: Center(
+          child: SizedBox(
+            width: 312,
+            child: YhPagination(page: 3, pageCount: 8, onChanged: (_) {}),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('第 3 / 8 页'), findsOneWidget);
+    expect(find.text('…'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('清源选择器支持指针选择与方向键确认', (tester) async {
     String? selected;
     await tester.pumpWidget(

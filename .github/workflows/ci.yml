@@ -281,6 +281,51 @@ jobs:
         if: matrix.platform == 'linux'
         run: flutter build linux --debug
 
+  visual-candidate-matrix:
+    name: Qingyuan Visual Candidates (${{ matrix.platform }})
+    if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: android
+            os: ubuntu-latest
+          - platform: ios
+            os: macos-latest
+          - platform: windows
+            os: windows-latest
+          - platform: macos
+            os: macos-latest
+          - platform: linux
+            os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: 安装 Flutter 依赖
+        run: flutter pub get
+
+      - name: 采集清源 44 组件视觉候选
+        run: >
+          flutter test test/visual/qingyuan_visual_capture_test.dart
+          --dart-define=QINGYUAN_VISUAL_CAPTURE=true
+          --dart-define=QINGYUAN_VISUAL_PLATFORM=${{ matrix.platform }}
+          --timeout 300s
+
+      - name: 上传清源视觉候选
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: qingyuan-visual-candidates-${{ matrix.platform }}
+          path: build/visual/${{ matrix.platform }}
+          if-no-files-found: error
+
   release-policy:
     if: >
       github.event.pull_request.draft == false &&

@@ -26,59 +26,79 @@ class YhPagination extends StatelessWidget {
     final normalizedCount = pageCount < 1 ? 1 : pageCount;
     final normalizedPage = page.clamp(1, normalizedCount);
     final theme = context.yhTheme;
-    return Semantics(
-      container: true,
-      explicitChildNodes: true,
-      label: '分页，第 $normalizedPage 页，共 $normalizedCount 页',
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          YhIconButton(
-            icon: YhIcons.back,
-            semanticLabel: '上一页',
-            onTap: normalizedPage > 1 && onChanged != null
-                ? () => onChanged!(normalizedPage - 1)
-                : null,
-          ),
-          if (simple)
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: theme.spacing.s),
-              child: Text(
-                '第 $normalizedPage / $normalizedCount 页',
-                style: theme.typography.small.copyWith(
-                  color: theme.color.foreground,
-                  fontFamily: YhTypographyTokens.fontFamilyMono,
-                ),
+    final pageItems = _pageItems(normalizedPage, normalizedCount);
+    final fullWidth =
+        theme.control.minimumTarget * 2 +
+        pageItems.fold<double>(
+          0,
+          (width, item) =>
+              width +
+              (item == null
+                  ? theme.control.compact
+                  : theme.control.minimumTarget),
+        );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final effectiveSimple =
+            simple ||
+            (constraints.maxWidth.isFinite && constraints.maxWidth < fullWidth);
+        return Semantics(
+          container: true,
+          explicitChildNodes: true,
+          label: '分页，第 $normalizedPage 页，共 $normalizedCount 页',
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              YhIconButton(
+                icon: YhIcons.back,
+                semanticLabel: '上一页',
+                onTap: normalizedPage > 1 && onChanged != null
+                    ? () => onChanged!(normalizedPage - 1)
+                    : null,
               ),
-            )
-          else
-            ..._pageItems(normalizedPage, normalizedCount).map(
-              (item) => item == null
-                  ? SizedBox(
-                      width: theme.control.compact,
-                      child: Text(
-                        '…',
-                        textAlign: TextAlign.center,
-                        style: theme.typography.body.copyWith(
-                          color: theme.color.muted,
-                        ),
-                      ),
-                    )
-                  : _PageButton(
-                      page: item,
-                      selected: item == normalizedPage,
-                      onTap: onChanged == null ? null : () => onChanged!(item),
+              if (effectiveSimple)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: theme.spacing.s),
+                  child: Text(
+                    '第 $normalizedPage / $normalizedCount 页',
+                    style: theme.typography.small.copyWith(
+                      color: theme.color.foreground,
+                      fontFamily: YhTypographyTokens.fontFamilyMono,
                     ),
-            ),
-          YhIconButton(
-            icon: YhIcons.chevronRight,
-            semanticLabel: '下一页',
-            onTap: normalizedPage < normalizedCount && onChanged != null
-                ? () => onChanged!(normalizedPage + 1)
-                : null,
+                  ),
+                )
+              else
+                ...pageItems.map(
+                  (item) => item == null
+                      ? SizedBox(
+                          width: theme.control.compact,
+                          child: Text(
+                            '…',
+                            textAlign: TextAlign.center,
+                            style: theme.typography.body.copyWith(
+                              color: theme.color.muted,
+                            ),
+                          ),
+                        )
+                      : _PageButton(
+                          page: item,
+                          selected: item == normalizedPage,
+                          onTap: onChanged == null
+                              ? null
+                              : () => onChanged!(item),
+                        ),
+                ),
+              YhIconButton(
+                icon: YhIcons.chevronRight,
+                semanticLabel: '下一页',
+                onTap: normalizedPage < normalizedCount && onChanged != null
+                    ? () => onChanged!(normalizedPage + 1)
+                    : null,
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

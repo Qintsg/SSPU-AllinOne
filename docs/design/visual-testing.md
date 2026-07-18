@@ -40,6 +40,19 @@ dart run tool/visual_compare.dart `
 
 失败目录包含 `report.json`，并在 `failures/<截图名>/` 下保存 `baseline.png`、`actual.png`、`diff.png`。CI 必须连同实际截图目录一起上传，保证失败可定位。
 
+## 五平台 Flutter 候选采集
+
+组件候选图由真实 Flutter 渲染树生成，不复用 HTML 原型截图。CI 在 Android、iOS、Windows、macOS、Linux 五个平台标签下分别锁定目标平台，加载 MiSans 与 `YhIcons` 底层字体，并输出六类 44 组件面板的四档视口、亮暗主题矩阵：
+
+```bash
+flutter test test/visual/qingyuan_visual_capture_test.dart \
+  --dart-define=QINGYUAN_VISUAL_CAPTURE=true \
+  --dart-define=QINGYUAN_VISUAL_PLATFORM=windows \
+  --timeout 300s
+```
+
+输出位于 `build/visual/<platform>`。这些文件是待设计确认的候选图，不得直接作为新基线覆盖 SSIM 失败；确认后的冻结基线才进入 `test/visual/baselines/<platform>`。
+
 ## 基线纪律
 
 基线只能由已确认、已冻结的设计参考生成。页面实现失败时不得用重录基线绕过门禁。若视觉意图改变，必须先修改设计文档、原型、清单和版本，再在独立变更中更新基线。

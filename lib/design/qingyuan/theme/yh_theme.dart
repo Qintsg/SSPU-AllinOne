@@ -165,7 +165,7 @@ class YhTypographyTokens {
 
   static const fontFamilyDisplay = 'MiSans';
   static const fontFamilyBody = 'MiSans';
-  static const fontFamilyMono = 'system-monospace';
+  static const fontFamilyMono = 'MiSans';
 
   static const standard = YhTypographyTokens(
     display: TextStyle(
@@ -265,6 +265,7 @@ class YhLayoutTokens {
   const YhLayoutTokens({
     this.divider = 1,
     this.controlBorder = 1.5,
+    this.appBarHeight = 56,
     this.bottomNavigationHeight = 72,
     this.navRailCompactWidth = 80,
     this.navRailExpandedWidth = 220,
@@ -280,6 +281,7 @@ class YhLayoutTokens {
 
   final double divider;
   final double controlBorder;
+  final double appBarHeight;
   final double bottomNavigationHeight;
   final double navRailCompactWidth;
   final double navRailExpandedWidth;

@@ -25,6 +25,12 @@
     }
   },
   "surfaces": [
+    {"id": "components.actions", "group": "components", "states": ["content"]},
+    {"id": "components.inputs", "group": "components", "states": ["content"]},
+    {"id": "components.feedback", "group": "components", "states": ["content"]},
+    {"id": "components.navigation", "group": "components", "states": ["content"]},
+    {"id": "components.data", "group": "components", "states": ["content"]},
+    {"id": "components.domain", "group": "components", "states": ["content"]},
     {"id": "shell.startup", "group": "global", "states": ["loading", "error"]},
     {"id": "shell.navigation", "group": "global", "states": ["content"]},
     {"id": "shell.more-drawer", "group": "global", "states": ["content"]},

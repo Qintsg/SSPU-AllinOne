@@ -14,8 +14,6 @@ class YhAppBar extends StatelessWidget {
     this.scrolled = false,
   });
 
-  static const double height = 56;
-
   final String title;
   final Widget? leading;
   final List<Widget> actions;
@@ -27,7 +25,7 @@ class YhAppBar extends StatelessWidget {
     final theme = context.yhTheme;
     final foreground = brand ? theme.color.onBrand : theme.color.foreground;
     return SizedBox(
-      height: height,
+      height: theme.layout.appBarHeight,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: brand ? theme.color.brandStrong : theme.color.surface,
