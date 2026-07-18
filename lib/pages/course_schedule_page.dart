@@ -8,14 +8,12 @@
 
 import 'dart:async';
 
-import '../design/fluent_ui.dart';
-
+import '../design/qingyuan/qingyuan_ui.dart';
 import '../models/academic_eams.dart';
 import '../models/course_period.dart';
-import '../services/academic_credentials_service.dart';
 import '../services/academic_calendar_service.dart';
+import '../services/academic_credentials_service.dart';
 import '../services/academic_eams_service.dart';
-import '../theme/fluent_tokens.dart';
 import '../utils/course_week_parser.dart';
 import 'academic_calendar_page.dart';
 import 'course_schedule_summary_card.dart';
@@ -151,7 +149,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
 
   void _openAcademicCalendar() {
     Navigator.of(context).push(
-      FluentPageRoute(
+      YhPageRoute(
         builder: (_) =>
             AcademicCalendarPage(service: widget.academicCalendarService),
       ),
@@ -167,107 +165,127 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     final canPop = Navigator.of(context).canPop();
     final snapshot = _result?.snapshot;
     final courseTable = snapshot?.courseTable;
 
-    return FluentPage.scrollable(
-      header: FluentPageHeader(
-        title: const Text('课程表'),
-        commandBar: Wrap(
-          spacing: FluentSpacing.s,
-          runSpacing: FluentSpacing.xs,
-          alignment: WrapAlignment.end,
+    return YhPageScaffold(
+      appBar: YhAppBar(
+        title: '课程表',
+        leading: canPop
+            ? YhButton(
+                label: '返回',
+                leadingIcon: YhIcons.back,
+                variant: YhButtonVariant.text,
+                onTap: () => Navigator.of(context).pop(),
+              )
+            : null,
+        actions: [
+          YhButton(
+            key: const Key('open-academic-calendar'),
+            label: '校历',
+            leadingIcon: YhIcons.calendar,
+            variant: YhButtonVariant.secondary,
+            onTap: _openAcademicCalendar,
+          ),
+          YhButton(
+            key: const Key('course-schedule-refresh'),
+            label: _isLoading ? '读取中' : '刷新课表',
+            leadingIcon: _isLoading ? null : YhIcons.refresh,
+            onTap: _isLoading ? null : _loadCourseTable,
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        primary: true,
+        padding: EdgeInsets.all(theme.spacing.m),
+        child: Align(
+          alignment: AlignmentDirectional.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
+            child: _buildContent(snapshot, courseTable),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    AcademicEamsSnapshot? snapshot,
+    AcademicCourseTableSnapshot? courseTable,
+  ) {
+    final theme = context.yhTheme;
+    if (_isLoading && _result == null) {
+      return YhCard(
+        child: Row(
           children: [
-            if (canPop)
-              FluentButton.outline(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('返回'),
-              ),
-            FluentButton.outlineIcon(
-              key: const Key('open-academic-calendar'),
-              onPressed: _openAcademicCalendar,
-              icon: const Icon(FluentIcons.calendarWeek, size: 14),
-              label: const Text('校历'),
+            SizedBox(
+              width: theme.spacing.xl2 * 2,
+              child: const YhProgress(showPercent: false),
             ),
-            FluentButton.primaryIcon(
-              key: const Key('course-schedule-refresh'),
-              onPressed: _isLoading ? null : _loadCourseTable,
-              icon: _isLoading
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: FluentProgressRing(strokeWidth: 2),
-                    )
-                  : const Icon(FluentIcons.refresh, size: 14),
-              label: const Text('刷新课表'),
+            SizedBox(width: theme.spacing.m),
+            const Expanded(child: Text('正在读取当前学期课表...')),
+          ],
+        ),
+      );
+    }
+    if (_result == null) {
+      return const YhBanner(text: '尚未读取课表：点击“刷新课表”即可按当前 OA 登录态只读获取本学期课表。');
+    }
+    if (!_result!.isSuccess || courseTable == null) {
+      return YhCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Semantics(
+              header: true,
+              child: Text(_result!.message, style: theme.typography.h3),
+            ),
+            SizedBox(height: theme.spacing.s),
+            YhBanner(
+              text: _result!.detail,
+              kind: _bannerKindOf(_result!.status),
             ),
           ],
         ),
-      ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_isLoading && _result == null)
-          const FluentSurface(
-            padding: EdgeInsets.all(FluentSpacing.xl),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: FluentProgressRing(strokeWidth: 2),
-                ),
-                SizedBox(width: FluentSpacing.s),
-                Text('正在读取当前学期课表...'),
-              ],
-            ),
-          )
-        else if (_result == null)
-          const FluentInfoBar(
-            title: Text('尚未读取课表'),
-            content: Text('点击“刷新课表”即可按当前 OA 登录态只读获取本学期课表。'),
-            severity: FluentInfoSeverity.info,
-          )
-        else if (!_result!.isSuccess || courseTable == null)
-          FluentInfoBar(
-            title: Text(_result!.message),
-            content: Text(_result!.detail),
-            severity: _severityOf(_result!.status),
-          )
-        else ...[
-          CourseScheduleSummaryCard(
-            snapshot: snapshot!,
-            checkedAt: _result!.checkedAt,
-            autoRefreshEnabled: _autoRefreshEnabled,
-            autoRefreshIntervalMinutes: _autoRefreshIntervalMinutes,
-          ),
-          const SizedBox(height: FluentSpacing.m),
-          _CourseScheduleAdaptiveView(
-            courseTable: courseTable,
-            selectedMobileWeekday: _selectedMobileWeekday,
-            onSelectedMobileWeekdayChanged: (weekday) {
-              setState(() => _selectedMobileWeekday = weekday);
-            },
-          ),
-        ],
+        CourseScheduleSummaryCard(
+          snapshot: snapshot!,
+          checkedAt: _result!.checkedAt,
+          autoRefreshEnabled: _autoRefreshEnabled,
+          autoRefreshIntervalMinutes: _autoRefreshIntervalMinutes,
+        ),
+        SizedBox(height: theme.spacing.m),
+        _CourseScheduleAdaptiveView(
+          courseTable: courseTable,
+          selectedMobileWeekday: _selectedMobileWeekday,
+          onSelectedMobileWeekdayChanged: (weekday) {
+            setState(() => _selectedMobileWeekday = weekday);
+          },
+        ),
       ],
     );
   }
 
-  FluentInfoSeverity _severityOf(AcademicEamsQueryStatus status) {
+  YhBannerKind _bannerKindOf(AcademicEamsQueryStatus status) {
     return switch (status) {
-      AcademicEamsQueryStatus.success => FluentInfoSeverity.success,
+      AcademicEamsQueryStatus.success => YhBannerKind.success,
       AcademicEamsQueryStatus.partialSuccess ||
       AcademicEamsQueryStatus.missingOaAccount ||
       AcademicEamsQueryStatus.missingOaPassword ||
-      AcademicEamsQueryStatus.campusNetworkUnavailable =>
-        FluentInfoSeverity.warning,
+      AcademicEamsQueryStatus.campusNetworkUnavailable => YhBannerKind.warn,
       AcademicEamsQueryStatus.oaLoginRequired ||
       AcademicEamsQueryStatus.systemUnavailable ||
       AcademicEamsQueryStatus.readOnlyEntryUnavailable ||
       AcademicEamsQueryStatus.queryFormUnavailable ||
       AcademicEamsQueryStatus.parseFailed ||
       AcademicEamsQueryStatus.networkError ||
-      AcademicEamsQueryStatus.unexpectedError => FluentInfoSeverity.error,
+      AcademicEamsQueryStatus.unexpectedError => YhBannerKind.danger,
     };
   }
 }
@@ -285,9 +303,11 @@ class _CourseScheduleAdaptiveView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 720) {
+        if (constraints.maxWidth <
+            theme.breakpoint.medium - theme.spacing.xl2) {
           return _CourseDayScheduleView(
             entries: _entriesForWeekday(
               courseTable.entries,
@@ -310,13 +330,18 @@ class _CourseWeekGridView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final metrics = context.appMetrics;
+    final theme = context.yhTheme;
     const periodTable = CoursePeriodTable.standard;
     final nowWeekday = DateTime.now().weekday;
-    final minWidth = metrics.schedulePeriodColumnWidth + 7 * 156;
+    final periodColumnWidth =
+        theme.spacing.xl2 + theme.spacing.xl + theme.spacing.xs / 2;
+    final weekdayColumnWidth =
+        theme.spacing.xl2 * 3 + theme.spacing.s + theme.spacing.xs;
+    final cellMinHeight =
+        theme.spacing.xl2 + theme.spacing.l + theme.spacing.xs;
+    final minWidth = periodColumnWidth + 7 * weekdayColumnWidth;
 
-    return FluentSurface(
+    return YhCard(
       padding: EdgeInsets.zero,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -325,38 +350,45 @@ class _CourseWeekGridView extends StatelessWidget {
           width: minWidth,
           child: Column(
             children: [
-              _CourseGridHeader(currentWeekday: nowWeekday),
+              _CourseGridHeader(
+                currentWeekday: nowWeekday,
+                periodColumnWidth: periodColumnWidth,
+              ),
               for (final period in periodTable.periods)
                 IntrinsicHeight(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _CoursePeriodCell(period: period),
+                      _CoursePeriodCell(
+                        period: period,
+                        width: periodColumnWidth,
+                        minHeight: cellMinHeight,
+                      ),
                       for (var weekday = 1; weekday <= 7; weekday++)
                         Expanded(
-                          child: Container(
+                          child: DecoratedBox(
                             decoration: BoxDecoration(
                               color: weekday == nowWeekday
-                                  ? colors.brandStroke2.withValues(alpha: 0.10)
-                                  : null,
-                              border: Border(
-                                left: BorderSide(
-                                  color: colors.neutralStrokeDivider,
-                                ),
-                                top: BorderSide(
-                                  color: colors.neutralStrokeDivider,
-                                ),
+                                  ? theme.color.brandTint
+                                  : theme.color.surface,
+                              border: BorderDirectional(
+                                start: BorderSide(color: theme.color.border),
+                                top: BorderSide(color: theme.color.border),
                               ),
                             ),
-                            constraints: BoxConstraints(
-                              minHeight: metrics.scheduleCellMinHeight,
-                            ),
-                            padding: const EdgeInsets.all(FluentSpacing.xs),
-                            child: _CourseGridCell(
-                              entries: _entriesStartingAt(
-                                entries,
-                                weekday,
-                                period.unit,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: cellMinHeight,
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.all(theme.spacing.xs),
+                                child: _CourseGridCell(
+                                  entries: _entriesStartingAt(
+                                    entries,
+                                    weekday,
+                                    period.unit,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -373,43 +405,53 @@ class _CourseWeekGridView extends StatelessWidget {
 }
 
 class _CourseGridHeader extends StatelessWidget {
-  const _CourseGridHeader({required this.currentWeekday});
+  const _CourseGridHeader({
+    required this.currentWeekday,
+    required this.periodColumnWidth,
+  });
 
   final int currentWeekday;
+  final double periodColumnWidth;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    final metrics = context.appMetrics;
+    final theme = context.yhTheme;
     return Row(
       children: [
         SizedBox(
-          width: metrics.schedulePeriodColumnWidth,
+          width: periodColumnWidth,
           child: Padding(
-            padding: const EdgeInsets.all(FluentSpacing.s),
-            child: Text('节次', style: type.caption1Strong),
+            padding: EdgeInsets.all(theme.spacing.s),
+            child: Text(
+              '节次',
+              style: theme.typography.small.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ),
         for (var weekday = 1; weekday <= 7; weekday++)
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(FluentSpacing.s),
+            child: DecoratedBox(
               decoration: BoxDecoration(
                 color: weekday == currentWeekday
-                    ? colors.brandStroke2.withValues(alpha: 0.16)
-                    : colors.neutralBackground2,
-                border: Border(
-                  left: BorderSide(color: colors.neutralStrokeDivider),
+                    ? theme.color.brandTint
+                    : theme.color.sunken,
+                border: BorderDirectional(
+                  start: BorderSide(color: theme.color.border),
                 ),
               ),
-              child: Text(
-                _weekdayLabel(weekday),
-                textAlign: TextAlign.center,
-                style: type.body1Strong.copyWith(
-                  color: weekday == currentWeekday
-                      ? colors.brandForeground1
-                      : colors.neutralForeground1,
+              child: Padding(
+                padding: EdgeInsets.all(theme.spacing.s),
+                child: Text(
+                  _weekdayLabel(weekday),
+                  textAlign: TextAlign.center,
+                  style: theme.typography.body.copyWith(
+                    color: weekday == currentWeekday
+                        ? theme.color.brandInk
+                        : theme.color.foreground,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -420,31 +462,51 @@ class _CourseGridHeader extends StatelessWidget {
 }
 
 class _CoursePeriodCell extends StatelessWidget {
-  const _CoursePeriodCell({required this.period});
+  const _CoursePeriodCell({
+    required this.period,
+    required this.width,
+    required this.minHeight,
+  });
 
   final CoursePeriod period;
+  final double width;
+  final double minHeight;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    final metrics = context.appMetrics;
-    return Container(
-      width: metrics.schedulePeriodColumnWidth,
-      constraints: BoxConstraints(minHeight: metrics.scheduleCellMinHeight),
-      padding: const EdgeInsets.all(FluentSpacing.s),
+    final theme = context.yhTheme;
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: colors.neutralBackground2,
-        border: Border(top: BorderSide(color: colors.neutralStrokeDivider)),
+        color: theme.color.sunken,
+        border: Border(top: BorderSide(color: theme.color.border)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('${period.unit}', style: type.body1Strong),
-          const SizedBox(height: FluentSpacing.xxs),
-          Text(period.timeRange, style: type.caption2),
-        ],
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: minHeight),
+        child: SizedBox(
+          width: width,
+          child: Padding(
+            padding: EdgeInsets.all(theme.spacing.s),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '${period.unit}',
+                  style: theme.typography.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: theme.spacing.xs),
+                Text(
+                  period.timeRange,
+                  style: theme.typography.caption.copyWith(
+                    color: theme.color.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -458,12 +520,13 @@ class _CourseGridCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (entries.isEmpty) return const SizedBox.shrink();
+    final theme = context.yhTheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (var i = 0; i < entries.length; i++) ...[
           Expanded(child: _CourseBlock(entry: entries[i], compact: true)),
-          if (i < entries.length - 1) const SizedBox(width: FluentSpacing.xs),
+          if (i < entries.length - 1) SizedBox(width: theme.spacing.xs),
         ],
       ],
     );
@@ -483,38 +546,32 @@ class _CourseDayScheduleView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FluentSurface(
-      padding: const EdgeInsets.all(FluentSpacing.l),
+    final theme = context.yhTheme;
+    return YhCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Wrap(
-            spacing: FluentSpacing.xs,
-            runSpacing: FluentSpacing.xs,
+            spacing: theme.spacing.xs,
+            runSpacing: theme.spacing.xs,
             children: [
               for (var weekday = 1; weekday <= 7; weekday++)
-                ToggleButton(
-                  checked: weekday == selectedWeekday,
-                  onChanged: (_) => onWeekdayChanged(weekday),
-                  child: Text(_weekdayLabel(weekday)),
+                YhChip(
+                  label: _weekdayLabel(weekday),
+                  selected: weekday == selectedWeekday,
+                  onTap: () => onWeekdayChanged(weekday),
                 ),
             ],
           ),
-          const SizedBox(height: FluentSpacing.l),
+          SizedBox(height: theme.spacing.l),
           if (entries.isEmpty)
-            Text(
-              '${_weekdayLabel(selectedWeekday)}暂无课程',
-              style: context.fluentType.body1.copyWith(
-                color: context.fluentColors.neutralForeground2,
-              ),
-            )
+            YhBanner(text: '${_weekdayLabel(selectedWeekday)}暂无课程')
           else
             Column(
               children: [
                 for (final entry in entries) ...[
                   _CourseBlock(entry: entry),
-                  if (entry != entries.last)
-                    const SizedBox(height: FluentSpacing.s),
+                  if (entry != entries.last) SizedBox(height: theme.spacing.s),
                 ],
               ],
             ),
@@ -532,10 +589,8 @@ class _CourseBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    final radii = context.fluentRadii;
-    final color = context.fluentCoursePalette.colorFor(entry.courseName);
+    final theme = context.yhTheme;
+    final accent = theme.color.serviceSchedule;
     const periodTable = CoursePeriodTable.standard;
     final timeRange = periodTable.rangeText(entry.startUnit, entry.endUnit);
     final weekResult = CourseWeekParser.parse(entry.weekDescription);
@@ -543,68 +598,77 @@ class _CourseBlock extends StatelessWidget {
         ? entry.weekDescription
         : '${weekResult.weeks.length}周';
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(compact ? FluentSpacing.s : FluentSpacing.m),
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: radii.largeBorder,
-        border: Border.all(color: color.withValues(alpha: 0.34)),
+        color: theme.color.sunken,
+        borderRadius: BorderRadius.circular(theme.radius.input),
+        border: Border.all(color: accent),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            entry.courseName,
-            maxLines: compact ? 2 : 1,
-            overflow: TextOverflow.ellipsis,
-            style: type.body1Strong.copyWith(color: color),
-          ),
-          const SizedBox(height: FluentSpacing.xs),
-          Wrap(
-            spacing: compact ? FluentSpacing.xs : FluentSpacing.s,
-            runSpacing: FluentSpacing.xs,
+      child: SizedBox(
+        width: double.infinity,
+        child: Padding(
+          padding: EdgeInsets.all(compact ? theme.spacing.s : theme.spacing.m),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildMeta(
-                context,
-                FluentIcons.clock,
-                '$timeRange · ${entry.timeText}',
-                compact: compact,
+              Text(
+                entry.courseName,
+                maxLines: compact ? 2 : 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.typography.body.copyWith(
+                  color: accent,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              if (entry.location != null && entry.location!.isNotEmpty)
-                _buildMeta(
-                  context,
-                  FluentIcons.location,
-                  entry.location!,
-                  compact: compact,
-                ),
-              if (entry.teacher != null && entry.teacher!.isNotEmpty)
-                _buildMeta(
-                  context,
-                  FluentIcons.contact,
-                  entry.teacher!,
-                  compact: compact,
-                ),
-              if (parsedWeeks != null && parsedWeeks.isNotEmpty)
-                _buildMeta(
-                  context,
-                  FluentIcons.calendarWeek,
-                  parsedWeeks,
-                  compact: compact,
+              SizedBox(height: theme.spacing.xs),
+              Wrap(
+                spacing: compact ? theme.spacing.xs : theme.spacing.s,
+                runSpacing: theme.spacing.xs,
+                children: [
+                  _buildMeta(
+                    context,
+                    YhIcons.clock,
+                    '$timeRange · ${entry.timeText}',
+                    compact: compact,
+                  ),
+                  if (entry.location != null && entry.location!.isNotEmpty)
+                    _buildMeta(
+                      context,
+                      YhIcons.location,
+                      entry.location!,
+                      compact: compact,
+                    ),
+                  if (entry.teacher != null && entry.teacher!.isNotEmpty)
+                    _buildMeta(
+                      context,
+                      YhIcons.profile,
+                      entry.teacher!,
+                      compact: compact,
+                    ),
+                  if (parsedWeeks != null && parsedWeeks.isNotEmpty)
+                    _buildMeta(
+                      context,
+                      YhIcons.calendar,
+                      parsedWeeks,
+                      compact: compact,
+                    ),
+                ],
+              ),
+              if (entry.location == null &&
+                  entry.teacher == null &&
+                  entry.weekDescription == null)
+                Padding(
+                  padding: EdgeInsets.only(top: theme.spacing.xs),
+                  child: Text(
+                    entry.rawText,
+                    style: theme.typography.caption.copyWith(
+                      color: theme.color.muted,
+                    ),
+                  ),
                 ),
             ],
           ),
-          if (entry.location == null &&
-              entry.teacher == null &&
-              entry.weekDescription == null)
-            Padding(
-              padding: const EdgeInsets.only(top: FluentSpacing.xs),
-              child: Text(
-                entry.rawText,
-                style: type.caption1.copyWith(color: colors.neutralForeground3),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -615,21 +679,25 @@ class _CourseBlock extends StatelessWidget {
     String text, {
     required bool compact,
   }) {
-    final colors = context.fluentColors;
+    final theme = context.yhTheme;
     return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: compact ? 112 : 260),
+      constraints: BoxConstraints(
+        maxWidth: compact
+            ? theme.control.regular * 2 + theme.spacing.m
+            : theme.breakpoint.compact / 2 - theme.spacing.xl - theme.spacing.s,
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: colors.neutralForeground3),
-          const SizedBox(width: 4),
+          Icon(icon, size: theme.spacing.m, color: theme.color.muted),
+          SizedBox(width: theme.spacing.xs),
           Flexible(
             child: Text(
               text,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: context.fluentType.caption1.copyWith(
-                color: colors.neutralForeground3,
+              style: theme.typography.caption.copyWith(
+                color: theme.color.muted,
               ),
             ),
           ),

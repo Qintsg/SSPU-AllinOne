@@ -21,6 +21,7 @@ class YhIcons {
   static const IconData sports = system.FluentIcons.sport_24_regular;
   static const IconData finance = system.FluentIcons.payment_24_regular;
   static const IconData clock = system.FluentIcons.clock_24_regular;
+  static const IconData location = system.FluentIcons.location_24_regular;
   static const IconData more = system.FluentIcons.more_horizontal_24_regular;
   static const IconData menu = system.FluentIcons.line_horizontal_3_24_regular;
   static const IconData profile = system.FluentIcons.person_24_regular;
