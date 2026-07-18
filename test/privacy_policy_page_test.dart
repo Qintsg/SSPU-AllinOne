@@ -6,9 +6,9 @@
  * @Date : 2026-05-15
  */
 
-import 'package:sspu_allinone/design/fluent_ui.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart' as qingyuan;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/widgets.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sspu_allinone/pages/about_page.dart';
 import 'package:sspu_allinone/pages/agreement_page.dart';
@@ -39,14 +39,6 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
     await tester.pump();
-  }
-
-  Widget zhFluentApp({required Widget home}) {
-    return FluentApp(
-      locale: const Locale('zh'),
-      supportedLocales: const [Locale('zh'), Locale('en')],
-      home: home,
-    );
   }
 
   Widget zhYhApp({required Widget home}) {
@@ -107,7 +99,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1000, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(zhFluentApp(home: const AboutPage()));
+    await tester.pumpWidget(zhYhApp(home: const AboutPage()));
     await pumpPageAnimations(tester);
 
     expect(find.text('法律与隐私说明'), findsOneWidget);
@@ -115,8 +107,7 @@ void main() {
     expect(find.text('隐私协议'), findsNothing);
 
     await tester.tap(find.text('法律与隐私说明').first);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
     expect(find.byType(LegalNoticePage), findsOneWidget);
     expect(find.bySemanticsLabel('返回'), findsOneWidget);
@@ -132,7 +123,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1000, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(zhFluentApp(home: const AboutPage()));
+    await tester.pumpWidget(zhYhApp(home: const AboutPage()));
     await pumpPageAnimations(tester);
 
     expect(find.text('许可证：'), findsOneWidget);
