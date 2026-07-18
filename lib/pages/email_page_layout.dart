@@ -458,7 +458,10 @@ extension _EmailPageLayout on _EmailPageState {
                         _openOrSelectMessage(messages[index], inline: true),
                   ),
                   if (index != messages.length - 1)
-                    Container(height: 1, color: theme.color.border),
+                    Container(
+                      height: theme.layout.divider,
+                      color: theme.color.border,
+                    ),
                 ],
               ],
             ),

@@ -54,7 +54,7 @@ class YhSwitch extends StatelessWidget {
                   : AlignmentDirectional.centerStart,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFFFF),
+                  color: theme.color.onStructural,
                   shape: BoxShape.circle,
                   boxShadow: theme.elevation.e1,
                 ),

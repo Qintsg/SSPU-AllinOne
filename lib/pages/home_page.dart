@@ -830,7 +830,10 @@ class _HomePageState extends State<HomePage> {
         for (var i = 0; i < visibleMessages.length; i++) ...[
           _buildMessageItem(context, visibleMessages[i]),
           if (i < visibleMessages.length - 1)
-            Container(height: 1, color: context.yhTheme.color.border),
+            Container(
+              height: context.yhTheme.layout.divider,
+              color: context.yhTheme.color.border,
+            ),
         ],
       ],
     );

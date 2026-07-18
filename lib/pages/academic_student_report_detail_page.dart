@@ -353,7 +353,7 @@ class _ReportRecordList extends StatelessWidget {
           for (var index = 0; index < rows.length; index++) ...[
             _ReportRecordListItem(headers: headers, row: rows[index]),
             if (index != rows.length - 1)
-              Container(height: 1, color: borderColor),
+              Container(height: theme.layout.divider, color: borderColor),
           ],
         ],
       ),

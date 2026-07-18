@@ -38,7 +38,7 @@ class YhBottomNav extends StatelessWidget {
         border: Border(top: BorderSide(color: theme.color.border)),
       ),
       child: SizedBox(
-        height: 72,
+        height: theme.layout.bottomNavigationHeight,
         child: Row(
           children: [
             for (var itemIndex = 0; itemIndex < items.length; itemIndex++)
@@ -84,7 +84,9 @@ class YhNavRail extends StatelessWidget {
         border: Border(right: BorderSide(color: theme.color.border)),
       ),
       child: SizedBox(
-        width: extended ? 220 : 80,
+        width: extended
+            ? theme.layout.navRailExpandedWidth
+            : theme.layout.navRailCompactWidth,
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: theme.spacing.m),
           child: Column(

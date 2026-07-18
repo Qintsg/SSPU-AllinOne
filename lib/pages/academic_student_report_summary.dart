@@ -79,7 +79,7 @@ class _SecondClassroomCompactSummary extends StatelessWidget {
             ],
             _SummaryMetricWrap(metrics: metrics, minWidth: metricMinWidth),
             SizedBox(height: theme.spacing.s),
-            Container(height: 1, color: theme.color.border),
+            Container(height: theme.layout.divider, color: theme.color.border),
             SizedBox(height: theme.spacing.s),
             _CategoryProgressStrip(
               categories: categories,

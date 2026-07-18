@@ -110,7 +110,7 @@ class _SettingsNavItem extends StatelessWidget {
             ? selectedBackground
             : state.hovered
             ? theme.color.sunken
-            : const Color(0x00000000);
+            : theme.color.surface.withValues(alpha: 0);
         final foreground = isSelected
             ? theme.color.brandInk
             : theme.color.muted;
@@ -137,7 +137,7 @@ class _SettingsNavItem extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? theme.color.brandStrong
-                        : const Color(0x00000000),
+                        : theme.color.surface.withValues(alpha: 0),
                     borderRadius: BorderRadius.circular(theme.radius.full),
                   ),
                 ),
@@ -177,7 +177,7 @@ Widget buildCountNumberBox({
   final foreground = enabled ? theme.color.muted : theme.color.border;
 
   Widget numberField() => SizedBox(
-    width: 128,
+    width: theme.layout.settingsIndicatorWidth,
     child: YhNumberField(
       label: label,
       showLabel: false,
@@ -196,7 +196,7 @@ Widget buildCountNumberBox({
       final shouldStack = shouldStackSettingsControls(constraints);
       if (shouldStack) {
         return ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 340),
+          constraints: BoxConstraints(maxWidth: theme.layout.formFieldWidth),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -213,7 +213,7 @@ Widget buildCountNumberBox({
       }
 
       return ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 340),
+        constraints: BoxConstraints(maxWidth: theme.layout.formFieldWidth),
         child: Row(
           children: [
             Expanded(

@@ -121,8 +121,11 @@ class _ChannelListSectionState extends State<ChannelListSection> {
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     if (_isLoading) {
-      return const Center(
-        child: SizedBox(width: 240, child: YhProgress(showPercent: false)),
+      return Center(
+        child: SizedBox(
+          width: theme.layout.statusProgressWidth,
+          child: const YhProgress(showPercent: false),
+        ),
       );
     }
 

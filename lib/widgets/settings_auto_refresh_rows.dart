@@ -133,6 +133,7 @@ extension _SettingsAutoRefreshRows on SettingsAutoRefreshSection {
           onChanged: (value) => onEnabledChanged(value),
         ),
         _buildEnabledIntervalDropdown(
+          context: context,
           label: '$semanticLabel间隔',
           selectedIntervalMinutes: interval,
           enabled: enabled,
@@ -143,6 +144,7 @@ extension _SettingsAutoRefreshRows on SettingsAutoRefreshSection {
   }
 
   Widget _buildEnabledIntervalDropdown({
+    required BuildContext context,
     required String label,
     required int selectedIntervalMinutes,
     required bool enabled,
@@ -157,7 +159,9 @@ extension _SettingsAutoRefreshRows on SettingsAutoRefreshSection {
         : 30;
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 180),
+      constraints: BoxConstraints(
+        maxWidth: context.yhTheme.layout.inlineControlWidth,
+      ),
       child: YhSelect<int>(
         label: label,
         showLabel: false,

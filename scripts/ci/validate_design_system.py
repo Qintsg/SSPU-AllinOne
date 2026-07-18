@@ -209,6 +209,7 @@ def _validate_flutter_scalars(project_root: Path, tokens: dict[str, Any]) -> Non
         "radius": "YhRadiusTokens",
         "breakpoint": "YhBreakpointTokens",
         "control": "YhControlTokens",
+        "layout": "YhLayoutTokens",
         "focus": "YhFocusTokens",
     }
     for group, class_name in groups.items():
@@ -455,6 +456,11 @@ def _validate_qingyuan_runtime(project_root: Path) -> None:
             errors.append(f"{relative} 绕过 YhIcons 直接导入底层图标包")
         if re.search(r"(?:design/fluent|theme/fluent_tokens|theme/app_theme)", source):
             errors.append(f"{relative} 仍导入旧 Fluent 设计门面")
+        if relative != "lib/design/qingyuan/theme/yh_theme.dart" and re.search(
+            r"\b(?:width|height|minWidth|maxWidth|minHeight|maxHeight)\s*:\s*\d+(?:\.\d+)?\b",
+            source,
+        ):
+            errors.append(f"{relative} 存在未通过清源 token 表达的固定视觉尺寸")
 
     pubspec = project_root / "pubspec.yaml"
     if pubspec.exists():

@@ -94,8 +94,11 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
       listenable: _controller,
       builder: (context, _) {
         if (_controller.isLoading) {
-          return const Center(
-            child: SizedBox(width: 240, child: YhProgress(showPercent: false)),
+          return Center(
+            child: SizedBox(
+              width: context.yhTheme.layout.statusProgressWidth,
+              child: const YhProgress(showPercent: false),
+            ),
           );
         }
 

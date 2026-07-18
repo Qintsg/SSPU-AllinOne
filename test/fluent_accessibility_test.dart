@@ -196,7 +196,7 @@ void main() {
     final theme = navTheme(tester, '常规设置');
     final pointer = await tester.createGesture(kind: PointerDeviceKind.mouse);
 
-    expect(navItemDecoration(tester, '自动刷新设置').color, const Color(0x00000000));
+    expect(navItemDecoration(tester, '自动刷新设置').color?.a, 0);
 
     await pointer.moveTo(tester.getCenter(find.text('自动刷新设置')));
     await tester.pump();
@@ -204,7 +204,7 @@ void main() {
 
     await pointer.moveTo(tester.getCenter(find.text('常规设置')));
     await tester.pump();
-    expect(navItemDecoration(tester, '自动刷新设置').color, const Color(0x00000000));
+    expect(navItemDecoration(tester, '自动刷新设置').color?.a, 0);
   });
 
   testWidgets('设置侧栏导航项 selected hover 不覆盖选中身份', (tester) async {

@@ -215,7 +215,10 @@ class _AcademicExamPreview extends StatelessWidget {
           if (index != visibleRecords.length - 1)
             Padding(
               padding: EdgeInsets.symmetric(vertical: theme.spacing.s),
-              child: Container(height: 1, color: theme.color.border),
+              child: Container(
+                height: theme.layout.divider,
+                color: theme.color.border,
+              ),
             ),
         ],
         if (remaining > 0) ...[
@@ -515,7 +518,7 @@ class _AcademicExamRecordList extends StatelessWidget {
           for (var index = 0; index < records.length; index++) ...[
             _AcademicExamRecordListItem(record: records[index]),
             if (index != records.length - 1)
-              Container(height: 1, color: borderColor),
+              Container(height: theme.layout.divider, color: borderColor),
           ],
         ],
       ),

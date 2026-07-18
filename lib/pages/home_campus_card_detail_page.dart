@@ -314,7 +314,7 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
             ..._buildTransactionRows(context, theme),
           ],
           if (_filteredRecords.isNotEmpty) ...[
-            Container(height: 1, color: theme.color.border),
+            Container(height: theme.layout.divider, color: theme.color.border),
             _buildPagination(theme),
           ],
         ],
@@ -326,7 +326,9 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
     final rows = <Widget>[];
     final records = _pagedRecords;
     for (var index = 0; index < records.length; index++) {
-      rows.add(Container(height: 1, color: theme.color.border));
+      rows.add(
+        Container(height: theme.layout.divider, color: theme.color.border),
+      );
       rows.add(_buildTransactionRow(context, theme, records[index]));
     }
     return rows;

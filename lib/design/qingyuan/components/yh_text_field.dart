@@ -153,7 +153,10 @@ class _YhTextFieldState extends State<YhTextField> {
                   color: widget.enabled
                       ? theme.color.surface
                       : theme.color.sunken,
-                  border: Border.all(color: borderColor, width: 1.5),
+                  border: Border.all(
+                    color: borderColor,
+                    width: theme.layout.controlBorder,
+                  ),
                   borderRadius: BorderRadius.circular(theme.radius.input),
                 ),
                 padding: EdgeInsets.symmetric(horizontal: theme.spacing.m),

@@ -11,13 +11,13 @@ class YhDialog extends StatelessWidget {
     required this.title,
     required this.content,
     required this.actions,
-    this.constraints = const BoxConstraints(maxWidth: 480),
+    this.constraints,
   });
 
   final String title;
   final Widget content;
   final List<Widget> actions;
-  final BoxConstraints constraints;
+  final BoxConstraints? constraints;
 
   static Future<T?> show<T>(
     BuildContext context, {
@@ -99,7 +99,9 @@ class YhDialog extends StatelessWidget {
         child: FocusTraversalGroup(
           policy: ReadingOrderTraversalPolicy(),
           child: ConstrainedBox(
-            constraints: constraints,
+            constraints:
+                constraints ??
+                BoxConstraints(maxWidth: theme.layout.dialogWidth),
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: theme.color.surface,

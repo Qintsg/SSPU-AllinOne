@@ -222,5 +222,21 @@ class DesignSystemValidatorTest(unittest.TestCase):
             with self.assertRaisesRegex(DesignSystemValidationError, r"yh_button\.dart.*YhIcons"):
                 validate_design_system(root)
 
+    def test_qingyuan_runtime_rejects_naked_visual_dimensions(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            runtime = root / "lib" / "design" / "qingyuan"
+            shutil.copytree(PROJECT_ROOT / "lib" / "design" / "qingyuan", runtime)
+            target = runtime / "components" / "yh_button.dart"
+            target.write_text(
+                target.read_text(encoding="utf-8") + "\nconst drift = SizedBox(width: 37);\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(DesignSystemValidationError, r"yh_button\.dart.*固定视觉尺寸"):
+                validate_design_system(root)
+
 if __name__ == "__main__":
     unittest.main()

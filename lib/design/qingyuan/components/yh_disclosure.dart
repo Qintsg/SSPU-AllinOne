@@ -42,7 +42,10 @@ class _YhDisclosureState extends State<YhDisclosure> {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: theme.color.surface,
-        border: Border.all(color: theme.color.border, width: 1.5),
+        border: Border.all(
+          color: theme.color.border,
+          width: theme.layout.controlBorder,
+        ),
         borderRadius: BorderRadius.circular(theme.radius.m),
       ),
       child: Column(

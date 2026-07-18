@@ -122,7 +122,7 @@ class YhSegmented<T> extends StatelessWidget {
                           ? theme.color.surface
                           : state.hovered
                           ? theme.color.brandTint
-                          : const Color(0x00000000),
+                          : theme.color.surface.withValues(alpha: 0),
                       borderRadius: BorderRadius.circular(theme.radius.s),
                       boxShadow: option.value == value
                           ? theme.elevation.e1

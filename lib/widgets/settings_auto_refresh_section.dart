@@ -155,7 +155,7 @@ class SettingsAutoRefreshSection extends StatelessWidget {
               '控制导航栏状态徽标的自动检测频率；关闭后仍可点击徽标手动检测',
               style: theme.typography.small.copyWith(color: theme.color.muted),
             ),
-            trailing: _buildIntervalComboBox(),
+            trailing: _buildIntervalComboBox(context),
           ),
           SizedBox(height: theme.spacing.m),
           _buildSportsAttendanceAutoRefreshRow(context),
@@ -216,14 +216,16 @@ class SettingsAutoRefreshSection extends StatelessWidget {
     );
   }
 
-  Widget _buildIntervalComboBox() {
+  Widget _buildIntervalComboBox(BuildContext context) {
     final selectedValue =
         kIntervalOptions.containsKey(campusNetworkDetectionIntervalMinutes)
         ? campusNetworkDetectionIntervalMinutes
         : 15;
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 180),
+      constraints: BoxConstraints(
+        maxWidth: context.yhTheme.layout.inlineControlWidth,
+      ),
       child: YhSelect<int>(
         label: '校园网检测间隔',
         showLabel: false,

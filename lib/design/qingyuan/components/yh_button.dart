@@ -52,7 +52,10 @@ class YhButton extends StatelessWidget {
               color: colors.background,
               border: colors.border == null
                   ? null
-                  : Border.all(color: colors.border!, width: 1.5),
+                  : Border.all(
+                      color: colors.border!,
+                      width: theme.layout.controlBorder,
+                    ),
               borderRadius: BorderRadius.circular(theme.radius.m),
             ),
             child: ConstrainedBox(

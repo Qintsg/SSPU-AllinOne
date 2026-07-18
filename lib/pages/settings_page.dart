@@ -221,9 +221,12 @@ class _SettingsPageState extends State<SettingsPage>
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const YhPageScaffold(
+      return YhPageScaffold(
         body: Center(
-          child: SizedBox(width: 240, child: YhProgress(showPercent: false)),
+          child: SizedBox(
+            width: context.yhTheme.layout.statusProgressWidth,
+            child: const YhProgress(showPercent: false),
+          ),
         ),
       );
     }

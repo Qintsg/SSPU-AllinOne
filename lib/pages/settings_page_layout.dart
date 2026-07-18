@@ -31,7 +31,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
         Padding(
           padding: EdgeInsets.symmetric(vertical: theme.spacing.s),
           child: SizedBox(
-            width: 1,
+            width: theme.layout.divider,
             child: ColoredBox(color: theme.color.border),
           ),
         ),
@@ -63,7 +63,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           child: _buildSettingsTabCombo(context),
         ),
         SizedBox(
-          height: 1,
+          height: theme.layout.divider,
           width: double.infinity,
           child: ColoredBox(color: theme.color.border),
         ),
@@ -190,7 +190,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
         horizontal: theme.spacing.s,
       ),
       child: SizedBox(
-        height: 1,
+        height: theme.layout.divider,
         width: double.infinity,
         child: ColoredBox(color: theme.color.border),
       ),

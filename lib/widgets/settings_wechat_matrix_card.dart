@@ -214,7 +214,9 @@ class SettingsWechatMatrixCard extends StatelessWidget {
         if (batchFollowing && batchProgress.isNotEmpty) ...[
           SizedBox(height: theme.spacing.xs),
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 220),
+            constraints: BoxConstraints(
+              maxWidth: theme.layout.compactContentWidth,
+            ),
             child: Text(
               batchProgress,
               style: theme.typography.small,
@@ -287,7 +289,7 @@ class _WechatAccountToggleButton extends StatelessWidget {
             curve: theme.motion.curve,
             constraints: BoxConstraints(
               minHeight: theme.control.minimumTarget,
-              maxWidth: 320,
+              maxWidth: theme.layout.popoverWidth,
             ),
             padding: EdgeInsetsDirectional.only(
               start: theme.spacing.s,

@@ -71,7 +71,7 @@ class _EmailMailboxListPanel extends StatelessWidget {
               ],
             ),
           ),
-          Container(height: 1, color: theme.color.border),
+          Container(height: theme.layout.divider, color: theme.color.border),
           if (messages.isEmpty)
             Padding(
               padding: EdgeInsets.all(theme.spacing.l),
@@ -94,7 +94,10 @@ class _EmailMailboxListPanel extends StatelessWidget {
                 onPressed: () => onMessagePressed(messages[index]),
               ),
               if (index != messages.length - 1)
-                Container(height: 1, color: theme.color.border),
+                Container(
+                  height: theme.layout.divider,
+                  color: theme.color.border,
+                ),
             ],
         ],
       ),

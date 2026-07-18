@@ -46,7 +46,7 @@ class YhTabs<T> extends StatelessWidget {
                     bottom: BorderSide(
                       color: tab.value == value
                           ? theme.color.brandStrong
-                          : const Color(0x00000000),
+                          : theme.color.surface.withValues(alpha: 0),
                       width: theme.focus.ringWidth,
                     ),
                   ),

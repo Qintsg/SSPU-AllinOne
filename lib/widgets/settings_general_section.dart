@@ -282,7 +282,9 @@ class SettingsGeneralSection extends StatelessWidget {
             title: _settingsTitle(context, '关闭按钮行为'),
             subtitle: _settingsSubtitle(context, '选择点击窗口关闭按钮时的操作'),
             trailing: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 220),
+              constraints: BoxConstraints(
+                maxWidth: theme.layout.compactContentWidth,
+              ),
               child: YhSelect<String>(
                 label: '关闭按钮行为',
                 showLabel: false,

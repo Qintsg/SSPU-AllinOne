@@ -400,7 +400,7 @@ class _AcademicGradeRecordList extends StatelessWidget {
           for (var index = 0; index < records.length; index++) ...[
             _AcademicGradeRecordListItem(record: records[index]),
             if (index != records.length - 1)
-              Container(height: 1, color: borderColor),
+              Container(height: theme.layout.divider, color: borderColor),
           ],
         ],
       ),

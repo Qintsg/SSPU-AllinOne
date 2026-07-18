@@ -261,6 +261,39 @@ class YhControlTokens {
 }
 
 @immutable
+class YhLayoutTokens {
+  const YhLayoutTokens({
+    this.divider = 1,
+    this.controlBorder = 1.5,
+    this.bottomNavigationHeight = 72,
+    this.navRailCompactWidth = 80,
+    this.navRailExpandedWidth = 220,
+    this.statusProgressWidth = 240,
+    this.settingsIndicatorWidth = 128,
+    this.inlineControlWidth = 180,
+    this.compactContentWidth = 220,
+    this.popoverWidth = 320,
+    this.formFieldWidth = 340,
+    this.dialogWidth = 480,
+    this.formContentWidth = 560,
+  });
+
+  final double divider;
+  final double controlBorder;
+  final double bottomNavigationHeight;
+  final double navRailCompactWidth;
+  final double navRailExpandedWidth;
+  final double statusProgressWidth;
+  final double settingsIndicatorWidth;
+  final double inlineControlWidth;
+  final double compactContentWidth;
+  final double popoverWidth;
+  final double formFieldWidth;
+  final double dialogWidth;
+  final double formContentWidth;
+}
+
+@immutable
 class YhFocusTokens {
   const YhFocusTokens({this.ringWidth = 2, this.ringGap = 2});
   final double ringWidth, ringGap;
@@ -310,6 +343,7 @@ class YhTheme {
     this.motion = const YhMotionTokens(),
     this.breakpoint = const YhBreakpointTokens(),
     this.control = const YhControlTokens(),
+    this.layout = const YhLayoutTokens(),
     this.focus = const YhFocusTokens(),
     required this.elevation,
   });
@@ -330,6 +364,7 @@ class YhTheme {
   final YhMotionTokens motion;
   final YhBreakpointTokens breakpoint;
   final YhControlTokens control;
+  final YhLayoutTokens layout;
   final YhFocusTokens focus;
   final YhElevationTokens elevation;
 
@@ -341,6 +376,7 @@ class YhTheme {
     YhMotionTokens? motion,
     YhBreakpointTokens? breakpoint,
     YhControlTokens? control,
+    YhLayoutTokens? layout,
     YhFocusTokens? focus,
     YhElevationTokens? elevation,
   }) => YhTheme(
@@ -351,6 +387,7 @@ class YhTheme {
     motion: motion ?? this.motion,
     breakpoint: breakpoint ?? this.breakpoint,
     control: control ?? this.control,
+    layout: layout ?? this.layout,
     focus: focus ?? this.focus,
     elevation: elevation ?? this.elevation,
   );

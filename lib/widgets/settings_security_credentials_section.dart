@@ -13,8 +13,11 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
   Widget _buildAcademicCredentialsSection(BuildContext context) {
     final theme = context.yhTheme;
     if (_isCredentialsLoading) {
-      return const Center(
-        child: SizedBox(width: 240, child: YhProgress(showPercent: false)),
+      return Center(
+        child: SizedBox(
+          width: theme.layout.statusProgressWidth,
+          child: const YhProgress(showPercent: false),
+        ),
       );
     }
 
@@ -24,7 +27,7 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
         _buildAcademicCredentialsHeader(context),
         SizedBox(height: theme.spacing.l),
         ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
+          constraints: BoxConstraints(maxWidth: theme.layout.formContentWidth),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

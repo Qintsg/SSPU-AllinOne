@@ -98,7 +98,7 @@ class _RuleMatrixMobileList extends StatelessWidget {
           for (var index = 0; index < groups.length; index++) ...[
             _RuleCategoryMobileSection(group: groups[index]),
             if (index != groups.length - 1)
-              Container(height: 1, color: borderColor),
+              Container(height: theme.layout.divider, color: borderColor),
           ],
         ],
       ),
@@ -153,7 +153,10 @@ class _RuleCategoryMobileSection extends StatelessWidget {
           if (index != group.items.length - 1)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: theme.spacing.m),
-              child: Container(height: 1, color: borderColor),
+              child: Container(
+                height: theme.layout.divider,
+                color: borderColor,
+              ),
             ),
         ],
       ],
@@ -219,7 +222,7 @@ class _RuleItemMobileSection extends StatelessWidget {
             _RuleLeafMobileRow(rule: group.rules[index]),
             if (index != group.rules.length - 1) ...[
               SizedBox(height: theme.spacing.s),
-              Container(height: 1, color: borderColor),
+              Container(height: theme.layout.divider, color: borderColor),
               SizedBox(height: theme.spacing.s),
             ],
           ],

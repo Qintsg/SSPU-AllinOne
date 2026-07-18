@@ -36,7 +36,7 @@ class YhCard extends StatelessWidget {
                 color: state?.hovered == true
                     ? theme.color.brand
                     : theme.color.border,
-                width: 1.5,
+                width: theme.layout.controlBorder,
               ),
         borderRadius: BorderRadius.circular(theme.radius.m),
         boxShadow: elevated

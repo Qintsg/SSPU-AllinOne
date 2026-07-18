@@ -321,7 +321,10 @@ class AboutSettingsSection extends StatelessWidget {
           ),
           ColoredBox(
             color: theme.color.border,
-            child: const SizedBox(height: 1, width: double.infinity),
+            child: SizedBox(
+              height: theme.layout.divider,
+              width: double.infinity,
+            ),
           ),
           _ActionTile(
             icon: YhIcons.library,

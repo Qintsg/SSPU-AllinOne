@@ -451,7 +451,7 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
   }
 
   Widget _securityDivider(BuildContext context) => SizedBox(
-    height: 1,
+    height: context.yhTheme.layout.divider,
     width: double.infinity,
     child: ColoredBox(color: context.yhTheme.color.border),
   );
