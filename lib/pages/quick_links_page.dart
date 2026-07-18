@@ -89,8 +89,9 @@ class _QuickLinksPageState extends State<QuickLinksPage> {
     if (widget.authenticationResolver != null) {
       return widget.authenticationResolver!(item);
     }
-    final status = await AcademicCredentialsService.instance.getStatus();
-    return status.oaAccount.trim().isNotEmpty && status.hasOaPassword;
+    final session = await AcademicCredentialsService.instance
+        .readOaLoginSession();
+    return session != null;
   }
 
   bool _requiresOaAuthentication(QuickLinkItemConfig item) {

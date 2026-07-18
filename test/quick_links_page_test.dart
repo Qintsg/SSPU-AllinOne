@@ -1,9 +1,11 @@
 /* 清源快速跳转页面测试。 */
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/pages/quick_links_page.dart';
+import 'package:sspu_allinone/services/academic_credentials_service.dart';
 import 'package:sspu_allinone/services/quick_links_config_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 
@@ -38,6 +40,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
     StorageService.debugUseSharedPreferencesStorageForTesting(true);
   });
 
@@ -108,8 +111,16 @@ void main() {
     expect(find.text('当前配置没有可用的校园服务入口。'), findsOneWidget);
   });
 
-  testWidgets('需要 OA 认证的外部入口在缺少凭据时阻止跳转', (tester) async {
+  testWidgets('需要 OA 认证的外部入口在缺少会话时阻止跳转', (tester) async {
     String? openedUrl;
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '202412345',
+      oaPassword: 'saved-but-not-logged-in',
+    );
+    expect(
+      await AcademicCredentialsService.instance.readOaLoginSession(),
+      isNull,
+    );
     const oaGroups = <QuickLinkGroupConfig>[
       QuickLinkGroupConfig(
         category: '学习与教务',
@@ -126,7 +137,6 @@ void main() {
       YhApp(
         home: QuickLinksPage(
           groupsLoader: () async => oaGroups,
-          authenticationResolver: (_) async => false,
           onOpenUrl: (url) async => openedUrl = url,
         ),
       ),

@@ -130,9 +130,9 @@ class ExternalLinkConfirmationPage extends StatelessWidget {
                     kind: _canOpen ? YhBannerKind.info : YhBannerKind.warn,
                     text: _canOpen
                         ? authenticationRequired
-                              ? '本机已保存 OA 连接信息；外部网站仍可能要求再次登录。'
+                              ? '本机存在可复用的 OA 登录会话；外部网站仍可能要求再次登录。'
                               : '此链接将交给系统浏览器，浏览器中的登录与隐私设置由系统管理。'
-                        : '尚未在设置中保存 OA 账号与密码。为避免无意义重定向，当前不会打开网站。',
+                        : '当前没有可复用的 OA 登录会话。为避免无意义重定向，当前不会打开网站。',
                   ),
                   SizedBox(height: theme.spacing.l),
                   Align(
