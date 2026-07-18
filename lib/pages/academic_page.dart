@@ -9,7 +9,6 @@
 import 'dart:async';
 
 import '../controllers/card_auto_refresh_controller.dart';
-import '../design/fluent_ui.dart';
 import '../design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -22,7 +21,6 @@ import '../services/academic_eams_service.dart';
 import '../services/academic_term_service.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/student_report_service.dart';
-import '../theme/fluent_tokens.dart';
 import '../utils/query_result_messages.dart';
 import '../widgets/refresh_feedback_action.dart';
 import 'course_schedule_page.dart';

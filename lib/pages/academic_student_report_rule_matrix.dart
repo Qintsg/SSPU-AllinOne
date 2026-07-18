@@ -11,66 +11,69 @@ part of 'academic_page.dart';
 class _SecondClassroomRuleMatrix extends StatelessWidget {
   const _SecondClassroomRuleMatrix({required this.summary});
 
-  static const double _categoryWidth = 124;
-  static const double _itemWidth = 156;
-  static const double _levelWidth = 124;
-  static const double _creditWidth = 92;
-  static const double _earnedWidth = 92;
-  static const double _requiredWidth = 92;
-  static const double _statusWidth = 112;
-  static const double _minimumParticipationWidth = 280;
+  static double categoryWidth(YhTheme theme) =>
+      theme.control.compact * 3 + theme.spacing.xs;
+  static double itemWidth(YhTheme theme) =>
+      theme.control.compact * 4 - theme.spacing.xs;
+  static double levelWidth(YhTheme theme) => categoryWidth(theme);
+  static double creditWidth(YhTheme theme) =>
+      theme.spacing.xl2 * 2 - theme.spacing.xs;
+  static double earnedWidth(YhTheme theme) => creditWidth(theme);
+  static double requiredWidth(YhTheme theme) => creditWidth(theme);
+  static double statusWidth(YhTheme theme) =>
+      theme.spacing.xl2 * 2 + theme.spacing.m;
+  static double minimumParticipationWidth(YhTheme theme) =>
+      theme.breakpoint.compact / 2 - theme.spacing.l + theme.spacing.xs;
 
   final SecondClassroomCreditSummary summary;
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     final rules = summary.rules;
     if (rules.isEmpty) {
       return const _EmptyPanel(title: '规则矩阵', message: '暂无规则矩阵，等待下次刷新补全。');
     }
     final categoryGroups = _RuleCategoryGroup.fromRules(rules);
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('规则矩阵', style: FluentTheme.of(context).typography.bodyStrong),
-            const SizedBox(height: FluentSpacing.m),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                if (constraints.maxWidth < 720) {
-                  return _RuleMatrixMobileList(groups: categoryGroups);
-                }
-                const fixedWidth =
-                    _categoryWidth +
-                    _itemWidth +
-                    _levelWidth +
-                    _creditWidth +
-                    _earnedWidth +
-                    _requiredWidth +
-                    _statusWidth;
-                const minimumTableWidth =
-                    fixedWidth + _minimumParticipationWidth;
-                final tableWidth = constraints.maxWidth > minimumTableWidth
-                    ? constraints.maxWidth
-                    : minimumTableWidth;
-                final participationWidth = tableWidth - fixedWidth;
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: tableWidth,
-                    child: _RuleMatrixTable(
-                      groups: categoryGroups,
-                      participationWidth: participationWidth,
-                    ),
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('规则矩阵', style: theme.typography.h3),
+          SizedBox(height: theme.spacing.m),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth <
+                  theme.breakpoint.medium - theme.spacing.xl2) {
+                return _RuleMatrixMobileList(groups: categoryGroups);
+              }
+              final fixedWidth =
+                  categoryWidth(theme) +
+                  itemWidth(theme) +
+                  levelWidth(theme) +
+                  creditWidth(theme) +
+                  earnedWidth(theme) +
+                  requiredWidth(theme) +
+                  statusWidth(theme);
+              final minimumTableWidth =
+                  fixedWidth + minimumParticipationWidth(theme);
+              final tableWidth = constraints.maxWidth > minimumTableWidth
+                  ? constraints.maxWidth
+                  : minimumTableWidth;
+              final participationWidth = tableWidth - fixedWidth;
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: tableWidth,
+                  child: _RuleMatrixTable(
+                    groups: categoryGroups,
+                    participationWidth: participationWidth,
                   ),
-                );
-              },
-            ),
-          ],
-        ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -83,11 +86,12 @@ class _RuleMatrixMobileList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     final borderColor = _ruleMatrixBorderColor(context);
     return DecoratedBox(
       decoration: BoxDecoration(
         border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(context.fluentRadii.medium),
+        borderRadius: BorderRadius.circular(theme.radius.input),
       ),
       child: Column(
         children: [
@@ -109,30 +113,32 @@ class _RuleCategoryMobileSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     final borderColor = _ruleMatrixBorderColor(context);
     final statusColor = _statusTextColor(context, group.passStatus);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ColoredBox(
-          color: theme.resources.controlAltFillColorSecondary,
+          color: theme.color.sunken,
           child: Padding(
-            padding: const EdgeInsets.all(FluentSpacing.m),
+            padding: EdgeInsets.all(theme.spacing.m),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
                     _emptyAsDash(group.category),
-                    style: theme.typography.bodyStrong,
+                    style: theme.typography.body.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-                const SizedBox(width: FluentSpacing.s),
+                SizedBox(width: theme.spacing.s),
                 _RuleCategoryBadge(
                   label: '必修',
                   value: _formatNullableCredit(group.requiredCredit),
                 ),
-                const SizedBox(width: FluentSpacing.s),
+                SizedBox(width: theme.spacing.s),
                 _RuleCategoryBadge(
                   label: '通过',
                   value: _emptyAsDash(group.passStatus),
@@ -146,7 +152,7 @@ class _RuleCategoryMobileSection extends StatelessWidget {
           _RuleItemMobileSection(group: group.items[index]),
           if (index != group.items.length - 1)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: FluentSpacing.m),
+              padding: EdgeInsets.symmetric(horizontal: theme.spacing.m),
               child: Container(height: 1, color: borderColor),
             ),
         ],
@@ -168,21 +174,19 @@ class _RuleCategoryBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label,
-          style: theme.typography.caption?.copyWith(
-            color: theme.resources.textFillColorSecondary,
-          ),
+          style: theme.typography.caption.copyWith(color: theme.color.muted),
         ),
-        const SizedBox(height: FluentSpacing.xxs),
+        SizedBox(height: theme.spacing.xs),
         Text(
           value,
-          style: theme.typography.bodyStrong?.copyWith(
+          style: theme.typography.body.copyWith(
             color: foreground,
             fontWeight: FontWeight.w700,
           ),
@@ -199,21 +203,24 @@ class _RuleItemMobileSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     final borderColor = _ruleMatrixBorderColor(context);
     return Padding(
-      padding: const EdgeInsets.all(FluentSpacing.m),
+      padding: EdgeInsets.all(theme.spacing.m),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(_emptyAsDash(group.item), style: theme.typography.bodyStrong),
-          const SizedBox(height: FluentSpacing.s),
+          Text(
+            _emptyAsDash(group.item),
+            style: theme.typography.body.copyWith(fontWeight: FontWeight.w600),
+          ),
+          SizedBox(height: theme.spacing.s),
           for (var index = 0; index < group.rules.length; index++) ...[
             _RuleLeafMobileRow(rule: group.rules[index]),
             if (index != group.rules.length - 1) ...[
-              const SizedBox(height: FluentSpacing.s),
+              SizedBox(height: theme.spacing.s),
               Container(height: 1, color: borderColor),
-              const SizedBox(height: FluentSpacing.s),
+              SizedBox(height: theme.spacing.s),
             ],
           ],
         ],
@@ -229,9 +236,10 @@ class _RuleLeafMobileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return Wrap(
-      spacing: FluentSpacing.l,
-      runSpacing: FluentSpacing.s,
+      spacing: theme.spacing.l,
+      runSpacing: theme.spacing.s,
       children: [
         _ReportRecordField(label: '等级', value: rule.level),
         _ReportRecordField(label: '参与情况', value: rule.participation),
@@ -285,47 +293,45 @@ class _RuleMatrixHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.resources.controlAltFillColorSecondary,
-      ),
+      decoration: BoxDecoration(color: theme.color.sunken),
       child: Row(
         children: [
-          const _RuleMatrixCell(
+          _RuleMatrixCell(
             '类别',
-            width: _SecondClassroomRuleMatrix._categoryWidth,
+            width: _SecondClassroomRuleMatrix.categoryWidth(theme),
             header: true,
           ),
-          const _RuleMatrixCell(
+          _RuleMatrixCell(
             '项目',
-            width: _SecondClassroomRuleMatrix._itemWidth,
+            width: _SecondClassroomRuleMatrix.itemWidth(theme),
             header: true,
           ),
-          const _RuleMatrixCell(
+          _RuleMatrixCell(
             '等级',
-            width: _SecondClassroomRuleMatrix._levelWidth,
+            width: _SecondClassroomRuleMatrix.levelWidth(theme),
             header: true,
           ),
           _RuleMatrixCell('参与情况', width: participationWidth, header: true),
-          const _RuleMatrixCell(
+          _RuleMatrixCell(
             '积分',
-            width: _SecondClassroomRuleMatrix._creditWidth,
+            width: _SecondClassroomRuleMatrix.creditWidth(theme),
             header: true,
           ),
-          const _RuleMatrixCell(
+          _RuleMatrixCell(
             '已获积分',
-            width: _SecondClassroomRuleMatrix._earnedWidth,
+            width: _SecondClassroomRuleMatrix.earnedWidth(theme),
             header: true,
           ),
-          const _RuleMatrixCell(
+          _RuleMatrixCell(
             '必修积分',
-            width: _SecondClassroomRuleMatrix._requiredWidth,
+            width: _SecondClassroomRuleMatrix.requiredWidth(theme),
             header: true,
           ),
-          const _RuleMatrixCell(
+          _RuleMatrixCell(
             '通过情况',
-            width: _SecondClassroomRuleMatrix._statusWidth,
+            width: _SecondClassroomRuleMatrix.statusWidth(theme),
             header: true,
           ),
         ],
@@ -345,13 +351,14 @@ class _RuleCategoryGroupView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _RuleMatrixCell(
             group.category,
-            width: _SecondClassroomRuleMatrix._categoryWidth,
+            width: _SecondClassroomRuleMatrix.categoryWidth(theme),
             merged: true,
           ),
           Expanded(
@@ -367,12 +374,12 @@ class _RuleCategoryGroupView extends StatelessWidget {
           ),
           _RuleMatrixCell(
             _formatNullableCredit(group.requiredCredit),
-            width: _SecondClassroomRuleMatrix._requiredWidth,
+            width: _SecondClassroomRuleMatrix.requiredWidth(theme),
             merged: true,
           ),
           _RuleMatrixCell(
             group.passStatus,
-            width: _SecondClassroomRuleMatrix._statusWidth,
+            width: _SecondClassroomRuleMatrix.statusWidth(theme),
             foreground: _statusTextColor(context, group.passStatus),
             bold: true,
             merged: true,
@@ -394,13 +401,14 @@ class _RuleItemGroupView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _RuleMatrixCell(
             group.item,
-            width: _SecondClassroomRuleMatrix._itemWidth,
+            width: _SecondClassroomRuleMatrix.itemWidth(theme),
             merged: true,
           ),
           Expanded(
@@ -440,22 +448,23 @@ class _RuleMatrixLeafRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _RuleMatrixCell(
             rule.level,
-            width: _SecondClassroomRuleMatrix._levelWidth,
+            width: _SecondClassroomRuleMatrix.levelWidth(theme),
           ),
           _RuleMatrixCell(rule.participation, width: participationWidth),
           _RuleMatrixCell(
             _formatNullableCredit(rule.credit),
-            width: _SecondClassroomRuleMatrix._creditWidth,
+            width: _SecondClassroomRuleMatrix.creditWidth(theme),
           ),
           _RuleMatrixCell(
             _formatNullableCredit(rule.earnedCredit),
-            width: _SecondClassroomRuleMatrix._earnedWidth,
+            width: _SecondClassroomRuleMatrix.earnedWidth(theme),
           ),
         ],
       ),
@@ -482,11 +491,15 @@ class _RuleMatrixCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     final borderColor = _ruleMatrixBorderColor(context);
     return Container(
       width: width,
-      constraints: BoxConstraints(minHeight: merged ? 46 : 42),
+      constraints: BoxConstraints(
+        minHeight: merged
+            ? theme.control.regular - theme.spacing.xs / 2
+            : theme.control.compact + theme.spacing.xs / 2,
+      ),
       decoration: BoxDecoration(
         border: Border(
           right: BorderSide(color: borderColor),
@@ -494,18 +507,17 @@ class _RuleMatrixCell extends StatelessWidget {
         ),
       ),
       alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(
-        horizontal: FluentSpacing.s,
-        vertical: FluentSpacing.s,
+      padding: EdgeInsets.symmetric(
+        horizontal: theme.spacing.s,
+        vertical: theme.spacing.s,
       ),
       child: Text(
         _emptyAsDash(text),
         textAlign: TextAlign.center,
-        style: (header ? theme.typography.bodyStrong : theme.typography.body)
-            ?.copyWith(
-              color: foreground,
-              fontWeight: header || bold ? FontWeight.w700 : null,
-            ),
+        style: theme.typography.body.copyWith(
+          color: foreground,
+          fontWeight: header || bold ? FontWeight.w700 : null,
+        ),
       ),
     );
   }
@@ -567,7 +579,7 @@ class _RuleItemGroup {
 }
 
 Color _ruleMatrixBorderColor(BuildContext context) {
-  return context.fluentColors.neutralStroke1;
+  return context.yhTheme.color.border;
 }
 
 List<List<T>> _groupConsecutive<T>(
