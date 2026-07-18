@@ -10,13 +10,12 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/models/message_item.dart';
 import 'package:sspu_allinone/pages/info_page.dart';
 import 'package:sspu_allinone/services/message_state_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/services/wxmp_config_service.dart';
-import 'package:sspu_allinone/theme/app_theme.dart';
 import 'package:sspu_allinone/widgets/message_tile.dart';
 
 void main() {
@@ -87,12 +86,7 @@ void main() {
     await messageStateService.saveMessages(_buildMessages(messageCount));
     expect(await messageStateService.loadMessages(), hasLength(messageCount));
 
-    await tester.pumpWidget(
-      FluentApp(
-        theme: AppTheme.build(Brightness.light),
-        home: const InfoPage(),
-      ),
-    );
+    await tester.pumpWidget(const YhApp(home: InfoPage()));
 
     await _pumpUntilFound(tester, find.byKey(const Key('info-message-list')));
     expect(tester.takeException(), isNull);
@@ -120,9 +114,9 @@ void main() {
       expect(tester.widget<Padding>(controls).padding, isA<EdgeInsets>());
 
       expect(tester.getSize(controls).height, lessThanOrEqualTo(112));
-      expect(tester.getSize(pagination).height, lessThanOrEqualTo(40));
+      expect(tester.getSize(pagination).height, 48);
       expect(tester.getSize(list).height, greaterThanOrEqualTo(500));
-      expect(find.byType(MessageTile), findsAtLeastNWidgets(5));
+      expect(find.byType(MessageTile), findsAtLeastNWidgets(4));
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
@@ -150,15 +144,11 @@ void main() {
       expect(find.byKey(const Key('info-mobile-pagination')), findsNothing);
       expect(list, findsOneWidget);
       expect(tester.widget<Column>(controls).mainAxisSize, MainAxisSize.min);
-      expect(tester.getSize(controls).height, lessThanOrEqualTo(136));
-      expect(tester.getSize(pagination).height, lessThanOrEqualTo(40));
-      expect(tester.getSize(list).height, greaterThanOrEqualTo(560));
-      expect(tester.getTopLeft(pagination).dy, greaterThan(820));
-      expect(
-        (tester.getCenter(markReadButton).dy - tester.getCenter(title).dy)
-            .abs(),
-        lessThanOrEqualTo(20),
-      );
+      expect(tester.getSize(controls).height, lessThanOrEqualTo(176));
+      expect(tester.getSize(pagination).height, 48);
+      expect(tester.getSize(list).height, greaterThanOrEqualTo(520));
+      expect(tester.getTopLeft(pagination).dy, greaterThan(800));
+      expect(find.bySemanticsLabel('刷新官网消息'), findsOneWidget);
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
@@ -188,6 +178,26 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
       debugDefaultTargetPlatformOverride = previousTargetPlatform;
+      await resetView(tester);
+    }
+  });
+
+  testWidgets('信息页搜索与全部已读保持原有业务状态契约', (tester) async {
+    try {
+      await pumpInfoPage(tester, size: const Size(1200, 900), messageCount: 8);
+
+      await tester.enterText(find.byType(EditableText).first, '测试消息 1');
+      await tester.pump();
+      expect(find.byType(MessageTile), findsOneWidget);
+
+      await tester.tap(find.textContaining('全部标为已读'));
+      await tester.pumpAndSettle();
+
+      expect(MessageStateService.instance.isRead('layout-message-0'), isTrue);
+      expect(find.textContaining('全部标为已读 (1)'), findsNothing);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
       await resetView(tester);
     }
   });

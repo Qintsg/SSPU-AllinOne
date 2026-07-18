@@ -8,27 +8,20 @@
  */
 
 import 'dart:math';
-import 'package:flutter/services.dart';
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 import '../models/message_item.dart';
 import '../models/channel_config.dart';
 import '../services/info_refresh_service.dart';
 import '../services/wechat_article_service.dart';
-import '../theme/fluent_tokens.dart';
 import '../widgets/app_feedback.dart';
 import '../widgets/message_tile.dart';
-import '../widgets/responsive_layout.dart';
 import '../services/message_state_service.dart';
 import '../utils/app_web_launcher.dart';
 
 part 'info_page_filters.dart';
-part 'info_page_controls.dart';
-part 'info_page_mobile_controls.dart';
-part 'info_page_filter_dialog.dart';
-part 'info_page_pagination.dart';
-part 'info_page_widgets.dart';
+part 'info_page_view.dart';
 
 /// 信息中心页面
 /// 统一大列表展示所有渠道消息，支持搜索/筛选/已读未读/分页
@@ -201,14 +194,6 @@ class _InfoPageState extends State<InfoPage> {
   @override
   Widget build(BuildContext context) => _buildInfoPageView(this, context);
 
-  /// 构建刷新进度条。
-  Widget _buildRefreshProgress(FluentThemeData theme) =>
-      _buildInfoRefreshProgress(this, theme);
-
-  /// 构建搜索栏
-  Widget _buildSearchBar(FluentThemeData theme) =>
-      _buildInfoSearchBar(this, theme);
-
   /// 根据当前来源类型获取可选的来源名称列表
   List<MessageSourceName> _getAvailableSourceNames() =>
       _getInfoAvailableSourceNames(this);
@@ -220,37 +205,4 @@ class _InfoPageState extends State<InfoPage> {
   /// 根据当前来源名称获取可选的内容分类列表
   List<MessageCategory> _getAvailableCategories() =>
       _getInfoAvailableCategories(this);
-
-  /// 构建筛选下拉框通用方法
-  Widget _buildFilterCombo<T>({
-    required String label,
-    required T? value,
-    required List<T> items,
-    required String Function(T) itemLabel,
-    required void Function(T?) onChanged,
-    bool enabled = true,
-    double minWidth = 180,
-    double maxWidth = 240,
-  }) => _buildInfoFilterCombo(
-    label: label,
-    value: value,
-    items: items,
-    itemLabel: itemLabel,
-    onChanged: onChanged,
-    enabled: enabled,
-    minWidth: minWidth,
-    maxWidth: maxWidth,
-  );
-
-  /// 构建消息列表
-  Widget _buildMessageList(FluentThemeData theme, bool isDark) =>
-      _buildInfoMessageList(this, theme, isDark);
-
-  /// 构建分页导航栏
-  Widget _buildPagination(FluentThemeData theme) =>
-      _buildInfoPagination(this, theme);
-
-  /// 弹出页码跳转对话框
-  /// 用户输入目标页码后直接跳转
-  Future<void> _showPageJumpDialog() => _showInfoPageJumpDialog(this);
 }

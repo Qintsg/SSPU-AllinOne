@@ -45,4 +45,6 @@ class YhIcons {
   static const IconData networkVpn = system.FluentIcons.shield_lock_24_regular;
   static const IconData networkOff = system.FluentIcons.wifi_off_24_regular;
   static const IconData networkUnknown = system.FluentIcons.question_24_regular;
+  static const IconData filter = system.FluentIcons.filter_24_regular;
+  static const IconData sync = system.FluentIcons.arrow_sync_24_regular;
 }
