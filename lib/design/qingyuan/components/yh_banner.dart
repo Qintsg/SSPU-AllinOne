@@ -42,17 +42,22 @@ class YhBanner extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: colors.$1,
-          borderRadius: BorderRadius.circular(theme.radius.input),
+          borderRadius: BorderRadius.circular(theme.radius.s),
         ),
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: theme.spacing.m,
-            vertical: theme.spacing.s,
+            horizontal:
+                theme.spacing.s + theme.spacing.xs + theme.layout.divider * 2,
+            vertical: theme.spacing.s + theme.spacing.xs,
           ),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: colors.$2),
-              SizedBox(width: theme.spacing.s),
+              Icon(
+                icon,
+                size: theme.spacing.m + theme.layout.divider * 2,
+                color: colors.$2,
+              ),
+              SizedBox(width: theme.spacing.s + theme.layout.divider * 2),
               Expanded(
                 child: Text(
                   text,

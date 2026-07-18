@@ -35,7 +35,7 @@ class YhButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     final effectiveHeight = height ?? theme.control.regular;
-    final contentHeight = effectiveHeight - theme.focus.ringWidth * 2;
+    final contentHeight = effectiveHeight;
     final effectiveMinWidth = minWidth ?? theme.control.minimumTarget * 2;
     final enabled = !disabled && onTap != null;
 
@@ -48,6 +48,7 @@ class YhButton extends StatelessWidget {
         return Opacity(
           opacity: state.disabled ? 0.4 : 1,
           child: DecoratedBox(
+            key: const ValueKey('yh-button-surface'),
             decoration: BoxDecoration(
               color: colors.background,
               border: colors.border == null

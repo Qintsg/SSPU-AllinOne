@@ -136,7 +136,7 @@ class _YhPressableState extends State<YhPressable> {
               minWidth: context.yhTheme.control.minimumTarget,
               minHeight: context.yhTheme.control.minimumTarget,
             ),
-            decoration: BoxDecoration(
+            foregroundDecoration: BoxDecoration(
               border: Border.all(
                 color: _focused
                     ? context.yhTheme.color.brandStrong

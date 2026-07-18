@@ -3,18 +3,28 @@
 import 'package:url_launcher/url_launcher.dart';
 
 import '../design/qingyuan/qingyuan_ui.dart';
+import '../services/academic_credentials_service.dart';
 import '../services/quick_links_config_service.dart';
 import '../services/quick_links_search_service.dart';
 import '../services/storage_service.dart';
+import 'external_link_confirmation_page.dart';
 
 typedef QuickLinksGroupsLoader = Future<List<QuickLinkGroupConfig>> Function();
 typedef QuickLinkOpenCallback = Future<void> Function(String url);
+typedef QuickLinkAuthenticationResolver =
+    Future<bool> Function(QuickLinkItemConfig item);
 
 class QuickLinksPage extends StatefulWidget {
-  const QuickLinksPage({super.key, this.groupsLoader, this.onOpenUrl});
+  const QuickLinksPage({
+    super.key,
+    this.groupsLoader,
+    this.onOpenUrl,
+    this.authenticationResolver,
+  });
 
   final QuickLinksGroupsLoader? groupsLoader;
   final QuickLinkOpenCallback? onOpenUrl;
+  final QuickLinkAuthenticationResolver? authenticationResolver;
 
   @override
   State<QuickLinksPage> createState() => _QuickLinksPageState();
@@ -48,15 +58,46 @@ class _QuickLinksPageState extends State<QuickLinksPage> {
     });
   }
 
-  Future<void> _openUrl(String url) async {
+  Future<void> _openItem(QuickLinkItemConfig item) async {
+    final uri = Uri.tryParse(item.url);
+    if (uri == null || uri.host.isEmpty) return;
+    final authenticationRequired = _requiresOaAuthentication(item);
+    final authenticationReady = await _resolveAuthentication(item);
+    if (!mounted) return;
+    final confirmed = await Navigator.of(context).push<bool>(
+      YhPageRoute<bool>(
+        builder: (_) => ExternalLinkConfirmationPage(
+          displayName: item.name,
+          uri: uri,
+          authenticationRequired: authenticationRequired,
+          authenticationReady: authenticationReady,
+        ),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     if (widget.onOpenUrl != null) {
-      await widget.onOpenUrl!(url);
+      await widget.onOpenUrl!(item.url);
       return;
     }
-    final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
+  }
+
+  Future<bool> _resolveAuthentication(QuickLinkItemConfig item) async {
+    if (!_requiresOaAuthentication(item)) return true;
+    if (widget.authenticationResolver != null) {
+      return widget.authenticationResolver!(item);
+    }
+    final status = await AcademicCredentialsService.instance.getStatus();
+    return status.oaAccount.trim().isNotEmpty && status.hasOaPassword;
+  }
+
+  bool _requiresOaAuthentication(QuickLinkItemConfig item) {
+    final host = Uri.tryParse(item.url)?.host.toLowerCase() ?? '';
+    return host == 'oa.sspu.edu.cn' ||
+        item.name.contains('（OA）') ||
+        item.name.contains('统一身份认证');
   }
 
   @override
@@ -74,7 +115,8 @@ class _QuickLinksPageState extends State<QuickLinksPage> {
         if (snapshot.hasError || snapshot.data == null) {
           return _QuickLinksStatusPage(
             title: '无法加载快捷入口',
-            message: '请检查本地配置文件后重试；已有收藏不会被删除。',
+            message:
+                '请检查应用内 ${QuickLinksConfigService.assetPath} 后重试；已有收藏不会被删除。',
             icon: YhIcons.info,
             action: YhButton(label: '重试', onTap: _retryLoad),
           );
@@ -86,7 +128,10 @@ class _QuickLinksPageState extends State<QuickLinksPage> {
             icon: YhIcons.link,
           );
         }
-        return _QuickLinksContent(groups: snapshot.data!, onOpenUrl: _openUrl);
+        return _QuickLinksContent(
+          groups: snapshot.data!,
+          onOpenItem: _openItem,
+        );
       },
     );
   }
@@ -189,10 +234,10 @@ class _QuickLinksStatusPage extends StatelessWidget {
 }
 
 class _QuickLinksContent extends StatefulWidget {
-  const _QuickLinksContent({required this.groups, required this.onOpenUrl});
+  const _QuickLinksContent({required this.groups, required this.onOpenItem});
 
   final List<QuickLinkGroupConfig> groups;
-  final QuickLinkOpenCallback onOpenUrl;
+  final Future<void> Function(QuickLinkItemConfig item) onOpenItem;
 
   @override
   State<_QuickLinksContent> createState() => _QuickLinksContentState();
@@ -316,7 +361,7 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
   }
 
   Future<void> _openBestMatch(List<QuickLinkSearchResult> results) async {
-    if (results.isNotEmpty) await widget.onOpenUrl(results.first.item.url);
+    if (results.isNotEmpty) await widget.onOpenItem(results.first.item);
   }
 
   Widget _buildSearchResults(List<QuickLinkSearchResult> results) {
@@ -410,7 +455,7 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
                       Text(
                         group.category,
                         style: theme.typography.h3.copyWith(
-                          fontWeight: FontWeight.w600,
+                          fontWeight: theme.typography.semibold,
                         ),
                       ),
                       SizedBox(height: theme.spacing.xs),
@@ -443,8 +488,7 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
                           ),
                           onToggleFavorite: () =>
                               _toggleFavorite(group.items[index]),
-                          onOpen: () =>
-                              widget.onOpenUrl(group.items[index].url),
+                          onOpen: () => widget.onOpenItem(group.items[index]),
                         ),
                       ],
                     ],
@@ -554,7 +598,7 @@ class _QuickLinkDirectoryRow extends StatelessWidget {
       children: [
         Expanded(
           child: YhPressable(
-            semanticLabel: '打开${item.name}',
+            semanticLabel: '${item.name}，外部链接，将打开外部应用',
             onPressed: onOpen,
             builder: (context, state, child) => Container(
               padding: EdgeInsets.fromLTRB(
@@ -576,7 +620,10 @@ class _QuickLinkDirectoryRow extends StatelessWidget {
                     height: theme.control.regular - theme.spacing.xs,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.12),
+                      color: Color.alphaBlend(
+                        color.withValues(alpha: theme.opacity.domainTint),
+                        theme.color.surface,
+                      ),
                       borderRadius: BorderRadius.circular(theme.radius.input),
                     ),
                     child: Icon(icon, size: theme.spacing.l, color: color),
@@ -591,7 +638,7 @@ class _QuickLinkDirectoryRow extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.typography.body.copyWith(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: theme.typography.semibold,
                           ),
                         ),
                         SizedBox(height: theme.spacing.xs),
@@ -674,7 +721,7 @@ class _QuickLinksStateMessage extends StatelessWidget {
               textAlign: TextAlign.center,
               style: theme.typography.h3.copyWith(
                 color: theme.color.foreground,
-                fontWeight: FontWeight.w600,
+                fontWeight: theme.typography.semibold,
               ),
             ),
           ),
@@ -709,7 +756,7 @@ class _QuickLinksHeader extends StatelessWidget {
           '快速跳转',
           style: theme.typography.caption.copyWith(
             color: theme.color.brandInk,
-            fontWeight: FontWeight.w600,
+            fontWeight: theme.typography.semibold,
           ),
         ),
         SizedBox(height: theme.spacing.xs),

@@ -37,7 +37,7 @@ class YhQuickLink extends StatelessWidget {
       child: Stack(
         children: [
           YhCard(
-            semanticLabel: '打开$label',
+            semanticLabel: '$label，外部链接，将打开外部应用',
             onTap: onTap,
             padding: EdgeInsets.all(theme.spacing.m),
             child: ConstrainedBox(
@@ -49,7 +49,10 @@ class YhQuickLink extends StatelessWidget {
                 children: [
                   DecoratedBox(
                     decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.12),
+                      color: Color.alphaBlend(
+                        color.withValues(alpha: theme.opacity.domainTint),
+                        theme.color.surface,
+                      ),
                       borderRadius: BorderRadius.circular(theme.radius.input),
                     ),
                     child: SizedBox.square(

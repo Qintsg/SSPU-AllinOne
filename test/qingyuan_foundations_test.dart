@@ -140,7 +140,7 @@ void main() {
                     matching: find.byType(AnimatedContainer),
                   ),
                 )
-                .decoration
+                .foregroundDecoration
             as BoxDecoration;
     expect(focusedDecoration.border?.top.width, 2);
     expect(focusedDecoration.border?.top.color, const Color(0xFF478384));
@@ -175,6 +175,13 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     expect(activations, 2);
     expect(tester.getSize(find.byType(YhButton).first).height, 48);
+    final primarySurface = find
+        .descendant(
+          of: find.byType(YhButton).first,
+          matching: find.byKey(const ValueKey('yh-button-surface')),
+        )
+        .first;
+    expect(tester.getSize(primarySurface).height, 48);
 
     final disabled = tester.getSemantics(find.text('不可用'));
     expect(disabled.flagsCollection.isButton, isTrue);

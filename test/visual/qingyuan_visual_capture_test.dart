@@ -13,6 +13,7 @@ import 'package:sspu_allinone/models/email_mailbox.dart';
 import 'package:sspu_allinone/pages/about_page.dart';
 import 'package:sspu_allinone/pages/course_schedule_page.dart';
 import 'package:sspu_allinone/pages/email_page.dart';
+import 'package:sspu_allinone/pages/external_link_confirmation_page.dart';
 import 'package:sspu_allinone/pages/legal_notice_page.dart';
 import 'package:sspu_allinone/pages/quick_links_page.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
@@ -319,6 +320,15 @@ final _surfaces = <_VisualSurface>[
     state: 'error',
     destination: '跳转',
   ),
+  _VisualSurface(
+    'links.external-confirmation',
+    _externalLinkConfirmationContent,
+  ),
+  _VisualSurface(
+    'links.external-confirmation',
+    _externalLinkConfirmationError,
+    state: 'error',
+  ),
   _VisualSurface('legal.notice', () => const LegalNoticePage()),
   _VisualSurface('settings.about', () => const AboutPage()),
   _VisualSurface(
@@ -554,6 +564,20 @@ Widget _quickLinksEmpty() => QuickLinksPage(groupsLoader: () async => const []);
 
 Widget _quickLinksError() => QuickLinksPage(
   groupsLoader: () => Future.error(StateError('fixture load failed')),
+);
+
+Widget _externalLinkConfirmationContent() => ExternalLinkConfirmationPage(
+  displayName: '统一身份认证',
+  uri: Uri.parse('https://auth.example.invalid/login'),
+  authenticationRequired: true,
+  authenticationReady: true,
+);
+
+Widget _externalLinkConfirmationError() => ExternalLinkConfirmationPage(
+  displayName: '统一身份认证',
+  uri: Uri.parse('https://auth.example.invalid/login'),
+  authenticationRequired: true,
+  authenticationReady: false,
 );
 
 Widget _panel(String title, List<Widget> children) => YhPageScaffold(

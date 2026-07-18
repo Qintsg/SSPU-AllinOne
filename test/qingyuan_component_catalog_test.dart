@@ -215,6 +215,29 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('清源快捷入口区分外部打开与独立收藏语义', (tester) async {
+    var opens = 0;
+    var favorites = 0;
+    await tester.pumpWidget(
+      YhApp(
+        home: YhQuickLink(
+          icon: YhIcons.academic,
+          label: '超星学习通',
+          subtitle: '课程学习与作业',
+          color: YhTheme.light.color.serviceAcademic,
+          onTap: () => opens += 1,
+          onToggleFavorite: () => favorites += 1,
+        ),
+      ),
+    );
+
+    expect(find.bySemanticsLabel('超星学习通，外部链接，将打开外部应用'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('标记为常用入口'));
+    await tester.pump();
+    expect(favorites, 1);
+    expect(opens, 0);
+  });
+
   testWidgets('清源容器、数据与校园域组件在亮暗主题完整渲染', (tester) async {
     for (final mode in [YhThemeMode.light, YhThemeMode.dark]) {
       await tester.pumpWidget(

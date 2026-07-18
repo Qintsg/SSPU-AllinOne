@@ -80,6 +80,11 @@ void main() {
     expect(find.text('教务处'), findsNothing);
     await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
+    expect(openedUrl, isNull);
+    expect(find.text('确认打开外部网站'), findsOneWidget);
+    expect(find.text('lib.sspu.edu.cn'), findsOneWidget);
+    await tester.tap(find.text('打开外部网站'));
+    await tester.pumpAndSettle();
     expect(openedUrl, 'https://lib.sspu.edu.cn/');
 
     await tester.enterText(find.byType(EditableText), '不存在的入口');
@@ -103,6 +108,44 @@ void main() {
     expect(find.text('当前配置没有可用的校园服务入口。'), findsOneWidget);
   });
 
+  testWidgets('需要 OA 认证的外部入口在缺少凭据时阻止跳转', (tester) async {
+    String? openedUrl;
+    const oaGroups = <QuickLinkGroupConfig>[
+      QuickLinkGroupConfig(
+        category: '学习与教务',
+        items: [
+          QuickLinkItemConfig(
+            name: '本专科教务系统（OA）',
+            url: 'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
+            icon: 'education',
+          ),
+        ],
+      ),
+    ];
+    await tester.pumpWidget(
+      YhApp(
+        home: QuickLinksPage(
+          groupsLoader: () async => oaGroups,
+          authenticationResolver: (_) async => false,
+          onOpenUrl: (url) async => openedUrl = url,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.bySemanticsLabel('本专科教务系统（OA），外部链接，将打开外部应用'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('确认打开外部网站'), findsOneWidget);
+    expect(find.text('oa.sspu.edu.cn'), findsOneWidget);
+    expect(find.textContaining('为避免无意义重定向'), findsOneWidget);
+    expect(find.text('打开外部网站'), findsNothing);
+    expect(openedUrl, isNull);
+    await tester.tap(find.text('返回快捷入口'));
+    await tester.pumpAndSettle();
+    expect(find.text('常用校园入口'), findsOneWidget);
+  });
+
   testWidgets('清源快速跳转加载失败后可重试进入目录', (tester) async {
     var loadCount = 0;
     await tester.pumpWidget(
@@ -120,6 +163,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('无法加载快捷入口'), findsOneWidget);
+    expect(
+      find.textContaining('assets/config/quick_links.yaml'),
+      findsOneWidget,
+    );
     expect(find.text('重试'), findsOneWidget);
     await tester.tap(find.text('重试'));
     await tester.pumpAndSettle();
@@ -155,6 +202,7 @@ void main() {
       contains('https://jwc.sspu.edu.cn/'),
     );
     expect(find.bySemanticsLabel('取消收藏教务处'), findsOneWidget);
+    expect(find.bySemanticsLabel('教务处，外部链接，将打开外部应用'), findsOneWidget);
   });
 
   testWidgets('清源快速跳转在紧凑宽度使用单列任务目录', (tester) async {
