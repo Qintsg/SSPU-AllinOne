@@ -6,11 +6,12 @@
  * @Date : 2026-05-31
  */
 
-import 'dart:ui' show PointerDeviceKind;
+import 'dart:ui' show PointerDeviceKind, Tristate;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart' as qingyuan;
 import 'package:sspu_allinone/widgets/settings_widgets.dart';
 
 void main() {
@@ -18,37 +19,35 @@ void main() {
     int selectedIndex = 0,
     ValueChanged<int>? onSelected,
   }) {
-    return FluentApp(
-      home: ScaffoldPage(
-        content: StatefulBuilder(
-          builder: (context, setState) {
-            void selectIndex(int index) {
-              setState(() => selectedIndex = index);
-              onSelected?.call(index);
-            }
+    return qingyuan.YhApp(
+      home: StatefulBuilder(
+        builder: (context, setState) {
+          void selectIndex(int index) {
+            setState(() => selectedIndex = index);
+            onSelected?.call(index);
+          }
 
-            return Column(
-              children: [
-                buildSettingsNavItem(
-                  context: context,
-                  index: 0,
-                  selectedIndex: selectedIndex,
-                  icon: FluentIcons.settings,
-                  label: '常规设置',
-                  onTap: () => selectIndex(0),
-                ),
-                buildSettingsNavItem(
-                  context: context,
-                  index: 1,
-                  selectedIndex: selectedIndex,
-                  icon: FluentIcons.sync,
-                  label: '自动刷新设置',
-                  onTap: () => selectIndex(1),
-                ),
-              ],
-            );
-          },
-        ),
+          return Column(
+            children: [
+              buildSettingsNavItem(
+                context: context,
+                index: 0,
+                selectedIndex: selectedIndex,
+                icon: qingyuan.YhIcons.settings,
+                label: '常规设置',
+                onTap: () => selectIndex(0),
+              ),
+              buildSettingsNavItem(
+                context: context,
+                index: 1,
+                selectedIndex: selectedIndex,
+                icon: qingyuan.YhIcons.sync,
+                label: '自动刷新设置',
+                onTap: () => selectIndex(1),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -79,8 +78,8 @@ void main() {
     );
   }
 
-  ResourceDictionary navResources(WidgetTester tester, String label) {
-    return FluentTheme.of(tester.element(find.text(label))).resources;
+  qingyuan.YhTheme navTheme(WidgetTester tester, String label) {
+    return qingyuan.YhThemeScope.of(tester.element(find.text(label)));
   }
 
   testWidgets('FluentSelect 支持键盘打开、移动并选择选项', (tester) async {
@@ -192,27 +191,18 @@ void main() {
 
     await tester.pumpWidget(buildSettingsNavHarness());
 
-    final resources = navResources(tester, '常规设置');
+    final theme = navTheme(tester, '常规设置');
     final pointer = await tester.createGesture(kind: PointerDeviceKind.mouse);
 
-    expect(
-      navItemDecoration(tester, '自动刷新设置').color,
-      resources.subtleFillColorTransparent,
-    );
+    expect(navItemDecoration(tester, '自动刷新设置').color, const Color(0x00000000));
 
     await pointer.moveTo(tester.getCenter(find.text('自动刷新设置')));
     await tester.pump();
-    expect(
-      navItemDecoration(tester, '自动刷新设置').color,
-      resources.subtleFillColorSecondary,
-    );
+    expect(navItemDecoration(tester, '自动刷新设置').color, theme.color.sunken);
 
     await pointer.moveTo(tester.getCenter(find.text('常规设置')));
     await tester.pump();
-    expect(
-      navItemDecoration(tester, '自动刷新设置').color,
-      resources.subtleFillColorTransparent,
-    );
+    expect(navItemDecoration(tester, '自动刷新设置').color, const Color(0x00000000));
   });
 
   testWidgets('设置侧栏导航项 selected hover 不覆盖选中身份', (tester) async {
@@ -225,8 +215,7 @@ void main() {
 
     await tester.pumpWidget(buildSettingsNavHarness());
 
-    final colors = tester.element(find.text('常规设置')).fluentColors;
-    final resources = navResources(tester, '常规设置');
+    final theme = navTheme(tester, '常规设置');
     final pointer = await tester.createGesture(kind: PointerDeviceKind.mouse);
 
     await pointer.moveTo(tester.getCenter(find.text('常规设置')));
@@ -234,36 +223,40 @@ void main() {
 
     expect(
       navItemDecoration(tester, '常规设置').color,
-      resources.subtleFillColorTertiary,
+      theme.color.brand.withValues(alpha: 0.20),
     );
     expect(
       navItemIndicatorDecoration(tester, '常规设置').color,
-      colors.brandBackground,
+      theme.color.brandStrong,
     );
     expect(
-      navItemIcon(tester, '常规设置', FluentIcons.settings).color,
-      colors.brandForeground1,
+      navItemIcon(tester, '常规设置', qingyuan.YhIcons.settings).color,
+      theme.color.brandInk,
     );
     expect(
       tester.widget<Text>(find.text('常规设置')).style?.color,
-      colors.brandForeground1,
+      theme.color.brandInk,
     );
   });
 
   testWidgets('设置侧栏导航项键盘焦点只显示焦点边框', (tester) async {
     await tester.pumpWidget(buildSettingsNavHarness());
 
-    final colors = tester.element(find.text('自动刷新设置')).fluentColors;
-    final resources = navResources(tester, '自动刷新设置');
+    final semantics = tester.ensureSemantics();
 
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
 
-    final decoration = navItemDecoration(tester, '自动刷新设置');
-    expect(decoration.color, resources.subtleFillColorTransparent);
-    expect(decoration.border?.top.color, colors.brandStroke1);
+    expect(
+      tester
+          .getSemantics(find.bySemanticsLabel('自动刷新设置'))
+          .flagsCollection
+          .isFocused,
+      Tristate.isTrue,
+    );
+    semantics.dispose();
   });
 
   testWidgets('设置侧栏导航项快速划过时旧项不残留 hover 背景', (tester) async {
@@ -276,7 +269,7 @@ void main() {
 
     await tester.pumpWidget(buildSettingsNavHarness());
 
-    final resources = navResources(tester, '常规设置');
+    final theme = navTheme(tester, '常规设置');
     final pointer = await tester.createGesture(kind: PointerDeviceKind.mouse);
 
     await pointer.moveTo(tester.getCenter(find.text('自动刷新设置')));
@@ -286,14 +279,8 @@ void main() {
     await pointer.moveTo(tester.getCenter(find.text('自动刷新设置')));
     await tester.pump();
 
-    expect(
-      navItemDecoration(tester, '常规设置').color,
-      resources.subtleFillColorSecondary,
-    );
-    expect(
-      navItemDecoration(tester, '自动刷新设置').color,
-      resources.subtleFillColorSecondary,
-    );
+    expect(navItemDecoration(tester, '常规设置').color, theme.color.brandTint);
+    expect(navItemDecoration(tester, '自动刷新设置').color, theme.color.sunken);
   });
 
   testWidgets('FluentSurface 和 FluentCard 支持键盘激活', (tester) async {

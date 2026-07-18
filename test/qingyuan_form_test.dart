@@ -51,4 +51,35 @@ void main() {
     );
     semantics.dispose();
   });
+
+  testWidgets('数值输入框限制整数范围并同步提交值', (tester) async {
+    var value = 12;
+    var submitted = 0;
+    await tester.pumpWidget(
+      YhApp(
+        home: StatefulBuilder(
+          builder: (context, setState) => YhNumberField(
+            label: '刷新条数',
+            value: value,
+            min: 1,
+            max: 200,
+            suffix: '条',
+            onChanged: (next) => setState(() => value = next),
+            onSubmitted: (next) => submitted = next,
+          ),
+        ),
+      ),
+    );
+
+    await tester.enterText(find.byType(EditableText), '240');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+
+    expect(value, 200);
+    expect(submitted, 200);
+    expect(
+      tester.widget<EditableText>(find.byType(EditableText)).controller.text,
+      '200',
+    );
+  });
 }

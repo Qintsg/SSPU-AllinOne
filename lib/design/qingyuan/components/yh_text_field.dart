@@ -22,6 +22,8 @@ class YhTextField extends StatefulWidget {
     this.autofocus = false,
     this.textInputAction = TextInputAction.done,
     this.keyboardType,
+    this.inputFormatters,
+    this.showLabel = true,
     this.onChanged,
     this.onSubmitted,
   });
@@ -40,6 +42,8 @@ class YhTextField extends StatefulWidget {
   final bool autofocus;
   final TextInputAction textInputAction;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final bool showLabel;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
 
@@ -124,11 +128,15 @@ class _YhTextFieldState extends State<YhTextField> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              widget.label,
-              style: theme.typography.small.copyWith(color: theme.color.muted),
-            ),
-            SizedBox(height: theme.spacing.xs),
+            if (widget.showLabel) ...[
+              Text(
+                widget.label,
+                style: theme.typography.small.copyWith(
+                  color: theme.color.muted,
+                ),
+              ),
+              SizedBox(height: theme.spacing.xs),
+            ],
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: widget.enabled ? _focusNode.requestFocus : null,
@@ -195,6 +203,7 @@ class _YhTextFieldState extends State<YhTextField> {
                             obscureText: widget.obscure,
                             maxLines: widget.obscure ? 1 : widget.maxLines,
                             keyboardType: widget.keyboardType,
+                            inputFormatters: widget.inputFormatters,
                             textInputAction: widget.textInputAction,
                             onChanged: widget.onChanged,
                             onSubmitted: widget.onSubmitted,

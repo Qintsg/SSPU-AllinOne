@@ -23,6 +23,7 @@ class YhSelect<T> extends StatefulWidget {
     required this.onChanged,
     this.hint = '请选择',
     this.enabled = true,
+    this.showLabel = true,
   });
 
   final String label;
@@ -31,6 +32,7 @@ class YhSelect<T> extends StatefulWidget {
   final ValueChanged<T?>? onChanged;
   final String hint;
   final bool enabled;
+  final bool showLabel;
 
   @override
   State<YhSelect<T>> createState() => _YhSelectState<T>();
@@ -186,14 +188,16 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            widget.label,
-            style: theme.typography.small.copyWith(
-              color: theme.color.foreground,
-              fontWeight: FontWeight.w500,
+          if (widget.showLabel) ...[
+            Text(
+              widget.label,
+              style: theme.typography.small.copyWith(
+                color: theme.color.foreground,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-          SizedBox(height: theme.spacing.xs),
+            SizedBox(height: theme.spacing.xs),
+          ],
           CompositedTransformTarget(
             link: _layerLink,
             child: YhPressable(

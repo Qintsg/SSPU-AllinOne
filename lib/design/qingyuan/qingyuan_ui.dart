@@ -13,6 +13,7 @@ export 'components/yh_chip.dart';
 export 'components/yh_dialog.dart';
 export 'components/yh_empty_state.dart';
 export 'components/yh_icon_button.dart';
+export 'components/yh_number_field.dart';
 export 'components/yh_quick_link.dart';
 export 'components/yh_progress.dart';
 export 'components/yh_pagination.dart';
