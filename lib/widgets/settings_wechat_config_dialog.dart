@@ -6,19 +6,16 @@
  * @Date : 2026-06-11
  */
 
-import 'package:flutter/services.dart';
-
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import '../services/wxmp_config_service.dart';
-import '../theme/app_breakpoints.dart';
 
 /// 显示公众号平台字段式配置编辑器。
 Future<WxmpConfig?> showSettingsWechatConfigDialog({
   required BuildContext context,
   required WxmpConfig initialConfig,
 }) {
-  return showFluentDialog<WxmpConfig>(
-    context: context,
+  return YhDialog.show<WxmpConfig>(
+    context,
     builder: (dialogContext) =>
         _SettingsWechatConfigDialog(initialConfig: initialConfig),
   );
@@ -76,57 +73,42 @@ class _SettingsWechatConfigDialogState
 
   @override
   Widget build(BuildContext context) {
-    final spacing = context.fluentSpacing;
-    final type = context.fluentType;
-    final colors = context.fluentColors;
+    final theme = context.yhTheme;
+    final mediaSize = MediaQuery.sizeOf(context);
+    final compact = mediaSize.width < theme.breakpoint.compact;
+    final maxDialogWidth = compact
+        ? mediaSize.width - theme.spacing.m * 2
+        : theme.breakpoint.medium + theme.spacing.xl2;
+    final contentHeight = (mediaSize.height - theme.spacing.xl2 * 4).clamp(
+      theme.spacing.xl2 * 4,
+      560.0,
+    );
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final availableWidth = constraints.maxWidth;
-        final availableHeight = constraints.maxHeight;
-        final compact = availableWidth < AppBreakpoints.compactMax;
-        final availableDialogWidth = (availableWidth - spacing.xxxl).clamp(
-          0,
-          double.infinity,
-        );
-        final minDialogWidth = availableDialogWidth < 320
-            ? availableDialogWidth
-            : 320;
-        final maxDialogWidth = AppBreakpoints.mediumMax + spacing.xxxl * 2;
-        final dialogWidth = availableDialogWidth.clamp(
-          minDialogWidth,
-          maxDialogWidth,
-        );
-        final dialogHeight = availableHeight - spacing.xxxl;
-
-        return FluentDialog(
-          constraints: BoxConstraints(
-            minWidth: dialogWidth.toDouble(),
-            maxWidth: dialogWidth.toDouble(),
-            maxHeight: dialogHeight.clamp(360, 720),
-          ),
-          title: const Text('编辑公众号平台配置'),
-          content: SizedBox(
+    return YhDialog(
+      constraints: BoxConstraints(maxWidth: maxDialogWidth),
+      title: '编辑公众号平台配置',
+      content: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: contentHeight),
+        child: SingleChildScrollView(
+          child: SizedBox(
             key: const Key('wechat-config-dialog-content'),
-            width: dialogWidth.toDouble(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   '只填写配置项内容。Cookie 和 Token 属于敏感信息，请勿分享。',
-                  style: type.caption1.copyWith(
-                    color: colors.neutralForeground2,
+                  style: theme.typography.small.copyWith(
+                    color: theme.color.muted,
                   ),
                 ),
-                SizedBox(height: spacing.l),
+                SizedBox(height: theme.spacing.l),
                 _ConfigFieldsLayout(
                   compact: compact,
                   children: [
                     _ConfigTextField(
                       label: 'cookie',
                       controller: _cookieController,
-                      minLines: compact ? 3 : 4,
                       maxLines: compact ? 5 : 6,
                     ),
                     _ConfigTextField(
@@ -158,13 +140,19 @@ class _SettingsWechatConfigDialogState
                     ),
                   ],
                 ),
-                SizedBox(height: spacing.xl),
-                _ConfigDialogActions(onCancel: _cancel, onSubmit: _submit),
               ],
             ),
           ),
-        );
-      },
+        ),
+      ),
+      actions: [
+        YhButton(
+          label: '取消',
+          onTap: _cancel,
+          variant: YhButtonVariant.secondary,
+        ),
+        YhButton(label: '保存', onTap: _submit),
+      ],
     );
   }
 
@@ -230,33 +218,6 @@ class _SettingsWechatConfigDialogState
   }
 }
 
-class _ConfigDialogActions extends StatelessWidget {
-  const _ConfigDialogActions({required this.onCancel, required this.onSubmit});
-
-  /// 取消编辑。
-  final VoidCallback onCancel;
-
-  /// 提交配置。
-  final VoidCallback onSubmit;
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.fluentSpacing;
-    return Align(
-      alignment: AlignmentDirectional.centerEnd,
-      child: Wrap(
-        spacing: spacing.m,
-        runSpacing: spacing.s,
-        alignment: WrapAlignment.end,
-        children: [
-          FluentButton.outline(onPressed: onCancel, child: const Text('取消')),
-          FluentButton.primary(onPressed: onSubmit, child: const Text('保存')),
-        ],
-      ),
-    );
-  }
-}
-
 class _ConfigFieldsLayout extends StatelessWidget {
   const _ConfigFieldsLayout({required this.compact, required this.children});
 
@@ -268,11 +229,11 @@ class _ConfigFieldsLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final spacing = context.fluentSpacing;
+    final theme = context.yhTheme;
     return LayoutBuilder(
       builder: (context, constraints) {
         final columns =
-            compact || constraints.maxWidth < AppBreakpoints.compactMax ? 1 : 2;
+            compact || constraints.maxWidth < theme.breakpoint.compact ? 1 : 2;
         if (columns == 1) {
           return _ConfigFieldColumn(children: children);
         }
@@ -291,7 +252,7 @@ class _ConfigFieldsLayout extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(child: _ConfigFieldColumn(children: leftColumn)),
-            SizedBox(width: spacing.l),
+            SizedBox(width: theme.spacing.l),
             Expanded(child: _ConfigFieldColumn(children: rightColumn)),
           ],
         );
@@ -308,7 +269,7 @@ class _ConfigFieldColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final spacing = context.fluentSpacing;
+    final spacing = context.yhTheme.spacing;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -328,7 +289,6 @@ class _ConfigTextField extends StatelessWidget {
     this.keyboardType,
     this.inputFormatters,
     this.errorText,
-    this.minLines = 1,
     this.maxLines = 1,
   });
 
@@ -347,29 +307,18 @@ class _ConfigTextField extends StatelessWidget {
   /// 错误文本。
   final String? errorText;
 
-  /// 最小行数。
-  final int minLines;
-
   /// 最大行数。
   final int maxLines;
 
   @override
   Widget build(BuildContext context) {
-    final spacing = context.fluentSpacing;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: context.fluentType.caption1Strong),
-        SizedBox(height: spacing.xs),
-        FluentTextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
-          errorText: errorText,
-          minLines: minLines,
-          maxLines: maxLines,
-        ),
-      ],
+    return YhTextField(
+      label: label,
+      controller: controller,
+      keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
+      errorText: errorText,
+      maxLines: maxLines,
     );
   }
 }

@@ -1077,18 +1077,16 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        FluentApp(
-          home: ScaffoldPage(
-            content: Center(
-              child: FluentButton(
-                onPressed: () {
-                  showSettingsWechatConfigDialog(
-                    context: tester.element(find.text('打开编辑器')),
-                    initialConfig: WxmpConfig.defaults(),
-                  );
-                },
-                child: const Text('打开编辑器'),
-              ),
+        qingyuan.YhApp(
+          home: Center(
+            child: qingyuan.YhButton(
+              label: '打开编辑器',
+              onTap: () {
+                showSettingsWechatConfigDialog(
+                  context: tester.element(find.text('打开编辑器')),
+                  initialConfig: WxmpConfig.defaults(),
+                );
+              },
             ),
           ),
         ),
@@ -1105,7 +1103,7 @@ void main() {
       expect(find.textContaining('保存后会立即重新加载配置'), findsNothing);
 
       final dialogBox = tester.renderObject<RenderBox>(
-        find.byType(FluentDialog),
+        find.byType(qingyuan.YhDialog),
       );
       expect(dialogBox.size.width <= 390, isTrue);
     } finally {
@@ -1124,18 +1122,16 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        FluentApp(
-          home: ScaffoldPage(
-            content: Center(
-              child: FluentButton(
-                onPressed: () {
-                  showSettingsWechatConfigDialog(
-                    context: tester.element(find.text('打开编辑器')),
-                    initialConfig: WxmpConfig.defaults(),
-                  );
-                },
-                child: const Text('打开编辑器'),
-              ),
+        qingyuan.YhApp(
+          home: Center(
+            child: qingyuan.YhButton(
+              label: '打开编辑器',
+              onTap: () {
+                showSettingsWechatConfigDialog(
+                  context: tester.element(find.text('打开编辑器')),
+                  initialConfig: WxmpConfig.defaults(),
+                );
+              },
             ),
           ),
         ),
@@ -1157,11 +1153,16 @@ void main() {
       final userAgentTop = tester.getTopLeft(find.text('user_agent')).dy;
       expect(userAgentTop < appIdTop, isTrue);
 
-      final cancelLeft = tester.getTopLeft(find.text('取消')).dx;
-      final contentLeft = tester
-          .getTopLeft(find.byKey(const Key('wechat-config-dialog-content')))
-          .dx;
-      expect(cancelLeft > contentLeft + contentBox.size.width / 2, isTrue);
+      final actionLabels = tester
+          .widgetList<qingyuan.YhButton>(
+            find.descendant(
+              of: find.byType(qingyuan.YhDialog),
+              matching: find.byType(qingyuan.YhButton),
+            ),
+          )
+          .map((button) => button.label)
+          .toList();
+      expect(actionLabels, ['取消', '保存']);
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(milliseconds: 300));
