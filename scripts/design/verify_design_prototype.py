@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import struct
 
 from playwright.sync_api import Page, sync_playwright
 
@@ -46,6 +47,15 @@ def _open_screen(page: Page, prototype_url: str, screen: str) -> None:
     page.goto(f"{prototype_url}#{screen}", wait_until="networkidle")
     _assert(page.locator(f'[data-screen="{screen}"]:visible').count() == 1, f"{screen} 页面未唯一显示")
     _assert(page.locator("[data-screen]:visible").count() == 1, f"{screen} 页面切换后存在多个活动页面")
+
+
+def _capture_reference(page: Page, target: Path, width: int, height: int) -> None:
+    png = page.screenshot(path=target, full_page=False)
+    actual_width, actual_height = struct.unpack(">II", png[16:24])
+    _assert(
+        (actual_width, actual_height) == (width, height),
+        f"{target.name} 截图尺寸错误：{actual_width}x{actual_height} != {width}x{height}",
+    )
 
 
 def _assert_screen_interactions(page: Page, screen: str, viewport_width: int) -> None:
@@ -167,9 +177,11 @@ def verify(output_dir: Path) -> None:
                 _assert_targets(page, width, screen)
                 _assert_screen_interactions(page, screen, width)
                 surface = SCREEN_SURFACES[screen]
-                page.screenshot(
-                    path=output_dir / f"{surface}--content--light--{width}x{height}.png",
-                    full_page=True,
+                _capture_reference(
+                    page,
+                    output_dir / f"{surface}--content--light--{width}x{height}.png",
+                    width,
+                    height,
                 )
 
             if width < 768:
@@ -201,9 +213,11 @@ def verify(output_dir: Path) -> None:
                 _open_screen(page, prototype_url, screen)
                 _assert(page.locator("html").get_attribute("data-theme") == "dark", f"{width}px {screen} 暗色参考稿未生效")
                 surface = SCREEN_SURFACES[screen]
-                page.screenshot(
-                    path=output_dir / f"{surface}--content--dark--{width}x{height}.png",
-                    full_page=True,
+                _capture_reference(
+                    page,
+                    output_dir / f"{surface}--content--dark--{width}x{height}.png",
+                    width,
+                    height,
                 )
 
         _assert(not errors, "浏览器控制台错误：" + " | ".join(errors))
