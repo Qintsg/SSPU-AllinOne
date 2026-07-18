@@ -105,6 +105,21 @@
     send.textContent = loading ? '正在发送' : '发送邮件';
   }
 
+  function setLinksState(state) {
+    var linksPage = document.querySelector('[data-screen="links"]');
+    if (!linksPage) return;
+    var showContent = state === 'content';
+    linksPage.dataset.linksState = state;
+    linksPage.querySelectorAll('[data-links-content]').forEach(function (item) {
+      item.hidden = !showContent;
+    });
+    var searchEmpty = linksPage.querySelector('[data-search-empty]');
+    if (searchEmpty) searchEmpty.hidden = true;
+    linksPage.querySelectorAll('[data-links-state-panel]').forEach(function (panel) {
+      panel.hidden = panel.dataset.linksStatePanel !== state;
+    });
+  }
+
   function closeMore(restoreFocus) {
     if (!moreSheet || !moreButton) return;
     var wasOpen = moreSheet.classList.contains('is-open');
@@ -326,7 +341,8 @@
   });
   window.qingyuanPrototype = {
     setMailState: setMailState,
-    setMailComposeState: setMailComposeState
+    setMailComposeState: setMailComposeState,
+    setLinksState: setLinksState
   };
   showPage(initial || 'home', false);
 })();

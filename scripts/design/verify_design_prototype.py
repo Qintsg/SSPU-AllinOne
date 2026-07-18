@@ -179,6 +179,22 @@ def _capture_mail_state_references(
     page.evaluate("window.qingyuanPrototype.setMailState('content')")
 
 
+def _capture_links_state_references(
+    page: Page, output_dir: Path, theme: str, width: int, height: int
+) -> None:
+    for state in ("loading", "empty", "error"):
+        page.evaluate("state => window.qingyuanPrototype.setLinksState(state)", state)
+        panel = page.locator(f'[data-links-state-panel="{state}"]:visible')
+        _assert(panel.count() == 1, f"快捷入口 {state} 状态面板未显示")
+        _capture_reference(
+            page,
+            output_dir / f"links.directory--{state}--{theme}--{width}x{height}.png",
+            width,
+            height,
+        )
+    page.evaluate("window.qingyuanPrototype.setLinksState('content')")
+
+
 def verify(output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     prototype_url = PROTOTYPE.resolve().as_uri()
@@ -244,6 +260,8 @@ def verify(output_dir: Path) -> None:
                 )
                 if screen == "mail":
                     _capture_mail_state_references(page, output_dir, "light", width, height)
+                if screen == "links":
+                    _capture_links_state_references(page, output_dir, "light", width, height)
 
             if width < 768:
                 _open_screen(page, prototype_url, "home")
@@ -282,6 +300,8 @@ def verify(output_dir: Path) -> None:
                 )
                 if screen == "mail":
                     _capture_mail_state_references(page, output_dir, "dark", width, height)
+                if screen == "links":
+                    _capture_links_state_references(page, output_dir, "dark", width, height)
 
         _assert(not errors, "浏览器控制台错误：" + " | ".join(errors))
         context.close()
