@@ -33,6 +33,27 @@ class DesignSystemValidatorTest(unittest.TestCase):
             with self.assertRaisesRegex(DesignSystemValidationError, r"color\.brand\.strong.*--brand-strong"):
                 validate_design_system(root)
 
+    def test_css_layout_token_drift_reports_the_semantic_token(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            css_path = root / "docs" / "design" / "components" / "samples" / "_qingyuan.css"
+            css_path.write_text(
+                css_path.read_text(encoding="utf-8").replace(
+                    "--layout-nav-rail-compact-width: 80px",
+                    "--layout-nav-rail-compact-width: 88px",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                DesignSystemValidationError,
+                r"layout\.navRailCompactWidth.*--layout-nav-rail-compact-width",
+            ):
+                validate_design_system(root)
+
     def test_broken_relative_markdown_link_reports_source_and_target(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

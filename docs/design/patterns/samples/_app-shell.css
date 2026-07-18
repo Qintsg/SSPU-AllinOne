@@ -25,7 +25,7 @@ button, input { font: inherit; }
 .prototype {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
+  grid-template-columns: var(--layout-nav-rail-compact-width) minmax(0, 1fr);
   background: var(--bg);
 }
 
@@ -107,6 +107,24 @@ button, input { font: inherit; }
   padding: 0;
 }
 .prototype-rail .theme-toggle .tt-label { display: none; }
+
+@media (min-width: 1200px) {
+  .prototype {
+    grid-template-columns: var(--layout-nav-rail-expanded-width) minmax(0, 1fr);
+  }
+  .prototype-rail { align-items: stretch; }
+  .prototype-mark { align-self: center; }
+  .prototype-nav-button {
+    width: 100%;
+    grid-template-columns: 22px minmax(0, 1fr);
+    justify-items: start;
+    gap: var(--space-m);
+    padding-inline: var(--space-m);
+    font-size: var(--type-small);
+  }
+  .prototype-nav-button svg { justify-self: center; }
+  .prototype-rail .theme-toggle { align-self: center; }
+}
 
 .prototype-main {
   min-width: 0;

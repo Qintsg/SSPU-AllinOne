@@ -97,6 +97,13 @@ def _validate_css_tokens(project_root: Path, tokens: dict[str, Any]) -> None:
             if light.get(css_name) != expected:
                 errors.append(f"{group}.{name} 与 --{css_name} 漂移：期望 {expected}，实际 {light.get(css_name)}")
 
+    for name, value in tokens["layout"].items():
+        kebab = re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
+        css_name = f"layout-{kebab}"
+        expected = f"{value:g}px"
+        if light.get(css_name) != expected:
+            errors.append(f"layout.{name} 与 --{css_name} 漂移：期望 {expected}，实际 {light.get(css_name)}")
+
     for name, value in tokens["duration"].items():
         expected = f"{value:g}ms"
         if light.get(f"duration-{name}") != expected:
