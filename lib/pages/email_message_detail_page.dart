@@ -13,7 +13,14 @@ class EmailMessageDetailPage extends StatelessWidget {
   /// 列表页传入的邮件快照。
   final EmailMessageSnapshot message;
 
-  const EmailMessageDetailPage({super.key, required this.message});
+  /// 视觉测试与相对时间文案使用的固定时钟。
+  final DateTime? nowOverride;
+
+  const EmailMessageDetailPage({
+    super.key,
+    required this.message,
+    this.nowOverride,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,37 +36,68 @@ class EmailMessageDetailPage extends StatelessWidget {
         ),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(theme.spacing.m),
         child: Align(
           alignment: AlignmentDirectional.topCenter,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                YhCard(
+            constraints: BoxConstraints(maxWidth: theme.breakpoint.medium),
+            child: Padding(
+              padding: EdgeInsets.all(
+                MediaQuery.sizeOf(context).width < theme.breakpoint.medium
+                    ? theme.spacing.m
+                    : theme.spacing.xl,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: theme.layout.popoverWidth + theme.spacing.xl,
+                ),
+                child: YhCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(message.subject, style: theme.typography.h3),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _senderDisplayName(message),
+                              style: theme.typography.caption.copyWith(
+                                color: theme.color.muted,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: theme.spacing.m),
+                          Text(
+                            _formatOptionalDateTime(message.receivedAt),
+                            style: theme.typography.caption.copyWith(
+                              color: theme.color.muted,
+                            ),
+                          ),
+                        ],
+                      ),
                       SizedBox(height: theme.spacing.s),
-                      Text('发件人：${_senderLabel(message)}'),
-                      Text('时间：${_formatOptionalDateTime(message.receivedAt)}'),
+                      Text(message.subject, style: theme.typography.h2),
+                      SizedBox(height: theme.spacing.s),
+                      Text(
+                        '来自 ${message.senderAddress}',
+                        style: theme.typography.small.copyWith(
+                          color: theme.color.muted,
+                        ),
+                      ),
+                      SizedBox(height: theme.spacing.m),
+                      Container(
+                        height: theme.layout.divider,
+                        color: theme.color.border,
+                      ),
+                      SizedBox(height: theme.spacing.m),
+                      YhSelectableText(
+                        message.body.isEmpty ? '无可展示正文。' : message.body,
+                        semanticLabel: '邮件正文内容',
+                      ),
+                      SizedBox(height: theme.spacing.l),
+                      const YhBanner(text: '只读正文快照；不会执行回复、转发、删除、移动或标记已读操作。'),
                     ],
                   ),
                 ),
-                SizedBox(height: theme.spacing.m),
-                const YhBanner(
-                  text: '只读正文快照：正文来自本次收信结果，不会执行回复、转发、删除、移动或标记已读操作。',
-                ),
-                SizedBox(height: theme.spacing.m),
-                YhCard(
-                  child: YhSelectableText(
-                    message.body.isEmpty ? '无可展示正文。' : message.body,
-                    semanticLabel: '邮件正文内容',
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -67,17 +105,26 @@ class EmailMessageDetailPage extends StatelessWidget {
     );
   }
 
-  String _senderLabel(EmailMessageSnapshot message) {
-    if (message.senderName.isEmpty) return message.senderAddress;
-    return '${message.senderName} <${message.senderAddress}>';
+  String _senderDisplayName(EmailMessageSnapshot message) {
+    return message.senderName.isEmpty
+        ? message.senderAddress
+        : message.senderName;
   }
 
   String _formatOptionalDateTime(DateTime? dateTime) {
     if (dateTime == null) return '时间未知';
-    return '${dateTime.year.toString().padLeft(4, '0')}-'
-        '${dateTime.month.toString().padLeft(2, '0')}-'
-        '${dateTime.day.toString().padLeft(2, '0')} '
+    final now = nowOverride ?? DateTime.now();
+    final date = DateTime(dateTime.year, dateTime.month, dateTime.day);
+    final today = DateTime(now.year, now.month, now.day);
+    final days = today.difference(date).inDays;
+    final clock =
         '${dateTime.hour.toString().padLeft(2, '0')}:'
         '${dateTime.minute.toString().padLeft(2, '0')}';
+    if (days == 0) return '今天 $clock';
+    if (days == 1) return '昨天 $clock';
+    if (dateTime.year == now.year) {
+      return '${dateTime.month} 月 ${dateTime.day} 日';
+    }
+    return '${dateTime.year} 年 ${dateTime.month} 月 ${dateTime.day} 日';
   }
 }

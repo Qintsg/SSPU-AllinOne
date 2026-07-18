@@ -49,13 +49,11 @@ class _EmailPageState extends State<EmailPage> {
   EmailProtocol _selectedProtocol = EmailProtocol.imap;
   EmailProtocol? _validatingProtocol;
   EmailMailboxQueryResult? _mailboxResult;
-  EmailLoginValidationResult? _validationResult;
   EmailSendResult? _sendResult;
   String? _selectedMessageId;
   bool _isFetchingMessages = false;
   bool _isSendingMessage = false;
   bool _showComposePane = false;
-  bool _emailAutoRefreshEnabled = false;
   int _emailAutoRefreshIntervalMinutes =
       EmailService.defaultAutoRefreshIntervalMinutes;
   Timer? _emailAutoRefreshTimer;
@@ -89,7 +87,6 @@ class _EmailPageState extends State<EmailPage> {
     _clearComposeInputs();
     setState(() {
       _mailboxResult = null;
-      _validationResult = null;
       _sendResult = null;
       _selectedMessageId = null;
       _isFetchingMessages = false;
@@ -109,7 +106,6 @@ class _EmailPageState extends State<EmailPage> {
         await EmailService.instance.getAutoRefreshIntervalMinutes();
     if (!mounted) return;
     setState(() {
-      _emailAutoRefreshEnabled = enabled;
       _emailAutoRefreshIntervalMinutes = interval;
     });
     _restartEmailAutoRefreshTimer(enabled, interval);
@@ -247,10 +243,14 @@ class _EmailPageState extends State<EmailPage> {
 
     final result = await _emailService.validateLogin(protocol);
     if (!mounted || generation != _credentialGeneration) return;
-    setState(() {
-      _validationResult = result;
-      _validatingProtocol = null;
-    });
+    setState(() => _validatingProtocol = null);
+    showAppFeedback(
+      context,
+      message: result.message,
+      severity: result.isSuccess
+          ? AppFeedbackSeverity.success
+          : AppFeedbackSeverity.error,
+    );
   }
 
   /// 通过 SMTP 主动发送当前撰写的普通文本邮件。
@@ -330,27 +330,138 @@ class _EmailPageState extends State<EmailPage> {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    final canPop = Navigator.of(context).canPop();
+    final viewportWidth = MediaQuery.sizeOf(context).width;
+    final fluidPaddingProgress =
+        ((viewportWidth - theme.breakpoint.medium) /
+                (theme.breakpoint.expanded - theme.breakpoint.medium))
+            .clamp(0.0, 1.0);
+    final horizontalPadding = viewportWidth < theme.breakpoint.medium
+        ? theme.spacing.m
+        : theme.spacing.xl +
+              (theme.spacing.xl2 - theme.spacing.xl) * fluidPaddingProgress;
+    final verticalPadding = viewportWidth < theme.breakpoint.medium
+        ? theme.spacing.xl
+        : theme.spacing.xl + theme.spacing.s;
     return YhPageScaffold(
-      appBar: const YhAppBar(title: '学校邮箱'),
+      appBar: canPop
+          ? YhAppBar(
+              title: '学校邮箱',
+              leading: YhIconButton(
+                icon: YhIcons.back,
+                semanticLabel: '返回',
+                variant: YhIconButtonVariant.ghost,
+                onTap: () => Navigator.of(context).maybePop(),
+              ),
+            )
+          : null,
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(theme.spacing.m),
         child: Align(
           alignment: AlignmentDirectional.topCenter,
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxWidth: theme.breakpoint.expanded + theme.control.regular * 5,
+              maxWidth: theme.layout.pageContentWidth,
             ),
-            child: _buildEmailContent(context),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildMailPageHeader(context, viewportWidth),
+                  SizedBox(height: theme.spacing.l),
+                  _buildEmailContent(context),
+                ],
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
+  Widget _buildMailPageHeader(BuildContext context, double viewportWidth) {
+    final theme = context.yhTheme;
+    final compact = viewportWidth < theme.breakpoint.medium;
+    final composing = _showComposePane;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '学校邮箱',
+                style: theme.typography.caption.copyWith(
+                  color: theme.color.brandInk,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: theme.spacing.xs),
+              Semantics(
+                header: true,
+                child: Text(
+                  composing ? '撰写邮件' : '收件箱',
+                  style: theme.typography.h1,
+                ),
+              ),
+              SizedBox(height: theme.spacing.s),
+              Text(
+                composing
+                    ? '填写收件人、主题与普通文本正文；发送前仍可取消。'
+                    : '邮件原文只在本机读取；桌面采用列表—详情并列，移动端进入独立详情页。',
+                style:
+                    (compact ? theme.typography.small : theme.typography.body)
+                        .copyWith(color: theme.color.muted),
+              ),
+            ],
+          ),
+        ),
+        if (!composing) ...[
+          SizedBox(width: theme.spacing.l),
+          Transform.translate(
+            offset: Offset(0, -theme.spacing.s),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (compact)
+                  YhIconButton(
+                    key: const Key('email-compose-open'),
+                    icon: YhIcons.edit,
+                    semanticLabel: '写邮件',
+                    onTap: _startCompose,
+                  )
+                else
+                  YhButton(
+                    key: const Key('email-compose-open'),
+                    label: '写邮件',
+                    variant: YhButtonVariant.secondary,
+                    onTap: _startCompose,
+                  ),
+                SizedBox(width: theme.spacing.s),
+                YhIconButton(
+                  icon: YhIcons.refresh,
+                  semanticLabel: _isFetchingMessages ? '正在刷新邮箱' : '刷新邮箱',
+                  onTap: _isFetchingMessages ? null : _fetchMessages,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   /// 打开邮件正文详情页；详情页仍只展示本地快照。
   void _openMessageDetail(EmailMessageSnapshot message) {
     Navigator.of(context).push(
-      YhPageRoute(builder: (_) => EmailMessageDetailPage(message: message)),
+      YhPageRoute(
+        builder: (_) =>
+            EmailMessageDetailPage(message: message, nowOverride: _now),
+      ),
     );
   }
 
@@ -367,15 +478,29 @@ class _EmailPageState extends State<EmailPage> {
     };
   }
 
-  String _senderLabel(EmailMessageSnapshot message) {
-    if (message.senderName.isEmpty) return message.senderAddress;
-    return '${message.senderName} <${message.senderAddress}>';
+  String _senderDisplayName(EmailMessageSnapshot message) {
+    return message.senderName.isEmpty
+        ? message.senderAddress
+        : message.senderName;
   }
 
   String _formatOptionalDateTime(DateTime? dateTime) {
     if (dateTime == null) return '时间未知';
-    return _formatDateTime(dateTime);
+    final date = DateTime(dateTime.year, dateTime.month, dateTime.day);
+    final today = DateTime(_now.year, _now.month, _now.day);
+    final days = today.difference(date).inDays;
+    final clock = _formatClockTime(dateTime);
+    if (days == 0) return '今天 $clock';
+    if (days == 1) return '昨天 $clock';
+    if (dateTime.year == _now.year) {
+      return '${dateTime.month} 月 ${dateTime.day} 日';
+    }
+    return '${dateTime.year} 年 ${dateTime.month} 月 ${dateTime.day} 日';
   }
+
+  String _formatClockTime(DateTime dateTime) =>
+      '${dateTime.hour.toString().padLeft(2, '0')}:'
+      '${dateTime.minute.toString().padLeft(2, '0')}';
 
   String _formatDateTime(DateTime dateTime) {
     return '${dateTime.year.toString().padLeft(4, '0')}-'

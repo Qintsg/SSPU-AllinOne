@@ -65,16 +65,22 @@ class EmailComposePanel extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(YhIcons.edit, color: theme.color.serviceMail),
-              SizedBox(width: theme.spacing.s),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      'SMTP 主动发信',
+                      style: theme.typography.caption.copyWith(
+                        color: theme.color.brandInk,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: theme.spacing.xs),
                     Text('撰写邮件', style: theme.typography.h3),
                     SizedBox(height: theme.spacing.xs),
                     Text(
-                      '通过学校邮箱 SMTP 发送普通文本邮件',
+                      '仅在点击发送后提交普通文本；不保存草稿，不在后台重试。',
                       style: theme.typography.caption.copyWith(
                         color: theme.color.muted,
                       ),
@@ -82,7 +88,6 @@ class EmailComposePanel extends StatelessWidget {
                   ],
                 ),
               ),
-              YhChip(label: 'SMTP 发信', selected: true),
               if (onCancel != null) ...[
                 SizedBox(width: theme.spacing.s),
                 YhIconButton(
@@ -94,12 +99,12 @@ class EmailComposePanel extends StatelessWidget {
               ],
             ],
           ),
-          SizedBox(height: theme.spacing.m),
+          SizedBox(height: theme.spacing.l),
           LayoutBuilder(
             builder: (context, constraints) {
               final twoColumns =
                   constraints.maxWidth >=
-                  theme.breakpoint.compact - theme.control.compact;
+                  theme.breakpoint.compact - theme.control.minimumTarget * 2;
               if (!twoColumns) {
                 return Column(
                   children: [
@@ -108,13 +113,13 @@ class EmailComposePanel extends StatelessWidget {
                       controller: toController,
                       placeholder: 'name@example.com',
                     ),
-                    SizedBox(height: theme.spacing.s),
+                    SizedBox(height: theme.spacing.m),
                     _buildAddressField(
                       label: '抄送',
                       controller: ccController,
                       placeholder: '可选',
                     ),
-                    SizedBox(height: theme.spacing.s),
+                    SizedBox(height: theme.spacing.m),
                     _buildAddressField(
                       label: '密送',
                       controller: bccController,
@@ -131,7 +136,7 @@ class EmailComposePanel extends StatelessWidget {
                     controller: toController,
                     placeholder: 'name@example.com',
                   ),
-                  SizedBox(height: theme.spacing.s),
+                  SizedBox(height: theme.spacing.m),
                   Row(
                     children: [
                       Expanded(
@@ -155,7 +160,7 @@ class EmailComposePanel extends StatelessWidget {
               );
             },
           ),
-          SizedBox(height: theme.spacing.s),
+          SizedBox(height: theme.spacing.m),
           YhTextField(
             controller: subjectController,
             label: '主题',
@@ -163,19 +168,14 @@ class EmailComposePanel extends StatelessWidget {
             enabled: !isSending,
             textInputAction: TextInputAction.next,
           ),
-          SizedBox(height: theme.spacing.s),
+          SizedBox(height: theme.spacing.m),
           YhTextField(
             controller: bodyController,
             label: '正文',
             hint: '输入邮件正文',
             enabled: !isSending,
-            maxLines: 8,
+            maxLines: 4,
             keyboardType: TextInputType.multiline,
-          ),
-          SizedBox(height: theme.spacing.s),
-          Text(
-            '支持用逗号、分号或换行分隔多个地址；暂不支持附件、草稿或后台重试。',
-            style: theme.typography.caption.copyWith(color: theme.color.muted),
           ),
           if (result != null) ...[
             SizedBox(height: theme.spacing.m),
@@ -200,7 +200,6 @@ class EmailComposePanel extends StatelessWidget {
                   ),
                 YhButton(
                   label: isSending ? '正在发送' : '发送邮件',
-                  leadingIcon: isSending ? null : YhIcons.send,
                   onTap: isSending ? null : onSend,
                 ),
               ],

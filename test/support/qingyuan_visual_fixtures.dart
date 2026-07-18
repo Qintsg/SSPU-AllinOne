@@ -203,7 +203,7 @@ const EmailServerEndpoint qingyuanEmailSmtpEndpoint = EmailServerEndpoint(
   isSecure: true,
 );
 
-const List<EmailMessageSnapshot> qingyuanEmailMessages = [
+final List<EmailMessageSnapshot> qingyuanEmailMessages = [
   EmailMessageSnapshot(
     id: 'visual:001',
     subject: '选课结果确认通知',
@@ -211,7 +211,7 @@ const List<EmailMessageSnapshot> qingyuanEmailMessages = [
     senderAddress: 'academic@example.invalid',
     preview: '本学期选课结果已生效，请核对个人课表。',
     body: '清源同学：\n\n本学期选课结果已生效，请在课程表中核对上课时间与地点。\n\n此邮件为脱敏视觉测试数据。',
-    receivedAt: null,
+    receivedAt: DateTime(2026, 7, 18, 8, 12),
   ),
   EmailMessageSnapshot(
     id: 'visual:002',
@@ -220,7 +220,7 @@ const List<EmailMessageSnapshot> qingyuanEmailMessages = [
     senderAddress: 'library@example.invalid',
     preview: '您有 2 本图书即将到期，可在线办理续借。',
     body: '您有 2 本图书即将到期，请按时归还或在线续借。',
-    receivedAt: null,
+    receivedAt: DateTime(2026, 7, 17, 16, 42),
   ),
   EmailMessageSnapshot(
     id: 'visual:003',
@@ -229,7 +229,7 @@ const List<EmailMessageSnapshot> qingyuanEmailMessages = [
     senderAddress: 'it@example.invalid',
     preview: '周日凌晨将进行短时网络维护。',
     body: '周日 00:30-01:30 校园网络将进行例行维护。',
-    receivedAt: null,
+    receivedAt: DateTime(2026, 7, 16, 9),
   ),
 ];
 

@@ -1,9 +1,9 @@
 /*
- * 学校邮箱页面布局 — 组织三栏邮件客户端与窄屏单栏布局
+ * 学校邮箱页面布局 — 清源收件箱、阅读窗格与连接设置
  * @Project : SSPU-AllinOne
  * @File : email_page_layout.dart
  * @Author : Qintsg
- * @Date : 2026-06-12
+ * @Date : 2026-07-19
  */
 
 part of 'email_page.dart';
@@ -11,177 +11,234 @@ part of 'email_page.dart';
 extension _EmailPageLayout on _EmailPageState {
   Widget _buildEmailContent(BuildContext context) {
     final theme = context.yhTheme;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final useDesktopClient =
-            constraints.maxWidth >=
-            theme.breakpoint.expanded -
-                theme.breakpoint.compact / 4 -
-                theme.spacing.s -
-                theme.spacing.xs / 2;
-        if (useDesktopClient) {
-          return _buildDesktopMailClient(context);
-        }
+    if (_showComposePane) {
+      return Align(
+        alignment: AlignmentDirectional.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: theme.layout.formContentWidth),
+          child: _buildComposeCard(context),
+        ),
+      );
+    }
 
-        return Column(
+    final result = _mailboxResult;
+    if (result == null && _isFetchingMessages) {
+      return _buildMailboxStateCard(
+        context,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _animateEmailSection(_buildCompactToolbar(context), 0),
-            if (_showComposePane) ...[
-              SizedBox(height: theme.spacing.m),
-              _animateEmailSection(_buildComposeCard(context), 1),
+            SizedBox(
+              width: theme.spacing.xl2 * 2,
+              child: const YhProgress(showPercent: false),
+            ),
+            SizedBox(width: theme.spacing.m),
+            const Flexible(child: Text('正在读取最近邮件')),
+          ],
+        ),
+      );
+    }
+    if (result == null) {
+      return _buildMailboxStateCard(
+        context,
+        child: YhEmptyState(
+          icon: YhIcons.mail,
+          title: '尚未读取邮箱',
+          message: '连接学校邮箱后读取最近邮件，正文只保存在本机。',
+          action: Wrap(
+            spacing: theme.spacing.s,
+            runSpacing: theme.spacing.s,
+            alignment: WrapAlignment.center,
+            children: [
+              YhButton(
+                label: '读取最近邮件',
+                onTap: _isFetchingMessages ? null : _fetchMessages,
+              ),
+              YhButton(
+                label: '邮箱连接设置',
+                variant: YhButtonVariant.secondary,
+                onTap: () => _openConnectionDrawer(context),
+              ),
             ],
-            SizedBox(height: theme.spacing.m),
-            _animateEmailSection(
-              _buildMailboxSection(context, inlineDetail: false),
-              _showComposePane ? 2 : 1,
+          ),
+        ),
+      );
+    }
+    if (!result.isSuccess || result.snapshot == null) {
+      return _buildMailboxStateCard(
+        context,
+        child: YhEmptyState(
+          icon: YhIcons.info,
+          title: result.message,
+          message: result.detail,
+          action: Wrap(
+            spacing: theme.spacing.s,
+            runSpacing: theme.spacing.s,
+            alignment: WrapAlignment.center,
+            children: [
+              YhButton(label: '重试', onTap: _fetchMessages),
+              YhButton(
+                label: '邮箱连接设置',
+                variant: YhButtonVariant.secondary,
+                onTap: () => _openConnectionDrawer(context),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final snapshot = result.snapshot!;
+    final messages = snapshot.messages;
+    _selectFirstMessageIfNeeded(messages);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: theme.spacing.s,
+          runSpacing: theme.spacing.s,
+          children: [
+            YhStatusPill(
+              label: '${snapshot.protocol.label} 已连接',
+              kind: YhStatusKind.success,
+            ),
+            YhStatusPill(
+              label: '${messages.length} 封邮件',
+              kind: YhStatusKind.info,
+            ),
+            YhStatusPill(
+              label: '${_formatClockTime(snapshot.fetchedAt)} 同步',
+              kind: YhStatusKind.neutral,
             ),
           ],
-        );
-      },
+        ),
+        if (_isMailboxSnapshotStale(snapshot)) ...[
+          SizedBox(height: theme.spacing.m),
+          YhBanner(
+            text:
+                '当前显示 ${_formatClockTime(snapshot.fetchedAt)} 的本地邮件缓存；'
+                '网络恢复后可手动刷新。',
+            kind: YhBannerKind.warn,
+          ),
+        ],
+        SizedBox(height: theme.spacing.m),
+        if (messages.isEmpty)
+          _buildMailboxStateCard(
+            context,
+            child: YhEmptyState(
+              icon: YhIcons.mail,
+              title: '收件箱暂无邮件',
+              message: '连接正常，但当前查询范围没有可展示的邮件。',
+              action: YhButton(
+                label: '重新读取',
+                variant: YhButtonVariant.secondary,
+                onTap: _fetchMessages,
+              ),
+            ),
+          )
+        else if (MediaQuery.sizeOf(context).width >= theme.breakpoint.expanded)
+          _buildDesktopMailClient(context)
+        else
+          _EmailMailboxListPanel(
+            snapshot: snapshot,
+            messages: messages,
+            selectedMessageId: _selectedMessageId,
+            refreshing: _isFetchingMessages,
+            showHeader: false,
+            showSenderAnchor: false,
+            senderLabel: _senderDisplayName,
+            formatDateTime: _formatOptionalDateTime,
+            onMessagePressed: (message) =>
+                _openOrSelectMessage(message, inline: false),
+          ),
+      ],
     );
   }
 
   Widget _buildDesktopMailClient(BuildContext context) {
     final theme = context.yhTheme;
+    final snapshot = _mailboxResult!.snapshot!;
+    final messages = snapshot.messages;
     return Row(
       key: const Key('email-desktop-client-layout'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width:
-              theme.breakpoint.compact / 2 - theme.spacing.xl - theme.spacing.s,
-          child: _buildMailboxSidebar(context),
+          width: theme.breakpoint.compact / 2 - theme.spacing.m,
+          child: _EmailMailboxListPanel(
+            snapshot: snapshot,
+            messages: messages,
+            selectedMessageId: _selectedMessageId,
+            refreshing: _isFetchingMessages,
+            showHeader: false,
+            showSenderAnchor: false,
+            minHeight: theme.layout.popoverWidth + theme.spacing.xl2 * 2,
+            senderLabel: _senderDisplayName,
+            formatDateTime: _formatOptionalDateTime,
+            onMessagePressed: (message) =>
+                _openOrSelectMessage(message, inline: true),
+          ),
         ),
         SizedBox(width: theme.spacing.m),
-        SizedBox(
-          width:
-              theme.breakpoint.compact -
-              (theme.breakpoint.compact / 3 +
-                  theme.spacing.m +
-                  theme.spacing.xs),
-          child: _buildMailboxListPane(context),
+        Expanded(
+          child: _EmailInlineDetailPanel(
+            message: _selectedMessage(messages),
+            accountLabel: snapshot.account,
+            protocolLabel: snapshot.protocol.label,
+            fetchedAtLabel: _formatDateTime(snapshot.fetchedAt),
+            formatDateTime: _formatOptionalDateTime,
+          ),
         ),
-        SizedBox(width: theme.spacing.m),
-        Expanded(child: _buildReadingPane(context)),
       ],
     );
   }
 
-  Widget _animateEmailSection(Widget child, int index) {
-    return child;
-  }
-
-  Widget _buildMailboxSidebar(BuildContext context) {
+  Widget _buildMailboxStateCard(BuildContext context, {required Widget child}) {
     final theme = context.yhTheme;
     return YhCard(
-      key: const Key('email-sidebar'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _EmailSectionHeading(
-            title: 'SSPU 邮箱',
-            subtitle: '收信、阅读和 SMTP 发信',
-            icon: YhIcons.mail,
-          ),
-          SizedBox(height: theme.spacing.l),
-          SizedBox(
-            width: double.infinity,
-            child: YhButton(
-              label: '写邮件',
-              leadingIcon: YhIcons.edit,
-              onTap: _showComposePane ? null : _startCompose,
-            ),
-          ),
-          SizedBox(height: theme.spacing.xl),
-          Text('收件箱', style: theme.typography.h3),
-          SizedBox(height: theme.spacing.s),
-          _buildProtocolSelector(context),
-          SizedBox(height: theme.spacing.s),
-          SizedBox(
-            width: double.infinity,
-            child: YhButton(
-              label: _isFetchingMessages ? '读取中' : '读取最近邮件',
-              leadingIcon: _isFetchingMessages ? null : YhIcons.refresh,
-              variant: YhButtonVariant.secondary,
-              onTap: _isFetchingMessages ? null : _fetchMessages,
-            ),
-          ),
-          SizedBox(height: theme.spacing.m),
-          Text(
-            'IMAP / POP 仅读取最近邮件；SMTP 只在点击发送时提交文本邮件，不会自动发信、删除、移动或标记已读。',
-            style: theme.typography.caption.copyWith(color: theme.color.muted),
-          ),
-          SizedBox(height: theme.spacing.xl),
-          Text('协议校验', style: theme.typography.h3),
-          SizedBox(height: theme.spacing.s),
-          ..._buildValidationButtons(context),
-          if (_validationResult != null) ...[
-            SizedBox(height: theme.spacing.m),
-            Text(_validationResult!.message, style: theme.typography.h3),
-            SizedBox(height: theme.spacing.s),
-            YhBanner(
-              text: _validationResult!.detail,
-              kind: _severityOf(_validationResult!.status),
-            ),
-          ],
-        ],
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: theme.layout.popoverWidth + theme.spacing.xl,
+        ),
+        child: Center(child: child),
       ),
     );
   }
 
-  Widget _buildCompactToolbar(BuildContext context) {
+  Future<void> _openConnectionDrawer(BuildContext context) {
     final theme = context.yhTheme;
-    return YhCard(
-      key: const Key('email-compact-toolbar'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return YhBottomDrawer.show<void>(
+      context,
+      title: '邮箱连接与协议',
+      builder: (drawerContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _EmailSectionHeading(
-            title: 'SSPU 邮箱',
-            subtitle: 'IMAP / POP 收信，SMTP 主动发信',
-            icon: YhIcons.mail,
+          _buildProtocolSelector(context),
+          SizedBox(height: theme.spacing.m),
+          YhButton(
+            label: _isFetchingMessages ? '读取中' : '读取最近邮件',
+            leadingIcon: _isFetchingMessages ? null : YhIcons.refresh,
+            onTap: _isFetchingMessages
+                ? null
+                : () {
+                    Navigator.of(drawerContext).pop();
+                    _fetchMessages();
+                  },
           ),
           SizedBox(height: theme.spacing.m),
+          Text('协议校验', style: theme.typography.h3),
+          SizedBox(height: theme.spacing.s),
           Wrap(
             spacing: theme.spacing.s,
             runSpacing: theme.spacing.s,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              YhButton(
-                label: '写邮件',
-                leadingIcon: YhIcons.edit,
-                onTap: _showComposePane ? null : _startCompose,
-              ),
-              SizedBox(
-                width:
-                    theme.breakpoint.compact / 4 +
-                    theme.spacing.s +
-                    theme.spacing.xs / 2,
-                child: _buildProtocolSelector(context),
-              ),
-              YhButton(
-                label: _isFetchingMessages ? '读取中' : '读取最近邮件',
-                leadingIcon: _isFetchingMessages ? null : YhIcons.refresh,
-                variant: YhButtonVariant.secondary,
-                onTap: _isFetchingMessages ? null : _fetchMessages,
-              ),
-              ..._buildValidationButtons(context, compact: true),
-            ],
+            children: _buildValidationButtons(context),
           ),
           SizedBox(height: theme.spacing.s),
           Text(
-            'SMTP 只在点击发送时提交文本邮件；不会自动发信、删除、移动或标记已读。',
+            'IMAP / POP 仅读取最近邮件；SMTP 只在点击发送时提交普通文本。',
             style: theme.typography.caption.copyWith(color: theme.color.muted),
           ),
-          if (_validationResult != null) ...[
-            SizedBox(height: theme.spacing.m),
-            Text(_validationResult!.message, style: theme.typography.h3),
-            SizedBox(height: theme.spacing.s),
-            YhBanner(
-              text: _validationResult!.detail,
-              kind: _severityOf(_validationResult!.status),
-            ),
-          ],
         ],
       ),
     );
@@ -205,7 +262,6 @@ extension _EmailPageLayout on _EmailPageState {
   Widget _buildProtocolSelector(BuildContext context) {
     return YhSelect<EmailProtocol>(
       label: '收信协议',
-      showLabel: false,
       value: _selectedProtocol,
       options: const [
         YhSelectOption(value: EmailProtocol.imap, label: 'IMAP 收信'),
@@ -221,10 +277,7 @@ extension _EmailPageLayout on _EmailPageState {
     );
   }
 
-  List<Widget> _buildValidationButtons(
-    BuildContext context, {
-    bool compact = false,
-  }) {
+  List<Widget> _buildValidationButtons(BuildContext context) {
     return EmailProtocol.values
         .map(
           (protocol) => YhButton(
@@ -241,361 +294,5 @@ extension _EmailPageLayout on _EmailPageState {
           ),
         )
         .toList(growable: false);
-  }
-
-  /// 构建邮件读取结果和列表。
-  Widget _buildMailboxSection(
-    BuildContext context, {
-    required bool inlineDetail,
-  }) {
-    final theme = context.yhTheme;
-    final result = _mailboxResult;
-    if (result == null && _isFetchingMessages) {
-      return YhCard(
-        child: Row(
-          children: [
-            SizedBox(
-              width: theme.spacing.xl2 * 2,
-              child: const YhProgress(showPercent: false),
-            ),
-            SizedBox(width: theme.spacing.s),
-            const Text('正在读取最近邮件...'),
-          ],
-        ),
-      );
-    }
-
-    if (result == null) {
-      return YhCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('尚未读取邮箱', style: theme.typography.h3),
-            SizedBox(height: theme.spacing.s),
-            YhBanner(
-              text: _emailAutoRefreshEnabled
-                  ? '邮箱自动刷新已开启，等待下一次读取；也可点击“读取最近邮件”立即刷新。'
-                  : '选择 IMAP 或 POP 后点击“读取最近邮件”，也可以先校验各协议登录状态。',
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (!result.isSuccess || result.snapshot == null) {
-      return YhCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(result.message, style: theme.typography.h3),
-            SizedBox(height: theme.spacing.s),
-            YhBanner(text: result.detail, kind: _severityOf(result.status)),
-          ],
-        ),
-      );
-    }
-
-    final snapshot = result.snapshot!;
-    final messages = snapshot.messages;
-    final isStale = _isMailboxSnapshotStale(snapshot);
-    _selectFirstMessageIfNeeded(messages);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        YhCard(
-          child: Wrap(
-            spacing: theme.spacing.s,
-            runSpacing: theme.spacing.xs,
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text('${snapshot.protocol.label} 最近邮件：${messages.length} 封'),
-              Text('上次刷新：${_formatDateTime(snapshot.fetchedAt)}'),
-              if (_isFetchingMessages)
-                const YhChip(label: '同步中', selected: true),
-            ],
-          ),
-        ),
-        if (isStale) ...[
-          SizedBox(height: theme.spacing.m),
-          YhBanner(
-            text:
-                '当前显示的是本地邮件缓存，刷新时间已超过 '
-                '$_emailAutoRefreshIntervalMinutes 分钟。',
-            kind: YhBannerKind.warn,
-          ),
-        ],
-        SizedBox(height: theme.spacing.m),
-        if (messages.isEmpty)
-          YhCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('暂无可展示邮件', style: theme.typography.h3),
-                SizedBox(height: theme.spacing.s),
-                const YhBanner(text: '邮箱协议登录成功，但最近邮件列表为空。'),
-              ],
-            ),
-          )
-        else if (inlineDetail)
-          _buildMailboxTwoPane(context, snapshot, messages)
-        else
-          ...messages.map(
-            (message) => _buildMessageCard(message, inlineDetail: false),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildMailboxListPane(BuildContext context) {
-    final theme = context.yhTheme;
-    final result = _mailboxResult;
-    if (result == null && _isFetchingMessages) {
-      return YhCard(
-        key: Key('email-list-pane-loading'),
-        child: Row(
-          children: [
-            SizedBox(
-              width: theme.spacing.xl2 * 2,
-              child: const YhProgress(showPercent: false),
-            ),
-            SizedBox(width: theme.spacing.s),
-            const Text('正在读取最近邮件...'),
-          ],
-        ),
-      );
-    }
-
-    if (result == null) {
-      return YhCard(
-        key: const Key('email-list-pane-empty'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const _EmailSectionHeading(
-              title: '收件箱',
-              subtitle: '尚未读取邮箱',
-              icon: YhIcons.inbox,
-            ),
-            SizedBox(height: theme.spacing.m),
-            Text(
-              _emailAutoRefreshEnabled
-                  ? '邮箱自动刷新已开启，等待下一次读取；也可点击“读取最近邮件”立即刷新。'
-                  : '选择协议后读取最近邮件，列表会显示在这里。',
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (!result.isSuccess || result.snapshot == null) {
-      return YhCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(result.message, style: theme.typography.h3),
-            SizedBox(height: theme.spacing.s),
-            YhBanner(text: result.detail, kind: _severityOf(result.status)),
-          ],
-        ),
-      );
-    }
-
-    final snapshot = result.snapshot!;
-    final messages = snapshot.messages;
-    _selectFirstMessageIfNeeded(messages);
-    return Column(
-      children: [
-        if (_isMailboxSnapshotStale(snapshot)) ...[
-          YhBanner(
-            text:
-                '当前显示的是本地邮件缓存，刷新时间已超过 '
-                '$_emailAutoRefreshIntervalMinutes 分钟。',
-            kind: YhBannerKind.warn,
-          ),
-          SizedBox(height: theme.spacing.m),
-        ],
-        _EmailMailboxListPanel(
-          snapshot: snapshot,
-          messages: messages,
-          selectedMessageId: _selectedMessageId,
-          refreshing: _isFetchingMessages,
-          senderLabel: _senderLabel,
-          formatDateTime: _formatOptionalDateTime,
-          onMessagePressed: (message) =>
-              _openOrSelectMessage(message, inline: true),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildReadingPane(BuildContext context) {
-    if (_showComposePane) {
-      return _buildComposeCard(context);
-    }
-
-    final snapshot = _mailboxResult?.snapshot;
-    final selectedMessage = snapshot == null
-        ? null
-        : _selectedMessage(snapshot.messages);
-    if (snapshot == null || selectedMessage == null) {
-      return const _EmailReadingPlaceholder();
-    }
-
-    return _EmailInlineDetailPanel(
-      message: selectedMessage,
-      protocolLabel: snapshot.protocol.label,
-      fetchedAtLabel: _formatDateTime(snapshot.fetchedAt),
-      senderLabel: _senderLabel,
-      formatDateTime: _formatOptionalDateTime,
-    );
-  }
-
-  Widget _buildMailboxTwoPane(
-    BuildContext context,
-    EmailMailboxSnapshot snapshot,
-    List<EmailMessageSnapshot> messages,
-  ) {
-    final theme = context.yhTheme;
-    final selectedMessage = _selectedMessage(messages);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width:
-              theme.breakpoint.compact -
-              theme.breakpoint.compact / 3 -
-              theme.spacing.xl -
-              theme.spacing.s,
-          child: YhCard(
-            padding: EdgeInsets.symmetric(vertical: theme.spacing.xs),
-            child: Column(
-              children: [
-                for (var index = 0; index < messages.length; index++) ...[
-                  _EmailListRow(
-                    message: messages[index],
-                    selected: messages[index].id == selectedMessage?.id,
-                    senderLabel: _senderLabel,
-                    formatDateTime: _formatOptionalDateTime,
-                    onPressed: () =>
-                        _openOrSelectMessage(messages[index], inline: true),
-                  ),
-                  if (index != messages.length - 1)
-                    Container(
-                      height: theme.layout.divider,
-                      color: theme.color.border,
-                    ),
-                ],
-              ],
-            ),
-          ),
-        ),
-        SizedBox(width: theme.spacing.m),
-        Expanded(
-          child: _EmailInlineDetailPanel(
-            message: selectedMessage,
-            protocolLabel: snapshot.protocol.label,
-            fetchedAtLabel: _formatDateTime(snapshot.fetchedAt),
-            senderLabel: _senderLabel,
-            formatDateTime: _formatOptionalDateTime,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 构建单封邮件摘要卡片。
-  Widget _buildMessageCard(
-    EmailMessageSnapshot message, {
-    required bool inlineDetail,
-  }) {
-    final theme = context.yhTheme;
-    return Padding(
-      padding: EdgeInsets.only(bottom: theme.spacing.s),
-      child: YhCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    message.subject,
-                    style: theme.typography.body.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                SizedBox(width: theme.spacing.s),
-                Text(_formatOptionalDateTime(message.receivedAt)),
-              ],
-            ),
-            SizedBox(height: theme.spacing.xs),
-            Text(
-              _senderLabel(message),
-              style: theme.typography.caption.copyWith(
-                color: theme.color.muted,
-              ),
-            ),
-            SizedBox(height: theme.spacing.s),
-            Text(message.preview, maxLines: 3, overflow: TextOverflow.ellipsis),
-            SizedBox(height: theme.spacing.m),
-            Align(
-              alignment: Alignment.centerRight,
-              child: YhButton(
-                label: '查看正文',
-                variant: YhButtonVariant.secondary,
-                onTap: () =>
-                    _openOrSelectMessage(message, inline: inlineDetail),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmailSectionHeading extends StatelessWidget {
-  const _EmailSectionHeading({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox.square(
-          dimension: theme.control.compact,
-          child: Icon(icon, color: theme.color.serviceMail),
-        ),
-        SizedBox(width: theme.spacing.s),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: theme.typography.h3),
-              SizedBox(height: theme.spacing.xs),
-              Text(
-                subtitle,
-                style: theme.typography.caption.copyWith(
-                  color: theme.color.muted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
   }
 }

@@ -43,6 +43,14 @@ Future<void> pumpEmailPage(
   );
 }
 
+Future<void> openEmailConnectionDrawer(WidgetTester tester) async {
+  await tester.ensureVisible(find.text('邮箱连接设置'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('邮箱连接设置'));
+  await tester.pumpAndSettle();
+  expect(find.text('邮箱连接与协议'), findsOneWidget);
+}
+
 void main() {
   setUp(() {
     FlutterSecureStorage.setMockInitialValues({});
@@ -57,10 +65,10 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('SSPU 邮箱'), findsOneWidget);
+    expect(find.text('收件箱'), findsOneWidget);
     expect(find.text('写邮件'), findsOneWidget);
     expect(find.byKey(const Key('email-compose-panel')), findsNothing);
-    expect(find.textContaining('SMTP 只在点击发送时提交文本邮件'), findsOneWidget);
+    expect(find.text('尚未读取邮箱'), findsOneWidget);
 
     await tester.ensureVisible(find.text('读取最近邮件'));
     await tester.pumpAndSettle();
@@ -68,12 +76,13 @@ void main() {
     await pumpUntilFound(tester, find.text('教务通知'));
 
     expect(service.fetchCount, 1);
-    expect(find.text('IMAP 最近邮件：1 封'), findsOneWidget);
-    expect(find.text('教务处 <notice@sspu.edu.cn>'), findsOneWidget);
+    expect(find.text('IMAP 已连接'), findsOneWidget);
+    expect(find.text('1 封邮件'), findsOneWidget);
+    expect(find.text('教务处'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('查看正文'));
+    await tester.ensureVisible(find.text('教务通知'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('查看正文'));
+    await tester.tap(find.text('教务通知'));
     await tester.pumpAndSettle();
 
     expect(find.text('邮件正文'), findsOneWidget);
@@ -91,14 +100,15 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 100));
 
-    await tester.ensureVisible(find.text('校验 SMTP'));
-    await tester.pumpAndSettle();
+    await openEmailConnectionDrawer(tester);
     await tester.tap(find.text('校验 SMTP'));
     await pumpUntilFound(tester, find.text('SMTP 登录校验通过'));
 
     expect(service.validateCount, 1);
     expect(service.lastValidatedProtocol, EmailProtocol.smtp);
     expect(service.fetchCount, 0);
+    expect(find.byKey(const Key('app-feedback-toast')), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 120));
   });
@@ -112,8 +122,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 100));
 
-    await tester.ensureVisible(find.text('校验 SMTP'));
-    await tester.pumpAndSettle();
+    await openEmailConnectionDrawer(tester);
     await tester.tap(find.text('校验 SMTP'));
     await tester.pump();
 
@@ -127,7 +136,7 @@ void main() {
 
     expect(service.validateCount, 1);
     expect(find.text('SMTP 登录校验通过'), findsNothing);
-    expect(find.byType(YhBanner), findsOneWidget);
+    expect(find.byKey(const Key('app-feedback-toast')), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 120));
   });
@@ -141,7 +150,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 100));
 
-    await tester.tap(find.text('写邮件'));
+    await tester.tap(find.byKey(const Key('email-compose-open')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('email-compose-panel')), findsOneWidget);
 
@@ -153,6 +162,10 @@ void main() {
       find.widgetWithText(YhTextField, '抄送'),
       'cc@example.com',
     );
+    await tester.enterText(
+      find.widgetWithText(YhTextField, '密送'),
+      'bcc@example.com',
+    );
     await tester.enterText(find.widgetWithText(YhTextField, '主题'), '测试主题');
     await tester.enterText(find.widgetWithText(YhTextField, '正文'), '测试正文');
     await tester.ensureVisible(find.text('发送邮件'));
@@ -163,6 +176,7 @@ void main() {
     expect(service.sendCount, 1);
     expect(service.lastComposeRequest?.to, ['to@example.com']);
     expect(service.lastComposeRequest?.cc, ['cc@example.com']);
+    expect(service.lastComposeRequest?.bcc, ['bcc@example.com']);
     expect(service.lastComposeRequest?.subject, '测试主题');
     expect(find.byKey(const Key('email-compose-panel')), findsNothing);
     expect(find.byKey(const Key('app-feedback-toast')), findsOneWidget);
@@ -189,16 +203,16 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 300));
 
-    await tester.tap(find.text('写邮件'));
+    await tester.tap(find.byKey(const Key('email-compose-open')));
     await tester.pumpAndSettle();
 
-    expect(find.text('撰写邮件'), findsOneWidget);
+    expect(find.text('撰写邮件'), findsNWidgets(2));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 120));
   });
 
-  testWidgets('邮箱页面桌面端使用三栏邮件客户端布局', (tester) async {
+  testWidgets('邮箱页面桌面端使用列表详情双栏布局', (tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
     await tester.binding.setSurfaceSize(const Size(1280, 800));
@@ -219,11 +233,11 @@ void main() {
       find.byKey(const Key('email-desktop-client-layout')),
     );
 
-    expect(find.byKey(const Key('email-sidebar')), findsOneWidget);
+    expect(find.byKey(const Key('email-sidebar')), findsNothing);
     expect(find.byKey(const Key('email-mailbox-list-pane')), findsOneWidget);
     expect(find.text('缓存通知'), findsWidgets);
 
-    await tester.tap(find.text('写邮件'));
+    await tester.tap(find.byKey(const Key('email-compose-open')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('email-compose-panel')), findsOneWidget);
@@ -264,7 +278,8 @@ void main() {
     await pumpUntilFound(tester, find.text('缓存通知'));
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('IMAP 最近邮件：1 封'), findsOneWidget);
+    expect(find.text('IMAP 已连接'), findsOneWidget);
+    expect(find.text('1 封邮件'), findsOneWidget);
     expect(service.fetchCount, 0);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 120));
@@ -280,7 +295,7 @@ void main() {
     );
     await pumpUntilFound(tester, find.text('缓存通知'));
 
-    expect(find.textContaining('刷新时间已超过 30 分钟'), findsOneWidget);
+    expect(find.textContaining('本地邮件缓存'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 120));
   });

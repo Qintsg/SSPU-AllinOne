@@ -267,7 +267,10 @@ final _surfaces = <_VisualSurface>[
   _VisualSurface('mail.inbox', _mailError, state: 'error', destination: '邮箱'),
   _VisualSurface(
     'mail.message-detail',
-    () => EmailMessageDetailPage(message: qingyuanEmailMessages.first),
+    () => EmailMessageDetailPage(
+      message: qingyuanEmailMessages.first,
+      nowOverride: qingyuanVisualNow,
+    ),
   ),
   _VisualSurface(
     'mail.compose',
@@ -418,7 +421,7 @@ Widget _mailError() => _mailPage(
 );
 
 Future<void> _openMailCompose(WidgetTester tester) async {
-  await tester.tap(find.text('写邮件').first);
+  await tester.tap(find.byKey(const Key('email-compose-open')));
   await tester.pump();
 }
 
