@@ -6,13 +6,12 @@
  * @Date : 2026-04-22
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 import '../models/channel_config.dart';
 import '../models/message_item.dart';
 import '../services/auto_refresh_service.dart';
 import '../services/message_state_service.dart';
-import '../theme/app_spacing.dart';
 import 'app_feedback.dart';
 import 'channel_list_panels.dart';
 import 'responsive_layout.dart';
@@ -120,8 +119,11 @@ class _ChannelListSectionState extends State<ChannelListSection> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     if (_isLoading) {
-      return const Center(child: FluentProgressRing());
+      return const Center(
+        child: SizedBox(width: 240, child: YhProgress(showPercent: false)),
+      );
     }
 
     final enabledCount = _enabledMap.values.where((enabled) => enabled).length;
@@ -141,9 +143,7 @@ class _ChannelListSectionState extends State<ChannelListSection> {
 
     return Center(
       child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: context.appMetrics.contentMaxWidth,
-        ),
+        constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -156,7 +156,7 @@ class _ChannelListSectionState extends State<ChannelListSection> {
               onEnableAll: () => _setAllChannelsEnabled(true),
               onDisableAll: () => _setAllChannelsEnabled(false),
             ),
-            const SizedBox(height: AppSpacing.md),
+            SizedBox(height: theme.spacing.m),
             ChannelGroupRefreshPanel(
               enabled: hasEnabledImplementedChannel,
               hasImplementedChannel: implementedChannels.isNotEmpty,
@@ -172,17 +172,21 @@ class _ChannelListSectionState extends State<ChannelListSection> {
               onGroupAutoCountChanged: (value) =>
                   _onGroupAutoCountChanged(value),
             ),
-            const SizedBox(height: AppSpacing.md),
+            SizedBox(height: theme.spacing.m),
             LayoutBuilder(
               builder: (context, constraints) {
-                final useTwoColumns = constraints.maxWidth >= 1040;
+                final useTwoColumns =
+                    constraints.maxWidth >=
+                    theme.breakpoint.expanded -
+                        theme.spacing.xl2 * 3 -
+                        theme.spacing.m;
                 final itemWidth = useTwoColumns
-                    ? (constraints.maxWidth - AppSpacing.md) / 2
+                    ? (constraints.maxWidth - theme.spacing.m) / 2
                     : constraints.maxWidth;
 
                 return Wrap(
-                  spacing: AppSpacing.md,
-                  runSpacing: AppSpacing.md,
+                  spacing: theme.spacing.m,
+                  runSpacing: theme.spacing.m,
                   children: widget.channels.map((channel) {
                     return SizedBox(
                       width: itemWidth,
@@ -201,7 +205,7 @@ class _ChannelListSectionState extends State<ChannelListSection> {
                 );
               },
             ),
-            SizedBox(height: widget.channels.isEmpty ? 0 : AppSpacing.md),
+            SizedBox(height: widget.channels.isEmpty ? 0 : theme.spacing.m),
           ],
         ),
       ),
@@ -360,111 +364,95 @@ class _ChannelSectionOverview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
+    final theme = context.yhTheme;
 
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      bordered: true,
-      child: Padding(
-        padding: AppSpacing.cardPadding,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final shouldStack = shouldStackSettingsControls(constraints);
-            final titleBlock = Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                FluentSurfaceIcon(icon: FluentIcons.news),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Semantics(
-                        header: true,
-                        child: Text(title, style: type.subtitle1),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        '统一管理学校官网消息来源，启用后会在信息中心筛选和刷新中生效。',
-                        style: type.caption1.copyWith(
-                          color: colors.neutralForeground2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-            final actions = Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.xs,
-              alignment: shouldStack ? WrapAlignment.start : WrapAlignment.end,
-              children: [
-                FluentButton.primaryIcon(
-                  onPressed: onEnableAll,
-                  icon: const Icon(FluentIcons.checkMark),
-                  label: const Text('一键全开'),
-                ),
-                FluentButton.outlineIcon(
-                  onPressed: onDisableAll,
-                  icon: const Icon(FluentIcons.blocked),
-                  label: const Text('一键全关'),
-                ),
-              ],
-            );
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (shouldStack) ...[
-                  titleBlock,
-                  const SizedBox(height: AppSpacing.md),
-                  actions,
-                ] else
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: titleBlock),
-                      const SizedBox(width: AppSpacing.md),
-                      actions,
-                    ],
-                  ),
-                const SizedBox(height: AppSpacing.md),
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
+    return YhCard(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final shouldStack = shouldStackSettingsControls(constraints);
+          final titleBlock = Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(YhIcons.news, color: theme.color.brandStrong),
+              SizedBox(width: theme.spacing.m),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    FluentStatusChip(
-                      label: '共 $totalCount 个渠道',
-                      tone: FluentStatusChipTone.neutral,
-                      icon: FluentIcons.list,
+                    Semantics(
+                      header: true,
+                      child: Text(title, style: theme.typography.h3),
                     ),
-                    FluentStatusChip(
-                      label: '已接入 $implementedCount 个',
-                      tone: FluentStatusChipTone.brand,
-                      icon: FluentIcons.plugConnected,
-                    ),
-                    FluentStatusChip(
-                      label: '已启用 $enabledCount 个',
-                      tone: enabledCount > 0
-                          ? FluentStatusChipTone.success
-                          : FluentStatusChipTone.neutral,
-                      icon: FluentIcons.checkMark,
-                    ),
-                    FluentStatusChip(
-                      label: '自动刷新 $autoEnabledCount 个',
-                      tone: autoEnabledCount > 0
-                          ? FluentStatusChipTone.brand
-                          : FluentStatusChipTone.neutral,
-                      icon: FluentIcons.sync,
+                    SizedBox(height: theme.spacing.xs),
+                    Text(
+                      '统一管理学校官网消息来源，启用后会在信息中心筛选和刷新中生效。',
+                      style: theme.typography.small.copyWith(
+                        color: theme.color.muted,
+                      ),
                     ),
                   ],
                 ),
-              ],
-            );
-          },
-        ),
+              ),
+            ],
+          );
+          final actions = Wrap(
+            spacing: theme.spacing.s,
+            runSpacing: theme.spacing.xs,
+            alignment: shouldStack ? WrapAlignment.start : WrapAlignment.end,
+            children: [
+              YhButton(
+                label: '一键全开',
+                onTap: onEnableAll,
+                leadingIcon: YhIcons.check,
+              ),
+              YhButton(
+                label: '一键全关',
+                onTap: onDisableAll,
+                leadingIcon: YhIcons.close,
+                variant: YhButtonVariant.secondary,
+              ),
+            ],
+          );
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (shouldStack) ...[
+                titleBlock,
+                SizedBox(height: theme.spacing.m),
+                actions,
+              ] else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: titleBlock),
+                    SizedBox(width: theme.spacing.m),
+                    actions,
+                  ],
+                ),
+              SizedBox(height: theme.spacing.m),
+              Wrap(
+                spacing: theme.spacing.s,
+                runSpacing: theme.spacing.s,
+                children: [
+                  YhChip(label: '共 $totalCount 个渠道'),
+                  YhChip(
+                    label: '已接入 $implementedCount 个',
+                    selected: implementedCount > 0,
+                  ),
+                  YhChip(
+                    label: '已启用 $enabledCount 个',
+                    selected: enabledCount > 0,
+                  ),
+                  YhChip(
+                    label: '自动刷新 $autoEnabledCount 个',
+                    selected: autoEnabledCount > 0,
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
