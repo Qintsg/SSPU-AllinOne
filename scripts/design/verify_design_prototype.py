@@ -134,6 +134,50 @@ def _assert_screen_interactions(page: Page, screen: str, viewport_width: int) ->
             _assert(nav_box is not None and nav_box["height"] <= 64, "compact/medium 设置导航仍占用过多纵向空间")
 
 
+def _capture_mail_state_references(
+    page: Page,
+    output_dir: Path,
+    theme: str,
+    width: int,
+    height: int,
+) -> None:
+    for state in ("initial", "loading", "empty", "stale", "error"):
+        page.evaluate("state => window.qingyuanPrototype.setMailState(state)", state)
+        if state == "stale":
+            _assert(page.locator('.mail-stale-banner:visible').count() == 1, "邮箱 stale 状态未显示缓存提示")
+            _assert(page.locator('.mail-layout:visible').count() == 1, "邮箱 stale 状态丢失已有列表")
+        else:
+            panel = page.locator(f'[data-mail-state-panel="{state}"]:visible')
+            _assert(panel.count() == 1, f"邮箱 {state} 状态面板未显示")
+        _capture_reference(
+            page,
+            output_dir / f"mail.inbox--{state}--{theme}--{width}x{height}.png",
+            width,
+            height,
+        )
+
+    for state in ("initial", "content", "loading", "error"):
+        page.evaluate("state => window.qingyuanPrototype.setMailComposeState(state)", state)
+        compose = page.locator('[data-mail-compose-panel]:visible')
+        _assert(compose.count() == 1, f"邮箱撰写 {state} 状态未显示")
+        if state == "content":
+            compose.locator('input[name="to"]').fill("mentor@example.invalid")
+            compose.locator('input[name="subject"]').fill("暑期项目进度确认")
+            compose.locator('textarea[name="body"]').fill("老师您好，附件事项已确认，将按计划完成。")
+        if state == "loading":
+            _assert(compose.locator('[data-mail-send]').is_disabled(), "邮箱撰写 loading 状态仍可提交")
+        if state == "error":
+            _assert(compose.locator('.mail-compose-error:visible').count() == 1, "邮箱撰写 error 状态未显示错误")
+        _capture_reference(
+            page,
+            output_dir / f"mail.compose--{state}--{theme}--{width}x{height}.png",
+            width,
+            height,
+        )
+
+    page.evaluate("window.qingyuanPrototype.setMailState('content')")
+
+
 def verify(output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     prototype_url = PROTOTYPE.resolve().as_uri()
@@ -197,6 +241,8 @@ def verify(output_dir: Path) -> None:
                     width,
                     height,
                 )
+                if screen == "mail":
+                    _capture_mail_state_references(page, output_dir, "light", width, height)
 
             if width < 768:
                 _open_screen(page, prototype_url, "home")
@@ -233,6 +279,8 @@ def verify(output_dir: Path) -> None:
                     width,
                     height,
                 )
+                if screen == "mail":
+                    _capture_mail_state_references(page, output_dir, "dark", width, height)
 
         _assert(not errors, "浏览器控制台错误：" + " | ".join(errors))
         context.close()

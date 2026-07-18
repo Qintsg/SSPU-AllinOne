@@ -65,6 +65,46 @@
     strip.scrollLeft = start ? Math.max(0, start.offsetLeft - strip.offsetLeft) : 0;
   }
 
+  function setMailState(state) {
+    var mailPage = document.querySelector('[data-screen="mail"]');
+    if (!mailPage) return;
+    var showContent = state === 'content' || state === 'stale';
+    mailPage.dataset.mailState = state;
+    mailPage.classList.remove('is-composing');
+    mailPage.querySelectorAll('[data-mail-content]').forEach(function (item) {
+      item.hidden = !showContent;
+    });
+    var staleBanner = mailPage.querySelector('.mail-stale-banner');
+    if (staleBanner) staleBanner.hidden = state !== 'stale';
+    mailPage.querySelectorAll('[data-mail-state-panel]').forEach(function (panel) {
+      panel.hidden = panel.dataset.mailStatePanel !== state;
+    });
+    var compose = mailPage.querySelector('[data-mail-compose-panel]');
+    if (compose) compose.hidden = true;
+    mailPage.querySelector('#mail-title').textContent = '收件箱';
+    mailPage.querySelector('.page-heading p:not(.page-kicker)').textContent = '邮件原文只在本机读取；桌面采用列表—详情并列，移动端进入独立详情页。';
+  }
+
+  function setMailComposeState(state) {
+    var mailPage = document.querySelector('[data-screen="mail"]');
+    if (!mailPage) return;
+    setMailState('content');
+    mailPage.querySelectorAll('[data-mail-content]').forEach(function (item) { item.hidden = true; });
+    var compose = mailPage.querySelector('[data-mail-compose-panel]');
+    compose.hidden = false;
+    compose.dataset.composeState = state;
+    mailPage.classList.add('is-composing');
+    mailPage.querySelector('#mail-title').textContent = '撰写邮件';
+    mailPage.querySelector('.page-heading p:not(.page-kicker)').textContent = '填写收件人、主题与普通文本正文；发送前仍可取消。';
+    var loading = state === 'loading';
+    compose.querySelectorAll('input, textarea, button').forEach(function (control) {
+      control.disabled = loading;
+    });
+    compose.querySelector('.mail-compose-error').hidden = state !== 'error';
+    var send = compose.querySelector('[data-mail-send]');
+    send.textContent = loading ? '正在发送' : '发送邮件';
+  }
+
   function closeMore(restoreFocus) {
     if (!moreSheet || !moreButton) return;
     var wasOpen = moreSheet.classList.contains('is-open');
@@ -125,6 +165,24 @@
     var tab = event.target.closest('.domain-tab');
     if (tab) {
       activateScheduleTab(tab);
+      return;
+    }
+
+    var composeTrigger = event.target.closest('[data-mail-compose]');
+    if (composeTrigger) {
+      setMailComposeState('initial');
+      var firstField = document.querySelector('[data-mail-compose-panel] input');
+      if (firstField) firstField.focus();
+      return;
+    }
+
+    var composeClose = event.target.closest('[data-mail-compose-close]');
+    if (composeClose) {
+      setMailState('content');
+      var writeButton = Array.from(document.querySelectorAll('[data-mail-compose]')).find(function (button) {
+        return button.offsetParent !== null;
+      });
+      if (writeButton) writeButton.focus();
       return;
     }
 
@@ -209,6 +267,13 @@
     document.querySelector('[data-search-empty]').hidden = results !== 0;
   });
 
+  document.addEventListener('submit', function (event) {
+    if (!event.target.matches('.mail-compose-form')) return;
+    event.preventDefault();
+    setMailComposeState('loading');
+    showFeedback('邮件发送仅在原型中模拟；未访问真实 SMTP。');
+  });
+
   document.addEventListener('keydown', function (event) {
     if (moreSheet && moreSheet.classList.contains('is-open')) {
       if (event.key === 'Escape') {
@@ -258,5 +323,9 @@
     var tab = document.querySelector('[data-settings-section="' + panel.dataset.settingsPanel + '"]');
     if (tab) panel.setAttribute('aria-labelledby', tab.id);
   });
+  window.qingyuanPrototype = {
+    setMailState: setMailState,
+    setMailComposeState: setMailComposeState
+  };
   showPage(initial || 'home', false);
 })();

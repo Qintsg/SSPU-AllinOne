@@ -376,6 +376,30 @@ def _validate_page_prototype(project_root: Path) -> None:
     if missing_destinations:
         errors.append(f"页面原型缺少导航目的地：{', '.join(missing_destinations)}")
 
+    required_mail_states = {"initial", "loading", "empty", "error"}
+    mail_states = set(re.findall(r'data-mail-state-panel="([a-z-]+)"', prototype))
+    missing_mail_states = sorted(required_mail_states - mail_states)
+    if missing_mail_states:
+        errors.append(f"邮箱原型缺少收件箱状态：{', '.join(missing_mail_states)}")
+    for marker, label in (
+        ("mail-stale-banner", "stale 缓存提示"),
+        ("data-mail-compose-panel", "撰写面板"),
+        ("mail-compose-error", "撰写错误状态"),
+    ):
+        if marker not in prototype:
+            errors.append(f"邮箱原型缺少{label}")
+
+    prototype_js = (project_root / "docs/design/patterns/samples/_app-shell.js").read_text(encoding="utf-8")
+    for setter in ("setMailState", "setMailComposeState"):
+        if setter not in prototype_js:
+            errors.append(f"邮箱原型缺少确定性状态接口 {setter}")
+    verifier_path = project_root / "scripts/design/verify_design_prototype.py"
+    if verifier_path.exists():
+        verifier = verifier_path.read_text(encoding="utf-8")
+        for surface in ("mail.inbox", "mail.compose"):
+            if surface not in verifier:
+                errors.append(f"浏览器核验未采集 {surface} 多状态参考稿")
+
     prototype_css = (project_root / PAGE_PROTOTYPE_CSS_PATH).read_text(encoding="utf-8")
     if re.search(r"#[0-9A-Fa-f]{3,8}\b", prototype_css):
         errors.append(f"{PAGE_PROTOTYPE_CSS_PATH} 包含裸颜色值，应复用清源 token")

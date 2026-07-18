@@ -18,6 +18,7 @@
     <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
     <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18.5 9A7 7 0 0 0 6.7 6.7L4 11M5.5 15A7 7 0 0 0 17.3 17.3L20 13"/></symbol>
     <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l11-11a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></symbol>
     <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
     <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
     <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></symbol>
@@ -93,9 +94,25 @@
       </section>
 
       <section class="prototype-page" data-screen="mail" aria-labelledby="mail-title" hidden>
-        <header class="page-heading"><div><p class="page-kicker">学校邮箱</p><h1 id="mail-title">收件箱</h1><p>邮件原文只在本机读取；桌面采用列表—详情并列，移动端进入独立详情页。</p></div><div class="page-actions"><button class="icon-button" type="button" aria-label="刷新邮箱"><svg><use href="#i-refresh"/></svg></button></div></header>
-        <div class="status-row"><span class="yh-pill ok">IMAP 已连接</span><span class="yh-pill info">2 封未读</span></div>
-        <div class="mail-layout"><section class="section-card mail-list" role="listbox" aria-label="邮件列表" data-roving="options"><button class="mail-item is-active" type="button" role="option" aria-selected="true" tabindex="0"><b>校园卡消费提醒</b><span>财务处 · 今天 08:12</span><span>您于学生食堂消费 12.50 元…</span></button><button class="mail-item" type="button" role="option" aria-selected="false" tabindex="-1"><b>夏季学期选课确认</b><span>教务处 · 昨天 16:42</span><span>请在规定时间内确认选课结果…</span></button><button class="mail-item" type="button" role="option" aria-selected="false" tabindex="-1"><b>图书归还提醒</b><span>图书馆 · 7 月 16 日</span><span>您借阅的图书将在 3 天后到期…</span></button></section><article class="section-card mail-content" tabindex="-1"><button class="mail-back" type="button">返回收件箱</button><div class="feed-meta"><span>财务处</span><time>今天 08:12</time></div><h2>校园卡消费提醒</h2><p>发送至 202412345@sspu.edu.cn</p><div class="mail-body">同学你好：<br/><br/>您于 08:10 在学生食堂完成一笔 12.50 元消费，当前校园卡余额为 128.50 元。<br/><br/>本邮件为系统自动发送，请勿直接回复。</div></article></div>
+        <header class="page-heading"><div><p class="page-kicker">学校邮箱</p><h1 id="mail-title">收件箱</h1><p>邮件原文只在本机读取；桌面采用列表—详情并列，移动端进入独立详情页。</p></div><div class="page-actions"><button class="yh-button secondary mail-write-button" type="button" data-mail-compose>写邮件</button><button class="icon-button mail-write-icon" type="button" aria-label="写邮件" data-mail-compose><svg><use href="#i-edit"/></svg></button><button class="icon-button" type="button" aria-label="刷新邮箱"><svg><use href="#i-refresh"/></svg></button></div></header>
+        <div class="status-row" data-mail-content><span class="yh-pill ok">IMAP 已连接</span><span class="yh-pill info">2 封未读</span></div>
+        <div class="yh-banner warn mail-stale-banner" data-mail-content hidden><svg aria-hidden="true"><use href="#i-info"/></svg><span>当前显示 09:30 的本地邮件缓存；网络恢复后可手动刷新。</span></div>
+        <div class="mail-layout" data-mail-content><section class="section-card mail-list" role="listbox" aria-label="邮件列表" data-roving="options"><button class="mail-item is-active" type="button" role="option" aria-selected="true" tabindex="0"><b>校园卡消费提醒</b><span>财务处 · 今天 08:12</span><span>您于学生食堂消费 12.50 元…</span></button><button class="mail-item" type="button" role="option" aria-selected="false" tabindex="-1"><b>夏季学期选课确认</b><span>教务处 · 昨天 16:42</span><span>请在规定时间内确认选课结果…</span></button><button class="mail-item" type="button" role="option" aria-selected="false" tabindex="-1"><b>图书归还提醒</b><span>图书馆 · 7 月 16 日</span><span>您借阅的图书将在 3 天后到期…</span></button></section><article class="section-card mail-content" tabindex="-1"><button class="mail-back" type="button">返回收件箱</button><div class="feed-meta"><span>财务处</span><time>今天 08:12</time></div><h2>校园卡消费提醒</h2><p>发送至 202412345@sspu.edu.cn</p><div class="mail-body">同学你好：<br/><br/>您于 08:10 在学生食堂完成一笔 12.50 元消费，当前校园卡余额为 128.50 元。<br/><br/>本邮件为系统自动发送，请勿直接回复。</div></article></div>
+        <article class="section-card mail-compose-panel" data-mail-compose-panel hidden>
+          <div class="mail-compose-heading"><div><p class="page-kicker">SMTP 主动发信</p><h2>撰写邮件</h2><p>仅在点击发送后提交普通文本；不保存草稿，不在后台重试。</p></div><button class="icon-button ghost" type="button" aria-label="关闭撰写邮件" data-mail-compose-close>×</button></div>
+          <form class="mail-compose-form">
+            <label class="yh-field"><span class="flabel">收件人</span><span class="control"><input name="to" type="email" placeholder="name@example.com"/></span></label>
+            <label class="yh-field"><span class="flabel">抄送</span><span class="control"><input name="cc" type="email" placeholder="可选"/></span></label>
+            <label class="yh-field mail-compose-subject"><span class="flabel">主题</span><span class="control"><input name="subject" placeholder="邮件主题"/></span></label>
+            <label class="yh-field mail-compose-body"><span class="flabel">正文</span><span class="control"><textarea name="body" rows="8" placeholder="输入邮件正文"></textarea></span></label>
+            <div class="yh-banner err mail-compose-error" role="alert" hidden><svg aria-hidden="true"><use href="#i-info"/></svg><span>SMTP 连接失败，请检查邮箱账户与网络后重试。</span></div>
+            <div class="mail-compose-actions"><button class="yh-button secondary" type="button" data-mail-compose-close>取消</button><button class="yh-button primary" type="submit" data-mail-send>发送邮件</button></div>
+          </form>
+        </article>
+        <section class="section-card mail-state-panel" data-mail-state-panel="initial" hidden><div class="yh-empty"><svg aria-hidden="true"><use href="#i-mail"/></svg><h2>尚未读取邮箱</h2><p>连接学校邮箱后读取最近邮件，正文只保存在本机。</p><button class="yh-button primary" type="button">读取最近邮件</button></div></section>
+        <section class="section-card mail-state-panel" data-mail-state-panel="loading" hidden><div class="mail-state-progress"><span class="yh-spinner" aria-hidden="true"></span><div><h2>正在读取最近邮件</h2><p>正在通过 IMAP 获取脱敏测试邮箱数据。</p></div></div></section>
+        <section class="section-card mail-state-panel" data-mail-state-panel="empty" hidden><div class="yh-empty"><svg aria-hidden="true"><use href="#i-mail"/></svg><h2>收件箱暂无邮件</h2><p>连接正常，但当前查询范围没有可展示的邮件。</p><button class="yh-button secondary" type="button">重新读取</button></div></section>
+        <section class="section-card mail-state-panel" data-mail-state-panel="error" hidden><div class="yh-empty"><svg aria-hidden="true"><use href="#i-info"/></svg><h2>无法读取学校邮箱</h2><p>请检查邮箱账户、校园网或 VPN；已有本地缓存不会被删除。</p><button class="yh-button primary" type="button">重试</button></div></section>
       </section>
 
       <section class="prototype-page" data-screen="links" aria-labelledby="links-title" hidden>

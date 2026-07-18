@@ -107,6 +107,27 @@ class DesignSystemValidatorTest(unittest.TestCase):
             with self.assertRaisesRegex(DesignSystemValidationError, r"docs.design.README\.md.*missing\.md"):
                 validate_design_system(root)
 
+    def test_mail_prototype_requires_all_inbox_states(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            prototype = root / "docs" / "design" / "patterns" / "samples" / "app-shell.html"
+            prototype.write_text(
+                prototype.read_text(encoding="utf-8").replace(
+                    'data-mail-state-panel="empty"',
+                    'data-mail-state-panel="missing-empty"',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                DesignSystemValidationError,
+                r"邮箱原型缺少收件箱状态：empty",
+            ):
+                validate_design_system(root)
+
     def test_missing_component_sample_reports_component_name(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
