@@ -9,7 +9,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../adapters/fluent_yh_theme_context.dart';
+import '../theme/yh_theme.dart';
 
 @immutable
 class YhPressableState {
@@ -112,7 +112,6 @@ class _YhPressableState extends State<YhPressable> {
               minHeight: context.yhTheme.control.minimumTarget,
             ),
             alignment: Alignment.center,
-            padding: EdgeInsets.all(context.yhTheme.focus.ringGap),
             decoration: BoxDecoration(
               border: Border.all(
                 color: _focused

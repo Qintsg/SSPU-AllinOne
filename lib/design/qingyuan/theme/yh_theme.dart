@@ -7,9 +7,16 @@
  */
 
 import 'package:flutter/animation.dart' show Cubic, Curve;
-import 'package:flutter/foundation.dart' show immutable;
-import 'package:flutter/material.dart'
-    show BoxShadow, Color, FontWeight, Offset, TextStyle, ThemeExtension;
+import 'package:flutter/painting.dart'
+    show BoxShadow, Color, FontWeight, Offset, TextStyle;
+import 'package:flutter/widgets.dart'
+    show
+        Brightness,
+        BuildContext,
+        InheritedTheme,
+        MediaQuery,
+        Widget,
+        immutable;
 
 @immutable
 class YhColorTokens {
@@ -294,7 +301,7 @@ class YhElevationTokens {
 }
 
 @immutable
-class YhTheme extends ThemeExtension<YhTheme> {
+class YhTheme {
   const YhTheme({
     required this.color,
     this.spacing = const YhSpacingTokens(),
@@ -326,7 +333,6 @@ class YhTheme extends ThemeExtension<YhTheme> {
   final YhFocusTokens focus;
   final YhElevationTokens elevation;
 
-  @override
   YhTheme copyWith({
     YhColorTokens? color,
     YhSpacingTokens? spacing,
@@ -349,7 +355,29 @@ class YhTheme extends ThemeExtension<YhTheme> {
     elevation: elevation ?? this.elevation,
   );
 
+  YhTheme lerp(YhTheme other, double t) => t >= 0.5 ? other : this;
+}
+
+class YhThemeScope extends InheritedTheme {
+  const YhThemeScope({super.key, required this.data, required super.child});
+
+  final YhTheme data;
+
+  static YhTheme of(BuildContext context) {
+    final scope = context.dependOnInheritedWidgetOfExactType<YhThemeScope>();
+    if (scope != null) return scope.data;
+    final brightness = MediaQuery.maybeOf(context)?.platformBrightness;
+    return brightness == Brightness.dark ? YhTheme.dark : YhTheme.light;
+  }
+
   @override
-  YhTheme lerp(covariant ThemeExtension<YhTheme>? other, double t) =>
-      other is YhTheme && t >= 0.5 ? other : this;
+  bool updateShouldNotify(YhThemeScope oldWidget) => data != oldWidget.data;
+
+  @override
+  Widget wrap(BuildContext context, Widget child) =>
+      YhThemeScope(data: data, child: child);
+}
+
+extension YhThemeContext on BuildContext {
+  YhTheme get yhTheme => YhThemeScope.of(this);
 }

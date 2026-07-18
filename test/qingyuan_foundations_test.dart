@@ -10,23 +10,15 @@ import 'dart:ui' show Tristate;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/services.dart';
-import 'package:sspu_allinone/design/fluent_ui.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
-import 'package:sspu_allinone/theme/app_theme.dart';
 
 void main() {
-  testWidgets('清源主题可从迁移期 Fluent 宿主读取', (tester) async {
+  testWidgets('清源主题由纯 WidgetsApp 宿主提供并支持亮暗模式', (tester) async {
     late YhTheme actual;
-    final hostTheme = AppTheme.build(Brightness.light);
-    expect(hostTheme.extension<YhTheme>(), same(YhTheme.light));
-    expect(
-      AppTheme.build(Brightness.dark).extension<YhTheme>(),
-      same(YhTheme.dark),
-    );
 
     await tester.pumpWidget(
-      FluentApp(
-        theme: hostTheme,
+      YhApp(
+        themeMode: YhThemeMode.light,
         home: Builder(
           builder: (context) {
             actual = context.yhTheme;
@@ -40,6 +32,19 @@ void main() {
     expect(actual.spacing.m, 16);
     expect(actual.typography.body.fontSize, 15);
     expect(actual.motion.fast, const Duration(milliseconds: 120));
+
+    await tester.pumpWidget(
+      YhApp(
+        themeMode: YhThemeMode.dark,
+        home: Builder(
+          builder: (context) {
+            actual = context.yhTheme;
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    );
+    expect(actual.color.background, const Color(0xFF14171A));
   });
 
   test('清源亮暗主题覆盖完整基础契约', () {
@@ -71,8 +76,7 @@ void main() {
     final semantics = tester.ensureSemantics();
 
     await tester.pumpWidget(
-      FluentApp(
-        theme: FluentThemeData(extensions: [YhTheme.light]),
+      YhApp(
         home: Column(
           children: [
             YhPressable(
@@ -120,5 +124,64 @@ void main() {
     expect(disabledSemantics.flagsCollection.isButton, isTrue);
     expect(disabledSemantics.flagsCollection.isEnabled, Tristate.isFalse);
     semantics.dispose();
+  });
+
+  testWidgets('清源按钮通过点击和键盘触发并暴露禁用语义', (tester) async {
+    var activations = 0;
+    final semantics = tester.ensureSemantics();
+
+    await tester.pumpWidget(
+      YhApp(
+        home: Column(
+          children: [
+            YhButton(label: '保存更改', onTap: () => activations += 1),
+            const YhButton(label: '不可用', disabled: true),
+          ],
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('保存更改'));
+    expect(activations, 1);
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    expect(activations, 2);
+    expect(tester.getSize(find.byType(YhButton).first).height, 48);
+
+    final disabled = tester.getSemantics(find.text('不可用'));
+    expect(disabled.flagsCollection.isButton, isTrue);
+    expect(disabled.flagsCollection.isEnabled, Tristate.isFalse);
+    semantics.dispose();
+  });
+
+  testWidgets('清源路由与确认对话框返回明确结果', (tester) async {
+    bool? result;
+
+    await tester.pumpWidget(
+      YhApp(
+        home: Builder(
+          builder: (context) => YhButton(
+            label: '打开确认',
+            onTap: () async {
+              result = await YhDialog.confirm(
+                context,
+                title: '删除该课程？',
+                message: '此操作不可撤销。',
+                confirmText: '删除',
+                danger: true,
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('打开确认'));
+    await tester.pumpAndSettle();
+    expect(find.text('删除该课程？'), findsOneWidget);
+    expect(find.text('此操作不可撤销。'), findsOneWidget);
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(result, isFalse);
   });
 }

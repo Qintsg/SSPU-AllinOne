@@ -7,6 +7,7 @@
  */
 
 import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart' as qingyuan;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sspu_allinone/pages/about_page.dart';
@@ -48,10 +49,20 @@ void main() {
     );
   }
 
+  Widget zhYhApp({required Widget home}) {
+    return qingyuan.YhApp(
+      locale: const Locale('zh'),
+      supportedLocales: const [Locale('zh'), Locale('en')],
+      home: home,
+    );
+  }
+
   String selectableTextBody(WidgetTester tester) {
     return tester
-        .widgetList<SelectableText>(find.byType(SelectableText))
-        .map((widget) => widget.data ?? widget.textSpan?.toPlainText() ?? '')
+        .widgetList<qingyuan.YhSelectableText>(
+          find.byType(qingyuan.YhSelectableText),
+        )
+        .map((widget) => widget.data)
         .join('\n');
   }
 
@@ -71,7 +82,7 @@ void main() {
   }
 
   testWidgets('法律与隐私说明页面展示所有协议段落', (tester) async {
-    await tester.pumpWidget(zhFluentApp(home: const PrivacyPolicyPage()));
+    await tester.pumpWidget(zhYhApp(home: const PrivacyPolicyPage()));
 
     expect(find.text('法律与隐私说明'), findsOneWidget);
     final body = await pumpUntilSelectableText(tester, containsText: '免责声明');
@@ -86,7 +97,7 @@ void main() {
   });
 
   testWidgets('旧使用协议入口展示同一篇完整法律说明', (tester) async {
-    await tester.pumpWidget(zhFluentApp(home: const AgreementPage()));
+    await tester.pumpWidget(zhYhApp(home: const AgreementPage()));
 
     expect(find.text('法律与隐私说明'), findsOneWidget);
     expect(find.byType(LegalNoticePage), findsOneWidget);
@@ -108,9 +119,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.byType(LegalNoticePage), findsOneWidget);
-    expect(find.text('返回'), findsOneWidget);
+    expect(find.bySemanticsLabel('返回'), findsOneWidget);
 
-    await tester.tap(find.text('返回'));
+    await tester.tap(find.bySemanticsLabel('返回'));
     await tester.pumpAndSettle();
 
     expect(find.byType(LegalNoticePage), findsNothing);
@@ -143,7 +154,7 @@ void main() {
     addTearDown(() => resetView(tester));
 
     await tester.pumpWidget(
-      zhFluentApp(
+      zhYhApp(
         home: LegalConsentDialog(onAccept: () {}, onDecline: () {}),
       ),
     );
@@ -171,7 +182,7 @@ void main() {
     addTearDown(() => resetView(tester));
 
     await tester.pumpWidget(
-      zhFluentApp(
+      zhYhApp(
         home: LegalConsentDialog(onAccept: () {}, onDecline: () {}),
       ),
     );
@@ -194,7 +205,7 @@ void main() {
     var declined = false;
 
     await tester.pumpWidget(
-      zhFluentApp(
+      zhYhApp(
         home: LegalConsentDialog(
           onAccept: () => accepted = true,
           onDecline: () => declined = true,
@@ -207,10 +218,10 @@ void main() {
     expect(find.text('无法加载协议正文'), findsOneWidget);
     expect(find.text('协议正文加载完成后才可继续。'), findsOneWidget);
 
-    final acceptButton = tester.widget<FluentButton>(
+    final acceptButton = tester.widget<qingyuan.YhButton>(
       find.byKey(const Key('legal-consent-accept')),
     );
-    expect(acceptButton.onPressed, isNull);
+    expect(acceptButton.onTap, isNull);
 
     await tester.tap(
       find.byKey(const Key('legal-consent-accept')),

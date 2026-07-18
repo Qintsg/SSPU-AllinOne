@@ -25,6 +25,7 @@ class YhIcons {
   static const IconData profile = system.FluentIcons.person_24_regular;
   static const IconData notification = system.FluentIcons.alert_24_regular;
   static const IconData close = system.FluentIcons.dismiss_24_regular;
+  static const IconData check = system.FluentIcons.checkmark_24_regular;
   static const IconData add = system.FluentIcons.add_24_regular;
   static const IconData edit = system.FluentIcons.edit_24_regular;
   static const IconData visibility = system.FluentIcons.eye_24_regular;

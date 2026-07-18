@@ -6,7 +6,7 @@
  * @Date : 2026-04-18
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 import 'legal_notice_page.dart';
 

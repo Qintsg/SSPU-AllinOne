@@ -16,6 +16,7 @@ SAMPLE_CSS_PATH = Path("docs/design/components/samples/_qingyuan.css")
 FLUTTER_THEME_PATH = Path("lib/design/qingyuan/theme/yh_theme.dart")
 PAGE_PROTOTYPE_PATH = Path("docs/design/patterns/samples/app-shell.html")
 PAGE_PROTOTYPE_CSS_PATH = Path("docs/design/patterns/samples/_app-shell.css")
+VISUAL_MANIFEST_PATH = Path("docs/design/resources/visual-manifest.json")
 MARKDOWN_LINK_PATTERN = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
 
@@ -359,6 +360,87 @@ def _validate_page_prototype(project_root: Path) -> None:
         raise DesignSystemValidationError("\n".join(errors))
 
 
+def _validate_visual_manifest(project_root: Path) -> None:
+    path = project_root / VISUAL_MANIFEST_PATH
+    try:
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise DesignSystemValidationError(f"{VISUAL_MANIFEST_PATH} 无法解析：{error}") from error
+
+    meta = manifest.get("meta", {})
+    errors: list[str] = []
+    required_platforms = {"android", "ios", "windows", "macos", "linux"}
+    platforms = set(meta.get("platforms", []))
+    missing_platforms = sorted(required_platforms - platforms)
+    if missing_platforms:
+        errors.append(f"视觉清单缺少平台：{', '.join(missing_platforms)}")
+    if "web" in platforms:
+        errors.append("视觉清单不得把本轮排除的 web 纳入平台矩阵")
+
+    required_viewports = {(360, 800), (768, 900), (1200, 900), (1600, 1000)}
+    viewports = {
+        (item.get("width"), item.get("height"))
+        for item in meta.get("viewports", [])
+        if isinstance(item, dict)
+    }
+    if viewports != required_viewports:
+        errors.append("视觉清单必须覆盖 360x800、768x900、1200x900、1600x1000")
+    if set(meta.get("themes", [])) != {"light", "dark"}:
+        errors.append("视觉清单必须覆盖 light 与 dark")
+    if meta.get("applicationThreshold") != 0.99:
+        errors.append("视觉清单应用自绘阈值必须为 0.99")
+    if meta.get("externalThreshold") != 0.95:
+        errors.append("视觉清单外部区域阈值必须为 0.95")
+
+    surfaces = manifest.get("surfaces", [])
+    surface_ids = [item.get("id") for item in surfaces if isinstance(item, dict)]
+    duplicates = sorted({surface_id for surface_id in surface_ids if surface_ids.count(surface_id) > 1})
+    if duplicates:
+        errors.append(f"视觉清单存在重复界面：{', '.join(duplicates)}")
+    required_groups = {"global", "home", "academic", "schedule", "info", "mail", "links", "settings", "legal", "external"}
+    groups = {item.get("group") for item in surfaces if isinstance(item, dict)}
+    missing_groups = sorted(required_groups - groups)
+    if missing_groups:
+        errors.append(f"视觉清单缺少界面分组：{', '.join(missing_groups)}")
+    required_states = {"initial", "loading", "content", "empty", "stale", "error"}
+    declared_states = set(meta.get("states", []))
+    if declared_states != required_states:
+        errors.append("视觉清单必须声明统一六态")
+    for surface in surfaces:
+        if not isinstance(surface, dict):
+            errors.append("视觉清单界面条目必须是对象")
+            continue
+        states = set(surface.get("states", []))
+        if not states or not states <= required_states:
+            errors.append(f"视觉清单界面 {surface.get('id', '<unknown>')} 状态无效")
+
+    if errors:
+        raise DesignSystemValidationError("\n".join(errors))
+
+
+def _validate_qingyuan_runtime(project_root: Path) -> None:
+    runtime = project_root / "lib" / "design" / "qingyuan"
+    if not runtime.exists():
+        return
+    errors: list[str] = []
+    for source_path in runtime.rglob("*.dart"):
+        relative = source_path.relative_to(project_root).as_posix()
+        if "/adapters/" in f"/{relative}":
+            continue
+        source = source_path.read_text(encoding="utf-8")
+        forbidden_imports = {
+            "package:flutter/material.dart": "Material",
+            "package:flutter/cupertino.dart": "Cupertino",
+            "package:fluent_ui/fluent_ui.dart": "Fluent",
+        }
+        for import_path, family in forbidden_imports.items():
+            if import_path in source:
+                errors.append(f"{relative} 直接导入 {family} 成品视觉库")
+        if re.search(r"\bIcons\.", source):
+            errors.append(f"{relative} 直接使用 Material Icons.*")
+    if errors:
+        raise DesignSystemValidationError("\n".join(errors))
+
 def validate_design_system(project_root: Path) -> None:
     """通过公开仓库目录校验清源设计契约。"""
     tokens = _load_tokens(project_root)
@@ -370,6 +452,8 @@ def validate_design_system(project_root: Path) -> None:
     _validate_component_samples(project_root)
     _validate_document_contract(project_root)
     _validate_page_prototype(project_root)
+    _validate_visual_manifest(project_root)
+    _validate_qingyuan_runtime(project_root)
     _validate_markdown_links(project_root)
 
 

@@ -8,29 +8,45 @@
 
 import 'dart:math' as math;
 
-import '../design/fluent_ui.dart';
-
+import '../design/qingyuan/qingyuan_ui.dart';
 import '../legal/legal_documents.dart';
-import '../theme/app_shapes.dart';
-import '../theme/app_spacing.dart';
 
-/// 法律说明加载器。
 typedef LegalNoticeLoader = Future<String> Function(Locale? locale);
 
-/// 弹出首次启动法律协议确认弹窗。
 Future<bool?> showLegalConsentDialog({required BuildContext context}) {
-  return showDialog<bool>(
+  final theme = context.yhTheme;
+  return showGeneralDialog<bool>(
     context: context,
     barrierDismissible: false,
-    dismissWithEsc: false,
-    builder: (dialogContext) => LegalConsentDialog(
-      onAccept: () => Navigator.pop(dialogContext, true),
-      onDecline: () => Navigator.pop(dialogContext, false),
+    barrierLabel: '法律与隐私说明',
+    barrierColor: theme.color.scrim,
+    transitionDuration: theme.motion.base,
+    pageBuilder: (dialogContext, animation, secondaryAnimation) => PopScope(
+      canPop: false,
+      child: LegalConsentDialog(
+        onAccept: () => Navigator.pop(dialogContext, true),
+        onDecline: () => Navigator.pop(dialogContext, false),
+      ),
     ),
+    transitionBuilder: (context, animation, secondaryAnimation, child) {
+      final disableAnimations =
+          MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+      if (disableAnimations) return child;
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: context.yhTheme.motion.curve,
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+          child: child,
+        ),
+      );
+    },
   );
 }
 
-/// 首次启动法律协议确认弹窗。
 class LegalConsentDialog extends StatelessWidget {
   const LegalConsentDialog({
     super.key,
@@ -39,23 +55,21 @@ class LegalConsentDialog extends StatelessWidget {
     this.loadLegalNotice = loadLegalNoticeForLocale,
   });
 
-  /// 用户同意完整协议后的回调。
   final VoidCallback onAccept;
-
-  /// 用户拒绝完整协议后的回调。
   final VoidCallback onDecline;
-
-  /// 加载当前语言完整法律说明的方法。
   final LegalNoticeLoader loadLegalNotice;
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 600;
-          final horizontalMargin = isCompact ? AppSpacing.sm : AppSpacing.xl;
-          final verticalMargin = isCompact ? AppSpacing.sm : AppSpacing.xl;
+          final isCompact = constraints.maxWidth < theme.breakpoint.compact;
+          final horizontalMargin = isCompact
+              ? theme.spacing.s
+              : theme.spacing.xl;
+          final verticalMargin = isCompact ? theme.spacing.s : theme.spacing.xl;
           final availableWidth = math.max(
             0.0,
             constraints.maxWidth - horizontalMargin * 2,
@@ -64,12 +78,14 @@ class LegalConsentDialog extends StatelessWidget {
             0.0,
             constraints.maxHeight - verticalMargin * 2,
           );
+          final regularWidth = theme.breakpoint.medium + theme.spacing.xl2 * 3;
+          final regularHeight = theme.breakpoint.medium - theme.spacing.s;
           final dialogWidth = isCompact
               ? availableWidth
-              : math.min(920.0, availableWidth);
+              : math.min(regularWidth, availableWidth);
           final dialogHeight = isCompact
               ? availableHeight
-              : math.min(760.0, availableHeight);
+              : math.min(regularHeight, availableHeight);
 
           return Center(
             child: SizedBox(
@@ -124,19 +140,17 @@ class _LegalConsentSurfaceState extends State<_LegalConsentSurface> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final resources = theme.resources;
-    final typography = theme.typography;
-
+    final theme = context.yhTheme;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.menuColor,
-        borderRadius: AppShapes.xl,
-        border: Border.all(color: resources.controlStrokeColorDefault),
+        color: theme.color.surface,
+        borderRadius: BorderRadius.circular(theme.radius.l),
+        border: Border.all(color: theme.color.border),
+        boxShadow: theme.elevation.e3,
       ),
       child: Padding(
-        padding: EdgeInsetsDirectional.all(
-          widget.isCompact ? AppSpacing.md : AppSpacing.lg,
+        padding: EdgeInsets.all(
+          widget.isCompact ? theme.spacing.m : theme.spacing.l,
         ),
         child: FutureBuilder<String>(
           future: _legalNoticeFuture,
@@ -150,34 +164,38 @@ class _LegalConsentSurfaceState extends State<_LegalConsentSurface> {
                   child: Text(
                     '法律与隐私说明',
                     style: widget.isCompact
-                        ? typography.subtitle
-                        : typography.title,
+                        ? theme.typography.h2.copyWith(
+                            color: theme.color.foreground,
+                          )
+                        : theme.typography.h1.copyWith(
+                            color: theme.color.foreground,
+                          ),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.xs),
+                SizedBox(height: theme.spacing.xs),
                 Text(
                   '请阅读完整文档。一次同意将同时确认免责声明、用户协议、隐私协议、开源许可证与第三方协议。',
-                  style: typography.caption?.copyWith(
-                    color: resources.textFillColorSecondary,
+                  style: theme.typography.caption.copyWith(
+                    color: theme.color.muted,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
+                SizedBox(height: theme.spacing.m),
                 Expanded(
                   child: _LegalNoticeDocument(
                     isCompact: widget.isCompact,
                     snapshot: snapshot,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
+                SizedBox(height: theme.spacing.m),
                 Text(
                   documentLoaded
                       ? '点击“同意全部协议并继续”代表您已阅读、理解并同意当前版本的全部协议。'
                       : '协议正文加载完成后才可继续。',
-                  style: typography.caption?.copyWith(
-                    color: resources.textFillColorSecondary,
+                  style: theme.typography.caption.copyWith(
+                    color: theme.color.muted,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.sm),
+                SizedBox(height: theme.spacing.s),
                 _LegalConsentActions(
                   isCompact: widget.isCompact,
                   acceptEnabled: documentLoaded,
@@ -201,48 +219,60 @@ class _LegalNoticeDocument extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final resources = theme.resources;
-
+    final theme = context.yhTheme;
     return DecoratedBox(
       key: const Key('legal-consent-document'),
       decoration: BoxDecoration(
-        color: resources.controlFillColorSecondary,
-        borderRadius: AppShapes.md,
-        border: Border.all(color: resources.controlStrokeColorDefault),
+        color: theme.color.sunken,
+        borderRadius: BorderRadius.circular(theme.radius.input),
+        border: Border.all(color: theme.color.border),
       ),
       child: _buildContent(context),
     );
   }
 
   Widget _buildContent(BuildContext context) {
-    final theme = FluentTheme.of(context);
-
+    final theme = context.yhTheme;
+    final padding = EdgeInsets.all(
+      isCompact ? theme.spacing.m : theme.spacing.l,
+    );
     if (snapshot.hasError) {
-      return Padding(
-        padding: AppSpacing.cardPadding,
-        child: FluentInfoBar(
-          severity: FluentInfoSeverity.error,
-          title: const Text('无法加载协议正文'),
-          content: Text('${snapshot.error}'),
+      return Semantics(
+        liveRegion: true,
+        child: Padding(
+          padding: padding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '无法加载协议正文',
+                style: theme.typography.h3.copyWith(color: theme.color.danger),
+              ),
+              SizedBox(height: theme.spacing.s),
+              Text('${snapshot.error}'),
+            ],
+          ),
         ),
       );
     }
-
     if (!snapshot.hasData) {
-      return const Center(child: FluentProgressRing());
+      return Center(
+        child: Semantics(
+          liveRegion: true,
+          label: '正在加载协议正文',
+          child: Text(
+            '正在加载协议正文…',
+            style: theme.typography.body.copyWith(color: theme.color.muted),
+          ),
+        ),
+      );
     }
-
-    return Scrollbar(
-      child: SingleChildScrollView(
-        key: const Key('legal-consent-document-scroll'),
-        padding: EdgeInsetsDirectional.all(
-          isCompact ? AppSpacing.md : AppSpacing.lg,
-        ),
-        child: SelectableText(
-          snapshot.data!.trim(),
-          style: theme.typography.body?.copyWith(height: 1.45),
-        ),
+    return SingleChildScrollView(
+      key: const Key('legal-consent-document-scroll'),
+      padding: padding,
+      child: YhSelectableText(
+        snapshot.data!.trim(),
+        semanticLabel: '法律与隐私说明正文',
       ),
     );
   }
@@ -263,19 +293,20 @@ class _LegalConsentActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final acceptButton = FluentButton.primary(
+    final theme = context.yhTheme;
+    final acceptButton = YhButton(
       key: const Key('legal-consent-accept'),
-      expand: isCompact,
-      icon: FluentIcons.checkMark,
-      onPressed: acceptEnabled ? onAccept : null,
-      child: const Text('同意全部协议并继续'),
+      label: '同意全部协议并继续',
+      leadingIcon: YhIcons.check,
+      onTap: acceptEnabled ? onAccept : null,
+      disabled: !acceptEnabled,
     );
-    final declineButton = FluentButton.secondary(
+    final declineButton = YhButton(
       key: const Key('legal-consent-decline'),
-      expand: isCompact,
-      icon: FluentIcons.clear,
-      onPressed: onDecline,
-      child: const Text('不同意并退出'),
+      label: '不同意并退出',
+      leadingIcon: YhIcons.close,
+      variant: YhButtonVariant.secondary,
+      onTap: onDecline,
     );
 
     if (isCompact) {
@@ -283,19 +314,18 @@ class _LegalConsentActions extends StatelessWidget {
         key: const Key('legal-consent-actions-compact'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          acceptButton,
-          const SizedBox(height: AppSpacing.xs),
-          declineButton,
+          SizedBox(width: double.infinity, child: acceptButton),
+          SizedBox(height: theme.spacing.xs),
+          SizedBox(width: double.infinity, child: declineButton),
         ],
       );
     }
-
     return Row(
       key: const Key('legal-consent-actions-regular'),
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         declineButton,
-        const SizedBox(width: AppSpacing.sm),
+        SizedBox(width: theme.spacing.s),
         acceptButton,
       ],
     );

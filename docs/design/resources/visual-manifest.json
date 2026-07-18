@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "version": "0.1.0",
+    "designSystem": "qingyuan-0.3.0",
+    "applicationThreshold": 0.99,
+    "externalThreshold": 0.95,
+    "platforms": ["android", "ios", "windows", "macos", "linux"],
+    "excludedPlatforms": ["web"],
+    "viewports": [
+      {"width": 360, "height": 800},
+      {"width": 768, "height": 900},
+      {"width": 1200, "height": 900},
+      {"width": 1600, "height": 1000}
+    ],
+    "themes": ["light", "dark"],
+    "states": ["initial", "loading", "content", "empty", "stale", "error"]
+  },
+  "surfaces": [
+    {"id": "shell.startup", "group": "global", "states": ["loading", "error"]},
+    {"id": "shell.navigation", "group": "global", "states": ["content"]},
+    {"id": "shell.more-drawer", "group": "global", "states": ["content"]},
+    {"id": "shell.close-confirmation", "group": "global", "states": ["content"]},
+    {"id": "consent.first-run", "group": "global", "states": ["initial", "content"]},
+    {"id": "security.lock", "group": "global", "states": ["initial", "loading", "error"]},
+
+    {"id": "home.dashboard", "group": "home", "states": ["initial", "loading", "content", "stale", "error"]},
+    {"id": "home.campus-card", "group": "home", "states": ["loading", "content", "empty", "stale", "error"]},
+
+    {"id": "academic.overview", "group": "academic", "states": ["initial", "loading", "content", "empty", "stale", "error"]},
+    {"id": "academic.grade-detail", "group": "academic", "states": ["loading", "content", "empty", "error"]},
+    {"id": "academic.exam-detail", "group": "academic", "states": ["loading", "content", "empty", "error"]},
+    {"id": "academic.grade-process", "group": "academic", "states": ["loading", "content", "empty", "error"]},
+    {"id": "academic.student-report", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"]},
+    {"id": "academic.student-report-rules", "group": "academic", "states": ["content", "empty"]},
+    {"id": "academic.sports-attendance", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"]},
+    {"id": "academic.calendar", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"]},
+
+    {"id": "schedule.calendar", "group": "schedule", "states": ["initial", "loading", "content", "empty", "stale", "error"]},
+
+    {"id": "info.feed", "group": "info", "states": ["initial", "loading", "content", "empty", "stale", "error"]},
+    {"id": "info.filters", "group": "info", "states": ["content", "empty"]},
+
+    {"id": "mail.inbox", "group": "mail", "states": ["initial", "loading", "content", "empty", "stale", "error"]},
+    {"id": "mail.message-detail", "group": "mail", "states": ["loading", "content", "error"]},
+    {"id": "mail.compose", "group": "mail", "states": ["initial", "loading", "content", "error"]},
+
+    {"id": "links.directory", "group": "links", "states": ["loading", "content", "empty", "error"]},
+
+    {"id": "settings.account", "group": "settings", "states": ["content", "error"]},
+    {"id": "settings.home-notifications", "group": "settings", "states": ["content"]},
+    {"id": "settings.appearance", "group": "settings", "states": ["content"]},
+    {"id": "settings.data-privacy", "group": "settings", "states": ["content", "loading", "error"]},
+    {"id": "settings.about", "group": "settings", "states": ["content"]},
+    {"id": "settings.wechat-auth", "group": "settings", "states": ["initial", "loading", "content", "error"]},
+    {"id": "settings.update", "group": "settings", "states": ["initial", "loading", "content", "error"]},
+
+    {"id": "legal.notice", "group": "legal", "states": ["content"]},
+    {"id": "legal.privacy", "group": "legal", "states": ["content"]},
+    {"id": "legal.agreement", "group": "legal", "states": ["content"]},
+
+    {"id": "external.webview", "group": "external", "states": ["loading", "content", "error"], "externalRegions": ["document"]},
+    {"id": "external.pdf", "group": "external", "states": ["loading", "content", "error"], "externalRegions": ["document"]},
+    {"id": "external.system-auth", "group": "external", "states": ["initial", "content", "error"], "externalRegions": ["system-dialog"]}
+  ]
+}

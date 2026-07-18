@@ -6,10 +6,9 @@
  * @Date : 2026-06-07
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 import '../legal/legal_documents.dart';
-import '../theme/app_spacing.dart';
 
 /// 完整法律与隐私说明页面。
 class LegalNoticePage extends StatefulWidget {
@@ -39,49 +38,71 @@ class _LegalNoticePageState extends State<LegalNoticePage> {
 
   @override
   Widget build(BuildContext context) {
-    return FluentPage.scrollable(
-      header: FluentPageHeader(
-        title: Text(widget.title),
-        commandBar: FluentButton.outline(
-          onPressed: () => Navigator.of(context).maybePop(),
-          child: const Text('返回'),
+    final theme = context.yhTheme;
+    return YhPageScaffold(
+      appBar: YhAppBar(
+        title: widget.title,
+        leading: YhIconButton(
+          icon: YhIcons.back,
+          semanticLabel: '返回',
+          onTap: () => Navigator.of(context).maybePop(),
         ),
       ),
-      padding: AppSpacing.regularPagePadding,
-      children: [
-        Center(
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(theme.spacing.m),
+        child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 920),
+            constraints: BoxConstraints(maxWidth: theme.breakpoint.medium),
             child: FutureBuilder<String>(
               future: _legalNoticeFuture,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return FluentInfoBar(
-                    severity: FluentInfoSeverity.error,
-                    title: const Text('无法加载协议正文'),
-                    content: Text('${snapshot.error}'),
+                  return Semantics(
+                    liveRegion: true,
+                    child: YhCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '无法加载协议正文',
+                            style: theme.typography.h3.copyWith(
+                              color: theme.color.danger,
+                            ),
+                          ),
+                          SizedBox(height: theme.spacing.s),
+                          Text('${snapshot.error}'),
+                        ],
+                      ),
+                    ),
                   );
                 }
 
                 if (!snapshot.hasData) {
-                  return const Center(child: FluentProgressRing());
+                  return Semantics(
+                    liveRegion: true,
+                    label: '正在加载协议正文',
+                    child: YhCard(
+                      child: Text(
+                        '正在加载协议正文…',
+                        style: theme.typography.body.copyWith(
+                          color: theme.color.muted,
+                        ),
+                      ),
+                    ),
+                  );
                 }
 
-                return FluentCard(
-                  padding: EdgeInsets.zero,
-                  child: Padding(
-                    padding: AppSpacing.cardPadding,
-                    child: SelectableText(
-                      snapshot.data!.trim(),
-                      style: FluentTheme.of(context).typography.body,
-                    ),
+                return YhCard(
+                  child: YhSelectableText(
+                    snapshot.data!.trim(),
+                    semanticLabel: '法律与隐私说明正文',
                   ),
                 );
               },
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

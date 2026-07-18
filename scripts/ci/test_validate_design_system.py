@@ -132,5 +132,35 @@ class DesignSystemValidatorTest(unittest.TestCase):
             with self.assertRaisesRegex(DesignSystemValidationError, r"页面原型.*裸间距或字号"):
                 validate_design_system(root)
 
+    def test_visual_manifest_requires_all_five_platforms(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            manifest = root / "docs" / "design" / "resources" / "visual-manifest.json"
+            manifest.write_text(
+                manifest.read_text(encoding="utf-8").replace('"android", ', "", 1),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(DesignSystemValidationError, r"视觉清单缺少平台.*android"):
+                validate_design_system(root)
+
+    def test_qingyuan_runtime_rejects_material_visual_imports(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            runtime = root / "lib" / "design" / "qingyuan"
+            shutil.copytree(PROJECT_ROOT / "lib" / "design" / "qingyuan", runtime)
+            target = runtime / "components" / "yh_button.dart"
+            target.write_text(
+                "import 'package:flutter/material.dart';\n" + target.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(DesignSystemValidationError, r"yh_button\.dart.*Material"):
+                validate_design_system(root)
+
 if __name__ == "__main__":
     unittest.main()
