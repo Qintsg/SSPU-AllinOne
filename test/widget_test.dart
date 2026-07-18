@@ -747,9 +747,17 @@ void main() {
     );
     await tester.pump();
     expect(studentReportVisible, isFalse);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-home-messages-switch')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('settings-home-messages-switch')));
     await tester.pump();
     expect(messagesVisible, isFalse);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-home-email-switch')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('settings-home-email-switch')));
     await tester.pump();
     expect(emailVisible, isFalse);

@@ -6,9 +6,7 @@
  * @Date : 2026-04-23
  */
 
-import '../design/fluent_ui.dart';
-
-import '../theme/app_spacing.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import 'settings_update_section.dart';
 import 'settings_widgets.dart';
 
@@ -128,116 +126,118 @@ class SettingsGeneralSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final spacing = context.yhTheme.spacing;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildWindowBehaviorSection(context),
-        const SizedBox(height: AppSpacing.lg),
+        SizedBox(height: spacing.l),
         _buildHomeDisplaySection(context),
-        const SizedBox(height: AppSpacing.lg),
+        SizedBox(height: spacing.l),
         SettingsUpdateSection(),
-        const SizedBox(height: AppSpacing.lg),
+        SizedBox(height: spacing.l),
         _buildNotificationSection(context),
       ],
     );
   }
 
   Widget _buildHomeDisplaySection(BuildContext context) {
-    final type = context.fluentType;
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: AppSpacing.cardPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Semantics(header: true, child: Text('首页显示', style: type.subtitle1)),
-            const SizedBox(height: AppSpacing.md),
-            _buildHomeTileSwitch(
-              context: context,
-              icon: FluentIcons.calendar,
-              title: '显示今日课程磁贴',
-              subtitle: '在主页仪表盘展示当天课表摘要',
-              value: homeTodayCoursesTileVisible,
-              onChanged: onHomeTodayCoursesTileVisibleChanged,
-              key: const Key('settings-home-today-courses-switch'),
+    final theme = context.yhTheme;
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            header: true,
+            child: Text('首页显示', style: theme.typography.h3),
+          ),
+          SizedBox(height: theme.spacing.m),
+          _buildHomeTileSwitch(
+            context: context,
+            icon: YhIcons.calendar,
+            title: '显示今日课程磁贴',
+            subtitle: '在主页仪表盘展示当天课表摘要',
+            value: homeTodayCoursesTileVisible,
+            onChanged: onHomeTodayCoursesTileVisibleChanged,
+            key: const Key('settings-home-today-courses-switch'),
+          ),
+          SizedBox(height: theme.spacing.m),
+          buildResponsiveSettingsRow(
+            context: context,
+            icon: YhIcons.contact,
+            title: _settingsTitle(context, '显示学籍信息卡片'),
+            subtitle: _settingsSubtitle(context, '在主页首屏展示姓名、学号、院系、专业和行政班级'),
+            trailing: YhSwitch(
+              key: const Key('settings-home-student-profile-card-switch'),
+              semanticLabel: '显示学籍信息卡片',
+              value: homeStudentProfileCardVisible,
+              onChanged: onHomeStudentProfileCardVisibleChanged,
             ),
-            const SizedBox(height: AppSpacing.md),
-            buildResponsiveSettingsRow(
-              context: context,
-              icon: FluentIcons.contact,
-              title: Text('显示学籍信息卡片', style: type.body1Strong),
-              subtitle: Text('在主页首屏展示姓名、学号、院系、专业和行政班级', style: type.caption1),
-              trailing: FluentSwitch(
-                key: const Key('settings-home-student-profile-card-switch'),
-                value: homeStudentProfileCardVisible,
-                onChanged: onHomeStudentProfileCardVisibleChanged,
-              ),
+          ),
+          SizedBox(height: theme.spacing.m),
+          buildResponsiveSettingsRow(
+            context: context,
+            icon: YhIcons.finance,
+            title: _settingsTitle(context, '显示校园卡余额卡片'),
+            subtitle: _settingsSubtitle(context, '在主页首屏展示校园卡余额和交易记录入口'),
+            trailing: YhSwitch(
+              key: const Key('settings-home-campus-card-switch'),
+              semanticLabel: '显示校园卡余额卡片',
+              value: homeCampusCardBalanceCardVisible,
+              onChanged: onHomeCampusCardBalanceCardVisibleChanged,
             ),
-            const SizedBox(height: AppSpacing.md),
-            buildResponsiveSettingsRow(
-              context: context,
-              icon: FluentIcons.paymentCard,
-              title: Text('显示校园卡余额卡片', style: type.body1Strong),
-              subtitle: Text('在主页首屏展示校园卡余额和交易记录入口', style: type.caption1),
-              trailing: FluentSwitch(
-                key: const Key('settings-home-campus-card-switch'),
-                value: homeCampusCardBalanceCardVisible,
-                onChanged: onHomeCampusCardBalanceCardVisibleChanged,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildHomeTileSwitch(
-              context: context,
-              icon: FluentIcons.running,
-              title: '显示体育考勤磁贴',
-              subtitle: '在主页仪表盘展示体育考勤缓存摘要',
-              value: homeSportsAttendanceTileVisible,
-              onChanged: onHomeSportsAttendanceTileVisibleChanged,
-              key: const Key('settings-home-sports-attendance-switch'),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildHomeTileSwitch(
-              context: context,
-              icon: FluentIcons.education,
-              title: '显示第二课堂磁贴',
-              subtitle: '在主页仪表盘展示第二课堂学分摘要',
-              value: homeStudentReportTileVisible,
-              onChanged: onHomeStudentReportTileVisibleChanged,
-              key: const Key('settings-home-student-report-switch'),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildHomeTileSwitch(
-              context: context,
-              icon: FluentIcons.news,
-              title: '显示最新消息磁贴',
-              subtitle: '在主页仪表盘展示最近校园消息',
-              value: homeMessagesTileVisible,
-              onChanged: onHomeMessagesTileVisibleChanged,
-              key: const Key('settings-home-messages-switch'),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildHomeTileSwitch(
-              context: context,
-              icon: FluentIcons.mail,
-              title: '显示邮箱摘要磁贴',
-              subtitle: '在主页仪表盘展示学校邮箱缓存摘要',
-              value: homeEmailTileVisible,
-              onChanged: onHomeEmailTileVisibleChanged,
-              key: const Key('settings-home-email-switch'),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildHomeTileSwitch(
-              context: context,
-              icon: FluentIcons.link,
-              title: '显示快速跳转磁贴',
-              subtitle: '在主页仪表盘展示常用校园入口',
-              value: homeQuickLinksTileVisible,
-              onChanged: onHomeQuickLinksTileVisibleChanged,
-              key: const Key('settings-home-quick-links-switch'),
-            ),
-          ],
-        ),
+          ),
+          SizedBox(height: theme.spacing.m),
+          _buildHomeTileSwitch(
+            context: context,
+            icon: YhIcons.sports,
+            title: '显示体育考勤磁贴',
+            subtitle: '在主页仪表盘展示体育考勤缓存摘要',
+            value: homeSportsAttendanceTileVisible,
+            onChanged: onHomeSportsAttendanceTileVisibleChanged,
+            key: const Key('settings-home-sports-attendance-switch'),
+          ),
+          SizedBox(height: theme.spacing.m),
+          _buildHomeTileSwitch(
+            context: context,
+            icon: YhIcons.education,
+            title: '显示第二课堂磁贴',
+            subtitle: '在主页仪表盘展示第二课堂学分摘要',
+            value: homeStudentReportTileVisible,
+            onChanged: onHomeStudentReportTileVisibleChanged,
+            key: const Key('settings-home-student-report-switch'),
+          ),
+          SizedBox(height: theme.spacing.m),
+          _buildHomeTileSwitch(
+            context: context,
+            icon: YhIcons.news,
+            title: '显示最新消息磁贴',
+            subtitle: '在主页仪表盘展示最近校园消息',
+            value: homeMessagesTileVisible,
+            onChanged: onHomeMessagesTileVisibleChanged,
+            key: const Key('settings-home-messages-switch'),
+          ),
+          SizedBox(height: theme.spacing.m),
+          _buildHomeTileSwitch(
+            context: context,
+            icon: YhIcons.mail,
+            title: '显示邮箱摘要磁贴',
+            subtitle: '在主页仪表盘展示学校邮箱缓存摘要',
+            value: homeEmailTileVisible,
+            onChanged: onHomeEmailTileVisibleChanged,
+            key: const Key('settings-home-email-switch'),
+          ),
+          SizedBox(height: theme.spacing.m),
+          _buildHomeTileSwitch(
+            context: context,
+            icon: YhIcons.link,
+            title: '显示快速跳转磁贴',
+            subtitle: '在主页仪表盘展示常用校园入口',
+            value: homeQuickLinksTileVisible,
+            onChanged: onHomeQuickLinksTileVisibleChanged,
+            key: const Key('settings-home-quick-links-switch'),
+          ),
+        ],
       ),
     );
   }
@@ -251,134 +251,160 @@ class SettingsGeneralSection extends StatelessWidget {
     required ValueChanged<bool> onChanged,
     required Key key,
   }) {
-    final type = context.fluentType;
     return buildResponsiveSettingsRow(
       context: context,
       icon: icon,
-      title: Text(title, style: type.body1Strong),
-      subtitle: Text(subtitle, style: type.caption1),
-      trailing: FluentSwitch(key: key, value: value, onChanged: onChanged),
+      title: _settingsTitle(context, title),
+      subtitle: _settingsSubtitle(context, subtitle),
+      trailing: YhSwitch(
+        key: key,
+        value: value,
+        semanticLabel: title,
+        onChanged: onChanged,
+      ),
     );
   }
 
   Widget _buildWindowBehaviorSection(BuildContext context) {
-    final type = context.fluentType;
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: AppSpacing.cardPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Semantics(header: true, child: Text('窗口行为', style: type.subtitle1)),
-            const SizedBox(height: AppSpacing.md),
-            buildResponsiveSettingsRow(
-              context: context,
-              icon: FluentIcons.clear,
-              title: Text('关闭按钮行为', style: type.body1Strong),
-              subtitle: Text('选择点击窗口关闭按钮时的操作', style: type.caption1),
-              trailing: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 220),
-                child: FluentSelect<String>(
-                  isExpanded: true,
-                  value: closeBehavior,
-                  items: const [
-                    FluentSelectItem(value: 'ask', child: Text('每次询问')),
-                    FluentSelectItem(value: 'minimize', child: Text('最小化到托盘')),
-                    FluentSelectItem(value: 'exit', child: Text('直接退出')),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      onCloseBehaviorChanged(value);
-                    }
-                  },
-                ),
+    final theme = context.yhTheme;
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            header: true,
+            child: Text('窗口行为', style: theme.typography.h3),
+          ),
+          SizedBox(height: theme.spacing.m),
+          buildResponsiveSettingsRow(
+            context: context,
+            icon: YhIcons.close,
+            title: _settingsTitle(context, '关闭按钮行为'),
+            subtitle: _settingsSubtitle(context, '选择点击窗口关闭按钮时的操作'),
+            trailing: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 220),
+              child: YhSelect<String>(
+                label: '关闭按钮行为',
+                showLabel: false,
+                value: closeBehavior,
+                options: const [
+                  YhSelectOption(value: 'ask', label: '每次询问'),
+                  YhSelectOption(value: 'minimize', label: '最小化到托盘'),
+                  YhSelectOption(value: 'exit', label: '直接退出'),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    onCloseBehaviorChanged(value);
+                  }
+                },
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildNotificationSection(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    final disabledColor = colors.neutralForegroundDisabled;
+    final theme = context.yhTheme;
+    final disabledColor = theme.color.border;
 
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: AppSpacing.cardPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Semantics(header: true, child: Text('消息推送', style: type.subtitle1)),
-            const SizedBox(height: AppSpacing.md),
-            buildResponsiveSettingsRow(
-              context: context,
-              icon: FluentIcons.ringer,
-              title: Text('启用消息推送', style: type.body1Strong),
-              subtitle: Text('当自动刷新发现新消息时推送系统通知', style: type.caption1),
-              trailing: FluentSwitch(
-                value: notificationEnabled,
-                onChanged: onNotificationChanged,
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            header: true,
+            child: Text('消息推送', style: theme.typography.h3),
+          ),
+          SizedBox(height: theme.spacing.m),
+          buildResponsiveSettingsRow(
+            context: context,
+            icon: YhIcons.notification,
+            title: _settingsTitle(context, '启用消息推送'),
+            subtitle: _settingsSubtitle(context, '当自动刷新发现新消息时推送系统通知'),
+            trailing: YhSwitch(
+              value: notificationEnabled,
+              semanticLabel: '启用消息推送',
+              onChanged: onNotificationChanged,
+            ),
+          ),
+          SizedBox(height: theme.spacing.m),
+          buildResponsiveSettingsRow(
+            context: context,
+            icon: YhIcons.notificationOff,
+            iconColor: notificationEnabled ? null : disabledColor,
+            title: Text(
+              '勿扰时段',
+              style: theme.typography.body.copyWith(
+                color: notificationEnabled
+                    ? theme.color.foreground
+                    : disabledColor,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            buildResponsiveSettingsRow(
-              context: context,
-              icon: FluentIcons.ringerOff,
-              iconColor: notificationEnabled ? null : disabledColor,
-              title: Text(
-                '勿扰时段',
-                style: type.body1Strong.copyWith(
-                  color: notificationEnabled ? null : disabledColor,
-                ),
-              ),
-              subtitle: Text(
-                '在指定时间段内不推送通知',
-                style: type.caption1.copyWith(
-                  color: notificationEnabled ? null : disabledColor,
-                ),
-              ),
-              trailing: FluentSwitch(
-                value: dndEnabled,
-                onChanged: notificationEnabled ? onDndChanged : null,
+            subtitle: Text(
+              '在指定时间段内不推送通知',
+              style: theme.typography.small.copyWith(
+                color: notificationEnabled ? theme.color.muted : disabledColor,
               ),
             ),
-            if (dndEnabled && notificationEnabled)
-              Padding(
-                padding: const EdgeInsetsDirectional.only(
-                  start: AppSpacing.xxl,
-                  top: AppSpacing.md,
-                ),
-                child: Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    buildTimePicker(
-                      context: context,
-                      label: '开始',
-                      hour: dndStartHour,
-                      minute: dndStartMinute,
-                      onChanged: onDndStartChanged,
-                    ),
-                    Text('—', style: type.body1Strong),
-                    buildTimePicker(
-                      context: context,
-                      label: '结束',
-                      hour: dndEndHour,
-                      minute: dndEndMinute,
-                      onChanged: onDndEndChanged,
-                    ),
-                  ],
-                ),
+            trailing: YhSwitch(
+              value: dndEnabled,
+              semanticLabel: '勿扰时段',
+              onChanged: notificationEnabled ? onDndChanged : null,
+            ),
+          ),
+          if (dndEnabled && notificationEnabled)
+            Padding(
+              padding: EdgeInsetsDirectional.only(
+                start: theme.spacing.xl2,
+                top: theme.spacing.m,
               ),
-          ],
-        ),
+              child: Wrap(
+                spacing: theme.spacing.s,
+                runSpacing: theme.spacing.s,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  buildTimePicker(
+                    context: context,
+                    label: '开始',
+                    hour: dndStartHour,
+                    minute: dndStartMinute,
+                    onChanged: onDndStartChanged,
+                  ),
+                  Text(
+                    '—',
+                    style: theme.typography.body.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  buildTimePicker(
+                    context: context,
+                    label: '结束',
+                    hour: dndEndHour,
+                    minute: dndEndMinute,
+                    onChanged: onDndEndChanged,
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
+
+  Widget _settingsTitle(BuildContext context, String text) => Text(
+    text,
+    style: context.yhTheme.typography.body.copyWith(
+      fontWeight: FontWeight.w600,
+    ),
+  );
+
+  Widget _settingsSubtitle(BuildContext context, String text) => Text(
+    text,
+    style: context.yhTheme.typography.small.copyWith(
+      color: context.yhTheme.color.muted,
+    ),
+  );
 }
