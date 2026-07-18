@@ -12,6 +12,15 @@ from playwright.sync_api import Page, sync_playwright
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROTOTYPE = PROJECT_ROOT / "docs" / "design" / "patterns" / "samples" / "app-shell.html"
 SCREENS = ("home", "academic", "schedule", "info", "mail", "links", "settings")
+SCREEN_SURFACES = {
+    "home": "home.dashboard",
+    "academic": "academic.overview",
+    "schedule": "schedule.calendar",
+    "info": "info.feed",
+    "mail": "mail.inbox",
+    "links": "links.directory",
+    "settings": "settings.account",
+}
 VIEWPORTS = ((360, 800), (768, 900), (1200, 900), (1600, 1000))
 
 
@@ -148,8 +157,6 @@ def verify(output_dir: Path) -> None:
             _assert(theme_toggle.get_attribute("aria-pressed") == "true", f"{width}px 主题按钮状态未同步")
             if width < 768:
                 page.keyboard.press("Escape")
-            page.screenshot(path=output_dir / f"home-{width}-dark.png", full_page=True)
-
             page.evaluate(
                 """localStorage.setItem('qingyuan:samples:theme', 'light');
                 document.documentElement.setAttribute('data-theme', '');"""
@@ -159,8 +166,11 @@ def verify(output_dir: Path) -> None:
                 _open_screen(page, prototype_url, screen)
                 _assert_targets(page, width, screen)
                 _assert_screen_interactions(page, screen, width)
-                if width in (360, 1200):
-                    page.screenshot(path=output_dir / f"{screen}-{width}-light.png", full_page=True)
+                surface = SCREEN_SURFACES[screen]
+                page.screenshot(
+                    path=output_dir / f"{surface}--content--light--{width}x{height}.png",
+                    full_page=True,
+                )
 
             if width < 768:
                 _open_screen(page, prototype_url, "home")
@@ -179,6 +189,22 @@ def verify(output_dir: Path) -> None:
                 page.locator('.more-item[data-page="mail"]').click()
                 _assert(page.locator('[data-screen="mail"]:visible').count() == 1, "移动端无法从更多进入邮箱")
                 _assert(more_trigger.evaluate("element => element === document.activeElement"), "选择更多目的地后未恢复触发器焦点")
+
+            page.evaluate(
+                """localStorage.setItem('qingyuan:samples:theme', 'dark');
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.querySelectorAll('.theme-toggle').forEach((button) => {
+                  button.setAttribute('aria-pressed', 'true');
+                });"""
+            )
+            for screen in SCREENS:
+                _open_screen(page, prototype_url, screen)
+                _assert(page.locator("html").get_attribute("data-theme") == "dark", f"{width}px {screen} 暗色参考稿未生效")
+                surface = SCREEN_SURFACES[screen]
+                page.screenshot(
+                    path=output_dir / f"{surface}--content--dark--{width}x{height}.png",
+                    full_page=True,
+                )
 
         _assert(not errors, "浏览器控制台错误：" + " | ".join(errors))
         context.close()

@@ -10,6 +10,7 @@
 4. [`components/`](./components/README.md)：44 个组件契约与交互样例。
 5. [`patterns/`](./patterns/README.md)：组件如何组成页面和跨端壳层。
 6. [`domain/`](./domain/README.md)：校园领域信息如何映射到组件。
+7. [`visual-testing.md`](./visual-testing.md)：五平台截图命名、外部区域标注、SSIM 门禁与失败产物。
 
 ## 当前阶段
 
@@ -31,6 +32,7 @@
 ```powershell
 python scripts/ci/test_validate_design_system.py
 python scripts/ci/validate_design_system.py
+flutter test test/visual_compare_test.dart
 ```
 
 页面级浏览器核验的锁定依赖、Chromium 安装与执行命令见 [`../../scripts/design/README.md`](../../scripts/design/README.md)；CI 使用同一命令并保存四档视口截图。

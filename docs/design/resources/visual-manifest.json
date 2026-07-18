@@ -1,6 +1,6 @@
 {
   "meta": {
-    "version": "0.1.0",
+    "version": "0.2.0",
     "designSystem": "qingyuan-0.3.0",
     "applicationThreshold": 0.99,
     "externalThreshold": 0.95,
@@ -13,7 +13,16 @@
       {"width": 1600, "height": 1000}
     ],
     "themes": ["light", "dark"],
-    "states": ["initial", "loading", "content", "empty", "stale", "error"]
+    "states": ["initial", "loading", "content", "empty", "stale", "error"],
+    "capture": {
+      "locale": "zh_CN",
+      "timezone": "Asia/Shanghai",
+      "clock": "2026-07-18T09:30:00+08:00",
+      "font": "MiSans",
+      "animations": "disabled",
+      "fixture": "qingyuan-sanitized-v1",
+      "filePattern": "<surface>--<state>--<theme>--<width>x<height>.png"
+    }
   },
   "surfaces": [
     {"id": "shell.startup", "group": "global", "states": ["loading", "error"]},

@@ -391,6 +391,18 @@ def _validate_visual_manifest(project_root: Path) -> None:
         errors.append("视觉清单应用自绘阈值必须为 0.99")
     if meta.get("externalThreshold") != 0.95:
         errors.append("视觉清单外部区域阈值必须为 0.95")
+    capture = meta.get("capture", {})
+    required_capture = {
+        "locale": "zh_CN",
+        "timezone": "Asia/Shanghai",
+        "clock": "2026-07-18T09:30:00+08:00",
+        "font": "MiSans",
+        "animations": "disabled",
+        "fixture": "qingyuan-sanitized-v1",
+        "filePattern": "<surface>--<state>--<theme>--<width>x<height>.png",
+    }
+    if not isinstance(capture, dict) or any(capture.get(key) != value for key, value in required_capture.items()):
+        errors.append("视觉清单必须锁定 Locale、时区、时钟、MiSans、动画、脱敏 fixture 与文件命名")
 
     surfaces = manifest.get("surfaces", [])
     surface_ids = [item.get("id") for item in surfaces if isinstance(item, dict)]
