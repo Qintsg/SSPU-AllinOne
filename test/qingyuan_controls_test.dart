@@ -148,6 +148,34 @@ void main() {
     semantics.dispose();
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets('清源披露面板支持键盘展开与状态语义', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(
+      const YhApp(
+        home: YhDisclosure(
+          title: '注册方式',
+          leadingIcon: YhIcons.info,
+          content: Text('说明内容'),
+        ),
+      ),
+    );
+
+    expect(find.text('说明内容'), findsNothing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+
+    expect(find.text('说明内容'), findsOneWidget);
+    expect(
+      tester
+          .getSemantics(find.bySemanticsLabel('收起注册方式'))
+          .flagsCollection
+          .isToggled,
+      Tristate.isTrue,
+    );
+    semantics.dispose();
+  });
 }
 
 void _noop() {}

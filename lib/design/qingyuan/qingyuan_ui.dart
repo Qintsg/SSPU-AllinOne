@@ -11,6 +11,7 @@ export 'components/yh_bottom_drawer.dart';
 export 'components/yh_card.dart';
 export 'components/yh_chip.dart';
 export 'components/yh_dialog.dart';
+export 'components/yh_disclosure.dart';
 export 'components/yh_empty_state.dart';
 export 'components/yh_icon_button.dart';
 export 'components/yh_number_field.dart';
