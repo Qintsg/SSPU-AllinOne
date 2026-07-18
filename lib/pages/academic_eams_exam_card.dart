@@ -400,24 +400,6 @@ YhBannerKind _examBannerKind(AcademicEamsQueryStatus status) {
   };
 }
 
-FluentInfoSeverity _examSeverity(AcademicEamsQueryStatus status) {
-  return switch (status) {
-    AcademicEamsQueryStatus.success => FluentInfoSeverity.success,
-    AcademicEamsQueryStatus.partialSuccess ||
-    AcademicEamsQueryStatus.missingOaAccount ||
-    AcademicEamsQueryStatus.missingOaPassword ||
-    AcademicEamsQueryStatus.campusNetworkUnavailable =>
-      FluentInfoSeverity.warning,
-    AcademicEamsQueryStatus.oaLoginRequired ||
-    AcademicEamsQueryStatus.systemUnavailable ||
-    AcademicEamsQueryStatus.readOnlyEntryUnavailable ||
-    AcademicEamsQueryStatus.queryFormUnavailable ||
-    AcademicEamsQueryStatus.parseFailed ||
-    AcademicEamsQueryStatus.networkError ||
-    AcademicEamsQueryStatus.unexpectedError => FluentInfoSeverity.error,
-  };
-}
-
 class _AcademicExamTable extends StatelessWidget {
   const _AcademicExamTable({required this.records});
 

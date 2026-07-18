@@ -56,6 +56,7 @@ class _AcademicEamsGradeDetailPageState
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     final snapshot = _result?.snapshot?.grades;
     final terms = snapshot?.availableTerms ?? const <String>[];
     final currentTerm = _selectedTerm != null && terms.contains(_selectedTerm)
@@ -69,138 +70,154 @@ class _AcademicEamsGradeDetailPageState
     final gpa = snapshot?.weightedGpaForTerm(currentTerm);
     final credits = snapshot?.creditsForTerm(currentTerm) ?? 0;
 
-    return FluentPage.scrollable(
-      header: FluentPageHeader(
-        title: const Text('成绩详情'),
-        commandBar: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            FluentButton.outline(
-              key: const Key('academic-eams-grade-process-entry'),
-              onPressed: _openProcessGrades,
-              child: const Text('过程化成绩'),
+    return YhPageScaffold(
+      appBar: YhAppBar(
+        title: '成绩详情',
+        leading: YhIconButton(
+          icon: YhIcons.back,
+          semanticLabel: '返回',
+          onTap: () => Navigator.of(context).pop(),
+        ),
+        actions: [
+          YhButton(
+            key: const Key('academic-eams-grade-process-entry'),
+            label: '过程化成绩',
+            leadingIcon: YhIcons.certificate,
+            variant: YhButtonVariant.text,
+            onTap: _openProcessGrades,
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(theme.spacing.m),
+        child: Align(
+          alignment: AlignmentDirectional.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _AcademicGradeSummaryBanner(
+                  scopeLabel: currentTerm ?? '全部学期',
+                  courseCount: records.length,
+                  credits: credits,
+                  gpa: gpa,
+                ),
+                SizedBox(height: theme.spacing.m),
+                YhCard(
+                  child: Wrap(
+                    spacing: theme.spacing.s,
+                    runSpacing: theme.spacing.s,
+                    crossAxisAlignment: WrapCrossAlignment.end,
+                    children: [
+                      _AcademicExamDropdownField<String>(
+                        key: const Key('academic-eams-grade-term-select'),
+                        label: '学年学期',
+                        width:
+                            theme.breakpoint.compact / 3 +
+                            theme.spacing.m +
+                            theme.spacing.xs,
+                        value: currentTerm ?? _allTermsValue,
+                        placeholder: '全部学期',
+                        items: [
+                          const _AcademicExamDropdownItem<String>(
+                            key: Key('academic-eams-grade-term-option-all'),
+                            value: _allTermsValue,
+                            label: '全部学期',
+                          ),
+                          for (final term in terms)
+                            _AcademicExamDropdownItem<String>(
+                              key: Key('academic-eams-grade-term-option-$term'),
+                              value: term,
+                              label: term,
+                            ),
+                        ],
+                        onChanged: _isLoading
+                            ? null
+                            : (term) => setState(
+                                () => _selectedTerm = term == _allTermsValue
+                                    ? null
+                                    : term,
+                              ),
+                      ),
+                      SizedBox(
+                        height: theme.control.regular,
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: YhButton(
+                            key: const Key(
+                              'academic-eams-grade-detail-refresh',
+                            ),
+                            label: _isLoading ? '刷新中' : '刷新',
+                            leadingIcon: _isLoading ? null : YhIcons.refresh,
+                            onTap: _isLoading ? null : _loadGrades,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: theme.spacing.m),
+                if (_isLoading && _result == null)
+                  YhCard(
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: theme.spacing.xl2 * 2,
+                          child: const YhProgress(showPercent: false),
+                        ),
+                        SizedBox(width: theme.spacing.s),
+                        const Expanded(child: Text('正在读取成绩...')),
+                      ],
+                    ),
+                  )
+                else if (_result == null)
+                  YhCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('尚未读取成绩', style: theme.typography.h3),
+                        SizedBox(height: theme.spacing.s),
+                        const YhBanner(text: '点击“刷新”即可只读获取当前学期与历史成绩。'),
+                      ],
+                    ),
+                  )
+                else if (!_result!.isSuccess || snapshot == null)
+                  YhCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(_result!.message, style: theme.typography.h3),
+                        SizedBox(height: theme.spacing.s),
+                        YhBanner(
+                          text: _result!.detail,
+                          kind: _examBannerKind(_result!.status),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  YhCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('完整内容', style: theme.typography.h3),
+                        SizedBox(height: theme.spacing.m),
+                        _AcademicGradeTable(records: records),
+                      ],
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(width: FluentSpacing.s),
-            FluentButton.outline(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('返回'),
-            ),
-          ],
+          ),
         ),
       ),
-      children: [
-        _AcademicGradeSummaryBanner(
-          scopeLabel: currentTerm ?? '全部学期',
-          courseCount: records.length,
-          credits: credits,
-          gpa: gpa,
-        ),
-        const SizedBox(height: FluentSpacing.m),
-        FluentSurface(
-          padding: const EdgeInsets.all(FluentSpacing.l),
-          child: Wrap(
-            spacing: FluentSpacing.s,
-            runSpacing: FluentSpacing.s,
-            crossAxisAlignment: WrapCrossAlignment.end,
-            children: [
-              _AcademicExamDropdownField<String>(
-                key: const Key('academic-eams-grade-term-select'),
-                label: '学年学期',
-                width: 220,
-                value: currentTerm ?? _allTermsValue,
-                placeholder: '全部学期',
-                items: [
-                  const _AcademicExamDropdownItem<String>(
-                    key: Key('academic-eams-grade-term-option-all'),
-                    value: _allTermsValue,
-                    label: '全部学期',
-                  ),
-                  for (final term in terms)
-                    _AcademicExamDropdownItem<String>(
-                      key: Key('academic-eams-grade-term-option-$term'),
-                      value: term,
-                      label: term,
-                    ),
-                ],
-                onChanged: _isLoading
-                    ? null
-                    : (term) => setState(
-                        () => _selectedTerm = term == _allTermsValue
-                            ? null
-                            : term,
-                      ),
-              ),
-              SizedBox(
-                height: 48,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: FluentButton.primaryIcon(
-                    key: const Key('academic-eams-grade-detail-refresh'),
-                    onPressed: _isLoading ? null : _loadGrades,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: FluentProgressRing(strokeWidth: 2),
-                          )
-                        : const Icon(FluentIcons.refresh, size: 14),
-                    label: const Text('刷新'),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: FluentSpacing.m),
-        if (_isLoading && _result == null)
-          const FluentSurface(
-            padding: EdgeInsets.all(FluentSpacing.xl),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: FluentProgressRing(strokeWidth: 2),
-                ),
-                SizedBox(width: FluentSpacing.s),
-                Text('正在读取成绩...'),
-              ],
-            ),
-          )
-        else if (_result == null)
-          const FluentInfoBar(
-            title: Text('尚未读取成绩'),
-            content: Text('点击“刷新”即可只读获取当前学期与历史成绩。'),
-            severity: FluentInfoSeverity.info,
-          )
-        else if (!_result!.isSuccess || snapshot == null)
-          FluentInfoBar(
-            title: Text(_result!.message),
-            content: Text(_result!.detail),
-            severity: _examSeverity(_result!.status),
-          )
-        else
-          FluentSurface(
-            padding: const EdgeInsets.all(FluentSpacing.l),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '完整内容',
-                  style: FluentTheme.of(context).typography.bodyStrong,
-                ),
-                const SizedBox(height: FluentSpacing.m),
-                _AcademicGradeTable(records: records),
-              ],
-            ),
-          ),
-      ],
     );
   }
 
   void _openProcessGrades() {
     Navigator.of(context).push(
-      FluentPageRoute(
+      YhPageRoute(
         builder: (_) => AcademicEamsGradeProcessPage(
           academicEamsService: widget.academicEamsService,
         ),
@@ -243,40 +260,32 @@ class _AcademicGradeSummaryBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final accent = context.fluentAccents.academic;
+    final theme = context.yhTheme;
+    final accent = theme.color.serviceAcademic;
     final summary = courseCount == 0
         ? '$scopeLabel · 暂无成绩'
         : '$scopeLabel · $courseCount 门 · ${_formatGradeCredit(credits)} 学分'
               '${gpa == null ? '' : ' · GPA ${gpa!.toStringAsFixed(2)}'}';
-    return FluentSurface(
-      accentColor: accent,
-      padding: const EdgeInsets.all(FluentSpacing.l),
+    return YhCard(
       child: Row(
         children: [
-          FluentSurfaceIcon(
-            icon: FluentIcons.certificate,
-            color: accent,
-            size: 36,
+          SizedBox.square(
+            dimension: theme.control.compact,
+            child: Icon(YhIcons.certificate, color: accent),
           ),
-          const SizedBox(width: FluentSpacing.m),
+          SizedBox(width: theme.spacing.m),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '成绩汇总',
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
+                  style: theme.typography.caption.copyWith(
+                    color: theme.color.muted,
                   ),
                 ),
-                const SizedBox(height: FluentSpacing.xxs),
-                Text(
-                  summary,
-                  style: theme.typography.subtitle?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                SizedBox(height: theme.spacing.xs),
+                Text(summary, style: theme.typography.h3),
               ],
             ),
           ),
@@ -295,37 +304,39 @@ class _AcademicGradeTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     if (records.isEmpty) {
       return Text(
         '所选学期暂无可展示的成绩。',
-        style: FluentTheme.of(context).typography.caption?.copyWith(
-          color: FluentTheme.of(context).resources.textFillColorSecondary,
-        ),
+        style: theme.typography.caption.copyWith(color: theme.color.muted),
       );
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 560) {
+        if (constraints.maxWidth <
+            theme.breakpoint.compact - theme.control.compact) {
           return _AcademicGradeRecordList(records: records);
         }
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              minWidth: constraints.maxWidth < 720 ? 720 : constraints.maxWidth,
+              minWidth:
+                  constraints.maxWidth <
+                      theme.breakpoint.medium - theme.spacing.xl2
+                  ? theme.breakpoint.medium - theme.spacing.xl2
+                  : constraints.maxWidth,
             ),
             child: Table(
               defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-              border: TableBorder.all(
-                color: context.fluentColors.neutralStroke1,
-              ),
-              columnWidths: const {
+              border: TableBorder.all(color: theme.color.border),
+              columnWidths: {
                 0: FlexColumnWidth(2),
-                1: FixedColumnWidth(150),
-                2: FixedColumnWidth(80),
-                3: FixedColumnWidth(80),
-                4: FixedColumnWidth(120),
+                1: FixedColumnWidth(theme.breakpoint.compact / 4),
+                2: FixedColumnWidth(theme.control.compact * 2),
+                3: FixedColumnWidth(theme.control.compact * 2),
+                4: FixedColumnWidth(theme.breakpoint.compact / 5),
               },
               children: [
                 _headerRow(context),
@@ -339,10 +350,9 @@ class _AcademicGradeTable extends StatelessWidget {
   }
 
   TableRow _headerRow(BuildContext context) {
+    final theme = context.yhTheme;
     return TableRow(
-      decoration: BoxDecoration(
-        color: FluentTheme.of(context).resources.controlAltFillColorSecondary,
-      ),
+      decoration: BoxDecoration(color: theme.color.sunken),
       children: [
         for (final header in _headers)
           _AcademicGradeTableCell(header, header: true, center: true),
@@ -378,11 +388,12 @@ class _AcademicGradeRecordList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = context.fluentColors.neutralStroke1;
+    final theme = context.yhTheme;
+    final borderColor = theme.color.border;
     return DecoratedBox(
       decoration: BoxDecoration(
         border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(context.fluentRadii.medium),
+        borderRadius: BorderRadius.circular(theme.radius.input),
       ),
       child: Column(
         children: [
@@ -404,17 +415,20 @@ class _AcademicGradeRecordListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     return Padding(
-      padding: const EdgeInsets.all(FluentSpacing.m),
+      padding: EdgeInsets.all(theme.spacing.m),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(record.courseName, style: theme.typography.bodyStrong),
-          const SizedBox(height: FluentSpacing.s),
+          Text(
+            record.courseName,
+            style: theme.typography.body.copyWith(fontWeight: FontWeight.w600),
+          ),
+          SizedBox(height: theme.spacing.s),
           Wrap(
-            spacing: FluentSpacing.l,
-            runSpacing: FluentSpacing.s,
+            spacing: theme.spacing.l,
+            runSpacing: theme.spacing.s,
             children: [
               _AcademicGradeRecordField(label: '学年学期', value: record.termName),
               _AcademicGradeRecordField(
@@ -447,20 +461,22 @@ class _AcademicGradeRecordField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 96, maxWidth: 220),
+      constraints: BoxConstraints(
+        minWidth: theme.spacing.xl2 * 2,
+        maxWidth:
+            theme.breakpoint.compact / 3 + theme.spacing.m + theme.spacing.xs,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             label,
-            style: theme.typography.caption?.copyWith(
-              color: theme.resources.textFillColorSecondary,
-            ),
+            style: theme.typography.caption.copyWith(color: theme.color.muted),
           ),
-          const SizedBox(height: FluentSpacing.xxs),
+          SizedBox(height: theme.spacing.xs),
           Text(_gradeText(value), style: theme.typography.body),
         ],
       ),
@@ -481,17 +497,18 @@ class _AcademicGradeTableCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: FluentSpacing.s,
-        vertical: FluentSpacing.s,
+      padding: EdgeInsets.symmetric(
+        horizontal: theme.spacing.s,
+        vertical: theme.spacing.s,
       ),
       child: Text(
         _gradeText(text),
         textAlign: center ? TextAlign.center : TextAlign.start,
-        style: (header ? theme.typography.bodyStrong : theme.typography.body)
-            ?.copyWith(fontWeight: header ? FontWeight.w700 : null),
+        style: theme.typography.body.copyWith(
+          fontWeight: header ? FontWeight.w700 : null,
+        ),
       ),
     );
   }
