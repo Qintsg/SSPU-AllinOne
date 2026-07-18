@@ -24,3 +24,10 @@
 3. 更新受影响的基础、组件、模式或领域文档。
 4. 运行设计契约校验、Flutter 分析和相关测试。
 5. 在 [`CHANGELOG.md`](./CHANGELOG.md) 记录破坏性或视觉可感知变化。
+
+本地校验：
+
+```powershell
+python scripts/ci/test_validate_design_system.py
+python scripts/ci/validate_design_system.py
+```

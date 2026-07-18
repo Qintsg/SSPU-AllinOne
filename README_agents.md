@@ -236,6 +236,7 @@ Use these tracked skills when the task matches their scope:
 ## Governance Scripts
 
 - `scripts/ci/validate_github_governance.py` validates GitHub governance files, required project skills, branch naming rules, and helper script presence.
+- `scripts/ci/validate_design_system.py` validates Qingyuan token/CSS parity, component spec/sample coverage, and local Markdown links; run its behavior tests with `python scripts/ci/test_validate_design_system.py`.
 - `scripts/gitflow/check_config.ps1` / `scripts/gitflow/check_config.sh` validate local Git Flow configuration.
 - `scripts/lore/status.ps1` / `scripts/lore/status.sh` provide a portable Lore status check.
 - `scripts/release/render_release_notes.py` validates Release Notes sections.
