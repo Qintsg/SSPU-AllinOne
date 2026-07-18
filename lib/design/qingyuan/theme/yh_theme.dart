@@ -220,6 +220,8 @@ class YhTypographyTokens {
   );
 
   final TextStyle display, h1, h2, h3, body, small, caption;
+
+  FontWeight get semibold => display.fontWeight!;
 }
 
 @immutable
@@ -237,6 +239,13 @@ class YhMotionTokens {
 
   Duration effective(Duration duration, {required bool disableAnimations}) =>
       disableAnimations ? Duration.zero : duration;
+}
+
+@immutable
+class YhOpacityTokens {
+  const YhOpacityTokens({this.domainTint = 0.14});
+
+  final double domainTint;
 }
 
 @immutable
@@ -344,6 +353,7 @@ class YhTheme {
     required this.color,
     this.spacing = const YhSpacingTokens(),
     this.radius = const YhRadiusTokens(),
+    this.opacity = const YhOpacityTokens(),
     this.typography = YhTypographyTokens.standard,
     this.motion = const YhMotionTokens(),
     this.breakpoint = const YhBreakpointTokens(),
@@ -365,6 +375,7 @@ class YhTheme {
   final YhColorTokens color;
   final YhSpacingTokens spacing;
   final YhRadiusTokens radius;
+  final YhOpacityTokens opacity;
   final YhTypographyTokens typography;
   final YhMotionTokens motion;
   final YhBreakpointTokens breakpoint;
@@ -377,6 +388,7 @@ class YhTheme {
     YhColorTokens? color,
     YhSpacingTokens? spacing,
     YhRadiusTokens? radius,
+    YhOpacityTokens? opacity,
     YhTypographyTokens? typography,
     YhMotionTokens? motion,
     YhBreakpointTokens? breakpoint,
@@ -388,6 +400,7 @@ class YhTheme {
     color: color ?? this.color,
     spacing: spacing ?? this.spacing,
     radius: radius ?? this.radius,
+    opacity: opacity ?? this.opacity,
     typography: typography ?? this.typography,
     motion: motion ?? this.motion,
     breakpoint: breakpoint ?? this.breakpoint,

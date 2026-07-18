@@ -60,6 +60,7 @@
     {"id": "mail.compose", "group": "mail", "states": ["initial", "loading", "content", "error"]},
 
     {"id": "links.directory", "group": "links", "states": ["loading", "content", "empty", "error"]},
+    {"id": "links.external-confirmation", "group": "links", "states": ["content", "error"]},
 
     {"id": "settings.account", "group": "settings", "states": ["content", "error"]},
     {"id": "settings.home-notifications", "group": "settings", "states": ["content"]},

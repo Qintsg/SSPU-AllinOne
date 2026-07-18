@@ -145,7 +145,20 @@
         </div>
         <section class="section-card links-state-panel" data-links-state-panel="loading" hidden><div class="mail-state-progress"><span class="yh-spinner" aria-hidden="true"></span><div><h2>正在读取校园入口</h2><p>正在加载本地快捷入口配置。</p></div></div></section>
         <section class="section-card links-state-panel" data-links-state-panel="empty" hidden><div class="yh-empty"><svg aria-hidden="true"><use href="#i-link"/></svg><h2>暂无快捷入口</h2><p>当前配置没有可用的校园服务入口。</p></div></section>
-        <section class="section-card links-state-panel" data-links-state-panel="error" hidden><div class="yh-empty"><svg aria-hidden="true"><use href="#i-info"/></svg><h2>无法加载快捷入口</h2><p>请检查本地配置文件后重试；已有收藏不会被删除。</p><button class="yh-button primary" type="button">重试</button></div></section>
+        <section class="section-card links-state-panel" data-links-state-panel="error" hidden><div class="yh-empty"><svg aria-hidden="true"><use href="#i-info"/></svg><h2>无法加载快捷入口</h2><p>请检查应用内 assets/config/quick_links.yaml 后重试；已有收藏不会被删除。</p><button class="yh-button primary" type="button">重试</button></div></section>
+      </section>
+
+      <section class="prototype-page link-confirmation-page" data-screen="link-confirmation" aria-labelledby="link-confirmation-title" hidden>
+        <header class="detail-appbar"><button class="icon-button ghost" type="button" aria-label="返回快捷入口" data-link-confirmation-back><svg><use href="#i-back"/></svg></button><h1 id="link-confirmation-title">确认打开外部网站</h1></header>
+        <div class="external-confirm-body"><section class="section-card external-confirm-card">
+          <span class="service-icon" style="--domain:var(--service-quicklink)"><svg><use href="#i-lock"/></svg></span>
+          <p class="page-kicker">外部网页边界</p><h2>统一身份认证</h2><p>即将离开工大聚合，并由系统浏览器打开以下地址。</p>
+          <div class="external-target"><span>目标域名</span><strong>auth.example.invalid</strong></div>
+          <div class="yh-banner info" data-link-confirmation-state="content"><svg aria-hidden="true"><use href="#i-info"/></svg><span>本机已保存 OA 连接信息；外部网站仍可能要求再次登录。</span></div>
+          <div class="yh-banner warn" data-link-confirmation-state="error" hidden><svg aria-hidden="true"><use href="#i-lock"/></svg><span>尚未在设置中保存 OA 账号与密码。为避免无意义重定向，当前不会打开网站。</span></div>
+          <div class="external-confirm-actions" data-link-confirmation-state="content"><button class="yh-button secondary" type="button">取消</button><button class="yh-button primary" type="button">打开外部网站</button></div>
+          <div class="external-confirm-actions" data-link-confirmation-state="error" hidden><button class="yh-button primary" type="button">返回快捷入口</button></div>
+        </section></div>
       </section>
 
       <section class="prototype-page" data-screen="settings" aria-labelledby="settings-title" hidden>

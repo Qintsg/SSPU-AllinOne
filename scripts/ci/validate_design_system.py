@@ -89,6 +89,13 @@ def _validate_css_tokens(project_root: Path, tokens: dict[str, Any]) -> None:
             if light.get(css_name) != expected:
                 errors.append(f"{group}.{name} 与 --{css_name} 漂移：期望 {expected}，实际 {light.get(css_name)}")
 
+    for name, value in tokens["opacity"].items():
+        kebab = re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
+        css_name = f"opacity-{kebab}"
+        expected = f"{value:g}"
+        if light.get(css_name) != expected:
+            errors.append(f"opacity.{name} 与 --{css_name} 漂移：期望 {expected}，实际 {light.get(css_name)}")
+
     control_names = {"compact": "control-compact", "regular": "control-regular", "touch": "control-touch", "minimumTarget": "minimum-target"}
     focus_names = {"ringWidth": "focus-ring-width", "ringGap": "focus-ring-gap"}
     for group, names in (("control", control_names), ("focus", focus_names)):
@@ -245,6 +252,7 @@ def _validate_flutter_scalars(project_root: Path, tokens: dict[str, Any]) -> Non
     groups = {
         "spacing": "YhSpacingTokens",
         "radius": "YhRadiusTokens",
+        "opacity": "YhOpacityTokens",
         "breakpoint": "YhBreakpointTokens",
         "control": "YhControlTokens",
         "layout": "YhLayoutTokens",
@@ -405,14 +413,23 @@ def _validate_page_prototype(project_root: Path) -> None:
         if marker not in prototype:
             errors.append(f"邮箱原型缺少{label}")
 
+    for marker, label in (
+        ('data-screen="link-confirmation"', "外部网页确认页"),
+        ('data-link-confirmation-state="content"', "外部确认 content 状态"),
+        ('data-link-confirmation-state="error"', "外部确认认证阻断状态"),
+        ("assets/config/quick_links.yaml", "快捷入口配置位置"),
+    ):
+        if marker not in prototype:
+            errors.append(f"快捷入口原型缺少{label}")
+
     prototype_js = (project_root / "docs/design/patterns/samples/_app-shell.js").read_text(encoding="utf-8")
-    for setter in ("setMailState", "setMailComposeState"):
+    for setter in ("setMailState", "setMailComposeState", "setLinkConfirmationState"):
         if setter not in prototype_js:
-            errors.append(f"邮箱原型缺少确定性状态接口 {setter}")
+            errors.append(f"页面原型缺少确定性状态接口 {setter}")
     verifier_path = project_root / "scripts/design/verify_design_prototype.py"
     if verifier_path.exists():
         verifier = verifier_path.read_text(encoding="utf-8")
-        for surface in ("mail.inbox", "mail.compose"):
+        for surface in ("mail.inbox", "mail.compose", "links.external-confirmation"):
             if surface not in verifier:
                 errors.append(f"浏览器核验未采集 {surface} 多状态参考稿")
 

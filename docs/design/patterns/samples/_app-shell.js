@@ -120,6 +120,15 @@
     });
   }
 
+  function setLinkConfirmationState(state) {
+    var confirmationPage = document.querySelector('[data-screen="link-confirmation"]');
+    if (!confirmationPage) return;
+    confirmationPage.dataset.state = state;
+    confirmationPage.querySelectorAll('[data-link-confirmation-state]').forEach(function (item) {
+      item.hidden = item.dataset.linkConfirmationState !== state;
+    });
+  }
+
   function closeMore(restoreFocus) {
     if (!moreSheet || !moreButton) return;
     var wasOpen = moreSheet.classList.contains('is-open');
@@ -144,7 +153,7 @@
       page.classList.toggle('is-active', active);
       page.hidden = !active;
     });
-    document.body.classList.toggle('standalone-screen', name === 'mail-detail');
+    document.body.classList.toggle('standalone-screen', ['mail-detail', 'link-confirmation'].indexOf(name) >= 0);
     document.querySelectorAll('[data-page]').forEach(function (button) {
       if (button.dataset.page === name) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
@@ -165,6 +174,11 @@
   }
 
   document.addEventListener('click', function (event) {
+    var confirmationBack = event.target.closest('[data-link-confirmation-back]');
+    if (confirmationBack) {
+      showPage('links', true);
+      return;
+    }
     var destination = event.target.closest('[data-page]');
     if (destination) {
       showPage(destination.dataset.page, true);
@@ -350,7 +364,8 @@
   window.qingyuanPrototype = {
     setMailState: setMailState,
     setMailComposeState: setMailComposeState,
-    setLinksState: setLinksState
+    setLinksState: setLinksState,
+    setLinkConfirmationState: setLinkConfirmationState
   };
   showPage(initial || 'home', false);
 })();

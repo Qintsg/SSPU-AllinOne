@@ -247,7 +247,7 @@ button, input { font: inherit; }
   background: var(--surface);
 }
 .overview-card { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: var(--space-m); }
-.service-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 13px; color: var(--domain, var(--brand-ink)); background: color-mix(in srgb, var(--domain, var(--brand)) 14%, var(--surface)); }
+.service-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 13px; color: var(--domain, var(--brand-ink)); background: color-mix(in srgb, var(--domain, var(--brand)) calc(var(--opacity-domain-tint) * 100%), var(--surface)); }
 .overview-card b { display: block; font-size: var(--type-body); }
 .overview-card span { display: block; margin-top: var(--space-xs); color: var(--muted); font-size: var(--type-caption); }
 .overview-value { font: 600 var(--type-body)/1 var(--mono); }
@@ -364,6 +364,17 @@ button, input { font: inherit; }
 .link-favorite[aria-pressed="true"] svg { fill: currentColor; }
 .links-state-panel { min-height: calc(var(--layout-popover-width) + var(--space-xl)); display: grid; place-items: center; }
 .links-state-panel .yh-empty h2, .links-state-panel .yh-empty p { margin: 0; }
+.link-confirmation-page { width: 100%; max-width: none; margin: 0; padding: 0; }
+.external-confirm-body { width: min(100%, var(--breakpoint-medium)); margin-inline: auto; padding: var(--space-xl); }
+.external-confirm-card { max-width: var(--layout-form-content-width); margin-inline: auto; }
+.external-confirm-card > .service-icon { margin-bottom: var(--space-m); }
+.external-confirm-card > h2 { margin: 0; font-size: var(--type-h2); }
+.external-confirm-card > p:not(.page-kicker) { margin: var(--space-s) 0 var(--space-l); }
+.external-target { display: grid; gap: var(--space-xs); margin-bottom: var(--space-m); padding: var(--space-m); border-radius: var(--radius-m); background: var(--sunken); }
+.external-target span { color: var(--muted); font-size: var(--type-caption); }
+.external-target strong { overflow-wrap: anywhere; font: 500 var(--type-body)/var(--line-height-body) var(--mono); }
+.external-confirm-card .yh-banner { max-width: none; }
+.external-confirm-actions { display: flex; justify-content: flex-end; gap: var(--space-s); margin-top: var(--space-l); }
 
 .settings-nav { align-self: start; }
 .setting-group { display: grid; gap: var(--space-s); }
@@ -409,8 +420,9 @@ button, input { font: inherit; }
   .prototype-main { height: auto; min-height: 100vh; padding-bottom: calc(var(--control-touch) + var(--space-xl)); overflow: visible; }
   .standalone-screen .prototype-main { padding-bottom: 0; }
   .mail-detail-body { padding: var(--space-m); }
+  .external-confirm-body { padding: var(--space-m); }
   .prototype-page { padding: var(--space-l) var(--space-m) var(--space-xl); }
-  .mail-detail-page { padding: 0; }
+  .mail-detail-page, .link-confirmation-page { padding: 0; }
   .page-heading { margin-bottom: var(--space-l); }
   .page-heading h1 { font-size: var(--type-h1); }
   .page-heading p { font-size: var(--type-small); }

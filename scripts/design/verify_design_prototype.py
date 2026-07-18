@@ -12,7 +12,7 @@ from playwright.sync_api import Page, sync_playwright
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROTOTYPE = PROJECT_ROOT / "docs" / "design" / "patterns" / "samples" / "app-shell.html"
-SCREENS = ("home", "academic", "schedule", "info", "mail", "mail-detail", "links", "settings")
+SCREENS = ("home", "academic", "schedule", "info", "mail", "mail-detail", "links", "link-confirmation", "settings")
 SCREEN_SURFACES = {
     "home": "home.dashboard",
     "academic": "academic.overview",
@@ -21,6 +21,7 @@ SCREEN_SURFACES = {
     "mail": "mail.inbox",
     "mail-detail": "mail.message-detail",
     "links": "links.directory",
+    "link-confirmation": "links.external-confirmation",
     "settings": "settings.account",
 }
 VIEWPORTS = ((360, 800), (768, 900), (1200, 900), (1600, 1000))
@@ -124,6 +125,12 @@ def _assert_screen_interactions(page: Page, screen: str, viewport_width: int) ->
         _assert(page.locator('[data-search-empty]:visible').count() == 1, "快速跳转没有明确空状态")
         page.locator('[data-clear-search]:visible').click()
         _assert(page.locator('.link-groups .action-row:visible').count() == 6, "清除搜索未恢复全部入口")
+    elif screen == "link-confirmation":
+        _assert("auth.example.invalid" in page.locator('.external-target').inner_text(), "外部确认页未显示目标域名")
+        page.evaluate("window.qingyuanPrototype.setLinkConfirmationState('error')")
+        _assert(page.locator('[data-link-confirmation-state="error"]:visible').count() == 2, "外部确认页未阻止缺少 OA 凭据的跳转")
+        page.locator('[data-link-confirmation-back]').click()
+        _assert(page.locator('[data-screen="links"]:visible').count() == 1, "外部确认页无法返回快捷入口")
     elif screen == "settings":
         switch = page.get_by_role("switch", name="自动锁定")
         switch.click()
@@ -201,6 +208,23 @@ def _capture_links_state_references(
     page.evaluate("window.qingyuanPrototype.setLinksState('content')")
 
 
+def _capture_link_confirmation_state_references(
+    page: Page, output_dir: Path, theme: str, width: int, height: int
+) -> None:
+    page.evaluate("window.qingyuanPrototype.setLinkConfirmationState('error')")
+    _assert(
+        page.locator('[data-link-confirmation-state="error"]:visible').count() == 2,
+        "外部确认页 error 状态未显示",
+    )
+    _capture_reference(
+        page,
+        output_dir / f"links.external-confirmation--error--{theme}--{width}x{height}.png",
+        width,
+        height,
+    )
+    page.evaluate("window.qingyuanPrototype.setLinkConfirmationState('content')")
+
+
 def verify(output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     prototype_url = PROTOTYPE.resolve().as_uri()
@@ -268,6 +292,8 @@ def verify(output_dir: Path) -> None:
                     _capture_mail_state_references(page, output_dir, "light", width, height)
                 if screen == "links":
                     _capture_links_state_references(page, output_dir, "light", width, height)
+                if screen == "link-confirmation":
+                    _capture_link_confirmation_state_references(page, output_dir, "light", width, height)
 
             if width < 768:
                 _open_screen(page, prototype_url, "home")
@@ -308,6 +334,8 @@ def verify(output_dir: Path) -> None:
                     _capture_mail_state_references(page, output_dir, "dark", width, height)
                 if screen == "links":
                     _capture_links_state_references(page, output_dir, "dark", width, height)
+                if screen == "link-confirmation":
+                    _capture_link_confirmation_state_references(page, output_dir, "dark", width, height)
 
         _assert(not errors, "浏览器控制台错误：" + " | ".join(errors))
         context.close()

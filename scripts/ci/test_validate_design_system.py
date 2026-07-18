@@ -149,6 +149,27 @@ class DesignSystemValidatorTest(unittest.TestCase):
             ):
                 validate_design_system(root)
 
+    def test_links_prototype_requires_external_confirmation_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            prototype = root / "docs" / "design" / "patterns" / "samples" / "app-shell.html"
+            prototype.write_text(
+                prototype.read_text(encoding="utf-8").replace(
+                    'data-screen="link-confirmation"',
+                    'data-screen="missing-confirmation"',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                DesignSystemValidationError,
+                r"快捷入口原型缺少外部网页确认页",
+            ):
+                validate_design_system(root)
+
     def test_missing_component_sample_reports_component_name(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -200,6 +221,29 @@ class DesignSystemValidatorTest(unittest.TestCase):
             )
 
             with self.assertRaisesRegex(DesignSystemValidationError, r"spacing\.m.*YhSpacingTokens\.m"):
+                validate_design_system(root)
+
+    def test_opacity_token_drift_reports_flutter_field(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            theme_target = root / "lib" / "design" / "qingyuan" / "theme" / "yh_theme.dart"
+            theme_target.parent.mkdir(parents=True)
+            shutil.copy2(PROJECT_ROOT / theme_target.relative_to(root), theme_target)
+            theme_target.write_text(
+                theme_target.read_text(encoding="utf-8").replace(
+                    "this.domainTint = 0.14",
+                    "this.domainTint = 0.12",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                DesignSystemValidationError,
+                r"opacity\.domainTint.*YhOpacityTokens\.domainTint",
+            ):
                 validate_design_system(root)
 
     def test_material_icon_in_component_spec_is_rejected(self) -> None:
