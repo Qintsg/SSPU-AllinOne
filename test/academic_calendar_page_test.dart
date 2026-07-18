@@ -7,7 +7,7 @@
  */
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/models/academic_calendar.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/pages/academic_calendar_page.dart';
@@ -27,7 +27,7 @@ void main() {
     await _pumpUntilFound(tester, find.text('2025-2026学年'));
 
     expect(find.text('2025-2026学年'), findsWidgets);
-    expect(find.text('外部打开'), findsOneWidget);
+    expect(find.bySemanticsLabel('外部打开'), findsOneWidget);
     expect(find.text('校历已就绪'), findsNothing);
     expect(find.text('秋季学期'), findsNothing);
     expect(find.text('结构化解析不可用'), findsNothing);
@@ -47,7 +47,7 @@ void main() {
 
     expect(find.text('反馈解析问题'), findsNothing);
     expect(find.text('查看原始 PDF'), findsNothing);
-    expect(find.text('外部打开'), findsOneWidget);
+    expect(find.bySemanticsLabel('外部打开'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _resetView(tester);
   });
@@ -83,7 +83,7 @@ void main() {
     );
 
     await _pumpUntilFound(tester, find.text('2025-2026学年'));
-    await tester.tap(find.text('刷新校历'));
+    await tester.tap(find.bySemanticsLabel('刷新校历'));
     await tester.pump();
     await _pumpUntilFound(tester, find.text('2026-2027学年'));
 
@@ -101,9 +101,7 @@ Future<void> _pumpCalendarPage(
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   await tester.binding.setSurfaceSize(size);
-  await tester.pumpWidget(
-    FluentApp(home: AcademicCalendarPage(service: service)),
-  );
+  await tester.pumpWidget(YhApp(home: AcademicCalendarPage(service: service)));
 }
 
 Future<void> _pumpUntilFound(WidgetTester tester, Finder finder) async {

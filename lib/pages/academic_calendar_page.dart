@@ -11,10 +11,9 @@ import 'dart:async';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import '../models/academic_calendar.dart';
 import '../services/academic_calendar_service.dart';
-import '../theme/app_spacing.dart';
 import '../widgets/empty_state_view.dart';
 import 'academic_calendar_pdf_file.dart';
 
@@ -108,41 +107,30 @@ class _AcademicCalendarPageState extends State<AcademicCalendarPage> {
   @override
   Widget build(BuildContext context) {
     final selected = _selected;
-    return FluentPage(
-      header: FluentPageHeader(
-        title: const Text('校历'),
-        commandBar: Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.xs,
-          alignment: WrapAlignment.end,
-          children: [
-            FluentButton.outline(
-              onPressed: () => Navigator.of(context).maybePop(),
-              child: const Text('返回'),
-            ),
-            FluentButton.primaryIcon(
-              onPressed: _isRefreshing ? null : _refreshAll,
-              icon: _isRefreshing
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: FluentProgressRing(strokeWidth: 2),
-                    )
-                  : const Icon(FluentIcons.refresh, size: 14),
-              label: const Text('刷新校历'),
-            ),
-            FluentButton.outlineIcon(
-              onPressed: selected == null
-                  ? null
-                  : () => _openExternal(selected),
-              icon: const Icon(FluentIcons.openInNewWindow, size: 14),
-              label: const Text('外部打开'),
-            ),
-          ],
+    final theme = context.yhTheme;
+    return YhPageScaffold(
+      appBar: YhAppBar(
+        title: '校历',
+        leading: YhIconButton(
+          icon: YhIcons.back,
+          semanticLabel: '返回',
+          onTap: () => Navigator.of(context).maybePop(),
         ),
+        actions: [
+          YhIconButton(
+            icon: YhIcons.refresh,
+            semanticLabel: _isRefreshing ? '正在刷新校历' : '刷新校历',
+            onTap: _isRefreshing ? null : _refreshAll,
+          ),
+          YhIconButton(
+            icon: YhIcons.open,
+            semanticLabel: '外部打开',
+            onTap: selected == null ? null : () => _openExternal(selected),
+          ),
+        ],
       ),
-      content: Padding(
-        padding: AppSpacing.regularPagePadding,
+      body: Padding(
+        padding: EdgeInsets.all(theme.spacing.m),
         child: _buildBody(selected),
       ),
     );
@@ -150,23 +138,31 @@ class _AcademicCalendarPageState extends State<AcademicCalendarPage> {
 
   Widget _buildBody(AcademicCalendarCacheEntry? selected) {
     if (_isLoading && _entries.isEmpty) {
-      return const Center(child: FluentProgressRing());
+      return Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: context.yhTheme.spacing.xl2 * 4,
+          ),
+          child: const YhProgressBar(value: 0.5, semanticLabel: '正在加载校历'),
+        ),
+      );
     }
     if (_entries.isEmpty) {
       return EmptyStateView(
-        icon: FluentIcons.calendar,
+        icon: YhIcons.calendar,
         title: '暂无校历 PDF',
         message: _errorMessage ?? '尚未获取到教务处校历资源。',
-        action: FluentButton.primary(
-          onPressed: _isRefreshing ? null : _refreshAll,
-          child: const Text('刷新校历'),
+        action: YhButton(
+          label: '刷新校历',
+          onTap: _isRefreshing ? null : _refreshAll,
         ),
       );
     }
 
+    final theme = context.yhTheme;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final narrow = constraints.maxWidth < 720;
+        final narrow = constraints.maxWidth < theme.breakpoint.medium;
         if (narrow) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -177,7 +173,7 @@ class _AcademicCalendarPageState extends State<AcademicCalendarPage> {
                 compact: true,
                 onSelected: (entry) => setState(() => _selected = entry),
               ),
-              const SizedBox(height: AppSpacing.sm),
+              SizedBox(height: theme.spacing.s),
               Expanded(child: _CalendarPdfViewer(entry: selected)),
             ],
           );
@@ -187,7 +183,7 @@ class _AcademicCalendarPageState extends State<AcademicCalendarPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              width: 280,
+              width: theme.spacing.xl2 * 6,
               child: _CalendarSelector(
                 entries: _entries,
                 selected: selected,
@@ -195,7 +191,7 @@ class _AcademicCalendarPageState extends State<AcademicCalendarPage> {
                 onSelected: (entry) => setState(() => _selected = entry),
               ),
             ),
-            const SizedBox(width: AppSpacing.md),
+            SizedBox(width: theme.spacing.m),
             Expanded(child: _CalendarPdfViewer(entry: selected)),
           ],
         );
@@ -226,15 +222,16 @@ class _CalendarSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     if (compact) {
       return SizedBox(
-        height: 64,
+        height: theme.control.regular + theme.spacing.m,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           itemCount: entries.length,
-          separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+          separatorBuilder: (_, _) => SizedBox(width: theme.spacing.s),
           itemBuilder: (context, index) => SizedBox(
-            width: 180,
+            width: theme.spacing.xl2 * 4,
             child: _CalendarSelectorItem(
               entry: entries[index],
               selected:
@@ -248,7 +245,7 @@ class _CalendarSelector extends StatelessWidget {
 
     return ListView.separated(
       itemCount: entries.length,
-      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.xs),
+      separatorBuilder: (_, _) => SizedBox(height: theme.spacing.xs),
       itemBuilder: (context, index) => _CalendarSelectorItem(
         entry: entries[index],
         selected: selected?.schoolYearStart == entries[index].schoolYearStart,
@@ -276,27 +273,53 @@ class _CalendarSelectorItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FluentSurface(
-      subtle: !selected,
-      elevated: false,
+    final theme = context.yhTheme;
+    return YhPressable(
       semanticLabel: '打开${entry.schoolYearLabel}',
       onPressed: onPressed,
-      padding: const EdgeInsets.all(AppSpacing.sm),
+      builder: (context, state, child) => AnimatedContainer(
+        duration: theme.motion.fast,
+        curve: theme.motion.curve,
+        padding: EdgeInsets.all(theme.spacing.s),
+        decoration: BoxDecoration(
+          color: selected
+              ? theme.color.brandTint
+              : state.hovered
+              ? theme.color.sunken
+              : theme.color.surface,
+          border: Border.all(
+            color: selected ? theme.color.brandStrong : theme.color.border,
+          ),
+          borderRadius: BorderRadius.circular(theme.radius.s),
+        ),
+        child: child,
+      ),
       child: Row(
         children: [
-          const Icon(FluentIcons.documentText, size: 18),
-          const SizedBox(width: AppSpacing.sm),
+          Icon(
+            YhIcons.library,
+            size: theme.spacing.l,
+            color: theme.color.brandStrong,
+          ),
+          SizedBox(width: theme.spacing.s),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(entry.schoolYearLabel, overflow: TextOverflow.ellipsis),
+                Text(
+                  entry.schoolYearLabel,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.typography.body.copyWith(
+                    color: theme.color.foreground,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 Text(
                   entry.publishDate.isEmpty ? 'PDF' : entry.publishDate,
                   overflow: TextOverflow.ellipsis,
-                  style: context.fluentType.caption1.copyWith(
-                    color: context.fluentColors.neutralForeground2,
+                  style: theme.typography.small.copyWith(
+                    color: theme.color.muted,
                   ),
                 ),
               ],
@@ -319,7 +342,7 @@ class _CalendarPdfViewer extends StatelessWidget {
     final current = entry;
     if (current == null) {
       return const EmptyStateView(
-        icon: FluentIcons.documentText,
+        icon: YhIcons.library,
         title: '请选择校历',
         message: '从左侧选择一个学年查看原始 PDF。',
       );
@@ -337,14 +360,14 @@ class _CalendarPdfViewer extends StatelessWidget {
       );
     }
     return EmptyStateView(
-      icon: FluentIcons.documentText,
+      icon: YhIcons.library,
       title: '暂无可查看的 PDF',
       message: '该校历未识别到可直接打开的 PDF 资源。',
-      action: FluentButton.primary(
-        onPressed: current.detailUrl.isEmpty
+      action: YhButton(
+        label: '打开详情页',
+        onTap: current.detailUrl.isEmpty
             ? null
             : () => _openDetail(current.detailUrl),
-        child: const Text('打开详情页'),
       ),
     );
   }
@@ -364,14 +387,14 @@ class _CalendarPdfViewer extends StatelessWidget {
   ) {
     final current = entry;
     return EmptyStateView(
-      icon: FluentIcons.warning,
+      icon: YhIcons.warning,
       title: 'PDF 加载失败',
       message: error.toString(),
       action: current?.pdfUrl == null
           ? null
-          : FluentButton.primary(
-              onPressed: () => _openDetail(current!.pdfUrl!),
-              child: const Text('在浏览器中打开'),
+          : YhButton(
+              label: '在浏览器中打开',
+              onTap: () => _openDetail(current!.pdfUrl!),
             ),
     );
   }

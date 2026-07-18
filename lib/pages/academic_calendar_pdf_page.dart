@@ -6,12 +6,11 @@
  * @Date : 2026-06-08
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/empty_state_view.dart';
-import '../widgets/webview_compact_toolbar.dart';
 import 'academic_calendar_pdf_file.dart';
 
 /// 校历 PDF 查看页。
@@ -58,35 +57,34 @@ class AcademicCalendarPdfPage extends StatelessWidget {
       );
     } else {
       body = EmptyStateView(
-        icon: FluentIcons.documentText,
+        icon: YhIcons.library,
         title: '暂无可查看的 PDF',
         message: '该校历未解析到可用的原始 PDF。',
-        action: FluentButton.primary(
-          onPressed: () => Navigator.of(context).maybePop(),
-          child: const Text('返回'),
+        action: YhButton(
+          label: '返回',
+          onTap: () => Navigator.of(context).maybePop(),
         ),
       );
     }
 
-    return FluentPage(
-      content: Column(
-        children: [
-          WebViewCompactToolbar(
-            title: title,
-            onBackPressed: () => Navigator.of(context).maybePop(),
-            actions: [
-              FluentIconButton(
-                tooltip: '外部打开',
-                semanticLabel: '外部打开校历 PDF',
-                icon: const Icon(FluentIcons.openInNewWindow),
-                onPressed: _openExternal,
-                size: 32,
-              ),
-            ],
+    return YhPageScaffold(
+      appBar: YhAppBar(
+        title: title,
+        leading: YhIconButton(
+          key: const Key('webview-back-close-button'),
+          icon: YhIcons.back,
+          semanticLabel: '返回',
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        actions: [
+          YhIconButton(
+            icon: YhIcons.open,
+            semanticLabel: '外部打开校历 PDF',
+            onTap: _openExternal,
           ),
-          Expanded(child: body),
         ],
       ),
+      body: body,
     );
   }
 
@@ -97,13 +95,10 @@ class AcademicCalendarPdfPage extends StatelessWidget {
     PdfDocumentRef documentRef,
   ) {
     return EmptyStateView(
-      icon: FluentIcons.warning,
+      icon: YhIcons.warning,
       title: 'PDF 加载失败',
       message: error.toString(),
-      action: FluentButton.primary(
-        onPressed: _openExternal,
-        child: const Text('在浏览器中打开'),
-      ),
+      action: YhButton(label: '在浏览器中打开', onTap: _openExternal),
     );
   }
 }
