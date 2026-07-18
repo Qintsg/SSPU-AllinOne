@@ -7,9 +7,8 @@
  */
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/models/sspu_wechat_accounts.dart';
-import 'package:sspu_allinone/theme/app_theme.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_matrix_card.dart';
 
 void main() {
@@ -18,10 +17,9 @@ void main() {
     bool? toggledValue;
 
     await tester.pumpWidget(
-      FluentApp(
-        theme: AppTheme.build(Brightness.light),
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
+      YhApp(
+        home: YhPageScaffold(
+          body: SingleChildScrollView(
             child: SettingsWechatMatrixCard(
               authenticated: true,
               batchFollowing: false,
@@ -45,7 +43,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('关注'), findsNothing);
-    expect(find.byType(FluentSwitch), findsNothing);
+    expect(find.byType(YhSwitch), findsNothing);
 
     await tester.tap(
       find.byKey(
@@ -64,10 +62,9 @@ void main() {
     var toggled = false;
 
     await tester.pumpWidget(
-      FluentApp(
-        theme: AppTheme.build(Brightness.light),
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
+      YhApp(
+        home: YhPageScaffold(
+          body: SingleChildScrollView(
             child: SettingsWechatMatrixCard(
               authenticated: false,
               batchFollowing: false,
@@ -88,7 +85,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('关注'), findsNothing);
-    expect(find.byType(FluentSwitch), findsNothing);
+    expect(find.byType(YhSwitch), findsNothing);
 
     await tester.tap(
       find.byKey(
@@ -106,10 +103,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      FluentApp(
-        theme: AppTheme.build(Brightness.light),
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
+      YhApp(
+        home: YhPageScaffold(
+          body: SingleChildScrollView(
             child: SettingsWechatMatrixCard(
               authenticated: true,
               batchFollowing: false,
@@ -151,10 +147,9 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        FluentApp(
-          theme: AppTheme.build(Brightness.light),
-          home: ScaffoldPage(
-            content: SingleChildScrollView(
+        YhApp(
+          home: YhPageScaffold(
+            body: SingleChildScrollView(
               child: SettingsWechatMatrixCard(
                 authenticated: true,
                 batchFollowing: false,
@@ -202,10 +197,9 @@ void main() {
     var disabledAll = false;
 
     await tester.pumpWidget(
-      FluentApp(
-        theme: AppTheme.build(Brightness.light),
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
+      YhApp(
+        home: YhPageScaffold(
+          body: SingleChildScrollView(
             child: SettingsWechatMatrixCard(
               authenticated: true,
               batchFollowing: false,
