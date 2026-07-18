@@ -10,6 +10,7 @@ import 'dart:async';
 
 import '../controllers/card_auto_refresh_controller.dart';
 import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/academic_eams.dart';
