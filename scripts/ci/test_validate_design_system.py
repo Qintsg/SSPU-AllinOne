@@ -64,5 +64,21 @@ class DesignSystemValidatorTest(unittest.TestCase):
             with self.assertRaisesRegex(DesignSystemValidationError, r"button.*Token 映射"):
                 validate_design_system(root)
 
+    def test_flutter_color_token_drift_reports_theme_field(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            theme_target = root / "lib" / "design" / "qingyuan" / "theme" / "yh_theme.dart"
+            theme_target.parent.mkdir(parents=True)
+            shutil.copy2(PROJECT_ROOT / theme_target.relative_to(root), theme_target)
+            theme_target.write_text(
+                theme_target.read_text(encoding="utf-8").replace("brandStrong: Color(0xFF478384)", "brandStrong: Color(0xFF000000)", 1),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(DesignSystemValidationError, r"color\.brand\.strong.*brandStrong"):
+                validate_design_system(root)
+
 if __name__ == "__main__":
     unittest.main()

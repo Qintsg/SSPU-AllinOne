@@ -13,6 +13,7 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TOKENS_PATH = Path("docs/design/resources/tokens.json")
 SAMPLE_CSS_PATH = Path("docs/design/components/samples/_qingyuan.css")
+FLUTTER_THEME_PATH = Path("lib/design/qingyuan/theme/yh_theme.dart")
 MARKDOWN_LINK_PATTERN = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
 
@@ -138,6 +139,52 @@ def _validate_markdown_links(project_root: Path) -> None:
         raise DesignSystemValidationError("\n".join(errors))
 
 
+def _dart_color(value: str) -> str:
+    if value.startswith("#"):
+        return "FF" + value[1:].upper()
+    match = re.fullmatch(r"rgba\(0,0,0,([0-9.]+)\)", value)
+    if match is None:
+        raise DesignSystemValidationError(f"无法转换 Flutter 颜色：{value}")
+    alpha = int(float(match.group(1)) * 255 + 0.5)
+    return f"{alpha:02X}000000"
+
+
+def _validate_flutter_colors(project_root: Path, tokens: dict[str, Any]) -> None:
+    theme_path = project_root / FLUTTER_THEME_PATH
+    if not theme_path.exists():
+        return
+    source = theme_path.read_text(encoding="utf-8")
+    blocks: dict[str, dict[str, str]] = {}
+    for theme_name in ("light", "dark"):
+        match = re.search(rf"static const {theme_name} = YhColorTokens\((.*?)\n  \);", source, re.DOTALL)
+        if match is None:
+            raise DesignSystemValidationError(f"{FLUTTER_THEME_PATH} 缺少 YhColorTokens.{theme_name}。")
+        blocks[theme_name] = dict(re.findall(r"(\w+): Color\(0x([0-9A-Fa-f]{8})\)", match.group(1)))
+
+    field_overrides = {
+        ("neutral", "bg"): "background", ("neutral", "fg"): "foreground",
+        ("brand", "base"): "brand", ("brand", "onBrand"): "onBrand", ("structural", "base"): "structural",
+        ("structural", "fg"): "onStructural", ("status", "warn"): "warning",
+        ("status", "warnTint"): "warningTint", ("service", "secondclass"): "serviceSecondClass",
+        ("service", "quicklink"): "serviceQuickLink", ("effect", "scrim"): "scrim",
+    }
+    errors: list[str] = []
+    for group, values in tokens["color"].items():
+        for name, themes in values.items():
+            field = field_overrides.get((group, name))
+            if field is None:
+                prefix = "service" if group == "service" else "brand" if group == "brand" else ""
+                field = prefix + name[0].upper() + name[1:] if prefix else name
+            path = f"color.{group}.{name}"
+            for theme_name in ("light", "dark"):
+                expected = _dart_color(themes[theme_name])
+                actual = blocks[theme_name].get(field)
+                if actual != expected:
+                    errors.append(f"{path} 与 Flutter {field} {theme_name} 漂移：期望 {expected}，实际 {actual}")
+    if errors:
+        raise DesignSystemValidationError("\n".join(errors))
+
+
 def _validate_component_samples(project_root: Path) -> None:
     components = project_root / "docs" / "design" / "components"
     documents = [path for path in components.glob("*.md") if path.name not in {"README.md", "_template.md"}]
@@ -161,6 +208,7 @@ def validate_design_system(project_root: Path) -> None:
     if tokens.get("meta", {}).get("version") != "0.3.0":
         raise DesignSystemValidationError("tokens.json meta.version 必须是 0.3.0。")
     _validate_css_tokens(project_root, tokens)
+    _validate_flutter_colors(project_root, tokens)
     _validate_component_samples(project_root)
     _validate_markdown_links(project_root)
 

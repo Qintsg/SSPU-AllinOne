@@ -19,6 +19,7 @@ import 'tokens/fluent_radii.dart';
 import 'tokens/fluent_spacing.dart';
 import 'tokens/fluent_stroke.dart';
 import 'tokens/fluent_typography.dart';
+import '../qingyuan/theme/yh_theme.dart';
 
 /// 默认字体族。
 const String kFluentFontFamily = 'MiSans';
@@ -47,6 +48,7 @@ FluentThemeData buildFluentTheme(Brightness brightness) {
   final FluentTypography typography = const FluentTypography(
     fontFamily: kFluentFontFamily,
   );
+  final YhTheme qingyuan = isDark ? YhTheme.dark : YhTheme.light;
 
   return FluentThemeData(
     brightness: brightness,
@@ -69,6 +71,7 @@ FluentThemeData buildFluentTheme(Brightness brightness) {
       motion,
       metrics,
       typography,
+      qingyuan,
     ],
   );
 }
