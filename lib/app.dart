@@ -20,55 +20,92 @@ bool get _supportsMobileBottomNavigation {
 }
 
 class AppShell extends StatefulWidget {
-  const AppShell({super.key, this.onLock, this.campusNetworkStatusService});
+  const AppShell({
+    super.key,
+    this.onLock,
+    this.campusNetworkStatusService,
+    this.initialDestinationIndex = 0,
+    this.destinationOverrides = const {},
+  }) : assert(initialDestinationIndex >= 0 && initialDestinationIndex < 7);
 
   final VoidCallback? onLock;
   final CampusNetworkStatusService? campusNetworkStatusService;
+
+  /// 测试专用：指定首帧可见的主目的地。
+  final int initialDestinationIndex;
+
+  /// 测试专用：按用户可见名称替换页面，保留生产导航壳。
+  final Map<String, Widget> destinationOverrides;
 
   @override
   State<AppShell> createState() => _AppShellState();
 }
 
 class _AppShellState extends State<AppShell> {
-  int _selectedIndex = 0;
-  final Set<int> _visitedDestinationIndexes = <int>{0};
+  late int _selectedIndex;
+  late final Set<int> _visitedDestinationIndexes;
   SettingsLandingRequest? _settingsLandingRequest;
+
+  Widget _destinationBody(String title, Widget fallback) {
+    return widget.destinationOverrides[title] ?? fallback;
+  }
 
   List<_AppDestination> get _destinations => [
     _AppDestination(
       title: '主页',
       icon: YhIcons.home,
-      body: HomePage(
-        campusNetworkStatusService: widget.campusNetworkStatusService,
-        onOpenSettings: () => _openSettings(SettingsLandingSection.security),
+      body: _destinationBody(
+        '主页',
+        HomePage(
+          campusNetworkStatusService: widget.campusNetworkStatusService,
+          onOpenSettings: () => _openSettings(SettingsLandingSection.security),
+        ),
       ),
     ),
-    const _AppDestination(
+    _AppDestination(
       title: '教务',
       icon: YhIcons.academic,
-      body: AcademicPage(),
+      body: _destinationBody('教务', const AcademicPage()),
     ),
-    const _AppDestination(
+    _AppDestination(
       title: '课表',
       icon: YhIcons.calendar,
-      body: CourseSchedulePage(),
+      body: _destinationBody('课表', const CourseSchedulePage()),
     ),
-    const _AppDestination(title: '信息', icon: YhIcons.info, body: InfoPage()),
-    const _AppDestination(title: '邮箱', icon: YhIcons.mail, body: EmailPage()),
-    const _AppDestination(
+    _AppDestination(
+      title: '信息',
+      icon: YhIcons.info,
+      body: _destinationBody('信息', const InfoPage()),
+    ),
+    _AppDestination(
+      title: '邮箱',
+      icon: YhIcons.mail,
+      body: _destinationBody('邮箱', const EmailPage()),
+    ),
+    _AppDestination(
       title: '跳转',
       icon: YhIcons.link,
-      body: QuickLinksPage(),
+      body: _destinationBody('跳转', const QuickLinksPage()),
     ),
     _AppDestination(
       title: '设置',
       icon: YhIcons.settings,
-      body: SettingsPage(
-        onLock: widget.onLock,
-        landingRequest: _settingsLandingRequest,
+      body: _destinationBody(
+        '设置',
+        SettingsPage(
+          onLock: widget.onLock,
+          landingRequest: _settingsLandingRequest,
+        ),
       ),
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialDestinationIndex;
+    _visitedDestinationIndexes = <int>{_selectedIndex};
+  }
 
   @override
   Widget build(BuildContext context) {

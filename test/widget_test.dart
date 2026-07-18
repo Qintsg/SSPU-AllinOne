@@ -158,6 +158,28 @@ void main() {
     }
   });
 
+  testWidgets('应用壳可在测试中使用指定主目的地首帧', (tester) async {
+    await configureMobileView(tester);
+    try {
+      await tester.pumpWidget(
+        const YhApp(
+          home: AppShell(
+            initialDestinationIndex: 2,
+            destinationOverrides: {'课表': Text('脱敏课表首帧')},
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('脱敏课表首帧'), findsOneWidget);
+      expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
+      expect(find.text('主页'), findsOneWidget);
+      expect(find.text('课表'), findsOneWidget);
+    } finally {
+      await resetMobileView(tester);
+    }
+  });
+
   Future<void> expectMobileSafeAreaLayout(
     WidgetTester tester,
     TargetPlatform platform,

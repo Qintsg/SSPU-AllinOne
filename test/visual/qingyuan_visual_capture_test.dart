@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sspu_allinone/app.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/email_mailbox.dart';
@@ -57,6 +58,15 @@ void main() {
             await tester.binding.setSurfaceSize(viewport);
             final themeName = mode == YhThemeMode.light ? 'light' : 'dark';
             final boundaryKey = GlobalKey();
+            final page = surface.builder();
+            final content = surface.destination == null
+                ? page
+                : AppShell(
+                    initialDestinationIndex: _destinationIndex(
+                      surface.destination!,
+                    ),
+                    destinationOverrides: {surface.destination!: page},
+                  );
             await tester.pumpWidget(
               YhApp(
                 themeMode: mode,
@@ -71,7 +81,7 @@ void main() {
                   ),
                   child: RepaintBoundary(
                     key: boundaryKey,
-                    child: SizedBox.expand(child: surface.builder()),
+                    child: SizedBox.expand(child: content),
                   ),
                 ),
               ),
@@ -177,6 +187,7 @@ class _VisualSurface {
     this.state = 'content',
     this.prepare,
     this.cleanup,
+    this.destination,
   });
 
   final String id;
@@ -184,7 +195,19 @@ class _VisualSurface {
   final Widget Function() builder;
   final Future<void> Function(WidgetTester tester)? prepare;
   final Future<void> Function(WidgetTester tester)? cleanup;
+  final String? destination;
 }
+
+int _destinationIndex(String destination) => switch (destination) {
+  '主页' => 0,
+  '教务' => 1,
+  '课表' => 2,
+  '信息' => 3,
+  '邮箱' => 4,
+  '跳转' => 5,
+  '设置' => 6,
+  _ => throw ArgumentError.value(destination, 'destination'),
+};
 
 final _surfaces = <_VisualSurface>[
   _VisualSurface('components.actions', _actionsPanel),
@@ -193,28 +216,55 @@ final _surfaces = <_VisualSurface>[
   _VisualSurface('components.navigation', _navigationPanel),
   _VisualSurface('components.data', _dataPanel),
   _VisualSurface('components.domain', _domainPanel),
-  _VisualSurface('schedule.calendar', _scheduleInitial, state: 'initial'),
+  _VisualSurface(
+    'schedule.calendar',
+    _scheduleInitial,
+    state: 'initial',
+    destination: '课表',
+  ),
   _VisualSurface(
     'schedule.calendar',
     _scheduleLoading,
     state: 'loading',
     prepare: _startScheduleLoading,
+    destination: '课表',
   ),
-  _VisualSurface('schedule.calendar', _scheduleContent),
-  _VisualSurface('schedule.calendar', _scheduleEmpty, state: 'empty'),
-  _VisualSurface('schedule.calendar', _scheduleStale, state: 'stale'),
-  _VisualSurface('schedule.calendar', _scheduleError, state: 'error'),
-  _VisualSurface('mail.inbox', _mailInitial, state: 'initial'),
+  _VisualSurface('schedule.calendar', _scheduleContent, destination: '课表'),
+  _VisualSurface(
+    'schedule.calendar',
+    _scheduleEmpty,
+    state: 'empty',
+    destination: '课表',
+  ),
+  _VisualSurface(
+    'schedule.calendar',
+    _scheduleStale,
+    state: 'stale',
+    destination: '课表',
+  ),
+  _VisualSurface(
+    'schedule.calendar',
+    _scheduleError,
+    state: 'error',
+    destination: '课表',
+  ),
+  _VisualSurface(
+    'mail.inbox',
+    _mailInitial,
+    state: 'initial',
+    destination: '邮箱',
+  ),
   _VisualSurface(
     'mail.inbox',
     _mailLoading,
     state: 'loading',
     prepare: _startMailLoading,
+    destination: '邮箱',
   ),
-  _VisualSurface('mail.inbox', _mailContent),
-  _VisualSurface('mail.inbox', _mailEmpty, state: 'empty'),
-  _VisualSurface('mail.inbox', _mailStale, state: 'stale'),
-  _VisualSurface('mail.inbox', _mailError, state: 'error'),
+  _VisualSurface('mail.inbox', _mailContent, destination: '邮箱'),
+  _VisualSurface('mail.inbox', _mailEmpty, state: 'empty', destination: '邮箱'),
+  _VisualSurface('mail.inbox', _mailStale, state: 'stale', destination: '邮箱'),
+  _VisualSurface('mail.inbox', _mailError, state: 'error', destination: '邮箱'),
   _VisualSurface(
     'mail.message-detail',
     () => EmailMessageDetailPage(message: qingyuanEmailMessages.first),
@@ -224,17 +274,20 @@ final _surfaces = <_VisualSurface>[
     _mailContent,
     state: 'initial',
     prepare: _openMailCompose,
+    destination: '邮箱',
   ),
   _VisualSurface(
     'mail.compose',
     _mailContent,
     prepare: _prepareMailComposeContent,
+    destination: '邮箱',
   ),
   _VisualSurface(
     'mail.compose',
     _mailComposeLoading,
     state: 'loading',
     prepare: _prepareMailComposeLoading,
+    destination: '邮箱',
   ),
   _VisualSurface(
     'mail.compose',
@@ -242,11 +295,27 @@ final _surfaces = <_VisualSurface>[
     state: 'error',
     prepare: _prepareMailComposeError,
     cleanup: _clearMailFeedback,
+    destination: '邮箱',
   ),
-  _VisualSurface('links.directory', _quickLinksContent),
-  _VisualSurface('links.directory', _quickLinksLoading, state: 'loading'),
-  _VisualSurface('links.directory', _quickLinksEmpty, state: 'empty'),
-  _VisualSurface('links.directory', _quickLinksError, state: 'error'),
+  _VisualSurface('links.directory', _quickLinksContent, destination: '跳转'),
+  _VisualSurface(
+    'links.directory',
+    _quickLinksLoading,
+    state: 'loading',
+    destination: '跳转',
+  ),
+  _VisualSurface(
+    'links.directory',
+    _quickLinksEmpty,
+    state: 'empty',
+    destination: '跳转',
+  ),
+  _VisualSurface(
+    'links.directory',
+    _quickLinksError,
+    state: 'error',
+    destination: '跳转',
+  ),
   _VisualSurface('legal.notice', () => const LegalNoticePage()),
   _VisualSurface('settings.about', () => const AboutPage()),
   _VisualSurface(
