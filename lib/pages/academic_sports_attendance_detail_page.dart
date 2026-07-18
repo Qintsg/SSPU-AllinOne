@@ -17,19 +17,33 @@ class SportsAttendanceDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FluentPage.scrollable(
-      header: FluentPageHeader(
-        title: const Text('课外活动考勤记录'),
-        commandBar: FluentButton.outline(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('返回'),
+    final theme = context.yhTheme;
+    return YhPageScaffold(
+      appBar: YhAppBar(
+        title: '课外活动考勤记录',
+        leading: YhButton(
+          label: '返回',
+          leadingIcon: YhIcons.back,
+          variant: YhButtonVariant.text,
+          onTap: () => Navigator.of(context).pop(),
         ),
       ),
-      children: [
-        _SportsAttendanceSummaryPanel(summary: summary),
-        const SizedBox(height: FluentSpacing.m),
-        _SportsAttendanceRecordsPanel(summary: summary),
-      ],
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(theme.spacing.m),
+        child: Align(
+          alignment: AlignmentDirectional.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
+            child: Column(
+              children: [
+                _SportsAttendanceSummaryPanel(summary: summary),
+                SizedBox(height: theme.spacing.m),
+                _SportsAttendanceRecordsPanel(summary: summary),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -41,42 +55,39 @@ class _SportsAttendanceSummaryPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('汇总表', style: FluentTheme.of(context).typography.bodyStrong),
-            const SizedBox(height: FluentSpacing.m),
-            _AdaptiveSportsAttendanceTable(
-              minWidth: 640,
-              child: _SportsAttendanceTable(
-                headers: const ['总次数', '晨跑次数', '课外活动', '体育长廊', '次数调整', '明细条数'],
-                rows: [
-                  [
-                    '${summary.totalCount} 次',
-                    '${summary.morningExerciseCount} 次',
-                    '${summary.extracurricularActivityCount} 次',
-                    '${summary.sportsCorridorCount} 次',
-                    '${summary.countAdjustmentCount} 次',
-                    '${summary.records.length} 条',
-                  ],
+    final theme = context.yhTheme;
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('汇总表', style: theme.typography.h3),
+          SizedBox(height: theme.spacing.m),
+          _AdaptiveSportsAttendanceTable(
+            minWidth: theme.breakpoint.compact + theme.control.compact,
+            child: _SportsAttendanceTable(
+              headers: const ['总次数', '晨跑次数', '课外活动', '体育长廊', '次数调整', '明细条数'],
+              rows: [
+                [
+                  '${summary.totalCount} 次',
+                  '${summary.morningExerciseCount} 次',
+                  '${summary.extracurricularActivityCount} 次',
+                  '${summary.sportsCorridorCount} 次',
+                  '${summary.countAdjustmentCount} 次',
+                  '${summary.records.length} 条',
                 ],
-                centerColumns: const {0, 1, 2, 3, 4, 5},
-                columnWidths: const {
-                  0: FlexColumnWidth(),
-                  1: FlexColumnWidth(),
-                  2: FlexColumnWidth(),
-                  3: FlexColumnWidth(),
-                  4: FlexColumnWidth(),
-                  5: FlexColumnWidth(),
-                },
-              ),
+              ],
+              centerColumns: const {0, 1, 2, 3, 4, 5},
+              columnWidths: const {
+                0: FlexColumnWidth(),
+                1: FlexColumnWidth(),
+                2: FlexColumnWidth(),
+                3: FlexColumnWidth(),
+                4: FlexColumnWidth(),
+                5: FlexColumnWidth(),
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -90,52 +101,50 @@ class _SportsAttendanceRecordsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (summary.records.isEmpty) {
-      return const FluentInfoBar(
-        title: Text('暂无明细记录'),
-        content: Text('体育部页面返回了汇总次数，但没有可展示的考勤明细。'),
-        severity: FluentInfoSeverity.info,
-      );
+      return const YhBanner(text: '暂无明细记录：体育部页面返回了汇总次数，但没有可展示的考勤明细。');
     }
 
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('明细表', style: FluentTheme.of(context).typography.bodyStrong),
-            const SizedBox(height: FluentSpacing.m),
-            _AdaptiveSportsAttendanceTable(
-              minWidth: 860,
-              child: _SportsAttendanceTable(
-                headers: const ['类别', '日期/时间', '项目', '地点', '备注', '次数', '原始记录'],
-                rows: [
-                  for (final record in summary.records)
-                    [
-                      record.category.label,
-                      record.occurredAt ?? '',
-                      record.project ?? '',
-                      record.location ?? '',
-                      record.remark ?? '',
-                      '${record.count} 次',
-                      record.cells.join(' / '),
-                    ],
-                ],
-                centerColumns: const {0, 5},
-                columnWidths: const {
-                  0: FlexColumnWidth(1.05),
-                  1: FlexColumnWidth(1.45),
-                  2: FlexColumnWidth(1.12),
-                  3: FlexColumnWidth(1.12),
-                  4: FlexColumnWidth(1.25),
-                  5: FlexColumnWidth(0.84),
-                  6: FlexColumnWidth(2.65),
-                },
-              ),
+    final theme = context.yhTheme;
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('明细表', style: theme.typography.h3),
+          SizedBox(height: theme.spacing.m),
+          _AdaptiveSportsAttendanceTable(
+            minWidth:
+                theme.breakpoint.medium +
+                theme.spacing.xl2 +
+                theme.spacing.m +
+                theme.spacing.l +
+                theme.spacing.xs,
+            child: _SportsAttendanceTable(
+              headers: const ['类别', '日期/时间', '项目', '地点', '备注', '次数', '原始记录'],
+              rows: [
+                for (final record in summary.records)
+                  [
+                    record.category.label,
+                    record.occurredAt ?? '',
+                    record.project ?? '',
+                    record.location ?? '',
+                    record.remark ?? '',
+                    '${record.count} 次',
+                    record.cells.join(' / '),
+                  ],
+              ],
+              centerColumns: const {0, 5},
+              columnWidths: const {
+                0: FlexColumnWidth(1.05),
+                1: FlexColumnWidth(1.45),
+                2: FlexColumnWidth(1.12),
+                3: FlexColumnWidth(1.12),
+                4: FlexColumnWidth(1.25),
+                5: FlexColumnWidth(0.84),
+                6: FlexColumnWidth(2.65),
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -182,10 +191,10 @@ class _SportsAttendanceTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     return Table(
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-      border: TableBorder.all(color: context.fluentColors.neutralStroke1),
+      border: TableBorder.all(color: theme.color.border),
       columnWidths:
           columnWidths ??
           {
@@ -194,9 +203,7 @@ class _SportsAttendanceTable extends StatelessWidget {
           },
       children: [
         TableRow(
-          decoration: BoxDecoration(
-            color: theme.resources.controlAltFillColorSecondary,
-          ),
+          decoration: BoxDecoration(color: theme.color.sunken),
           children: [
             for (var index = 0; index < headers.length; index++)
               _SportsAttendanceTableCell(
@@ -234,17 +241,19 @@ class _SportsAttendanceTableCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final style = header ? theme.typography.bodyStrong : theme.typography.body;
+    final theme = context.yhTheme;
+    final style = theme.typography.body.copyWith(
+      fontWeight: header ? FontWeight.w700 : FontWeight.w400,
+    );
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: FluentSpacing.s,
-        vertical: FluentSpacing.s,
+      padding: EdgeInsets.symmetric(
+        horizontal: theme.spacing.s,
+        vertical: theme.spacing.s,
       ),
       child: Text(
         _sportsAttendanceEmptyAsDash(text),
         textAlign: alignCenter ? TextAlign.center : TextAlign.start,
-        style: style?.copyWith(fontWeight: header ? FontWeight.w700 : null),
+        style: style,
       ),
     );
   }
