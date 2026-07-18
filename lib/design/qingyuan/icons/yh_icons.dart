@@ -32,4 +32,11 @@ class YhIcons {
   static const IconData lock = system.FluentIcons.lock_closed_24_regular;
   static const IconData warning = system.FluentIcons.warning_24_regular;
   static const IconData fingerprint = system.FluentIcons.fingerprint_24_regular;
+  static const IconData globe = system.FluentIcons.globe_24_regular;
+  static const IconData library = system.FluentIcons.book_24_regular;
+  static const IconData favorite = system.FluentIcons.star_24_regular;
+  static const IconData favoriteFilled = system.FluentIcons.star_24_filled;
+  static const IconData open = system.FluentIcons.open_24_regular;
+  static const IconData database = system.FluentIcons.database_24_regular;
+  static const IconData video = system.FluentIcons.video_24_regular;
 }

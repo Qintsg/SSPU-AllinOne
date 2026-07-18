@@ -11,6 +11,7 @@ export 'components/yh_bottom_drawer.dart';
 export 'components/yh_card.dart';
 export 'components/yh_dialog.dart';
 export 'components/yh_icon_button.dart';
+export 'components/yh_quick_link.dart';
 export 'components/yh_selectable_text.dart';
 export 'components/yh_text_field.dart';
 export 'navigation/yh_app_bar.dart';
