@@ -7,11 +7,10 @@
  * @Date : 2026-04-19
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../widgets/empty_state_view.dart';
 import '../widgets/webview_compact_toolbar.dart';
 
 /// 内嵌 WebView 页面。
@@ -110,13 +109,13 @@ class _WebViewPageState extends State<WebViewPage> {
       return _buildStatePage(
         context,
         title: widget.initialTitle,
-        child: EmptyStateView(
-          icon: FluentIcons.warning,
+        child: YhEmptyState(
+          icon: YhIcons.warning,
           title: 'WebView 初始化失败',
           message: '已在默认浏览器中打开链接',
-          action: FluentButton.primary(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('返回'),
+          action: YhButton(
+            label: '返回',
+            onTap: () => Navigator.of(context).pop(),
           ),
         ),
       );
@@ -126,47 +125,39 @@ class _WebViewPageState extends State<WebViewPage> {
       return _buildStatePage(
         context,
         title: widget.initialTitle,
-        child: EmptyStateView(
-          icon: FluentIcons.linkDismiss,
+        child: YhEmptyState(
+          icon: YhIcons.close,
           title: '链接无效，无法打开',
           message: _currentUrl,
-          action: FluentButton.primary(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('返回'),
+          action: YhButton(
+            label: '返回',
+            onTap: () => Navigator.of(context).pop(),
           ),
         ),
       );
     }
 
-    return FluentPage(
-      content: Column(
+    return YhPageScaffold(
+      body: Column(
         children: [
           WebViewCompactToolbar(
             title: _title,
             onBackPressed: _handleBackOrClose,
             actions: [
-              FluentIconButton(
-                tooltip: '前进',
+              YhIconButton(
                 semanticLabel: '前进',
-                icon: const Icon(FluentIcons.forward),
-                onPressed: _canGoForward
-                    ? () => _controller?.goForward()
-                    : null,
-                size: 32,
+                icon: YhIcons.chevronRight,
+                onTap: _canGoForward ? () => _controller?.goForward() : null,
               ),
-              FluentIconButton(
-                tooltip: '刷新',
+              YhIconButton(
                 semanticLabel: '刷新',
-                icon: const Icon(FluentIcons.refresh),
-                onPressed: _isReady ? () => _controller?.reload() : null,
-                size: 32,
+                icon: YhIcons.refresh,
+                onTap: _isReady ? () => _controller?.reload() : null,
               ),
-              FluentIconButton(
-                tooltip: '在浏览器中打开',
+              YhIconButton(
                 semanticLabel: '在浏览器中打开',
-                icon: const Icon(FluentIcons.openInNewWindow),
-                onPressed: _fallbackToExternalBrowser,
-                size: 32,
+                icon: YhIcons.open,
+                onTap: _fallbackToExternalBrowser,
               ),
             ],
           ),
@@ -224,7 +215,7 @@ class _WebViewPageState extends State<WebViewPage> {
                     top: 0,
                     start: 0,
                     end: 0,
-                    child: FluentProgressBar(value: _progress),
+                    child: YhProgressBar(value: _progress),
                   ),
               ],
             ),
@@ -240,8 +231,8 @@ class _WebViewPageState extends State<WebViewPage> {
     required String title,
     required Widget child,
   }) {
-    return FluentPage(
-      content: Column(
+    return YhPageScaffold(
+      body: Column(
         children: [
           WebViewCompactToolbar(
             title: title,

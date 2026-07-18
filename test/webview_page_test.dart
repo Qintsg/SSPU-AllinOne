@@ -58,7 +58,9 @@ void main() {
           isButton: true,
           hasEnabledState: true,
           isEnabled: true,
+          isFocusable: true,
           hasTapAction: true,
+          hasFocusAction: true,
         ),
       );
       expect(tester.getSize(toolbar).height, lessThanOrEqualTo(56));
