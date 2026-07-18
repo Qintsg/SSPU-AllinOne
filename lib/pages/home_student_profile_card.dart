@@ -11,66 +11,64 @@ part of 'home_page.dart';
 extension _HomeStudentProfileCard on _HomePageState {
   /// 构建首页学籍信息卡片。
   Widget _buildStudentProfileCard(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     final profile = _studentProfile;
     final hasCredentials =
         _credentialsStatus.oaAccount.trim().isNotEmpty &&
         _credentialsStatus.hasOaPassword;
     final state = !hasCredentials
-        ? FluentDataState.notConfigured
+        ? YhDataState.notConfigured
         : _isLoadingStudentProfile && profile == null
-        ? FluentDataState.loading
+        ? YhDataState.loading
         : profile == null || !profile.hasAnyValue
-        ? FluentDataState.degraded
-        : FluentDataState.ready;
+        ? YhDataState.degraded
+        : YhDataState.ready;
 
-    return FluentDashboardTile(
+    return YhDashboardTile(
       key: const Key('home-student-profile-card'),
       title: '学籍信息',
       subtitle: '本专科教务',
-      icon: FluentIcons.contact,
+      icon: YhIcons.profile,
       state: state,
-      accentColor: context.fluentAccents.academic,
+      accentColor: theme.color.serviceAcademic,
       actions: !hasCredentials
           ? [
-              FluentButton.primary(
-                onPressed: widget.onOpenSettings,
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(FluentIcons.settings, size: 14),
-                    SizedBox(width: FluentSpacing.xs),
-                    Text('前往设置'),
-                  ],
-                ),
+              YhButton(
+                label: '前往设置',
+                leadingIcon: YhIcons.settings,
+                onTap: widget.onOpenSettings,
               ),
             ]
-          : null,
+          : const [],
       child: !hasCredentials
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('需要先保存 OA 账号密码', style: theme.typography.bodyStrong),
-                const SizedBox(height: FluentSpacing.xs),
+                Text(
+                  '需要先保存 OA 账号密码',
+                  style: theme.typography.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: theme.spacing.xs),
                 Text(
                   '学籍信息会在保存后自动读取',
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
+                  style: theme.typography.caption.copyWith(
+                    color: theme.color.muted,
                   ),
                 ),
               ],
             )
           : _isLoadingStudentProfile && profile == null
-          ? const Row(
+          ? Row(
               children: [
                 SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: FluentProgressRing(strokeWidth: 2),
+                  width: theme.spacing.xl2 * 2,
+                  child: const YhProgress(showPercent: false),
                 ),
-                SizedBox(width: FluentSpacing.s),
-                Text('正在读取学籍信息...'),
+                SizedBox(width: theme.spacing.s),
+                const Text('正在读取学籍信息...'),
               ],
             )
           : profile == null || !profile.hasAnyValue
@@ -78,12 +76,17 @@ extension _HomeStudentProfileCard on _HomePageState {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('暂未读取到学籍信息', style: theme.typography.bodyStrong),
-                const SizedBox(height: FluentSpacing.xs),
+                Text(
+                  '暂未读取到学籍信息',
+                  style: theme.typography.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: theme.spacing.xs),
                 Text(
                   '应用会在启动或更新 OA 凭据后自动尝试补全',
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
+                  style: theme.typography.caption.copyWith(
+                    color: theme.color.muted,
                   ),
                 ),
               ],
@@ -96,7 +99,7 @@ extension _HomeStudentProfileCard on _HomePageState {
     BuildContext context,
     AcademicEamsProfile profile,
   ) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     final name = _profileValue(profile.name);
     final studentId = _profileValue(profile.studentId);
     final department = _profileValue(profile.department);
@@ -108,22 +111,25 @@ extension _HomeStudentProfileCard on _HomePageState {
       children: [
         Row(
           children: [
-            Expanded(child: Text(name, style: theme.typography.subtitle)),
-            Text(studentId, style: theme.typography.bodyStrong),
+            Expanded(child: Text(name, style: theme.typography.h3)),
+            Text(
+              studentId,
+              style: theme.typography.body.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: FluentSpacing.m),
+        SizedBox(height: theme.spacing.m),
         Text(
           department,
-          style: theme.typography.body?.copyWith(
-            color: theme.resources.textFillColorSecondary,
-          ),
+          style: theme.typography.body.copyWith(color: theme.color.muted),
         ),
-        const SizedBox(height: FluentSpacing.xs),
+        SizedBox(height: theme.spacing.xs),
         Row(
           children: [
             Expanded(child: Text(major)),
-            const SizedBox(width: FluentSpacing.s),
+            SizedBox(width: theme.spacing.s),
             Text(className),
           ],
         ),

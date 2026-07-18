@@ -103,7 +103,9 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
     final end = _parseDate(endText);
     if ((startText.isNotEmpty && start == null) ||
         (endText.isNotEmpty && end == null)) {
-      if (updateState) setState(() => _validationMessage = '日期格式应为 yyyy-MM-dd。');
+      if (updateState) {
+        setState(() => _validationMessage = '日期格式应为 yyyy-MM-dd。');
+      }
       return null;
     }
     if (start != null && end != null && start.isAfter(end)) {
@@ -139,121 +141,144 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return FluentPage.scrollable(
-      header: FluentPageHeader(
-        title: _buildDetailHeaderTitle(context, theme),
-        commandBar: FluentButton.outline(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('返回'),
+    final theme = context.yhTheme;
+    return YhPageScaffold(
+      appBar: YhAppBar(
+        title: '校园卡详情',
+        leading: YhIconButton(
+          icon: YhIcons.back,
+          semanticLabel: '返回',
+          onTap: () => Navigator.of(context).pop(),
         ),
       ),
-      children: [
-        _buildFilterPanel(context, theme),
-        const SizedBox(height: FluentSpacing.m),
-        _buildTransactionPanel(context, theme),
-      ],
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(theme.spacing.m),
+        child: Align(
+          alignment: AlignmentDirectional.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildDetailHeaderTitle(context, theme),
+                SizedBox(height: theme.spacing.m),
+                _buildFilterPanel(context, theme),
+                SizedBox(height: theme.spacing.m),
+                _buildTransactionPanel(context, theme),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildDetailHeaderTitle(BuildContext context, FluentThemeData theme) {
-    return Wrap(
-      spacing: FluentSpacing.l,
-      runSpacing: FluentSpacing.xs,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Text('校园卡详情', style: theme.typography.title),
-        _buildOverviewValue(
-          theme,
-          '余额：${_snapshot.balance == null ? '未读取' : _formatMoney(_snapshot.balance!)}',
-        ),
-        if (_snapshot.status.trim().isNotEmpty)
-          _buildOverviewValue(theme, '卡状态：${_snapshot.status}'),
-        _buildOverviewValue(
-          theme,
-          '最近刷新：${_formatDateTime(_snapshot.fetchedAt)}',
-        ),
-      ],
+  Widget _buildDetailHeaderTitle(BuildContext context, YhTheme theme) {
+    return YhCard(
+      child: Wrap(
+        spacing: theme.spacing.l,
+        runSpacing: theme.spacing.s,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text('账户概览', style: theme.typography.h3),
+          _buildOverviewValue(
+            theme,
+            '余额：${_snapshot.balance == null ? '未读取' : _formatMoney(_snapshot.balance!)}',
+          ),
+          if (_snapshot.status.trim().isNotEmpty)
+            _buildOverviewValue(theme, '卡状态：${_snapshot.status}'),
+          _buildOverviewValue(
+            theme,
+            '最近刷新：${_formatDateTime(_snapshot.fetchedAt)}',
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildOverviewValue(FluentThemeData theme, String text) {
+  Widget _buildOverviewValue(YhTheme theme, String text) {
     return Text(
       text,
-      style: theme.typography.caption?.copyWith(
-        color: theme.resources.textFillColorSecondary,
-      ),
+      style: theme.typography.caption.copyWith(color: theme.color.muted),
     );
   }
 
-  Widget _buildFilterPanel(BuildContext context, FluentThemeData theme) {
-    return FluentSurface(
-      width: double.infinity,
-      padding: const EdgeInsets.all(FluentSpacing.l),
+  Widget _buildFilterPanel(BuildContext context, YhTheme theme) {
+    final fieldWidth =
+        theme.breakpoint.compact / 4 + theme.spacing.s + theme.spacing.xs / 2;
+    return YhCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Wrap(
-            spacing: FluentSpacing.s,
-            runSpacing: FluentSpacing.s,
+            spacing: theme.spacing.s,
+            runSpacing: theme.spacing.s,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Padding(
-                padding: const EdgeInsetsDirectional.only(end: FluentSpacing.s),
-                child: Text('交易记录', style: theme.typography.bodyStrong),
+                padding: EdgeInsetsDirectional.only(end: theme.spacing.s),
+                child: Text('交易记录', style: theme.typography.h3),
               ),
               SizedBox(
-                width: 160,
-                child: FluentTextField(
+                width: fieldWidth,
+                child: YhTextField(
+                  key: const Key('campus-card-start-date'),
+                  label: '开始日期',
+                  showLabel: false,
                   controller: _startDateController,
-                  placeholder: '开始日期',
+                  hint: '开始日期',
                 ),
               ),
               SizedBox(
-                width: 160,
-                child: FluentTextField(
+                width: fieldWidth,
+                child: YhTextField(
+                  key: const Key('campus-card-end-date'),
+                  label: '结束日期',
+                  showLabel: false,
                   controller: _endDateController,
-                  placeholder: '结束日期',
+                  hint: '结束日期',
                 ),
               ),
-              FluentButton.subtle(
-                size: FluentButtonSize.small,
-                onPressed: _queryRecent,
-                child: const Text('最近'),
+              YhButton(
+                label: '最近',
+                variant: YhButtonVariant.text,
+                onTap: _queryRecent,
               ),
-              FluentButton.subtle(
-                size: FluentButtonSize.small,
-                onPressed: () => _queryPresetDays(7),
-                child: const Text('近7天'),
+              YhButton(
+                label: '近7天',
+                variant: YhButtonVariant.text,
+                onTap: () => _queryPresetDays(7),
               ),
-              FluentButton.subtle(
-                size: FluentButtonSize.small,
-                onPressed: () => _queryPresetDays(30),
-                child: const Text('近30天'),
+              YhButton(
+                label: '近30天',
+                variant: YhButtonVariant.text,
+                onTap: () => _queryPresetDays(30),
               ),
-              FluentButton.primary(
-                size: FluentButtonSize.small,
-                onPressed: _applyLocalFilters,
-                child: const Text('筛选'),
+              YhButton(
+                label: '筛选',
+                leadingIcon: YhIcons.filter,
+                onTap: _applyLocalFilters,
               ),
               SizedBox(
-                width: 120,
-                child: FluentSelect<_CampusCardTransactionDirectionFilter>(
+                width: theme.breakpoint.compact / 5,
+                child: YhSelect<_CampusCardTransactionDirectionFilter>(
+                  label: '收支方向',
+                  showLabel: false,
                   value: _directionFilter,
-                  isExpanded: true,
+                  hint: '全部',
                   onChanged: _onDirectionChanged,
-                  items: const [
-                    FluentSelectItem(
+                  options: const [
+                    YhSelectOption(
                       value: _CampusCardTransactionDirectionFilter.all,
-                      child: Text('全部'),
+                      label: '全部',
                     ),
-                    FluentSelectItem(
+                    YhSelectOption(
                       value: _CampusCardTransactionDirectionFilter.income,
-                      child: Text('收入'),
+                      label: '收入',
                     ),
-                    FluentSelectItem(
+                    YhSelectOption(
                       value: _CampusCardTransactionDirectionFilter.expense,
-                      child: Text('支出'),
+                      label: '支出',
                     ),
                   ],
                 ),
@@ -261,7 +286,7 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
             ],
           ),
           if (_validationMessage != null) ...[
-            const SizedBox(height: FluentSpacing.s),
+            SizedBox(height: theme.spacing.s),
             _CampusCardInlineWarning(message: _validationMessage!),
           ],
         ],
@@ -269,19 +294,18 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
     );
   }
 
-  Widget _buildTransactionPanel(BuildContext context, FluentThemeData theme) {
-    return FluentSurface(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: FluentSpacing.xxs),
+  Widget _buildTransactionPanel(BuildContext context, YhTheme theme) {
+    return YhCard(
+      padding: EdgeInsets.symmetric(vertical: theme.spacing.xs),
       child: Column(
         children: [
           if (_filteredRecords.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: FluentSpacing.xl),
+              padding: EdgeInsets.symmetric(vertical: theme.spacing.xl),
               child: Text(
                 '暂无交易记录',
-                style: theme.typography.caption?.copyWith(
-                  color: theme.resources.textFillColorSecondary,
+                style: theme.typography.caption.copyWith(
+                  color: theme.color.muted,
                 ),
               ),
             )
@@ -290,7 +314,7 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
             ..._buildTransactionRows(context, theme),
           ],
           if (_filteredRecords.isNotEmpty) ...[
-            const Divider(),
+            Container(height: 1, color: theme.color.border),
             _buildPagination(theme),
           ],
         ],
@@ -298,40 +322,38 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
     );
   }
 
-  List<Widget> _buildTransactionRows(
-    BuildContext context,
-    FluentThemeData theme,
-  ) {
+  List<Widget> _buildTransactionRows(BuildContext context, YhTheme theme) {
     final rows = <Widget>[];
     final records = _pagedRecords;
     for (var index = 0; index < records.length; index++) {
-      rows.add(const Divider());
+      rows.add(Container(height: 1, color: theme.color.border));
       rows.add(_buildTransactionRow(context, theme, records[index]));
     }
     return rows;
   }
 
-  Widget _buildTransactionHeader(BuildContext context, FluentThemeData theme) {
+  Widget _buildTransactionHeader(BuildContext context, YhTheme theme) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 640) {
+        if (constraints.maxWidth <
+            theme.breakpoint.compact + theme.control.compact) {
           return Padding(
-            padding: const EdgeInsets.fromLTRB(
-              FluentSpacing.m,
-              FluentSpacing.m,
-              FluentSpacing.m,
-              FluentSpacing.s,
+            padding: EdgeInsets.fromLTRB(
+              theme.spacing.m,
+              theme.spacing.m,
+              theme.spacing.m,
+              theme.spacing.s,
             ),
             child: Text('交易明细', style: theme.typography.caption),
           );
         }
-        final style = theme.typography.caption?.copyWith(
-          color: theme.resources.textFillColorSecondary,
+        final style = theme.typography.caption.copyWith(
+          color: theme.color.muted,
         );
         return Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: FluentSpacing.m,
-            vertical: FluentSpacing.s,
+          padding: EdgeInsets.symmetric(
+            horizontal: theme.spacing.m,
+            vertical: theme.spacing.s,
           ),
           child: Row(
             children: [
@@ -340,9 +362,13 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
               Expanded(flex: 16, child: Text('对方', style: style)),
               Expanded(flex: 12, child: Text('付款方式', style: style)),
               Expanded(flex: 10, child: Text('状态', style: style)),
-              SizedBox(width: 56, child: Text('收支', style: style)),
               SizedBox(
-                width: 108,
+                width: theme.spacing.xl2 + theme.spacing.s,
+                child: Text('收支', style: style),
+              ),
+              SizedBox(
+                width:
+                    theme.spacing.xl2 * 2 + theme.spacing.s + theme.spacing.xs,
                 child: Text('金额变动', textAlign: TextAlign.end, style: style),
               ),
             ],
@@ -354,12 +380,14 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
 
   Widget _buildTransactionRow(
     BuildContext context,
-    FluentThemeData theme,
+    YhTheme theme,
     CampusCardTransactionRecord record,
   ) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxWidth < 640;
+        final compact =
+            constraints.maxWidth <
+            theme.breakpoint.compact + theme.control.compact;
         final title = record.title ?? record.type ?? record.merchant ?? '交易';
         final counterparty = record.counterparty ?? record.merchant ?? '-';
         final paymentMethod = record.paymentMethod ?? '-';
@@ -368,28 +396,35 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
 
         if (compact) {
           return Padding(
-            padding: const EdgeInsets.all(FluentSpacing.m),
+            padding: EdgeInsets.all(theme.spacing.m),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Expanded(
-                      child: Text(title, style: theme.typography.bodyStrong),
+                      child: Text(
+                        title,
+                        style: theme.typography.body.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                     Text(
                       _formatSignedMoney(record.amount),
-                      style: theme.typography.bodyStrong,
+                      style: theme.typography.body.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: FluentSpacing.xs),
+                SizedBox(height: theme.spacing.xs),
                 Text(record.occurredAt, style: theme.typography.caption),
-                const SizedBox(height: FluentSpacing.xs),
+                SizedBox(height: theme.spacing.xs),
                 Text(
                   '收支：$directionLabel · 对方：$counterparty · 付款方式：$paymentMethod · 状态：$status',
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
+                  style: theme.typography.caption.copyWith(
+                    color: theme.color.muted,
                   ),
                 ),
               ],
@@ -398,9 +433,9 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
         }
 
         return Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: FluentSpacing.m,
-            vertical: FluentSpacing.s,
+          padding: EdgeInsets.symmetric(
+            horizontal: theme.spacing.m,
+            vertical: theme.spacing.s,
           ),
           child: Row(
             children: [
@@ -421,9 +456,13 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
                 flex: 10,
                 child: Text(status, overflow: TextOverflow.ellipsis),
               ),
-              SizedBox(width: 56, child: Text(directionLabel)),
               SizedBox(
-                width: 108,
+                width: theme.spacing.xl2 + theme.spacing.s,
+                child: Text(directionLabel),
+              ),
+              SizedBox(
+                width:
+                    theme.spacing.xl2 * 2 + theme.spacing.s + theme.spacing.xs,
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: Text(_formatSignedMoney(record.amount)),
@@ -436,26 +475,33 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
     );
   }
 
-  Widget _buildPagination(FluentThemeData theme) {
+  Widget _buildPagination(YhTheme theme) {
     final statusText =
         '第 ${_currentPage + 1} / $_totalPages 页 · 共 ${_filteredRecords.length} 条';
     return SizedBox(
-      height: 40,
+      height: theme.control.regular,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          FluentIconButton(
+          YhIconButton(
             key: const Key('campus-card-prev-page'),
-            tooltip: '上一页',
-            icon: const Icon(FluentIcons.chevronLeft),
-            size: 32,
-            iconSize: 14,
-            onPressed: _currentPage > 0
+            icon: YhIcons.back,
+            semanticLabel: '上一页',
+            onTap: _currentPage > 0
                 ? () => setState(() => _currentPage -= 1)
                 : null,
           ),
           ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 160, maxWidth: 260),
+            constraints: BoxConstraints(
+              minWidth:
+                  theme.breakpoint.compact / 4 +
+                  theme.spacing.s +
+                  theme.spacing.xs / 2,
+              maxWidth:
+                  theme.breakpoint.compact / 2 -
+                  theme.spacing.xl -
+                  theme.spacing.s,
+            ),
             child: Text(
               statusText,
               textAlign: TextAlign.center,
@@ -464,13 +510,11 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
               style: theme.typography.caption,
             ),
           ),
-          FluentIconButton(
+          YhIconButton(
             key: const Key('campus-card-next-page'),
-            tooltip: '下一页',
-            icon: const Icon(FluentIcons.chevronRight),
-            size: 32,
-            iconSize: 14,
-            onPressed: _currentPage < _totalPages - 1
+            icon: YhIcons.chevronRight,
+            semanticLabel: '下一页',
+            onTap: _currentPage < _totalPages - 1
                 ? () => setState(() => _currentPage += 1)
                 : null,
           ),
@@ -495,9 +539,9 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
   }
 
   DateTime? _parseRecordDate(String text) {
-    final match = RegExp(r'^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})').firstMatch(
-      text.trim(),
-    );
+    final match = RegExp(
+      r'^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})',
+    ).firstMatch(text.trim());
     if (match == null) return null;
     return DateTime(
       int.parse(match.group(1)!),
@@ -550,21 +594,18 @@ class _CampusCardInlineWarning extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
+    final theme = context.yhTheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(FluentSpacing.s),
+      padding: EdgeInsets.all(theme.spacing.s),
       decoration: BoxDecoration(
-        color: colors.statusWarningBackground,
-        borderRadius: BorderRadius.circular(FluentRadius.medium),
-        border: Border.all(
-          color: colors.statusWarningForeground.withValues(alpha: 0.24),
-        ),
+        color: theme.color.warningTint,
+        borderRadius: BorderRadius.circular(theme.radius.input),
+        border: Border.all(color: theme.color.warning.withValues(alpha: 0.24)),
       ),
       child: Text(
         message,
-        style: type.caption1.copyWith(color: colors.statusWarningForeground),
+        style: theme.typography.caption.copyWith(color: theme.color.warning),
       ),
     );
   }

@@ -11,20 +11,21 @@ part of 'home_page.dart';
 extension _HomeCampusCardBalanceCard on _HomePageState {
   /// 构建校园卡余额卡片。
   Widget _buildCampusCardBalanceCard(BuildContext context) {
+    final theme = context.yhTheme;
     final result = _campusCardResult;
     final snapshot = result?.snapshot;
     final state = result == null
-        ? FluentDataState.degraded
+        ? YhDataState.degraded
         : result.isSuccess
-        ? FluentDataState.ready
-        : FluentDataState.failed;
+        ? YhDataState.ready
+        : YhDataState.failed;
 
-    return FluentDashboardTile(
+    return YhDashboardTile(
       key: const Key('home-campus-card-balance-card'),
       title: '校园卡余额',
-      icon: FluentIcons.money,
+      icon: YhIcons.finance,
       state: state,
-      accentColor: context.fluentAccents.finance,
+      accentColor: theme.color.serviceFinance,
       actions: [
         _CampusCardHeaderDetailAction(
           label: '交易记录查询',
@@ -36,12 +37,10 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
       ],
       footer: RefreshStatusLine(
         label: _campusCardLastRefreshLabel(result),
-        labelStyle: FluentTheme.of(context).typography.caption?.copyWith(
-          color: FluentTheme.of(context).resources.textFillColorSecondary,
-        ),
+        labelStyle: theme.typography.caption.copyWith(color: theme.color.muted),
         actionReservedWidth: _campusCardRefreshController.feedback == null
-            ? 32
-            : 112,
+            ? theme.control.compact
+            : theme.spacing.xl2 * 2 + theme.spacing.m,
         action: RefreshFeedbackAction(
           key: const Key('home-campus-card-refresh'),
           tooltip: '刷新校园卡余额',
@@ -49,17 +48,15 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
           isLoading: _campusCardRefreshController.isLoading,
           feedback: _campusCardRefreshController.feedback,
           onPressed: _loadCampusCard,
-          minTouchSize: 32,
-          size: 28,
-          iconSize: 15,
-          maxFeedbackWidth: 112,
+          minTouchSize: theme.control.minimumTarget,
+          maxFeedbackWidth: theme.spacing.xl2 * 2 + theme.spacing.m,
         ),
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
           minHeight: result?.isSuccess == false
-              ? _campusCardFailureBodyMinHeight
-              : _campusCardBodyMinHeight,
+              ? theme.control.regular + theme.spacing.xl + theme.spacing.s
+              : theme.control.regular + theme.spacing.m,
         ),
         child: _buildCampusCardBody(context, result, snapshot),
       ),
@@ -71,7 +68,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
     CampusCardQueryResult? result,
     CampusCardSnapshot? snapshot,
   ) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     if (result == null) {
       return Align(
         alignment: Alignment.centerLeft,
@@ -79,9 +76,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
           _campusCardRefreshController.autoRefreshEnabled
               ? '自动刷新已开启，等待下一次读取。'
               : '自动刷新未开启，可点击刷新图标读取校园卡余额。',
-          style: theme.typography.caption?.copyWith(
-            color: theme.resources.textFillColorSecondary,
-          ),
+          style: theme.typography.caption.copyWith(color: theme.color.muted),
         ),
       );
     }
@@ -91,23 +86,20 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
     return _CampusCardFailureSummary(result: result);
   }
 
-  static const double _campusCardBodyMinHeight = 64.0;
-  static const double _campusCardFailureBodyMinHeight = 88.0;
-
   /// 构建校园卡余额和异常状态摘要。
   Widget _buildCampusCardBalanceSummary(
     BuildContext context,
     CampusCardSnapshot snapshot,
   ) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     return Wrap(
-      spacing: FluentSpacing.m,
-      runSpacing: FluentSpacing.s,
+      spacing: theme.spacing.m,
+      runSpacing: theme.spacing.s,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
           snapshot.balance == null ? '未读取' : _formatMoney(snapshot.balance!),
-          style: theme.typography.titleLarge,
+          style: theme.typography.h1,
         ),
         if (snapshot.hasAbnormalStatus)
           _CampusCardStatusPill(status: snapshot.status),
@@ -118,7 +110,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
   /// 打开校园卡详情页。
   void _openCampusCardDetail(CampusCardSnapshot snapshot) {
     Navigator.of(context).push(
-      FluentPageRoute(
+      YhPageRoute(
         builder: (_) => CampusCardDetailPage(
           initialSnapshot: snapshot,
           campusCardService: _campusCardService,
@@ -146,7 +138,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
   }
 }
 
-class _CampusCardHeaderDetailAction extends StatefulWidget {
+class _CampusCardHeaderDetailAction extends StatelessWidget {
   const _CampusCardHeaderDetailAction({
     required this.label,
     required this.tooltip,
@@ -158,93 +150,16 @@ class _CampusCardHeaderDetailAction extends StatefulWidget {
   final VoidCallback? onPressed;
 
   @override
-  State<_CampusCardHeaderDetailAction> createState() =>
-      _CampusCardHeaderDetailActionState();
-}
-
-class _CampusCardHeaderDetailActionState
-    extends State<_CampusCardHeaderDetailAction> {
-  bool _hovered = false;
-  bool _pressed = false;
-
-  @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    final enabled = widget.onPressed != null;
-    final textColor = enabled
-        ? _pressed
-              ? colors.brandBackgroundPressed
-              : _hovered
-              ? colors.brandForeground2
-              : colors.brandForeground1
-        : colors.neutralForegroundDisabled;
-    final backgroundColor = !enabled
-        ? null
-        : _pressed
-        ? colors.subtleBackgroundPressed
-        : _hovered
-        ? colors.subtleBackgroundHover
-        : null;
-
-    return Tooltip(
-      message: widget.tooltip,
-      child: Semantics(
-        button: true,
-        enabled: enabled,
-        label: widget.label,
-        child: MouseRegion(
-          cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-          onEnter: (_) => _setHovered(true),
-          onExit: (_) {
-            _setHovered(false);
-            _setPressed(false);
-          },
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: widget.onPressed,
-            onTapDown: enabled ? (_) => _setPressed(true) : null,
-            onTapUp: enabled ? (_) => _setPressed(false) : null,
-            onTapCancel: enabled ? () => _setPressed(false) : null,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: FluentSpacing.s,
-                vertical: FluentSpacing.xs,
-              ),
-              decoration: BoxDecoration(
-                color: backgroundColor,
-                borderRadius: context.fluentRadii.mediumBorder,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: Text(
-                      widget.label,
-                      style: type.caption1Strong.copyWith(color: textColor),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: FluentSpacing.xs),
-                  Icon(FluentIcons.chevronRight, size: 14, color: textColor),
-                ],
-              ),
-            ),
-          ),
-        ),
+    return YhTooltip(
+      message: tooltip,
+      child: YhButton(
+        label: label,
+        trailingIcon: YhIcons.chevronRight,
+        variant: YhButtonVariant.text,
+        onTap: onPressed,
       ),
     );
-  }
-
-  void _setHovered(bool value) {
-    if (_hovered == value) return;
-    setState(() => _hovered = value);
-  }
-
-  void _setPressed(bool value) {
-    if (_pressed == value) return;
-    setState(() => _pressed = value);
   }
 }
 
@@ -255,8 +170,7 @@ class _CampusCardFailureSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final colors = context.fluentColors;
+    final theme = context.yhTheme;
     final textColor = _failureTextColor(context, result.status);
 
     return Align(
@@ -270,17 +184,20 @@ class _CampusCardFailureSummary extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             softWrap: true,
-            style: theme.typography.bodyStrong?.copyWith(color: textColor),
+            style: theme.typography.body.copyWith(
+              color: textColor,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           if (_detail.isNotEmpty) ...[
-            const SizedBox(height: FluentSpacing.xxs),
+            SizedBox(height: theme.spacing.xs),
             Text(
               _detail,
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
               softWrap: true,
-              style: theme.typography.caption?.copyWith(
-                color: colors.neutralForeground3,
+              style: theme.typography.caption.copyWith(
+                color: theme.color.muted,
               ),
             ),
           ],
@@ -307,18 +224,15 @@ class _CampusCardFailureSummary extends StatelessWidget {
 
   Color _failureTextColor(BuildContext context, CampusCardQueryStatus status) {
     return switch (status) {
-      CampusCardQueryStatus.success =>
-        context.fluentColors.statusSuccessForeground,
+      CampusCardQueryStatus.success => context.yhTheme.color.success,
       CampusCardQueryStatus.missingOaAccount ||
       CampusCardQueryStatus.missingOaPassword ||
       CampusCardQueryStatus.campusNetworkUnavailable ||
-      CampusCardQueryStatus.oaLoginRequired =>
-        context.fluentColors.statusWarningForeground,
+      CampusCardQueryStatus.oaLoginRequired => context.yhTheme.color.warning,
       CampusCardQueryStatus.cardSystemUnavailable ||
       CampusCardQueryStatus.parseFailed ||
       CampusCardQueryStatus.networkError ||
-      CampusCardQueryStatus.unexpectedError =>
-        context.fluentColors.statusDangerForeground,
+      CampusCardQueryStatus.unexpectedError => context.yhTheme.color.danger,
     };
   }
 }
@@ -330,23 +244,20 @@ class _CampusCardStatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
+    final theme = context.yhTheme;
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: FluentSpacing.s,
-        vertical: FluentSpacing.xs,
+      padding: EdgeInsets.symmetric(
+        horizontal: theme.spacing.s,
+        vertical: theme.spacing.xs,
       ),
       decoration: BoxDecoration(
-        color: colors.statusWarningBackground,
-        borderRadius: BorderRadius.circular(FluentRadius.medium),
-        border: Border.all(
-          color: colors.statusWarningForeground.withValues(alpha: 0.24),
-        ),
+        color: theme.color.warningTint,
+        borderRadius: BorderRadius.circular(theme.radius.full),
+        border: Border.all(color: theme.color.warning.withValues(alpha: 0.24)),
       ),
       child: Text(
         '卡状态：$status',
-        style: type.caption1.copyWith(color: colors.statusWarningForeground),
+        style: theme.typography.caption.copyWith(color: theme.color.warning),
       ),
     );
   }

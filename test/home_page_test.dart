@@ -6,7 +6,7 @@
  * @Date : 2026-04-30
  */
 
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,7 +28,7 @@ Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
   }
 }
 
-/// 首页存在入场动画和 Fluent 点击态短计时器，测试结束前统一清理。
+/// 首页存在入场动画和清源点击态短计时器，测试结束前统一清理。
 Future<void> disposeHomePage(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 500));
   await tester.pumpWidget(const SizedBox.shrink());
@@ -51,7 +51,7 @@ Future<void> pumpHomePage(
     );
   }
   await tester.pumpWidget(
-    FluentApp(
+    YhApp(
       home: HomePage(
         campusCardService: campusCardService,
         academicEamsService: academicEamsService,
@@ -115,7 +115,7 @@ void main() {
     expect(find.text('校园卡余额'), findsOneWidget);
     expect(find.textContaining('自动刷新未开启'), findsOneWidget);
 
-    await tester.tap(find.byIcon(FluentIcons.refresh));
+    await tester.tap(find.byKey(const Key('home-campus-card-refresh')));
     await pumpUntilFound(tester, find.text('¥23.45'));
 
     expect(find.text('刷新成功√'), findsOneWidget);
@@ -137,7 +137,7 @@ void main() {
     expect(
       find.descendant(
         of: detailButton,
-        matching: find.byIcon(FluentIcons.chevronRight),
+        matching: find.byIcon(YhIcons.chevronRight),
       ),
       findsOneWidget,
     );
@@ -267,10 +267,7 @@ void main() {
       findsNothing,
     );
     expect(
-      find.descendant(
-        of: profileCard,
-        matching: find.byIcon(FluentIcons.refresh),
-      ),
+      find.descendant(of: profileCard, matching: find.byIcon(YhIcons.refresh)),
       findsNothing,
     );
     expect(academicService.refreshCount, 0);
@@ -467,7 +464,7 @@ void main() {
     var settingsOpened = false;
     final campusNetworkStatusService = _buildCampusNetworkStatusService();
     await tester.pumpWidget(
-      FluentApp(
+      YhApp(
         home: HomePage(
           academicEamsService: _FakeAcademicEamsClient(),
           campusNetworkStatusService: campusNetworkStatusService,
@@ -595,7 +592,7 @@ void main() {
       campusCardAutoRefreshEnabledOverride: false,
     );
 
-    await tester.tap(find.byIcon(FluentIcons.refresh));
+    await tester.tap(find.byKey(const Key('home-campus-card-refresh')));
     await pumpUntilFound(tester, find.text('¥120.00'));
     await tester.tap(find.text('交易记录查询'));
     await tester.pumpAndSettle();
@@ -616,7 +613,10 @@ void main() {
 
     await tester.ensureVisible(find.text('开始日期'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(FluentTextField).first, 'bad-date');
+    await tester.enterText(
+      find.byKey(const Key('campus-card-start-date')),
+      'bad-date',
+    );
     await tester.tap(find.text('筛选'));
     await tester.pump();
 

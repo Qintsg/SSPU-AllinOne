@@ -9,7 +9,7 @@
 import 'dart:async';
 
 import '../controllers/card_auto_refresh_controller.dart';
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/campus_card.dart';
 import '../models/academic_credentials.dart';
@@ -29,12 +29,10 @@ import '../services/quick_links_config_service.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/storage_service.dart';
 import '../services/student_report_service.dart';
-import '../theme/fluent_tokens.dart';
 import '../utils/query_result_messages.dart';
 import '../utils/app_web_launcher.dart';
 import '../widgets/campus_network_status_indicator.dart';
 import '../widgets/refresh_feedback_action.dart';
-import '../widgets/responsive_layout.dart';
 import 'course_schedule_page.dart';
 part 'home_campus_card_balance_card.dart';
 part 'home_campus_card_detail_page.dart';
@@ -394,102 +392,113 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveBuilder(
-      builder: (context, deviceType, constraints) {
-        final pagePadding = switch (deviceType) {
-          DeviceType.phone => FluentSpacing.m,
-          DeviceType.tablet => FluentSpacing.xl,
-          DeviceType.desktop => FluentSpacing.xxl,
-        };
-
-        return FluentPage.scrollable(
-          header: FluentPageHeader(
-            title: const Text('主页'),
-            commandBar: CampusNetworkStatusIndicator(
-              service: widget.campusNetworkStatusService,
-              variant: CampusNetworkStatusIndicatorVariant.home,
-              indicatorKey: const Key('campus-network-status-home'),
-            ),
+    final theme = context.yhTheme;
+    return YhPageScaffold(
+      appBar: YhAppBar(
+        title: '主页',
+        actions: [
+          CampusNetworkStatusIndicator(
+            service: widget.campusNetworkStatusService,
+            variant: CampusNetworkStatusIndicatorVariant.home,
+            indicatorKey: const Key('campus-network-status-home'),
           ),
-          padding: EdgeInsets.all(pagePadding),
-          children: [
-            FluentContentWidth(
-              child: fluentEntrance(
-                context: context,
-                child: _buildDashboardHero(context),
+        ],
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final pagePadding = constraints.maxWidth < theme.breakpoint.compact
+              ? theme.spacing.m
+              : constraints.maxWidth < theme.breakpoint.expanded
+              ? theme.spacing.l
+              : theme.spacing.xl;
+          return SingleChildScrollView(
+            padding: EdgeInsets.all(pagePadding),
+            child: Align(
+              alignment: AlignmentDirectional.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: theme.breakpoint.expanded,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildDashboardHero(context),
+                    SizedBox(height: theme.spacing.l),
+                    _buildDashboardGrid(context),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: FluentSpacing.l),
-            FluentContentWidth(child: _buildDashboardGrid(context)),
-          ],
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
   /// 构建校园仪表盘头部。
   Widget _buildDashboardHero(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    final spacing = context.fluentSpacing;
-    final radii = context.fluentRadii;
+    final theme = context.yhTheme;
     final todayCourseCount = _todayCourseEntries.length;
     final unreadCount = _latestMessages.length;
 
-    return FluentMaterialSurface(
-      padding: EdgeInsets.all(spacing.xl),
-      borderRadius: radii.xLargeBorder,
+    return YhCard(
+      elevated: true,
+      padding: EdgeInsets.zero,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: context.fluentGradients.dashboardHero,
-          borderRadius: radii.xLargeBorder,
+          color: theme.color.brandTint,
+          borderRadius: BorderRadius.circular(theme.radius.l),
         ),
         child: Padding(
-          padding: EdgeInsets.all(spacing.l),
+          padding: EdgeInsets.all(theme.spacing.l),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final compact = constraints.maxWidth < 620;
+              final compact =
+                  constraints.maxWidth <
+                  theme.breakpoint.compact + theme.spacing.l - theme.spacing.xs;
               final logo = Image.asset(
                 'assets/images/logo.png',
-                width: compact ? 56 : 72,
-                height: compact ? 56 : 72,
+                width: compact
+                    ? theme.spacing.xl2 + theme.spacing.s
+                    : theme.spacing.xl2 + theme.spacing.l,
+                height: compact
+                    ? theme.spacing.xl2 + theme.spacing.s
+                    : theme.spacing.xl2 + theme.spacing.l,
               );
               final title = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     AppDisplayName.of(context),
-                    style: (compact ? type.title3 : type.title2).copyWith(
-                      color: colors.neutralForeground1,
-                    ),
+                    style: compact ? theme.typography.h2 : theme.typography.h1,
                   ),
-                  SizedBox(height: spacing.xs),
+                  SizedBox(height: theme.spacing.xs),
                   Text(
                     '今日课程 $todayCourseCount 门 · 最近消息 $unreadCount 条',
-                    style: type.body1.copyWith(
-                      color: colors.neutralForeground2,
+                    style: theme.typography.body.copyWith(
+                      color: theme.color.muted,
                     ),
                   ),
                 ],
               );
               final metrics = Wrap(
-                spacing: spacing.s,
-                runSpacing: spacing.s,
+                spacing: theme.spacing.s,
+                runSpacing: theme.spacing.s,
                 children: [
                   _DashboardHeroPill(
                     label: '校园卡',
                     value: _campusCardBalanceText,
-                    color: context.fluentAccents.finance,
+                    color: theme.color.serviceFinance,
                   ),
                   _DashboardHeroPill(
                     label: '二课',
                     value: _studentReportCreditText,
-                    color: context.fluentAccents.secondClassroom,
+                    color: theme.color.serviceSecondClass,
                   ),
                   _DashboardHeroPill(
                     label: '邮箱',
                     value: _emailSummaryText,
-                    color: context.fluentAccents.mail,
+                    color: theme.color.serviceMail,
                   ),
                 ],
               );
@@ -501,11 +510,11 @@ class _HomePageState extends State<HomePage> {
                     Row(
                       children: [
                         logo,
-                        SizedBox(width: spacing.m),
+                        SizedBox(width: theme.spacing.m),
                         Expanded(child: title),
                       ],
                     ),
-                    SizedBox(height: spacing.l),
+                    SizedBox(height: theme.spacing.l),
                     metrics,
                   ],
                 );
@@ -513,9 +522,9 @@ class _HomePageState extends State<HomePage> {
               return Row(
                 children: [
                   logo,
-                  SizedBox(width: spacing.l),
+                  SizedBox(width: theme.spacing.l),
                   Expanded(child: title),
-                  SizedBox(width: spacing.l),
+                  SizedBox(width: theme.spacing.l),
                   Flexible(child: metrics),
                 ],
               );
@@ -539,30 +548,35 @@ class _HomePageState extends State<HomePage> {
       if (_quickLinksTileVisible) _buildQuickLinksTile(context),
     ];
     if (tiles.isEmpty) {
-      return FluentDashboardTile(
+      return YhDashboardTile(
         title: '首页磁贴',
-        icon: FluentIcons.home,
-        state: FluentDataState.notConfigured,
-        actions: [
-          FluentButton.primary(
-            onPressed: widget.onOpenSettings,
-            child: const Text('前往设置'),
-          ),
-        ],
+        icon: YhIcons.home,
+        state: YhDataState.notConfigured,
+        actions: [YhButton(label: '前往设置', onTap: widget.onOpenSettings)],
         child: Text(
           '所有首页磁贴均已隐藏，可在设置的“首页显示”中重新开启。',
-          style: context.fluentType.body1.copyWith(
-            color: context.fluentColors.neutralForeground2,
+          style: context.yhTheme.typography.body.copyWith(
+            color: context.yhTheme.color.muted,
           ),
         ),
       );
     }
 
-    return FluentMasonryGrid(
-      gap: FluentSpacing.l,
+    final theme = context.yhTheme;
+    return YhMasonryGrid(
+      gap: theme.spacing.l,
       columnsForWidth: (width) {
-        if (width >= 1180) return 3;
-        if (width >= 700) return 2;
+        if (width >=
+            theme.breakpoint.expanded - theme.spacing.l + theme.spacing.xs) {
+          return 3;
+        }
+        if (width >=
+            theme.breakpoint.medium -
+                theme.spacing.xl2 -
+                theme.spacing.l +
+                theme.spacing.xs) {
+          return 2;
+        }
         return 1;
       },
       children: tiles,
@@ -576,25 +590,26 @@ class _HomePageState extends State<HomePage> {
         _credentialsStatus.oaAccount.trim().isNotEmpty &&
         _credentialsStatus.hasOaPassword;
     final state = !hasCredentials
-        ? FluentDataState.notConfigured
+        ? YhDataState.notConfigured
         : _courseTableResult == null
-        ? FluentDataState.degraded
+        ? YhDataState.degraded
         : entries.isEmpty
-        ? FluentDataState.degraded
-        : FluentDataState.ready;
+        ? YhDataState.degraded
+        : YhDataState.ready;
 
-    return FluentDashboardTile(
+    return YhDashboardTile(
       key: const Key('home-today-courses-tile'),
       title: '今日课程',
       subtitle: _courseTableResult?.snapshot?.courseTable?.termName ?? '当前学期',
-      icon: FluentIcons.calendar,
+      icon: YhIcons.calendar,
       state: state,
-      accentColor: context.fluentAccents.schedule,
+      accentColor: context.yhTheme.color.serviceSchedule,
       actions: [
-        FluentButton.transparentIcon(
-          onPressed: _openCourseSchedulePage,
-          icon: const Icon(FluentIcons.chevronRight, size: 14),
-          label: const Text('课表'),
+        YhButton(
+          label: '课表',
+          trailingIcon: YhIcons.chevronRight,
+          variant: YhButtonVariant.text,
+          onTap: _openCourseSchedulePage,
         ),
       ],
       child: !hasCredentials
@@ -611,26 +626,26 @@ class _HomePageState extends State<HomePage> {
     final summary = result?.summary;
     final hasCredentials = _credentialsStatus.oaAccount.trim().isNotEmpty;
     final state = !hasCredentials
-        ? FluentDataState.notConfigured
+        ? YhDataState.notConfigured
         : result == null
-        ? FluentDataState.degraded
+        ? YhDataState.degraded
         : result.isSuccess
-        ? FluentDataState.ready
-        : FluentDataState.failed;
+        ? YhDataState.ready
+        : YhDataState.failed;
 
-    return FluentDashboardTile(
+    return YhDashboardTile(
       key: const Key('home-sports-attendance-tile'),
       title: '体育考勤',
-      icon: FluentIcons.running,
+      icon: YhIcons.sports,
       state: state,
-      accentColor: context.fluentAccents.sports,
+      accentColor: context.yhTheme.color.serviceSports,
       child: !hasCredentials
           ? _buildSettingsPrompt(context, '需要先保存学工号')
           : summary == null
           ? _buildMutedText(context, result?.message ?? '暂无体育考勤缓存')
           : Wrap(
-              spacing: FluentSpacing.s,
-              runSpacing: FluentSpacing.s,
+              spacing: context.yhTheme.spacing.s,
+              runSpacing: context.yhTheme.spacing.s,
               children: [
                 _MetricText(label: '总次数', value: '${summary.totalCount} 次'),
                 _MetricText(
@@ -655,26 +670,26 @@ class _HomePageState extends State<HomePage> {
         _credentialsStatus.oaAccount.trim().isNotEmpty &&
         _credentialsStatus.hasOaPassword;
     final state = !hasCredentials
-        ? FluentDataState.notConfigured
+        ? YhDataState.notConfigured
         : result == null
-        ? FluentDataState.degraded
+        ? YhDataState.degraded
         : result.isSuccess
-        ? FluentDataState.ready
-        : FluentDataState.failed;
+        ? YhDataState.ready
+        : YhDataState.failed;
 
-    return FluentDashboardTile(
+    return YhDashboardTile(
       key: const Key('home-second-classroom-tile'),
       title: '第二课堂',
-      icon: FluentIcons.education,
+      icon: YhIcons.education,
       state: state,
-      accentColor: context.fluentAccents.secondClassroom,
+      accentColor: context.yhTheme.color.serviceSecondClass,
       child: !hasCredentials
           ? _buildSettingsPrompt(context, '需要先保存 OA 账号密码')
           : summary == null
           ? _buildMutedText(context, result?.message ?? '暂无第二课堂缓存')
           : Wrap(
-              spacing: FluentSpacing.s,
-              runSpacing: FluentSpacing.s,
+              spacing: context.yhTheme.spacing.s,
+              runSpacing: context.yhTheme.spacing.s,
               children: [
                 _MetricText(
                   label: '已获',
@@ -695,15 +710,13 @@ class _HomePageState extends State<HomePage> {
 
   /// 最新消息磁贴。
   Widget _buildMessagesTile(BuildContext context) {
-    return FluentDashboardTile(
+    return YhDashboardTile(
       key: const Key('home-messages-tile'),
       title: '最新消息',
       subtitle: '最近 5 条已启用渠道消息',
-      icon: FluentIcons.news,
-      state: _latestMessages.isEmpty
-          ? FluentDataState.degraded
-          : FluentDataState.ready,
-      accentColor: context.fluentAccents.information,
+      icon: YhIcons.news,
+      state: _latestMessages.isEmpty ? YhDataState.degraded : YhDataState.ready,
+      accentColor: context.yhTheme.color.serviceNews,
       child: _latestMessages.isEmpty
           ? _buildMutedText(context, '暂无消息，开启信息渠道并等待自动刷新后会显示。')
           : _buildLatestMessageRows(context),
@@ -716,19 +729,19 @@ class _HomePageState extends State<HomePage> {
     final snapshot = result?.snapshot;
     final hasCredentials = _credentialsStatus.oaAccount.trim().isNotEmpty;
     final state = !hasCredentials
-        ? FluentDataState.notConfigured
+        ? YhDataState.notConfigured
         : result == null
-        ? FluentDataState.degraded
+        ? YhDataState.degraded
         : result.isSuccess
-        ? FluentDataState.ready
-        : FluentDataState.failed;
+        ? YhDataState.ready
+        : YhDataState.failed;
 
-    return FluentDashboardTile(
+    return YhDashboardTile(
       key: const Key('home-email-tile'),
       title: '邮箱摘要',
-      icon: FluentIcons.mail,
+      icon: YhIcons.mail,
       state: state,
-      accentColor: context.fluentAccents.mail,
+      accentColor: context.yhTheme.color.serviceMail,
       child: !hasCredentials
           ? _buildSettingsPrompt(context, '需要先保存学工号')
           : snapshot == null
@@ -740,14 +753,16 @@ class _HomePageState extends State<HomePage> {
                   label: snapshot.protocol.label,
                   value: '${snapshot.messages.length} 封',
                 ),
-                const SizedBox(height: FluentSpacing.s),
+                SizedBox(height: context.yhTheme.spacing.s),
                 Text(
                   snapshot.messages.isEmpty
                       ? '最近邮件为空'
                       : snapshot.messages.first.subject,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: context.fluentType.body1Strong,
+                  style: context.yhTheme.typography.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -756,25 +771,26 @@ class _HomePageState extends State<HomePage> {
 
   /// 快速跳转磁贴。
   Widget _buildQuickLinksTile(BuildContext context) {
-    return FluentDashboardTile(
+    return YhDashboardTile(
       key: const Key('home-quick-links-tile'),
       title: '快速跳转',
       subtitle: '常用校园入口',
-      icon: FluentIcons.link,
+      icon: YhIcons.link,
       state: _quickLinkFavorites.isEmpty
-          ? FluentDataState.degraded
-          : FluentDataState.ready,
-      accentColor: context.fluentAccents.quickLink,
+          ? YhDataState.degraded
+          : YhDataState.ready,
+      accentColor: context.yhTheme.color.serviceQuickLink,
       child: _quickLinkFavorites.isEmpty
           ? _buildMutedText(context, '快捷入口配置加载中或暂无可用入口。')
           : Wrap(
-              spacing: FluentSpacing.s,
-              runSpacing: FluentSpacing.s,
+              spacing: context.yhTheme.spacing.s,
+              runSpacing: context.yhTheme.spacing.s,
               children: [
                 for (final item in _quickLinkFavorites)
-                  Button(
-                    onPressed: () => _openExternalUrl(item.url),
-                    child: Text(item.name),
+                  YhButton(
+                    label: item.name,
+                    variant: YhButtonVariant.secondary,
+                    onTap: () => _openExternalUrl(item.url),
                   ),
               ],
             ),
@@ -793,14 +809,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildTodayCourseRows(List<AcademicCourseTableEntry> entries) {
+    final theme = context.yhTheme;
     final visibleEntries = entries.take(3).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (var i = 0; i < visibleEntries.length; i++) ...[
           _CourseMiniRow(entry: visibleEntries[i]),
-          if (i < visibleEntries.length - 1)
-            const SizedBox(height: FluentSpacing.s),
+          if (i < visibleEntries.length - 1) SizedBox(height: theme.spacing.s),
         ],
       ],
     );
@@ -813,7 +829,8 @@ class _HomePageState extends State<HomePage> {
       children: [
         for (var i = 0; i < visibleMessages.length; i++) ...[
           _buildMessageItem(context, visibleMessages[i]),
-          if (i < visibleMessages.length - 1) const Divider(),
+          if (i < visibleMessages.length - 1)
+            Container(height: 1, color: context.yhTheme.color.border),
         ],
       ],
     );
@@ -836,16 +853,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildSettingsPrompt(BuildContext context, String label) {
+    final theme = context.yhTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         _buildMutedText(context, label),
-        const SizedBox(height: FluentSpacing.s),
-        FluentButton.primary(
-          onPressed: widget.onOpenSettings,
-          child: const Text('前往设置'),
-        ),
+        SizedBox(height: theme.spacing.s),
+        YhButton(label: '前往设置', onTap: widget.onOpenSettings),
       ],
     );
   }
@@ -853,15 +868,15 @@ class _HomePageState extends State<HomePage> {
   Widget _buildMutedText(BuildContext context, String text) {
     return Text(
       text,
-      style: context.fluentType.body1.copyWith(
-        color: context.fluentColors.neutralForeground2,
+      style: context.yhTheme.typography.body.copyWith(
+        color: context.yhTheme.color.muted,
       ),
     );
   }
 
   void _openCourseSchedulePage() {
     Navigator.of(context).push(
-      FluentPageRoute(
+      YhPageRoute(
         builder: (_) => CourseSchedulePage(
           academicEamsService: _academicEamsService,
           initialResult: _courseTableResult,
@@ -882,22 +897,28 @@ class _HomePageState extends State<HomePage> {
 
   /// 构建单条消息项（点击跳转内嵌 WebView）
   Widget _buildMessageItem(BuildContext context, MessageItem msg) {
-    final theme = FluentTheme.of(context);
-    return FluentHoverButton(
+    final theme = context.yhTheme;
+    return YhPressable(
+      semanticLabel: '打开消息 ${msg.title}',
       onPressed: () async {
         // 标记已读并在 iOS 使用 Safari View Controller 打开。
         MessageStateService.instance.markAsRead(msg.id);
         if (!context.mounted) return;
         await openAppWebUrl(context, url: msg.url, title: msg.title);
       },
-      builder: (context, states) {
-        final isHovered = states.isHovered;
+      builder: (context, state, child) {
         return AnimatedContainer(
-          duration: context.fluentMotion.durationFast,
-          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+          duration: theme.motion.fast,
+          curve: theme.motion.curve,
+          padding: EdgeInsets.symmetric(
+            vertical: theme.spacing.s,
+            horizontal: theme.spacing.xs,
+          ),
           decoration: BoxDecoration(
-            color: isHovered ? theme.resources.subtleFillColorSecondary : null,
-            borderRadius: BorderRadius.circular(4),
+            color: state.hovered || state.focused
+                ? theme.color.brandTint
+                : null,
+            borderRadius: BorderRadius.circular(theme.radius.s),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -906,25 +927,33 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(msg.title, style: theme.typography.bodyStrong),
-                    const SizedBox(height: 4),
+                    Text(
+                      msg.title,
+                      style: theme.typography.body.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: theme.spacing.xs),
                     Text(
                       '${msg.category.label} · ${msg.sourceName.label}',
-                      style: theme.typography.caption,
+                      style: theme.typography.caption.copyWith(
+                        color: theme.color.muted,
+                      ),
                     ),
                   ],
                 ),
               ),
               Text(
                 msg.date,
-                style: theme.typography.caption?.copyWith(
-                  color: theme.resources.textFillColorSecondary,
+                style: theme.typography.caption.copyWith(
+                  color: theme.color.muted,
                 ),
               ),
             ],
           ),
         );
       },
+      child: const SizedBox.shrink(),
     );
   }
 }
@@ -942,16 +971,15 @@ class _DashboardHeroPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
+    final theme = context.yhTheme;
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: FluentSpacing.m,
-        vertical: FluentSpacing.s,
+      padding: EdgeInsets.symmetric(
+        horizontal: theme.spacing.m,
+        vertical: theme.spacing.s,
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(FluentRadius.circular),
+        borderRadius: BorderRadius.circular(theme.radius.full),
         border: Border.all(color: color.withValues(alpha: 0.22)),
       ),
       child: Row(
@@ -959,10 +987,16 @@ class _DashboardHeroPill extends StatelessWidget {
         children: [
           Text(
             label,
-            style: type.caption1.copyWith(color: colors.neutralForeground2),
+            style: theme.typography.caption.copyWith(color: theme.color.muted),
           ),
-          const SizedBox(width: FluentSpacing.xs),
-          Text(value, style: type.caption1Strong.copyWith(color: color)),
+          SizedBox(width: theme.spacing.xs),
+          Text(
+            value,
+            style: theme.typography.caption.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -976,22 +1010,21 @@ class _CourseMiniRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    final color = context.fluentCoursePalette.colorFor(entry.courseName);
+    final theme = context.yhTheme;
+    final color = theme.color.serviceSchedule;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 4,
-          height: 44,
+          width: theme.spacing.xs,
+          height: theme.control.compact + theme.spacing.xs,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(FluentRadius.circular),
+            borderRadius: BorderRadius.circular(theme.radius.full),
           ),
         ),
-        const SizedBox(width: FluentSpacing.s),
+        SizedBox(width: theme.spacing.s),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1000,11 +1033,11 @@ class _CourseMiniRow extends StatelessWidget {
                 entry.courseName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: type.body1Strong.copyWith(
-                  color: colors.neutralForeground1,
+                style: theme.typography.body.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: FluentSpacing.xxs),
+              SizedBox(height: theme.spacing.xs),
               Text(
                 [
                   entry.timeText,
@@ -1013,7 +1046,9 @@ class _CourseMiniRow extends StatelessWidget {
                 ].join(' · '),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: type.caption1.copyWith(color: colors.neutralForeground3),
+                style: theme.typography.caption.copyWith(
+                  color: theme.color.muted,
+                ),
               ),
             ],
           ),
@@ -1031,24 +1066,23 @@ class _MetricText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
+    final theme = context.yhTheme;
     return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 92),
+      constraints: BoxConstraints(
+        minWidth: theme.spacing.xl2 * 2 - theme.spacing.xs,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             label,
-            style: type.caption1.copyWith(color: colors.neutralForeground3),
+            style: theme.typography.caption.copyWith(color: theme.color.muted),
           ),
-          const SizedBox(height: FluentSpacing.xxs),
+          SizedBox(height: theme.spacing.xs),
           Text(
             value,
-            style: type.subtitle2Stronger.copyWith(
-              color: colors.neutralForeground1,
-            ),
+            style: theme.typography.body.copyWith(fontWeight: FontWeight.w700),
           ),
         ],
       ),
