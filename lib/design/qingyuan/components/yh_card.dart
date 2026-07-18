@@ -27,7 +27,7 @@ class YhCard extends StatelessWidget {
     Widget surface(YhPressableState? state) => AnimatedContainer(
       duration: theme.motion.fast,
       curve: theme.motion.curve,
-      padding: padding ?? EdgeInsets.all(theme.spacing.l - theme.spacing.xs),
+      padding: padding ?? EdgeInsets.all(theme.spacing.l),
       decoration: BoxDecoration(
         color: theme.color.surface,
         border: elevated
@@ -36,9 +36,9 @@ class YhCard extends StatelessWidget {
                 color: state?.hovered == true
                     ? theme.color.brand
                     : theme.color.border,
-                width: theme.layout.controlBorder,
+                width: theme.layout.divider,
               ),
-        borderRadius: BorderRadius.circular(theme.radius.m),
+        borderRadius: BorderRadius.circular(theme.radius.l),
         boxShadow: elevated
             ? (state?.hovered == true ? theme.elevation.e2 : theme.elevation.e1)
             : const [],

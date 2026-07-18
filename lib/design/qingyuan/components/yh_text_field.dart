@@ -136,7 +136,7 @@ class _YhTextFieldState extends State<YhTextField> {
                   color: theme.color.muted,
                 ),
               ),
-              SizedBox(height: theme.spacing.xs),
+              SizedBox(height: theme.spacing.s - theme.spacing.xs / 2),
             ],
             GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -159,7 +159,9 @@ class _YhTextFieldState extends State<YhTextField> {
                   ),
                   borderRadius: BorderRadius.circular(theme.radius.input),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: theme.spacing.m),
+                padding: EdgeInsets.symmetric(
+                  horizontal: theme.spacing.m - theme.spacing.xs / 2,
+                ),
                 child: Row(
                   crossAxisAlignment: widget.maxLines > 1
                       ? CrossAxisAlignment.start
