@@ -1,24 +1,8 @@
-/*
- * 教务中心本专科成绩卡片 — 仅展示 GPA 与成绩门数概览
- * @Project : SSPU-AllinOne
- * @File : academic_eams_grade_card.dart
- * @Author : Qintsg
- * @Date : 2026-06-14
- */
+/* 教务中心本专科成绩卡片 — 仅展示 GPA 与成绩门数概览。 */
 
 part of 'academic_page.dart';
 
-/// 教务中心本专科成绩子卡片。
 class AcademicEamsGradeCard extends StatelessWidget {
-  /// 最近一次成绩查询结果。
-  final AcademicEamsQueryResult? result;
-
-  /// 当前是否正在读取成绩。
-  final bool isLoading;
-
-  /// 打开成绩详情页。
-  final VoidCallback onOpenDetail;
-
   const AcademicEamsGradeCard({
     super.key,
     required this.result,
@@ -26,114 +10,137 @@ class AcademicEamsGradeCard extends StatelessWidget {
     required this.onOpenDetail,
   });
 
+  final AcademicEamsQueryResult? result;
+  final bool isLoading;
+  final VoidCallback onOpenDetail;
+
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final accent = context.fluentAccents.academic;
+    final theme = context.yhTheme;
     final snapshot = result?.snapshot?.grades;
-    final borderColor = context.fluentColors.neutralStroke1;
-
-    return Container(
+    return YhCard(
       key: const Key('academic-eams-grade-card'),
-      decoration: BoxDecoration(
-        color: theme.resources.controlAltFillColorSecondary,
-        borderRadius: context.fluentRadii.mediumBorder,
-        border: Border.all(color: borderColor),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _AcademicGradeCardHeader(
-              isLoading: isLoading,
-              accent: accent,
-              onOpenDetail: onOpenDetail,
-            ),
-            const SizedBox(height: FluentSpacing.m),
-            if (isLoading)
-              const Row(
-                children: [
-                  SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: FluentProgressRing(strokeWidth: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _AcademicGradeCardHeader(
+            isLoading: isLoading,
+            onOpenDetail: onOpenDetail,
+          ),
+          SizedBox(height: theme.spacing.m),
+          if (isLoading)
+            Row(
+              children: [
+                SizedBox(
+                  width: theme.spacing.xl2 * 2,
+                  child: const YhProgress(
+                    showPercent: false,
+                    semanticLabel: '正在读取成绩',
                   ),
-                  SizedBox(width: FluentSpacing.s),
-                  Text('正在读取成绩...'),
-                ],
-              )
-            else if (result == null)
-              Text('随本专科教务刷新读取成绩，或点击右上角查看详情。', style: theme.typography.body)
-            else if (result!.isSuccess && snapshot != null)
-              _AcademicGradeMetrics(
-                gpa: snapshot.weightedGpaForTerm(null),
-                courseCount: snapshot.allRecords.length,
-              )
-            else
-              FluentInfoBar(
-                title: Text(result!.message),
-                content: Text(result!.detail),
-                severity: _examSeverity(result!.status),
-              ),
-          ],
-        ),
+                ),
+                SizedBox(width: theme.spacing.s),
+                const Expanded(child: Text('正在读取成绩...')),
+              ],
+            )
+          else if (result == null)
+            Text(
+              '随本专科教务刷新读取成绩，或点击右上角查看详情。',
+              style: theme.typography.body.copyWith(color: theme.color.muted),
+            )
+          else if (result!.isSuccess && snapshot != null)
+            _AcademicGradeMetrics(
+              gpa: snapshot.weightedGpaForTerm(null),
+              courseCount: snapshot.allRecords.length,
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  result!.message,
+                  style: theme.typography.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: theme.spacing.s),
+                YhBanner(
+                  text: result!.detail,
+                  kind: _academicGradeBannerKind(result!.status),
+                ),
+              ],
+            ),
+        ],
       ),
     );
+  }
+
+  YhBannerKind _academicGradeBannerKind(AcademicEamsQueryStatus status) {
+    return switch (status) {
+      AcademicEamsQueryStatus.success => YhBannerKind.success,
+      AcademicEamsQueryStatus.partialSuccess ||
+      AcademicEamsQueryStatus.missingOaAccount ||
+      AcademicEamsQueryStatus.missingOaPassword ||
+      AcademicEamsQueryStatus.campusNetworkUnavailable => YhBannerKind.warn,
+      _ => YhBannerKind.danger,
+    };
   }
 }
 
 class _AcademicGradeCardHeader extends StatelessWidget {
   const _AcademicGradeCardHeader({
     required this.isLoading,
-    required this.accent,
     required this.onOpenDetail,
   });
 
   final bool isLoading;
-  final Color accent;
   final VoidCallback onOpenDetail;
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
+    final accent = theme.color.serviceAcademic;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FluentSurfaceIcon(
-          icon: FluentIcons.certificate,
-          color: accent,
-          size: 36,
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: theme.color.sunken,
+            border: Border.all(color: accent),
+            borderRadius: BorderRadius.circular(theme.radius.s),
+          ),
+          child: SizedBox.square(
+            dimension: theme.control.compact,
+            child: Icon(YhIcons.certificate, color: accent),
+          ),
         ),
-        const SizedBox(width: FluentSpacing.m),
+        SizedBox(width: theme.spacing.s),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '成绩',
-                style: theme.typography.subtitle?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+              Semantics(
+                header: true,
+                child: Text('成绩', style: theme.typography.h3),
               ),
-              const SizedBox(height: FluentSpacing.xxs),
+              SizedBox(height: theme.spacing.xs),
               Text(
                 isLoading ? '正在同步成绩' : '成绩与绩点',
-                style: theme.typography.caption?.copyWith(
-                  color: theme.resources.textFillColorSecondary,
+                style: theme.typography.caption.copyWith(
+                  color: theme.color.muted,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(width: FluentSpacing.s),
-        FluentIconButton(
-          key: const Key('academic-eams-grade-detail'),
-          icon: const Icon(FluentIcons.chevronRight),
-          tooltip: '查看成绩详情',
-          semanticLabel: '查看成绩详情',
-          appearance: FluentIconButtonAppearance.outline,
-          onPressed: onOpenDetail,
+        SizedBox(width: theme.spacing.s),
+        YhTooltip(
+          message: '查看成绩详情',
+          child: YhIconButton(
+            key: const Key('academic-eams-grade-detail'),
+            icon: YhIcons.chevronRight,
+            semanticLabel: '查看成绩详情',
+            onTap: onOpenDetail,
+          ),
         ),
       ],
     );
@@ -143,22 +150,16 @@ class _AcademicGradeCardHeader extends StatelessWidget {
 class _AcademicGradeMetrics extends StatelessWidget {
   const _AcademicGradeMetrics({required this.gpa, required this.courseCount});
 
-  /// 全部学期学分加权 GPA。
   final double? gpa;
-
-  /// 全部学期课程门数。
   final int courseCount;
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final accent = context.fluentAccents.academic;
+    final theme = context.yhTheme;
     if (courseCount == 0) {
       return Text(
         '当前账号暂无可展示的成绩。',
-        style: theme.typography.caption?.copyWith(
-          color: theme.resources.textFillColorSecondary,
-        ),
+        style: theme.typography.caption.copyWith(color: theme.color.muted),
       );
     }
     return Row(
@@ -167,16 +168,14 @@ class _AcademicGradeMetrics extends StatelessWidget {
           child: _AcademicGradeMetricTile(
             value: gpa == null ? '—' : gpa!.toStringAsFixed(2),
             label: '平均绩点 GPA',
-            accent: accent,
           ),
         ),
-        const SizedBox(width: FluentSpacing.s),
+        SizedBox(width: theme.spacing.s),
         Expanded(
           child: _AcademicGradeMetricTile(
             value: courseCount.toString(),
             suffix: '门',
             label: '成绩门数',
-            accent: accent,
           ),
         ),
       ],
@@ -184,90 +183,78 @@ class _AcademicGradeMetrics extends StatelessWidget {
   }
 }
 
-/// 成绩卡片单个指标块：醒目数值 + 说明标签。
 class _AcademicGradeMetricTile extends StatelessWidget {
   const _AcademicGradeMetricTile({
     required this.value,
     required this.label,
-    required this.accent,
     this.suffix = '',
   });
 
   final String value;
   final String label;
-  final Color accent;
   final String suffix;
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: FluentSpacing.m,
-        vertical: FluentSpacing.s,
-      ),
+    final theme = context.yhTheme;
+    final accent = theme.color.serviceAcademic;
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.08),
-        borderRadius: context.fluentRadii.mediumBorder,
-        border: Border.all(color: accent.withValues(alpha: 0.18)),
+        color: theme.color.sunken,
+        borderRadius: BorderRadius.circular(theme.radius.input),
+        border: Border.all(color: theme.color.border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Flexible(
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.typography.title?.copyWith(
-                    color: accent,
-                    fontWeight: FontWeight.w700,
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: theme.spacing.m,
+          vertical: theme.spacing.s,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Flexible(
+                  child: Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.typography.h2.copyWith(color: accent),
                   ),
                 ),
-              ),
-              if (suffix.isNotEmpty) ...[
-                const SizedBox(width: 2),
-                Text(
-                  suffix,
-                  style: theme.typography.caption?.copyWith(color: accent),
-                ),
+                if (suffix.isNotEmpty) ...[
+                  SizedBox(width: theme.spacing.xs),
+                  Text(
+                    suffix,
+                    style: theme.typography.caption.copyWith(color: accent),
+                  ),
+                ],
               ],
-            ],
-          ),
-          const SizedBox(height: FluentSpacing.xxs),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.typography.caption?.copyWith(
-              color: theme.resources.textFillColorSecondary,
             ),
-          ),
-        ],
+            SizedBox(height: theme.spacing.xs),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.typography.caption.copyWith(
+                color: theme.color.muted,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// 格式化学分：整数不保留小数，其余按原值展示。
-///
-/// :param value: 学分数值。
-/// :returns: 适合展示的学分文本。
 String _formatGradeCredit(double value) {
   if (value == value.roundToDouble()) return value.toStringAsFixed(0);
   return value.toString();
 }
 
-/// 成绩文本占位处理：空值回退为占位符。
-///
-/// :param value: 原始成绩字段文本。
-/// :param placeholder: 空值占位符，默认 "-"。
-/// :returns: 适合展示的成绩文本。
 String _gradeText(String? value, {String placeholder = '-'}) {
   final text = value?.trim() ?? '';
   return text.isEmpty ? placeholder : text;
