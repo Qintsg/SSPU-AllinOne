@@ -339,7 +339,7 @@ mixin _SettingsPageActions on State<SettingsPage> {
   void _openAcademicCalendar() {
     Navigator.of(
       context,
-    ).push(FluentPageRoute(builder: (_) => AcademicCalendarPage()));
+    ).push(YhPageRoute<void>(builder: (_) => AcademicCalendarPage()));
   }
 
   /// 修改勿扰开始时间。
@@ -541,29 +541,16 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
   /// 清理信息中心缓存。
   Future<void> _showClearMessageCacheDialog() async {
-    final confirmed = await showFluentDialog<bool>(
-      context: context,
-      builder: (ctx) => FluentDialog(
-        title: const Text('清理信息中心缓存'),
-        content: const FluentDialogMessage(
-          icon: FluentIcons.broom,
-          message: '将清除信息中心缓存的官网消息和微信公众号文章。',
-          details: '登录信息、设置和关注列表不会受到影响。点击弹窗外区域可取消本次操作。',
-        ),
-        actions: [
-          FluentButton.outline(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
-          ),
-          FluentButton.primary(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('确认清理'),
-          ),
-        ],
-      ),
+    final confirmed = await YhDialog.confirm(
+      context,
+      title: '清理信息中心缓存',
+      message:
+          '将清除信息中心缓存的官网消息和微信公众号文章。\n\n'
+          '登录信息、设置和关注列表不会受到影响。点击弹窗外区域可取消本次操作。',
+      confirmText: '确认清理',
     );
 
-    if (confirmed == true) {
+    if (confirmed) {
       await StorageService.remove(MessageChannelKeys.persistedMessages);
       await StorageService.remove(MessageChannelKeys.readMessageIds);
       if (!mounted) return;
@@ -577,30 +564,18 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
   /// 清除所有本地数据并退出。
   Future<void> _showClearAllDataDialog() async {
-    final confirmed = await showFluentDialog<bool>(
-      context: context,
-      builder: (ctx) => FluentDialog(
-        title: const Text('确认清除所有数据'),
-        content: const FluentDialogMessage(
-          icon: FluentIcons.delete,
-          tone: FluentDialogMessageTone.danger,
-          message: '将清除所有本地数据，包括登录信息、设置和缓存。',
-          details: '操作完成后应用会退出。点击弹窗外区域可取消本次操作。',
-        ),
-        actions: [
-          FluentButton.outline(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
-          ),
-          FluentButton.primary(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('确认清除并退出'),
-          ),
-        ],
-      ),
+    final confirmed = await YhDialog.confirm(
+      context,
+      title: '确认清除所有数据',
+      message:
+          '将清除所有本地数据，包括登录信息、设置和缓存。\n\n'
+          '操作完成后应用会退出。点击弹窗外区域可取消本次操作。',
+      confirmText: '确认清除并退出',
+      danger: true,
+      barrierDismissible: true,
     );
 
-    if (confirmed == true) {
+    if (confirmed) {
       try {
         await AcademicCredentialsService.instance.clearAll();
         await StorageService.clearAll();

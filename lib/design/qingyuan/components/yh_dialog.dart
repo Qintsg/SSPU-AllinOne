@@ -58,10 +58,11 @@ class YhDialog extends StatelessWidget {
     String confirmText = '确认',
     String cancelText = '取消',
     bool danger = false,
+    bool? barrierDismissible,
   }) async {
     final result = await show<bool>(
       context,
-      barrierDismissible: !danger,
+      barrierDismissible: barrierDismissible ?? !danger,
       barrierLabel: '关闭对话框',
       builder: (dialogContext) => YhDialog(
         title: title,

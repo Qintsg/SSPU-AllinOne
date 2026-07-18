@@ -8,7 +8,6 @@
 
 // ignore_for_file: use_build_context_synchronously
 
-import '../design/fluent_ui.dart';
 import '../design/qingyuan/qingyuan_ui.dart';
 
 import '../models/channel_config.dart';

@@ -184,6 +184,36 @@ void main() {
     expect(result, isFalse);
   });
 
+  testWidgets('高风险确认可显式允许点击遮罩取消', (tester) async {
+    bool? result;
+    await tester.pumpWidget(
+      YhApp(
+        home: Builder(
+          builder: (context) => YhButton(
+            label: '清除数据',
+            onTap: () async {
+              result = await YhDialog.confirm(
+                context,
+                title: '确认清除',
+                message: '将清除本地数据。',
+                danger: true,
+                barrierDismissible: true,
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('清除数据'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+
+    expect(find.text('确认清除'), findsNothing);
+    expect(result, isFalse);
+  });
+
   testWidgets('清源工具提示在鼠标悬停后通过 Overlay 展示', (tester) async {
     await tester.pumpWidget(
       const YhApp(
