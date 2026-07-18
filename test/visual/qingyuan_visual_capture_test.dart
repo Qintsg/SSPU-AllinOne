@@ -494,15 +494,15 @@ Future<void> _clearMailFeedback(WidgetTester tester) async {
 
 const _quickLinkGroups = <QuickLinkGroupConfig>[
   QuickLinkGroupConfig(
-    category: '学习与资源',
+    category: '学习与教务',
     items: [
       QuickLinkItemConfig(
-        name: '图书馆',
-        url: 'https://library.example.invalid',
-        icon: 'library',
+        name: '教务系统',
+        url: 'https://academic.example.invalid',
+        icon: 'education',
       ),
       QuickLinkItemConfig(
-        name: '在线教学平台',
+        name: '超星学习通',
         url: 'https://learning.example.invalid',
         icon: 'education',
       ),
@@ -512,14 +512,29 @@ const _quickLinkGroups = <QuickLinkGroupConfig>[
     category: '校园服务',
     items: [
       QuickLinkItemConfig(
-        name: '校园邮箱',
-        url: 'https://mail.example.invalid',
-        icon: 'mail',
+        name: '图书馆',
+        url: 'https://library.example.invalid',
+        icon: 'library',
       ),
       QuickLinkItemConfig(
-        name: '信息门户',
-        url: 'https://portal.example.invalid',
+        name: '校园卡服务',
+        url: 'https://card.example.invalid',
+        icon: 'finance',
+      ),
+    ],
+  ),
+  QuickLinkGroupConfig(
+    category: '学校信息',
+    items: [
+      QuickLinkItemConfig(
+        name: '学校官网',
+        url: 'https://www.example.invalid',
         icon: 'globe',
+      ),
+      QuickLinkItemConfig(
+        name: '统一身份认证',
+        url: 'https://sso.example.invalid',
+        icon: 'security',
       ),
     ],
   ),

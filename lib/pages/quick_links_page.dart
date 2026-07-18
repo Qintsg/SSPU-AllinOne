@@ -41,6 +41,13 @@ class _QuickLinksPageState extends State<QuickLinksPage> {
       widget.groupsLoader?.call() ??
       QuickLinksConfigService.instance.loadGroups();
 
+  void _retryLoad() {
+    final next = _loadGroups();
+    setState(() {
+      _groupsFuture = next;
+    });
+  }
+
   Future<void> _openUrl(String url) async {
     if (widget.onOpenUrl != null) {
       await widget.onOpenUrl!(url);
@@ -58,13 +65,25 @@ class _QuickLinksPageState extends State<QuickLinksPage> {
       future: _groupsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const _QuickLinksStatusPage(message: '正在读取快捷入口…');
+          return const _QuickLinksStatusPage(
+            title: '正在读取校园入口',
+            message: '正在加载本地快捷入口配置。',
+            loading: true,
+          );
         }
         if (snapshot.hasError || snapshot.data == null) {
           return _QuickLinksStatusPage(
-            message: '快捷跳转配置加载失败',
-            detail: '${snapshot.error ?? '配置为空'}',
-            danger: true,
+            title: '无法加载快捷入口',
+            message: '请检查本地配置文件后重试；已有收藏不会被删除。',
+            icon: YhIcons.info,
+            action: YhButton(label: '重试', onTap: _retryLoad),
+          );
+        }
+        if (snapshot.data!.isEmpty) {
+          return const _QuickLinksStatusPage(
+            title: '暂无快捷入口',
+            message: '当前配置没有可用的校园服务入口。',
+            icon: YhIcons.link,
           );
         }
         return _QuickLinksContent(groups: snapshot.data!, onOpenUrl: _openUrl);
@@ -75,28 +94,95 @@ class _QuickLinksPageState extends State<QuickLinksPage> {
 
 class _QuickLinksStatusPage extends StatelessWidget {
   const _QuickLinksStatusPage({
+    required this.title,
     required this.message,
-    this.detail,
-    this.danger = false,
+    this.icon,
+    this.action,
+    this.loading = false,
   });
 
+  final String title;
   final String message;
-  final String? detail;
-  final bool danger;
+  final IconData? icon;
+  final Widget? action;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     return YhPageScaffold(
-      appBar: const YhAppBar(title: '快速跳转'),
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.all(theme.spacing.m),
-          child: YhBanner(
-            text: detail == null ? message : '$message：$detail',
-            kind: danger ? YhBannerKind.danger : YhBannerKind.info,
-          ),
-        ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final padding = _quickLinksPagePadding(
+            theme,
+            MediaQuery.sizeOf(context).width,
+          );
+          return SingleChildScrollView(
+            padding: padding,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: theme.layout.pageContentWidth,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _QuickLinksHeader(),
+                    SizedBox(height: theme.spacing.l),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: theme.layout.popoverWidth + theme.spacing.xl,
+                      ),
+                      child: YhCard(
+                        child: Center(
+                          child: loading
+                              ? Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: theme.spacing.xl2 * 2,
+                                      child: const YhProgress(
+                                        showPercent: false,
+                                      ),
+                                    ),
+                                    SizedBox(width: theme.spacing.m),
+                                    Flexible(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            title,
+                                            style: theme.typography.h3,
+                                          ),
+                                          SizedBox(height: theme.spacing.xs),
+                                          Text(
+                                            message,
+                                            style: theme.typography.small
+                                                .copyWith(
+                                                  color: theme.color.muted,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : _QuickLinksStateMessage(
+                                  icon: icon ?? YhIcons.link,
+                                  title: title,
+                                  message: message,
+                                  action: action,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -181,39 +267,31 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
               ),
         },
         child: YhPageScaffold(
-          appBar: const YhAppBar(title: '快速跳转'),
+          appBar: null,
           body: LayoutBuilder(
             builder: (context, constraints) {
-              final pagePadding = constraints.maxWidth < theme.breakpoint.medium
-                  ? theme.spacing.m
-                  : constraints.maxWidth < theme.breakpoint.expanded
-                  ? theme.spacing.l
-                  : theme.spacing.xl;
+              final pagePadding = _quickLinksPagePadding(
+                theme,
+                MediaQuery.sizeOf(context).width,
+              );
               return SingleChildScrollView(
-                padding: EdgeInsets.all(pagePadding),
+                padding: pagePadding,
                 child: Center(
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      maxWidth: theme.breakpoint.expanded - theme.spacing.l,
+                      maxWidth: theme.layout.pageContentWidth,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildSearchBar(searchResults, hasSearchQuery),
+                        const _QuickLinksHeader(),
                         SizedBox(height: theme.spacing.l),
+                        _buildSearchBar(searchResults),
+                        SizedBox(height: theme.spacing.m),
                         if (hasSearchQuery)
-                          _buildSearchResults(
-                            searchResults,
-                            constraints.maxWidth,
-                          )
-                        else if (widget.groups.isEmpty)
-                          const YhEmptyState(
-                            icon: YhIcons.link,
-                            title: '暂无快捷入口',
-                            message: '当前没有可用的校园服务入口。',
-                          )
+                          _buildSearchResults(searchResults)
                         else
-                          _buildGroups(constraints.maxWidth),
+                          _buildGroups(),
                       ],
                     ),
                   ),
@@ -226,61 +304,14 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
     );
   }
 
-  Widget _buildSearchBar(
-    List<QuickLinkSearchResult> searchResults,
-    bool hasSearchQuery,
-  ) {
-    final theme = context.yhTheme;
-    return YhCard(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final field = YhTextField(
-            key: const Key('quick-links-search-field'),
-            controller: _searchController,
-            focusNode: _searchFocusNode,
-            label: '搜索快捷入口',
-            hint: '输入任务名称或网址',
-            prefixIcon: YhIcons.search,
-            suffix: hasSearchQuery
-                ? YhIconButton(
-                    icon: YhIcons.close,
-                    semanticLabel: '清除搜索',
-                    variant: YhIconButtonVariant.ghost,
-                    onTap: _clearSearch,
-                  )
-                : null,
-            onChanged: (value) => setState(() => _searchQuery = value),
-            onSubmitted: (_) => _openBestMatch(searchResults),
-          );
-          final button = YhButton(
-            key: const Key('quick-links-best-match'),
-            label: '打开最佳匹配',
-            leadingIcon: YhIcons.open,
-            onTap: searchResults.isEmpty
-                ? null
-                : () => _openBestMatch(searchResults),
-            disabled: searchResults.isEmpty,
-          );
-          if (constraints.maxWidth < theme.breakpoint.compact) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                field,
-                SizedBox(height: theme.spacing.s),
-                button,
-              ],
-            );
-          }
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(child: field),
-              SizedBox(width: theme.spacing.s),
-              button,
-            ],
-          );
-        },
-      ),
+  Widget _buildSearchBar(List<QuickLinkSearchResult> searchResults) {
+    return YhSearch(
+      key: const Key('quick-links-search-field'),
+      controller: _searchController,
+      focusNode: _searchFocusNode,
+      hint: '搜索教务、图书馆、学习平台',
+      onChanged: (value) => setState(() => _searchQuery = value),
+      onSubmitted: (_) => _openBestMatch(searchResults),
     );
   }
 
@@ -288,10 +319,7 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
     if (results.isNotEmpty) await widget.onOpenUrl(results.first.item.url);
   }
 
-  Widget _buildSearchResults(
-    List<QuickLinkSearchResult> results,
-    double width,
-  ) {
+  Widget _buildSearchResults(List<QuickLinkSearchResult> results) {
     final theme = context.yhTheme;
     if (results.isEmpty) {
       return YhCard(
@@ -332,70 +360,123 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
           style: theme.typography.h3.copyWith(color: theme.color.foreground),
         ),
         SizedBox(height: theme.spacing.s),
-        Wrap(
+        _buildDirectory([
+          for (final group in widget.groups)
+            if (results.any(
+              (result) => result.group.category == group.category,
+            ))
+              QuickLinkGroupConfig(
+                category: group.category,
+                items: [
+                  for (final result in results)
+                    if (result.group.category == group.category) result.item,
+                ],
+              ),
+        ]),
+      ],
+    );
+  }
+
+  Widget _buildGroups() {
+    return _buildDirectory(widget.groups);
+  }
+
+  Widget _buildDirectory(List<QuickLinkGroupConfig> groups) {
+    final theme = context.yhTheme;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final minimumCardWidth =
+            theme.layout.compactContentWidth + theme.spacing.l;
+        final columns =
+            constraints.maxWidth >= minimumCardWidth * 3 + theme.spacing.m * 2
+            ? 3
+            : constraints.maxWidth >= minimumCardWidth * 2 + theme.spacing.m
+            ? 2
+            : 1;
+        final width =
+            (constraints.maxWidth - theme.spacing.m * (columns - 1)) / columns;
+        return Wrap(
           spacing: theme.spacing.m,
           runSpacing: theme.spacing.m,
           children: [
-            for (final result in results)
-              _buildTile(
-                result.group,
-                result.item,
-                width,
-                subtitle: result.group.category,
+            for (final group in groups)
+              SizedBox(
+                key: ValueKey('quick-links-group-${group.category}'),
+                width: width,
+                child: YhCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        group.category,
+                        style: theme.typography.h3.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: theme.spacing.xs),
+                      Text(
+                        _categoryDescription(group.category),
+                        style: theme.typography.small.copyWith(
+                          color: theme.color.muted,
+                        ),
+                      ),
+                      SizedBox(height: theme.spacing.m + theme.spacing.xs),
+                      for (
+                        var index = 0;
+                        index < group.items.length;
+                        index++
+                      ) ...[
+                        if (index > 0) SizedBox(height: theme.spacing.xs),
+                        _QuickLinkDirectoryRow(
+                          item: group.items[index],
+                          icon: _resolveIcon(
+                            group.category,
+                            group.items[index],
+                          ),
+                          color: _resolveColor(
+                            group.category,
+                            group.items[index],
+                          ),
+                          description: _itemDescription(group.items[index]),
+                          favorite: _favoriteUrls.contains(
+                            group.items[index].url,
+                          ),
+                          onToggleFavorite: () =>
+                              _toggleFavorite(group.items[index]),
+                          onOpen: () =>
+                              widget.onOpenUrl(group.items[index].url),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 
-  Widget _buildGroups(double width) {
-    final theme = context.yhTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (var index = 0; index < widget.groups.length; index++) ...[
-          if (index > 0) SizedBox(height: theme.spacing.l),
-          Text(
-            widget.groups[index].category,
-            style: theme.typography.h3.copyWith(color: theme.color.foreground),
-          ),
-          SizedBox(height: theme.spacing.s),
-          Wrap(
-            spacing: theme.spacing.m,
-            runSpacing: theme.spacing.m,
-            children: [
-              for (final item in widget.groups[index].items)
-                _buildTile(widget.groups[index], item, width),
-            ],
-          ),
-        ],
-      ],
-    );
+  String _categoryDescription(String category) {
+    if (category.contains('学习') || category.contains('教务')) {
+      return '课程、考试与学习资源';
+    }
+    if (category.contains('服务') || category.contains('资源')) {
+      return '生活与公共资源';
+    }
+    return '办事与公开信息';
   }
 
-  Widget _buildTile(
-    QuickLinkGroupConfig group,
-    QuickLinkItemConfig item,
-    double availableWidth, {
-    String? subtitle,
-  }) {
-    final theme = context.yhTheme;
-    final width = availableWidth < theme.breakpoint.compact
-        ? (availableWidth - theme.spacing.m * 3) / 2
-        : availableWidth < theme.breakpoint.expanded
-        ? theme.breakpoint.compact / 4 - theme.spacing.s
-        : theme.control.regular * 3 + theme.spacing.m;
-    return YhQuickLink(
-      icon: _resolveIcon(group.category, item),
-      label: item.name,
-      subtitle: subtitle,
-      color: _resolveColor(group.category, item),
-      width: width,
-      favorite: _favoriteUrls.contains(item.url),
-      onToggleFavorite: () => _toggleFavorite(item),
-      onTap: () => widget.onOpenUrl(item.url),
-    );
+  String _itemDescription(QuickLinkItemConfig item) {
+    final name = item.name;
+    if (name.contains('教务')) return '成绩、选课与考试';
+    if (name.contains('学习') || name.contains('教学')) return '课程学习与作业';
+    if (name.contains('图书')) return '检索、借阅与续借';
+    if (name.contains('校园卡')) return '余额与消费记录';
+    if (name.contains('邮箱')) return '收发学校邮件';
+    if (name.contains('认证')) return '登录学校在线服务';
+    if (name.contains('官网')) return '通知与部门入口';
+    return '打开外部校园服务';
   }
 
   IconData _resolveIcon(String category, QuickLinkItemConfig item) {
@@ -431,6 +512,9 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
   Color _resolveColor(String category, QuickLinkItemConfig item) {
     final colors = context.yhTheme.color;
     final text = '$category ${item.name}';
+    if (item.name.contains('官网') || item.name.contains('认证')) {
+      return colors.serviceQuickLink;
+    }
     if (text.contains('财务') || text.contains('校园卡')) {
       return colors.serviceFinance;
     }
@@ -444,6 +528,224 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
   }
 }
 
+class _QuickLinkDirectoryRow extends StatelessWidget {
+  const _QuickLinkDirectoryRow({
+    required this.item,
+    required this.icon,
+    required this.color,
+    required this.description,
+    required this.favorite,
+    required this.onToggleFavorite,
+    required this.onOpen,
+  });
+
+  final QuickLinkItemConfig item;
+  final IconData icon;
+  final Color color;
+  final String description;
+  final bool favorite;
+  final VoidCallback onToggleFavorite;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return Row(
+      children: [
+        Expanded(
+          child: YhPressable(
+            semanticLabel: '打开${item.name}',
+            onPressed: onOpen,
+            builder: (context, state, child) => Container(
+              padding: EdgeInsets.fromLTRB(
+                theme.spacing.s,
+                theme.spacing.s,
+                0,
+                theme.spacing.s,
+              ),
+              decoration: BoxDecoration(
+                color: state.hovered || state.focused
+                    ? theme.color.sunken
+                    : null,
+                borderRadius: BorderRadius.circular(theme.radius.input),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: theme.control.regular - theme.spacing.xs,
+                    height: theme.control.regular - theme.spacing.xs,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(theme.radius.input),
+                    ),
+                    child: Icon(icon, size: theme.spacing.l, color: color),
+                  ),
+                  SizedBox(width: theme.spacing.xs),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.typography.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(height: theme.spacing.xs),
+                        Text(
+                          description,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.typography.caption.copyWith(
+                            color: theme.color.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    YhIcons.open,
+                    size: theme.spacing.m,
+                    color: theme.color.muted,
+                  ),
+                ],
+              ),
+            ),
+            child: const SizedBox.shrink(),
+          ),
+        ),
+        YhIconButton(
+          icon: favorite ? YhIcons.favoriteFilled : YhIcons.favorite,
+          semanticLabel: favorite ? '取消收藏${item.name}' : '收藏${item.name}',
+          variant: YhIconButtonVariant.ghost,
+          onTap: onToggleFavorite,
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickLinksStateMessage extends StatelessWidget {
+  const _QuickLinksStateMessage({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.action,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    final compactGap = theme.spacing.xs + theme.layout.divider * 2;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: theme.spacing.l),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ExcludeSemantics(
+            child: Container(
+              width: theme.control.regular,
+              height: theme.control.regular,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: theme.color.brandTint,
+                borderRadius: BorderRadius.circular(theme.radius.m),
+              ),
+              child: Icon(
+                icon,
+                size: theme.spacing.l,
+                color: theme.color.brandStrong,
+              ),
+            ),
+          ),
+          SizedBox(height: compactGap),
+          Semantics(
+            header: true,
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: theme.typography.h3.copyWith(
+                color: theme.color.foreground,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          SizedBox(height: compactGap),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: theme.layout.statusProgressWidth,
+            ),
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: theme.typography.small.copyWith(color: theme.color.muted),
+            ),
+          ),
+          if (action != null) ...[SizedBox(height: theme.spacing.s), action!],
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickLinksHeader extends StatelessWidget {
+  const _QuickLinksHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '快速跳转',
+          style: theme.typography.caption.copyWith(
+            color: theme.color.brandInk,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: theme.spacing.xs),
+        Semantics(
+          header: true,
+          child: Text('常用校园入口', style: theme.typography.h1),
+        ),
+        SizedBox(height: theme.spacing.s),
+        Text(
+          '名称使用学生熟悉的任务语言；跳转前明确外部网站与当前登录要求。',
+          style: theme.typography.body.copyWith(color: theme.color.muted),
+        ),
+      ],
+    );
+  }
+}
+
 class _FocusQuickLinkSearchIntent extends Intent {
   const _FocusQuickLinkSearchIntent();
+}
+
+EdgeInsets _quickLinksPagePadding(YhTheme theme, double viewportWidth) {
+  if (viewportWidth < theme.breakpoint.medium) {
+    return EdgeInsets.symmetric(
+      horizontal: theme.spacing.m,
+      vertical: theme.spacing.l + theme.spacing.s,
+    );
+  }
+  final progress =
+      ((viewportWidth - theme.breakpoint.medium) /
+              (theme.breakpoint.expanded - theme.breakpoint.medium))
+          .clamp(0.0, 1.0);
+  final horizontal =
+      theme.spacing.xl + (theme.spacing.xl2 - theme.spacing.xl) * progress;
+  return EdgeInsets.symmetric(
+    horizontal: horizontal,
+    vertical: theme.spacing.xl + theme.spacing.s,
+  );
 }
