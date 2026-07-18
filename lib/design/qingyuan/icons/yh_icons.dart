@@ -58,4 +58,6 @@ class YhIcons {
   static const IconData megaphone = system.FluentIcons.megaphone_24_regular;
   static const IconData news = system.FluentIcons.news_24_regular;
   static const IconData people = system.FluentIcons.people_24_regular;
+  static const IconData certificate = system.FluentIcons.certificate_24_regular;
+  static const IconData task = system.FluentIcons.clipboard_task_24_regular;
 }

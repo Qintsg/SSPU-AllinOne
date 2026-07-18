@@ -6,9 +6,7 @@
  * @Date : 2026-04-27
  */
 
-import '../design/fluent_ui.dart';
-
-import '../theme/app_spacing.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import 'settings_widgets.dart';
 
 part 'settings_auto_refresh_rows.dart';
@@ -127,95 +125,93 @@ class SettingsAutoRefreshSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildCampusNetworkIntervalCard(context),
-        const SizedBox(height: AppSpacing.lg),
+        SizedBox(height: theme.spacing.l),
         _buildRefreshShortcutCard(context),
       ],
     );
   }
 
   Widget _buildCampusNetworkIntervalCard(BuildContext context) {
-    final type = context.fluentType;
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: AppSpacing.cardPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Semantics(header: true, child: Text('自动刷新设置', style: type.subtitle1)),
-            const SizedBox(height: AppSpacing.md),
-            buildResponsiveSettingsRow(
-              context: context,
-              icon: FluentIcons.power,
-              title: Text('校园网 / VPN 状态检测', style: type.body1Strong),
-              subtitle: Text(
-                '控制导航栏状态徽标的自动检测频率；关闭后仍可点击徽标手动检测',
-                style: type.caption1,
-              ),
-              trailing: _buildIntervalComboBox(),
+    final theme = context.yhTheme;
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            header: true,
+            child: Text('自动刷新设置', style: theme.typography.h3),
+          ),
+          SizedBox(height: theme.spacing.m),
+          buildResponsiveSettingsRow(
+            context: context,
+            icon: YhIcons.networkVpn,
+            title: _title(context, '校园网 / VPN 状态检测'),
+            subtitle: Text(
+              '控制导航栏状态徽标的自动检测频率；关闭后仍可点击徽标手动检测',
+              style: theme.typography.small.copyWith(color: theme.color.muted),
             ),
-            const SizedBox(height: AppSpacing.md),
-            _buildSportsAttendanceAutoRefreshRow(context),
-            const SizedBox(height: AppSpacing.md),
-            _buildCampusCardAutoRefreshRow(context),
-            const SizedBox(height: AppSpacing.md),
-            _buildEmailAutoRefreshRow(context),
-            const SizedBox(height: AppSpacing.md),
-            _buildStudentReportAutoRefreshRow(context),
-            const SizedBox(height: AppSpacing.md),
-            _buildAcademicEamsAutoRefreshRow(context),
-          ],
-        ),
+            trailing: _buildIntervalComboBox(),
+          ),
+          SizedBox(height: theme.spacing.m),
+          _buildSportsAttendanceAutoRefreshRow(context),
+          SizedBox(height: theme.spacing.m),
+          _buildCampusCardAutoRefreshRow(context),
+          SizedBox(height: theme.spacing.m),
+          _buildEmailAutoRefreshRow(context),
+          SizedBox(height: theme.spacing.m),
+          _buildStudentReportAutoRefreshRow(context),
+          SizedBox(height: theme.spacing.m),
+          _buildAcademicEamsAutoRefreshRow(context),
+        ],
       ),
     );
   }
 
   Widget _buildRefreshShortcutCard(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: AppSpacing.cardPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Semantics(header: true, child: Text('消息自动刷新快捷入口', style: type.subtitle1)),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              '以下入口会跳转到对应分区顶部的自动刷新设置面板。',
-              style: type.caption1.copyWith(color: colors.neutralForeground2),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildShortcutRow(
-              context: context,
-              icon: FluentIcons.education,
-              title: '职能部门',
-              description: '配置职能部门官网消息的自动刷新频率和抓取条数',
-              onPressed: onOpenDepartmentRefreshSettings,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildShortcutRow(
-              context: context,
-              icon: FluentIcons.library,
-              title: '教学单位',
-              description: '配置学院、中心等教学单位消息的自动刷新频率和抓取条数',
-              onPressed: onOpenTeachingRefreshSettings,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildShortcutRow(
-              context: context,
-              icon: FluentIcons.chat,
-              title: '微信推文',
-              description: '配置公众号平台推文的自动刷新频率和抓取条数',
-              onPressed: onOpenWechatRefreshSettings,
-            ),
-          ],
-        ),
+    final theme = context.yhTheme;
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            header: true,
+            child: Text('消息自动刷新快捷入口', style: theme.typography.h3),
+          ),
+          SizedBox(height: theme.spacing.s),
+          Text(
+            '以下入口会跳转到对应分区顶部的自动刷新设置面板。',
+            style: theme.typography.small.copyWith(color: theme.color.muted),
+          ),
+          SizedBox(height: theme.spacing.m),
+          _buildShortcutRow(
+            context: context,
+            icon: YhIcons.education,
+            title: '职能部门',
+            description: '配置职能部门官网消息的自动刷新频率和抓取条数',
+            onPressed: onOpenDepartmentRefreshSettings,
+          ),
+          SizedBox(height: theme.spacing.m),
+          _buildShortcutRow(
+            context: context,
+            icon: YhIcons.library,
+            title: '教学单位',
+            description: '配置学院、中心等教学单位消息的自动刷新频率和抓取条数',
+            onPressed: onOpenTeachingRefreshSettings,
+          ),
+          SizedBox(height: theme.spacing.m),
+          _buildShortcutRow(
+            context: context,
+            icon: YhIcons.chat,
+            title: '微信推文',
+            description: '配置公众号平台推文的自动刷新频率和抓取条数',
+            onPressed: onOpenWechatRefreshSettings,
+          ),
+        ],
       ),
     );
   }
@@ -228,17 +224,14 @@ class SettingsAutoRefreshSection extends StatelessWidget {
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 180),
-      child: FluentSelect<int>(
-        isExpanded: true,
+      child: YhSelect<int>(
+        label: '校园网检测间隔',
+        showLabel: false,
         value: selectedValue,
-        items: kIntervalOptions.entries
-            .map(
-              (entry) => FluentSelectItem<int>(
-                value: entry.key,
-                child: Text(entry.value),
-              ),
-            )
-            .toList(),
+        options: [
+          for (final entry in kIntervalOptions.entries)
+            YhSelectOption<int>(value: entry.key, label: entry.value),
+        ],
         onChanged: (value) {
           if (value != null) {
             onCampusNetworkDetectionIntervalChanged(value);
@@ -255,16 +248,28 @@ class SettingsAutoRefreshSection extends StatelessWidget {
     required String description,
     required VoidCallback onPressed,
   }) {
-    final type = context.fluentType;
     return buildResponsiveSettingsRow(
       context: context,
       icon: icon,
-      title: Text(title, style: type.body1Strong),
-      subtitle: Text(description, style: type.caption1),
-      trailing: FluentButton.outline(
-        onPressed: onPressed,
-        child: const Text('前往设置'),
+      title: _title(context, title),
+      subtitle: Text(
+        description,
+        style: context.yhTheme.typography.small.copyWith(
+          color: context.yhTheme.color.muted,
+        ),
+      ),
+      trailing: YhButton(
+        label: '前往设置',
+        onTap: onPressed,
+        variant: YhButtonVariant.secondary,
       ),
     );
   }
+
+  Widget _title(BuildContext context, String text) => Text(
+    text,
+    style: context.yhTheme.typography.body.copyWith(
+      fontWeight: FontWeight.w600,
+    ),
+  );
 }
