@@ -17,21 +17,35 @@ class StudentReportDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FluentPage.scrollable(
-      header: FluentPageHeader(
-        title: const Text('第二课堂详情'),
-        commandBar: FluentButton.outline(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('返回'),
+    final theme = context.yhTheme;
+    return YhPageScaffold(
+      appBar: YhAppBar(
+        title: '第二课堂详情',
+        leading: YhIconButton(
+          icon: YhIcons.back,
+          semanticLabel: '返回',
+          onTap: () => Navigator.of(context).pop(),
         ),
       ),
-      children: [
-        _SecondClassroomTotalsPanel(summary: summary),
-        const SizedBox(height: FluentSpacing.m),
-        _SecondClassroomDetailRecordsPanel(summary: summary),
-        const SizedBox(height: FluentSpacing.m),
-        _SecondClassroomRuleMatrix(summary: summary),
-      ],
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(theme.spacing.m),
+        child: Align(
+          alignment: AlignmentDirectional.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _SecondClassroomTotalsPanel(summary: summary),
+                SizedBox(height: theme.spacing.m),
+                _SecondClassroomDetailRecordsPanel(summary: summary),
+                SizedBox(height: theme.spacing.m),
+                _SecondClassroomRuleMatrix(summary: summary),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -43,15 +57,21 @@ class _SecondClassroomTotalsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     final categories = _categoryProgressList(summary);
     return LayoutBuilder(
       builder: (context, constraints) {
+        final narrow =
+            constraints.maxWidth <
+            theme.breakpoint.compact + theme.control.compact;
         return _SecondClassroomCompactSummary(
           summary: summary,
           categories: categories,
           title: '总计',
-          metricMinWidth: constraints.maxWidth < 640 ? 96 : 112,
-          categoryColumns: constraints.maxWidth < 640 ? 1 : 2,
+          metricMinWidth: narrow
+              ? theme.spacing.xl2 * 2
+              : theme.spacing.xl2 * 2 + theme.spacing.m,
+          categoryColumns: narrow ? 1 : 2,
         );
       },
     );
@@ -74,6 +94,7 @@ class _SecondClassroomDetailRecordsPanelState
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     final details = widget.summary.detailRecords;
     const headers = ['名称', '类别', '项目', '等级', '参与情况', '获得积分'];
     if (details.isNotEmpty) {
@@ -81,7 +102,8 @@ class _SecondClassroomDetailRecordsPanelState
         title: '已获积分详情',
         expanded: _expanded,
         onToggle: _toggleExpanded,
-        minTableWidth: 840,
+        minTableWidth:
+            theme.breakpoint.medium + theme.spacing.xl2 + theme.spacing.l,
         headers: headers,
         rows: [
           for (final detail in details)
@@ -102,7 +124,7 @@ class _SecondClassroomDetailRecordsPanelState
         title: '已获积分详情',
         expanded: _expanded,
         onToggle: _toggleExpanded,
-        minTableWidth: 760,
+        minTableWidth: theme.breakpoint.medium - theme.spacing.s,
         headers: headers,
         rows: const [],
         emptyMessage: '暂无已获积分详情。',
@@ -113,7 +135,7 @@ class _SecondClassroomDetailRecordsPanelState
       title: '已获积分详情',
       expanded: _expanded,
       onToggle: _toggleExpanded,
-      minTableWidth: 760,
+      minTableWidth: theme.breakpoint.medium - theme.spacing.s,
       headers: headers,
       rows: [
         for (final record in widget.summary.records)
@@ -155,31 +177,28 @@ class _CollapsibleReportRowsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _CollapsiblePanelHeader(
-              title: title,
-              expanded: expanded,
-              onToggle: onToggle,
-            ),
-            if (expanded) ...[
-              const SizedBox(height: FluentSpacing.m),
-              if (rows.isEmpty)
-                _InlineEmptyState(message: emptyMessage ?? '暂无数据。')
-              else
-                _ResponsiveReportRows(
-                  headers: headers,
-                  rows: rows,
-                  minTableWidth: minTableWidth,
-                ),
-            ],
+    final theme = context.yhTheme;
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CollapsiblePanelHeader(
+            title: title,
+            expanded: expanded,
+            onToggle: onToggle,
+          ),
+          if (expanded) ...[
+            SizedBox(height: theme.spacing.m),
+            if (rows.isEmpty)
+              _InlineEmptyState(message: emptyMessage ?? '暂无数据。')
+            else
+              _ResponsiveReportRows(
+                headers: headers,
+                rows: rows,
+                minTableWidth: minTableWidth,
+              ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -198,22 +217,26 @@ class _CollapsiblePanelHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        FluentIconButton(
-          key: const Key('academic-student-report-detail-collapse'),
-          icon: Icon(
-            expanded ? FluentIcons.chevronDown : FluentIcons.chevronRight,
+        YhTooltip(
+          message: expanded ? '收起已获积分详情' : '展开已获积分详情',
+          child: AnimatedRotation(
+            turns: expanded ? 0.25 : 0,
+            duration: theme.motion.base,
+            curve: theme.motion.curve,
+            child: YhIconButton(
+              key: const Key('academic-student-report-detail-collapse'),
+              icon: YhIcons.chevronRight,
+              semanticLabel: expanded ? '收起已获积分详情' : '展开已获积分详情',
+              onTap: onToggle,
+            ),
           ),
-          tooltip: expanded ? '收起已获积分详情' : '展开已获积分详情',
-          size: 28,
-          iconSize: 16,
-          onPressed: onToggle,
         ),
-        const SizedBox(width: FluentSpacing.xs),
-        Text(title, style: theme.typography.bodyStrong),
+        SizedBox(width: theme.spacing.xs),
+        Text(title, style: theme.typography.h3),
       ],
     );
   }
@@ -232,9 +255,11 @@ class _ResponsiveReportRows extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 640) {
+        if (constraints.maxWidth <
+            theme.breakpoint.compact + theme.control.compact) {
           return _ReportRecordList(headers: headers, rows: rows);
         }
         return SingleChildScrollView(
@@ -261,19 +286,17 @@ class _ReportDesktopTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     return Table(
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
       border: TableBorder.all(color: _reportTableBorderColor(context)),
       columnWidths: {
         for (var index = 0; index < headers.length; index++)
-          index: _columnWidthFor(index),
+          index: _columnWidthFor(index, theme),
       },
       children: [
         TableRow(
-          decoration: BoxDecoration(
-            color: theme.resources.controlAltFillColorSecondary,
-          ),
+          decoration: BoxDecoration(color: theme.color.sunken),
           children: [
             for (final header in headers)
               _TableCellText(header, header: true, alignCenter: true),
@@ -293,13 +316,16 @@ class _ReportDesktopTable extends StatelessWidget {
     );
   }
 
-  TableColumnWidth _columnWidthFor(int index) {
+  TableColumnWidth _columnWidthFor(int index, YhTheme theme) {
     if (headers.length == 6) {
       return switch (index) {
         0 => const FlexColumnWidth(1.5),
-        1 || 2 => const FixedColumnWidth(132),
-        3 || 4 => const FixedColumnWidth(116),
-        5 => const FixedColumnWidth(104),
+        1 || 2 => FixedColumnWidth(
+          theme.control.regular * 3 - theme.spacing.s - theme.spacing.xs,
+        ),
+        3 ||
+        4 => FixedColumnWidth(theme.control.compact * 3 - theme.spacing.xs),
+        5 => FixedColumnWidth(theme.spacing.xl2 * 2 + theme.spacing.s),
         _ => const FlexColumnWidth(),
       };
     }
@@ -315,11 +341,12 @@ class _ReportRecordList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     final borderColor = _reportTableBorderColor(context);
     return DecoratedBox(
       decoration: BoxDecoration(
         border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(context.fluentRadii.medium),
+        borderRadius: BorderRadius.circular(theme.radius.input),
       ),
       child: Column(
         children: [
@@ -342,18 +369,21 @@ class _ReportRecordListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     final title = row.isEmpty ? '-' : _emptyAsDash(row.first);
     return Padding(
-      padding: const EdgeInsets.all(FluentSpacing.m),
+      padding: EdgeInsets.all(theme.spacing.m),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: theme.typography.bodyStrong),
-          const SizedBox(height: FluentSpacing.s),
+          Text(
+            title,
+            style: theme.typography.body.copyWith(fontWeight: FontWeight.w600),
+          ),
+          SizedBox(height: theme.spacing.s),
           Wrap(
-            spacing: FluentSpacing.l,
-            runSpacing: FluentSpacing.s,
+            spacing: theme.spacing.l,
+            runSpacing: theme.spacing.s,
             children: [
               for (var index = 1; index < headers.length; index++)
                 _ReportRecordField(
@@ -376,20 +406,22 @@ class _ReportRecordField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 96, maxWidth: 220),
+      constraints: BoxConstraints(
+        minWidth: theme.spacing.xl2 * 2,
+        maxWidth:
+            theme.breakpoint.compact / 3 + theme.spacing.m + theme.spacing.xs,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             label,
-            style: theme.typography.caption?.copyWith(
-              color: theme.resources.textFillColorSecondary,
-            ),
+            style: theme.typography.caption.copyWith(color: theme.color.muted),
           ),
-          const SizedBox(height: FluentSpacing.xxs),
+          SizedBox(height: theme.spacing.xs),
           Text(_emptyAsDash(value), style: theme.typography.body),
         ],
       ),
@@ -410,19 +442,18 @@ class _TableCellText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final baseStyle = header
-        ? theme.typography.bodyStrong
-        : theme.typography.body;
+    final theme = context.yhTheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: FluentSpacing.s,
-        vertical: FluentSpacing.s,
+      padding: EdgeInsets.symmetric(
+        horizontal: theme.spacing.s,
+        vertical: theme.spacing.s,
       ),
       child: Text(
         _emptyAsDash(text),
         textAlign: alignCenter ? TextAlign.center : TextAlign.start,
-        style: baseStyle?.copyWith(fontWeight: header ? FontWeight.w700 : null),
+        style: theme.typography.body.copyWith(
+          fontWeight: header ? FontWeight.w700 : null,
+        ),
       ),
     );
   }
@@ -435,18 +466,16 @@ class _InlineEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     return Text(
       message,
-      style: theme.typography.caption?.copyWith(
-        color: theme.resources.textFillColorSecondary,
-      ),
+      style: theme.typography.caption.copyWith(color: theme.color.muted),
     );
   }
 }
 
 Color _reportTableBorderColor(BuildContext context) {
-  return context.fluentColors.neutralStroke1;
+  return context.yhTheme.color.border;
 }
 
 class _EmptyPanel extends StatelessWidget {
@@ -457,24 +486,18 @@ class _EmptyPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: theme.typography.bodyStrong),
-            const SizedBox(height: FluentSpacing.s),
-            Text(
-              message,
-              style: theme.typography.caption?.copyWith(
-                color: theme.resources.textFillColorSecondary,
-              ),
-            ),
-          ],
-        ),
+    final theme = context.yhTheme;
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.typography.h3),
+          SizedBox(height: theme.spacing.s),
+          Text(
+            message,
+            style: theme.typography.caption.copyWith(color: theme.color.muted),
+          ),
+        ],
       ),
     );
   }
