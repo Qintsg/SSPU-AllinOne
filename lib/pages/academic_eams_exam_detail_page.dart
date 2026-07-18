@@ -85,6 +85,7 @@ class _AcademicEamsExamDetailPageState
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     final snapshot = _result?.snapshot?.exams;
     final records = snapshot?.records ?? const <AcademicExamRecord>[];
     final semesterOptions = _academicExamSemesterOptions(
@@ -101,160 +102,178 @@ class _AcademicEamsExamDetailPageState
     final years = _academicExamAvailableYears(semesterOptions, currentTerm);
     final seasons = _academicExamAvailableSeasons(semesterOptions, currentTerm);
 
-    return FluentPage.scrollable(
-      header: FluentPageHeader(
-        title: const Text('考试安排详情'),
-        commandBar: FluentButton.outline(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('返回'),
+    return YhPageScaffold(
+      appBar: YhAppBar(
+        title: '考试安排详情',
+        leading: YhButton(
+          label: '返回',
+          leadingIcon: YhIcons.back,
+          variant: YhButtonVariant.text,
+          onTap: () => Navigator.of(context).pop(),
         ),
       ),
-      children: [
-        _AcademicExamSummaryBanner(
-          scopeLabel: currentTerm?.label ?? '考试安排',
-          examTypeLabel: snapshot?.selectedExamTypeLabel,
-          totalCount: records.length,
-          scheduledCount: records
-              .where((record) => record.hasScheduledExamDate)
-              .length,
-        ),
-        const SizedBox(height: FluentSpacing.m),
-        FluentSurface(
-          padding: const EdgeInsets.all(FluentSpacing.l),
-          child: Wrap(
-            spacing: FluentSpacing.s,
-            runSpacing: FluentSpacing.s,
-            crossAxisAlignment: WrapCrossAlignment.end,
-            children: [
-              _AcademicExamDropdownField<int>(
-                key: const Key('academic-eams-exam-year-select'),
-                label: '学年',
-                width: 190,
-                value: currentTerm?.academicYear,
-                placeholder: '等待全局学期',
-                items: [
-                  for (final year in years)
-                    _AcademicExamDropdownItem<int>(
-                      key: Key('academic-eams-exam-year-option-$year'),
-                      value: year,
-                      label: _academicExamYearLabel(year),
-                    ),
-                ],
-                onChanged: _isLoading || currentTerm == null || years.isEmpty
-                    ? null
-                    : (year) => _handleYearChanged(
-                        year,
-                        semesterOptions,
-                        currentTerm,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(theme.spacing.m),
+        child: Align(
+          alignment: AlignmentDirectional.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _AcademicExamSummaryBanner(
+                  scopeLabel: currentTerm?.label ?? '考试安排',
+                  examTypeLabel: snapshot?.selectedExamTypeLabel,
+                  totalCount: records.length,
+                  scheduledCount: records
+                      .where((record) => record.hasScheduledExamDate)
+                      .length,
+                ),
+                SizedBox(height: theme.spacing.m),
+                YhCard(
+                  child: Wrap(
+                    spacing: theme.spacing.s,
+                    runSpacing: theme.spacing.s,
+                    crossAxisAlignment: WrapCrossAlignment.end,
+                    children: [
+                      _AcademicExamDropdownField<int>(
+                        key: const Key('academic-eams-exam-year-select'),
+                        label: '学年',
+                        width:
+                            theme.breakpoint.compact / 3 -
+                            theme.spacing.s -
+                            theme.spacing.xs / 2,
+                        value: currentTerm?.academicYear,
+                        placeholder: '等待全局学期',
+                        items: [
+                          for (final year in years)
+                            _AcademicExamDropdownItem<int>(
+                              key: Key('academic-eams-exam-year-option-$year'),
+                              value: year,
+                              label: _academicExamYearLabel(year),
+                            ),
+                        ],
+                        onChanged:
+                            _isLoading || currentTerm == null || years.isEmpty
+                            ? null
+                            : (year) => _handleYearChanged(
+                                year,
+                                semesterOptions,
+                                currentTerm,
+                              ),
                       ),
-              ),
-              _AcademicExamDropdownField<AcademicTermSeason>(
-                key: const Key('academic-eams-exam-season-select'),
-                label: '学期',
-                width: 180,
-                value: currentTerm?.season,
-                placeholder: '等待全局学期',
-                items: [
-                  for (final season in seasons)
-                    _AcademicExamDropdownItem<AcademicTermSeason>(
-                      key: Key(
-                        'academic-eams-exam-season-option-${season.name}',
+                      _AcademicExamDropdownField<AcademicTermSeason>(
+                        key: const Key('academic-eams-exam-season-select'),
+                        label: '学期',
+                        width:
+                            theme.breakpoint.compact / 3 -
+                            theme.spacing.l +
+                            theme.spacing.xs,
+                        value: currentTerm?.season,
+                        placeholder: '等待全局学期',
+                        items: [
+                          for (final season in seasons)
+                            _AcademicExamDropdownItem<AcademicTermSeason>(
+                              key: Key(
+                                'academic-eams-exam-season-option-${season.name}',
+                              ),
+                              value: season,
+                              label: season.label,
+                            ),
+                        ],
+                        onChanged: _isLoading || currentTerm == null
+                            ? null
+                            : (season) => _handleTermChanged(
+                                currentTerm.copyWith(season: season),
+                              ),
                       ),
-                      value: season,
-                      label: season.label,
-                    ),
-                ],
-                onChanged: _isLoading || currentTerm == null
-                    ? null
-                    : (season) => _handleTermChanged(
-                        currentTerm.copyWith(season: season),
+                      _AcademicExamDropdownField<String>(
+                        key: const Key('academic-eams-exam-type-select'),
+                        label: '考试类型',
+                        width:
+                            theme.breakpoint.compact / 3 -
+                            theme.spacing.l +
+                            theme.spacing.xs,
+                        value: _examTypeOptions.containsKey(_selectedExamType)
+                            ? _selectedExamType
+                            : _examTypeOptions.keys.first,
+                        placeholder: '考试类型',
+                        items: [
+                          for (final entry in _examTypeOptions.entries)
+                            _AcademicExamDropdownItem<String>(
+                              key: Key(
+                                'academic-eams-exam-type-option-${entry.key}',
+                              ),
+                              value: entry.key,
+                              label: entry.value,
+                            ),
+                        ],
+                        onChanged: _isLoading
+                            ? null
+                            : (type) =>
+                                  setState(() => _selectedExamType = type),
                       ),
-              ),
-              _AcademicExamDropdownField<String>(
-                key: const Key('academic-eams-exam-type-select'),
-                label: '考试类型',
-                width: 180,
-                value: _examTypeOptions.containsKey(_selectedExamType)
-                    ? _selectedExamType
-                    : _examTypeOptions.keys.first,
-                placeholder: '考试类型',
-                items: [
-                  for (final entry in _examTypeOptions.entries)
-                    _AcademicExamDropdownItem<String>(
-                      key: Key('academic-eams-exam-type-option-${entry.key}'),
-                      value: entry.key,
-                      label: entry.value,
-                    ),
-                ],
-                onChanged: _isLoading
-                    ? null
-                    : (type) => setState(() => _selectedExamType = type),
-              ),
-              SizedBox(
-                height: 48,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: FluentButton.primaryIcon(
-                    key: const Key('academic-eams-exam-detail-search'),
-                    onPressed: _isLoading ? null : _loadExamSchedule,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: FluentProgressRing(strokeWidth: 2),
-                          )
-                        : const Icon(FluentIcons.search, size: 14),
-                    label: const Text('搜索'),
+                      SizedBox(
+                        height: theme.control.regular,
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: YhButton(
+                            key: const Key('academic-eams-exam-detail-search'),
+                            label: _isLoading ? '搜索中' : '搜索',
+                            leadingIcon: _isLoading ? null : YhIcons.search,
+                            onTap: _isLoading ? null : _loadExamSchedule,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                SizedBox(height: theme.spacing.m),
+                if (_isLoading && _result == null)
+                  YhCard(
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: theme.spacing.xl2 * 2,
+                          child: const YhProgress(showPercent: false),
+                        ),
+                        SizedBox(width: theme.spacing.s),
+                        const Expanded(child: Text('正在读取考试安排...')),
+                      ],
+                    ),
+                  )
+                else if (_result == null)
+                  const YhBanner(text: '尚未读取考试安排：选择学年和学期后点击“搜索”即可只读获取考试安排。')
+                else if (!_result!.isSuccess || snapshot == null)
+                  YhCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(_result!.message, style: theme.typography.h3),
+                        SizedBox(height: theme.spacing.s),
+                        YhBanner(
+                          text: _result!.detail,
+                          kind: _examBannerKind(_result!.status),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  YhCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('完整内容', style: theme.typography.h3),
+                        SizedBox(height: theme.spacing.m),
+                        _AcademicExamTable(records: records),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: FluentSpacing.m),
-        if (_isLoading && _result == null)
-          const FluentSurface(
-            padding: EdgeInsets.all(FluentSpacing.xl),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: FluentProgressRing(strokeWidth: 2),
-                ),
-                SizedBox(width: FluentSpacing.s),
-                Text('正在读取考试安排...'),
-              ],
-            ),
-          )
-        else if (_result == null)
-          const FluentInfoBar(
-            title: Text('尚未读取考试安排'),
-            content: Text('选择学年和学期后点击“搜索”即可只读获取考试安排。'),
-            severity: FluentInfoSeverity.info,
-          )
-        else if (!_result!.isSuccess || snapshot == null)
-          FluentInfoBar(
-            title: Text(_result!.message),
-            content: Text(_result!.detail),
-            severity: _examSeverity(_result!.status),
-          )
-        else
-          FluentSurface(
-            padding: const EdgeInsets.all(FluentSpacing.l),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '完整内容',
-                  style: FluentTheme.of(context).typography.bodyStrong,
-                ),
-                const SizedBox(height: FluentSpacing.m),
-                _AcademicExamTable(records: records),
-              ],
-            ),
-          ),
-      ],
+      ),
     );
   }
 
@@ -362,7 +381,7 @@ class _AcademicExamDropdownField<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     final enabled = onChanged != null && items.isNotEmpty;
 
     return SizedBox(
@@ -372,23 +391,23 @@ class _AcademicExamDropdownField<T> extends StatelessWidget {
         children: [
           Text(
             label,
-            style: theme.typography.caption?.copyWith(
-              color: theme.resources.textFillColorSecondary,
-            ),
+            style: theme.typography.caption.copyWith(color: theme.color.muted),
           ),
-          const SizedBox(height: FluentSpacing.xs),
-          FluentSelect<T>(
+          SizedBox(height: theme.spacing.xs),
+          YhSelect<T>(
+            label: label,
+            showLabel: false,
             value: value,
-            isExpanded: true,
-            placeholder: Text(placeholder),
-            items: [
+            hint: placeholder,
+            options: [
               for (final item in items)
-                FluentSelectItem<T>(
+                YhSelectOption<T>(
                   key: item.key,
                   value: item.value,
-                  child: Text(item.label),
+                  label: item.label,
                 ),
             ],
+            enabled: enabled,
             onChanged: enabled
                 ? (selected) {
                     if (selected != null) onChanged?.call(selected);
@@ -419,42 +438,34 @@ class _AcademicExamSummaryBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final accent = context.fluentAccents.academic;
+    final theme = context.yhTheme;
+    final accent = theme.color.serviceAcademic;
     final type = examTypeLabel ?? '期末考试';
     final summary = totalCount == 0
         ? '$scopeLabel · $type · 暂无考试'
         : scheduledCount == 0
         ? '$scopeLabel · $type · $totalCount 门待公布时间'
         : '$scopeLabel · $type · 共 $totalCount 门，$scheduledCount 门已排期';
-    return FluentSurface(
-      accentColor: accent,
-      padding: const EdgeInsets.all(FluentSpacing.l),
+    return YhCard(
       child: Row(
         children: [
-          FluentSurfaceIcon(
-            icon: FluentIcons.calendar,
-            color: accent,
-            size: 36,
+          SizedBox.square(
+            dimension: theme.control.compact,
+            child: Icon(YhIcons.calendar, color: accent),
           ),
-          const SizedBox(width: FluentSpacing.m),
+          SizedBox(width: theme.spacing.m),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '考试汇总',
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
+                  style: theme.typography.caption.copyWith(
+                    color: theme.color.muted,
                   ),
                 ),
-                const SizedBox(height: FluentSpacing.xxs),
-                Text(
-                  summary,
-                  style: theme.typography.subtitle?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                SizedBox(height: theme.spacing.xs),
+                Text(summary, style: theme.typography.h3),
               ],
             ),
           ),

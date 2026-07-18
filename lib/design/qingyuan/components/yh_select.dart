@@ -8,8 +8,9 @@ import '../icons/yh_icons.dart';
 import '../theme/yh_theme.dart';
 
 class YhSelectOption<T> {
-  const YhSelectOption({required this.value, required this.label});
+  const YhSelectOption({this.key, required this.value, required this.label});
 
+  final Key? key;
   final T value;
   final String label;
 }
@@ -156,6 +157,7 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
                         index += 1
                       )
                         _SelectMenuItem<T>(
+                          key: widget.options[index].key,
                           option: widget.options[index],
                           selected: widget.options[index].value == widget.value,
                           highlighted: index == _highlighted,
@@ -265,6 +267,7 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
 
 class _SelectMenuItem<T> extends StatelessWidget {
   const _SelectMenuItem({
+    super.key,
     required this.option,
     required this.selected,
     required this.highlighted,
