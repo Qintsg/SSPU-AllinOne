@@ -7,6 +7,9 @@
  */
 
 import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:url_launcher/url_launcher.dart';
 
 import '../controllers/card_auto_refresh_controller.dart';
 import '../design/qingyuan/qingyuan_ui.dart';
@@ -16,12 +19,14 @@ import '../models/academic_eams.dart';
 import '../models/email_mailbox.dart';
 import '../models/message_item.dart';
 import '../models/sports_attendance.dart';
+import '../models/student_report.dart';
 import '../services/academic_credentials_service.dart';
 import '../services/academic_eams_service.dart';
 import '../services/campus_card_service.dart';
 import '../services/campus_network_status_service.dart';
 import '../services/email_service.dart';
 import '../services/message_state_service.dart';
+import '../services/quick_links_config_service.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/storage_service.dart';
 import '../services/student_report_service.dart';
@@ -34,6 +39,9 @@ part 'home_dashboard_view.dart';
 
 /// 首页校园卡概览的确定性展示状态，仅用于视觉 fixture 与状态回归测试。
 enum HomeCampusCardDisplayState { loading, content, empty, stale, error }
+
+/// 首页整体的确定性展示状态，用于缓存生命周期与视觉回归。
+enum HomeDashboardDisplayState { initial, loading, content, stale, error }
 
 /// 主页
 /// 展示欢迎信息与最新消息列表
@@ -68,6 +76,12 @@ class HomePage extends StatefulWidget {
   /// 测试专用：固定首页下一项倒计时文案。
   final int? homeCountdownMinutesOverride;
 
+  /// 测试专用：按课程名固定时间轨显示时刻，不改变课程合法节次。
+  final Map<String, String>? homeCourseTimeOverrides;
+
+  /// 测试专用：覆盖首页整体状态并停止从异步加载推断状态。
+  final HomeDashboardDisplayState? dashboardDisplayStateOverride;
+
   /// 测试专用：直接注入首页课表缓存，跳过异步本地读取。
   final AcademicEamsQueryResult? courseTableResultOverride;
 
@@ -79,6 +93,12 @@ class HomePage extends StatefulWidget {
 
   /// 测试专用：直接注入首页邮箱缓存。
   final EmailMailboxQueryResult? emailResultOverride;
+
+  /// 测试专用：直接注入首页第二课堂缓存。
+  final StudentReportQueryResult? studentReportResultOverride;
+
+  /// 测试专用：直接注入首页常用入口。
+  final List<QuickLinkItemConfig>? quickLinkFavoritesOverride;
 
   /// 本专科教务服务，测试中可替换为 fake。
   final AcademicEamsClient? academicEamsService;
@@ -107,10 +127,14 @@ class HomePage extends StatefulWidget {
     this.messagesOverride,
     this.homeUpdatedAtOverride,
     this.homeCountdownMinutesOverride,
+    this.homeCourseTimeOverrides,
+    this.dashboardDisplayStateOverride,
     this.courseTableResultOverride,
     this.academicOverviewResultOverride,
     this.sportsAttendanceResultOverride,
     this.emailResultOverride,
+    this.studentReportResultOverride,
+    this.quickLinkFavoritesOverride,
     this.academicEamsService,
     this.sportsAttendanceService,
     this.studentReportService,
@@ -131,12 +155,18 @@ class _HomePageState extends State<HomePage> {
   AcademicEamsQueryResult? _academicOverviewResult;
   SportsAttendanceQueryResult? _sportsAttendanceResult;
   EmailMailboxQueryResult? _emailResult;
+  StudentReportQueryResult? _studentReportResult;
+  List<QuickLinkItemConfig> _quickLinkFavorites = const [];
+  bool _dashboardCachesLoading = false;
+  Object? _dashboardCacheError;
   bool _studentProfileCardVisible = true;
   bool _campusCardCardVisible = true;
   bool _todayCoursesTileVisible = true;
   bool _sportsAttendanceTileVisible = true;
+  bool _studentReportTileVisible = true;
   bool _messagesTileVisible = true;
   bool _emailTileVisible = true;
+  bool _quickLinksTileVisible = true;
   late final CardAutoRefreshController<CampusCardQueryResult>
   _campusCardRefreshController;
   StreamSubscription<int>? _credentialChangeSubscription;
@@ -151,6 +181,10 @@ class _HomePageState extends State<HomePage> {
 
   SportsAttendanceClient get _sportsAttendanceService {
     return widget.sportsAttendanceService ?? SportsAttendanceService.instance;
+  }
+
+  StudentReportClient get _studentReportService {
+    return widget.studentReportService ?? StudentReportService.instance;
   }
 
   EmailMailboxClient get _emailService {
@@ -174,6 +208,8 @@ class _HomePageState extends State<HomePage> {
     _academicOverviewResult = widget.academicOverviewResultOverride;
     _sportsAttendanceResult = widget.sportsAttendanceResultOverride;
     _emailResult = widget.emailResultOverride;
+    _studentReportResult = widget.studentReportResultOverride;
+    _quickLinkFavorites = widget.quickLinkFavoritesOverride ?? const [];
     _credentialChangeSubscription = AcademicCredentialsService.instance.changes
         .listen((_) {
           _clearAuthenticatedState();
@@ -191,10 +227,12 @@ class _HomePageState extends State<HomePage> {
     } else {
       _loadCampusCardAutoRefreshSettings();
     }
-    if (widget.courseTableResultOverride == null &&
-        widget.academicOverviewResultOverride == null &&
-        widget.sportsAttendanceResultOverride == null &&
-        widget.emailResultOverride == null) {
+    if (widget.courseTableResultOverride == null ||
+        widget.academicOverviewResultOverride == null ||
+        widget.sportsAttendanceResultOverride == null ||
+        widget.emailResultOverride == null ||
+        widget.studentReportResultOverride == null ||
+        widget.quickLinkFavoritesOverride == null) {
       _loadDashboardCaches();
     }
   }
@@ -213,6 +251,8 @@ class _HomePageState extends State<HomePage> {
       _academicOverviewResult = null;
       _sportsAttendanceResult = null;
       _emailResult = null;
+      _studentReportResult = null;
+      _quickLinkFavorites = const [];
     });
   }
 
@@ -242,6 +282,14 @@ class _HomePageState extends State<HomePage> {
       StorageKeys.homeEmailTileVisible,
       defaultValue: true,
     );
+    final studentReportVisible = await StorageService.getBool(
+      StorageKeys.homeStudentReportTileVisible,
+      defaultValue: true,
+    );
+    final quickLinksVisible = await StorageService.getBool(
+      StorageKeys.homeQuickLinksTileVisible,
+      defaultValue: true,
+    );
     if (!mounted) return;
     setState(() {
       _studentProfileCardVisible = visible;
@@ -250,6 +298,8 @@ class _HomePageState extends State<HomePage> {
       _sportsAttendanceTileVisible = sportsAttendanceVisible;
       _messagesTileVisible = messagesVisible;
       _emailTileVisible = emailVisible;
+      _studentReportTileVisible = studentReportVisible;
+      _quickLinksTileVisible = quickLinksVisible;
     });
   }
 
@@ -265,19 +315,68 @@ class _HomePageState extends State<HomePage> {
 
   /// 读取首页仪表盘其它磁贴所需的本地缓存。
   Future<void> _loadDashboardCaches() async {
-    final results = await Future.wait<Object?>([
-      _academicEamsService.readLatestCachedCourseTable(),
-      _academicEamsService.readLatestCachedOverview(),
-      _sportsAttendanceService.readLatestCachedAttendanceSummary(),
-      _emailService.readLatestCachedMessages(EmailProtocol.imap),
-    ]);
-    if (!mounted) return;
-    setState(() {
-      _courseTableResult = results[0] as AcademicEamsQueryResult?;
-      _academicOverviewResult = results[1] as AcademicEamsQueryResult?;
-      _sportsAttendanceResult = results[2] as SportsAttendanceQueryResult?;
-      _emailResult = results[3] as EmailMailboxQueryResult?;
-    });
+    _dashboardCachesLoading = true;
+    _dashboardCacheError = null;
+    try {
+      final results = await Future.wait<Object?>([
+        widget.courseTableResultOverride == null
+            ? _academicEamsService.readLatestCachedCourseTable()
+            : Future.value(widget.courseTableResultOverride),
+        widget.academicOverviewResultOverride == null
+            ? _academicEamsService.readLatestCachedOverview()
+            : Future.value(widget.academicOverviewResultOverride),
+        widget.sportsAttendanceResultOverride == null
+            ? _sportsAttendanceService.readLatestCachedAttendanceSummary()
+            : Future.value(widget.sportsAttendanceResultOverride),
+        widget.emailResultOverride == null
+            ? _emailService.readLatestCachedMessages(EmailProtocol.imap)
+            : Future.value(widget.emailResultOverride),
+        widget.studentReportResultOverride == null
+            ? _studentReportService.readLatestCachedSecondClassroomCredits()
+            : Future.value(widget.studentReportResultOverride),
+        widget.quickLinkFavoritesOverride == null
+            ? _loadQuickLinkFavorites()
+            : Future.value(widget.quickLinkFavoritesOverride),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _courseTableResult = results[0] as AcademicEamsQueryResult?;
+        _academicOverviewResult = results[1] as AcademicEamsQueryResult?;
+        _sportsAttendanceResult = results[2] as SportsAttendanceQueryResult?;
+        _emailResult = results[3] as EmailMailboxQueryResult?;
+        _studentReportResult = results[4] as StudentReportQueryResult?;
+        _quickLinkFavorites =
+            (results[5] as List<QuickLinkItemConfig>?) ?? const [];
+        _dashboardCachesLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _dashboardCachesLoading = false;
+        _dashboardCacheError = error;
+      });
+    }
+  }
+
+  Future<List<QuickLinkItemConfig>> _loadQuickLinkFavorites() async {
+    try {
+      final groups = await QuickLinksConfigService.instance.loadGroups();
+      final allItems = groups.expand((group) => group.items).toList();
+      final favoriteUrls = await StorageService.getStringList(
+        StorageKeys.quickLinkFavoriteUrls,
+      );
+      if (favoriteUrls.isNotEmpty) {
+        final favorites = [
+          for (final url in favoriteUrls)
+            for (final item in allItems)
+              if (item.url == url) item,
+        ];
+        if (favorites.isNotEmpty) return favorites.take(6).toList();
+      }
+      return allItems.take(6).toList();
+    } catch (_) {
+      return const [];
+    }
   }
 
   /// 读取校园卡自动刷新设置；默认不主动访问 OA / 校园卡系统。

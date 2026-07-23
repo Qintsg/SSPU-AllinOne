@@ -38,8 +38,25 @@ extension _HomeDashboardView on _HomePageState {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _buildHomeHeading(theme, compact: mobile),
-                      _buildHomeStatusRow(theme),
-                      _buildHomePrimaryLayout(theme, constraints.maxWidth),
+                      if (_homeDashboardDisplayState ==
+                              HomeDashboardDisplayState.content ||
+                          _homeDashboardDisplayState ==
+                              HomeDashboardDisplayState.stale) ...[
+                        _buildHomeStatusRow(theme),
+                        if (_homeDashboardDisplayState ==
+                            HomeDashboardDisplayState.stale) ...[
+                          YhBanner(
+                            key: const Key('home-dashboard-stale-banner'),
+                            text:
+                                '当前显示 ${_latestHomeUpdate == null ? '较早' : _formatHomeTime(_latestHomeUpdate!)} 的本地首页缓存；部分校园服务可能已更新。',
+                            kind: YhBannerKind.warn,
+                          ),
+                          SizedBox(height: theme.spacing.m),
+                        ],
+                        _buildHomePrimaryLayout(theme, constraints.maxWidth),
+                        _buildHomeUtilityDock(theme, constraints.maxWidth),
+                      ] else
+                        _buildHomeStatePanel(theme, _homeDashboardDisplayState),
                     ],
                   ),
                 ),
@@ -47,6 +64,149 @@ extension _HomeDashboardView on _HomePageState {
             ),
           );
         },
+      ),
+    );
+  }
+
+  HomeDashboardDisplayState get _homeDashboardDisplayState {
+    final override = widget.dashboardDisplayStateOverride;
+    if (override != null) return override;
+    if (_dashboardCachesLoading) return HomeDashboardDisplayState.loading;
+    if (_dashboardCacheError != null) {
+      return _hasHomeCacheData
+          ? HomeDashboardDisplayState.stale
+          : HomeDashboardDisplayState.error;
+    }
+    if (!_hasHomeCacheData) return HomeDashboardDisplayState.initial;
+    final updatedAt = _latestHomeUpdate;
+    final now = widget.nowOverride ?? DateTime.now();
+    if (updatedAt != null &&
+        now.difference(updatedAt) >= const Duration(hours: 1)) {
+      return HomeDashboardDisplayState.stale;
+    }
+    return HomeDashboardDisplayState.content;
+  }
+
+  bool get _hasHomeCacheData =>
+      _campusCardResult != null ||
+      _courseTableResult != null ||
+      _academicOverviewResult != null ||
+      _sportsAttendanceResult != null ||
+      _studentReportResult != null ||
+      _emailResult != null ||
+      _latestMessages.isNotEmpty;
+
+  Widget _buildHomeStatePanel(YhTheme theme, HomeDashboardDisplayState state) {
+    final content = switch (state) {
+      HomeDashboardDisplayState.initial => _buildHomeStateMessage(
+        theme,
+        icon: YhIcons.calendar,
+        title: '尚未整理今天',
+        message: '先读取本机缓存；只有主动刷新时才访问校园服务。',
+        action: YhButton(label: '读取首页数据', onTap: _refreshHome),
+      ),
+      HomeDashboardDisplayState.loading => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Semantics(
+            label: '正在整理首页数据',
+            child: ExcludeSemantics(
+              child: SizedBox.square(
+                dimension: theme.control.compact,
+                child: CustomPaint(painter: _HomeLoadingPainter(theme)),
+              ),
+            ),
+          ),
+          SizedBox(width: theme.spacing.m),
+          Flexible(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('正在整理今天', style: theme.typography.h3),
+                SizedBox(height: theme.spacing.xs),
+                Text(
+                  '正在汇总固定的脱敏课程、待办与校园服务数据。',
+                  style: theme.typography.body.copyWith(
+                    color: theme.color.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      HomeDashboardDisplayState.error => _buildHomeStateMessage(
+        theme,
+        icon: YhIcons.warning,
+        title: '无法更新首页数据',
+        message: '请检查账户与网络后重试；已有本地缓存不会被删除。',
+        action: YhButton(label: '重试', onTap: _refreshHome),
+      ),
+      HomeDashboardDisplayState.content ||
+      HomeDashboardDisplayState.stale => const SizedBox.shrink(),
+    };
+    return YhCard(
+      key: ValueKey('home-dashboard-state-${state.name}'),
+      padding: EdgeInsets.zero,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: theme.layout.popoverWidth + theme.spacing.xl,
+        ),
+        child: Center(child: content),
+      ),
+    );
+  }
+
+  Widget _buildHomeStateMessage(
+    YhTheme theme, {
+    required IconData icon,
+    required String title,
+    required String message,
+    required Widget action,
+  }) {
+    return Padding(
+      padding: EdgeInsets.all(theme.spacing.l),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.color.brandTint,
+              borderRadius: BorderRadius.circular(theme.radius.m),
+            ),
+            child: SizedBox.square(
+              dimension: theme.control.regular,
+              child: Icon(
+                icon,
+                size: theme.spacing.xl,
+                color: theme.color.brandStrong,
+              ),
+            ),
+          ),
+          SizedBox(height: theme.spacing.s),
+          Semantics(
+            header: true,
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: theme.typography.h3,
+            ),
+          ),
+          SizedBox(height: theme.spacing.s),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: theme.layout.statusProgressWidth,
+            ),
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: theme.typography.body.copyWith(color: theme.color.muted),
+            ),
+          ),
+          SizedBox(height: theme.spacing.s),
+          action,
+        ],
       ),
     );
   }
@@ -359,6 +519,158 @@ extension _HomeDashboardView on _HomePageState {
     );
   }
 
+  Widget _buildHomeUtilityDock(YhTheme theme, double width) {
+    if (!_studentReportTileVisible && !_quickLinksTileVisible) {
+      return const SizedBox.shrink();
+    }
+    final stacked =
+        width <=
+        theme.breakpoint.medium +
+            theme.layout.inlineControlWidth -
+            theme.spacing.xl2;
+    final children = <Widget>[
+      if (_studentReportTileVisible) _buildSecondClassroomCard(theme),
+      if (_quickLinksTileVisible) _buildQuickLinksCard(theme),
+    ];
+    final content = stacked || children.length == 1
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var index = 0; index < children.length; index++) ...[
+                children[index],
+                if (index < children.length - 1)
+                  SizedBox(height: theme.spacing.m),
+              ],
+            ],
+          )
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: theme.responsive.homeSecondaryFlex,
+                child: children.first,
+              ),
+              SizedBox(width: theme.spacing.m),
+              Expanded(
+                flex: theme.responsive.homePrimaryFlex,
+                child: children.last,
+              ),
+            ],
+          );
+    return Padding(
+      key: const Key('home-utility-dock'),
+      padding: EdgeInsets.only(top: theme.spacing.m),
+      child: content,
+    );
+  }
+
+  Widget _buildSecondClassroomCard(YhTheme theme) {
+    final totals = _studentReportResult?.summary?.totals;
+    final earned = totals?.totalEarnedCredit;
+    final required = totals?.totalRequiredCredit;
+    final percent = earned == null || required == null || required <= 0
+        ? null
+        : ((earned / required) * 100).round();
+    final detail = earned == null || required == null
+        ? '第二课堂学分尚未读取'
+        : '已获 ${_compactNumber(earned)} / 必修 ${_compactNumber(required)} 学分';
+    return _HomeOverviewCard(
+      key: const Key('home-second-classroom-tile'),
+      icon: YhIcons.academic,
+      color: theme.color.serviceSecondClass,
+      title: '第二课堂',
+      detail: detail,
+      value: percent == null ? '未读取' : '$percent%',
+    );
+  }
+
+  Widget _buildQuickLinksCard(YhTheme theme) {
+    final favorites = _quickLinkFavorites.take(3).toList(growable: false);
+    return YhCard(
+      key: const Key('home-quick-links-tile'),
+      semanticLabel: '常用入口',
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < theme.breakpoint.compact;
+          final heading = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '常用入口',
+                style: theme.typography.caption.copyWith(
+                  color: theme.color.brandInk,
+                  fontWeight: theme.typography.semibold,
+                ),
+              ),
+              SizedBox(height: theme.spacing.xs),
+              Text('从今天直接出发', style: theme.typography.h3),
+            ],
+          );
+          final actions = favorites.isEmpty
+              ? Text(
+                  '还没有可用入口，可在“跳转”中收藏常用校园服务。',
+                  style: theme.typography.small.copyWith(
+                    color: theme.color.muted,
+                  ),
+                )
+              : Wrap(
+                  spacing: theme.spacing.s,
+                  runSpacing: theme.spacing.s,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    for (final item in favorites)
+                      _HomeQuickLinkButton(
+                        label: item.name,
+                        icon: _quickLinkIcon(item),
+                        onTap: () => unawaited(_openQuickLink(item)),
+                      ),
+                  ],
+                );
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                heading,
+                SizedBox(height: theme.spacing.m),
+                actions,
+              ],
+            );
+          }
+          return Row(
+            children: [
+              heading,
+              SizedBox(width: theme.spacing.l),
+              Expanded(
+                child: Align(alignment: Alignment.centerRight, child: actions),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  IconData _quickLinkIcon(QuickLinkItemConfig item) {
+    return switch (item.icon?.trim()) {
+      'security' => YhIcons.lock,
+      'library' => YhIcons.library,
+      'education' => YhIcons.academic,
+      'mail' => YhIcons.mail,
+      'finance' => YhIcons.finance,
+      'globe' => YhIcons.globe,
+      _ when item.name.contains('认证') => YhIcons.lock,
+      _ when item.name.contains('图书') => YhIcons.library,
+      _ => YhIcons.globe,
+    };
+  }
+
+  Future<void> _openQuickLink(QuickLinkItemConfig item) async {
+    final uri = Uri.tryParse(item.url);
+    if (uri == null || uri.host.isEmpty) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   Widget _buildProgramOverviewCard(YhTheme theme) {
     final completion = _academicOverviewResult?.snapshot?.programCompletion;
     final completed = completion?.completedCredits;
@@ -410,7 +722,11 @@ extension _HomeDashboardView on _HomePageState {
     final entries = <_HomeTimelineEntry>[
       if (_todayCoursesTileVisible)
         for (final course in _todayCourseEntries)
-          _HomeTimelineEntry.course(course, now),
+          _HomeTimelineEntry.course(
+            course,
+            now,
+            timeOverride: widget.homeCourseTimeOverrides?[course.courseName],
+          ),
       if (_messagesTileVisible)
         for (final message in _latestMessages.take(1))
           _HomeTimelineEntry.message(message, now),
@@ -428,6 +744,7 @@ extension _HomeDashboardView on _HomePageState {
       _academicOverviewResult?.checkedAt,
       _sportsAttendanceResult?.checkedAt,
       _emailResult?.checkedAt,
+      _studentReportResult?.checkedAt,
     ].whereType<DateTime>().toList(growable: false);
     if (values.isEmpty) return null;
     values.sort();
@@ -549,6 +866,60 @@ class _HomeOverviewCard extends StatelessWidget {
   }
 }
 
+class _HomeQuickLinkButton extends StatelessWidget {
+  const _HomeQuickLinkButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return YhPressable(
+      semanticLabel: label,
+      onPressed: onTap,
+      builder: (context, state, child) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: state.hovered ? theme.color.brandTint : theme.color.surface,
+          border: Border.all(
+            color: state.hovered ? theme.color.brand : theme.color.border,
+            width: theme.layout.divider,
+          ),
+          borderRadius: BorderRadius.circular(theme.radius.input),
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: theme.control.regular,
+            minWidth: theme.control.minimumTarget,
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: theme.spacing.m),
+            child: child,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: theme.spacing.l - theme.spacing.xs,
+            color: theme.color.foreground,
+          ),
+          SizedBox(width: theme.spacing.s),
+          Text(label, style: theme.typography.body),
+        ],
+      ),
+    );
+  }
+}
+
 class _HomeTimelineEntry {
   const _HomeTimelineEntry({
     required this.time,
@@ -560,10 +931,11 @@ class _HomeTimelineEntry {
 
   factory _HomeTimelineEntry.course(
     AcademicCourseTableEntry course,
-    DateTime now,
-  ) {
+    DateTime now, {
+    String? timeOverride,
+  }) {
     final period = CoursePeriodTable.standard.periodOf(course.startUnit);
-    final time = period?.startTime ?? course.timeText;
+    final time = timeOverride ?? period?.startTime ?? course.timeText;
     final minuteOfDay = _parseMinuteOfDay(time);
     return _HomeTimelineEntry(
       time: time,
@@ -803,4 +1175,35 @@ class _HomeTimelineTrackPainter extends CustomPainter {
         last != oldDelegate.last ||
         theme != oldDelegate.theme;
   }
+}
+
+class _HomeLoadingPainter extends CustomPainter {
+  const _HomeLoadingPainter(this.theme);
+
+  final YhTheme theme;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final strokeWidth = theme.spacing.xs;
+    final center = size.center(Offset.zero);
+    final radius = (size.shortestSide - strokeWidth) / 2;
+    final bounds = Rect.fromCircle(center: center, radius: radius);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(center, radius, paint..color = theme.color.brandTint);
+    canvas.drawArc(
+      bounds,
+      -math.pi / 2,
+      math.pi * 1.5,
+      false,
+      paint..color = theme.color.brandStrong,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_HomeLoadingPainter oldDelegate) =>
+      oldDelegate.theme != theme;
 }

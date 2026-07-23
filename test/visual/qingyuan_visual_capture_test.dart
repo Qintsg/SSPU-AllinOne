@@ -238,8 +238,33 @@ final _surfaces = <_VisualSurface>[
   _VisualSurface('components.domain', _domainPanel),
   _VisualSurface(
     'home.dashboard',
-    () => _homeCampusCardPage(HomeCampusCardDisplayState.content),
+    () => _homeDashboardPage(HomeDashboardDisplayState.initial),
+    state: 'initial',
+    destination: '主页',
+  ),
+  _VisualSurface(
+    'home.dashboard',
+    () => _homeDashboardPage(HomeDashboardDisplayState.loading),
+    state: 'loading',
+    destination: '主页',
+  ),
+  _VisualSurface(
+    'home.dashboard',
+    () => _homeDashboardPage(HomeDashboardDisplayState.content),
     prepare: _prepareHomeDashboard,
+    destination: '主页',
+  ),
+  _VisualSurface(
+    'home.dashboard',
+    () => _homeDashboardPage(HomeDashboardDisplayState.stale),
+    state: 'stale',
+    prepare: _prepareHomeDashboard,
+    destination: '主页',
+  ),
+  _VisualSurface(
+    'home.dashboard',
+    () => _homeDashboardPage(HomeDashboardDisplayState.error),
+    state: 'error',
     destination: '主页',
   ),
   _VisualSurface(
@@ -459,7 +484,34 @@ final _surfaces = <_VisualSurface>[
   ),
 ];
 
-Widget _homeCampusCardPage(HomeCampusCardDisplayState state) {
+const _qingyuanHomeQuickLinks = <QuickLinkItemConfig>[
+  QuickLinkItemConfig(
+    name: '统一身份认证',
+    url: 'https://oa.example.invalid/',
+    icon: 'security',
+  ),
+  QuickLinkItemConfig(
+    name: '图书馆',
+    url: 'https://library.example.invalid/',
+    icon: 'library',
+  ),
+  QuickLinkItemConfig(
+    name: '学校官网',
+    url: 'https://www.example.invalid/',
+    icon: 'globe',
+  ),
+];
+
+Widget _homeDashboardPage(HomeDashboardDisplayState state) =>
+    _homeCampusCardPage(
+      HomeCampusCardDisplayState.content,
+      dashboardState: state,
+    );
+
+Widget _homeCampusCardPage(
+  HomeCampusCardDisplayState state, {
+  HomeDashboardDisplayState dashboardState = HomeDashboardDisplayState.content,
+}) {
   final result = switch (state) {
     HomeCampusCardDisplayState.empty => qingyuanCampusCardEmptyResult,
     HomeCampusCardDisplayState.stale => qingyuanCampusCardStaleResult,
@@ -477,7 +529,9 @@ Widget _homeCampusCardPage(HomeCampusCardDisplayState state) {
     sportsAttendanceService: QingyuanVisualSportsAttendanceClient(
       qingyuanHomeSportsResult,
     ),
-    studentReportService: const QingyuanVisualStudentReportClient(),
+    studentReportService: QingyuanVisualStudentReportClient(
+      qingyuanHomeStudentReportResult,
+    ),
     emailService: QingyuanVisualEmailClient(
       cachedResult: qingyuanHomeEmailResult,
     ),
@@ -489,10 +543,14 @@ Widget _homeCampusCardPage(HomeCampusCardDisplayState state) {
     messagesOverride: qingyuanHomeMessages,
     homeUpdatedAtOverride: DateTime(2026, 7, 18, 8, 42),
     homeCountdownMinutesOverride: 42,
+    homeCourseTimeOverrides: const {'数据结构': '10:00'},
+    dashboardDisplayStateOverride: dashboardState,
     courseTableResultOverride: qingyuanHomeAcademicResult,
     academicOverviewResultOverride: qingyuanHomeAcademicResult,
     sportsAttendanceResultOverride: qingyuanHomeSportsResult,
     emailResultOverride: qingyuanHomeEmailResult,
+    studentReportResultOverride: qingyuanHomeStudentReportResult,
+    quickLinkFavoritesOverride: _qingyuanHomeQuickLinks,
   );
 }
 

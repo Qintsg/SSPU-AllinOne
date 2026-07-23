@@ -39,18 +39,21 @@ class YhBottomNav extends StatelessWidget {
       ),
       child: SizedBox(
         height: theme.layout.bottomNavigationHeight,
-        child: Row(
-          children: [
-            for (var itemIndex = 0; itemIndex < items.length; itemIndex++)
-              Expanded(
-                child: _YhNavigationButton(
-                  item: items[itemIndex],
-                  selected: itemIndex == index,
-                  onPressed: () => onChanged(itemIndex),
-                  horizontal: false,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: theme.spacing.s),
+          child: Row(
+            children: [
+              for (var itemIndex = 0; itemIndex < items.length; itemIndex++)
+                Expanded(
+                  child: _YhNavigationButton(
+                    item: items[itemIndex],
+                    selected: itemIndex == index,
+                    onPressed: () => onChanged(itemIndex),
+                    horizontal: false,
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -92,12 +95,13 @@ class YhNavRail extends StatelessWidget {
           child: Column(
             children: [
               ?header,
-              if (header != null) SizedBox(height: theme.spacing.m),
+              if (header != null)
+                SizedBox(height: theme.spacing.l - theme.spacing.xs),
               for (var itemIndex = 0; itemIndex < items.length; itemIndex++)
                 Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: theme.spacing.s,
-                    vertical: theme.spacing.xs / 2,
+                    vertical: theme.spacing.xs,
                   ),
                   child: _YhNavigationButton(
                     item: items[itemIndex],
@@ -153,7 +157,9 @@ class _YhNavigationButton extends StatelessWidget {
                   : state.hovered
                   ? theme.color.sunken
                   : theme.color.surface.withValues(alpha: 0),
-              borderRadius: BorderRadius.circular(theme.radius.full),
+              borderRadius: BorderRadius.circular(
+                theme.radius.m + theme.focus.ringWidth,
+              ),
             ),
             child: SizedBox(
               width: horizontal
@@ -171,7 +177,11 @@ class _YhNavigationButton extends StatelessWidget {
             child: horizontal
                 ? Row(
                     children: [
-                      Icon(item.icon, size: 22, color: foreground),
+                      Icon(
+                        item.icon,
+                        size: theme.spacing.l - theme.layout.divider * 3,
+                        color: foreground,
+                      ),
                       SizedBox(width: theme.spacing.m),
                       Expanded(
                         child: Text(
@@ -190,7 +200,11 @@ class _YhNavigationButton extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(item.icon, size: 22, color: foreground),
+                      Icon(
+                        item.icon,
+                        size: theme.spacing.l - theme.layout.divider * 3,
+                        color: foreground,
+                      ),
                       SizedBox(height: theme.spacing.xs),
                       Text(
                         item.label,

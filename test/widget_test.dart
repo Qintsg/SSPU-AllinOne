@@ -15,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/app.dart';
 import 'package:sspu_allinone/controllers/settings_wechat_controller.dart';
 import 'package:sspu_allinone/models/channel_config.dart';
+import 'package:sspu_allinone/pages/home_page.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/services/campus_network_status_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
@@ -328,7 +329,19 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        YhApp(home: AppShell(campusNetworkStatusService: service)),
+        YhApp(
+          home: AppShell(
+            campusNetworkStatusService: service,
+            destinationOverrides: {
+              '主页': HomePage(
+                campusNetworkStatusService: service,
+                campusCardAutoRefreshEnabledOverride: false,
+                dashboardDisplayStateOverride:
+                    HomeDashboardDisplayState.content,
+              ),
+            },
+          ),
+        ),
       );
       await tester.pump(const Duration(milliseconds: 100));
       await pumpUntilFound(tester, find.text('VPN 可用'));
@@ -738,10 +751,10 @@ void main() {
     expect(find.text('显示校园卡余额卡片'), findsOneWidget);
     expect(find.text('显示今日学程时间轨'), findsOneWidget);
     expect(find.text('显示体育考勤磁贴'), findsOneWidget);
-    expect(find.text('显示第二课堂磁贴'), findsNothing);
+    expect(find.text('显示第二课堂辅助坞'), findsOneWidget);
     expect(find.text('显示时间轨待办'), findsOneWidget);
     expect(find.text('显示邮箱摘要磁贴'), findsOneWidget);
-    expect(find.text('显示快速跳转磁贴'), findsNothing);
+    expect(find.text('显示常用入口辅助坞'), findsOneWidget);
     await tester.tap(
       find.byKey(const Key('settings-home-student-profile-card-switch')),
     );
@@ -760,7 +773,15 @@ void main() {
     );
     await tester.pump();
     expect(sportsVisible, isFalse);
-    expect(studentReportVisible, isTrue);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-home-student-report-switch')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('settings-home-student-report-switch')),
+    );
+    await tester.pump();
+    expect(studentReportVisible, isFalse);
     await tester.ensureVisible(
       find.byKey(const Key('settings-home-messages-switch')),
     );
@@ -775,7 +796,13 @@ void main() {
     await tester.tap(find.byKey(const Key('settings-home-email-switch')));
     await tester.pump();
     expect(emailVisible, isFalse);
-    expect(quickLinksVisible, isTrue);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-home-quick-links-switch')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings-home-quick-links-switch')));
+    await tester.pump();
+    expect(quickLinksVisible, isFalse);
     await tester.pump(const Duration(milliseconds: 120));
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

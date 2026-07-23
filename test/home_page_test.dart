@@ -6,6 +6,8 @@
  * @Date : 2026-04-30
  */
 
+import 'dart:async';
+
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,12 +16,19 @@ import 'package:sspu_allinone/app.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/models/campus_card.dart';
+import 'package:sspu_allinone/models/email_mailbox.dart';
+import 'package:sspu_allinone/models/sports_attendance.dart';
+import 'package:sspu_allinone/models/student_report.dart';
 import 'package:sspu_allinone/pages/home_page.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
 import 'package:sspu_allinone/services/academic_eams_service.dart';
 import 'package:sspu_allinone/services/campus_card_service.dart';
 import 'package:sspu_allinone/services/campus_network_status_service.dart';
+import 'package:sspu_allinone/services/email_service.dart';
+import 'package:sspu_allinone/services/quick_links_config_service.dart';
+import 'package:sspu_allinone/services/sports_attendance_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
+import 'package:sspu_allinone/services/student_report_service.dart';
 
 /// 等待目标组件出现，避免页面异步加载尚未完成时提前断言。
 Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
@@ -45,6 +54,8 @@ Future<void> pumpHomePage(
   int campusCardAutoRefreshIntervalOverride = 30,
   bool? campusCardVisible,
   DateTime? nowOverride,
+  HomeDashboardDisplayState dashboardDisplayStateOverride =
+      HomeDashboardDisplayState.content,
 }) async {
   if (campusCardVisible != null) {
     await StorageService.setBool(
@@ -63,6 +74,7 @@ Future<void> pumpHomePage(
         campusCardAutoRefreshIntervalOverride:
             campusCardAutoRefreshIntervalOverride,
         nowOverride: nowOverride,
+        dashboardDisplayStateOverride: dashboardDisplayStateOverride,
       ),
     ),
   );
@@ -98,6 +110,8 @@ void main() {
                 campusNetworkStatusService: _buildCampusNetworkStatusService(),
                 campusCardAutoRefreshEnabledOverride: false,
                 nowOverride: DateTime(2026, 7, 18, 9, 18),
+                dashboardDisplayStateOverride:
+                    HomeDashboardDisplayState.content,
               ),
             },
           ),
@@ -118,6 +132,263 @@ void main() {
       tester.getSize(find.byKey(const Key('home-overview-stack'))).width,
       closeTo(283.4, 0.2),
     );
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页加载状态保留标题并明确正在汇总本地数据', (tester) async {
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          nowOverride: DateTime(2026, 7, 18, 9, 30),
+          dashboardDisplayStateOverride: HomeDashboardDisplayState.loading,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('早上好，先看清今天。'), findsOneWidget);
+    expect(find.text('正在整理今天'), findsOneWidget);
+    expect(find.byKey(const Key('home-today-courses-tile')), findsNothing);
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页初始状态说明只读取本机缓存并提供明确操作', (tester) async {
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          nowOverride: DateTime(2026, 7, 18, 9, 30),
+          dashboardDisplayStateOverride: HomeDashboardDisplayState.initial,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('尚未整理今天'), findsOneWidget);
+    expect(find.text('读取首页数据'), findsOneWidget);
+    expect(find.byKey(const Key('home-today-courses-tile')), findsNothing);
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页缓存陈旧时保留时间轨并提示缓存时间', (tester) async {
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          nowOverride: DateTime(2026, 7, 18, 9, 30),
+          homeUpdatedAtOverride: DateTime(2026, 7, 18, 8, 42),
+          dashboardDisplayStateOverride: HomeDashboardDisplayState.stale,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('home-dashboard-stale-banner')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('08:42'), findsWidgets);
+    expect(find.byKey(const Key('home-today-courses-tile')), findsOneWidget);
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页缓存读取失败时说明保留旧缓存并提供重试', (tester) async {
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          dashboardDisplayStateOverride: HomeDashboardDisplayState.error,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('无法更新首页数据'), findsOneWidget);
+    expect(find.textContaining('已有本地缓存不会被删除'), findsOneWidget);
+    expect(find.text('重试'), findsOneWidget);
+    expect(find.byKey(const Key('home-today-courses-tile')), findsNothing);
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页辅助坞保留第二课堂和常用入口既有展示行为', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          dashboardDisplayStateOverride: HomeDashboardDisplayState.content,
+          studentReportResultOverride: _studentReportResult,
+          quickLinkFavoritesOverride: const [
+            QuickLinkItemConfig(
+              name: '统一身份认证',
+              url: 'https://oa.example.invalid/',
+              icon: 'security',
+            ),
+            QuickLinkItemConfig(
+              name: '图书馆',
+              url: 'https://library.example.invalid/',
+              icon: 'library',
+            ),
+            QuickLinkItemConfig(
+              name: '学校官网',
+              url: 'https://www.example.invalid/',
+              icon: 'globe',
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('home-utility-dock')), findsOneWidget);
+    expect(find.text('已获 8.5 / 必修 10 学分'), findsOneWidget);
+    expect(find.text('85%'), findsOneWidget);
+    expect(find.text('从今天直接出发'), findsOneWidget);
+    for (final label in ['统一身份认证', '图书馆', '学校官网']) {
+      expect(find.text(label), findsOneWidget);
+      expect(
+        tester.getSize(find.text(label).hitTestable()).height,
+        greaterThan(0),
+      );
+    }
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页辅助坞遵循第二课堂和常用入口显隐设置', (tester) async {
+    await StorageService.setBool(
+      StorageKeys.homeStudentReportTileVisible,
+      false,
+    );
+    await StorageService.setBool(StorageKeys.homeQuickLinksTileVisible, false);
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          dashboardDisplayStateOverride: HomeDashboardDisplayState.content,
+          studentReportResultOverride: _studentReportResult,
+          quickLinkFavoritesOverride: const [
+            QuickLinkItemConfig(
+              name: '学校官网',
+              url: 'https://www.example.invalid/',
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byKey(const Key('home-utility-dock')), findsNothing);
+    expect(find.text('第二课堂'), findsNothing);
+    expect(find.text('从今天直接出发'), findsNothing);
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页根据本地缓存读取生命周期从加载转为初始状态', (tester) async {
+    final courseTableCache = Completer<AcademicEamsQueryResult?>();
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          academicEamsService: _FakeAcademicEamsClient(
+            courseTableCacheFuture: courseTableCache.future,
+          ),
+          campusCardService: _FakeCampusCardClient(result: _successResult),
+          sportsAttendanceService: const _NullSportsAttendanceClient(),
+          studentReportService: const _NullStudentReportClient(),
+          emailService: const _NullEmailClient(),
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          messagesOverride: const [],
+          quickLinkFavoritesOverride: const [],
+        ),
+      ),
+    );
+
+    expect(find.text('正在整理今天'), findsOneWidget);
+    courseTableCache.complete();
+    await pumpUntilFound(tester, find.text('尚未整理今天'));
+
+    expect(find.text('尚未整理今天'), findsOneWidget);
+    expect(find.byKey(const Key('home-today-courses-tile')), findsNothing);
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页本地缓存读取异常且没有旧数据时进入错误状态', (tester) async {
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          academicEamsService: _FakeAcademicEamsClient(
+            courseTableCacheError: StateError('cache unavailable'),
+          ),
+          campusCardService: _FakeCampusCardClient(result: _successResult),
+          sportsAttendanceService: const _NullSportsAttendanceClient(),
+          studentReportService: const _NullStudentReportClient(),
+          emailService: const _NullEmailClient(),
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          messagesOverride: const [],
+          quickLinkFavoritesOverride: const [],
+        ),
+      ),
+    );
+    await pumpUntilFound(tester, find.text('无法更新首页数据'));
+
+    expect(find.text('无法更新首页数据'), findsOneWidget);
+    expect(find.text('重试'), findsOneWidget);
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页局部缓存读取失败时保留已有内容并降级为陈旧状态', (tester) async {
+    final cachedCard = _buildCachedResult(
+      balance: 88.88,
+      status: '正常',
+      checkedAt: DateTime(2026, 7, 18, 8, 42),
+    );
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          academicEamsService: _FakeAcademicEamsClient(
+            courseTableCacheError: StateError('cache unavailable'),
+          ),
+          sportsAttendanceService: const _NullSportsAttendanceClient(),
+          studentReportService: const _NullStudentReportClient(),
+          emailService: const _NullEmailClient(),
+          campusCardResultOverride: cachedCard,
+          campusCardAutoRefreshEnabledOverride: false,
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          nowOverride: DateTime(2026, 7, 18, 9, 30),
+          messagesOverride: const [],
+          quickLinkFavoritesOverride: const [],
+        ),
+      ),
+    );
+    await pumpUntilFound(
+      tester,
+      find.byKey(const Key('home-dashboard-stale-banner')),
+    );
+
+    expect(
+      find.byKey(const Key('home-dashboard-stale-banner')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('home-today-courses-tile')), findsOneWidget);
+    expect(find.text('¥88.88'), findsOneWidget);
 
     await disposeHomePage(tester);
   });
@@ -425,6 +696,7 @@ void main() {
           academicEamsService: _FakeAcademicEamsClient(),
           campusNetworkStatusService: campusNetworkStatusService,
           campusCardAutoRefreshEnabledOverride: false,
+          dashboardDisplayStateOverride: HomeDashboardDisplayState.content,
           onOpenSettings: () => settingsOpened = true,
         ),
       ),
@@ -791,10 +1063,78 @@ class _FakeCampusCardClient implements CampusCardBalanceClient {
   final List<bool> syncAllTransactionsValues = [];
 }
 
+class _NullSportsAttendanceClient implements SportsAttendanceClient {
+  const _NullSportsAttendanceClient();
+
+  @override
+  Future<SportsAttendanceQueryResult?>
+  readLatestCachedAttendanceSummary() async => null;
+
+  @override
+  Future<SportsAttendanceQueryResult> fetchAttendanceSummary({
+    bool requireCampusNetwork = true,
+  }) {
+    throw UnsupportedError('测试不会访问体育考勤服务');
+  }
+}
+
+class _NullStudentReportClient implements StudentReportClient {
+  const _NullStudentReportClient();
+
+  @override
+  Future<StudentReportQueryResult?>
+  readLatestCachedSecondClassroomCredits() async => null;
+
+  @override
+  Future<StudentReportQueryResult> validateLoginStatus() {
+    throw UnsupportedError('测试不会访问第二课堂服务');
+  }
+
+  @override
+  Future<StudentReportQueryResult> fetchSecondClassroomCredits({
+    bool requireCampusNetwork = true,
+  }) {
+    throw UnsupportedError('测试不会访问第二课堂服务');
+  }
+}
+
+class _NullEmailClient implements EmailMailboxClient {
+  const _NullEmailClient();
+
+  @override
+  Future<EmailMailboxQueryResult?> readLatestCachedMessages(
+    EmailProtocol protocol,
+  ) async => null;
+
+  @override
+  Future<EmailMailboxQueryResult> fetchMessages({
+    required EmailProtocol protocol,
+    int messageCount = 10,
+  }) {
+    throw UnsupportedError('测试不会访问邮箱服务');
+  }
+
+  @override
+  Future<EmailSendResult> sendMessage(EmailComposeRequest request) {
+    throw UnsupportedError('测试不会访问邮箱服务');
+  }
+
+  @override
+  Future<EmailLoginValidationResult> validateLogin(EmailProtocol protocol) {
+    throw UnsupportedError('测试不会访问邮箱服务');
+  }
+}
+
 class _FakeAcademicEamsClient implements AcademicEamsClient {
-  _FakeAcademicEamsClient({this.cachedProfile});
+  _FakeAcademicEamsClient({
+    this.cachedProfile,
+    this.courseTableCacheFuture,
+    this.courseTableCacheError,
+  });
 
   final AcademicEamsProfile? cachedProfile;
+  final Future<AcademicEamsQueryResult?>? courseTableCacheFuture;
+  final Object? courseTableCacheError;
   int refreshCount = 0;
 
   @override
@@ -826,7 +1166,8 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
 
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
-    return null;
+    if (courseTableCacheError case final error?) throw error;
+    return await (courseTableCacheFuture ?? Future.value());
   }
 
   @override
@@ -886,6 +1227,23 @@ const AcademicEamsProfile _studentProfile = AcademicEamsProfile(
   studyLength: '4 年',
   educationLevel: '本科',
   rawFields: {},
+);
+
+final StudentReportQueryResult _studentReportResult = StudentReportQueryResult(
+  status: StudentReportQueryStatus.success,
+  message: '第二课堂学分查询成功',
+  detail: '已读取脱敏第二课堂学分汇总。',
+  checkedAt: DateTime(2026, 7, 18, 8, 42),
+  entranceUri: Uri.parse('https://oa.example.invalid/student-report'),
+  summary: SecondClassroomCreditSummary(
+    records: const [],
+    totals: const SecondClassroomCreditTotals(
+      totalEarnedCredit: 8.5,
+      totalRequiredCredit: 10,
+    ),
+    fetchedAt: DateTime(2026, 7, 18, 8, 42),
+    sourceUri: Uri.parse('https://student.example.invalid/report'),
+  ),
 );
 
 final CampusCardQueryResult _successResult = CampusCardQueryResult(

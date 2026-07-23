@@ -43,13 +43,13 @@ final Uri _campusCardSourceUri = Uri.parse(
 const List<CampusCardTransactionRecord> qingyuanCampusCardTransactions = [
   CampusCardTransactionRecord(
     occurredAt: '2026-07-18 08:12',
-    amount: -12.5,
+    amount: -18.5,
     title: '一食堂 · POS 消费',
     counterparty: '一食堂',
     paymentMethod: '校园卡',
     status: '成功',
     direction: 'expense',
-    rawCells: ['2026-07-18 08:12', '一食堂 · POS 消费', '-12.50'],
+    rawCells: ['2026-07-18 08:12', '一食堂 · POS 消费', '-18.50'],
   ),
   CampusCardTransactionRecord(
     occurredAt: '2026-07-17 16:42',
@@ -286,9 +286,9 @@ final AcademicEamsQueryResult qingyuanHomeAcademicResult = _scheduleResult(
     AcademicCourseTableEntry(
       courseName: '数据结构',
       weekday: 6,
-      startUnit: 0,
-      endUnit: 0,
-      timeText: '10:00',
+      startUnit: 3,
+      endUnit: 4,
+      timeText: '周六 第3-4节',
       teacher: '陈老师',
       location: '教学楼 2 号楼 · 302',
       weekDescription: '1-16周',
@@ -460,6 +460,25 @@ final SportsAttendanceQueryResult qingyuanHomeSportsResult =
       ),
     );
 
+/// 首页第二课堂辅助坞的固定脱敏学分汇总。
+final StudentReportQueryResult qingyuanHomeStudentReportResult =
+    StudentReportQueryResult(
+      status: StudentReportQueryStatus.success,
+      message: '第二课堂学分已同步',
+      detail: '已读取脱敏第二课堂学分汇总。',
+      checkedAt: DateTime(2026, 7, 18, 8, 42),
+      entranceUri: Uri.parse('https://oa.example.invalid/student-report'),
+      summary: SecondClassroomCreditSummary(
+        records: const [],
+        totals: const SecondClassroomCreditTotals(
+          totalEarnedCredit: 8.5,
+          totalRequiredCredit: 10,
+        ),
+        fetchedAt: DateTime(2026, 7, 18, 8, 42),
+        sourceUri: Uri.parse('https://student.example.invalid/report'),
+      ),
+    );
+
 class QingyuanVisualSportsAttendanceClient implements SportsAttendanceClient {
   const QingyuanVisualSportsAttendanceClient(this.result);
 
@@ -476,11 +495,13 @@ class QingyuanVisualSportsAttendanceClient implements SportsAttendanceClient {
 }
 
 class QingyuanVisualStudentReportClient implements StudentReportClient {
-  const QingyuanVisualStudentReportClient();
+  const QingyuanVisualStudentReportClient(this.result);
+
+  final StudentReportQueryResult result;
 
   @override
   Future<StudentReportQueryResult?>
-  readLatestCachedSecondClassroomCredits() async => null;
+  readLatestCachedSecondClassroomCredits() async => result;
 
   @override
   Future<StudentReportQueryResult> validateLoginStatus() {
