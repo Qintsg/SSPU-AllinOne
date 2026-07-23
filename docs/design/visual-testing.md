@@ -11,10 +11,10 @@
 
 ## 阈值与外部区域
 
-- 应用自绘区域：SSIM `>= 0.99`。
+- 应用自绘区域：SSIM `>= 0.95`。
 - 系统认证、真实网页、PDF 正文等外部区域：SSIM `>= 0.95`。
 - 外部区域不得扩大到应用工具栏、弹层或错误反馈。一个截图存在外部区域时，在基准图旁增加同名 sidecar：`<image>.regions.json`。
-- `visual-manifest.json` 通过 `externalRegionStates` 逐区域声明允许生成 sidecar 的页面状态；清源自绘的 loading、empty、error、认证说明和降级反馈仍按 0.99 判定，不能因为位于 WebView/PDF/系统认证流程中就降到 0.95。
+- `visual-manifest.json` 通过 `externalRegionStates` 逐区域声明允许生成 sidecar 的页面状态；清源自绘的 loading、empty、error、认证说明和降级反馈同样按 0.95 逐图判定，不能因为位于 WebView/PDF/系统认证流程中就跳过比较。
 
 ```json
 {

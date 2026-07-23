@@ -6,6 +6,8 @@ import 'package:sspu_allinone/pages/academic_calendar_pdf_page.dart';
 
 void main() {
   testWidgets('PDF 框架始终提供页码缩放下载与外部打开', (tester) async {
+    var downloadCount = 0;
+    var openExternalCount = 0;
     await tester.pumpWidget(
       YhApp(
         home: AcademicCalendarPdfFrame(
@@ -15,8 +17,8 @@ void main() {
           onBack: () {},
           onZoomOut: () {},
           onZoomIn: () {},
-          onDownload: () {},
-          onOpenExternal: () {},
+          onDownload: () => downloadCount += 1,
+          onOpenExternal: () => openExternalCount += 1,
         ),
       ),
     );
@@ -26,5 +28,10 @@ void main() {
     expect(find.bySemanticsLabel('放大 PDF'), findsOneWidget);
     expect(find.bySemanticsLabel('下载校历 PDF'), findsOneWidget);
     expect(find.bySemanticsLabel('外部打开校历 PDF'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('下载校历 PDF'));
+    await tester.tap(find.bySemanticsLabel('外部打开校历 PDF'));
+    expect(downloadCount, 1);
+    expect(openExternalCount, 1);
   });
 }

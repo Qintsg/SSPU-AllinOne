@@ -77,22 +77,23 @@
       return `<section class="reference-balance"><article class="reference-card reference-balance-hero"><span>校园卡余额</span><strong>¥128.50</strong><small>09:30 本地快照</small></article><article class="reference-card"><h2>最近交易</h2><div class="reference-items">${items}</div></article></section>`;
     }
     if (id === 'schedule.calendar') {
-      return `<section class="reference-card reference-schedule">${banner}<div class="reference-week">${['周一', '周二', '周三', '周四', '周五'].map(day => `<strong>${day}</strong>`).join('')}</div><div class="reference-week reference-week-courses"><span>${entry.items[0]}</span><span></span><span>${entry.items[1]}</span><span></span><span>${entry.items[2]}</span></div></section>`;
+      return `<section class="reference-card reference-schedule">${banner}<div class="reference-week">${['周一', '周二', '周三', '周四', '周五', '周六 · 今天', '周日'].map((day, index) => `<strong class="${index === 5 ? 'is-current' : ''}">${day}</strong>`).join('')}</div><div class="reference-week reference-week-courses"><span>${entry.items[0]}</span><span></span><span>${entry.items[1]}</span><span></span><span>${entry.items[2]}</span><span class="is-current">软件工程实践<br />实训中心 405</span><span></span></div></section>`;
     }
     if (id.startsWith('info.')) {
       return `<section class="reference-feed"><div>${banner}${entry.items.map((item, index) => `<article class="reference-card reference-feed-entry"><span>${index === 0 ? '学校官网' : index === 1 ? '图书馆' : '第二课堂'}</span><h2>${item}</h2><p>7 月 ${18 - index} 日 · 已保存到本机</p></article>`).join('')}</div><aside class="reference-card"><h2>来源筛选</h2><div class="reference-items">${items}</div></aside></section>`;
     }
     if (id === 'mail.inbox' || id === 'mail.message-detail') {
-      return `<section class="reference-mail"><aside class="reference-card"><h2>收件箱</h2><div class="reference-items">${items}</div></aside><article class="reference-card reference-mail-body"><span class="reference-state-label">只读邮件</span><h2>${entry.items[0]}</h2><p>教学办公室 · 08:42</p><div class="reference-letter">同学你好，课程安排已更新。请核对时间与教室，原始邮件已安全保存在本机。</div></article></section>`;
+      return `<section class="reference-mail ${id === 'mail.inbox' ? 'is-inbox' : 'is-detail'}"><aside class="reference-card"><h2>收件箱</h2><div class="reference-items">${items}</div></aside><article class="reference-card reference-mail-body"><span class="reference-state-label">只读邮件</span><h2>${entry.items[0]}</h2><p>教学办公室 · 08:42</p><div class="reference-letter">同学你好，课程安排已更新。请核对时间与教室，原始邮件已安全保存在本机。</div></article></section>`;
     }
     if (id === 'mail.compose') {
-      return `<section class="reference-card reference-compose"><label>收件人<input value="advisor@example.invalid" readonly /></label><label>主题<input value="课程安排确认" readonly /></label><label>正文<textarea readonly>老师您好，我已核对本学期课程安排，谢谢。</textarea></label><div><button type="button">保存草稿</button><button class="reference-demo-primary" type="button">发送邮件</button></div></section>`;
+      return `<section class="reference-card reference-compose"><label>收件人<input value="advisor@example.invalid" /></label><label>主题<input value="课程安排确认" /></label><label>正文<textarea>老师您好，我已核对本学期课程安排，谢谢。</textarea></label><div><button class="reference-demo-primary" type="button">发送邮件</button></div></section>`;
     }
     if (id.startsWith('links.')) {
       return `<section class="reference-directory">${entry.items.map((item, index) => `<article class="reference-card reference-link-card"><span aria-hidden="true">${['锁', '书', '校'][index]}</span><h2>${item}</h2><p>${index === 0 ? '需要现有 OA 登录态' : '将在确认后打开外部目标'}</p><button type="button">查看目标 ↗</button></article>`).join('')}</section>`;
     }
     if (id.startsWith('settings.')) {
-      return `<section class="reference-card reference-settings-list">${banner}${entry.items.map((item, index) => `<div class="reference-setting-row"><span><strong>${item}</strong><small>${index === 0 ? '当前设置' : '保存在本机'}</small></span><button type="button" role="switch" aria-checked="${index === 0}">${index === 0 ? '已开启' : '管理'}</button></div>`).join('')}</section>`;
+      const usesSwitches = id === 'settings.home-notifications' || id === 'settings.appearance';
+      return `<section class="reference-card reference-settings-list">${banner}${entry.items.map((item, index) => `<div class="reference-setting-row"><span><strong>${item}</strong><small>${index === 0 ? '当前设置' : '保存在本机'}</small></span><button type="button"${usesSwitches ? ` role="switch" aria-checked="${index === 0}"` : ''}>${usesSwitches ? (index === 0 ? '已开启' : '关闭') : '打开'}</button></div>`).join('')}</section>`;
     }
     if (id.startsWith('legal.')) {
       return `<article class="reference-card reference-legal">${entry.items.map((item, index) => `<section><h2>${item}</h2><p>${index + 1}. 本节说明该数据与功能的使用边界、保存位置和用户可执行的管理方式。</p></section>`).join('')}</article>`;

@@ -6,10 +6,15 @@
  * @Date : 2026-06-08
  */
 
+import 'dart:io';
+
 import '../design/qingyuan/qingyuan_ui.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../widgets/app_feedback.dart';
 import '../widgets/empty_state_view.dart';
 import 'academic_calendar_pdf_file.dart';
 
@@ -147,6 +152,46 @@ class _AcademicCalendarPdfPageState extends State<AcademicCalendarPdfPage> {
     }
   }
 
+  Future<void> _download() async {
+    final source = widget.pdfUrl ?? widget.pdfFilePath;
+    if (source == null || source.isEmpty) {
+      if (mounted) {
+        showAppFeedback(
+          context,
+          message: '当前没有可下载的 PDF 文件',
+          severity: AppFeedbackSeverity.error,
+        );
+      }
+      return;
+    }
+    try {
+      final directory = await getDownloadsDirectory();
+      if (directory == null) {
+        throw const FileSystemException('downloads directory unavailable');
+      }
+      final safeTitle = widget.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+      final target = File(
+        '${directory.path}${Platform.pathSeparator}$safeTitle.pdf',
+      );
+      if (source.startsWith('http')) {
+        await Dio().download(source, target.path);
+      } else {
+        await File(source).copy(target.path);
+      }
+      if (mounted) {
+        showAppFeedback(context, message: '校历 PDF 已保存到下载目录');
+      }
+    } on Object {
+      if (mounted) {
+        showAppFeedback(
+          context,
+          message: '无法下载校历 PDF，请检查存储权限或网络后重试',
+          severity: AppFeedbackSeverity.error,
+        );
+      }
+    }
+  }
+
   void _viewerReady(PdfDocument document, PdfViewerController controller) {
     if (!mounted) return;
     setState(() {
@@ -202,7 +247,7 @@ class _AcademicCalendarPdfPageState extends State<AcademicCalendarPdfPage> {
           : '第 $_pageNumber / $_pageCount 页',
       onZoomOut: _pdfController.isReady ? _pdfController.zoomDown : null,
       onZoomIn: _pdfController.isReady ? _pdfController.zoomUp : null,
-      onDownload: _openExternal,
+      onDownload: _download,
       onOpenExternal: _openExternal,
     );
   }

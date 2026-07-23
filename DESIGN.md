@@ -1,6 +1,6 @@
 # 清源 Design System（DESIGN.md）
 
-> 版本：v0.3.0 · 工大聚合 SSPU-AllinOne 前端重写 · 设计语言总纲
+> 版本：v0.4.0 · 工大聚合 SSPU-AllinOne 前端重写 · 设计语言总纲
 >
 > 本文件取代旧版 Fluent 2 设计系统规范（旧规范已整体废弃，不再保留）。
 > 完整规范、组件与样例见 [`docs/design/`](docs/design/README.md)。

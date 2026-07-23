@@ -94,9 +94,6 @@ class _WebViewPageState extends State<WebViewPage> {
   /// 当前加载的 URL。
   String _currentUrl = '';
 
-  /// 是否可前进。
-  bool _canGoForward = false;
-
   /// WebView 是否已创建。
   bool _isReady = false;
 
@@ -120,15 +117,6 @@ class _WebViewPageState extends State<WebViewPage> {
     return uri.scheme == 'http' || uri.scheme == 'https';
   }
 
-  /// 更新导航按钮状态（前进/后退可用性）。
-  Future<void> _updateNavigationState() async {
-    if (_controller == null) return;
-    final canForward = await _controller!.canGoForward();
-    if (mounted) {
-      setState(() => _canGoForward = canForward);
-    }
-  }
-
   /// 使用系统默认浏览器打开当前 URL（fallback 方案）。
   Future<void> _fallbackToExternalBrowser() async {
     final uri = Uri.tryParse(_currentUrl);
@@ -144,7 +132,6 @@ class _WebViewPageState extends State<WebViewPage> {
     final controller = _controller;
     if (controller != null && await controller.canGoBack()) {
       await controller.goBack();
-      await _updateNavigationState();
       return;
     }
     if (!mounted) return;
@@ -190,11 +177,6 @@ class _WebViewPageState extends State<WebViewPage> {
       onBackPressed: _handleBackOrClose,
       actions: [
         YhIconButton(
-          semanticLabel: '前进',
-          icon: YhIcons.chevronRight,
-          onTap: _canGoForward ? () => _controller?.goForward() : null,
-        ),
-        YhIconButton(
           semanticLabel: '刷新',
           icon: YhIcons.refresh,
           onTap: _isReady ? () => _controller?.reload() : null,
@@ -231,13 +213,11 @@ class _WebViewPageState extends State<WebViewPage> {
         onUpdateVisitedHistory: (controller, url, isReload) {
           if (url != null && mounted) {
             setState(() => _currentUrl = url.toString());
-            _updateNavigationState();
           }
         },
         onLoadStop: (controller, url) {
           if (url != null && mounted) {
             setState(() => _currentUrl = url.toString());
-            _updateNavigationState();
           }
         },
         onProgressChanged: (controller, progress) {

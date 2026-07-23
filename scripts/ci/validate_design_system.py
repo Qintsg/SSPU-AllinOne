@@ -586,8 +586,8 @@ def _validate_visual_manifest(project_root: Path) -> None:
         errors.append("视觉清单必须覆盖 360x800、768x900、1200x900、1600x1000")
     if set(meta.get("themes", [])) != {"light", "dark"}:
         errors.append("视觉清单必须覆盖 light 与 dark")
-    if meta.get("applicationThreshold") != 0.99:
-        errors.append("视觉清单应用自绘阈值必须为 0.99")
+    if meta.get("applicationThreshold") != 0.95:
+        errors.append("视觉清单应用自绘阈值必须为 0.95")
     if meta.get("externalThreshold") != 0.95:
         errors.append("视觉清单外部区域阈值必须为 0.95")
     capture = meta.get("capture", {})

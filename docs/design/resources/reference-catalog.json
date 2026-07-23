@@ -1,7 +1,7 @@
 {
   "meta": {
-    "version": "0.2.0",
-    "visualManifest": "0.3.0",
+    "version": "0.3.0",
+    "visualManifest": "0.4.0",
     "fixture": "qingyuan-sanitized-v1",
     "purpose": "独立于 Flutter 实现的全状态设计参考目录"
   },

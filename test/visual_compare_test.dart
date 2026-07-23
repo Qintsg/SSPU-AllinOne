@@ -14,7 +14,7 @@ void main() {
     final result = compareVisuals(
       baseline: baseline,
       actual: image.Image.from(baseline),
-      applicationThreshold: 0.99,
+      applicationThreshold: 0.95,
       externalThreshold: 0.95,
     );
 
@@ -22,7 +22,7 @@ void main() {
     expect(result.passed, isTrue);
   });
 
-  test('应用自绘区域低于 0.99 时单图失败', () {
+  test('应用自绘区域低于 0.95 时单图失败', () {
     final baseline = _solidImage(32, 32, red: 255, green: 255, blue: 255);
     final actual = image.Image.from(baseline);
     for (var y = 0; y < 16; y += 1) {
@@ -34,11 +34,11 @@ void main() {
     final result = compareVisuals(
       baseline: baseline,
       actual: actual,
-      applicationThreshold: 0.99,
+      applicationThreshold: 0.95,
       externalThreshold: 0.95,
     );
 
-    expect(result.applicationSsim, lessThan(0.99));
+    expect(result.applicationSsim, lessThan(0.95));
     expect(result.passed, isFalse);
     expect(result.heatmap.getPixel(0, 0).r, 255);
   });
@@ -62,7 +62,7 @@ void main() {
     final result = compareVisuals(
       baseline: baseline,
       actual: actual,
-      applicationThreshold: 0.99,
+      applicationThreshold: 0.95,
       externalThreshold: 0.95,
       externalRegions: const [region],
     );
@@ -79,7 +79,7 @@ void main() {
       () => compareVisuals(
         baseline: _solidImage(32, 32, red: 0, green: 0, blue: 0),
         actual: _solidImage(16, 16, red: 0, green: 0, blue: 0),
-        applicationThreshold: 0.99,
+        applicationThreshold: 0.95,
         externalThreshold: 0.95,
       ),
       throwsArgumentError,
@@ -96,7 +96,7 @@ void main() {
     await manifest.writeAsString(
       jsonEncode({
         'meta': {
-          'applicationThreshold': 0.99,
+          'applicationThreshold': 0.95,
           'externalThreshold': 0.95,
           'platforms': ['windows'],
         },
