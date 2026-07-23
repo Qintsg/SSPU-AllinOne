@@ -240,7 +240,7 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
           '只读校园卡',
           style: theme.typography.caption.copyWith(
             color: theme.color.brandInk,
-            fontWeight: FontWeight.w600,
+            fontWeight: theme.typography.semibold,
           ),
         ),
         SizedBox(height: theme.spacing.xs),
@@ -283,7 +283,9 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
                 Text(
                   '校园卡余额',
                   style: theme.typography.small.copyWith(
-                    color: theme.color.onStructural.withValues(alpha: 0.82),
+                    color: theme.color.onStructural.withValues(
+                      alpha: theme.opacity.contentMuted,
+                    ),
                   ),
                 ),
                 SizedBox(height: theme.spacing.s),
@@ -307,7 +309,7 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
                             return DefaultTextStyle.merge(
                               style: theme.typography.caption.copyWith(
                                 color: theme.color.onStructural.withValues(
-                                  alpha: 0.82,
+                                  alpha: theme.opacity.contentMuted,
                                 ),
                               ),
                               child: text,
@@ -493,7 +495,9 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
             _transactionTitle(record),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: theme.typography.h3.copyWith(fontWeight: FontWeight.w600),
+            style: theme.typography.h3.copyWith(
+              fontWeight: theme.typography.semibold,
+            ),
           ),
           SizedBox(height: theme.spacing.s),
           Text(
@@ -509,7 +513,7 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
             style: theme.typography.h2.copyWith(
               color: theme.color.serviceFinance,
               fontFamily: YhTypographyTokens.fontFamilyMono,
-              fontWeight: FontWeight.w600,
+              fontWeight: theme.typography.semibold,
             ),
           ),
         ],

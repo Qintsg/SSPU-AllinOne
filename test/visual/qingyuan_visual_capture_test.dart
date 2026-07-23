@@ -5,7 +5,9 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/app.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
@@ -21,6 +23,7 @@ import 'package:sspu_allinone/pages/quick_links_page.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/services/quick_links_config_service.dart';
 import 'package:sspu_allinone/services/campus_network_status_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
 
 import '../support/qingyuan_visual_fixtures.dart';
 
@@ -48,6 +51,15 @@ const _fontAssets = <String>[
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   if (_captureEnabled) setUpAll(_loadVisualFonts);
+  setUp(() {
+    FlutterSecureStorage.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+  });
+  tearDown(() {
+    StorageService.debugUseSharedPreferencesStorageForTesting(null);
+    SharedPreferences.setMockInitialValues({});
+  });
   for (final surface in _surfaces) {
     if (_surfacePrefix.isNotEmpty && !surface.id.startsWith(_surfacePrefix)) {
       continue;

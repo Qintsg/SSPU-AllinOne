@@ -424,16 +424,17 @@ class _HomePageState extends State<HomePage> {
             variant: CampusNetworkStatusIndicatorVariant.home,
             indicatorKey: const Key('campus-network-status-home'),
           ),
-          RefreshFeedbackAction(
-            key: const Key('home-campus-card-refresh'),
-            tooltip: '刷新校园卡余额',
-            semanticLabel: '刷新校园卡余额',
-            isLoading: _campusCardRefreshController.isLoading,
-            feedback: _campusCardRefreshController.feedback,
-            onPressed: _loadCampusCard,
-            minTouchSize: theme.control.minimumTarget,
-            maxFeedbackWidth: theme.layout.inlineControlWidth,
-          ),
+          if (_campusCardCardVisible)
+            RefreshFeedbackAction(
+              key: const Key('home-campus-card-refresh'),
+              tooltip: '刷新校园卡余额',
+              semanticLabel: '刷新校园卡余额',
+              isLoading: _campusCardRefreshController.isLoading,
+              feedback: _campusCardRefreshController.feedback,
+              onPressed: _loadCampusCard,
+              minTouchSize: theme.control.minimumTarget,
+              maxFeedbackWidth: theme.layout.inlineControlWidth,
+            ),
         ],
       ),
       body: LayoutBuilder(

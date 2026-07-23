@@ -243,9 +243,9 @@ class YhMotionTokens {
 
 @immutable
 class YhOpacityTokens {
-  const YhOpacityTokens({this.domainTint = 0.14});
+  const YhOpacityTokens({this.domainTint = 0.14, this.contentMuted = 0.82});
 
-  final double domainTint;
+  final double domainTint, contentMuted;
 }
 
 @immutable

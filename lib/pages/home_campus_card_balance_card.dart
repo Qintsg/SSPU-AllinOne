@@ -56,7 +56,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.typography.body.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: theme.typography.semibold,
                   ),
                 ),
                 SizedBox(height: theme.spacing.xs),
@@ -78,7 +78,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
             overflow: TextOverflow.ellipsis,
             style: theme.typography.body.copyWith(
               fontFamily: YhTypographyTokens.fontFamilyMono,
-              fontWeight: FontWeight.w600,
+              fontWeight: theme.typography.semibold,
               color: state == HomeCampusCardDisplayState.error
                   ? theme.color.danger
                   : theme.color.foreground,

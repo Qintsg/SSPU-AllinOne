@@ -524,6 +524,7 @@ void main() {
       find.byKey(const Key('home-campus-card-balance-card')),
       findsNothing,
     );
+    expect(find.byKey(const Key('home-campus-card-refresh')), findsNothing);
     await disposeHomePage(tester);
   });
 

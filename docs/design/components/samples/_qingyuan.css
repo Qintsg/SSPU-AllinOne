@@ -93,6 +93,7 @@
   --space-xl: 32px;
   --space-2xl: 48px;
   --opacity-domain-tint: 0.14;
+  --opacity-content-muted: 0.82;
   --font-family-display: 'MiSans';
   --font-family-body: 'MiSans';
   --font-family-mono: 'MiSans';
@@ -670,7 +671,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 
 /* BalanceModule 校园卡余额（青雾色面，白字常驻） */
 .yh-balance { background: var(--brand-strong); color: #FFFFFF; border-radius: var(--radius-l); padding: 20px; max-width: 360px; }
-.yh-balance .lab { font-size: 12px; opacity: 0.82; }
+.yh-balance .lab { font-size: 12px; opacity: var(--opacity-content-muted); }
 .yh-balance .v { font: 600 30px/1.1 var(--mono); margin-top: 6px; }
 .yh-balance .acts { display: flex; gap: 10px; margin-top: 18px; }
 .yh-balance .acts button { flex: 1; height: 38px; border: none; border-radius: 10px; background: rgba(255,255,255,0.18); color: #FFFFFF; font: 600 13px/1 var(--font); cursor: pointer; transition: background var(--duration-fast); }

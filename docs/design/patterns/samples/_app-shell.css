@@ -362,9 +362,9 @@ button.overview-card:hover { border-color: var(--brand); background: var(--brand
 .mail-detail-safety { max-width: none; margin-top: var(--space-l); }
 .campus-card-detail-body { width: min(100%, var(--layout-page-content-width)); margin-inline: auto; padding: var(--space-xl); }
 .campus-card-balance-hero { display: grid; gap: var(--space-s); margin-bottom: var(--space-m); padding: var(--space-l); border-radius: var(--radius-l); color: var(--on-structural); background: var(--brand-strong); }
-.campus-card-balance-hero > span { color: color-mix(in srgb, var(--on-structural) 82%, transparent); font-size: var(--type-small); }
+.campus-card-balance-hero > span { color: color-mix(in srgb, var(--on-structural) calc(var(--opacity-content-muted) * 100%), transparent); font-size: var(--type-small); }
 .campus-card-balance-hero > strong { font: 600 var(--type-display)/1 var(--mono); }
-.campus-card-balance-hero > div { display: flex; flex-wrap: wrap; gap: var(--space-m); color: color-mix(in srgb, var(--on-structural) 82%, transparent); font-size: var(--type-caption); }
+.campus-card-balance-hero > div { display: flex; flex-wrap: wrap; gap: var(--space-m); color: color-mix(in srgb, var(--on-structural) calc(var(--opacity-content-muted) * 100%), transparent); font-size: var(--type-caption); }
 .campus-card-filter { margin-bottom: var(--space-m); }
 .campus-card-filter-controls { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-s); }
 .campus-card-filter-controls .yh-field { width: var(--layout-inline-control-width); }
