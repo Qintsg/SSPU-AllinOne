@@ -264,6 +264,25 @@ class _WebViewPageState extends State<WebViewPage> {
     return WebViewPageFrame(
       title: title,
       onBackPressed: () => Navigator.of(context).maybePop(),
+      actions: [
+        YhIconButton(
+          semanticLabel: '刷新',
+          icon: YhIcons.refresh,
+          onTap: _isSupportedWebUrl(_currentUrl)
+              ? () => setState(() {
+                  _initFailed = false;
+                  _progress = 0;
+                })
+              : null,
+        ),
+        YhIconButton(
+          semanticLabel: '在浏览器中打开',
+          icon: YhIcons.open,
+          onTap: _isSupportedWebUrl(_currentUrl)
+              ? _fallbackToExternalBrowser
+              : null,
+        ),
+      ],
       document: child,
     );
   }

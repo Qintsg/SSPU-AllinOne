@@ -624,6 +624,25 @@ def _validate_visual_manifest(project_root: Path) -> None:
         states = set(surface.get("states", []))
         if not states or not states <= required_states:
             errors.append(f"视觉清单界面 {surface.get('id', '<unknown>')} 状态无效")
+        external_regions = set(surface.get("externalRegions", []))
+        external_region_states = surface.get("externalRegionStates", {})
+        if external_regions:
+            if not isinstance(external_region_states, dict) or set(external_region_states) != external_regions:
+                errors.append(
+                    f"视觉清单界面 {surface.get('id', '<unknown>')} 必须逐区域声明外部状态"
+                )
+            else:
+                for region_id, region_states in external_region_states.items():
+                    declared_region_states = set(region_states) if isinstance(region_states, list) else set()
+                    if not declared_region_states or not declared_region_states <= states:
+                        errors.append(
+                            f"视觉清单界面 {surface.get('id', '<unknown>')} "
+                            f"外部区域 {region_id} 状态无效"
+                        )
+        elif external_region_states:
+            errors.append(
+                f"视觉清单界面 {surface.get('id', '<unknown>')} 未声明外部区域却配置了状态"
+            )
 
     if errors:
         raise DesignSystemValidationError("\n".join(errors))

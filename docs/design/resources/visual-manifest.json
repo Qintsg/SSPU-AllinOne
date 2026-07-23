@@ -1,6 +1,6 @@
 {
   "meta": {
-    "version": "0.2.0",
+    "version": "0.3.0",
     "designSystem": "qingyuan-0.4.0",
     "applicationThreshold": 0.99,
     "externalThreshold": 0.95,
@@ -49,7 +49,7 @@
     {"id": "academic.student-report", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"]},
     {"id": "academic.student-report-rules", "group": "academic", "states": ["content", "empty"]},
     {"id": "academic.sports-attendance", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"]},
-    {"id": "academic.calendar", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"], "externalRegions": ["document"]},
+    {"id": "academic.calendar", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content", "stale"]}},
 
     {"id": "schedule.calendar", "group": "schedule", "states": ["initial", "loading", "content", "empty", "stale", "error"]},
 
@@ -75,8 +75,8 @@
     {"id": "legal.privacy", "group": "legal", "states": ["content"]},
     {"id": "legal.agreement", "group": "legal", "states": ["content"]},
 
-    {"id": "external.webview", "group": "external", "states": ["loading", "content", "error"], "externalRegions": ["document"]},
-    {"id": "external.pdf", "group": "external", "states": ["loading", "content", "error"], "externalRegions": ["document"]},
-    {"id": "external.system-auth", "group": "external", "states": ["initial", "content", "error"], "externalRegions": ["system-dialog"]}
+    {"id": "external.webview", "group": "external", "states": ["loading", "content", "error"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content"]}},
+    {"id": "external.pdf", "group": "external", "states": ["loading", "content", "error"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content"]}},
+    {"id": "external.system-auth", "group": "external", "states": ["initial", "content", "error"], "externalRegions": ["system-dialog"], "externalRegionStates": {"system-dialog": ["content"]}}
   ]
 }

@@ -97,6 +97,18 @@ void main() {
     expect(testPlatform.controller.goBackCount, 1);
   });
 
+  testWidgets('WebView 无效链接仍保留刷新与外部打开工具栏动作', (tester) async {
+    await tester.pumpWidget(
+      const YhApp(
+        home: WebViewPage(url: 'invalid-url', initialTitle: '校园服务'),
+      ),
+    );
+
+    expect(find.text('链接无效，无法打开'), findsOneWidget);
+    expect(find.bySemanticsLabel('刷新'), findsOneWidget);
+    expect(find.bySemanticsLabel('在浏览器中打开'), findsOneWidget);
+  });
+
   testWidgets('WebView 返回按钮无网页历史时退出当前路由', (tester) async {
     testPlatform.controller.canGoBackValue = false;
 

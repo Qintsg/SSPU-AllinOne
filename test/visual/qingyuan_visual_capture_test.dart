@@ -811,8 +811,6 @@ final _surfaces = <_VisualSurface>[
     'external.webview',
     () => _externalWebViewSurface(loading: true),
     state: 'loading',
-    externalRegionId: 'document',
-    externalRegionKey: _webViewExternalRegionKey,
   ),
   _VisualSurface(
     'external.webview',
@@ -830,16 +828,18 @@ final _surfaces = <_VisualSurface>[
       'external.pdf',
       () => _externalPdfSurface(state),
       state: state,
-      externalRegionId: 'document',
-      externalRegionKey: _pdfExternalRegionKey,
+      externalRegionId: state == 'content' ? 'document' : null,
+      externalRegionKey: state == 'content' ? _pdfExternalRegionKey : null,
     ),
   for (final state in const ['initial', 'content', 'error'])
     _VisualSurface(
       'external.system-auth',
       () => _externalSystemAuthSurface(state),
       state: state,
-      externalRegionId: 'system-dialog',
-      externalRegionKey: _systemAuthExternalRegionKey,
+      externalRegionId: state == 'content' ? 'system-dialog' : null,
+      externalRegionKey: state == 'content'
+          ? _systemAuthExternalRegionKey
+          : null,
     ),
 ];
 
@@ -1052,6 +1052,10 @@ Widget _externalWebViewSurface({required bool loading}) => WebViewPageFrame(
 Widget _externalPdfSurface(String state) => AcademicCalendarPdfFrame(
   title: '2025—2026 学年校历',
   onBack: () {},
+  pageLabel: state == 'content' ? '第 1 / 4 页' : '页码加载中',
+  onZoomOut: state == 'content' ? () {} : null,
+  onZoomIn: state == 'content' ? () {} : null,
+  onDownload: () {},
   onOpenExternal: () {},
   document: _externalDocumentRegion(
     key: _pdfExternalRegionKey,

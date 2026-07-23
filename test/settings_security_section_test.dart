@@ -377,7 +377,7 @@ void main() {
       expect(find.text('系统快速验证'), findsOneWidget);
       expect(find.text('立即上锁'), findsOneWidget);
       expect(find.text('清理信息中心缓存'), findsOneWidget);
-      expect(find.text('清除所有数据'), findsOneWidget);
+      expect(find.text('清除本地数据'), findsOneWidget);
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();

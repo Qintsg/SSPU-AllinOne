@@ -18,12 +18,16 @@ class SettingsDataPrivacySection extends StatelessWidget {
     required this.onClearAllData,
     this.state = SettingsDataPrivacyState.content,
     this.errorMessage,
+    this.clearedItems = const ['消息缓存'],
+    this.remainingItems = const ['账户凭据', '个性化设置', '本地文件'],
   });
 
   final VoidCallback onClearMessageCache;
   final VoidCallback onClearAllData;
   final SettingsDataPrivacyState state;
   final String? errorMessage;
+  final List<String> clearedItems;
+  final List<String> remainingItems;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +46,18 @@ class SettingsDataPrivacySection extends StatelessWidget {
           YhBanner(
             text: errorMessage ?? '部分本地数据未能清理，请重试。',
             kind: YhBannerKind.danger,
+          ),
+          SizedBox(height: theme.spacing.m),
+          _CleanupResult(
+            label: '已清除项目',
+            items: clearedItems,
+            kind: YhStatusKind.success,
+          ),
+          SizedBox(height: theme.spacing.s),
+          _CleanupResult(
+            label: '未清除项目',
+            items: remainingItems,
+            kind: YhStatusKind.danger,
           ),
           SizedBox(height: theme.spacing.m),
         ],
@@ -90,7 +106,7 @@ class SettingsDataPrivacySection extends StatelessWidget {
               Text('数据管理', style: theme.typography.h3),
               SizedBox(height: theme.spacing.xs),
               Text(
-                '清理信息中心缓存，或清除所有本地数据并退出应用。',
+                '清理信息中心缓存，或清除本地数据并退出应用。',
                 style: theme.typography.small.copyWith(
                   color: theme.color.muted,
                 ),
@@ -119,12 +135,45 @@ class SettingsDataPrivacySection extends StatelessWidget {
         _DangerActionButton(
           key: const Key('settings-clear-all-data'),
           icon: YhIcons.delete,
-          label: '清除所有数据',
+          label: '清除本地数据',
           onPressed: state == SettingsDataPrivacyState.loading
               ? null
               : onClearAllData,
         ),
       ],
+    );
+  }
+}
+
+class _CleanupResult extends StatelessWidget {
+  const _CleanupResult({
+    required this.label,
+    required this.items,
+    required this.kind,
+  });
+
+  final String label;
+  final List<String> items;
+  final YhStatusKind kind;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return Semantics(
+      label: '$label：${items.join('、')}',
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          YhStatusPill(label: label, kind: kind),
+          SizedBox(width: theme.spacing.s),
+          Expanded(
+            child: Text(
+              items.isEmpty ? '无' : items.join('、'),
+              style: theme.typography.small.copyWith(color: theme.color.muted),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

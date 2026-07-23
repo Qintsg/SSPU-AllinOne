@@ -77,7 +77,13 @@ def _load_reference_contract() -> tuple[dict, dict[str, dict], list[dict]]:
     expected: list[dict] = []
     for surface in manifest["surfaces"]:
         entry = entries[surface["id"]]
+        external_region_states = surface.get("externalRegionStates", {})
         for state in surface["states"]:
+            active_external_regions = [
+                region_id
+                for region_id, states in external_region_states.items()
+                if state in states
+            ]
             for theme in manifest["meta"]["themes"]:
                 for viewport in manifest["meta"]["viewports"]:
                     expected.append(
@@ -89,6 +95,7 @@ def _load_reference_contract() -> tuple[dict, dict[str, dict], list[dict]]:
                             "theme": theme,
                             "width": viewport["width"],
                             "height": viewport["height"],
+                            "externalRegions": active_external_regions,
                             "filename": (
                                 f'{surface["id"]}--{state}--{theme}--'
                                 f'{viewport["width"]}x{viewport["height"]}.png'
@@ -118,6 +125,7 @@ def _capture_missing_state_references(page: Page, output_dir: Path, expected: li
                     "group": item["group"],
                     "state": item["state"],
                     "theme": item["theme"],
+                    "externalRegions": item["externalRegions"],
                 },
             )
             _assert(
@@ -126,6 +134,29 @@ def _capture_missing_state_references(page: Page, output_dir: Path, expected: li
             )
             _assert_targets(page, width, item["surface"])
             _capture_reference(page, target, width, height)
+            if item["externalRegions"]:
+                regions = []
+                for region_id in item["externalRegions"]:
+                    region = page.locator(f'[data-external-region="{region_id}"]')
+                    _assert(
+                        region.count() == 1,
+                        f'{item["filename"]} 缺少外部区域 {region_id}',
+                    )
+                    box = region.bounding_box()
+                    _assert(box is not None, f'{item["filename"]} 外部区域 {region_id} 不可见')
+                    regions.append(
+                        {
+                            "id": region_id,
+                            "x": round(box["x"]),
+                            "y": round(box["y"]),
+                            "width": round(box["width"]),
+                            "height": round(box["height"]),
+                        }
+                    )
+                Path(f"{target}.regions.json").write_text(
+                    json.dumps({"externalRegions": regions}, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
 
 
 def _write_reference_index(output_dir: Path, manifest: dict, expected: list[dict]) -> None:
@@ -136,6 +167,18 @@ def _write_reference_index(output_dir: Path, manifest: dict, expected: list[dict
     unexpected = sorted(actual_names - expected_names)
     _assert(not missing, f"设计参考缺少 {len(missing)} 张：{', '.join(missing[:5])}")
     _assert(not unexpected, f"设计参考存在清单外截图：{', '.join(unexpected[:5])}")
+    expected_sidecars = {
+        f'{item["filename"]}.regions.json'
+        for item in expected
+        if item["externalRegions"]
+    }
+    actual_sidecars = {
+        item.name for item in output_dir.glob("*.png.regions.json")
+    }
+    _assert(
+        actual_sidecars == expected_sidecars,
+        "设计参考外部区域 sidecar 与逐状态声明不一致",
+    )
     index = {
         "meta": {
             "version": manifest["meta"]["version"],
@@ -143,6 +186,7 @@ def _write_reference_index(output_dir: Path, manifest: dict, expected: list[dict
             "fixture": manifest["meta"]["capture"]["fixture"],
             "clock": manifest["meta"]["capture"]["clock"],
             "count": len(actual_files),
+            "externalRegionSidecars": len(actual_sidecars),
             "status": "design-review-candidate",
         },
         "files": [
@@ -151,6 +195,13 @@ def _write_reference_index(output_dir: Path, manifest: dict, expected: list[dict
                 "sha256": hashlib.sha256(item.read_bytes()).hexdigest(),
             }
             for item in actual_files
+        ],
+        "regions": [
+            {
+                "name": name,
+                "sha256": hashlib.sha256((output_dir / name).read_bytes()).hexdigest(),
+            }
+            for name in sorted(actual_sidecars)
         ],
     }
     (output_dir / "reference-index.json").write_text(
@@ -463,6 +514,8 @@ def verify(output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     for stale_reference in output_dir.glob("*.png"):
         stale_reference.unlink()
+    for stale_sidecar in output_dir.glob("*.png.regions.json"):
+        stale_sidecar.unlink()
     (output_dir / "reference-index.json").unlink(missing_ok=True)
     manifest, _, expected = _load_reference_contract()
     prototype_url = PROTOTYPE.resolve().as_uri()

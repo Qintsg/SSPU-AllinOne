@@ -46,13 +46,20 @@ class SettingsWechatAuthStatusCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              YhChip(
+              YhStatusPill(
                 label: _authenticated
                     ? '已认证'
                     : _busy
                     ? '认证中'
                     : '未认证',
-                selected: _authenticated,
+                kind: switch (state) {
+                  SettingsWechatAuthDisplayState.content =>
+                    YhStatusKind.success,
+                  SettingsWechatAuthDisplayState.loading => YhStatusKind.info,
+                  SettingsWechatAuthDisplayState.error => YhStatusKind.danger,
+                  SettingsWechatAuthDisplayState.initial =>
+                    YhStatusKind.warning,
+                },
               ),
             ],
           ),

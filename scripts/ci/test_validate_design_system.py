@@ -392,6 +392,22 @@ class DesignSystemValidatorTest(unittest.TestCase):
             with self.assertRaisesRegex(DesignSystemValidationError, r"视觉清单必须锁定"):
                 validate_design_system(root)
 
+    def test_visual_manifest_requires_external_regions_by_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            manifest = root / "docs" / "design" / "resources" / "visual-manifest.json"
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            target = next(
+                surface for surface in payload["surfaces"] if surface["id"] == "external.pdf"
+            )
+            target.pop("externalRegionStates")
+            manifest.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+            with self.assertRaisesRegex(DesignSystemValidationError, r"external.pdf.*逐区域声明外部状态"):
+                validate_design_system(root)
+
     def test_reference_catalog_requires_every_visual_surface(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

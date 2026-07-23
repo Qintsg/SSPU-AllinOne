@@ -28,21 +28,33 @@ def _png_size(path: Path) -> tuple[int, int]:
     return struct.unpack(">II", header[16:24])
 
 
-def _expected_files(manifest: dict) -> tuple[set[str], dict[str, set[str]]]:
+def _expected_files(
+    manifest: dict,
+) -> tuple[set[str], dict[str, set[str]], dict[str, set[str]]]:
     meta = manifest["meta"]
     expected: set[str] = set()
     external_ids: dict[str, set[str]] = {}
+    expected_sidecars: dict[str, set[str]] = {}
     for surface in manifest["surfaces"]:
         surface_id = surface["id"]
         external_ids[surface_id] = set(surface.get("externalRegions", []))
+        external_region_states = surface.get("externalRegionStates", {})
         for state in surface["states"]:
             for theme in meta["themes"]:
                 for viewport in meta["viewports"]:
-                    expected.add(
+                    image_name = (
                         f'{surface_id}--{state}--{theme}--'
                         f'{viewport["width"]}x{viewport["height"]}.png'
                     )
-    return expected, external_ids
+                    expected.add(image_name)
+                    active_regions = {
+                        region_id
+                        for region_id, states in external_region_states.items()
+                        if state in states
+                    }
+                    if active_regions:
+                        expected_sidecars[f"{image_name}.regions.json"] = active_regions
+    return expected, external_ids, expected_sidecars
 
 
 def validate_visual_artifacts(root: Path, manifest_path: Path, platform: str) -> tuple[int, int]:
@@ -50,7 +62,7 @@ def validate_visual_artifacts(root: Path, manifest_path: Path, platform: str) ->
     platforms = manifest.get("meta", {}).get("platforms", [])
     if platform not in platforms:
         raise VisualArtifactValidationError(f"视觉清单不包含平台 {platform}")
-    expected, external_ids = _expected_files(manifest)
+    expected, external_ids, expected_sidecars = _expected_files(manifest)
     actual_files = sorted(root.glob("*.png"), key=lambda item: item.name)
     actual = {item.name for item in actual_files}
     missing = sorted(expected - actual)
@@ -81,7 +93,19 @@ def validate_visual_artifacts(root: Path, manifest_path: Path, platform: str) ->
             )
 
     sidecars = sorted(root.glob("*.png.regions.json"), key=lambda item: item.name)
-    surfaces_with_sidecars: set[str] = set()
+    actual_sidecars = {sidecar.name for sidecar in sidecars}
+    missing_sidecars = sorted(set(expected_sidecars) - actual_sidecars)
+    unexpected_sidecars = sorted(actual_sidecars - set(expected_sidecars))
+    if missing_sidecars:
+        errors.append(
+            f"缺少 {len(missing_sidecars)} 个外部区域 sidecar："
+            f"{', '.join(missing_sidecars[:5])}"
+        )
+    if unexpected_sidecars:
+        errors.append(
+            f"存在 {len(unexpected_sidecars)} 个不应降级阈值的 sidecar："
+            f"{', '.join(unexpected_sidecars[:5])}"
+        )
     for sidecar in sidecars:
         image_name = sidecar.name.removesuffix(".regions.json")
         image_path = root / image_name
@@ -91,6 +115,7 @@ def validate_visual_artifacts(root: Path, manifest_path: Path, platform: str) ->
             continue
         surface = match["surface"]
         allowed_ids = external_ids.get(surface, set())
+        expected_ids = expected_sidecars.get(sidecar.name, set())
         try:
             payload = json.loads(sidecar.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as error:
@@ -100,6 +125,14 @@ def validate_visual_artifacts(root: Path, manifest_path: Path, platform: str) ->
         if not isinstance(regions, list) or not regions:
             errors.append(f"外部区域 sidecar 为空：{sidecar.name}")
             continue
+        region_ids = {
+            region.get("id") for region in regions if isinstance(region, dict)
+        }
+        if region_ids != expected_ids:
+            errors.append(
+                f"{sidecar.name} 外部区域集合应为 {sorted(expected_ids)}，"
+                f"实际为 {sorted(str(item) for item in region_ids)}"
+            )
         width, height = image_sizes.get(image_name, (0, 0))
         for region in regions:
             if not isinstance(region, dict):
@@ -122,12 +155,6 @@ def validate_visual_artifacts(root: Path, manifest_path: Path, platform: str) ->
                 or y + region_height > height
             ):
                 errors.append(f"{sidecar.name} 外部区域 {region_id} 超出截图边界")
-        surfaces_with_sidecars.add(surface)
-
-    required_external_surfaces = {surface for surface, ids in external_ids.items() if ids}
-    missing_external = sorted(required_external_surfaces - surfaces_with_sidecars)
-    if missing_external:
-        errors.append(f"声明外部区域但没有任何 sidecar：{', '.join(missing_external)}")
     if errors:
         raise VisualArtifactValidationError("\n".join(errors))
     return len(actual_files), len(sidecars)

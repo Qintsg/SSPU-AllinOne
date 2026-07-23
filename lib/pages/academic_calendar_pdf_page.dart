@@ -20,12 +20,20 @@ class AcademicCalendarPdfFrame extends StatelessWidget {
     required this.title,
     required this.document,
     required this.onBack,
+    required this.pageLabel,
+    required this.onZoomOut,
+    required this.onZoomIn,
+    required this.onDownload,
     required this.onOpenExternal,
   });
 
   final String title;
   final Widget document;
   final VoidCallback onBack;
+  final String pageLabel;
+  final VoidCallback? onZoomOut;
+  final VoidCallback? onZoomIn;
+  final VoidCallback onDownload;
   final VoidCallback onOpenExternal;
 
   @override
@@ -41,18 +49,67 @@ class AcademicCalendarPdfFrame extends StatelessWidget {
       ),
       actions: [
         YhIconButton(
+          icon: YhIcons.download,
+          semanticLabel: '下载校历 PDF',
+          onTap: onDownload,
+        ),
+        YhIconButton(
           icon: YhIcons.open,
           semanticLabel: '外部打开校历 PDF',
           onTap: onOpenExternal,
         ),
       ],
     ),
-    body: document,
+    body: Column(
+      children: [
+        Builder(
+          builder: (context) {
+            final theme = context.yhTheme;
+            return Container(
+              constraints: BoxConstraints(minHeight: theme.control.touch),
+              padding: EdgeInsets.symmetric(horizontal: theme.spacing.m),
+              decoration: BoxDecoration(
+                color: theme.color.surface,
+                border: Border(
+                  bottom: BorderSide(
+                    color: theme.color.border,
+                    width: theme.layout.divider,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Semantics(
+                      label: 'PDF 页码：$pageLabel',
+                      child: Text(pageLabel, style: theme.typography.small),
+                    ),
+                  ),
+                  YhIconButton(
+                    icon: YhIcons.zoomOut,
+                    semanticLabel: '缩小 PDF',
+                    variant: YhIconButtonVariant.ghost,
+                    onTap: onZoomOut,
+                  ),
+                  YhIconButton(
+                    icon: YhIcons.zoomIn,
+                    semanticLabel: '放大 PDF',
+                    variant: YhIconButtonVariant.ghost,
+                    onTap: onZoomIn,
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        Expanded(child: document),
+      ],
+    ),
   );
 }
 
 /// 校历 PDF 查看页。
-class AcademicCalendarPdfPage extends StatelessWidget {
+class AcademicCalendarPdfPage extends StatefulWidget {
   const AcademicCalendarPdfPage({
     super.key,
     required this.title,
@@ -69,8 +126,18 @@ class AcademicCalendarPdfPage extends StatelessWidget {
   /// 网络 PDF 地址。
   final String? pdfUrl;
 
+  @override
+  State<AcademicCalendarPdfPage> createState() =>
+      _AcademicCalendarPdfPageState();
+}
+
+class _AcademicCalendarPdfPageState extends State<AcademicCalendarPdfPage> {
+  final PdfViewerController _pdfController = PdfViewerController();
+  int _pageNumber = 1;
+  int? _pageCount;
+
   Future<void> _openExternal() async {
-    final target = pdfUrl ?? pdfFilePath;
+    final target = widget.pdfUrl ?? widget.pdfFilePath;
     if (target == null || target.isEmpty) return;
     final uri = target.startsWith('http')
         ? Uri.parse(target)
@@ -80,18 +147,39 @@ class AcademicCalendarPdfPage extends StatelessWidget {
     }
   }
 
+  void _viewerReady(PdfDocument document, PdfViewerController controller) {
+    if (!mounted) return;
+    setState(() {
+      _pageNumber = controller.pageNumber ?? 1;
+      _pageCount = controller.pageCount;
+    });
+  }
+
+  void _pageChanged(int? pageNumber) {
+    if (!mounted || pageNumber == null || pageNumber == _pageNumber) return;
+    setState(() => _pageNumber = pageNumber);
+  }
+
+  PdfViewerParams get _viewerParams => PdfViewerParams(
+    errorBannerBuilder: _buildErrorBanner,
+    onViewerReady: _viewerReady,
+    onPageChanged: _pageChanged,
+  );
+
   @override
   Widget build(BuildContext context) {
     Widget body;
-    if (academicCalendarPdfFileExists(pdfFilePath)) {
+    if (academicCalendarPdfFileExists(widget.pdfFilePath)) {
       body = PdfViewer.file(
-        pdfFilePath!,
-        params: PdfViewerParams(errorBannerBuilder: _buildErrorBanner),
+        widget.pdfFilePath!,
+        controller: _pdfController,
+        params: _viewerParams,
       );
-    } else if (pdfUrl != null && pdfUrl!.isNotEmpty) {
+    } else if (widget.pdfUrl != null && widget.pdfUrl!.isNotEmpty) {
       body = PdfViewer.uri(
-        Uri.parse(pdfUrl!),
-        params: PdfViewerParams(errorBannerBuilder: _buildErrorBanner),
+        Uri.parse(widget.pdfUrl!),
+        controller: _pdfController,
+        params: _viewerParams,
       );
     } else {
       body = EmptyStateView(
@@ -106,9 +194,15 @@ class AcademicCalendarPdfPage extends StatelessWidget {
     }
 
     return AcademicCalendarPdfFrame(
-      title: title,
+      title: widget.title,
       document: body,
       onBack: () => Navigator.of(context).maybePop(),
+      pageLabel: _pageCount == null
+          ? '页码加载中'
+          : '第 $_pageNumber / $_pageCount 页',
+      onZoomOut: _pdfController.isReady ? _pdfController.zoomDown : null,
+      onZoomIn: _pdfController.isReady ? _pdfController.zoomUp : null,
+      onDownload: _openExternal,
       onOpenExternal: _openExternal,
     );
   }

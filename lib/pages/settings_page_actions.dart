@@ -566,13 +566,13 @@ mixin _SettingsPageActions on State<SettingsPage> {
   Future<void> _showClearAllDataDialog() async {
     final confirmed = await YhDialog.confirm(
       context,
-      title: '确认清除所有数据',
+      title: '确认清除本地数据',
       message:
           '将清除所有本地数据，包括登录信息、设置和缓存。\n\n'
           '操作完成后应用会退出。点击弹窗外区域可取消本次操作。',
-      confirmText: '确认清除并退出',
+      confirmText: '清除本地数据',
       danger: true,
-      barrierDismissible: true,
+      barrierDismissible: false,
     );
 
     if (confirmed) {

@@ -57,7 +57,7 @@ void main() {
     expect(find.text('正在清理本地数据，请保持应用打开。'), findsOneWidget);
     expect(
       tester
-          .getSemantics(find.bySemanticsLabel('清除所有数据'))
+          .getSemantics(find.bySemanticsLabel('清除本地数据'))
           .flagsCollection
           .isEnabled,
       Tristate.isFalse,
@@ -74,6 +74,9 @@ void main() {
       ),
     );
     expect(find.text('部分缓存未能清理，请重试。'), findsOneWidget);
+    expect(find.text('已清除项目'), findsOneWidget);
+    expect(find.text('未清除项目'), findsOneWidget);
+    expect(find.text('清除本地数据'), findsOneWidget);
   });
 
   testWidgets('微信认证错误态保留扫码与重新校验路径', (tester) async {
@@ -91,6 +94,8 @@ void main() {
     );
 
     expect(find.text('认证已过期，请重新扫码登录。'), findsOneWidget);
+    expect(find.byType(YhStatusPill), findsOneWidget);
+    expect(find.byType(YhChip), findsNothing);
     expect(find.text('扫码登录'), findsOneWidget);
     expect(find.text('重新加载配置并校验'), findsOneWidget);
   });

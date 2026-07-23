@@ -41,8 +41,9 @@ class VisualArtifactValidatorTest(unittest.TestCase):
                         {
                             "id": "external.pdf",
                             "group": "external",
-                            "states": ["content"],
+                            "states": ["loading", "content"],
                             "externalRegions": ["document"],
+                            "externalRegionStates": {"document": ["content"]},
                         }
                     ],
                 }
@@ -51,6 +52,7 @@ class VisualArtifactValidatorTest(unittest.TestCase):
         )
         image = images / "external.pdf--content--light--4x3.png"
         image.write_bytes(_png(4, 3))
+        (images / "external.pdf--loading--light--4x3.png").write_bytes(_png(4, 3))
         (images / f"{image.name}.regions.json").write_text(
             json.dumps(
                 {
@@ -66,7 +68,7 @@ class VisualArtifactValidatorTest(unittest.TestCase):
     def test_complete_inventory_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             images, manifest = self._fixture(Path(temp_dir))
-            self.assertEqual(validate_visual_artifacts(images, manifest, "windows"), (1, 1))
+            self.assertEqual(validate_visual_artifacts(images, manifest, "windows"), (2, 1))
 
     def test_missing_image_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -83,6 +85,15 @@ class VisualArtifactValidatorTest(unittest.TestCase):
             payload["externalRegions"][0]["height"] = 4
             sidecar.write_text(json.dumps(payload), encoding="utf-8")
             with self.assertRaisesRegex(VisualArtifactValidationError, "超出截图边界"):
+                validate_visual_artifacts(images, manifest, "windows")
+
+    def test_app_drawn_loading_state_rejects_external_sidecar(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            images, manifest = self._fixture(Path(temp_dir))
+            source = next(images.glob("*content*.regions.json"))
+            target = images / "external.pdf--loading--light--4x3.png.regions.json"
+            target.write_bytes(source.read_bytes())
+            with self.assertRaisesRegex(VisualArtifactValidationError, "不应降级阈值"):
                 validate_visual_artifacts(images, manifest, "windows")
 
 
