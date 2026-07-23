@@ -6,6 +6,9 @@
  * @Date : 2026-06-11
  */
 
+// Public named parameters intentionally initialize private implementation fields.
+// ignore_for_file: prefer_initializing_formals
+
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';

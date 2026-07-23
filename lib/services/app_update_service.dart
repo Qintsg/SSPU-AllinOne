@@ -6,6 +6,9 @@
  * @Date : 2026-05-18
  */
 
+// Public named parameters intentionally initialize private implementation fields.
+// ignore_for_file: prefer_initializing_formals
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
