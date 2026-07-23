@@ -100,6 +100,33 @@
     });
   }
 
+  function setCampusCardHomeState(state) {
+    var homePage = document.querySelector('[data-screen="home"]');
+    if (!homePage) return;
+    var card = homePage.querySelector('.campus-card-overview');
+    if (!card) return;
+    homePage.dataset.campusCardState = state;
+    card.dataset.state = state;
+    card.disabled = ['loading', 'empty', 'error'].indexOf(state) >= 0;
+    card.querySelectorAll('[data-campus-card-home-state]').forEach(function (item) {
+      item.hidden = item.dataset.campusCardHomeState !== state;
+    });
+  }
+
+  function setCampusCardDetailState(state) {
+    var detailPage = document.querySelector('[data-screen="campus-card-detail"]');
+    if (!detailPage) return;
+    detailPage.dataset.state = state;
+    detailPage.querySelectorAll('[data-campus-card-detail-content]').forEach(function (item) {
+      item.hidden = state === 'empty';
+    });
+    detailPage.querySelectorAll('[data-campus-card-detail-state]').forEach(function (panel) {
+      panel.hidden = panel.dataset.campusCardDetailState !== state;
+    });
+    var error = detailPage.querySelector('[data-campus-card-detail-error]');
+    if (error) error.hidden = state !== 'error';
+  }
+
   function setInfoFilterState(state) {
     var infoPage = document.querySelector('[data-screen="info"]');
     if (!infoPage) return;
@@ -197,7 +224,7 @@
       page.classList.toggle('is-active', active);
       page.hidden = !active;
     });
-    document.body.classList.toggle('standalone-screen', ['mail-detail', 'link-confirmation'].indexOf(name) >= 0);
+    document.body.classList.toggle('standalone-screen', ['mail-detail', 'link-confirmation', 'campus-card-detail'].indexOf(name) >= 0);
     document.querySelectorAll('[data-page]').forEach(function (button) {
       if (button.dataset.page === name) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
@@ -236,7 +263,17 @@
       return;
     }
 
-    var tab = event.target.closest('.domain-tab');
+    var campusCardDirection = event.target.closest('.campus-card-direction .domain-tab');
+    if (campusCardDirection) {
+      selectOne(Array.from(campusCardDirection.parentElement.querySelectorAll('.domain-tab')), campusCardDirection, 'aria-selected');
+      var direction = campusCardDirection.textContent.trim();
+      document.querySelectorAll('.campus-card-transaction').forEach(function (entry) {
+        entry.hidden = direction !== '全部' && entry.dataset.direction !== direction;
+      });
+      return;
+    }
+
+    var tab = event.target.closest('[data-screen="schedule"] .domain-tab');
     if (tab) {
       activateScheduleTab(tab);
       return;
@@ -418,6 +455,8 @@
     if (tab) panel.setAttribute('aria-labelledby', tab.id);
   });
   window.qingyuanPrototype = {
+    setCampusCardHomeState: setCampusCardHomeState,
+    setCampusCardDetailState: setCampusCardDetailState,
     setInfoState: setInfoState,
     setInfoFilterState: setInfoFilterState,
     setMailState: setMailState,

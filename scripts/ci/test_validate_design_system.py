@@ -190,6 +190,47 @@ class DesignSystemValidatorTest(unittest.TestCase):
             ):
                 validate_design_system(root)
 
+    def test_campus_card_prototype_requires_home_and_detail_states(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            prototype = root / "docs" / "design" / "patterns" / "samples" / "app-shell.html"
+            prototype.write_text(
+                prototype.read_text(encoding="utf-8").replace(
+                    'data-campus-card-detail-state="empty"',
+                    'data-campus-card-detail-state="missing-empty"',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                DesignSystemValidationError,
+                r"校园卡详情原型缺少状态：empty",
+            ):
+                validate_design_system(root)
+
+    def test_campus_card_prototype_requires_deterministic_state_setters(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            prototype_js = root / "docs" / "design" / "patterns" / "samples" / "_app-shell.js"
+            prototype_js.write_text(
+                prototype_js.read_text(encoding="utf-8").replace(
+                    "setCampusCardDetailState",
+                    "missingCampusCardDetailState",
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                DesignSystemValidationError,
+                r"页面原型缺少确定性状态接口 setCampusCardDetailState",
+            ):
+                validate_design_system(root)
+
     def test_links_prototype_requires_external_confirmation_boundary(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

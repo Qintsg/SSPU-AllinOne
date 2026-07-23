@@ -247,6 +247,9 @@ button, input { font: inherit; }
   background: var(--surface);
 }
 .overview-card { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: var(--space-m); }
+button.overview-card { width: 100%; border: 1px solid var(--border); color: var(--fg); text-align: left; cursor: pointer; }
+button.overview-card:hover { border-color: var(--brand); background: var(--brand-tint); }
+.campus-card-state { display: contents; }
 .service-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 13px; color: var(--domain, var(--brand-ink)); background: color-mix(in srgb, var(--domain, var(--brand)) calc(var(--opacity-domain-tint) * 100%), var(--surface)); }
 .overview-card b { display: block; font-size: var(--type-body); }
 .overview-card span { display: block; margin-top: var(--space-xs); color: var(--muted); font-size: var(--type-caption); }
@@ -348,6 +351,7 @@ button, input { font: inherit; }
 .mail-state-panel .yh-empty h2 { color: var(--fg); font: 600 var(--type-h3)/var(--line-height-h3) var(--font); }
 .mail-state-progress { display: flex; align-items: center; gap: var(--space-m); }
 .mail-detail-page { width: 100%; max-width: none; margin: 0; padding: 0; }
+.campus-card-detail-page { width: 100%; max-width: none; margin: 0; padding: 0; }
 .detail-appbar { height: var(--layout-app-bar-height); display: flex; align-items: center; gap: var(--space-s); padding: 0 var(--space-m); border-bottom: 1px solid var(--border); background: var(--surface); }
 .detail-appbar h1 { margin: 0; font: 500 var(--type-h3)/1.3 var(--font); }
 .detail-appbar .icon-button.ghost { border-color: transparent; background: transparent; }
@@ -356,6 +360,27 @@ button, input { font: inherit; }
 .mail-detail-card h2 { margin: 0; font-size: var(--type-h2); }
 .mail-detail-card > p { margin: var(--space-s) 0 var(--space-m); }
 .mail-detail-safety { max-width: none; margin-top: var(--space-l); }
+.campus-card-detail-body { width: min(100%, var(--layout-page-content-width)); margin-inline: auto; padding: var(--space-xl); }
+.campus-card-balance-hero { display: grid; gap: var(--space-s); margin-bottom: var(--space-m); padding: var(--space-l); border-radius: var(--radius-l); color: var(--on-structural); background: var(--brand-strong); }
+.campus-card-balance-hero > span { color: color-mix(in srgb, var(--on-structural) 82%, transparent); font-size: var(--type-small); }
+.campus-card-balance-hero > strong { font: 600 var(--type-display)/1 var(--mono); }
+.campus-card-balance-hero > div { display: flex; flex-wrap: wrap; gap: var(--space-m); color: color-mix(in srgb, var(--on-structural) 82%, transparent); font-size: var(--type-caption); }
+.campus-card-filter { margin-bottom: var(--space-m); }
+.campus-card-filter-controls { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-s); }
+.campus-card-filter-controls .yh-field { width: var(--layout-inline-control-width); }
+.campus-card-direction { margin: var(--space-m) 0 0; }
+.campus-card-filter-error { max-width: none; margin-top: var(--space-m); }
+.campus-card-transaction-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-s); }
+.campus-card-transaction { position: relative; }
+.campus-card-transaction > div { display: flex; justify-content: space-between; align-items: center; gap: var(--space-s); }
+.campus-card-transaction time { color: var(--muted); font-size: var(--type-caption); }
+.campus-card-transaction h2 { margin-top: var(--space-m); }
+.campus-card-transaction > p { margin-bottom: var(--space-l); }
+.campus-card-transaction > strong { display: block; color: var(--service-finance); font: 600 var(--type-h2)/1 var(--mono); text-align: right; }
+.campus-card-detail-state { min-height: calc(var(--layout-popover-width) + var(--space-xl)); display: grid; place-items: center; }
+.campus-card-detail-state .yh-empty > svg { width: var(--control-regular); height: var(--control-regular); padding: var(--space-s); border-radius: var(--radius-m); color: var(--brand-strong); background: var(--brand-tint); fill: none; stroke: currentColor; stroke-width: 1.8; }
+.campus-card-detail-state .yh-empty h2, .campus-card-detail-state .yh-empty p { margin: 0; }
+.campus-card-detail-state .yh-empty h2 { color: var(--fg); font: 600 var(--type-h3)/var(--line-height-h3) var(--font); }
 .mail-state-progress h2, .mail-state-progress p { margin: 0; }
 .mail-state-progress p { margin-top: var(--space-xs); color: var(--muted); }
 .yh-spinner { width: var(--control-compact); height: var(--control-compact); border: var(--space-xs) solid var(--brand-tint); border-top-color: var(--brand-strong); border-radius: var(--radius-full); animation: mail-spin var(--duration-slow) linear infinite; }
@@ -422,6 +447,7 @@ button, input { font: inherit; }
   .mail-layout.is-detail .mail-content { display: block; }
   .mail-layout.is-detail .mail-back { display: inline-flex; align-items: center; }
   .mail-compose-form { grid-template-columns: 1fr; }
+  .campus-card-transaction-list { grid-template-columns: 1fr; }
   .mail-compose-to, .mail-compose-subject, .mail-compose-body, .mail-compose-error, .mail-compose-actions { grid-column: auto; }
 }
 
@@ -432,9 +458,10 @@ button, input { font: inherit; }
   .prototype-main { height: auto; min-height: 100vh; padding-bottom: calc(var(--control-touch) + var(--space-xl)); overflow: visible; }
   .standalone-screen .prototype-main { padding-bottom: 0; }
   .mail-detail-body { padding: var(--space-m); }
+  .campus-card-detail-body { padding: var(--space-m); }
   .external-confirm-body { padding: var(--space-m); }
   .prototype-page { padding: var(--space-l) var(--space-m) var(--space-xl); }
-  .mail-detail-page, .link-confirmation-page { padding: 0; }
+  .mail-detail-page, .link-confirmation-page, .campus-card-detail-page { padding: 0; }
   .page-heading { margin-bottom: var(--space-l); }
   .page-heading h1 { font-size: var(--type-h1); }
   .page-heading p { font-size: var(--type-small); }

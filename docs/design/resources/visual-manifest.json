@@ -40,6 +40,7 @@
 
     {"id": "home.dashboard", "group": "home", "states": ["initial", "loading", "content", "stale", "error"]},
     {"id": "home.campus-card", "group": "home", "states": ["loading", "content", "empty", "stale", "error"]},
+    {"id": "home.campus-card-detail", "group": "home", "states": ["content", "empty", "error"]},
 
     {"id": "academic.overview", "group": "academic", "states": ["initial", "loading", "content", "empty", "stale", "error"]},
     {"id": "academic.grade-detail", "group": "academic", "states": ["loading", "content", "empty", "error"]},

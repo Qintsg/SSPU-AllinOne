@@ -426,6 +426,44 @@ def _validate_page_prototype(project_root: Path) -> None:
         if marker not in prototype:
             errors.append(f"资讯原型缺少{label}")
 
+    required_campus_card_home_states = {
+        "loading",
+        "content",
+        "empty",
+        "stale",
+        "error",
+    }
+    campus_card_home_states = set(
+        re.findall(r'data-campus-card-home-state="([a-z-]+)"', prototype)
+    )
+    missing_campus_card_home_states = sorted(
+        required_campus_card_home_states - campus_card_home_states
+    )
+    if missing_campus_card_home_states:
+        errors.append(
+            "首页校园卡原型缺少状态："
+            + ", ".join(missing_campus_card_home_states)
+        )
+    required_campus_card_detail_states = {"empty"}
+    campus_card_detail_states = set(
+        re.findall(r'data-campus-card-detail-state="([a-z-]+)"', prototype)
+    )
+    missing_campus_card_detail_states = sorted(
+        required_campus_card_detail_states - campus_card_detail_states
+    )
+    if missing_campus_card_detail_states:
+        errors.append(
+            "校园卡详情原型缺少状态："
+            + ", ".join(missing_campus_card_detail_states)
+        )
+    for marker, label in (
+        ('data-screen="campus-card-detail"', "详情页"),
+        ("data-campus-card-detail-content", "详情内容态"),
+        ("data-campus-card-detail-error", "日期筛选错误态"),
+    ):
+        if marker not in prototype:
+            errors.append(f"校园卡原型缺少{label}")
+
     for marker, label in (
         ('data-screen="link-confirmation"', "外部网页确认页"),
         ('data-link-confirmation-state="content"', "外部确认 content 状态"),
@@ -437,6 +475,8 @@ def _validate_page_prototype(project_root: Path) -> None:
 
     prototype_js = (project_root / "docs/design/patterns/samples/_app-shell.js").read_text(encoding="utf-8")
     for setter in (
+        "setCampusCardHomeState",
+        "setCampusCardDetailState",
         "setInfoState",
         "setInfoFilterState",
         "setMailState",
@@ -449,6 +489,8 @@ def _validate_page_prototype(project_root: Path) -> None:
     if verifier_path.exists():
         verifier = verifier_path.read_text(encoding="utf-8")
         for surface in (
+            "home.campus-card",
+            "home.campus-card-detail",
             "info.feed",
             "info.filters",
             "mail.inbox",

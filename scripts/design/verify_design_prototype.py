@@ -12,9 +12,10 @@ from playwright.sync_api import Page, sync_playwright
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROTOTYPE = PROJECT_ROOT / "docs" / "design" / "patterns" / "samples" / "app-shell.html"
-SCREENS = ("home", "academic", "schedule", "info", "mail", "mail-detail", "links", "link-confirmation", "settings")
+SCREENS = ("home", "campus-card-detail", "academic", "schedule", "info", "mail", "mail-detail", "links", "link-confirmation", "settings")
 SCREEN_SURFACES = {
     "home": "home.dashboard",
+    "campus-card-detail": "home.campus-card-detail",
     "academic": "academic.overview",
     "schedule": "schedule.calendar",
     "info": "info.feed",
@@ -68,10 +69,27 @@ def _assert_screen_interactions(page: Page, screen: str, viewport_width: int) ->
     if screen == "home":
         page.get_by_role("button", name="刷新首页").click()
         _assert("刷新首页已完成" in page.locator('.prototype-toast:visible').inner_text(), "页面行动缺少可感知反馈")
+        page.locator('.campus-card-overview').click()
+        _assert(page.locator('[data-screen="campus-card-detail"]:visible').count() == 1, "首页校园卡无法进入交易详情")
+        page.get_by_role("button", name="返回主页").click()
+        _assert(page.locator('[data-screen="home"]:visible').count() == 1, "校园卡详情无法返回主页")
+    elif screen == "campus-card-detail":
+        _assert(page.locator('.campus-card-transaction:visible').count() == 3, "校园卡详情未展示确定性交易记录")
+        expense = page.get_by_role("tab", name="支出")
+        expense.click()
+        _assert(page.locator('.campus-card-transaction:visible').count() == 2, "校园卡支出筛选结果错误")
+        expense.focus()
+        page.keyboard.press("ArrowRight")
+        _assert(page.get_by_role("tab", name="收入").get_attribute("aria-selected") == "true", "校园卡方向键未切换收支方向")
+        _assert(page.locator('.campus-card-transaction:visible').count() == 1, "校园卡收入筛选结果错误")
+        page.evaluate("window.qingyuanPrototype.setCampusCardDetailState('error')")
+        _assert(page.locator('.campus-card-filter-error:visible').count() == 1, "校园卡日期错误没有明确提示")
+        _assert(page.locator('[data-campus-card-detail-content]:visible').count() == 1, "校园卡日期错误清空了上次有效结果")
     elif screen == "schedule":
+        schedule_page = page.locator('[data-screen="schedule"]')
         if viewport_width < 768:
-            selected_box = page.locator('.domain-tab[aria-selected="true"]').bounding_box()
-            strip_box = page.locator('.domain-tabs').bounding_box()
+            selected_box = schedule_page.locator('.domain-tab[aria-selected="true"]').bounding_box()
+            strip_box = schedule_page.locator('.domain-tabs').bounding_box()
             _assert(
                 selected_box is not None
                 and strip_box is not None
@@ -79,19 +97,19 @@ def _assert_screen_interactions(page: Page, screen: str, viewport_width: int) ->
                 and selected_box["x"] + selected_box["width"] <= strip_box["x"] + strip_box["width"],
                 "compact 课表未露出当天 Tab",
             )
-        first_tab = page.locator('.domain-tab').first
+        first_tab = schedule_page.locator('.domain-tab').first
         first_tab.click()
         _assert(first_tab.get_attribute("aria-selected") == "true", "课表日期 Tab 未更新选择状态")
-        _assert(page.locator('.domain-tab[aria-selected="true"]').count() == 1, "课表存在多个已选 Tab")
+        _assert(schedule_page.locator('.domain-tab[aria-selected="true"]').count() == 1, "课表存在多个已选 Tab")
         if viewport_width < 768:
-            _assert(page.locator('.schedule-board:visible').count() == 0, "compact 课表仍显示桌面周网格")
-            _assert(page.locator('.schedule-day-list:visible').count() == 1, "compact 课表未显示按天列表")
-            _assert("数据结构" in page.locator('.schedule-day-list:visible').inner_text(), "课表 Tab 未切换当天课程")
+            _assert(schedule_page.locator('.schedule-board:visible').count() == 0, "compact 课表仍显示桌面周网格")
+            _assert(schedule_page.locator('.schedule-day-list:visible').count() == 1, "compact 课表未显示按天列表")
+            _assert("数据结构" in schedule_page.locator('.schedule-day-list:visible').inner_text(), "课表 Tab 未切换当天课程")
         else:
-            _assert(page.locator('.schedule-board:visible').count() == 1, "非 compact 课表未显示周网格")
+            _assert(schedule_page.locator('.schedule-board:visible').count() == 1, "非 compact 课表未显示周网格")
         first_tab.focus()
         page.keyboard.press("ArrowRight")
-        second_tab = page.locator('.domain-tab').nth(1)
+        second_tab = schedule_page.locator('.domain-tab').nth(1)
         _assert(second_tab.get_attribute("aria-selected") == "true", "课表方向键未切换 Tab")
         _assert(second_tab.evaluate("element => element === document.activeElement"), "课表方向键未移动焦点")
     elif screen == "info":
@@ -237,6 +255,58 @@ def _capture_info_state_references(
     page.evaluate("window.qingyuanPrototype.setInfoFilterState('content')")
 
 
+def _capture_campus_card_home_state_references(
+    page: Page,
+    output_dir: Path,
+    theme: str,
+    width: int,
+    height: int,
+) -> None:
+    for state in ("loading", "content", "empty", "stale", "error"):
+        page.evaluate("state => window.qingyuanPrototype.setCampusCardHomeState(state)", state)
+        visible = page.locator(f'[data-campus-card-home-state="{state}"]:visible')
+        _assert(visible.count() == 1, f"首页校园卡 {state} 状态未唯一显示")
+        page.locator('.campus-card-overview').evaluate(
+            "element => element.scrollIntoView({block: 'center', inline: 'nearest'})"
+        )
+        _capture_reference(
+            page,
+            output_dir / f"home.campus-card--{state}--{theme}--{width}x{height}.png",
+            width,
+            height,
+        )
+    page.evaluate("window.qingyuanPrototype.setCampusCardHomeState('content')")
+    page.locator('.prototype-main').evaluate("element => element.scrollTop = 0")
+
+
+def _capture_campus_card_detail_state_references(
+    page: Page,
+    output_dir: Path,
+    theme: str,
+    width: int,
+    height: int,
+) -> None:
+    for state in ("empty", "error"):
+        page.evaluate("state => window.qingyuanPrototype.setCampusCardDetailState(state)", state)
+        if state == "empty":
+            panel = page.locator('.campus-card-detail-state[data-campus-card-detail-state="empty"]:visible')
+            _assert(panel.count() == 1, "校园卡详情 empty 状态未显示")
+            panel.scroll_into_view_if_needed()
+        else:
+            error = page.locator('.campus-card-filter-error:visible')
+            _assert(error.count() == 1, "校园卡详情 error 状态未显示")
+            _assert(page.locator('[data-campus-card-detail-content]:visible').count() == 1, "校园卡详情 error 状态丢失有效记录")
+            error.scroll_into_view_if_needed()
+        _capture_reference(
+            page,
+            output_dir / f"home.campus-card-detail--{state}--{theme}--{width}x{height}.png",
+            width,
+            height,
+        )
+    page.evaluate("window.qingyuanPrototype.setCampusCardDetailState('content')")
+    page.locator('.prototype-main').evaluate("element => element.scrollTop = 0")
+
+
 def _capture_links_state_references(
     page: Page, output_dir: Path, theme: str, width: int, height: int
 ) -> None:
@@ -333,6 +403,10 @@ def verify(output_dir: Path) -> None:
                     width,
                     height,
                 )
+                if screen == "home":
+                    _capture_campus_card_home_state_references(page, output_dir, "light", width, height)
+                if screen == "campus-card-detail":
+                    _capture_campus_card_detail_state_references(page, output_dir, "light", width, height)
                 if screen == "info":
                     _capture_info_state_references(page, output_dir, "light", width, height)
                 if screen == "mail":
@@ -377,6 +451,10 @@ def verify(output_dir: Path) -> None:
                     width,
                     height,
                 )
+                if screen == "home":
+                    _capture_campus_card_home_state_references(page, output_dir, "dark", width, height)
+                if screen == "campus-card-detail":
+                    _capture_campus_card_detail_state_references(page, output_dir, "dark", width, height)
                 if screen == "info":
                     _capture_info_state_references(page, output_dir, "dark", width, height)
                 if screen == "mail":
