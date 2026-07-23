@@ -30,7 +30,9 @@ extension _HomeDashboardView on _HomePageState {
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     pagePadding,
-                    mobile ? theme.spacing.l : theme.spacing.xl,
+                    mobile
+                        ? theme.spacing.l + theme.layout.divider * 2
+                        : theme.spacing.xl,
                     pagePadding,
                     theme.spacing.xl2 + theme.spacing.m,
                   ),
@@ -42,14 +44,19 @@ extension _HomeDashboardView on _HomePageState {
                               HomeDashboardDisplayState.content ||
                           _homeDashboardDisplayState ==
                               HomeDashboardDisplayState.stale) ...[
+                        if (mobile) SizedBox(height: theme.layout.divider),
                         _buildHomeStatusRow(theme),
                         if (_homeDashboardDisplayState ==
                             HomeDashboardDisplayState.stale) ...[
+                          if (viewportWidth >= theme.breakpoint.medium &&
+                              viewportWidth < theme.breakpoint.expanded)
+                            SizedBox(height: theme.layout.divider),
                           YhBanner(
                             key: const Key('home-dashboard-stale-banner'),
                             text:
                                 '当前显示 ${_latestHomeUpdate == null ? '较早' : _formatHomeTime(_latestHomeUpdate!)} 的本地首页缓存；部分校园服务可能已更新。',
                             kind: YhBannerKind.warn,
+                            leadingIcon: YhIcons.info,
                           ),
                           SizedBox(height: theme.spacing.m),
                         ],
@@ -132,26 +139,32 @@ extension _HomeDashboardView on _HomePageState {
           YhRing.activity(label: '正在整理首页数据', size: theme.control.compact),
           SizedBox(width: theme.spacing.m),
           Flexible(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('正在整理今天', style: theme.typography.h3),
-                SizedBox(height: theme.spacing.xs),
-                Text(
-                  '正在汇总固定的脱敏课程、待办与校园服务数据。',
-                  style: theme.typography.body.copyWith(
-                    color: theme.color.muted,
+            child: ConstrainedBox(
+              key: const Key('home-loading-copy'),
+              constraints: BoxConstraints(
+                maxWidth: theme.layout.statusProgressWidth,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('正在整理今天', style: theme.typography.h3),
+                  SizedBox(height: theme.spacing.xs),
+                  Text(
+                    '正在汇总固定的脱敏课程、待办与校园服务数据。',
+                    style: theme.typography.body.copyWith(
+                      color: theme.color.muted,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
       ),
       HomeDashboardDisplayState.error => _buildHomeStateMessage(
         theme,
-        icon: YhIcons.warning,
+        icon: YhIcons.info,
         title: '无法更新首页数据',
         message: '请检查账户与网络后重试；已有本地缓存不会被删除。',
         action: YhButton(label: '重试', onTap: _refreshHome),
@@ -178,6 +191,7 @@ extension _HomeDashboardView on _HomePageState {
     required String message,
     required Widget action,
   }) {
+    final compactGap = theme.spacing.xs + theme.layout.divider * 2;
     return Padding(
       padding: EdgeInsets.all(theme.spacing.l),
       child: Column(
@@ -197,7 +211,7 @@ extension _HomeDashboardView on _HomePageState {
               ),
             ),
           ),
-          SizedBox(height: theme.spacing.s),
+          SizedBox(height: compactGap),
           Semantics(
             header: true,
             child: Text(
@@ -206,7 +220,7 @@ extension _HomeDashboardView on _HomePageState {
               style: theme.typography.h3,
             ),
           ),
-          SizedBox(height: theme.spacing.s),
+          SizedBox(height: compactGap),
           ConstrainedBox(
             constraints: BoxConstraints(
               maxWidth: theme.layout.statusProgressWidth,
@@ -214,10 +228,10 @@ extension _HomeDashboardView on _HomePageState {
             child: Text(
               message,
               textAlign: TextAlign.center,
-              style: theme.typography.body.copyWith(color: theme.color.muted),
+              style: theme.typography.small.copyWith(color: theme.color.muted),
             ),
           ),
-          SizedBox(height: theme.spacing.s),
+          SizedBox(height: compactGap),
           action,
         ],
       ),
@@ -243,10 +257,12 @@ extension _HomeDashboardView on _HomePageState {
           header: true,
           child: Text(_greeting(now), style: theme.typography.h1),
         ),
-        SizedBox(height: theme.spacing.s),
+        SizedBox(height: compact ? theme.spacing.xs : theme.spacing.s),
         Text(
+          key: const Key('home-heading-description'),
           '课程、待办和校园服务状态集中在同一条时间语境里，数据均保留在本机。',
-          style: theme.typography.body.copyWith(color: theme.color.muted),
+          style: (compact ? theme.typography.small : theme.typography.body)
+              .copyWith(color: theme.color.muted),
         ),
       ],
     );
@@ -297,7 +313,7 @@ extension _HomeDashboardView on _HomePageState {
     return Padding(
       padding: EdgeInsets.only(
         bottom: compact
-            ? theme.spacing.l
+            ? theme.spacing.l + theme.spacing.s + theme.layout.divider * 2
             : theme.spacing.l + theme.layout.divider * 3,
       ),
       child: content,
@@ -384,6 +400,7 @@ extension _HomeDashboardView on _HomePageState {
         viewportWidth * theme.responsive.heroViewportPercent / 100;
     final heroStyle = compact
         ? theme.typography.h1.copyWith(
+            fontSize: theme.typography.h1.fontSize! - theme.layout.divider,
             height: theme.typography.hero.height,
             fontWeight: theme.typography.hero.fontWeight,
           )
@@ -437,7 +454,9 @@ extension _HomeDashboardView on _HomePageState {
                           ],
                         ),
                         SizedBox(
-                          height: compact ? theme.spacing.l : theme.spacing.xl,
+                          height: compact
+                              ? theme.spacing.l + theme.layout.divider * 2
+                              : theme.spacing.xl,
                         ),
                         if (next == null)
                           Text(
@@ -468,7 +487,11 @@ extension _HomeDashboardView on _HomePageState {
                               color: theme.color.onStructural,
                             ),
                           ),
-                        SizedBox(height: theme.spacing.xl),
+                        SizedBox(
+                          height: compact
+                              ? theme.spacing.xl + theme.layout.divider * 2
+                              : theme.spacing.xl,
+                        ),
                         if (entries.isEmpty)
                           Text(
                             '打开课表或信息页刷新后，今天的课程与待办会显示在这里。',
@@ -545,6 +568,8 @@ extension _HomeDashboardView on _HomePageState {
       if (_studentReportTileVisible) _buildSecondClassroomCard(theme),
       if (_quickLinksTileVisible) _buildQuickLinksCard(theme),
     ];
+    final dockHeight =
+        theme.control.regular * 3 + theme.spacing.s + theme.layout.divider * 2;
     final content = stacked || children.length == 1
         ? Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -561,12 +586,18 @@ extension _HomeDashboardView on _HomePageState {
             children: [
               Expanded(
                 flex: theme.responsive.homeSecondaryFlex,
-                child: children.first,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: dockHeight),
+                  child: children.first,
+                ),
               ),
               SizedBox(width: theme.spacing.m),
               Expanded(
                 flex: theme.responsive.homePrimaryFlex,
-                child: children.last,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: dockHeight),
+                  child: children.last,
+                ),
               ),
             ],
           );
@@ -896,7 +927,11 @@ class _HomeOverviewCard extends StatelessWidget {
               ),
               child: SizedBox.square(
                 dimension: theme.control.regular - theme.spacing.xs,
-                child: Icon(icon, size: theme.spacing.l, color: color),
+                child: Icon(
+                  icon,
+                  size: theme.spacing.l,
+                  color: theme.color.muted,
+                ),
               ),
             ),
             SizedBox(width: theme.spacing.m),
@@ -1009,8 +1044,8 @@ class _HomeTimelineBackdropPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(
-      size.width + theme.spacing.xl2,
-      size.height + theme.spacing.xl2,
+      size.width - theme.spacing.xl2,
+      size.height - theme.spacing.xl2,
     );
     final radius = theme.layout.statusProgressWidth / 2;
     final midSpread = theme.spacing.xl + theme.spacing.xs;

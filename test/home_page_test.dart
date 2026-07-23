@@ -157,6 +157,38 @@ void main() {
     await disposeHomePage(tester);
   });
 
+  testWidgets('首页紧凑加载态使用小号说明并限制状态文案宽度', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(360, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          nowOverride: DateTime(2026, 7, 18, 9, 30),
+          dashboardDisplayStateOverride: HomeDashboardDisplayState.loading,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final description = find.byKey(const Key('home-heading-description'));
+    final loadingCopy = find.byKey(const Key('home-loading-copy'));
+    final theme = tester.element(description).yhTheme;
+    expect(
+      tester.widget<Text>(description).style?.fontSize,
+      theme.typography.small.fontSize,
+    );
+    expect(
+      tester.getSize(loadingCopy).width,
+      lessThanOrEqualTo(theme.layout.statusProgressWidth),
+    );
+
+    await disposeHomePage(tester);
+  });
+
   testWidgets('首页初始状态说明只读取本机缓存并提供明确操作', (tester) async {
     await tester.pumpWidget(
       YhApp(
@@ -195,6 +227,7 @@ void main() {
       find.byKey(const Key('home-dashboard-stale-banner')),
       findsOneWidget,
     );
+    expect(find.byIcon(YhIcons.info), findsWidgets);
     expect(find.textContaining('08:42'), findsWidgets);
     expect(find.byKey(const Key('home-today-courses-tile')), findsOneWidget);
 
@@ -217,6 +250,13 @@ void main() {
     expect(find.textContaining('已有本地缓存不会被删除'), findsOneWidget);
     expect(find.text('重试'), findsOneWidget);
     expect(find.byKey(const Key('home-today-courses-tile')), findsNothing);
+    final message = find.textContaining('已有本地缓存不会被删除');
+    final theme = tester.element(message).yhTheme;
+    expect(
+      tester.widget<Text>(message).style?.fontSize,
+      theme.typography.small.fontSize,
+    );
+    expect(find.byIcon(YhIcons.info), findsOneWidget);
 
     await disposeHomePage(tester);
   });
@@ -316,6 +356,12 @@ void main() {
     final headingY = tester.getTopLeft(find.text('常用入口')).dy;
     final actionY = tester.getTopLeft(find.text('统一身份认证')).dy;
     expect((headingY - actionY).abs(), lessThan(YhTheme.light.spacing.xl2));
+    expect(
+      tester
+          .getSize(find.byKey(const Key('home-second-classroom-tile')))
+          .height,
+      tester.getSize(find.byKey(const Key('home-quick-links-tile'))).height,
+    );
 
     await disposeHomePage(tester);
   });
@@ -856,9 +902,12 @@ void main() {
     expect(timeline.left, greaterThanOrEqualTo(0));
     expect(timeline.right, lessThanOrEqualTo(420));
     expect(timeline.height, lessThan(510));
+    final theme = tester
+        .element(find.byKey(const Key('home-campus-card-refresh')))
+        .yhTheme;
     expect(
       tester.getTopLeft(find.byKey(const Key('home-campus-card-refresh'))).dy,
-      24,
+      theme.spacing.l + theme.layout.divider * 2,
     );
     expect(find.byKey(const Key('home-customize')), findsNothing);
     expect(tester.takeException(), isNull);

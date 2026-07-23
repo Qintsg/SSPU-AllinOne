@@ -77,10 +77,12 @@ class YhQuickLink extends StatelessWidget {
               SizedBox(width: theme.spacing.s),
               Text(label, style: theme.typography.body),
               SizedBox(width: theme.spacing.s),
-              Icon(
-                YhIcons.open,
-                size: theme.spacing.l - theme.spacing.xs,
-                color: theme.color.muted,
+              Text(
+                '↗',
+                style: theme.typography.body.copyWith(
+                  color: theme.color.muted,
+                  fontFamily: YhTypographyTokens.fontFamilyMono,
+                ),
               ),
             ],
           ),

@@ -56,7 +56,7 @@
 enum YhBannerKind { info, success, warn, danger }
 
 class YhBanner extends StatelessWidget {
-  const YhBanner({super.key, required this.text, this.kind = YhBannerKind.info, this.action, this.onClose});
+  const YhBanner({super.key, required this.text, this.kind = YhBannerKind.info, this.leadingIcon, this.action, this.onClose});
 }
 ```
 

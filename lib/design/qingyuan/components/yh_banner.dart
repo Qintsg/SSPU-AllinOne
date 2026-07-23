@@ -13,29 +13,34 @@ class YhBanner extends StatelessWidget {
     super.key,
     required this.text,
     this.kind = YhBannerKind.info,
+    this.leadingIcon,
     this.action,
     this.onClose,
   });
 
   final String text;
   final YhBannerKind kind;
+  final IconData? leadingIcon;
   final Widget? action;
   final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
     final colors = switch (kind) {
       YhBannerKind.info => (theme.color.brandTint, theme.color.brandInk),
       YhBannerKind.success => (theme.color.successTint, theme.color.success),
       YhBannerKind.warn => (theme.color.warningTint, theme.color.warning),
       YhBannerKind.danger => (theme.color.dangerTint, theme.color.danger),
     };
-    final icon = switch (kind) {
-      YhBannerKind.info => YhIcons.info,
-      YhBannerKind.success => YhIcons.check,
-      YhBannerKind.warn || YhBannerKind.danger => YhIcons.warning,
-    };
+    final icon =
+        leadingIcon ??
+        switch (kind) {
+          YhBannerKind.info => YhIcons.info,
+          YhBannerKind.success => YhIcons.check,
+          YhBannerKind.warn || YhBannerKind.danger => YhIcons.warning,
+        };
     return Semantics(
       liveRegion: kind == YhBannerKind.warn || kind == YhBannerKind.danger,
       container: true,
@@ -45,10 +50,13 @@ class YhBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(theme.radius.s),
         ),
         child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal:
-                theme.spacing.s + theme.spacing.xs + theme.layout.divider * 2,
-            vertical: theme.spacing.s + theme.spacing.xs,
+          padding: EdgeInsets.fromLTRB(
+            theme.spacing.s + theme.spacing.xs + theme.layout.divider * 2,
+            theme.spacing.s +
+                theme.spacing.xs +
+                (compact ? theme.layout.divider : 0),
+            theme.spacing.s + theme.spacing.xs + theme.layout.divider * 2,
+            theme.spacing.s + theme.spacing.xs + theme.layout.divider,
           ),
           child: Row(
             children: [
