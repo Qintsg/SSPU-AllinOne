@@ -78,10 +78,7 @@ extension _HomeDashboardView on _HomePageState {
           : HomeDashboardDisplayState.error;
     }
     if (!_hasHomeCacheData) return HomeDashboardDisplayState.initial;
-    final updatedAt = _latestHomeUpdate;
-    final now = widget.nowOverride ?? DateTime.now();
-    if (updatedAt != null &&
-        now.difference(updatedAt) >= const Duration(hours: 1)) {
+    if (_hasStaleHomeCache) {
       return HomeDashboardDisplayState.stale;
     }
     return HomeDashboardDisplayState.content;
@@ -96,6 +93,30 @@ extension _HomeDashboardView on _HomePageState {
       _emailResult != null ||
       _latestMessages.isNotEmpty;
 
+  bool get _hasStaleHomeCache {
+    final now = widget.nowOverride ?? DateTime.now();
+    bool stale(DateTime checkedAt) =>
+        now.difference(checkedAt) >= const Duration(hours: 1);
+    final results = <({DateTime checkedAt, bool success})>[
+      if (_campusCardResult case final result?)
+        (checkedAt: result.checkedAt, success: result.isSuccess),
+      if (_courseTableResult case final result?)
+        (checkedAt: result.checkedAt, success: result.isSuccess),
+      if (_academicOverviewResult case final result?)
+        (checkedAt: result.checkedAt, success: result.isSuccess),
+      if (_sportsAttendanceResult case final result?)
+        (checkedAt: result.checkedAt, success: result.isSuccess),
+      if (_studentReportResult case final result?)
+        (checkedAt: result.checkedAt, success: result.isSuccess),
+      if (_emailResult case final result?)
+        (checkedAt: result.checkedAt, success: result.isSuccess),
+    ];
+    if (results.any((result) => !result.success || stale(result.checkedAt))) {
+      return true;
+    }
+    return false;
+  }
+
   Widget _buildHomeStatePanel(YhTheme theme, HomeDashboardDisplayState state) {
     final content = switch (state) {
       HomeDashboardDisplayState.initial => _buildHomeStateMessage(
@@ -108,15 +129,7 @@ extension _HomeDashboardView on _HomePageState {
       HomeDashboardDisplayState.loading => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Semantics(
-            label: '正在整理首页数据',
-            child: ExcludeSemantics(
-              child: SizedBox.square(
-                dimension: theme.control.compact,
-                child: CustomPaint(painter: _HomeLoadingPainter(theme)),
-              ),
-            ),
-          ),
+          YhRing.activity(label: '正在整理首页数据', size: theme.control.compact),
           SizedBox(width: theme.spacing.m),
           Flexible(
             child: Column(
@@ -565,7 +578,38 @@ extension _HomeDashboardView on _HomePageState {
   }
 
   Widget _buildSecondClassroomCard(YhTheme theme) {
-    final totals = _studentReportResult?.summary?.totals;
+    final result = _studentReportResult;
+    final hasCredentials =
+        widget.studentReportResultOverride != null ||
+        (_credentialsStatus.oaAccount.trim().isNotEmpty &&
+            _credentialsStatus.hasOaPassword);
+    if (!hasCredentials) {
+      return _HomeOverviewCard(
+        key: const Key('home-second-classroom-tile'),
+        icon: YhIcons.academic,
+        color: theme.color.serviceSecondClass,
+        title: '第二课堂',
+        detail: '需要先保存 OA 账号密码',
+        value: '未配置',
+        onTap: widget.onOpenSettings,
+      );
+    }
+    if (result != null && !result.isSuccess) {
+      return _HomeOverviewCard(
+        key: const Key('home-second-classroom-tile'),
+        icon: YhIcons.academic,
+        color: theme.color.serviceSecondClass,
+        title: '第二课堂暂不可用',
+        detail: firstNonEmptyText(
+          result.detail,
+          result.message,
+          fallback: '请检查 OA 登录与校园网络',
+        ),
+        value: '未更新',
+        onTap: widget.onOpenSettings,
+      );
+    }
+    final totals = result?.summary?.totals;
     final earned = totals?.totalEarnedCredit;
     final required = totals?.totalRequiredCredit;
     final percent = earned == null || required == null || required <= 0
@@ -591,7 +635,7 @@ extension _HomeDashboardView on _HomePageState {
       semanticLabel: '常用入口',
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final compact = constraints.maxWidth < theme.breakpoint.compact;
+          final compact = constraints.maxWidth < theme.layout.formFieldWidth;
           final heading = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -620,9 +664,11 @@ extension _HomeDashboardView on _HomePageState {
                   alignment: WrapAlignment.end,
                   children: [
                     for (final item in favorites)
-                      _HomeQuickLinkButton(
+                      YhQuickLink(
                         label: item.name,
                         icon: _quickLinkIcon(item),
+                        color: theme.color.serviceQuickLink,
+                        variant: YhQuickLinkVariant.compact,
                         onTap: () => unawaited(_openQuickLink(item)),
                       ),
                   ],
@@ -668,7 +714,30 @@ extension _HomeDashboardView on _HomePageState {
   Future<void> _openQuickLink(QuickLinkItemConfig item) async {
     final uri = Uri.tryParse(item.url);
     if (uri == null || uri.host.isEmpty) return;
+    final authenticationRequired = _quickLinkRequiresOaAuthentication(item);
+    final authenticationReady =
+        !authenticationRequired ||
+        await AcademicCredentialsService.instance.readOaLoginSession() != null;
+    if (!mounted) return;
+    final confirmed = await Navigator.of(context).push<bool>(
+      YhPageRoute<bool>(
+        builder: (_) => ExternalLinkConfirmationPage(
+          displayName: item.name,
+          uri: uri,
+          authenticationRequired: authenticationRequired,
+          authenticationReady: authenticationReady,
+        ),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  bool _quickLinkRequiresOaAuthentication(QuickLinkItemConfig item) {
+    final host = Uri.tryParse(item.url)?.host.toLowerCase() ?? '';
+    return host == 'oa.sspu.edu.cn' ||
+        item.name.contains('（OA）') ||
+        item.name.contains('统一身份认证');
   }
 
   Widget _buildProgramOverviewCard(YhTheme theme) {
@@ -797,6 +866,7 @@ class _HomeOverviewCard extends StatelessWidget {
     required this.title,
     required this.detail,
     required this.value,
+    this.onTap,
   });
 
   final IconData icon;
@@ -804,12 +874,14 @@ class _HomeOverviewCard extends StatelessWidget {
   final String title;
   final String detail;
   final String value;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     return YhCard(
       semanticLabel: '$title，$detail，$value',
+      onTap: onTap,
       child: ConstrainedBox(
         constraints: BoxConstraints(minHeight: theme.control.regular),
         child: Row(
@@ -861,60 +933,6 @@ class _HomeOverviewCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _HomeQuickLinkButton extends StatelessWidget {
-  const _HomeQuickLinkButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return YhPressable(
-      semanticLabel: label,
-      onPressed: onTap,
-      builder: (context, state, child) => DecoratedBox(
-        decoration: BoxDecoration(
-          color: state.hovered ? theme.color.brandTint : theme.color.surface,
-          border: Border.all(
-            color: state.hovered ? theme.color.brand : theme.color.border,
-            width: theme.layout.divider,
-          ),
-          borderRadius: BorderRadius.circular(theme.radius.input),
-        ),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: theme.control.regular,
-            minWidth: theme.control.minimumTarget,
-          ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: theme.spacing.m),
-            child: child,
-          ),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: theme.spacing.l - theme.spacing.xs,
-            color: theme.color.foreground,
-          ),
-          SizedBox(width: theme.spacing.s),
-          Text(label, style: theme.typography.body),
-        ],
       ),
     );
   }
@@ -1175,35 +1193,4 @@ class _HomeTimelineTrackPainter extends CustomPainter {
         last != oldDelegate.last ||
         theme != oldDelegate.theme;
   }
-}
-
-class _HomeLoadingPainter extends CustomPainter {
-  const _HomeLoadingPainter(this.theme);
-
-  final YhTheme theme;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final strokeWidth = theme.spacing.xs;
-    final center = size.center(Offset.zero);
-    final radius = (size.shortestSide - strokeWidth) / 2;
-    final bounds = Rect.fromCircle(center: center, radius: radius);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawCircle(center, radius, paint..color = theme.color.brandTint);
-    canvas.drawArc(
-      bounds,
-      -math.pi / 2,
-      math.pi * 1.5,
-      false,
-      paint..color = theme.color.brandStrong,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_HomeLoadingPainter oldDelegate) =>
-      oldDelegate.theme != theme;
 }

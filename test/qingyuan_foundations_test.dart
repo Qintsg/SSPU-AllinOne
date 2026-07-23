@@ -89,6 +89,7 @@ void main() {
     expect(YhTheme.light.responsive.homePrimaryFlex, 33);
     expect(YhTheme.light.responsive.homeSecondaryFlex, 16);
     expect(YhTheme.light.motion.slow, const Duration(milliseconds: 320));
+    expect(YhTheme.light.progress.activitySweep, 0.25);
     expect(YhTheme.light.motion.pressedScale, 0.98);
     expect(
       YhTheme.light.motion.effective(

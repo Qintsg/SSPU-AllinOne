@@ -7,7 +7,6 @@
  */
 
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:url_launcher/url_launcher.dart';
 
@@ -16,6 +15,7 @@ import '../design/qingyuan/qingyuan_ui.dart';
 import '../models/campus_card.dart';
 import '../models/course_period.dart';
 import '../models/academic_eams.dart';
+import '../models/academic_credentials.dart';
 import '../models/email_mailbox.dart';
 import '../models/message_item.dart';
 import '../models/sports_attendance.dart';
@@ -33,6 +33,7 @@ import '../services/student_report_service.dart';
 import '../utils/query_result_messages.dart';
 import '../widgets/campus_network_status_indicator.dart';
 import '../widgets/refresh_feedback_action.dart';
+import 'external_link_confirmation_page.dart';
 part 'home_campus_card_balance_card.dart';
 part 'home_campus_card_detail_page.dart';
 part 'home_dashboard_view.dart';
@@ -157,6 +158,8 @@ class _HomePageState extends State<HomePage> {
   EmailMailboxQueryResult? _emailResult;
   StudentReportQueryResult? _studentReportResult;
   List<QuickLinkItemConfig> _quickLinkFavorites = const [];
+  AcademicCredentialsStatus _credentialsStatus =
+      const AcademicCredentialsStatus.empty();
   bool _dashboardCachesLoading = false;
   Object? _dashboardCacheError;
   bool _studentProfileCardVisible = true;
@@ -214,6 +217,7 @@ class _HomePageState extends State<HomePage> {
         .listen((_) {
           _clearAuthenticatedState();
           unawaited(_loadDashboardCaches());
+          unawaited(_loadCredentialsStatus());
         });
     if (widget.messagesOverride == null) {
       _loadLatestMessages();
@@ -253,6 +257,7 @@ class _HomePageState extends State<HomePage> {
       _emailResult = null;
       _studentReportResult = null;
       _quickLinkFavorites = const [];
+      _credentialsStatus = const AcademicCredentialsStatus.empty();
     });
   }
 
@@ -290,6 +295,8 @@ class _HomePageState extends State<HomePage> {
       StorageKeys.homeQuickLinksTileVisible,
       defaultValue: true,
     );
+    final credentialsStatus = await AcademicCredentialsService.instance
+        .getStatus();
     if (!mounted) return;
     setState(() {
       _studentProfileCardVisible = visible;
@@ -300,7 +307,14 @@ class _HomePageState extends State<HomePage> {
       _emailTileVisible = emailVisible;
       _studentReportTileVisible = studentReportVisible;
       _quickLinksTileVisible = quickLinksVisible;
+      _credentialsStatus = credentialsStatus;
     });
+  }
+
+  Future<void> _loadCredentialsStatus() async {
+    final status = await AcademicCredentialsService.instance.getStatus();
+    if (!mounted) return;
+    setState(() => _credentialsStatus = status);
   }
 
   /// 从本地存储加载消息并取前 5 条

@@ -96,6 +96,13 @@ def _validate_css_tokens(project_root: Path, tokens: dict[str, Any]) -> None:
         if light.get(css_name) != expected:
             errors.append(f"opacity.{name} 与 --{css_name} 漂移：期望 {expected}，实际 {light.get(css_name)}")
 
+    for name, value in tokens["progress"].items():
+        kebab = re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
+        css_name = f"progress-{kebab}"
+        expected = f"{value:g}"
+        if light.get(css_name) != expected:
+            errors.append(f"progress.{name} 与 --{css_name} 漂移：期望 {expected}，实际 {light.get(css_name)}")
+
     for name, value in tokens["responsive"].items():
         kebab = re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
         css_name = f"responsive-{kebab}"
@@ -266,6 +273,7 @@ def _validate_flutter_scalars(project_root: Path, tokens: dict[str, Any]) -> Non
         "spacing": "YhSpacingTokens",
         "radius": "YhRadiusTokens",
         "opacity": "YhOpacityTokens",
+        "progress": "YhProgressTokens",
         "breakpoint": "YhBreakpointTokens",
         "responsive": "YhResponsiveTokens",
         "control": "YhControlTokens",
@@ -501,6 +509,7 @@ def _validate_page_prototype(project_root: Path) -> None:
     for marker, label in (
         ('aria-label="首页显示第二课堂"', "第二课堂辅助坞开关"),
         ('aria-label="首页显示常用入口"', "常用入口辅助坞开关"),
+        ('统一身份认证，外部链接，将打开外部应用', "首页快捷入口外链语义"),
     ):
         if marker not in prototype:
             errors.append(f"设置原型缺少{label}")

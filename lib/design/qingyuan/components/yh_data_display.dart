@@ -211,11 +211,17 @@ class YhMetricCard extends StatelessWidget {
 }
 
 class YhRing extends StatelessWidget {
-  const YhRing({super.key, required this.value, this.label, this.size});
+  const YhRing({super.key, required this.value, this.label, this.size})
+    : activity = false;
+
+  const YhRing.activity({super.key, this.label, this.size})
+    : value = 0,
+      activity = true;
 
   final double value;
   final String? label;
   final double? size;
+  final bool activity;
 
   @override
   Widget build(BuildContext context) {
@@ -223,29 +229,84 @@ class YhRing extends StatelessWidget {
     final normalized = value.clamp(0.0, 1.0);
     final dimension = size ?? theme.spacing.xl2 * 2;
     return Semantics(
-      label: label ?? '环形进度',
-      value: '${(normalized * 100).round()}%',
+      label: label ?? (activity ? '活动指示' : '环形进度'),
+      value: activity ? '加载中' : '${(normalized * 100).round()}%',
       child: SizedBox.square(
         dimension: dimension,
-        child: CustomPaint(
-          painter: _YhRingPainter(
-            value: normalized,
-            track: theme.color.border,
-            active: theme.color.brandStrong,
-            width: theme.spacing.s,
-          ),
-          child: Center(
-            child: Text(
-              '${(normalized * 100).round()}%',
-              style: theme.typography.small.copyWith(
-                color: theme.color.foreground,
-                fontFamily: YhTypographyTokens.fontFamilyMono,
+        child: activity
+            ? _YhActivityRing(
+                sweep: theme.progress.activitySweep,
+                track: theme.color.brandTint,
+                active: theme.color.brandStrong,
+                width: theme.spacing.xs,
+              )
+            : CustomPaint(
+                painter: _YhRingPainter(
+                  value: normalized,
+                  track: theme.color.border,
+                  active: theme.color.brandStrong,
+                  width: theme.spacing.s,
+                ),
+                child: Center(
+                  child: Text(
+                    '${(normalized * 100).round()}%',
+                    style: theme.typography.small.copyWith(
+                      color: theme.color.foreground,
+                      fontFamily: YhTypographyTokens.fontFamilyMono,
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
-        ),
       ),
     );
+  }
+}
+
+class _YhActivityRing extends StatefulWidget {
+  const _YhActivityRing({
+    required this.sweep,
+    required this.track,
+    required this.active,
+    required this.width,
+  });
+
+  final double sweep;
+  final Color track;
+  final Color active;
+  final double width;
+
+  @override
+  State<_YhActivityRing> createState() => _YhActivityRingState();
+}
+
+class _YhActivityRingState extends State<_YhActivityRing>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _controller;
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = CustomPaint(
+      painter: _YhRingPainter(
+        value: widget.sweep,
+        track: widget.track,
+        active: widget.active,
+        width: widget.width,
+      ),
+    );
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+      return visual;
+    }
+    final controller = _controller ??= AnimationController(
+      vsync: this,
+      duration: context.yhTheme.motion.slow,
+    )..repeat();
+    return RotationTransition(turns: controller, child: visual);
   }
 }
 

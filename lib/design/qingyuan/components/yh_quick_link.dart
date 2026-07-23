@@ -3,9 +3,12 @@
 import 'package:flutter/widgets.dart';
 
 import '../icons/yh_icons.dart';
+import '../foundations/yh_pressable.dart';
 import '../theme/yh_theme.dart';
 import 'yh_card.dart';
 import 'yh_icon_button.dart';
+
+enum YhQuickLinkVariant { tile, compact }
 
 class YhQuickLink extends StatelessWidget {
   const YhQuickLink({
@@ -18,6 +21,7 @@ class YhQuickLink extends StatelessWidget {
     this.favorite = false,
     this.onToggleFavorite,
     this.width,
+    this.variant = YhQuickLinkVariant.tile,
   });
 
   final IconData icon;
@@ -28,10 +32,61 @@ class YhQuickLink extends StatelessWidget {
   final bool favorite;
   final VoidCallback? onToggleFavorite;
   final double? width;
+  final YhQuickLinkVariant variant;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    if (variant == YhQuickLinkVariant.compact) {
+      return SizedBox(
+        width: width,
+        child: YhPressable(
+          semanticLabel: '$label，外部链接，将打开外部应用',
+          onPressed: onTap,
+          builder: (context, state, child) => DecoratedBox(
+            decoration: BoxDecoration(
+              color: state.hovered
+                  ? theme.color.brandTint
+                  : theme.color.surface,
+              border: Border.all(
+                color: state.hovered ? theme.color.brand : theme.color.border,
+                width: theme.layout.divider,
+              ),
+              borderRadius: BorderRadius.circular(theme.radius.input),
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: theme.control.regular,
+                minWidth: theme.control.minimumTarget,
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: theme.spacing.m),
+                child: child,
+              ),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: theme.spacing.l - theme.spacing.xs,
+                color: theme.color.foreground,
+              ),
+              SizedBox(width: theme.spacing.s),
+              Text(label, style: theme.typography.body),
+              SizedBox(width: theme.spacing.s),
+              Icon(
+                YhIcons.open,
+                size: theme.spacing.l - theme.spacing.xs,
+                color: theme.color.muted,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return SizedBox(
       width: width,
       child: Stack(

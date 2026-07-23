@@ -277,6 +277,18 @@ void main() {
     expect(opens, 0);
   });
 
+  testWidgets('清源环形活动指示只暴露加载语义而不伪造百分比', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(
+      const YhApp(home: YhRing.activity(label: '正在整理首页数据')),
+    );
+
+    final node = tester.getSemantics(find.bySemanticsLabel('正在整理首页数据'));
+    expect(node.value, '加载中');
+    expect(find.textContaining('%'), findsNothing);
+    semantics.dispose();
+  });
+
   testWidgets('清源容器、数据与校园域组件在亮暗主题完整渲染', (tester) async {
     for (final mode in [YhThemeMode.light, YhThemeMode.dark]) {
       await tester.pumpWidget(

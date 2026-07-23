@@ -250,6 +250,13 @@ class YhMotionTokens {
 }
 
 @immutable
+class YhProgressTokens {
+  const YhProgressTokens({this.activitySweep = 0.25});
+
+  final double activitySweep;
+}
+
+@immutable
 class YhOpacityTokens {
   const YhOpacityTokens({
     this.domainTint = 0.14,
@@ -393,6 +400,7 @@ class YhTheme {
     this.opacity = const YhOpacityTokens(),
     this.typography = YhTypographyTokens.standard,
     this.motion = const YhMotionTokens(),
+    this.progress = const YhProgressTokens(),
     this.breakpoint = const YhBreakpointTokens(),
     this.responsive = const YhResponsiveTokens(),
     this.control = const YhControlTokens(),
@@ -416,6 +424,7 @@ class YhTheme {
   final YhOpacityTokens opacity;
   final YhTypographyTokens typography;
   final YhMotionTokens motion;
+  final YhProgressTokens progress;
   final YhBreakpointTokens breakpoint;
   final YhResponsiveTokens responsive;
   final YhControlTokens control;
@@ -430,6 +439,7 @@ class YhTheme {
     YhOpacityTokens? opacity,
     YhTypographyTokens? typography,
     YhMotionTokens? motion,
+    YhProgressTokens? progress,
     YhBreakpointTokens? breakpoint,
     YhResponsiveTokens? responsive,
     YhControlTokens? control,
@@ -443,6 +453,7 @@ class YhTheme {
     opacity: opacity ?? this.opacity,
     typography: typography ?? this.typography,
     motion: motion ?? this.motion,
+    progress: progress ?? this.progress,
     breakpoint: breakpoint ?? this.breakpoint,
     responsive: responsive ?? this.responsive,
     control: control ?? this.control,

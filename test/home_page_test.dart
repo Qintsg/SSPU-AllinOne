@@ -17,6 +17,7 @@ import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/models/campus_card.dart';
 import 'package:sspu_allinone/models/email_mailbox.dart';
+import 'package:sspu_allinone/models/message_item.dart';
 import 'package:sspu_allinone/models/sports_attendance.dart';
 import 'package:sspu_allinone/models/student_report.dart';
 import 'package:sspu_allinone/pages/home_page.dart';
@@ -258,11 +259,152 @@ void main() {
     expect(find.text('从今天直接出发'), findsOneWidget);
     for (final label in ['统一身份认证', '图书馆', '学校官网']) {
       expect(find.text(label), findsOneWidget);
+      expect(find.bySemanticsLabel('$label，外部链接，将打开外部应用'), findsOneWidget);
       expect(
         tester.getSize(find.text(label).hitTestable()).height,
         greaterThan(0),
       );
     }
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('桌面壳内常用入口标题与操作保持并排', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      YhApp(
+        home: MediaQuery(
+          data: const MediaQueryData(
+            size: Size(1200, 900),
+            devicePixelRatio: 1,
+            disableAnimations: true,
+          ),
+          child: AppShell(
+            destinationOverrides: {
+              '主页': HomePage(
+                campusNetworkStatusService: _buildCampusNetworkStatusService(),
+                campusCardAutoRefreshEnabledOverride: false,
+                dashboardDisplayStateOverride:
+                    HomeDashboardDisplayState.content,
+                studentReportResultOverride: _studentReportResult,
+                quickLinkFavoritesOverride: const [
+                  QuickLinkItemConfig(
+                    name: '统一身份认证',
+                    url: 'https://oa.example.invalid/',
+                    icon: 'security',
+                  ),
+                  QuickLinkItemConfig(
+                    name: '图书馆',
+                    url: 'https://library.example.invalid/',
+                    icon: 'library',
+                  ),
+                  QuickLinkItemConfig(
+                    name: '学校官网',
+                    url: 'https://www.example.invalid/',
+                    icon: 'globe',
+                  ),
+                ],
+              ),
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final headingY = tester.getTopLeft(find.text('常用入口')).dy;
+    final actionY = tester.getTopLeft(find.text('统一身份认证')).dy;
+    expect((headingY - actionY).abs(), lessThan(YhTheme.light.spacing.xl2));
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页常用入口先展示外部网页确认边界再允许打开', (tester) async {
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          dashboardDisplayStateOverride: HomeDashboardDisplayState.content,
+          quickLinkFavoritesOverride: const [
+            QuickLinkItemConfig(
+              name: '学校官网',
+              url: 'https://www.example.invalid/news',
+              icon: 'globe',
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.ensureVisible(find.text('学校官网'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('学校官网'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('确认打开外部网站'), findsOneWidget);
+    expect(find.text('www.example.invalid'), findsOneWidget);
+    expect(find.text('打开外部网站'), findsOneWidget);
+
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页第二课堂未配置 OA 凭据时保留设置引导', (tester) async {
+    var settingsOpened = false;
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          studentReportService: const _NullStudentReportClient(),
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          dashboardDisplayStateOverride: HomeDashboardDisplayState.content,
+          quickLinkFavoritesOverride: const [],
+          onOpenSettings: () => settingsOpened = true,
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('需要先保存 OA 账号密码'), findsOneWidget);
+    final card = find.byKey(const Key('home-second-classroom-tile'));
+    await tester.ensureVisible(card);
+    await tester.pumpAndSettle();
+    await tester.tap(card);
+    await tester.pump();
+    expect(settingsOpened, isTrue);
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页第二课堂缓存失败时展示明确失败语义', (tester) async {
+    var settingsOpened = false;
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          dashboardDisplayStateOverride: HomeDashboardDisplayState.content,
+          studentReportResultOverride: _studentReportErrorResult,
+          quickLinkFavoritesOverride: const [],
+          onOpenSettings: () => settingsOpened = true,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('第二课堂暂不可用'), findsOneWidget);
+    expect(find.text('请检查校园网络后重试。'), findsOneWidget);
+    expect(find.text('未更新'), findsOneWidget);
+    final card = find.byKey(const Key('home-second-classroom-tile'));
+    await tester.ensureVisible(card);
+    await tester.pumpAndSettle();
+    await tester.tap(card);
+    await tester.pump();
+    expect(settingsOpened, isTrue);
 
     await disposeHomePage(tester);
   });
@@ -389,6 +531,82 @@ void main() {
     );
     expect(find.byKey(const Key('home-today-courses-tile')), findsOneWidget);
     expect(find.text('¥88.88'), findsOneWidget);
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页任一业务缓存过期时不会被较新的其它缓存掩盖', (tester) async {
+    final staleCard = _buildCachedResult(
+      balance: 88.88,
+      status: '正常',
+      checkedAt: DateTime(2026, 7, 18, 7, 30),
+    );
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          campusCardResultOverride: staleCard,
+          studentReportResultOverride: _studentReportResult,
+          quickLinkFavoritesOverride: const [],
+          messagesOverride: const [],
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          nowOverride: DateTime(2026, 7, 18, 9, 30),
+        ),
+      ),
+    );
+    await pumpUntilFound(
+      tester,
+      find.byKey(const Key('home-dashboard-stale-banner')),
+    );
+
+    expect(
+      find.byKey(const Key('home-dashboard-stale-banner')),
+      findsOneWidget,
+    );
+    expect(find.text('85%'), findsOneWidget);
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页不会把消息发布时间误当成缓存刷新时间', (tester) async {
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          academicEamsService: _FakeAcademicEamsClient(),
+          sportsAttendanceService: const _NullSportsAttendanceClient(),
+          emailService: const _NullEmailClient(),
+          messagesOverride: [
+            MessageItem(
+              id: 'old-publication',
+              title: '历史通知仍在本地缓存',
+              date: '2020-01-01',
+              url: 'https://news.example.invalid/old-publication',
+              sourceType: MessageSourceType.schoolWebsite,
+              sourceName: MessageSourceName.jwc,
+              category: MessageCategory.jwcStudent,
+              timestamp: DateTime(2020, 1, 1, 16).millisecondsSinceEpoch,
+            ),
+          ],
+          campusCardResultOverride: _buildCachedResult(
+            balance: 88.88,
+            status: '正常',
+            checkedAt: DateTime(2026, 7, 18, 9),
+          ),
+          studentReportResultOverride: _studentReportResult,
+          quickLinkFavoritesOverride: const [],
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          nowOverride: DateTime(2026, 7, 18, 9, 30),
+        ),
+      ),
+    );
+    await pumpUntilFound(
+      tester,
+      find.byKey(const Key('home-today-courses-tile')),
+    );
+
+    expect(find.byKey(const Key('home-today-courses-tile')), findsOneWidget);
+    expect(find.byKey(const Key('home-dashboard-stale-banner')), findsNothing);
 
     await disposeHomePage(tester);
   });
@@ -1245,6 +1463,15 @@ final StudentReportQueryResult _studentReportResult = StudentReportQueryResult(
     sourceUri: Uri.parse('https://student.example.invalid/report'),
   ),
 );
+
+final StudentReportQueryResult _studentReportErrorResult =
+    StudentReportQueryResult(
+      status: StudentReportQueryStatus.networkError,
+      message: '第二课堂服务暂时不可用',
+      detail: '请检查校园网络后重试。',
+      checkedAt: DateTime(2026, 7, 18, 8, 42),
+      entranceUri: Uri.parse('https://oa.example.invalid/student-report'),
+    );
 
 final CampusCardQueryResult _successResult = CampusCardQueryResult(
   status: CampusCardQueryStatus.success,
