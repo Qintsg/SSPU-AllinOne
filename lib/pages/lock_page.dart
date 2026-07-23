@@ -15,6 +15,36 @@ import '../services/app_display_name_service.dart';
 import '../services/password_service.dart';
 import '../services/system_auth_service.dart';
 
+/// 锁屏认证 seam；生产与确定性视觉 adapter 共享同一页面状态机。
+abstract interface class LockAuthenticationAdapter {
+  Future<bool> verifyPassword(String password);
+
+  Future<bool> isQuickAuthEnabled();
+
+  Future<bool> isSystemAuthAvailable();
+
+  Future<SystemAuthResult> authenticate(String localizedReason);
+}
+
+class _ProductionLockAuthentication implements LockAuthenticationAdapter {
+  const _ProductionLockAuthentication();
+
+  @override
+  Future<bool> verifyPassword(String password) =>
+      PasswordService.verifyPassword(password);
+
+  @override
+  Future<bool> isQuickAuthEnabled() => PasswordService.isQuickAuthEnabled();
+
+  @override
+  Future<bool> isSystemAuthAvailable() =>
+      SystemAuthService.instance.isAvailable();
+
+  @override
+  Future<SystemAuthResult> authenticate(String localizedReason) =>
+      SystemAuthService.instance.authenticate(localizedReason: localizedReason);
+}
+
 /// 锁定页面。
 /// 当用户设置密码保护后，应用启动时显示此页面。
 /// 输入正确密码后解锁进入主界面。
@@ -22,7 +52,13 @@ class LockPage extends StatefulWidget {
   /// 解锁成功后的回调。
   final VoidCallback onUnlocked;
 
-  const LockPage({super.key, required this.onUnlocked});
+  final LockAuthenticationAdapter authentication;
+
+  const LockPage({
+    super.key,
+    required this.onUnlocked,
+    this.authentication = const _ProductionLockAuthentication(),
+  });
 
   @override
   State<LockPage> createState() => _LockPageState();
@@ -152,7 +188,7 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
       _errorMessage = null;
     });
 
-    final isCorrect = await PasswordService.verifyPassword(inputPassword);
+    final isCorrect = await widget.authentication.verifyPassword(inputPassword);
 
     if (!mounted) return;
 
@@ -171,10 +207,11 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
 
   /// 加载系统快速验证配置，并在可用时优先尝试系统认证。
   Future<void> _loadAndTrySystemAuth() async {
-    final quickAuthEnabled = await PasswordService.isQuickAuthEnabled();
+    final quickAuthEnabled = await widget.authentication.isQuickAuthEnabled();
     if (!quickAuthEnabled) return;
 
-    final systemAuthAvailable = await SystemAuthService.instance.isAvailable();
+    final systemAuthAvailable = await widget.authentication
+        .isSystemAuthAvailable();
     if (!mounted || !systemAuthAvailable) return;
 
     setState(() => _isSystemAuthEnabled = true);
@@ -190,8 +227,8 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
       if (!autoTriggered) _errorMessage = null;
     });
 
-    final result = await SystemAuthService.instance.authenticate(
-      localizedReason: '验证身份以解锁 ${AppDisplayName.of(context)}',
+    final result = await widget.authentication.authenticate(
+      '验证身份以解锁 ${AppDisplayName.of(context)}',
     );
 
     if (!mounted || _hasCompletedUnlock) return;
@@ -212,6 +249,10 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
   void _completeUnlock() {
     if (_hasCompletedUnlock) return;
     _hasCompletedUnlock = true;
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+      widget.onUnlocked();
+      return;
+    }
     _unlockController.forward().then((_) {
       if (mounted) {
         widget.onUnlocked();
@@ -221,6 +262,10 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
 
   /// 触发密码输入框抖动效果。
   void _triggerShake() {
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+      _shakeController.value = 0;
+      return;
+    }
     _shakeController.forward(from: 0);
   }
 

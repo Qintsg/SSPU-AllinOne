@@ -26,6 +26,8 @@ import 'services/auto_refresh_service.dart';
 import 'services/academic_oa_session_prewarm_service.dart';
 import 'widgets/desktop_window_frame.dart';
 import 'widgets/legal_consent_dialog.dart';
+import 'widgets/app_startup_status.dart';
+import 'widgets/app_close_confirmation_dialog.dart';
 
 /// 字体族常量（保留历史公开引用，实际由清源排版 token 管理）。
 const String kFontFamily = YhTypographyTokens.fontFamilyBody;
@@ -129,13 +131,21 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
         _isInitialized = true;
       });
       unawaited(_initBackgroundServices());
-    } catch (error) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
-        _startupErrorMessage = '启动初始化失败：$error';
+        _startupErrorMessage = '启动初始化失败：无法读取本地设置。';
         _isInitialized = true;
       });
     }
+  }
+
+  void _retryInitialization() {
+    setState(() {
+      _startupErrorMessage = null;
+      _isInitialized = false;
+    });
+    unawaited(_initApp());
   }
 
   /// 初始化后台能力，不阻塞首屏渲染和用户进入主页。
@@ -199,90 +209,25 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     }
 
     _closeDialogShowing = true;
-    bool rememberChoice = false;
-
     YhDialog.show<void>(
       ctx,
-      barrierDismissible: true,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (_, setDialogState) {
-            final theme = dialogContext.yhTheme;
-            return YhDialog(
-              title: '关闭应用',
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(YhIcons.close, color: theme.color.brandStrong),
-                      SizedBox(width: theme.spacing.s),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '请选择点击窗口关闭按钮时的处理方式。',
-                              style: theme.typography.body.copyWith(
-                                color: theme.color.foreground,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            SizedBox(height: theme.spacing.xs),
-                            const Text('也可以点击弹窗外的空白区域取消本次操作，应用会继续保持打开。'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: theme.spacing.m),
-                  Row(
-                    children: [
-                      const Expanded(child: Text('以后都使用此选项')),
-                      SizedBox(width: theme.spacing.s),
-                      YhSwitch(
-                        value: rememberChoice,
-                        semanticLabel: '以后都使用此选项',
-                        onChanged: (value) {
-                          setDialogState(() => rememberChoice = value);
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              actions: [
-                YhButton(
-                  label: '最小化到托盘',
-                  leadingIcon: YhIcons.minimize,
-                  variant: YhButtonVariant.secondary,
-                  onTap: () async {
-                    Navigator.pop(dialogContext);
-                    if (rememberChoice) {
-                      await StorageService.setCloseBehavior('minimize');
-                    }
-                    await windowManager.hide();
-                  },
-                ),
-                YhButton(
-                  label: '退出应用',
-                  leadingIcon: YhIcons.power,
-                  variant: YhButtonVariant.danger,
-                  onTap: () async {
-                    Navigator.pop(dialogContext);
-                    if (rememberChoice) {
-                      await StorageService.setCloseBehavior('exit');
-                    }
-                    await AppExitService.instance.exit();
-                  },
-                ),
-              ],
-            );
-          },
-        );
-      },
+      barrierDismissible: false,
+      builder: (dialogContext) => AppCloseConfirmationDialog(
+        onMinimize: (rememberChoice) async {
+          Navigator.pop(dialogContext);
+          if (rememberChoice) {
+            await StorageService.setCloseBehavior('minimize');
+          }
+          await windowManager.hide();
+        },
+        onExit: (rememberChoice) async {
+          Navigator.pop(dialogContext);
+          if (rememberChoice) {
+            await StorageService.setCloseBehavior('exit');
+          }
+          await AppExitService.instance.exit();
+        },
+      ),
     ).whenComplete(() {
       _closeDialogShowing = false;
     });
@@ -389,11 +334,14 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 根据初始化、协议确认和密码验证状态构建首屏
   Widget _buildHome() {
     if (!_isInitialized) {
-      return const _StartupStatus(progressLabel: '正在初始化应用');
+      return const AppStartupStatus(progressLabel: '正在初始化应用');
     }
 
     if (_startupErrorMessage != null) {
-      return _StartupStatus(errorMessage: _startupErrorMessage!);
+      return AppStartupStatus(
+        errorMessage: _startupErrorMessage!,
+        onRetry: _retryInitialization,
+      );
     }
 
     // 未接受协议时显示空白页并弹出协议对话框。
@@ -401,7 +349,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       return Builder(
         builder: (context) {
           _showAgreementDialog(context);
-          return const _StartupStatus(progressLabel: '正在准备法律与隐私说明');
+          return const AppStartupStatus(progressLabel: '正在准备法律与隐私说明');
         },
       );
     }
@@ -419,50 +367,6 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     return AppShell(
       onLock: _lockApp,
       campusNetworkStatusService: _campusNetworkStatusService,
-    );
-  }
-}
-
-/// 应用启动阶段的确定性占位页。
-class _StartupStatus extends StatelessWidget {
-  const _StartupStatus({this.progressLabel, this.errorMessage});
-
-  final String? progressLabel;
-  final String? errorMessage;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return YhPageScaffold(
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.all(theme.spacing.l),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: theme.breakpoint.compact - theme.spacing.xl2 * 2,
-            ),
-            child: errorMessage != null
-                ? YhBanner(text: errorMessage!, kind: YhBannerKind.danger)
-                : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      YhProgress(
-                        showPercent: false,
-                        semanticLabel: progressLabel,
-                      ),
-                      SizedBox(height: theme.spacing.m),
-                      Text(
-                        progressLabel ?? '正在启动',
-                        textAlign: TextAlign.center,
-                        style: theme.typography.small.copyWith(
-                          color: theme.color.muted,
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-        ),
-      ),
     );
   }
 }

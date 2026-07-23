@@ -25,11 +25,17 @@ import 'package:sspu_allinone/pages/external_link_confirmation_page.dart';
 import 'package:sspu_allinone/pages/home_page.dart';
 import 'package:sspu_allinone/pages/info_page.dart';
 import 'package:sspu_allinone/pages/legal_notice_page.dart';
+import 'package:sspu_allinone/pages/lock_page.dart';
 import 'package:sspu_allinone/pages/quick_links_page.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
+import 'package:sspu_allinone/services/system_auth_service.dart';
 import 'package:sspu_allinone/services/quick_links_config_service.dart';
 import 'package:sspu_allinone/services/campus_network_status_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
+import 'package:sspu_allinone/widgets/app_close_confirmation_dialog.dart';
+import 'package:sspu_allinone/widgets/app_more_destinations.dart';
+import 'package:sspu_allinone/widgets/app_startup_status.dart';
+import 'package:sspu_allinone/widgets/legal_consent_dialog.dart';
 
 import '../support/qingyuan_visual_fixtures.dart';
 
@@ -288,6 +294,34 @@ final _surfaces = <_VisualSurface>[
   _VisualSurface('components.navigation', _navigationPanel),
   _VisualSurface('components.data', _dataPanel),
   _VisualSurface('components.domain', _domainPanel),
+  _VisualSurface(
+    'shell.startup',
+    () => const AppStartupStatus(progressLabel: '正在初始化应用'),
+    state: 'loading',
+  ),
+  _VisualSurface(
+    'shell.startup',
+    () => AppStartupStatus(errorMessage: '启动初始化失败：本地存储暂时不可用。', onRetry: () {}),
+    state: 'error',
+  ),
+  _VisualSurface('shell.navigation', _shellNavigation),
+  _VisualSurface('shell.more-drawer', _moreDrawerSurface),
+  _VisualSurface('shell.close-confirmation', _closeConfirmationSurface),
+  _VisualSurface('consent.first-run', _consentInitial, state: 'initial'),
+  _VisualSurface('consent.first-run', _consentContent),
+  _VisualSurface('security.lock', _lockInitial, state: 'initial'),
+  _VisualSurface(
+    'security.lock',
+    _lockLoading,
+    state: 'loading',
+    prepare: _prepareLockLoading,
+  ),
+  _VisualSurface(
+    'security.lock',
+    _lockError,
+    state: 'error',
+    prepare: _prepareLockError,
+  ),
   _VisualSurface(
     'home.dashboard',
     () => _homeDashboardPage(HomeDashboardDisplayState.initial),
@@ -716,6 +750,182 @@ final _surfaces = <_VisualSurface>[
     state: 'error',
   ),
 ];
+
+Widget _shellNavigation({int initialDestinationIndex = 0}) {
+  final page = const YhPageScaffold(
+    appBar: YhAppBar(title: '清源导航'),
+    body: YhEmptyState(
+      icon: YhIcons.home,
+      title: '校园服务都在这里',
+      message: '主目的地随窗口宽度切换为底栏、紧凑导航轨或扩展导航轨。',
+    ),
+  );
+  return AppShell(
+    initialDestinationIndex: initialDestinationIndex,
+    destinationOverrides: {
+      for (final name in const ['主页', '教务', '课表', '信息', '邮箱', '跳转', '设置'])
+        name: page,
+    },
+  );
+}
+
+Widget _moreDrawerSurface() => Builder(
+  builder: (context) {
+    final shell = _shellNavigation(initialDestinationIndex: 4);
+    final media = MediaQuery.of(context);
+    final usesCompactNavigation =
+        media.size.width < context.yhTheme.breakpoint.medium;
+    if (!usesCompactNavigation) {
+      return shell;
+    }
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        shell,
+        ColoredBox(color: context.yhTheme.color.scrim),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: YhBottomDrawer(
+            title: '更多',
+            child: AppMoreDestinationsContent(
+              items: [
+                AppMoreDestination(
+                  label: '邮箱',
+                  icon: YhIcons.mail,
+                  selected: true,
+                  onSelected: () {},
+                ),
+                AppMoreDestination(
+                  label: '跳转',
+                  icon: YhIcons.link,
+                  onSelected: () {},
+                ),
+                AppMoreDestination(
+                  label: '设置',
+                  icon: YhIcons.settings,
+                  onSelected: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  },
+);
+
+Widget _closeConfirmationSurface() => _modalSurface(
+  background: _shellNavigation(),
+  modal: AppCloseConfirmationDialog(
+    onMinimize: (_) async {},
+    onExit: (_) async {},
+  ),
+);
+
+Widget _consentInitial() => _modalSurface(
+  background: const AppStartupStatus(progressLabel: '正在准备法律与隐私说明'),
+  modal: LegalConsentDialog(
+    onAccept: () {},
+    onDecline: () {},
+    loadLegalNotice: (_) => Completer<String>().future,
+  ),
+);
+
+Widget _consentContent() => _modalSurface(
+  background: const AppStartupStatus(progressLabel: '正在准备法律与隐私说明'),
+  modal: LegalConsentDialog(
+    onAccept: () {},
+    onDecline: () {},
+    loadLegalNotice: (_) async => _visualLegalNotice,
+  ),
+);
+
+Widget _modalSurface({required Widget background, required Widget modal}) =>
+    Builder(
+      builder: (context) => Stack(
+        fit: StackFit.expand,
+        children: [
+          background,
+          ColoredBox(color: context.yhTheme.color.scrim),
+          modal,
+        ],
+      ),
+    );
+
+const String _visualLegalNotice = '''
+工大聚合法律与隐私说明
+
+一、免责声明
+本应用仅在用户设备本地聚合校园服务信息，不代表学校官方发布渠道。
+
+二、用户协议
+用户应妥善保管账户信息，仅将本应用用于本人校园学习与生活服务。
+
+三、隐私协议
+凭据与业务缓存保存在本地；主动刷新时，数据会提交给对应校园服务处理。
+
+四、第三方协议
+开源软件、字体和平台能力按照各自许可证与系统条款使用。
+''';
+
+Widget _lockInitial() => LockPage(
+  onUnlocked: () {},
+  authentication: _VisualLockAuthentication(
+    verification: Future<bool>.value(false),
+  ),
+);
+
+Widget _lockLoading() => LockPage(
+  onUnlocked: () {},
+  authentication: _VisualLockAuthentication(
+    verification: Completer<bool>().future,
+  ),
+);
+
+Widget _lockError() => LockPage(
+  onUnlocked: () {},
+  authentication: _VisualLockAuthentication(
+    verification: Future<bool>.value(false),
+  ),
+);
+
+Future<void> _prepareLockLoading(WidgetTester tester) async {
+  await tester.enterText(find.byType(YhTextField), 'visual-password');
+  await tester.tap(find.text('解锁'));
+  await tester.pump();
+  if (find.text('正在验证…').evaluate().isEmpty) {
+    throw StateError('锁屏未进入 loading 状态');
+  }
+}
+
+Future<void> _prepareLockError(WidgetTester tester) async {
+  await tester.enterText(find.byType(YhTextField), 'wrong-password');
+  await tester.tap(find.text('解锁'));
+  await tester.pump();
+  await tester.pump();
+  if (find.text('密码错误，请重试').evaluate().isEmpty) {
+    throw StateError('锁屏未进入 error 状态');
+  }
+}
+
+class _VisualLockAuthentication implements LockAuthenticationAdapter {
+  const _VisualLockAuthentication({required this.verification});
+
+  final Future<bool> verification;
+
+  @override
+  Future<bool> verifyPassword(String password) => verification;
+
+  @override
+  Future<bool> isQuickAuthEnabled() async => false;
+
+  @override
+  Future<bool> isSystemAuthAvailable() async => false;
+
+  @override
+  Future<SystemAuthResult> authenticate(String localizedReason) async =>
+      SystemAuthResult.unavailable;
+}
 
 enum _AcademicOverviewScenario {
   initial,

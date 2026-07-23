@@ -67,10 +67,20 @@ class YhListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    return YhTile(
-      semanticLabel: title,
+    return YhPressable(
+      semanticLabel: subtitle == null ? title : '$title，$subtitle',
       selected: selected,
-      onTap: onTap,
+      onPressed: onTap,
+      builder: (context, state, child) => ColoredBox(
+        color: state.pressed
+            ? theme.color.background
+            : selected
+            ? theme.color.brandTint
+            : state.hovered
+            ? theme.color.sunken
+            : theme.color.surface,
+        child: Padding(padding: EdgeInsets.all(theme.spacing.m), child: child),
+      ),
       child: Row(
         children: [
           if (leading != null) ...[leading!, SizedBox(width: theme.spacing.m)],
@@ -81,6 +91,8 @@ class YhListItem extends StatelessWidget {
               children: [
                 Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: theme.typography.body.copyWith(
                     color: theme.color.foreground,
                     fontWeight: FontWeight.w600,

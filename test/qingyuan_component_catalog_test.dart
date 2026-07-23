@@ -346,4 +346,45 @@ void main() {
       expect(find.byType(YhSkeleton), findsOneWidget);
     }
   });
+
+  testWidgets('清源列表行包含完整语义、选中态、按压反馈和单行截断', (tester) async {
+    final semantics = tester.ensureSemantics();
+    const longTitle = '这是一条需要在有限宽度内保持单行显示的校园通知标题';
+    await tester.pumpWidget(
+      const YhApp(
+        home: SizedBox(
+          width: 180,
+          child: YhListItem(
+            title: longTitle,
+            subtitle: '教务处 · 今天',
+            selected: true,
+            onTap: _noop,
+          ),
+        ),
+      ),
+    );
+
+    final node = tester.getSemantics(
+      find.bySemanticsLabel('$longTitle，教务处 · 今天'),
+    );
+    expect(node.flagsCollection.isSelected, Tristate.isTrue);
+    final title = tester.widget<Text>(find.text(longTitle));
+    expect(title.maxLines, 1);
+    expect(title.overflow, TextOverflow.ellipsis);
+
+    final coloredBox = find.descendant(
+      of: find.byType(YhListItem),
+      matching: find.byType(ColoredBox),
+    );
+    final restColor = tester.widget<ColoredBox>(coloredBox).color;
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(YhListItem)),
+    );
+    await tester.pump();
+    expect(tester.widget<ColoredBox>(coloredBox).color, isNot(restColor));
+    await gesture.up();
+    semantics.dispose();
+  });
 }
+
+void _noop() {}

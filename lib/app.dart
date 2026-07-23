@@ -9,14 +9,7 @@ import 'pages/info_page.dart';
 import 'pages/quick_links_page.dart';
 import 'pages/settings_page.dart';
 import 'services/campus_network_status_service.dart';
-
-bool get _supportsMobileBottomNavigation {
-  if (kIsWeb) return false;
-  return switch (defaultTargetPlatform) {
-    TargetPlatform.android || TargetPlatform.iOS => true,
-    _ => false,
-  };
-}
+import 'widgets/app_more_destinations.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({
@@ -116,11 +109,7 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final destinations = _destinations;
     final width = MediaQuery.sizeOf(context).width;
-    final orientation = MediaQuery.orientationOf(context);
-    final useBottomNavigation =
-        width < context.yhTheme.breakpoint.medium ||
-        (_supportsMobileBottomNavigation &&
-            orientation == Orientation.portrait);
+    final useBottomNavigation = width < context.yhTheme.breakpoint.medium;
     if (useBottomNavigation) {
       return _CompactNavigationShell(
         destinations: destinations,
@@ -252,26 +241,18 @@ class _CompactNavigationShell extends StatelessWidget {
     return YhBottomDrawer.show<void>(
       context,
       title: '更多',
-      builder: (drawerContext) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var offset = 0; offset < hiddenIndexes.length; offset++) ...[
-            YhButton(
-              label: destinations[hiddenIndexes[offset]].title,
-              leadingIcon: destinations[hiddenIndexes[offset]].icon,
-              trailingIcon: selectedIndex == hiddenIndexes[offset]
-                  ? YhIcons.check
-                  : YhIcons.chevronRight,
-              variant: YhButtonVariant.secondary,
-              onTap: () {
+      builder: (drawerContext) => AppMoreDestinationsContent(
+        items: [
+          for (final index in hiddenIndexes)
+            AppMoreDestination(
+              label: destinations[index].title,
+              icon: destinations[index].icon,
+              selected: selectedIndex == index,
+              onSelected: () {
                 Navigator.of(drawerContext).pop();
-                onChanged(hiddenIndexes[offset]);
+                onChanged(index);
               },
             ),
-            if (offset < hiddenIndexes.length - 1)
-              SizedBox(height: context.yhTheme.spacing.s),
-          ],
         ],
       ),
     );
