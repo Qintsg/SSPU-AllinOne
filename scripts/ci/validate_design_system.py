@@ -96,6 +96,13 @@ def _validate_css_tokens(project_root: Path, tokens: dict[str, Any]) -> None:
         if light.get(css_name) != expected:
             errors.append(f"opacity.{name} 与 --{css_name} 漂移：期望 {expected}，实际 {light.get(css_name)}")
 
+    for name, value in tokens["responsive"].items():
+        kebab = re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
+        css_name = f"responsive-{kebab}"
+        expected = f"{value:g}vw"
+        if light.get(css_name) != expected:
+            errors.append(f"responsive.{name} 与 --{css_name} 漂移：期望 {expected}，实际 {light.get(css_name)}")
+
     control_names = {"compact": "control-compact", "regular": "control-regular", "touch": "control-touch", "minimumTarget": "minimum-target"}
     focus_names = {"ringWidth": "focus-ring-width", "ringGap": "focus-ring-gap"}
     for group, names in (("control", control_names), ("focus", focus_names)):
@@ -254,6 +261,7 @@ def _validate_flutter_scalars(project_root: Path, tokens: dict[str, Any]) -> Non
         "radius": "YhRadiusTokens",
         "opacity": "YhOpacityTokens",
         "breakpoint": "YhBreakpointTokens",
+        "responsive": "YhResponsiveTokens",
         "control": "YhControlTokens",
         "layout": "YhLayoutTokens",
         "focus": "YhFocusTokens",

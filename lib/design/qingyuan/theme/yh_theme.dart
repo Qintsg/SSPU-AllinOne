@@ -154,6 +154,7 @@ class YhRadiusTokens {
 @immutable
 class YhTypographyTokens {
   const YhTypographyTokens({
+    required this.hero,
     required this.display,
     required this.h1,
     required this.h2,
@@ -169,6 +170,13 @@ class YhTypographyTokens {
   static const compactLineHeight = 1.0;
 
   static const standard = YhTypographyTokens(
+    hero: TextStyle(
+      fontFamily: fontFamilyDisplay,
+      fontSize: 48,
+      height: 1.15,
+      fontWeight: FontWeight.w500,
+      letterSpacing: -1.68,
+    ),
     display: TextStyle(
       fontFamily: fontFamilyDisplay,
       fontSize: 36,
@@ -219,7 +227,7 @@ class YhTypographyTokens {
     ),
   );
 
-  final TextStyle display, h1, h2, h3, body, small, caption;
+  final TextStyle hero, display, h1, h2, h3, body, small, caption;
 
   FontWeight get semibold => display.fontWeight!;
 }
@@ -243,9 +251,23 @@ class YhMotionTokens {
 
 @immutable
 class YhOpacityTokens {
-  const YhOpacityTokens({this.domainTint = 0.14, this.contentMuted = 0.82});
+  const YhOpacityTokens({
+    this.domainTint = 0.14,
+    this.contentMuted = 0.82,
+    this.timelineMeta = 0.72,
+    this.timelineDetail = 0.66,
+    this.timelineTrack = 0.24,
+    this.timelineDot = 0.48,
+    this.timelineCurrentRing = 0.18,
+    this.timelineOrbit = 0.18,
+    this.timelineOrbitMid = 0.04,
+    this.timelineOrbitOuter = 0.03,
+  });
 
   final double domainTint, contentMuted;
+  final double timelineMeta, timelineDetail, timelineTrack, timelineDot;
+  final double timelineCurrentRing;
+  final double timelineOrbit, timelineOrbitMid, timelineOrbitOuter;
 }
 
 @immutable
@@ -268,6 +290,17 @@ class YhControlTokens {
     this.minimumTarget = 48,
   });
   final double compact, regular, touch, minimumTarget;
+}
+
+@immutable
+class YhResponsiveTokens {
+  const YhResponsiveTokens({
+    this.panelPaddingViewportPercent = 4,
+    this.heroViewportPercent = 5,
+  });
+
+  final double panelPaddingViewportPercent;
+  final double heroViewportPercent;
 }
 
 @immutable
@@ -357,6 +390,7 @@ class YhTheme {
     this.typography = YhTypographyTokens.standard,
     this.motion = const YhMotionTokens(),
     this.breakpoint = const YhBreakpointTokens(),
+    this.responsive = const YhResponsiveTokens(),
     this.control = const YhControlTokens(),
     this.layout = const YhLayoutTokens(),
     this.focus = const YhFocusTokens(),
@@ -379,6 +413,7 @@ class YhTheme {
   final YhTypographyTokens typography;
   final YhMotionTokens motion;
   final YhBreakpointTokens breakpoint;
+  final YhResponsiveTokens responsive;
   final YhControlTokens control;
   final YhLayoutTokens layout;
   final YhFocusTokens focus;
@@ -392,6 +427,7 @@ class YhTheme {
     YhTypographyTokens? typography,
     YhMotionTokens? motion,
     YhBreakpointTokens? breakpoint,
+    YhResponsiveTokens? responsive,
     YhControlTokens? control,
     YhLayoutTokens? layout,
     YhFocusTokens? focus,
@@ -404,6 +440,7 @@ class YhTheme {
     typography: typography ?? this.typography,
     motion: motion ?? this.motion,
     breakpoint: breakpoint ?? this.breakpoint,
+    responsive: responsive ?? this.responsive,
     control: control ?? this.control,
     layout: layout ?? this.layout,
     focus: focus ?? this.focus,

@@ -94,11 +94,20 @@
   --space-2xl: 48px;
   --opacity-domain-tint: 0.14;
   --opacity-content-muted: 0.82;
+  --opacity-timeline-meta: 0.72;
+  --opacity-timeline-detail: 0.66;
+  --opacity-timeline-track: 0.24;
+  --opacity-timeline-dot: 0.48;
+  --opacity-timeline-current-ring: 0.18;
+  --opacity-timeline-orbit: 0.18;
+  --opacity-timeline-orbit-mid: 0.04;
+  --opacity-timeline-orbit-outer: 0.03;
   --font-family-display: 'MiSans';
   --font-family-body: 'MiSans';
   --font-family-mono: 'MiSans';
   --font: var(--font-family-body), -apple-system, system-ui, sans-serif;
   --mono: var(--font-family-mono), -apple-system, system-ui, sans-serif;
+  --type-hero: 48px;
   --type-display: 36px;
   --type-h1: 28px;
   --type-h2: 22px;
@@ -106,6 +115,7 @@
   --type-body: 15px;
   --type-small: 13px;
   --type-caption: 11px;
+  --line-height-hero: 1.15;
   --line-height-display: 1.1;
   --line-height-h1: 1.2;
   --line-height-h2: 1.3;
@@ -114,6 +124,7 @@
   --line-height-small: 1.4;
   --line-height-caption: 1.3;
   --line-height-compact: 1;
+  --weight-hero: 500;
   --weight-display: 600;
   --weight-h1: 600;
   --weight-h2: 500;
@@ -127,6 +138,8 @@
   --breakpoint-medium: 768px;
   --breakpoint-expanded: 1200px;
   --breakpoint-large: 1600px;
+  --responsive-panel-padding-viewport-percent: 4vw;
+  --responsive-hero-viewport-percent: 5vw;
   --control-compact: 40px;
   --control-regular: 48px;
   --control-touch: 48px;

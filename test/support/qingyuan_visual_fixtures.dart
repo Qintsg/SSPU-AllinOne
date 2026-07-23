@@ -7,12 +7,30 @@ import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/models/campus_card.dart';
 import 'package:sspu_allinone/models/email_mailbox.dart';
 import 'package:sspu_allinone/models/message_item.dart';
+import 'package:sspu_allinone/models/sports_attendance.dart';
+import 'package:sspu_allinone/models/student_report.dart';
 import 'package:sspu_allinone/services/academic_eams_service.dart';
 import 'package:sspu_allinone/services/campus_card_service.dart';
 import 'package:sspu_allinone/services/email_service.dart';
+import 'package:sspu_allinone/services/sports_attendance_service.dart';
+import 'package:sspu_allinone/services/student_report_service.dart';
 
 /// 视觉矩阵的固定本地时钟。
 final DateTime qingyuanVisualNow = DateTime(2026, 7, 18, 9, 30);
+
+/// 首页时间轨的固定脱敏待办。
+final List<MessageItem> qingyuanHomeMessages = [
+  MessageItem(
+    id: 'visual-home-task',
+    title: '大学英语作业截止',
+    date: '2026-07-18',
+    url: 'https://academic.example.invalid/assignment',
+    sourceType: MessageSourceType.schoolWebsite,
+    sourceName: MessageSourceName.jwc,
+    category: MessageCategory.jwcStudent,
+    timestamp: DateTime(2026, 7, 18, 16).millisecondsSinceEpoch,
+  ),
+];
 
 final Uri _campusCardEntranceUri = Uri.parse(
   'https://oa.example.invalid/interface/Entrance.jsp?id=campus-card',
@@ -250,6 +268,42 @@ final AcademicEamsQueryResult qingyuanScheduleContentResult = _scheduleResult(
   ],
 );
 
+/// 首页学程与培养进度 fixture。
+final AcademicEamsQueryResult qingyuanHomeAcademicResult = _scheduleResult(
+  checkedAt: DateTime(2026, 7, 18, 8, 42),
+  entries: const [
+    AcademicCourseTableEntry(
+      courseName: '高等数学',
+      weekday: 6,
+      startUnit: 1,
+      endUnit: 2,
+      timeText: '周六 第1-2节',
+      teacher: '周老师',
+      location: '教学楼 3 号楼 · 401',
+      weekDescription: '1-16周',
+      rawText: '高等数学 周老师 教学楼 3 号楼 401',
+    ),
+    AcademicCourseTableEntry(
+      courseName: '数据结构',
+      weekday: 6,
+      startUnit: 0,
+      endUnit: 0,
+      timeText: '10:00',
+      teacher: '陈老师',
+      location: '教学楼 2 号楼 · 302',
+      weekDescription: '1-16周',
+      rawText: '数据结构 陈老师 教学楼 2 号楼 302',
+    ),
+  ],
+  programCompletion: const AcademicProgramCompletionSnapshot(
+    completedCourseCount: 42,
+    pendingCourseCount: 28,
+    completedCredits: 86,
+    pendingCredits: 64,
+    moduleProgress: [],
+  ),
+);
+
 /// 课表空数据 fixture。
 final AcademicEamsQueryResult qingyuanScheduleEmptyResult = _scheduleResult(
   checkedAt: qingyuanVisualNow,
@@ -279,6 +333,7 @@ AcademicEamsQueryResult _scheduleResult({
   required List<AcademicCourseTableEntry> entries,
   AcademicEamsQueryStatus status = AcademicEamsQueryStatus.success,
   List<String> warnings = const [],
+  AcademicProgramCompletionSnapshot? programCompletion,
 }) {
   return AcademicEamsQueryResult(
     status: status,
@@ -309,6 +364,7 @@ AcademicEamsQueryResult _scheduleResult({
         fetchedAt: checkedAt,
         sourceUri: _sourceUri,
       ),
+      programCompletion: programCompletion,
     ),
   );
 }
@@ -318,11 +374,13 @@ class QingyuanVisualAcademicEamsClient implements AcademicEamsClient {
   QingyuanVisualAcademicEamsClient({
     required this.result,
     this.cachedResult,
+    this.cachedOverviewResult,
     this.pendingCourseTable,
   });
 
   final AcademicEamsQueryResult result;
   final AcademicEamsQueryResult? cachedResult;
+  final AcademicEamsQueryResult? cachedOverviewResult;
   final Completer<AcademicEamsQueryResult>? pendingCourseTable;
 
   @override
@@ -331,7 +389,8 @@ class QingyuanVisualAcademicEamsClient implements AcademicEamsClient {
   }
 
   @override
-  Future<AcademicEamsQueryResult?> readLatestCachedOverview() async => null;
+  Future<AcademicEamsQueryResult?> readLatestCachedOverview() async =>
+      cachedOverviewResult;
 
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedExamSchedule() async => null;
@@ -383,6 +442,59 @@ class QingyuanVisualAcademicEamsClient implements AcademicEamsClient {
   }) async => result;
 }
 
+final SportsAttendanceQueryResult qingyuanHomeSportsResult =
+    SportsAttendanceQueryResult(
+      status: SportsAttendanceQueryStatus.success,
+      message: '体育考勤已同步',
+      detail: '已读取脱敏体育考勤汇总。',
+      checkedAt: DateTime(2026, 7, 18, 8, 42),
+      entranceUri: Uri.parse('https://sports.example.invalid/login'),
+      summary: SportsAttendanceSummary(
+        morningExerciseCount: 6,
+        extracurricularActivityCount: 6,
+        countAdjustmentCount: 0,
+        sportsCorridorCount: 0,
+        records: const [],
+        fetchedAt: DateTime(2026, 7, 18, 8, 42),
+        sourceUri: Uri.parse('https://sports.example.invalid/attendance'),
+      ),
+    );
+
+class QingyuanVisualSportsAttendanceClient implements SportsAttendanceClient {
+  const QingyuanVisualSportsAttendanceClient(this.result);
+
+  final SportsAttendanceQueryResult result;
+
+  @override
+  Future<SportsAttendanceQueryResult?>
+  readLatestCachedAttendanceSummary() async => result;
+
+  @override
+  Future<SportsAttendanceQueryResult> fetchAttendanceSummary({
+    bool requireCampusNetwork = true,
+  }) async => result;
+}
+
+class QingyuanVisualStudentReportClient implements StudentReportClient {
+  const QingyuanVisualStudentReportClient();
+
+  @override
+  Future<StudentReportQueryResult?>
+  readLatestCachedSecondClassroomCredits() async => null;
+
+  @override
+  Future<StudentReportQueryResult> validateLoginStatus() {
+    throw UnsupportedError('视觉 fixture 不执行学工登录校验');
+  }
+
+  @override
+  Future<StudentReportQueryResult> fetchSecondClassroomCredits({
+    bool requireCampusNetwork = true,
+  }) {
+    throw UnsupportedError('视觉 fixture 不访问学工报表服务');
+  }
+}
+
 const EmailServerEndpoint qingyuanEmailImapEndpoint = EmailServerEndpoint(
   host: 'imap.example.invalid',
   port: 993,
@@ -428,6 +540,11 @@ final List<EmailMessageSnapshot> qingyuanEmailMessages = [
 final EmailMailboxQueryResult qingyuanEmailContentResult = _emailMailboxResult(
   checkedAt: qingyuanVisualNow,
   messages: qingyuanEmailMessages,
+);
+
+final EmailMailboxQueryResult qingyuanHomeEmailResult = _emailMailboxResult(
+  checkedAt: DateTime(2026, 7, 18, 8, 42),
+  messages: qingyuanEmailMessages.take(2).toList(growable: false),
 );
 
 final EmailMailboxQueryResult qingyuanEmailEmptyResult = _emailMailboxResult(

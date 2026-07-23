@@ -10,33 +10,27 @@ import 'dart:async';
 
 import '../controllers/card_auto_refresh_controller.dart';
 import '../design/qingyuan/qingyuan_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../models/campus_card.dart';
-import '../models/academic_credentials.dart';
+import '../models/course_period.dart';
 import '../models/academic_eams.dart';
 import '../models/email_mailbox.dart';
 import '../models/message_item.dart';
 import '../models/sports_attendance.dart';
-import '../models/student_report.dart';
 import '../services/academic_credentials_service.dart';
 import '../services/academic_eams_service.dart';
-import '../services/app_display_name_service.dart';
 import '../services/campus_card_service.dart';
 import '../services/campus_network_status_service.dart';
 import '../services/email_service.dart';
 import '../services/message_state_service.dart';
-import '../services/quick_links_config_service.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/storage_service.dart';
 import '../services/student_report_service.dart';
 import '../utils/query_result_messages.dart';
-import '../utils/app_web_launcher.dart';
 import '../widgets/campus_network_status_indicator.dart';
 import '../widgets/refresh_feedback_action.dart';
-import 'course_schedule_page.dart';
 part 'home_campus_card_balance_card.dart';
 part 'home_campus_card_detail_page.dart';
-part 'home_student_profile_card.dart';
+part 'home_dashboard_view.dart';
 
 /// 首页校园卡概览的确定性展示状态，仅用于视觉 fixture 与状态回归测试。
 enum HomeCampusCardDisplayState { loading, content, empty, stale, error }
@@ -65,6 +59,27 @@ class HomePage extends StatefulWidget {
   /// 测试专用：固定缓存陈旧判断与详情页相对时间。
   final DateTime? nowOverride;
 
+  /// 测试专用：首页待办使用确定性脱敏消息。
+  final List<MessageItem>? messagesOverride;
+
+  /// 测试专用：固定首页本地数据更新时间。
+  final DateTime? homeUpdatedAtOverride;
+
+  /// 测试专用：固定首页下一项倒计时文案。
+  final int? homeCountdownMinutesOverride;
+
+  /// 测试专用：直接注入首页课表缓存，跳过异步本地读取。
+  final AcademicEamsQueryResult? courseTableResultOverride;
+
+  /// 测试专用：直接注入首页教务摘要缓存。
+  final AcademicEamsQueryResult? academicOverviewResultOverride;
+
+  /// 测试专用：直接注入首页体育考勤缓存。
+  final SportsAttendanceQueryResult? sportsAttendanceResultOverride;
+
+  /// 测试专用：直接注入首页邮箱缓存。
+  final EmailMailboxQueryResult? emailResultOverride;
+
   /// 本专科教务服务，测试中可替换为 fake。
   final AcademicEamsClient? academicEamsService;
 
@@ -89,6 +104,13 @@ class HomePage extends StatefulWidget {
     this.campusCardResultOverride,
     this.campusCardDisplayStateOverride,
     this.nowOverride,
+    this.messagesOverride,
+    this.homeUpdatedAtOverride,
+    this.homeCountdownMinutesOverride,
+    this.courseTableResultOverride,
+    this.academicOverviewResultOverride,
+    this.sportsAttendanceResultOverride,
+    this.emailResultOverride,
     this.academicEamsService,
     this.sportsAttendanceService,
     this.studentReportService,
@@ -105,23 +127,16 @@ class _HomePageState extends State<HomePage> {
   List<MessageItem> _latestMessages = [];
 
   CampusCardQueryResult? _campusCardResult;
-  AcademicCredentialsStatus _credentialsStatus =
-      const AcademicCredentialsStatus.empty();
-  AcademicEamsProfile? _studentProfile;
   AcademicEamsQueryResult? _courseTableResult;
+  AcademicEamsQueryResult? _academicOverviewResult;
   SportsAttendanceQueryResult? _sportsAttendanceResult;
-  StudentReportQueryResult? _studentReportResult;
   EmailMailboxQueryResult? _emailResult;
-  List<QuickLinkItemConfig> _quickLinkFavorites = const [];
-  bool _isLoadingStudentProfile = false;
   bool _studentProfileCardVisible = true;
   bool _campusCardCardVisible = true;
   bool _todayCoursesTileVisible = true;
   bool _sportsAttendanceTileVisible = true;
-  bool _studentReportTileVisible = true;
   bool _messagesTileVisible = true;
   bool _emailTileVisible = true;
-  bool _quickLinksTileVisible = true;
   late final CardAutoRefreshController<CampusCardQueryResult>
   _campusCardRefreshController;
   StreamSubscription<int>? _credentialChangeSubscription;
@@ -136,10 +151,6 @@ class _HomePageState extends State<HomePage> {
 
   SportsAttendanceClient get _sportsAttendanceService {
     return widget.sportsAttendanceService ?? SportsAttendanceService.instance;
-  }
-
-  StudentReportClient get _studentReportService {
-    return widget.studentReportService ?? StudentReportService.instance;
   }
 
   EmailMailboxClient get _emailService {
@@ -159,20 +170,33 @@ class _HomePageState extends State<HomePage> {
           now: widget.nowOverride == null ? null : () => widget.nowOverride!,
         )..addListener(_handleCampusCardRefreshControllerChanged);
     _campusCardResult = widget.campusCardResultOverride;
+    _courseTableResult = widget.courseTableResultOverride;
+    _academicOverviewResult = widget.academicOverviewResultOverride;
+    _sportsAttendanceResult = widget.sportsAttendanceResultOverride;
+    _emailResult = widget.emailResultOverride;
     _credentialChangeSubscription = AcademicCredentialsService.instance.changes
         .listen((_) {
           _clearAuthenticatedState();
-          unawaited(_loadStudentProfileCard(forceRefresh: true));
+          unawaited(_loadDashboardCaches());
         });
-    _loadLatestMessages();
-    _loadStudentProfileCard();
+    if (widget.messagesOverride == null) {
+      _loadLatestMessages();
+    } else {
+      _latestMessages = List<MessageItem>.of(widget.messagesOverride!);
+    }
+    _loadHomeVisibilitySettings();
     if (widget.campusCardResultOverride == null &&
         widget.campusCardDisplayStateOverride == null) {
       _loadCampusCardCacheAndSettings();
     } else {
       _loadCampusCardAutoRefreshSettings();
     }
-    _loadDashboardCaches();
+    if (widget.courseTableResultOverride == null &&
+        widget.academicOverviewResultOverride == null &&
+        widget.sportsAttendanceResultOverride == null &&
+        widget.emailResultOverride == null) {
+      _loadDashboardCaches();
+    }
   }
 
   void _handleCampusCardRefreshControllerChanged() {
@@ -185,18 +209,15 @@ class _HomePageState extends State<HomePage> {
     _campusCardRefreshController.clearTransientState();
     setState(() {
       _campusCardResult = null;
-      _studentProfile = null;
       _courseTableResult = null;
+      _academicOverviewResult = null;
       _sportsAttendanceResult = null;
-      _studentReportResult = null;
       _emailResult = null;
-      _credentialsStatus = const AcademicCredentialsStatus.empty();
-      _isLoadingStudentProfile = false;
     });
   }
 
-  /// 读取首页学籍卡片设置和安全缓存，必要时静默补全。
-  Future<void> _loadStudentProfileCard({bool forceRefresh = false}) async {
+  /// 读取清源首页各语义区域的显隐设置。
+  Future<void> _loadHomeVisibilitySettings() async {
     final visible = await StorageService.getBool(
       StorageKeys.homeStudentProfileCardVisible,
       defaultValue: true,
@@ -213,10 +234,6 @@ class _HomePageState extends State<HomePage> {
       StorageKeys.homeSportsAttendanceTileVisible,
       defaultValue: true,
     );
-    final studentReportVisible = await StorageService.getBool(
-      StorageKeys.homeStudentReportTileVisible,
-      defaultValue: true,
-    );
     final messagesVisible = await StorageService.getBool(
       StorageKeys.homeMessagesTileVisible,
       defaultValue: true,
@@ -225,36 +242,14 @@ class _HomePageState extends State<HomePage> {
       StorageKeys.homeEmailTileVisible,
       defaultValue: true,
     );
-    final quickLinksVisible = await StorageService.getBool(
-      StorageKeys.homeQuickLinksTileVisible,
-      defaultValue: true,
-    );
-    final status = await AcademicCredentialsService.instance.getStatus();
-    final cachedProfile = await _academicEamsService.readCachedStudentProfile();
     if (!mounted) return;
     setState(() {
       _studentProfileCardVisible = visible;
       _campusCardCardVisible = campusCardVisible;
       _todayCoursesTileVisible = todayCoursesVisible;
       _sportsAttendanceTileVisible = sportsAttendanceVisible;
-      _studentReportTileVisible = studentReportVisible;
       _messagesTileVisible = messagesVisible;
       _emailTileVisible = emailVisible;
-      _quickLinksTileVisible = quickLinksVisible;
-      _credentialsStatus = status;
-      _studentProfile = cachedProfile;
-    });
-    if (!visible || status.oaAccount.trim().isEmpty || !status.hasOaPassword) {
-      return;
-    }
-    if (!forceRefresh && cachedProfile?.hasHomeSummary == true) return;
-    setState(() => _isLoadingStudentProfile = true);
-    final refreshedProfile = await _academicEamsService
-        .refreshStudentProfileIfIncomplete(forceRefresh: forceRefresh);
-    if (!mounted) return;
-    setState(() {
-      _studentProfile = refreshedProfile ?? _studentProfile;
-      _isLoadingStudentProfile = false;
     });
   }
 
@@ -272,41 +267,17 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadDashboardCaches() async {
     final results = await Future.wait<Object?>([
       _academicEamsService.readLatestCachedCourseTable(),
+      _academicEamsService.readLatestCachedOverview(),
       _sportsAttendanceService.readLatestCachedAttendanceSummary(),
-      _studentReportService.readLatestCachedSecondClassroomCredits(),
       _emailService.readLatestCachedMessages(EmailProtocol.imap),
-      _loadQuickLinkFavorites(),
     ]);
     if (!mounted) return;
     setState(() {
       _courseTableResult = results[0] as AcademicEamsQueryResult?;
-      _sportsAttendanceResult = results[1] as SportsAttendanceQueryResult?;
-      _studentReportResult = results[2] as StudentReportQueryResult?;
+      _academicOverviewResult = results[1] as AcademicEamsQueryResult?;
+      _sportsAttendanceResult = results[2] as SportsAttendanceQueryResult?;
       _emailResult = results[3] as EmailMailboxQueryResult?;
-      _quickLinkFavorites =
-          (results[4] as List<QuickLinkItemConfig>?) ?? const [];
     });
-  }
-
-  Future<List<QuickLinkItemConfig>> _loadQuickLinkFavorites() async {
-    try {
-      final groups = await QuickLinksConfigService.instance.loadGroups();
-      final allItems = groups.expand((group) => group.items).toList();
-      final favoriteUrls = await StorageService.getStringList(
-        StorageKeys.quickLinkFavoriteUrls,
-      );
-      if (favoriteUrls.isNotEmpty) {
-        final favorites = [
-          for (final url in favoriteUrls)
-            for (final item in allItems)
-              if (item.url == url) item,
-        ];
-        if (favorites.isNotEmpty) return favorites.take(6).toList();
-      }
-      return allItems.take(6).toList();
-    } catch (_) {
-      return const [];
-    }
   }
 
   /// 读取校园卡自动刷新设置；默认不主动访问 OA / 校园卡系统。
@@ -414,424 +385,11 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return YhPageScaffold(
-      appBar: YhAppBar(
-        title: '主页',
-        actions: [
-          CampusNetworkStatusIndicator(
-            service: widget.campusNetworkStatusService,
-            variant: CampusNetworkStatusIndicatorVariant.home,
-            indicatorKey: const Key('campus-network-status-home'),
-          ),
-          if (_campusCardCardVisible)
-            RefreshFeedbackAction(
-              key: const Key('home-campus-card-refresh'),
-              tooltip: '刷新校园卡余额',
-              semanticLabel: '刷新校园卡余额',
-              isLoading: _campusCardRefreshController.isLoading,
-              feedback: _campusCardRefreshController.feedback,
-              onPressed: _loadCampusCard,
-              minTouchSize: theme.control.minimumTarget,
-              maxFeedbackWidth: theme.layout.inlineControlWidth,
-            ),
-        ],
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final pagePadding = constraints.maxWidth < theme.breakpoint.compact
-              ? theme.spacing.m
-              : constraints.maxWidth < theme.breakpoint.expanded
-              ? theme.spacing.l
-              : theme.spacing.xl;
-          return SingleChildScrollView(
-            padding: EdgeInsets.all(pagePadding),
-            child: Align(
-              alignment: AlignmentDirectional.topCenter,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: theme.breakpoint.expanded,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildDashboardHero(context),
-                    SizedBox(height: theme.spacing.l),
-                    _buildDashboardGrid(context),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  /// 构建校园仪表盘头部。
-  Widget _buildDashboardHero(BuildContext context) {
-    final theme = context.yhTheme;
-    final todayCourseCount = _todayCourseEntries.length;
-    final unreadCount = _latestMessages.length;
-
-    return YhCard(
-      elevated: true,
-      padding: EdgeInsets.zero,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: theme.color.brandTint,
-          borderRadius: BorderRadius.circular(theme.radius.l),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(theme.spacing.l),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final compact =
-                  constraints.maxWidth <
-                  theme.breakpoint.compact + theme.spacing.l - theme.spacing.xs;
-              final logo = Image.asset(
-                'assets/images/logo.png',
-                width: compact
-                    ? theme.spacing.xl2 + theme.spacing.s
-                    : theme.spacing.xl2 + theme.spacing.l,
-                height: compact
-                    ? theme.spacing.xl2 + theme.spacing.s
-                    : theme.spacing.xl2 + theme.spacing.l,
-              );
-              final title = Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppDisplayName.of(context),
-                    style: compact ? theme.typography.h2 : theme.typography.h1,
-                  ),
-                  SizedBox(height: theme.spacing.xs),
-                  Text(
-                    '今日课程 $todayCourseCount 门 · 最近消息 $unreadCount 条',
-                    style: theme.typography.body.copyWith(
-                      color: theme.color.muted,
-                    ),
-                  ),
-                ],
-              );
-              final metrics = Wrap(
-                spacing: theme.spacing.s,
-                runSpacing: theme.spacing.s,
-                children: [
-                  _DashboardHeroPill(
-                    label: '校园卡',
-                    value: _campusCardBalanceText,
-                    color: theme.color.serviceFinance,
-                  ),
-                  _DashboardHeroPill(
-                    label: '二课',
-                    value: _studentReportCreditText,
-                    color: theme.color.serviceSecondClass,
-                  ),
-                  _DashboardHeroPill(
-                    label: '邮箱',
-                    value: _emailSummaryText,
-                    color: theme.color.serviceMail,
-                  ),
-                ],
-              );
-
-              if (compact) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        logo,
-                        SizedBox(width: theme.spacing.m),
-                        Expanded(child: title),
-                      ],
-                    ),
-                    SizedBox(height: theme.spacing.l),
-                    metrics,
-                  ],
-                );
-              }
-              return Row(
-                children: [
-                  logo,
-                  SizedBox(width: theme.spacing.l),
-                  Expanded(child: title),
-                  SizedBox(width: theme.spacing.l),
-                  Flexible(child: metrics),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// 构建首页仪表盘网格。
-  Widget _buildDashboardGrid(BuildContext context) {
-    final tiles = <Widget>[
-      if (_studentProfileCardVisible) _buildStudentProfileCard(context),
-      if (_campusCardCardVisible) _buildCampusCardBalanceCard(context),
-      if (_todayCoursesTileVisible) _buildTodayCoursesTile(context),
-      if (_sportsAttendanceTileVisible) _buildSportsAttendanceTile(context),
-      if (_studentReportTileVisible) _buildSecondClassroomTile(context),
-      if (_messagesTileVisible) _buildMessagesTile(context),
-      if (_emailTileVisible) _buildEmailTile(context),
-      if (_quickLinksTileVisible) _buildQuickLinksTile(context),
-    ];
-    if (tiles.isEmpty) {
-      return YhDashboardTile(
-        title: '首页磁贴',
-        icon: YhIcons.home,
-        state: YhDataState.notConfigured,
-        actions: [YhButton(label: '前往设置', onTap: widget.onOpenSettings)],
-        child: Text(
-          '所有首页磁贴均已隐藏，可在设置的“首页显示”中重新开启。',
-          style: context.yhTheme.typography.body.copyWith(
-            color: context.yhTheme.color.muted,
-          ),
-        ),
-      );
-    }
-
-    final theme = context.yhTheme;
-    return YhMasonryGrid(
-      gap: theme.spacing.l,
-      columnsForWidth: (width) {
-        if (width >=
-            theme.breakpoint.expanded - theme.spacing.l + theme.spacing.xs) {
-          return 3;
-        }
-        if (width >=
-            theme.breakpoint.medium -
-                theme.spacing.xl2 -
-                theme.spacing.l +
-                theme.spacing.xs) {
-          return 2;
-        }
-        return 1;
-      },
-      children: tiles,
-    );
-  }
-
-  /// 今日课程磁贴。
-  Widget _buildTodayCoursesTile(BuildContext context) {
-    final entries = _todayCourseEntries;
-    final hasCredentials =
-        _credentialsStatus.oaAccount.trim().isNotEmpty &&
-        _credentialsStatus.hasOaPassword;
-    final state = !hasCredentials
-        ? YhDataState.notConfigured
-        : _courseTableResult == null
-        ? YhDataState.degraded
-        : entries.isEmpty
-        ? YhDataState.degraded
-        : YhDataState.ready;
-
-    return YhDashboardTile(
-      key: const Key('home-today-courses-tile'),
-      title: '今日课程',
-      subtitle: _courseTableResult?.snapshot?.courseTable?.termName ?? '当前学期',
-      icon: YhIcons.calendar,
-      state: state,
-      accentColor: context.yhTheme.color.serviceSchedule,
-      actions: [
-        YhButton(
-          label: '课表',
-          trailingIcon: YhIcons.chevronRight,
-          variant: YhButtonVariant.text,
-          onTap: _openCourseSchedulePage,
-        ),
-      ],
-      child: !hasCredentials
-          ? _buildSettingsPrompt(context, '需要先保存 OA 账号密码')
-          : entries.isEmpty
-          ? _buildMutedText(context, '暂无今日课程缓存，打开课表页刷新后会显示。')
-          : _buildTodayCourseRows(entries),
-    );
-  }
-
-  /// 体育考勤磁贴。
-  Widget _buildSportsAttendanceTile(BuildContext context) {
-    final result = _sportsAttendanceResult;
-    final summary = result?.summary;
-    final hasCredentials = _credentialsStatus.oaAccount.trim().isNotEmpty;
-    final state = !hasCredentials
-        ? YhDataState.notConfigured
-        : result == null
-        ? YhDataState.degraded
-        : result.isSuccess
-        ? YhDataState.ready
-        : YhDataState.failed;
-
-    return YhDashboardTile(
-      key: const Key('home-sports-attendance-tile'),
-      title: '体育考勤',
-      icon: YhIcons.sports,
-      state: state,
-      accentColor: context.yhTheme.color.serviceSports,
-      child: !hasCredentials
-          ? _buildSettingsPrompt(context, '需要先保存学工号')
-          : summary == null
-          ? _buildMutedText(context, result?.message ?? '暂无体育考勤缓存')
-          : Wrap(
-              spacing: context.yhTheme.spacing.s,
-              runSpacing: context.yhTheme.spacing.s,
-              children: [
-                _MetricText(label: '总次数', value: '${summary.totalCount} 次'),
-                _MetricText(
-                  label: '课外活动',
-                  value: '${summary.extracurricularActivityCount} 次',
-                ),
-                _MetricText(
-                  label: '早操',
-                  value: '${summary.morningExerciseCount} 次',
-                ),
-              ],
-            ),
-    );
-  }
-
-  /// 第二课堂磁贴。
-  Widget _buildSecondClassroomTile(BuildContext context) {
-    final result = _studentReportResult;
-    final summary = result?.summary;
-    final totals = summary?.totals;
-    final hasCredentials =
-        _credentialsStatus.oaAccount.trim().isNotEmpty &&
-        _credentialsStatus.hasOaPassword;
-    final state = !hasCredentials
-        ? YhDataState.notConfigured
-        : result == null
-        ? YhDataState.degraded
-        : result.isSuccess
-        ? YhDataState.ready
-        : YhDataState.failed;
-
-    return YhDashboardTile(
-      key: const Key('home-second-classroom-tile'),
-      title: '第二课堂',
-      icon: YhIcons.education,
-      state: state,
-      accentColor: context.yhTheme.color.serviceSecondClass,
-      child: !hasCredentials
-          ? _buildSettingsPrompt(context, '需要先保存 OA 账号密码')
-          : summary == null
-          ? _buildMutedText(context, result?.message ?? '暂无第二课堂缓存')
-          : Wrap(
-              spacing: context.yhTheme.spacing.s,
-              runSpacing: context.yhTheme.spacing.s,
-              children: [
-                _MetricText(
-                  label: '已获',
-                  value: _formatCredit(totals?.totalEarnedCredit),
-                ),
-                _MetricText(
-                  label: '必修',
-                  value: _formatCredit(totals?.totalRequiredCredit),
-                ),
-                _MetricText(
-                  label: '详情',
-                  value: '${summary.detailRecords.length} 条',
-                ),
-              ],
-            ),
-    );
-  }
-
-  /// 最新消息磁贴。
-  Widget _buildMessagesTile(BuildContext context) {
-    return YhDashboardTile(
-      key: const Key('home-messages-tile'),
-      title: '最新消息',
-      subtitle: '最近 5 条已启用渠道消息',
-      icon: YhIcons.news,
-      state: _latestMessages.isEmpty ? YhDataState.degraded : YhDataState.ready,
-      accentColor: context.yhTheme.color.serviceNews,
-      child: _latestMessages.isEmpty
-          ? _buildMutedText(context, '暂无消息，开启信息渠道并等待自动刷新后会显示。')
-          : _buildLatestMessageRows(context),
-    );
-  }
-
-  /// 邮箱摘要磁贴。
-  Widget _buildEmailTile(BuildContext context) {
-    final result = _emailResult;
-    final snapshot = result?.snapshot;
-    final hasCredentials = _credentialsStatus.oaAccount.trim().isNotEmpty;
-    final state = !hasCredentials
-        ? YhDataState.notConfigured
-        : result == null
-        ? YhDataState.degraded
-        : result.isSuccess
-        ? YhDataState.ready
-        : YhDataState.failed;
-
-    return YhDashboardTile(
-      key: const Key('home-email-tile'),
-      title: '邮箱摘要',
-      icon: YhIcons.mail,
-      state: state,
-      accentColor: context.yhTheme.color.serviceMail,
-      child: !hasCredentials
-          ? _buildSettingsPrompt(context, '需要先保存学工号')
-          : snapshot == null
-          ? _buildMutedText(context, result?.message ?? '暂无邮箱缓存')
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _MetricText(
-                  label: snapshot.protocol.label,
-                  value: '${snapshot.messages.length} 封',
-                ),
-                SizedBox(height: context.yhTheme.spacing.s),
-                Text(
-                  snapshot.messages.isEmpty
-                      ? '最近邮件为空'
-                      : snapshot.messages.first.subject,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.yhTheme.typography.body.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-    );
-  }
-
-  /// 快速跳转磁贴。
-  Widget _buildQuickLinksTile(BuildContext context) {
-    return YhDashboardTile(
-      key: const Key('home-quick-links-tile'),
-      title: '快速跳转',
-      subtitle: '常用校园入口',
-      icon: YhIcons.link,
-      state: _quickLinkFavorites.isEmpty
-          ? YhDataState.degraded
-          : YhDataState.ready,
-      accentColor: context.yhTheme.color.serviceQuickLink,
-      child: _quickLinkFavorites.isEmpty
-          ? _buildMutedText(context, '快捷入口配置加载中或暂无可用入口。')
-          : Wrap(
-              spacing: context.yhTheme.spacing.s,
-              runSpacing: context.yhTheme.spacing.s,
-              children: [
-                for (final item in _quickLinkFavorites)
-                  YhButton(
-                    label: item.name,
-                    variant: YhButtonVariant.secondary,
-                    onTap: () => _openExternalUrl(item.url),
-                  ),
-              ],
-            ),
-    );
+    return _buildQingyuanHomePage(context);
   }
 
   List<AcademicCourseTableEntry> get _todayCourseEntries {
-    final weekday = DateTime.now().weekday;
+    final weekday = (widget.nowOverride ?? DateTime.now()).weekday;
     final entries = <AcademicCourseTableEntry>[
       ...?_courseTableResult?.snapshot?.courseTable?.entries.where(
         (entry) => entry.weekday == weekday,
@@ -839,289 +397,5 @@ class _HomePageState extends State<HomePage> {
     ];
     entries.sort((a, b) => a.startUnit.compareTo(b.startUnit));
     return entries;
-  }
-
-  Widget _buildTodayCourseRows(List<AcademicCourseTableEntry> entries) {
-    final theme = context.yhTheme;
-    final visibleEntries = entries.take(3).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (var i = 0; i < visibleEntries.length; i++) ...[
-          _CourseMiniRow(entry: visibleEntries[i]),
-          if (i < visibleEntries.length - 1) SizedBox(height: theme.spacing.s),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildLatestMessageRows(BuildContext context) {
-    final visibleMessages = _latestMessages.take(3).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (var i = 0; i < visibleMessages.length; i++) ...[
-          _buildMessageItem(context, visibleMessages[i]),
-          if (i < visibleMessages.length - 1)
-            Container(
-              height: context.yhTheme.layout.divider,
-              color: context.yhTheme.color.border,
-            ),
-        ],
-      ],
-    );
-  }
-
-  String get _campusCardBalanceText {
-    final balance = _campusCardResult?.snapshot?.balance;
-    if (balance == null) return '未读取';
-    return '¥${balance.toStringAsFixed(2)}';
-  }
-
-  String get _studentReportCreditText {
-    final earned = _studentReportResult?.summary?.totals?.totalEarnedCredit;
-    return earned == null ? '未读取' : earned.toStringAsFixed(2);
-  }
-
-  String get _emailSummaryText {
-    final count = _emailResult?.snapshot?.messages.length;
-    return count == null ? '未读取' : '$count 封';
-  }
-
-  Widget _buildSettingsPrompt(BuildContext context, String label) {
-    final theme = context.yhTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildMutedText(context, label),
-        SizedBox(height: theme.spacing.s),
-        YhButton(label: '前往设置', onTap: widget.onOpenSettings),
-      ],
-    );
-  }
-
-  Widget _buildMutedText(BuildContext context, String text) {
-    return Text(
-      text,
-      style: context.yhTheme.typography.body.copyWith(
-        color: context.yhTheme.color.muted,
-      ),
-    );
-  }
-
-  void _openCourseSchedulePage() {
-    Navigator.of(context).push(
-      YhPageRoute(
-        builder: (_) => CourseSchedulePage(
-          academicEamsService: _academicEamsService,
-          initialResult: _courseTableResult,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openExternalUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri == null) return;
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
-
-  String _formatCredit(double? value) {
-    return value == null ? '未读取' : value.toStringAsFixed(2);
-  }
-
-  /// 构建单条消息项（点击跳转内嵌 WebView）
-  Widget _buildMessageItem(BuildContext context, MessageItem msg) {
-    final theme = context.yhTheme;
-    return YhPressable(
-      semanticLabel: '打开消息 ${msg.title}',
-      onPressed: () async {
-        // 标记已读并在 iOS 使用 Safari View Controller 打开。
-        MessageStateService.instance.markAsRead(msg.id);
-        if (!context.mounted) return;
-        await openAppWebUrl(context, url: msg.url, title: msg.title);
-      },
-      builder: (context, state, child) {
-        return AnimatedContainer(
-          duration: theme.motion.fast,
-          curve: theme.motion.curve,
-          padding: EdgeInsets.symmetric(
-            vertical: theme.spacing.s,
-            horizontal: theme.spacing.xs,
-          ),
-          decoration: BoxDecoration(
-            color: state.hovered || state.focused
-                ? theme.color.brandTint
-                : null,
-            borderRadius: BorderRadius.circular(theme.radius.s),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      msg.title,
-                      style: theme.typography.body.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: theme.spacing.xs),
-                    Text(
-                      '${msg.category.label} · ${msg.sourceName.label}',
-                      style: theme.typography.caption.copyWith(
-                        color: theme.color.muted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                msg.date,
-                style: theme.typography.caption.copyWith(
-                  color: theme.color.muted,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-      child: const SizedBox.shrink(),
-    );
-  }
-}
-
-class _DashboardHeroPill extends StatelessWidget {
-  const _DashboardHeroPill({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: theme.spacing.m,
-        vertical: theme.spacing.s,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(theme.radius.full),
-        border: Border.all(color: color.withValues(alpha: 0.22)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: theme.typography.caption.copyWith(color: theme.color.muted),
-          ),
-          SizedBox(width: theme.spacing.xs),
-          Text(
-            value,
-            style: theme.typography.caption.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CourseMiniRow extends StatelessWidget {
-  const _CourseMiniRow({required this.entry});
-
-  final AcademicCourseTableEntry entry;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    final color = theme.color.serviceSchedule;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: theme.spacing.xs,
-          height: theme.control.compact + theme.spacing.xs,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(theme.radius.full),
-          ),
-        ),
-        SizedBox(width: theme.spacing.s),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                entry.courseName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.typography.body.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(height: theme.spacing.xs),
-              Text(
-                [
-                  entry.timeText,
-                  if (entry.location?.trim().isNotEmpty == true)
-                    entry.location!.trim(),
-                ].join(' · '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.typography.caption.copyWith(
-                  color: theme.color.muted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MetricText extends StatelessWidget {
-  const _MetricText({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        minWidth: theme.spacing.xl2 * 2 - theme.spacing.xs,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: theme.typography.caption.copyWith(color: theme.color.muted),
-          ),
-          SizedBox(height: theme.spacing.xs),
-          Text(
-            value,
-            style: theme.typography.body.copyWith(fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    );
   }
 }

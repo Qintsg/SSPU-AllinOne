@@ -299,6 +299,7 @@ class _DesktopNavigationShell extends StatelessWidget {
     return ColoredBox(
       color: theme.color.background,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           YhNavRail(
             items: [

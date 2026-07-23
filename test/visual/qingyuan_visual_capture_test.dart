@@ -237,6 +237,12 @@ final _surfaces = <_VisualSurface>[
   _VisualSurface('components.data', _dataPanel),
   _VisualSurface('components.domain', _domainPanel),
   _VisualSurface(
+    'home.dashboard',
+    () => _homeCampusCardPage(HomeCampusCardDisplayState.content),
+    prepare: _prepareHomeDashboard,
+    destination: '主页',
+  ),
+  _VisualSurface(
     'home.campus-card',
     () => _homeCampusCardPage(HomeCampusCardDisplayState.loading),
     state: 'loading',
@@ -463,18 +469,37 @@ Widget _homeCampusCardPage(HomeCampusCardDisplayState state) {
   };
   return HomePage(
     campusCardService: QingyuanVisualCampusCardClient(result: result),
+    academicEamsService: QingyuanVisualAcademicEamsClient(
+      result: qingyuanHomeAcademicResult,
+      cachedResult: qingyuanHomeAcademicResult,
+      cachedOverviewResult: qingyuanHomeAcademicResult,
+    ),
+    sportsAttendanceService: QingyuanVisualSportsAttendanceClient(
+      qingyuanHomeSportsResult,
+    ),
+    studentReportService: const QingyuanVisualStudentReportClient(),
+    emailService: QingyuanVisualEmailClient(
+      cachedResult: qingyuanHomeEmailResult,
+    ),
     campusNetworkStatusService: _visualCampusNetworkStatusService(),
     campusCardAutoRefreshEnabledOverride: false,
     campusCardResultOverride: result,
     campusCardDisplayStateOverride: state,
     nowOverride: qingyuanVisualNow,
+    messagesOverride: qingyuanHomeMessages,
+    homeUpdatedAtOverride: DateTime(2026, 7, 18, 8, 42),
+    homeCountdownMinutesOverride: 42,
+    courseTableResultOverride: qingyuanHomeAcademicResult,
+    academicOverviewResultOverride: qingyuanHomeAcademicResult,
+    sportsAttendanceResultOverride: qingyuanHomeSportsResult,
+    emailResultOverride: qingyuanHomeEmailResult,
   );
 }
 
 CampusNetworkStatusService _visualCampusNetworkStatusService() {
   return CampusNetworkStatusService(
     probe: (uri, timeout) async => CampusNetworkProbeResult(
-      reachable: true,
+      reachable: uri != CampusNetworkStatusService.defaultVpnProbeUri,
       statusCode: 200,
       detail: '视觉 fixture 已连接 ${uri.host}',
     ),
@@ -482,11 +507,20 @@ CampusNetworkStatusService _visualCampusNetworkStatusService() {
 }
 
 Future<void> _prepareHomeCampusCard(WidgetTester tester) async {
+  await _prepareHomeDashboard(tester);
   await _centerInScrollable(
     tester,
     find.byKey(const Key('home-campus-card-balance-card')),
   );
   await tester.pump();
+}
+
+Future<void> _prepareHomeDashboard(WidgetTester tester) async {
+  for (var attempt = 0; attempt < 40; attempt++) {
+    await tester.pump(const Duration(milliseconds: 50));
+    if (find.text('高等数学').evaluate().isNotEmpty) return;
+  }
+  throw StateError('首页确定性 fixture 未在预期时间内完成加载');
 }
 
 Widget _campusCardDetailPage(CampusCardDetailDisplayState state) {

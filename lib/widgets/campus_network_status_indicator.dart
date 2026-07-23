@@ -71,6 +71,23 @@ class _CampusNetworkStatusIndicatorState
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    if (widget.variant == CampusNetworkStatusIndicatorVariant.home) {
+      return Semantics(
+        label: '校园网状态，$_homeStatusLabel',
+        child: ExcludeSemantics(
+          child: YhStatusPill(
+            key: widget.indicatorKey,
+            label: _isChecking ? '检测中' : _homeStatusLabel,
+            kind: switch (_status.accessMode) {
+              CampusNetworkAccessMode.campus ||
+              CampusNetworkAccessMode.vpn => YhStatusKind.success,
+              CampusNetworkAccessMode.outsideCampus => YhStatusKind.warning,
+              CampusNetworkAccessMode.unknown => YhStatusKind.neutral,
+            },
+          ),
+        ),
+      );
+    }
     final palette = _palette(theme);
     final config = _variantConfig(theme);
     return YhTooltip(
@@ -220,6 +237,13 @@ class _CampusNetworkStatusIndicatorState
     CampusNetworkStatusIndicatorVariant.titleBar => _titleBarLabel,
     CampusNetworkStatusIndicatorVariant.home => _status.shortLabel,
     CampusNetworkStatusIndicatorVariant.standard => _status.label,
+  };
+
+  String get _homeStatusLabel => switch (_status.accessMode) {
+    CampusNetworkAccessMode.campus => '校园网可用',
+    CampusNetworkAccessMode.vpn => 'VPN 可用',
+    CampusNetworkAccessMode.outsideCampus => '校外访问受限',
+    CampusNetworkAccessMode.unknown => '网络状态未知',
   };
 
   String get _titleBarLabel => switch (_status.accessMode) {

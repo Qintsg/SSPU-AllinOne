@@ -203,9 +203,7 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 100));
 
-      final pageTitle = find
-          .descendant(of: find.byType(YhAppBar), matching: find.text('主页'))
-          .first;
+      final pageTitle = find.byKey(const Key('home-page-heading'));
       final titleTop = tester.getTopLeft(pageTitle).dy;
       expect(titleTop, greaterThanOrEqualTo(topPadding));
       expect(titleTop, lessThanOrEqualTo(topPadding + 40));
@@ -333,14 +331,14 @@ void main() {
         YhApp(home: AppShell(campusNetworkStatusService: service)),
       );
       await tester.pump(const Duration(milliseconds: 100));
-      await pumpUntilFound(tester, find.text('VPN'));
+      await pumpUntilFound(tester, find.text('VPN 可用'));
 
       // 校园网徽标由可注入服务驱动，避免组件测试依赖真实校园网环境。
       expect(
         find.byKey(const Key('campus-network-status-home')),
         findsOneWidget,
       );
-      expect(find.text('VPN'), findsOneWidget);
+      expect(find.text('VPN 可用'), findsOneWidget);
       expect(
         find.byKey(const Key('campus-network-status-pane-item')),
         findsNothing,
@@ -736,14 +734,14 @@ void main() {
     await tester.pump();
 
     expect(find.text('首页显示'), findsOneWidget);
-    expect(find.text('显示学籍信息卡片'), findsOneWidget);
+    expect(find.text('显示培养方案概览'), findsOneWidget);
     expect(find.text('显示校园卡余额卡片'), findsOneWidget);
-    expect(find.text('显示今日课程磁贴'), findsOneWidget);
+    expect(find.text('显示今日学程时间轨'), findsOneWidget);
     expect(find.text('显示体育考勤磁贴'), findsOneWidget);
-    expect(find.text('显示第二课堂磁贴'), findsOneWidget);
-    expect(find.text('显示最新消息磁贴'), findsOneWidget);
+    expect(find.text('显示第二课堂磁贴'), findsNothing);
+    expect(find.text('显示时间轨待办'), findsOneWidget);
     expect(find.text('显示邮箱摘要磁贴'), findsOneWidget);
-    expect(find.text('显示快速跳转磁贴'), findsOneWidget);
+    expect(find.text('显示快速跳转磁贴'), findsNothing);
     await tester.tap(
       find.byKey(const Key('settings-home-student-profile-card-switch')),
     );
@@ -762,11 +760,7 @@ void main() {
     );
     await tester.pump();
     expect(sportsVisible, isFalse);
-    await tester.tap(
-      find.byKey(const Key('settings-home-student-report-switch')),
-    );
-    await tester.pump();
-    expect(studentReportVisible, isFalse);
+    expect(studentReportVisible, isTrue);
     await tester.ensureVisible(
       find.byKey(const Key('settings-home-messages-switch')),
     );
@@ -781,13 +775,7 @@ void main() {
     await tester.tap(find.byKey(const Key('settings-home-email-switch')));
     await tester.pump();
     expect(emailVisible, isFalse);
-    await tester.ensureVisible(
-      find.byKey(const Key('settings-home-quick-links-switch')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('settings-home-quick-links-switch')));
-    await tester.pump();
-    expect(quickLinksVisible, isFalse);
+    expect(quickLinksVisible, isTrue);
     await tester.pump(const Duration(milliseconds: 120));
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

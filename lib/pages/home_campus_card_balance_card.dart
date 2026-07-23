@@ -24,67 +24,72 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
       key: const Key('home-campus-card-balance-card'),
       semanticLabel: content.semanticLabel,
       onTap: canOpenDetails ? () => _openCampusCardDetail(snapshot) : null,
-      child: Row(
-        children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: Color.alphaBlend(
-                theme.color.serviceFinance.withValues(
-                  alpha: theme.opacity.domainTint,
-                ),
-                theme.color.surface,
-              ),
-              borderRadius: BorderRadius.circular(theme.radius.input),
-            ),
-            child: SizedBox.square(
-              dimension: theme.control.regular - theme.spacing.xs,
-              child: Icon(
-                YhIcons.finance,
-                color: theme.color.serviceFinance,
-                size: theme.spacing.l,
-              ),
-            ),
-          ),
-          SizedBox(width: theme.spacing.m),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  content.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.typography.body.copyWith(
-                    fontWeight: theme.typography.semibold,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: theme.control.regular + theme.spacing.l - theme.spacing.xs,
+        ),
+        child: Row(
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: Color.alphaBlend(
+                  theme.color.serviceFinance.withValues(
+                    alpha: theme.opacity.domainTint,
                   ),
+                  theme.color.surface,
                 ),
-                SizedBox(height: theme.spacing.xs),
-                Text(
-                  content.caption,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.typography.caption.copyWith(
-                    color: theme.color.muted,
+                borderRadius: BorderRadius.circular(theme.radius.input),
+              ),
+              child: SizedBox.square(
+                dimension: theme.control.regular - theme.spacing.xs,
+                child: Icon(
+                  YhIcons.finance,
+                  color: theme.color.serviceFinance,
+                  size: theme.spacing.l,
+                ),
+              ),
+            ),
+            SizedBox(width: theme.spacing.m),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    content.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.typography.body.copyWith(
+                      fontWeight: theme.typography.semibold,
+                    ),
                   ),
-                ),
-              ],
+                  SizedBox(height: theme.spacing.xs),
+                  Text(
+                    content.caption,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.typography.caption.copyWith(
+                      color: theme.color.muted,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          SizedBox(width: theme.spacing.m),
-          Text(
-            content.value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.typography.body.copyWith(
-              fontFamily: YhTypographyTokens.fontFamilyMono,
-              fontWeight: theme.typography.semibold,
-              color: state == HomeCampusCardDisplayState.error
-                  ? theme.color.danger
-                  : theme.color.foreground,
+            SizedBox(width: theme.spacing.m),
+            Text(
+              content.value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.typography.body.copyWith(
+                fontFamily: YhTypographyTokens.fontFamilyMono,
+                fontWeight: theme.typography.semibold,
+                color: state == HomeCampusCardDisplayState.error
+                    ? theme.color.danger
+                    : theme.color.foreground,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

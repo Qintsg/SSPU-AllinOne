@@ -10,6 +10,7 @@ import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sspu_allinone/app.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/models/campus_card.dart';
@@ -43,6 +44,7 @@ Future<void> pumpHomePage(
   required bool campusCardAutoRefreshEnabledOverride,
   int campusCardAutoRefreshIntervalOverride = 30,
   bool? campusCardVisible,
+  DateTime? nowOverride,
 }) async {
   if (campusCardVisible != null) {
     await StorageService.setBool(
@@ -60,34 +62,10 @@ Future<void> pumpHomePage(
             campusCardAutoRefreshEnabledOverride,
         campusCardAutoRefreshIntervalOverride:
             campusCardAutoRefreshIntervalOverride,
+        nowOverride: nowOverride,
       ),
     ),
   );
-}
-
-const _homeDashboardTileKeys = [
-  Key('home-student-profile-card'),
-  Key('home-campus-card-balance-card'),
-  Key('home-today-courses-tile'),
-  Key('home-sports-attendance-tile'),
-  Key('home-second-classroom-tile'),
-  Key('home-messages-tile'),
-  Key('home-email-tile'),
-  Key('home-quick-links-tile'),
-];
-
-Map<Key, double> _dashboardTileColumnXByKey(WidgetTester tester) {
-  final xs = <Key, double>{};
-  for (final key in _homeDashboardTileKeys) {
-    xs[key] = tester.getTopLeft(find.byKey(key)).dx.roundToDouble();
-  }
-  return xs;
-}
-
-void _expectDashboardTilesExist() {
-  for (final key in _homeDashboardTileKeys) {
-    expect(find.byKey(key), findsOneWidget);
-  }
 }
 
 void main() {
@@ -100,6 +78,48 @@ void main() {
   tearDown(() {
     StorageService.debugUseSharedPreferencesStorageForTesting(null);
     SharedPreferences.setMockInitialValues({});
+  });
+
+  testWidgets('桌面导航壳中的首页内容起点与冻结稿一致', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      YhApp(
+        home: MediaQuery(
+          data: const MediaQueryData(
+            size: Size(1200, 900),
+            devicePixelRatio: 1,
+            disableAnimations: true,
+          ),
+          child: AppShell(
+            destinationOverrides: {
+              '主页': HomePage(
+                campusNetworkStatusService: _buildCampusNetworkStatusService(),
+                campusCardAutoRefreshEnabledOverride: false,
+                nowOverride: DateTime(2026, 7, 18, 9, 18),
+              ),
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      tester.getTopLeft(find.byKey(const Key('home-page-heading'))),
+      const Offset(268, 32),
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('home-today-courses-tile'))).width,
+      closeTo(584.6, 0.2),
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('home-overview-stack'))).width,
+      closeTo(283.4, 0.2),
+    );
+
+    await disposeHomePage(tester);
   });
 
   testWidgets('首页校园卡卡片可手动刷新并进入详情页', (tester) async {
@@ -137,6 +157,9 @@ void main() {
     await tester.pump();
     expect(find.text('刷新成功√'), findsNothing);
 
+    await tester.ensureVisible(
+      find.byKey(const Key('home-campus-card-balance-card')),
+    );
     await tester.tap(find.byKey(const Key('home-campus-card-balance-card')));
     await tester.pumpAndSettle();
 
@@ -203,7 +226,7 @@ void main() {
     await disposeHomePage(tester);
   });
 
-  testWidgets('首页学籍信息卡片展示身份摘要且无刷新时间', (tester) async {
+  testWidgets('首页标题使用固定日期并保持培养方案独立于学籍摘要', (tester) async {
     await AcademicCredentialsService.instance.saveCredentials(
       oaAccount: '20260001',
       oaPassword: 'oa-pass',
@@ -218,52 +241,19 @@ void main() {
       academicEamsService: academicService,
       campusNetworkStatusService: campusNetworkStatusService,
       campusCardAutoRefreshEnabledOverride: false,
+      nowOverride: DateTime(2026, 7, 18, 9, 30),
     );
-    await pumpUntilFound(tester, find.text('学籍信息'));
+    await pumpUntilFound(tester, find.text('早上好，先看清今天。'));
 
-    final profileCard = find.byKey(const Key('home-student-profile-card'));
-    expect(profileCard, findsOneWidget);
-    expect(
-      find.descendant(of: profileCard, matching: find.text('本专科教务')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: profileCard, matching: find.text('张三')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: profileCard, matching: find.text('20260001')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: profileCard, matching: find.text('计算机与信息工程学院')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: profileCard, matching: find.text('软件工程')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: profileCard, matching: find.text('软件 241')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: profileCard, matching: find.textContaining('来自学籍信息')),
-      findsNothing,
-    );
-    expect(
-      find.descendant(of: profileCard, matching: find.textContaining('上次刷新')),
-      findsNothing,
-    );
-    expect(
-      find.descendant(of: profileCard, matching: find.byIcon(YhIcons.refresh)),
-      findsNothing,
-    );
+    expect(find.text('7 月 18 日 · 星期六'), findsOneWidget);
+    expect(find.text('培养方案'), findsOneWidget);
+    expect(find.text('张三'), findsNothing);
+    expect(find.text('20260001'), findsNothing);
     expect(academicService.refreshCount, 0);
     await disposeHomePage(tester);
   });
 
-  testWidgets('首页仪表盘宽屏使用三列瀑布流磁贴', (tester) async {
+  testWidgets('首页宽屏使用时间轨与服务概览双栏', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1280, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await AcademicCredentialsService.instance.saveCredentials(
@@ -289,34 +279,20 @@ void main() {
       find.byKey(const Key('home-campus-card-balance-card')),
     );
 
-    _expectDashboardTilesExist();
-    final columnXs = _dashboardTileColumnXByKey(tester);
-    expect(columnXs.values.toSet(), hasLength(3));
-    expect(
-      columnXs[const Key('home-student-profile-card')],
-      columnXs[const Key('home-sports-attendance-tile')],
+    final timeline = tester.getRect(
+      find.byKey(const Key('home-today-courses-tile')),
     );
-    expect(
-      columnXs[const Key('home-sports-attendance-tile')],
-      columnXs[const Key('home-email-tile')],
+    final overview = tester.getRect(
+      find.byKey(const Key('home-overview-stack')),
     );
-    expect(
-      columnXs[const Key('home-campus-card-balance-card')],
-      columnXs[const Key('home-second-classroom-tile')],
-    );
-    expect(
-      columnXs[const Key('home-second-classroom-tile')],
-      columnXs[const Key('home-quick-links-tile')],
-    );
-    expect(
-      columnXs[const Key('home-today-courses-tile')],
-      columnXs[const Key('home-messages-tile')],
-    );
+    expect(timeline.top, overview.top);
+    expect(timeline.left, lessThan(overview.left));
+    expect(timeline.width, greaterThan(overview.width));
     expect(tester.takeException(), isNull);
     await disposeHomePage(tester);
   });
 
-  testWidgets('首页仪表盘中屏使用两列瀑布流磁贴', (tester) async {
+  testWidgets('首页中屏将服务概览堆叠到时间轨下方', (tester) async {
     await tester.binding.setSurfaceSize(const Size(900, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await AcademicCredentialsService.instance.saveCredentials(
@@ -342,38 +318,19 @@ void main() {
       find.byKey(const Key('home-campus-card-balance-card')),
     );
 
-    _expectDashboardTilesExist();
-    final columnXs = _dashboardTileColumnXByKey(tester);
-    expect(columnXs.values.toSet(), hasLength(2));
-    expect(
-      columnXs[const Key('home-student-profile-card')],
-      columnXs[const Key('home-today-courses-tile')],
+    final timeline = tester.getRect(
+      find.byKey(const Key('home-today-courses-tile')),
     );
-    expect(
-      columnXs[const Key('home-today-courses-tile')],
-      columnXs[const Key('home-second-classroom-tile')],
+    final overview = tester.getRect(
+      find.byKey(const Key('home-overview-stack')),
     );
-    expect(
-      columnXs[const Key('home-second-classroom-tile')],
-      columnXs[const Key('home-email-tile')],
-    );
-    expect(
-      columnXs[const Key('home-campus-card-balance-card')],
-      columnXs[const Key('home-sports-attendance-tile')],
-    );
-    expect(
-      columnXs[const Key('home-sports-attendance-tile')],
-      columnXs[const Key('home-messages-tile')],
-    );
-    expect(
-      columnXs[const Key('home-messages-tile')],
-      columnXs[const Key('home-quick-links-tile')],
-    );
+    expect(timeline.left, overview.left);
+    expect(timeline.bottom, lessThan(overview.top));
     expect(tester.takeException(), isNull);
     await disposeHomePage(tester);
   });
 
-  testWidgets('首页仪表盘窄屏使用单列瀑布流磁贴', (tester) async {
+  testWidgets('首页窄屏保持时间轨和概览单列且不溢出', (tester) async {
     await tester.binding.setSurfaceSize(const Size(420, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await AcademicCredentialsService.instance.saveCredentials(
@@ -399,9 +356,22 @@ void main() {
       find.byKey(const Key('home-campus-card-balance-card')),
     );
 
-    _expectDashboardTilesExist();
-    final columnXs = _dashboardTileColumnXByKey(tester);
-    expect(columnXs.values.toSet(), hasLength(1));
+    final timeline = tester.getRect(
+      find.byKey(const Key('home-today-courses-tile')),
+    );
+    final overview = tester.getRect(
+      find.byKey(const Key('home-overview-stack')),
+    );
+    expect(timeline.left, overview.left);
+    expect(timeline.bottom, lessThan(overview.top));
+    expect(timeline.left, greaterThanOrEqualTo(0));
+    expect(timeline.right, lessThanOrEqualTo(420));
+    expect(timeline.height, lessThan(510));
+    expect(
+      tester.getTopLeft(find.byKey(const Key('home-campus-card-refresh'))).dy,
+      24,
+    );
+    expect(find.byKey(const Key('home-customize')), findsNothing);
     expect(tester.takeException(), isNull);
     await disposeHomePage(tester);
   });
@@ -446,7 +416,7 @@ void main() {
     await disposeHomePage(tester);
   });
 
-  testWidgets('首页无 OA 账密时学籍卡片显示设置引导', (tester) async {
+  testWidgets('首页自定义入口在无 OA 账密时仍可打开设置', (tester) async {
     var settingsOpened = false;
     final campusNetworkStatusService = _buildCampusNetworkStatusService();
     await tester.pumpWidget(
@@ -459,22 +429,16 @@ void main() {
         ),
       ),
     );
-    await pumpUntilFound(tester, find.text('需要先保存 OA 账号密码'));
+    await pumpUntilFound(tester, find.text('自定义首页'));
 
-    final profileCard = find.byKey(const Key('home-student-profile-card'));
-    expect(
-      find.descendant(of: profileCard, matching: find.text('学籍信息会在保存后自动读取')),
-      findsOneWidget,
-    );
-    await tester.tap(
-      find.descendant(of: profileCard, matching: find.text('前往设置')),
-    );
+    expect(find.text('培养进度尚未读取'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('home-customize')));
     await tester.pump();
     expect(settingsOpened, isTrue);
     await disposeHomePage(tester);
   });
 
-  testWidgets('首页学籍卡片隐藏设置关闭后不展示', (tester) async {
+  testWidgets('首页培养方案概览隐藏设置关闭后不展示', (tester) async {
     await StorageService.setBool(
       StorageKeys.homeStudentProfileCardVisible,
       false,
@@ -494,7 +458,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('学籍信息'), findsNothing);
+    expect(find.text('培养方案'), findsNothing);
     expect(
       find.byKey(const Key('home-campus-card-balance-card')),
       findsOneWidget,
@@ -502,7 +466,7 @@ void main() {
     await disposeHomePage(tester);
   });
 
-  testWidgets('首页校园卡卡片隐藏设置关闭后不展示且学籍卡占满', (tester) async {
+  testWidgets('首页校园卡隐藏后保留培养方案与全局刷新', (tester) async {
     await AcademicCredentialsService.instance.saveCredentials(
       oaAccount: '20260001',
       oaPassword: 'oa-pass',
@@ -517,14 +481,14 @@ void main() {
       campusCardAutoRefreshEnabledOverride: false,
       campusCardVisible: false,
     );
-    await pumpUntilFound(tester, find.text('学籍信息'));
+    await pumpUntilFound(tester, find.text('培养方案'));
 
-    expect(find.text('学籍信息'), findsOneWidget);
+    expect(find.text('培养方案'), findsOneWidget);
     expect(
       find.byKey(const Key('home-campus-card-balance-card')),
       findsNothing,
     );
-    expect(find.byKey(const Key('home-campus-card-refresh')), findsNothing);
+    expect(find.byKey(const Key('home-campus-card-refresh')), findsOneWidget);
     await disposeHomePage(tester);
   });
 
@@ -768,7 +732,13 @@ void main() {
     );
 
     expect(find.byKey(const Key('campus-network-status-home')), findsOneWidget);
-    expect(find.text('VPN'), findsOneWidget);
+    expect(find.text('VPN 可用'), findsOneWidget);
+    expect(
+      tester
+          .getSize(find.byKey(const Key('campus-network-status-home')))
+          .height,
+      lessThanOrEqualTo(20),
+    );
     await disposeHomePage(tester);
   });
 }
