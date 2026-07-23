@@ -36,6 +36,7 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SportsAttendanceCardHeader(
+            result: result,
             summary: summary,
             canOpenDetail: result?.isSuccess == true && summary != null,
           ),
@@ -89,10 +90,12 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
 
 class _SportsAttendanceCardHeader extends StatelessWidget {
   const _SportsAttendanceCardHeader({
+    required this.result,
     required this.summary,
     required this.canOpenDetail,
   });
 
+  final SportsAttendanceQueryResult? result;
   final SportsAttendanceSummary? summary;
   final bool canOpenDetail;
 
@@ -129,8 +132,7 @@ class _SportsAttendanceCardHeader extends StatelessWidget {
           onTap: canOpenDetail && summary != null
               ? () => Navigator.of(context).push(
                   YhPageRoute(
-                    builder: (_) =>
-                        SportsAttendanceDetailPage(summary: summary!),
+                    builder: (_) => SportsAttendanceDetailPage(result: result),
                   ),
                 )
               : null,

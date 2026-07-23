@@ -76,6 +76,12 @@ class AcademicPage extends StatefulWidget {
   /// 本专科教务只读服务，测试中可替换为 fake。
   final AcademicEamsClient? academicEamsService;
 
+  /// 全局学期解析模块；视觉 fixture 可注入完全离线的校历 adapter。
+  final AcademicTermService? academicTermService;
+
+  /// 学期解析时钟；为空时使用生产当前时间。
+  final DateTime? academicTermNow;
+
   /// 测试专用：覆盖本专科教务自动刷新开关。
   final bool? academicEamsAutoRefreshEnabledOverride;
 
@@ -91,6 +97,8 @@ class AcademicPage extends StatefulWidget {
     this.studentReportAutoRefreshEnabledOverride,
     this.studentReportAutoRefreshIntervalOverride,
     this.academicEamsService,
+    this.academicTermService,
+    this.academicTermNow,
     this.academicEamsAutoRefreshEnabledOverride,
     this.academicEamsAutoRefreshIntervalOverride,
   });
@@ -132,6 +140,10 @@ class _AcademicPageState extends State<AcademicPage> {
 
   AcademicEamsClient get _academicEamsService {
     return widget.academicEamsService ?? AcademicEamsService.instance;
+  }
+
+  AcademicTermService get _academicTermService {
+    return widget.academicTermService ?? AcademicTermService.instance;
   }
 
   @override
@@ -246,7 +258,9 @@ class _AcademicPageState extends State<AcademicPage> {
   Future<void> _loadAcademicExamCacheAndDefaultTerm() async {
     final cachedResult = await _academicEamsService
         .readLatestCachedExamSchedule();
-    final context = await AcademicTermService.instance.getEffectiveContext();
+    final context = await _academicTermService.getEffectiveContext(
+      now: widget.academicTermNow,
+    );
     final defaultTerm = context.effectiveQueryTerm;
     final cachedExams = cachedResult?.snapshot?.exams;
     // 仅当缓存学期与全局默认学期一致时才展示缓存，否则会出现“标题用默认学期、
@@ -350,6 +364,8 @@ class _AcademicPageState extends State<AcademicPage> {
       YhPageRoute(
         builder: (_) => AcademicEamsExamDetailPage(
           academicEamsService: _academicEamsService,
+          academicTermService: _academicTermService,
+          academicTermNow: widget.academicTermNow,
           initialResult: _academicExamResult,
           initialSelectedTerm: _academicExamSelectedTerm,
           initialSelectedSemester: _academicExamSelectedSemester,

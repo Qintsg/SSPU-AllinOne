@@ -17,13 +17,23 @@ import '../services/academic_calendar_service.dart';
 import '../widgets/empty_state_view.dart';
 import 'academic_calendar_pdf_file.dart';
 
+/// 校历正文查看器 seam；平台集成使用 PDF 实现，视觉测试可注入确定性 adapter。
+typedef AcademicCalendarViewerBuilder =
+    Widget Function(BuildContext context, AcademicCalendarCacheEntry? entry);
+
 /// 校历页面。
 class AcademicCalendarPage extends StatefulWidget {
-  AcademicCalendarPage({super.key, AcademicCalendarClient? service})
-    : service = service ?? AcademicCalendarService.instance;
+  AcademicCalendarPage({
+    super.key,
+    AcademicCalendarClient? service,
+    this.viewerBuilder,
+  }) : service = service ?? AcademicCalendarService.instance;
 
   /// 校历服务。
   final AcademicCalendarClient service;
+
+  /// 可替换的 PDF 查看器 adapter；为空时使用生产 pdfrx 实现。
+  final AcademicCalendarViewerBuilder? viewerBuilder;
 
   @override
   State<AcademicCalendarPage> createState() => _AcademicCalendarPageState();
@@ -161,43 +171,59 @@ class _AcademicCalendarPageState extends State<AcademicCalendarPage> {
     }
 
     final theme = context.yhTheme;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final narrow = constraints.maxWidth < theme.breakpoint.medium;
-        if (narrow) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _CalendarSelector(
-                entries: _entries,
-                selected: selected,
-                compact: true,
-                onSelected: (entry) => setState(() => _selected = entry),
-              ),
-              SizedBox(height: theme.spacing.s),
-              Expanded(child: _CalendarPdfViewer(entry: selected)),
-            ],
-          );
-        }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_errorMessage != null) ...[
+          YhBanner(text: _errorMessage!, kind: YhBannerKind.warn),
+          SizedBox(height: theme.spacing.s),
+        ],
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow = constraints.maxWidth < theme.breakpoint.medium;
+              if (narrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _CalendarSelector(
+                      entries: _entries,
+                      selected: selected,
+                      compact: true,
+                      onSelected: (entry) => setState(() => _selected = entry),
+                    ),
+                    SizedBox(height: theme.spacing.s),
+                    Expanded(child: _buildViewer(selected)),
+                  ],
+                );
+              }
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              width: theme.spacing.xl2 * 6,
-              child: _CalendarSelector(
-                entries: _entries,
-                selected: selected,
-                compact: false,
-                onSelected: (entry) => setState(() => _selected = entry),
-              ),
-            ),
-            SizedBox(width: theme.spacing.m),
-            Expanded(child: _CalendarPdfViewer(entry: selected)),
-          ],
-        );
-      },
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    width: theme.spacing.xl2 * 6,
+                    child: _CalendarSelector(
+                      entries: _entries,
+                      selected: selected,
+                      compact: false,
+                      onSelected: (entry) => setState(() => _selected = entry),
+                    ),
+                  ),
+                  SizedBox(width: theme.spacing.m),
+                  Expanded(child: _buildViewer(selected)),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
     );
+  }
+
+  Widget _buildViewer(AcademicCalendarCacheEntry? selected) {
+    return widget.viewerBuilder?.call(context, selected) ??
+        _CalendarPdfViewer(entry: selected);
   }
 }
 

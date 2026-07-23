@@ -10,14 +10,26 @@ part of 'academic_page.dart';
 
 /// 第二课堂得分明细二级页面。
 class StudentReportDetailPage extends StatelessWidget {
-  /// 已读取的第二课堂学分汇总与明细。
-  final SecondClassroomCreditSummary summary;
+  /// 最近一次第二课堂查询结果；加载首帧可为空。
+  final StudentReportQueryResult? result;
 
-  const StudentReportDetailPage({super.key, required this.summary});
+  /// 兼容旧路由的已读取汇总。
+  final SecondClassroomCreditSummary? summary;
+
+  /// 是否正在读取第二课堂详情。
+  final bool isLoading;
+
+  const StudentReportDetailPage({
+    super.key,
+    this.result,
+    this.summary,
+    this.isLoading = false,
+  }) : assert(result != null || summary != null || isLoading);
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    final summary = result?.summary ?? this.summary;
     return YhPageScaffold(
       appBar: YhAppBar(
         title: '第二课堂详情',
@@ -27,6 +39,148 @@ class StudentReportDetailPage extends StatelessWidget {
           variant: YhIconButtonVariant.ghost,
           onTap: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          YhIconButton(
+            icon: YhIcons.library,
+            semanticLabel: '查看第二课堂规则',
+            variant: YhIconButtonVariant.ghost,
+            onTap: summary == null
+                ? null
+                : () => Navigator.of(context).push(
+                    YhPageRoute(
+                      builder: (_) => StudentReportRulesPage(summary: summary),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+      body: _buildBody(context, theme, summary),
+    );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    YhTheme theme,
+    SecondClassroomCreditSummary? summary,
+  ) {
+    if (isLoading) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: theme.spacing.xl2 * 5),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const YhProgress(showPercent: false, semanticLabel: '正在读取第二课堂详情'),
+              SizedBox(height: theme.spacing.m),
+              Text('正在读取第二课堂详情...', style: theme.typography.body),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final current = result;
+    if ((current != null && !current.isSuccess) || summary == null) {
+      return YhEmptyState(
+        icon: YhIcons.warning,
+        title: current?.message ?? '尚未读取第二课堂详情',
+        message: current?.detail ?? '返回教务中心刷新第二课堂学分后再试。',
+        action: YhButton(
+          label: '返回教务中心刷新',
+          leadingIcon: YhIcons.back,
+          variant: YhButtonVariant.secondary,
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+      );
+    }
+
+    final hasNoDetails =
+        summary.records.isEmpty &&
+        summary.detailRecords.isEmpty &&
+        summary.rules.isEmpty;
+    if (hasNoDetails) {
+      return YhEmptyState(
+        icon: YhIcons.education,
+        title: '暂无第二课堂记录',
+        message: '当前查询没有可展示的积分或规则；返回教务中心刷新后可再次查看。',
+        action: YhButton(
+          label: '返回教务中心刷新',
+          leadingIcon: YhIcons.back,
+          variant: YhButtonVariant.secondary,
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+      );
+    }
+
+    final showCacheNotice = current?.message.contains('缓存') ?? false;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(theme.spacing.m),
+      child: Align(
+        alignment: AlignmentDirectional.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (showCacheNotice) ...[
+                YhBanner(text: current!.detail, kind: YhBannerKind.warn),
+                SizedBox(height: theme.spacing.m),
+              ],
+              _SecondClassroomTotalsPanel(summary: summary),
+              SizedBox(height: theme.spacing.m),
+              _SecondClassroomDetailRecordsPanel(summary: summary),
+              SizedBox(height: theme.spacing.m),
+              _SecondClassroomRuleMatrix(summary: summary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 第二课堂规则矩阵独立页面。
+class StudentReportRulesPage extends StatelessWidget {
+  const StudentReportRulesPage({super.key, required this.summary});
+
+  final SecondClassroomCreditSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    if (summary.rules.isEmpty) {
+      return YhPageScaffold(
+        appBar: YhAppBar(
+          title: '第二课堂规则',
+          leading: YhIconButton(
+            icon: YhIcons.back,
+            semanticLabel: '返回',
+            variant: YhIconButtonVariant.ghost,
+            onTap: () => Navigator.of(context).maybePop(),
+          ),
+        ),
+        body: YhEmptyState(
+          icon: YhIcons.library,
+          title: '暂无规则矩阵',
+          message: '返回教务中心刷新第二课堂学分，规则数据补全后可再次查看。',
+          action: YhButton(
+            label: '返回教务中心刷新',
+            leadingIcon: YhIcons.back,
+            variant: YhButtonVariant.secondary,
+            onTap: () => Navigator.of(context).maybePop(),
+          ),
+        ),
+      );
+    }
+    return YhPageScaffold(
+      appBar: YhAppBar(
+        title: '第二课堂规则',
+        leading: YhIconButton(
+          icon: YhIcons.back,
+          semanticLabel: '返回',
+          variant: YhIconButtonVariant.ghost,
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(theme.spacing.m),
@@ -34,16 +188,7 @@ class StudentReportDetailPage extends StatelessWidget {
           alignment: AlignmentDirectional.topCenter,
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _SecondClassroomTotalsPanel(summary: summary),
-                SizedBox(height: theme.spacing.m),
-                _SecondClassroomDetailRecordsPanel(summary: summary),
-                SizedBox(height: theme.spacing.m),
-                _SecondClassroomRuleMatrix(summary: summary),
-              ],
-            ),
+            child: _SecondClassroomRuleMatrix(summary: summary),
           ),
         ),
       ),

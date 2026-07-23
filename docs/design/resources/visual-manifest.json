@@ -49,7 +49,7 @@
     {"id": "academic.student-report", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"]},
     {"id": "academic.student-report-rules", "group": "academic", "states": ["content", "empty"]},
     {"id": "academic.sports-attendance", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"]},
-    {"id": "academic.calendar", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"]},
+    {"id": "academic.calendar", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"], "externalRegions": ["document"]},
 
     {"id": "schedule.calendar", "group": "schedule", "states": ["initial", "loading", "content", "empty", "stale", "error"]},
 

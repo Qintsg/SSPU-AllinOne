@@ -1,6 +1,7 @@
 /* 清源 Flutter 视觉候选采集 — 四档视口、亮暗主题、六类组件面板。 */
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -10,9 +11,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/app.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
+import 'package:sspu_allinone/models/academic_calendar.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/email_mailbox.dart';
+import 'package:sspu_allinone/models/sports_attendance.dart';
+import 'package:sspu_allinone/models/student_report.dart';
 import 'package:sspu_allinone/pages/about_page.dart';
+import 'package:sspu_allinone/pages/academic_calendar_page.dart';
+import 'package:sspu_allinone/pages/academic_page.dart';
 import 'package:sspu_allinone/pages/course_schedule_page.dart';
 import 'package:sspu_allinone/pages/email_page.dart';
 import 'package:sspu_allinone/pages/external_link_confirmation_page.dart';
@@ -114,6 +120,15 @@ void main() {
               '${viewport.width.toInt()}x${viewport.height.toInt()}.png',
             );
             await _capture(tester, boundaryKey, target, viewport);
+            if (surface.externalRegionId != null) {
+              await _writeExternalRegionSidecar(
+                tester: tester,
+                target: target,
+                regionId: surface.externalRegionId!,
+                regionKey: surface.externalRegionKey!,
+                viewport: viewport,
+              );
+            }
             expect(target.lengthSync(), greaterThan(0));
             await surface.cleanup?.call(tester);
           } finally {
@@ -188,6 +203,36 @@ Future<void> _capture(
   target.writeAsBytesSync(result.bytes, flush: true);
 }
 
+Future<void> _writeExternalRegionSidecar({
+  required WidgetTester tester,
+  required File target,
+  required String regionId,
+  required Key regionKey,
+  required Size viewport,
+}) async {
+  final finder = find.byKey(regionKey);
+  if (finder.evaluate().isEmpty) {
+    throw StateError('外部区域 $regionId 未出现在 ${target.path}');
+  }
+  final rect = tester.getRect(finder).intersect(Offset.zero & viewport);
+  if (rect.isEmpty) {
+    throw StateError('外部区域 $regionId 没有可比较像素：${target.path}');
+  }
+  await File('${target.path}.regions.json').writeAsString(
+    const JsonEncoder.withIndent('  ').convert({
+      'externalRegions': [
+        {
+          'id': regionId,
+          'x': rect.left.round(),
+          'y': rect.top.round(),
+          'width': rect.width.round(),
+          'height': rect.height.round(),
+        },
+      ],
+    }),
+  );
+}
+
 class _CapturedPng {
   const _CapturedPng({
     required this.width,
@@ -208,7 +253,12 @@ class _VisualSurface {
     this.prepare,
     this.cleanup,
     this.destination,
-  });
+    this.externalRegionId,
+    this.externalRegionKey,
+  }) : assert(
+         (externalRegionId == null) == (externalRegionKey == null),
+         '外部区域 id 与 key 必须同时提供',
+       );
 
   final String id;
   final String state;
@@ -216,6 +266,8 @@ class _VisualSurface {
   final Future<void> Function(WidgetTester tester)? prepare;
   final Future<void> Function(WidgetTester tester)? cleanup;
   final String? destination;
+  final String? externalRegionId;
+  final Key? externalRegionKey;
 }
 
 int _destinationIndex(String destination) => switch (destination) {
@@ -316,6 +368,187 @@ final _surfaces = <_VisualSurface>[
     () => _campusCardDetailPage(CampusCardDetailDisplayState.error),
     state: 'error',
   ),
+  _VisualSurface(
+    'academic.overview',
+    () => _academicOverview(_AcademicOverviewScenario.initial),
+    state: 'initial',
+    destination: '教务',
+  ),
+  _VisualSurface(
+    'academic.overview',
+    () => _academicOverview(_AcademicOverviewScenario.loading),
+    state: 'loading',
+    prepare: _prepareAcademicOverviewLoading,
+    destination: '教务',
+  ),
+  _VisualSurface(
+    'academic.overview',
+    () => _academicOverview(_AcademicOverviewScenario.content),
+    destination: '教务',
+  ),
+  _VisualSurface(
+    'academic.overview',
+    () => _academicOverview(_AcademicOverviewScenario.empty),
+    state: 'empty',
+    destination: '教务',
+  ),
+  _VisualSurface(
+    'academic.overview',
+    () => _academicOverview(_AcademicOverviewScenario.stale),
+    state: 'stale',
+    destination: '教务',
+  ),
+  _VisualSurface(
+    'academic.overview',
+    () => _academicOverview(_AcademicOverviewScenario.error),
+    state: 'error',
+    destination: '教务',
+  ),
+  _VisualSurface(
+    'academic.grade-detail',
+    _academicGradeDetailLoading,
+    state: 'loading',
+  ),
+  _VisualSurface(
+    'academic.grade-detail',
+    () => _academicGradeDetail(qingyuanAcademicGradeContentResult),
+  ),
+  _VisualSurface(
+    'academic.grade-detail',
+    () => _academicGradeDetail(qingyuanAcademicGradeEmptyResult),
+    state: 'empty',
+  ),
+  _VisualSurface(
+    'academic.grade-detail',
+    () => _academicGradeDetail(qingyuanAcademicDetailErrorResult),
+    state: 'error',
+  ),
+  _VisualSurface(
+    'academic.exam-detail',
+    _academicExamDetailLoading,
+    state: 'loading',
+    prepare: _prepareAcademicExamLoading,
+  ),
+  _VisualSurface(
+    'academic.exam-detail',
+    () => _academicExamDetail(qingyuanAcademicExamContentResult),
+  ),
+  _VisualSurface(
+    'academic.exam-detail',
+    () => _academicExamDetail(qingyuanAcademicExamEmptyResult),
+    state: 'empty',
+  ),
+  _VisualSurface(
+    'academic.exam-detail',
+    () => _academicExamDetail(qingyuanAcademicDetailErrorResult),
+    state: 'error',
+  ),
+  _VisualSurface(
+    'academic.grade-process',
+    _academicGradeProcessLoading,
+    state: 'loading',
+  ),
+  _VisualSurface(
+    'academic.grade-process',
+    () => _academicGradeProcess(qingyuanAcademicGradeProcessContentResult),
+  ),
+  _VisualSurface(
+    'academic.grade-process',
+    () => _academicGradeProcess(qingyuanAcademicGradeProcessEmptyResult),
+    state: 'empty',
+  ),
+  _VisualSurface(
+    'academic.grade-process',
+    () => _academicGradeProcess(qingyuanAcademicDetailErrorResult),
+    state: 'error',
+  ),
+  _VisualSurface(
+    'academic.student-report',
+    () => const StudentReportDetailPage(result: null, isLoading: true),
+    state: 'loading',
+  ),
+  _VisualSurface(
+    'academic.student-report',
+    () => StudentReportDetailPage(result: qingyuanHomeStudentReportResult),
+  ),
+  _VisualSurface(
+    'academic.student-report',
+    () => StudentReportDetailPage(
+      result: qingyuanAcademicStudentReportEmptyResult,
+    ),
+    state: 'empty',
+  ),
+  _VisualSurface(
+    'academic.student-report',
+    () => StudentReportDetailPage(
+      result: qingyuanAcademicStudentReportStaleResult,
+    ),
+    state: 'stale',
+  ),
+  _VisualSurface(
+    'academic.student-report',
+    () => StudentReportDetailPage(
+      result: qingyuanAcademicStudentReportErrorResult,
+    ),
+    state: 'error',
+  ),
+  _VisualSurface(
+    'academic.student-report-rules',
+    () => StudentReportRulesPage(
+      summary: qingyuanAcademicStudentReportContentSummary,
+    ),
+  ),
+  _VisualSurface(
+    'academic.student-report-rules',
+    () => StudentReportRulesPage(
+      summary: qingyuanAcademicStudentReportEmptyResult.summary!,
+    ),
+    state: 'empty',
+  ),
+  _VisualSurface(
+    'academic.sports-attendance',
+    () => const SportsAttendanceDetailPage(result: null, isLoading: true),
+    state: 'loading',
+  ),
+  _VisualSurface(
+    'academic.sports-attendance',
+    () => SportsAttendanceDetailPage(result: qingyuanHomeSportsResult),
+  ),
+  _VisualSurface(
+    'academic.sports-attendance',
+    () => SportsAttendanceDetailPage(result: qingyuanAcademicSportsEmptyResult),
+    state: 'empty',
+  ),
+  _VisualSurface(
+    'academic.sports-attendance',
+    () => SportsAttendanceDetailPage(result: qingyuanAcademicSportsStaleResult),
+    state: 'stale',
+  ),
+  _VisualSurface(
+    'academic.sports-attendance',
+    () => SportsAttendanceDetailPage(result: qingyuanAcademicSportsErrorResult),
+    state: 'error',
+  ),
+  _VisualSurface(
+    'academic.calendar',
+    _academicCalendarLoading,
+    state: 'loading',
+  ),
+  _VisualSurface(
+    'academic.calendar',
+    _academicCalendarContent,
+    externalRegionId: 'document',
+    externalRegionKey: _academicCalendarExternalRegionKey,
+  ),
+  _VisualSurface('academic.calendar', _academicCalendarEmpty, state: 'empty'),
+  _VisualSurface(
+    'academic.calendar',
+    _academicCalendarStale,
+    state: 'stale',
+    externalRegionId: 'document',
+    externalRegionKey: _academicCalendarExternalRegionKey,
+  ),
+  _VisualSurface('academic.calendar', _academicCalendarError, state: 'error'),
   _VisualSurface(
     'schedule.calendar',
     _scheduleInitial,
@@ -483,6 +716,244 @@ final _surfaces = <_VisualSurface>[
     state: 'error',
   ),
 ];
+
+enum _AcademicOverviewScenario {
+  initial,
+  loading,
+  content,
+  empty,
+  stale,
+  error,
+}
+
+Widget _academicOverview(_AcademicOverviewScenario scenario) {
+  final loading = scenario == _AcademicOverviewScenario.loading;
+  final hasCache = switch (scenario) {
+    _AcademicOverviewScenario.initial ||
+    _AcademicOverviewScenario.loading => false,
+    _ => true,
+  };
+  final overviewResult = switch (scenario) {
+    _AcademicOverviewScenario.empty => qingyuanAcademicOverviewEmptyResult,
+    _AcademicOverviewScenario.stale => qingyuanAcademicOverviewStaleResult,
+    _AcademicOverviewScenario.error => qingyuanAcademicDetailErrorResult,
+    _ => qingyuanHomeAcademicResult,
+  };
+  final gradeResult = switch (scenario) {
+    _AcademicOverviewScenario.empty => qingyuanAcademicGradeEmptyResult,
+    _AcademicOverviewScenario.stale => qingyuanAcademicGradeStaleResult,
+    _AcademicOverviewScenario.error => qingyuanAcademicDetailErrorResult,
+    _ => qingyuanAcademicGradeContentResult,
+  };
+  final examResult = switch (scenario) {
+    _AcademicOverviewScenario.empty => qingyuanAcademicExamEmptyResult,
+    _AcademicOverviewScenario.stale => qingyuanAcademicExamStaleResult,
+    _AcademicOverviewScenario.error => qingyuanAcademicDetailErrorResult,
+    _ => qingyuanAcademicExamContentResult,
+  };
+  final sportsResult = switch (scenario) {
+    _AcademicOverviewScenario.empty => qingyuanAcademicSportsEmptyResult,
+    _AcademicOverviewScenario.stale => qingyuanAcademicSportsStaleResult,
+    _AcademicOverviewScenario.error => qingyuanAcademicSportsErrorResult,
+    _ => qingyuanHomeSportsResult,
+  };
+  final reportResult = switch (scenario) {
+    _AcademicOverviewScenario.empty => qingyuanAcademicStudentReportEmptyResult,
+    _AcademicOverviewScenario.stale => qingyuanAcademicStudentReportStaleResult,
+    _AcademicOverviewScenario.error => qingyuanAcademicStudentReportErrorResult,
+    _ => qingyuanHomeStudentReportResult,
+  };
+  return AcademicPage(
+    academicEamsService: QingyuanVisualAcademicEamsClient(
+      result: overviewResult,
+      cachedOverviewResult: hasCache ? overviewResult : null,
+      cachedGradeResult: hasCache ? gradeResult : null,
+      cachedExamResult: hasCache ? examResult : null,
+      examResult: examResult,
+      gradeResult: gradeResult,
+      pendingOverview: loading ? Completer<AcademicEamsQueryResult>() : null,
+    ),
+    sportsAttendanceService: QingyuanVisualSportsAttendanceClient(
+      sportsResult,
+      cacheEnabled: hasCache,
+      pendingFetch: loading ? Completer<SportsAttendanceQueryResult>() : null,
+    ),
+    studentReportService: QingyuanVisualStudentReportClient(
+      reportResult,
+      cacheEnabled: hasCache,
+      pendingFetch: loading ? Completer<StudentReportQueryResult>() : null,
+    ),
+    academicTermService: buildQingyuanVisualAcademicTermService(),
+    academicTermNow: qingyuanVisualNow,
+    academicEamsAutoRefreshEnabledOverride: loading,
+    academicEamsAutoRefreshIntervalOverride: 30,
+    sportsAttendanceAutoRefreshEnabledOverride: loading,
+    sportsAttendanceAutoRefreshIntervalOverride: 30,
+    studentReportAutoRefreshEnabledOverride: loading,
+    studentReportAutoRefreshIntervalOverride: 30,
+  );
+}
+
+Future<void> _prepareAcademicOverviewLoading(WidgetTester tester) async {
+  for (var attempt = 0; attempt < 40; attempt++) {
+    await tester.pump(const Duration(milliseconds: 50));
+    if (find.text('正在读取本专科教务摘要...').evaluate().isNotEmpty) return;
+  }
+  throw StateError('教务概览未在固定等待窗口内进入 loading 状态');
+}
+
+Widget _academicGradeDetail(AcademicEamsQueryResult result) {
+  return AcademicEamsGradeDetailPage(
+    academicEamsService: QingyuanVisualAcademicEamsClient(
+      result: result,
+      gradeResult: result,
+    ),
+    initialResult: result,
+    onResultChanged: (_) {},
+  );
+}
+
+Widget _academicGradeDetailLoading() {
+  return AcademicEamsGradeDetailPage(
+    academicEamsService: QingyuanVisualAcademicEamsClient(
+      result: qingyuanAcademicGradeContentResult,
+      pendingGrades: Completer<AcademicEamsQueryResult>(),
+    ),
+    initialResult: null,
+    onResultChanged: (_) {},
+  );
+}
+
+Widget _academicExamDetail(AcademicEamsQueryResult result) {
+  return AcademicEamsExamDetailPage(
+    academicEamsService: QingyuanVisualAcademicEamsClient(
+      result: result,
+      examResult: result,
+    ),
+    initialResult: result,
+    initialSelectedTerm: qingyuanAcademicSemester.termChoice,
+    initialSelectedSemester: qingyuanAcademicSemester,
+    academicTermService: buildQingyuanVisualAcademicTermService(),
+    academicTermNow: qingyuanVisualNow,
+    onResultChanged: (_, _, _) {},
+  );
+}
+
+Widget _academicExamDetailLoading() {
+  return AcademicEamsExamDetailPage(
+    academicEamsService: QingyuanVisualAcademicEamsClient(
+      result: qingyuanAcademicExamContentResult,
+      pendingExam: Completer<AcademicEamsQueryResult>(),
+    ),
+    initialResult: null,
+    initialSelectedTerm: qingyuanAcademicSemester.termChoice,
+    initialSelectedSemester: qingyuanAcademicSemester,
+    academicTermService: buildQingyuanVisualAcademicTermService(),
+    academicTermNow: qingyuanVisualNow,
+    onResultChanged: (_, _, _) {},
+  );
+}
+
+Future<void> _prepareAcademicExamLoading(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('academic-eams-exam-detail-search')));
+  await tester.pump();
+}
+
+Widget _academicGradeProcess(AcademicEamsQueryResult result) {
+  return AcademicEamsGradeProcessPage(
+    academicEamsService: QingyuanVisualAcademicEamsClient(
+      result: result,
+      gradeProcessResult: result,
+    ),
+    initialTerm: qingyuanAcademicSemester.termChoice,
+    initialSemester: qingyuanAcademicSemester,
+  );
+}
+
+Widget _academicGradeProcessLoading() {
+  return AcademicEamsGradeProcessPage(
+    academicEamsService: QingyuanVisualAcademicEamsClient(
+      result: qingyuanAcademicGradeProcessContentResult,
+      pendingGradeProcess: Completer<AcademicEamsQueryResult>(),
+    ),
+    initialTerm: qingyuanAcademicSemester.termChoice,
+    initialSemester: qingyuanAcademicSemester,
+  );
+}
+
+Widget _academicCalendarLoading() {
+  return _academicCalendarPage(
+    QingyuanVisualAcademicCalendarClient(
+      pendingViewer: Completer<AcademicCalendarSyncResult>(),
+    ),
+  );
+}
+
+Widget _academicCalendarContent() {
+  return _academicCalendarPage(
+    QingyuanVisualAcademicCalendarClient(
+      cachedEntries: qingyuanAcademicCalendarEntries,
+      viewerResult: qingyuanAcademicCalendarContentResult,
+    ),
+  );
+}
+
+Widget _academicCalendarEmpty() {
+  return _academicCalendarPage(
+    const QingyuanVisualAcademicCalendarClient(
+      viewerResult: qingyuanAcademicCalendarEmptyResult,
+    ),
+  );
+}
+
+Widget _academicCalendarStale() {
+  return _academicCalendarPage(
+    QingyuanVisualAcademicCalendarClient(
+      cachedEntries: qingyuanAcademicCalendarEntries,
+      viewerResult: qingyuanAcademicCalendarStaleResult,
+    ),
+  );
+}
+
+Widget _academicCalendarError() {
+  return _academicCalendarPage(
+    const QingyuanVisualAcademicCalendarClient(
+      viewerResult: qingyuanAcademicCalendarErrorResult,
+    ),
+  );
+}
+
+const Key _academicCalendarExternalRegionKey = Key(
+  'academic-calendar-external-region',
+);
+
+Widget _academicCalendarPage(QingyuanVisualAcademicCalendarClient service) {
+  return AcademicCalendarPage(
+    service: service,
+    viewerBuilder: (context, entry) {
+      final theme = context.yhTheme;
+      return KeyedSubtree(
+        key: _academicCalendarExternalRegionKey,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: theme.color.sunken,
+            border: Border.all(color: theme.color.border),
+            borderRadius: BorderRadius.circular(theme.radius.l),
+          ),
+          child: YhEmptyState(
+            icon: YhIcons.library,
+            title: entry == null
+                ? '请选择校历'
+                : '${entry.schoolYearLabel} · 外部 PDF 区域',
+            message: entry == null
+                ? '从校历列表选择一个学年。'
+                : '平台 runner 验证真实 PDF 正文；此区域按外部内容 0.95 独立判定。',
+          ),
+        ),
+      );
+    },
+  );
+}
 
 const _qingyuanHomeQuickLinks = <QuickLinkItemConfig>[
   QuickLinkItemConfig(

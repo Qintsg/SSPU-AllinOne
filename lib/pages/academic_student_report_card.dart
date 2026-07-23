@@ -45,6 +45,7 @@ class AcademicStudentReportCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SecondClassroomCardHeader(
+            result: result,
             summary: summary,
             canOpenDetail: result?.isSuccess == true && summary != null,
             lastRefreshLabel: _studentReportLastRefreshLabel(result),
@@ -157,6 +158,7 @@ class _SecondClassroomCardContent extends StatelessWidget {
 
 class _SecondClassroomCardHeader extends StatelessWidget {
   const _SecondClassroomCardHeader({
+    required this.result,
     required this.summary,
     required this.canOpenDetail,
     required this.lastRefreshLabel,
@@ -165,6 +167,7 @@ class _SecondClassroomCardHeader extends StatelessWidget {
     required this.onRefresh,
   });
 
+  final StudentReportQueryResult? result;
   final SecondClassroomCreditSummary? summary;
   final bool canOpenDetail;
   final String lastRefreshLabel;
@@ -208,8 +211,7 @@ class _SecondClassroomCardHeader extends StatelessWidget {
             onTap: canOpenDetail && summary != null
                 ? () => Navigator.of(context).push(
                     YhPageRoute(
-                      builder: (_) =>
-                          StudentReportDetailPage(summary: summary!),
+                      builder: (_) => StudentReportDetailPage(result: result),
                     ),
                   )
                 : null,

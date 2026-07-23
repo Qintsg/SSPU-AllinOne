@@ -20,6 +20,12 @@ class AcademicEamsExamDetailPage extends StatefulWidget {
   /// 本专科教务只读服务，测试中可替换为 fake。
   final AcademicEamsClient academicEamsService;
 
+  /// 全局学期解析模块；默认沿用生产单例。
+  final AcademicTermService? academicTermService;
+
+  /// 学期解析时钟；为空时使用生产当前时间。
+  final DateTime? academicTermNow;
+
   /// 从教务中心卡片带入的初始考试安排结果。
   final AcademicEamsQueryResult? initialResult;
 
@@ -35,6 +41,8 @@ class AcademicEamsExamDetailPage extends StatefulWidget {
   const AcademicEamsExamDetailPage({
     super.key,
     required this.academicEamsService,
+    this.academicTermService,
+    this.academicTermNow,
     required this.initialResult,
     required this.initialSelectedTerm,
     required this.initialSelectedSemester,
@@ -278,7 +286,9 @@ class _AcademicEamsExamDetailPageState
   }
 
   Future<void> _loadDefaultTerm() async {
-    final context = await AcademicTermService.instance.getEffectiveContext();
+    final context =
+        await (widget.academicTermService ?? AcademicTermService.instance)
+            .getEffectiveContext(now: widget.academicTermNow);
     if (!mounted || widget.initialSelectedTerm != null) return;
     setState(() => _selectedTerm = context.effectiveQueryTerm);
   }

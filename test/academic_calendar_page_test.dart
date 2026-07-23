@@ -91,6 +91,46 @@ void main() {
     expect(tester.takeException(), isNull);
     await _resetView(tester);
   });
+
+  testWidgets('校历缓存可用但刷新失败时保留条目并显示提示', (tester) async {
+    const message = '正在显示本地校历缓存；网络恢复后可刷新。';
+    await _pumpCalendarPage(
+      tester,
+      size: const Size(800, 720),
+      service: _FakeAcademicCalendarClient(
+        entries: [_calendarEntry()],
+        errorMessage: message,
+      ),
+    );
+
+    await _pumpUntilFound(tester, find.text(message));
+
+    expect(find.text('2025-2026学年'), findsWidgets);
+    expect(find.text(message), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _resetView(tester);
+  });
+
+  testWidgets('校历页可通过查看器 seam 隔离外部 PDF 区域', (tester) async {
+    tester.view.physicalSize = const Size(800, 720);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(800, 720));
+    await tester.pumpWidget(
+      YhApp(
+        home: AcademicCalendarPage(
+          service: _FakeAcademicCalendarClient(entries: [_calendarEntry()]),
+          viewerBuilder: (context, entry) =>
+              Text('固定查看器：${entry?.schoolYearLabel}'),
+        ),
+      ),
+    );
+
+    await _pumpUntilFound(tester, find.text('固定查看器：2025-2026学年'));
+
+    expect(find.text('固定查看器：2025-2026学年'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _resetView(tester);
+  });
 }
 
 Future<void> _pumpCalendarPage(
@@ -123,10 +163,12 @@ class _FakeAcademicCalendarClient implements AcademicCalendarClient {
   _FakeAcademicCalendarClient({
     required this.entries,
     List<AcademicCalendarCacheEntry>? refreshedEntries,
+    this.errorMessage,
   }) : refreshedEntries = refreshedEntries ?? entries;
 
   final List<AcademicCalendarCacheEntry> entries;
   final List<AcademicCalendarCacheEntry> refreshedEntries;
+  final String? errorMessage;
   int refreshCount = 0;
   int viewerEnsureCount = 0;
 
@@ -150,6 +192,7 @@ class _FakeAcademicCalendarClient implements AcademicCalendarClient {
       entries: entries.isEmpty ? refreshedEntries : entries,
       loadedFromCache: entries.isNotEmpty,
       refreshed: entries.isEmpty,
+      errorMessage: errorMessage,
     );
   }
 

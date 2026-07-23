@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:sspu_allinone/models/academic_calendar.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/models/campus_card.dart';
@@ -10,6 +11,8 @@ import 'package:sspu_allinone/models/message_item.dart';
 import 'package:sspu_allinone/models/sports_attendance.dart';
 import 'package:sspu_allinone/models/student_report.dart';
 import 'package:sspu_allinone/services/academic_eams_service.dart';
+import 'package:sspu_allinone/services/academic_calendar_service.dart';
+import 'package:sspu_allinone/services/academic_term_service.dart';
 import 'package:sspu_allinone/services/campus_card_service.dart';
 import 'package:sspu_allinone/services/email_service.dart';
 import 'package:sspu_allinone/services/sports_attendance_service.dart';
@@ -17,6 +20,127 @@ import 'package:sspu_allinone/services/student_report_service.dart';
 
 /// 视觉矩阵的固定本地时钟。
 final DateTime qingyuanVisualNow = DateTime(2026, 7, 18, 9, 30);
+
+/// 完全离线的学期解析模块，视觉采集不得访问真实教务处校历。
+AcademicTermService buildQingyuanVisualAcademicTermService() {
+  return AcademicTermService(
+    calendarService: const QingyuanVisualAcademicCalendarClient(),
+  );
+}
+
+class QingyuanVisualAcademicCalendarClient implements AcademicCalendarClient {
+  const QingyuanVisualAcademicCalendarClient({
+    this.cachedEntries = const [],
+    this.viewerResult = const AcademicCalendarSyncResult(
+      entries: [],
+      loadedFromCache: false,
+      refreshed: false,
+    ),
+    this.pendingViewer,
+  });
+
+  final List<AcademicCalendarCacheEntry> cachedEntries;
+  final AcademicCalendarSyncResult viewerResult;
+  final Completer<AcademicCalendarSyncResult>? pendingViewer;
+
+  @override
+  Future<AcademicCalendarSyncResult> ensureCalendarsForDate({
+    DateTime? now,
+  }) async => viewerResult;
+
+  @override
+  Future<AcademicCalendarSyncResult> ensureCalendarsForViewer({
+    DateTime? now,
+  }) => pendingViewer?.future ?? Future.value(viewerResult);
+
+  @override
+  Future<List<AcademicCalendarCacheEntry>> readCachedCalendars() async =>
+      cachedEntries;
+
+  @override
+  Future<AcademicCalendarCacheEntry?> readCachedCalendar(int schoolYear) async {
+    for (final entry in cachedEntries) {
+      if (entry.schoolYearStart == schoolYear) return entry;
+    }
+    return null;
+  }
+
+  @override
+  Future<List<AcademicTermDefinition>> readCachedTermDefinitions() async =>
+      AcademicCalendarService.termDefinitionsFromEntries(cachedEntries);
+
+  @override
+  Future<List<AcademicCalendarCacheEntry>> refreshCalendars({
+    List<int>? targetYears,
+  }) async => viewerResult.entries;
+}
+
+final List<AcademicCalendarCacheEntry> qingyuanAcademicCalendarEntries = [
+  AcademicCalendarCacheEntry(
+    schoolYearStart: 2025,
+    title: '2025-2026 学年校历',
+    detailUrl: 'https://calendar.example.invalid/2025-2026',
+    publishDate: '2025-04-24',
+    pdfUrl: 'https://calendar.example.invalid/2025-2026.pdf',
+    imageUrls: const [],
+    sourceType: AcademicCalendarSourceType.pdf,
+    fetchedAt: DateTime(2026, 7, 18, 8, 42),
+    parseVersion: AcademicCalendarService.parseVersion,
+    pdfFilePath: null,
+    rawTextFilePath: null,
+    rawExtractedText: null,
+    schedule: null,
+    warnings: const [],
+    errorMessage: null,
+  ),
+  AcademicCalendarCacheEntry(
+    schoolYearStart: 2024,
+    title: '2024-2025 学年校历',
+    detailUrl: 'https://calendar.example.invalid/2024-2025',
+    publishDate: '2024-04-26',
+    pdfUrl: 'https://calendar.example.invalid/2024-2025.pdf',
+    imageUrls: const [],
+    sourceType: AcademicCalendarSourceType.pdf,
+    fetchedAt: DateTime(2026, 7, 18, 8, 42),
+    parseVersion: AcademicCalendarService.parseVersion,
+    pdfFilePath: null,
+    rawTextFilePath: null,
+    rawExtractedText: null,
+    schedule: null,
+    warnings: const [],
+    errorMessage: null,
+  ),
+];
+
+final AcademicCalendarSyncResult qingyuanAcademicCalendarContentResult =
+    AcademicCalendarSyncResult(
+      entries: qingyuanAcademicCalendarEntries,
+      loadedFromCache: true,
+      refreshed: false,
+    );
+
+const AcademicCalendarSyncResult qingyuanAcademicCalendarEmptyResult =
+    AcademicCalendarSyncResult(
+      entries: [],
+      loadedFromCache: false,
+      refreshed: true,
+    );
+
+final AcademicCalendarSyncResult qingyuanAcademicCalendarStaleResult =
+    AcademicCalendarSyncResult(
+      entries: qingyuanAcademicCalendarEntries,
+      loadedFromCache: true,
+      refreshed: false,
+      errorMessage: '正在显示本地校历缓存；网络恢复后可刷新。',
+    );
+
+const AcademicCalendarSyncResult qingyuanAcademicCalendarErrorResult =
+    AcademicCalendarSyncResult(
+      entries: [],
+      loadedFromCache: false,
+      refreshed: false,
+      errorMessage: '暂时无法读取校历，请检查网络后重试。',
+    );
 
 /// 首页时间轨的固定脱敏待办。
 final List<MessageItem> qingyuanHomeMessages = [
@@ -304,6 +428,20 @@ final AcademicEamsQueryResult qingyuanHomeAcademicResult = _scheduleResult(
   ),
 );
 
+final AcademicEamsQueryResult qingyuanAcademicOverviewEmptyResult =
+    _academicDetailResult(message: '尚未读取可展示的教务数据');
+
+final AcademicEamsQueryResult qingyuanAcademicOverviewStaleResult =
+    AcademicEamsQueryResult(
+      status: AcademicEamsQueryStatus.partialSuccess,
+      message: '正在显示昨日教务缓存',
+      detail: '网络恢复后可手动刷新；本地数据不会被删除。',
+      checkedAt: DateTime(2026, 7, 17, 18),
+      entranceUri: _academicVisualEntranceUri,
+      finalUri: _academicVisualSourceUri,
+      snapshot: qingyuanHomeAcademicResult.snapshot,
+    );
+
 /// 课表空数据 fixture。
 final AcademicEamsQueryResult qingyuanScheduleEmptyResult = _scheduleResult(
   checkedAt: qingyuanVisualNow,
@@ -375,13 +513,33 @@ class QingyuanVisualAcademicEamsClient implements AcademicEamsClient {
     required this.result,
     this.cachedResult,
     this.cachedOverviewResult,
+    this.cachedExamResult,
+    this.cachedGradeResult,
+    this.cachedGradeProcessResult,
     this.pendingCourseTable,
+    this.pendingOverview,
+    this.pendingExam,
+    this.pendingGrades,
+    this.pendingGradeProcess,
+    this.examResult,
+    this.gradeResult,
+    this.gradeProcessResult,
   });
 
   final AcademicEamsQueryResult result;
   final AcademicEamsQueryResult? cachedResult;
   final AcademicEamsQueryResult? cachedOverviewResult;
+  final AcademicEamsQueryResult? cachedExamResult;
+  final AcademicEamsQueryResult? cachedGradeResult;
+  final AcademicEamsQueryResult? cachedGradeProcessResult;
   final Completer<AcademicEamsQueryResult>? pendingCourseTable;
+  final Completer<AcademicEamsQueryResult>? pendingOverview;
+  final Completer<AcademicEamsQueryResult>? pendingExam;
+  final Completer<AcademicEamsQueryResult>? pendingGrades;
+  final Completer<AcademicEamsQueryResult>? pendingGradeProcess;
+  final AcademicEamsQueryResult? examResult;
+  final AcademicEamsQueryResult? gradeResult;
+  final AcademicEamsQueryResult? gradeProcessResult;
 
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
@@ -393,13 +551,16 @@ class QingyuanVisualAcademicEamsClient implements AcademicEamsClient {
       cachedOverviewResult;
 
   @override
-  Future<AcademicEamsQueryResult?> readLatestCachedExamSchedule() async => null;
+  Future<AcademicEamsQueryResult?> readLatestCachedExamSchedule() async =>
+      cachedExamResult;
 
   @override
-  Future<AcademicEamsQueryResult?> readLatestCachedGrades() async => null;
+  Future<AcademicEamsQueryResult?> readLatestCachedGrades() async =>
+      cachedGradeResult;
 
   @override
-  Future<AcademicEamsQueryResult?> readLatestCachedGradeProcess() async => null;
+  Future<AcademicEamsQueryResult?> readLatestCachedGradeProcess() async =>
+      cachedGradeProcessResult;
 
   @override
   Future<AcademicEamsProfile?> readCachedStudentProfile() async => null;
@@ -419,7 +580,7 @@ class QingyuanVisualAcademicEamsClient implements AcademicEamsClient {
   @override
   Future<AcademicEamsQueryResult> fetchOverview({
     bool requireCampusNetwork = true,
-  }) async => result;
+  }) => pendingOverview?.future ?? Future.value(result);
 
   @override
   Future<AcademicEamsQueryResult> fetchExamSchedule({
@@ -427,20 +588,259 @@ class QingyuanVisualAcademicEamsClient implements AcademicEamsClient {
     AcademicEamsSemesterOption? semester,
     String? examTypeId,
     bool requireCampusNetwork = true,
-  }) async => result;
+  }) => pendingExam?.future ?? Future.value(examResult ?? result);
 
   @override
   Future<AcademicEamsQueryResult> fetchGrades({
     bool requireCampusNetwork = true,
-  }) async => result;
+  }) => pendingGrades?.future ?? Future.value(gradeResult ?? result);
 
   @override
   Future<AcademicEamsQueryResult> fetchGradeProcess({
     AcademicTermChoice? term,
     AcademicEamsSemesterOption? semester,
     bool requireCampusNetwork = true,
-  }) async => result;
+  }) =>
+      pendingGradeProcess?.future ?? Future.value(gradeProcessResult ?? result);
 }
+
+final Uri _academicVisualEntranceUri = Uri.parse(
+  'https://oa.example.invalid/interface/Entrance.jsp?id=academic',
+);
+final Uri _academicVisualSourceUri = Uri.parse(
+  'https://academic.example.invalid/eams/read-only',
+);
+final AcademicEamsSemesterOption qingyuanAcademicSemester =
+    AcademicEamsSemesterOption.fromEamsFields(
+      id: 'visual-1042',
+      schoolYear: '2025-2026',
+      termCode: '2',
+    );
+
+final AcademicEamsQueryResult qingyuanAcademicGradeContentResult =
+    _academicDetailResult(
+      message: '成绩读取成功',
+      grades: AcademicGradeSnapshot(
+        currentTermRecords: const [
+          AcademicGradeRecord(
+            courseCode: 'CS201',
+            courseName: '数据结构',
+            termName: '2025-2026-2',
+            scoreText: '92',
+            totalScoreText: '92',
+            credit: 4,
+            gradePoint: 4.2,
+            rawCells: ['CS201', '数据结构', '4', '92'],
+          ),
+          AcademicGradeRecord(
+            courseCode: 'SE202',
+            courseName: '软件工程实践',
+            termName: '2025-2026-2',
+            scoreText: '优秀',
+            totalScoreText: '优秀',
+            credit: 2,
+            gradePoint: 4.5,
+            rawCells: ['SE202', '软件工程实践', '2', '优秀'],
+          ),
+        ],
+        historyRecords: const [
+          AcademicGradeRecord(
+            courseCode: 'MATH101',
+            courseName: '高等数学',
+            termName: '2025-2026-1',
+            scoreText: '88',
+            totalScoreText: '88',
+            credit: 5,
+            gradePoint: 3.8,
+            rawCells: ['MATH101', '高等数学', '5', '88'],
+          ),
+        ],
+        fetchedAt: qingyuanVisualNow,
+        sourceUri: _academicVisualSourceUri,
+      ),
+    );
+
+final AcademicEamsQueryResult qingyuanAcademicGradeEmptyResult =
+    _academicDetailResult(
+      message: '当前范围暂无成绩',
+      grades: AcademicGradeSnapshot(
+        currentTermRecords: const [],
+        historyRecords: const [],
+        fetchedAt: qingyuanVisualNow,
+        sourceUri: _academicVisualSourceUri,
+      ),
+    );
+
+final AcademicEamsQueryResult qingyuanAcademicGradeStaleResult =
+    _academicDetailResult(
+      status: AcademicEamsQueryStatus.partialSuccess,
+      message: '正在显示昨日成绩缓存',
+      detail: '网络恢复后可手动刷新。',
+      checkedAt: DateTime(2026, 7, 17, 18),
+      grades: qingyuanAcademicGradeContentResult.snapshot!.grades,
+    );
+
+final AcademicEamsQueryResult qingyuanAcademicExamContentResult =
+    _academicDetailResult(
+      message: '考试安排读取成功',
+      exams: AcademicExamSnapshot(
+        selectedSemester: qingyuanAcademicSemester,
+        semesterOptions: [qingyuanAcademicSemester],
+        selectedExamType: '1',
+        examTypeOptions: const {'1': '期末考试', '2': '期中考试'},
+        records: const [
+          AcademicExamRecord(
+            examType: '期末考试',
+            courseSequence: 'CS201',
+            courseName: '数据结构',
+            examDate: '2026-07-22',
+            examArrange: '09:00–10:30',
+            examLocation: '教学楼 2 号楼 · 302',
+            examSituation: '正常',
+            rawCells: ['期末考试', 'CS201', '数据结构', '2026-07-22'],
+          ),
+          AcademicExamRecord(
+            examType: '期末考试',
+            courseSequence: 'SE202',
+            courseName: '软件工程实践',
+            examDate: '[考试情况尚未发布]',
+            otherExplanation: '课程设计答辩安排另行通知',
+            rawCells: ['期末考试', 'SE202', '软件工程实践', '[考试情况尚未发布]'],
+          ),
+        ],
+        fetchedAt: qingyuanVisualNow,
+        sourceUri: _academicVisualSourceUri,
+      ),
+    );
+
+final AcademicEamsQueryResult qingyuanAcademicExamEmptyResult =
+    _academicDetailResult(
+      message: '当前学期暂无考试安排',
+      exams: AcademicExamSnapshot(
+        selectedSemester: qingyuanAcademicSemester,
+        semesterOptions: [qingyuanAcademicSemester],
+        selectedExamType: '1',
+        examTypeOptions: const {'1': '期末考试'},
+        records: const [],
+        fetchedAt: qingyuanVisualNow,
+        sourceUri: _academicVisualSourceUri,
+      ),
+    );
+
+final AcademicEamsQueryResult qingyuanAcademicExamStaleResult =
+    _academicDetailResult(
+      status: AcademicEamsQueryStatus.partialSuccess,
+      message: '正在显示昨日考试安排缓存',
+      detail: '网络恢复后可手动刷新。',
+      checkedAt: DateTime(2026, 7, 17, 18),
+      exams: qingyuanAcademicExamContentResult.snapshot!.exams,
+    );
+
+final AcademicEamsQueryResult qingyuanAcademicGradeProcessContentResult =
+    _academicDetailResult(
+      message: '过程化成绩读取成功',
+      gradeProcess: AcademicGradeProcessSnapshot(
+        selectedSemester: qingyuanAcademicSemester,
+        semesterOptions: [qingyuanAcademicSemester],
+        records: const [
+          AcademicGradeProcessRecord(
+            courseCode: 'CS201',
+            courseName: '数据结构',
+            termName: '2025-2026-2',
+            category: '专业基础课',
+            credit: 4,
+            items: [
+              AcademicGradeProcessItem(label: '课堂表现', value: '95 / 10%'),
+              AcademicGradeProcessItem(label: '课程作业', value: '90 / 30%'),
+              AcademicGradeProcessItem(label: '期中测验', value: '88 / 20%'),
+            ],
+            rawCells: ['CS201', '数据结构', '课堂表现 95', '课程作业 90'],
+          ),
+        ],
+        fetchedAt: qingyuanVisualNow,
+        sourceUri: _academicVisualSourceUri,
+      ),
+    );
+
+final AcademicEamsQueryResult qingyuanAcademicGradeProcessEmptyResult =
+    _academicDetailResult(
+      message: '当前学期暂无过程化成绩',
+      gradeProcess: AcademicGradeProcessSnapshot(
+        selectedSemester: qingyuanAcademicSemester,
+        semesterOptions: [qingyuanAcademicSemester],
+        records: const [],
+        fetchedAt: qingyuanVisualNow,
+        sourceUri: _academicVisualSourceUri,
+      ),
+    );
+
+final AcademicEamsQueryResult qingyuanAcademicDetailErrorResult =
+    AcademicEamsQueryResult(
+      status: AcademicEamsQueryStatus.networkError,
+      message: '暂时无法读取教务数据',
+      detail: '请检查校园网络或 VPN 后重试；已有本地数据不会被删除。',
+      checkedAt: qingyuanVisualNow,
+      entranceUri: _academicVisualEntranceUri,
+    );
+
+AcademicEamsQueryResult _academicDetailResult({
+  required String message,
+  AcademicEamsQueryStatus status = AcademicEamsQueryStatus.success,
+  String detail = '已读取固定脱敏教务数据。',
+  DateTime? checkedAt,
+  AcademicGradeSnapshot? grades,
+  AcademicExamSnapshot? exams,
+  AcademicGradeProcessSnapshot? gradeProcess,
+}) {
+  return AcademicEamsQueryResult(
+    status: status,
+    message: message,
+    detail: detail,
+    checkedAt: checkedAt ?? qingyuanVisualNow,
+    entranceUri: _academicVisualEntranceUri,
+    finalUri: _academicVisualSourceUri,
+    snapshot: AcademicEamsSnapshot(
+      fetchedAt: qingyuanVisualNow,
+      sourceUri: _academicVisualSourceUri,
+      warnings: const [],
+      hasCourseOfferingEntry: true,
+      hasFreeClassroomEntry: true,
+      grades: grades,
+      exams: exams,
+      gradeProcess: gradeProcess,
+    ),
+  );
+}
+
+final SportsAttendanceSummary qingyuanAcademicSportsContentSummary =
+    SportsAttendanceSummary(
+      morningExerciseCount: 6,
+      extracurricularActivityCount: 6,
+      countAdjustmentCount: 0,
+      sportsCorridorCount: 0,
+      records: const [
+        SportsAttendanceRecord(
+          category: SportsAttendanceCategory.morningExercise,
+          count: 1,
+          occurredAt: '2026-07-15 06:45',
+          project: '晨跑',
+          location: '学校操场',
+          remark: '有效',
+          cells: ['2026-07-15 06:45', '晨跑', '学校操场', '有效'],
+        ),
+        SportsAttendanceRecord(
+          category: SportsAttendanceCategory.extracurricularActivity,
+          count: 1,
+          occurredAt: '2026-07-17 18:30',
+          project: '羽毛球活动',
+          location: '体育馆 2 号场',
+          remark: '已签到',
+          cells: ['2026-07-17 18:30', '羽毛球活动', '体育馆 2 号场', '已签到'],
+        ),
+      ],
+      fetchedAt: DateTime(2026, 7, 18, 8, 42),
+      sourceUri: Uri.parse('https://sports.example.invalid/attendance'),
+    );
 
 final SportsAttendanceQueryResult qingyuanHomeSportsResult =
     SportsAttendanceQueryResult(
@@ -449,15 +849,126 @@ final SportsAttendanceQueryResult qingyuanHomeSportsResult =
       detail: '已读取脱敏体育考勤汇总。',
       checkedAt: DateTime(2026, 7, 18, 8, 42),
       entranceUri: Uri.parse('https://sports.example.invalid/login'),
+      summary: qingyuanAcademicSportsContentSummary,
+    );
+
+final SportsAttendanceQueryResult qingyuanAcademicSportsEmptyResult =
+    SportsAttendanceQueryResult(
+      status: SportsAttendanceQueryStatus.success,
+      message: '当前范围暂无体育考勤',
+      detail: '已读取固定脱敏体育考勤数据。',
+      checkedAt: qingyuanVisualNow,
+      entranceUri: Uri.parse('https://sports.example.invalid/login'),
       summary: SportsAttendanceSummary(
-        morningExerciseCount: 6,
-        extracurricularActivityCount: 6,
+        morningExerciseCount: 0,
+        extracurricularActivityCount: 0,
         countAdjustmentCount: 0,
         sportsCorridorCount: 0,
         records: const [],
-        fetchedAt: DateTime(2026, 7, 18, 8, 42),
+        fetchedAt: qingyuanVisualNow,
         sourceUri: Uri.parse('https://sports.example.invalid/attendance'),
       ),
+    );
+
+final SportsAttendanceQueryResult qingyuanAcademicSportsStaleResult =
+    SportsAttendanceQueryResult(
+      status: SportsAttendanceQueryStatus.success,
+      message: '正在显示昨日体育考勤缓存',
+      detail: '网络恢复后可手动刷新。',
+      checkedAt: DateTime(2026, 7, 17, 18),
+      entranceUri: Uri.parse('https://sports.example.invalid/login'),
+      summary: qingyuanAcademicSportsContentSummary,
+    );
+
+final SportsAttendanceQueryResult qingyuanAcademicSportsErrorResult =
+    SportsAttendanceQueryResult(
+      status: SportsAttendanceQueryStatus.networkError,
+      message: '暂时无法读取体育考勤',
+      detail: '请检查校园网络或 VPN 后重试。',
+      checkedAt: qingyuanVisualNow,
+      entranceUri: Uri.parse('https://sports.example.invalid/login'),
+    );
+
+final SecondClassroomCreditSummary qingyuanAcademicStudentReportContentSummary =
+    SecondClassroomCreditSummary(
+      records: const [
+        SecondClassroomCreditRecord(
+          category: '社会实践',
+          itemName: '社区数字助老志愿服务',
+          credit: 2,
+          semester: '2025-2026-2',
+          occurredAt: '2026-06-14',
+          status: '已认定',
+          rawCells: ['社会实践', '社区数字助老志愿服务', '2.0', '已认定'],
+        ),
+        SecondClassroomCreditRecord(
+          category: '创新创业',
+          itemName: '校园应用创新训练',
+          credit: 1.5,
+          semester: '2025-2026-2',
+          occurredAt: '2026-07-02',
+          status: '通过',
+          rawCells: ['创新创业', '校园应用创新训练', '1.5', '通过'],
+        ),
+      ],
+      rules: const [
+        SecondClassroomCreditRuleRow(
+          category: '社会实践',
+          item: '志愿服务',
+          level: '校级',
+          participation: '累计 20 小时',
+          credit: 2,
+          earnedCredit: 2,
+          requiredCredit: 2,
+          passStatus: '已通过',
+        ),
+        SecondClassroomCreditRuleRow(
+          category: '创新创业',
+          item: '创新训练项目',
+          level: '校级',
+          participation: '结项',
+          credit: 1.5,
+          earnedCredit: 1.5,
+          requiredCredit: 1,
+          passStatus: '已通过',
+        ),
+        SecondClassroomCreditRuleRow(
+          category: '报告讲座',
+          item: '通识讲座',
+          level: '校级',
+          participation: '3 场',
+          credit: 1,
+          earnedCredit: 0.5,
+          requiredCredit: 1,
+          passStatus: '进行中',
+        ),
+      ],
+      totals: const SecondClassroomCreditTotals(
+        totalCredit: 10,
+        totalEarnedCredit: 8.5,
+        totalRequiredCredit: 10,
+        passStatus: '进行中',
+      ),
+      detailRecords: const [
+        SecondClassroomCreditDetailRecord(
+          name: '社区数字助老志愿服务',
+          category: '社会实践',
+          item: '志愿服务',
+          level: '校级',
+          participation: '累计 20 小时',
+          earnedCredit: 2,
+        ),
+        SecondClassroomCreditDetailRecord(
+          name: '校园应用创新训练',
+          category: '创新创业',
+          item: '创新训练项目',
+          level: '校级',
+          participation: '结项',
+          earnedCredit: 1.5,
+        ),
+      ],
+      fetchedAt: DateTime(2026, 7, 18, 8, 42),
+      sourceUri: Uri.parse('https://student.example.invalid/report'),
     );
 
 /// 首页第二课堂辅助坞的固定脱敏学分汇总。
@@ -468,40 +979,82 @@ final StudentReportQueryResult qingyuanHomeStudentReportResult =
       detail: '已读取脱敏第二课堂学分汇总。',
       checkedAt: DateTime(2026, 7, 18, 8, 42),
       entranceUri: Uri.parse('https://oa.example.invalid/student-report'),
+      summary: qingyuanAcademicStudentReportContentSummary,
+    );
+
+final StudentReportQueryResult qingyuanAcademicStudentReportEmptyResult =
+    StudentReportQueryResult(
+      status: StudentReportQueryStatus.success,
+      message: '当前范围暂无第二课堂记录',
+      detail: '已读取固定脱敏第二课堂数据。',
+      checkedAt: qingyuanVisualNow,
+      entranceUri: Uri.parse('https://oa.example.invalid/student-report'),
       summary: SecondClassroomCreditSummary(
         records: const [],
         totals: const SecondClassroomCreditTotals(
-          totalEarnedCredit: 8.5,
-          totalRequiredCredit: 10,
+          totalEarnedCredit: 0,
+          totalRequiredCredit: 0,
         ),
-        fetchedAt: DateTime(2026, 7, 18, 8, 42),
+        fetchedAt: qingyuanVisualNow,
         sourceUri: Uri.parse('https://student.example.invalid/report'),
       ),
     );
 
+final StudentReportQueryResult qingyuanAcademicStudentReportStaleResult =
+    StudentReportQueryResult(
+      status: StudentReportQueryStatus.success,
+      message: '正在显示昨日第二课堂缓存',
+      detail: '网络恢复后可手动刷新。',
+      checkedAt: DateTime(2026, 7, 17, 18),
+      entranceUri: Uri.parse('https://oa.example.invalid/student-report'),
+      summary: qingyuanAcademicStudentReportContentSummary,
+    );
+
+final StudentReportQueryResult qingyuanAcademicStudentReportErrorResult =
+    StudentReportQueryResult(
+      status: StudentReportQueryStatus.networkError,
+      message: '暂时无法读取第二课堂学分',
+      detail: '请检查 OA 登录与校园网络后重试。',
+      checkedAt: qingyuanVisualNow,
+      entranceUri: Uri.parse('https://oa.example.invalid/student-report'),
+    );
+
 class QingyuanVisualSportsAttendanceClient implements SportsAttendanceClient {
-  const QingyuanVisualSportsAttendanceClient(this.result);
+  const QingyuanVisualSportsAttendanceClient(
+    this.result, {
+    this.cacheEnabled = true,
+    this.pendingFetch,
+  });
 
   final SportsAttendanceQueryResult result;
+  final bool cacheEnabled;
+  final Completer<SportsAttendanceQueryResult>? pendingFetch;
 
   @override
   Future<SportsAttendanceQueryResult?>
-  readLatestCachedAttendanceSummary() async => result;
+  readLatestCachedAttendanceSummary() async => cacheEnabled ? result : null;
 
   @override
   Future<SportsAttendanceQueryResult> fetchAttendanceSummary({
     bool requireCampusNetwork = true,
-  }) async => result;
+  }) => pendingFetch?.future ?? Future.value(result);
 }
 
 class QingyuanVisualStudentReportClient implements StudentReportClient {
-  const QingyuanVisualStudentReportClient(this.result);
+  const QingyuanVisualStudentReportClient(
+    this.result, {
+    this.cacheEnabled = true,
+    this.pendingFetch,
+  });
 
   final StudentReportQueryResult result;
+  final bool cacheEnabled;
+  final Completer<StudentReportQueryResult>? pendingFetch;
 
   @override
   Future<StudentReportQueryResult?>
-  readLatestCachedSecondClassroomCredits() async => result;
+  readLatestCachedSecondClassroomCredits() async =>
+      cacheEnabled ? result : null;
 
   @override
   Future<StudentReportQueryResult> validateLoginStatus() {
@@ -511,9 +1064,7 @@ class QingyuanVisualStudentReportClient implements StudentReportClient {
   @override
   Future<StudentReportQueryResult> fetchSecondClassroomCredits({
     bool requireCampusNetwork = true,
-  }) {
-    throw UnsupportedError('视觉 fixture 不访问学工报表服务');
-  }
+  }) => pendingFetch?.future ?? Future.value(result);
 }
 
 const EmailServerEndpoint qingyuanEmailImapEndpoint = EmailServerEndpoint(

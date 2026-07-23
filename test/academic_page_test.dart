@@ -8,15 +8,19 @@
 
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sspu_allinone/models/academic_calendar.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/models/sports_attendance.dart';
 import 'package:sspu_allinone/models/student_report.dart';
 import 'package:sspu_allinone/pages/academic_page.dart';
 import 'package:sspu_allinone/services/academic_eams_service.dart';
+import 'package:sspu_allinone/services/academic_calendar_service.dart';
 import 'package:sspu_allinone/services/academic_term_service.dart';
 import 'package:sspu_allinone/services/sports_attendance_service.dart';
 import 'package:sspu_allinone/services/student_report_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
 
 part 'academic_page_test_support.dart';
 
@@ -40,6 +44,7 @@ Future<void> pumpAcademicPage(
   required AcademicEamsClient academicEamsService,
   required SportsAttendanceClient sportsAttendanceService,
   required StudentReportClient studentReportService,
+  AcademicTermService? academicTermService,
   bool academicEamsAutoRefreshEnabledOverride = false,
   bool sportsAttendanceAutoRefreshEnabledOverride = false,
   int sportsAttendanceAutoRefreshIntervalOverride = 30,
@@ -50,6 +55,7 @@ Future<void> pumpAcademicPage(
     YhApp(
       home: AcademicPage(
         academicEamsService: academicEamsService,
+        academicTermService: academicTermService,
         sportsAttendanceService: sportsAttendanceService,
         studentReportService: studentReportService,
         academicEamsAutoRefreshEnabledOverride:
@@ -68,6 +74,114 @@ Future<void> pumpAcademicPage(
 }
 
 void main() {
+  testWidgets('第二课堂详情通过查询结果展示加载与错误状态', (tester) async {
+    await tester.pumpWidget(
+      const YhApp(home: StudentReportDetailPage(result: null, isLoading: true)),
+    );
+
+    expect(find.text('正在读取第二课堂详情...'), findsOneWidget);
+
+    await tester.pumpWidget(
+      YhApp(
+        home: StudentReportDetailPage(
+          result: StudentReportQueryResult(
+            status: StudentReportQueryStatus.networkError,
+            message: '暂时无法读取第二课堂学分',
+            detail: '请检查 OA 登录与校园网络后重试。',
+            checkedAt: DateTime(2026, 7, 18, 9, 30),
+            entranceUri: Uri.parse('https://oa.example.invalid/student-report'),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('暂时无法读取第二课堂学分'), findsOneWidget);
+    expect(find.text('请检查 OA 登录与校园网络后重试。'), findsOneWidget);
+  });
+
+  testWidgets('体育考勤详情通过查询结果展示加载与错误状态', (tester) async {
+    await tester.pumpWidget(
+      const YhApp(
+        home: SportsAttendanceDetailPage(result: null, isLoading: true),
+      ),
+    );
+
+    expect(find.text('正在读取体育考勤详情...'), findsOneWidget);
+
+    await tester.pumpWidget(
+      YhApp(
+        home: SportsAttendanceDetailPage(
+          result: SportsAttendanceQueryResult(
+            status: SportsAttendanceQueryStatus.networkError,
+            message: '暂时无法读取体育考勤',
+            detail: '请检查校园网络或 VPN 后重试。',
+            checkedAt: DateTime(2026, 7, 18, 9, 30),
+            entranceUri: Uri.parse('https://sports.example.invalid/login'),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('暂时无法读取体育考勤'), findsOneWidget);
+    expect(find.text('请检查校园网络或 VPN 后重试。'), findsOneWidget);
+  });
+
+  testWidgets('第二课堂规则页复用规则矩阵并独立呈现', (tester) async {
+    await tester.pumpWidget(
+      YhApp(home: StudentReportRulesPage(summary: _creditResult.summary!)),
+    );
+
+    expect(find.text('第二课堂规则'), findsOneWidget);
+    expect(find.text('规则矩阵'), findsOneWidget);
+    expect(find.text('志愿服务'), findsWidgets);
+  });
+
+  testWidgets('教务详情页保留 summary 构造兼容入口', (tester) async {
+    await tester.pumpWidget(
+      YhApp(home: StudentReportDetailPage(summary: _creditResult.summary!)),
+    );
+    expect(find.text('第二课堂详情'), findsOneWidget);
+    expect(find.text('总计'), findsOneWidget);
+
+    await tester.pumpWidget(
+      YhApp(home: SportsAttendanceDetailPage(summary: _successResult.summary!)),
+    );
+    await tester.pump();
+    expect(find.text('课外活动考勤记录'), findsOneWidget);
+    expect(find.text('2 条'), findsOneWidget);
+  });
+
+  testWidgets('教务中心通过注入学期服务解析默认学期', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+    addTearDown(() {
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+      SharedPreferences.setMockInitialValues({});
+    });
+    final calendar = _FakeAcademicCalendarClient();
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
+      ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+      academicTermService: AcademicTermService(calendarService: calendar),
+    );
+    for (
+      var attempt = 0;
+      attempt < 20 && calendar.ensureForDateCount == 0;
+      attempt++
+    ) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    expect(calendar.ensureForDateCount, 1);
+    await disposeAcademicPage(tester);
+  });
+
   testWidgets('教务中心展示体育部考勤总次数并可进入明细页', (tester) async {
     final sportsService = _FakeSportsAttendanceClient(result: _successResult);
     await pumpAcademicPage(

@@ -8,6 +8,47 @@
 
 part of 'academic_page_test.dart';
 
+class _FakeAcademicCalendarClient implements AcademicCalendarClient {
+  int ensureForDateCount = 0;
+
+  @override
+  Future<AcademicCalendarSyncResult> ensureCalendarsForDate({
+    DateTime? now,
+  }) async {
+    ensureForDateCount += 1;
+    return const AcademicCalendarSyncResult(
+      entries: [],
+      loadedFromCache: false,
+      refreshed: false,
+    );
+  }
+
+  @override
+  Future<AcademicCalendarSyncResult> ensureCalendarsForViewer({
+    DateTime? now,
+  }) async => const AcademicCalendarSyncResult(
+    entries: [],
+    loadedFromCache: false,
+    refreshed: false,
+  );
+
+  @override
+  Future<List<AcademicCalendarCacheEntry>> readCachedCalendars() async => [];
+
+  @override
+  Future<AcademicCalendarCacheEntry?> readCachedCalendar(
+    int schoolYear,
+  ) async => null;
+
+  @override
+  Future<List<AcademicTermDefinition>> readCachedTermDefinitions() async => [];
+
+  @override
+  Future<List<AcademicCalendarCacheEntry>> refreshCalendars({
+    List<int>? targetYears,
+  }) async => [];
+}
+
 class _FakeSportsAttendanceClient implements SportsAttendanceClient {
   _FakeSportsAttendanceClient({required this.result});
 

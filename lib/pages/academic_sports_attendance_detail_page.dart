@@ -10,14 +10,26 @@ part of 'academic_page.dart';
 
 /// 体育部课外活动考勤明细二级页面。
 class SportsAttendanceDetailPage extends StatelessWidget {
-  /// 已读取的考勤汇总与明细。
-  final SportsAttendanceSummary summary;
+  /// 最近一次体育考勤查询结果；加载首帧可为空。
+  final SportsAttendanceQueryResult? result;
 
-  const SportsAttendanceDetailPage({super.key, required this.summary});
+  /// 兼容旧路由的已读取汇总。
+  final SportsAttendanceSummary? summary;
+
+  /// 是否正在读取体育考勤详情。
+  final bool isLoading;
+
+  const SportsAttendanceDetailPage({
+    super.key,
+    this.result,
+    this.summary,
+    this.isLoading = false,
+  }) : assert(result != null || summary != null || isLoading);
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    final summary = result?.summary ?? this.summary;
     return YhPageScaffold(
       appBar: YhAppBar(
         title: '课外活动考勤记录',
@@ -28,19 +40,78 @@ class SportsAttendanceDetailPage extends StatelessWidget {
           onTap: () => Navigator.of(context).pop(),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(theme.spacing.m),
-        child: Align(
-          alignment: AlignmentDirectional.topCenter,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
-            child: Column(
-              children: [
-                _SportsAttendanceSummaryPanel(summary: summary),
+      body: _buildBody(context, theme, summary),
+    );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    YhTheme theme,
+    SportsAttendanceSummary? summary,
+  ) {
+    if (isLoading) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: theme.spacing.xl2 * 5),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const YhProgress(showPercent: false, semanticLabel: '正在读取体育考勤详情'),
+              SizedBox(height: theme.spacing.m),
+              Text('正在读取体育考勤详情...', style: theme.typography.body),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final current = result;
+    if ((current != null && !current.isSuccess) || summary == null) {
+      return YhEmptyState(
+        icon: YhIcons.warning,
+        title: current?.message ?? '尚未读取体育考勤详情',
+        message: current?.detail ?? '返回教务中心刷新体育考勤后再试。',
+        action: YhButton(
+          label: '返回教务中心刷新',
+          leadingIcon: YhIcons.back,
+          variant: YhButtonVariant.secondary,
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+      );
+    }
+
+    if (summary.totalCount == 0 && summary.records.isEmpty) {
+      return YhEmptyState(
+        icon: YhIcons.sports,
+        title: '暂无体育考勤记录',
+        message: '当前查询没有可展示的汇总或明细；返回教务中心刷新后可再次查看。',
+        action: YhButton(
+          label: '返回教务中心刷新',
+          leadingIcon: YhIcons.back,
+          variant: YhButtonVariant.secondary,
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+      );
+    }
+
+    final showCacheNotice = current?.message.contains('缓存') ?? false;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(theme.spacing.m),
+      child: Align(
+        alignment: AlignmentDirectional.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (showCacheNotice) ...[
+                YhBanner(text: current!.detail, kind: YhBannerKind.warn),
                 SizedBox(height: theme.spacing.m),
-                _SportsAttendanceRecordsPanel(summary: summary),
               ],
-            ),
+              _SportsAttendanceSummaryPanel(summary: summary),
+              SizedBox(height: theme.spacing.m),
+              _SportsAttendanceRecordsPanel(summary: summary),
+            ],
           ),
         ),
       ),
