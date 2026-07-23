@@ -8,16 +8,14 @@ class MessageTile extends StatelessWidget {
     super.key,
     required this.message,
     required this.isRead,
-    required this.isDark,
     required this.onTap,
-    required this.onMarkRead,
+    this.nowOverride,
   });
 
   final MessageItem message;
   final bool isRead;
-  final bool isDark;
   final VoidCallback onTap;
-  final VoidCallback onMarkRead;
+  final DateTime? nowOverride;
 
   @override
   Widget build(BuildContext context) {
@@ -25,156 +23,57 @@ class MessageTile extends StatelessWidget {
     return YhCard(
       semanticLabel: '打开消息：${message.title}',
       onTap: onTap,
-      padding: EdgeInsets.symmetric(
-        vertical: theme.spacing.s,
-        horizontal: theme.spacing.m,
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final narrow = constraints.maxWidth < theme.breakpoint.compact;
-          final content = _buildContent(context);
-          final actions = _buildDateAndActions(context, narrow: narrow);
-          if (narrow) {
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildUnreadIndicator(context),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      content,
-                      SizedBox(height: theme.spacing.s),
-                      actions,
-                    ],
-                  ),
-                ),
-              ],
-            );
-          }
-          return Row(
+      padding: EdgeInsets.all(theme.spacing.l),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildUnreadIndicator(context),
-              Expanded(child: content),
-              SizedBox(width: theme.spacing.m),
-              actions,
+              Expanded(
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: _MetadataTag(text: message.sourceName.label),
+                ),
+              ),
+              SizedBox(width: theme.spacing.s),
+              Text(
+                _formatDisplayDateTime(message),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.typography.caption.copyWith(
+                  color: theme.color.muted,
+                ),
+              ),
             ],
-          );
-        },
+          ),
+          SizedBox(height: theme.spacing.s),
+          Text(
+            message.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.typography.body.copyWith(
+              color: isRead ? theme.color.muted : theme.color.foreground,
+              fontWeight: isRead ? null : theme.typography.semibold,
+            ),
+          ),
+          SizedBox(height: theme.spacing.s),
+          Text(
+            _summary,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.typography.small.copyWith(color: theme.color.muted),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildUnreadIndicator(BuildContext context) {
-    final theme = context.yhTheme;
-    return Semantics(
-      label: isRead ? '已读' : '未读',
-      child: Container(
-        width: theme.spacing.s,
-        height: theme.spacing.s,
-        margin: EdgeInsetsDirectional.only(
-          top: theme.spacing.xs,
-          end: theme.spacing.s,
-        ),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isRead ? theme.color.border : theme.color.brandStrong,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContent(BuildContext context) {
-    final theme = context.yhTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          message.title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: theme.typography.body.copyWith(
-            color: isRead ? theme.color.muted : theme.color.foreground,
-            fontWeight: isRead ? FontWeight.w400 : FontWeight.w600,
-          ),
-        ),
-        SizedBox(height: theme.spacing.xs),
-        Wrap(
-          spacing: theme.spacing.xs,
-          runSpacing: theme.spacing.xs,
-          children: _metadataTags(context),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDateAndActions(BuildContext context, {required bool narrow}) {
-    final theme = context.yhTheme;
-    final date = Text(
-      _formatDisplayDateTime(message),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: theme.typography.caption.copyWith(color: theme.color.muted),
-    );
-    final buttons = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        YhIconButton(
-          icon: YhIcons.open,
-          semanticLabel: '在浏览器中打开',
-          onTap: onTap,
-        ),
-        if (!isRead)
-          YhIconButton(
-            icon: YhIcons.check,
-            semanticLabel: '标为已读',
-            onTap: onMarkRead,
-          ),
-      ],
-    );
-    if (narrow) {
-      return Wrap(
-        spacing: theme.spacing.s,
-        runSpacing: theme.spacing.xs,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [date, buttons],
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: theme.control.regular * 3 + theme.spacing.m,
-          ),
-          child: date,
-        ),
-        SizedBox(height: theme.spacing.xs),
-        buttons,
-      ],
-    );
-  }
-
-  List<Widget> _metadataTags(BuildContext context) {
-    final tags = <Widget>[];
-    final labels = <String>{};
-    void add(String value, {required bool primary}) {
-      final text = value.trim();
-      if (text.isEmpty || !labels.add(text)) return;
-      tags.add(_MetadataTag(text: text, primary: primary));
-    }
-
-    add(message.sourceType.label, primary: true);
+  String get _summary {
     if (_isWechatMessage) {
-      add(_wechatAccountName, primary: false);
-    } else {
-      add(message.sourceName.label, primary: false);
-      add(message.category.label, primary: false);
-      final name = message.mpName?.trim();
-      if (name != null) add(name, primary: false);
+      return '${message.sourceType.label} · $_wechatAccountName，点击查看原文。';
     }
-    return tags;
+    return '${message.sourceType.label} · ${message.category.label}，点击查看原文。';
   }
 
   bool get _isWechatMessage =>
@@ -187,20 +86,16 @@ class MessageTile extends StatelessWidget {
   }
 
   String _formatDisplayDateTime(MessageItem item) {
-    final displayDate = item.date.trim().isNotEmpty
-        ? item.date.trim()
-        : item.timestamp != null
-        ? _formatDate(item.timestamp!)
-        : '';
-    if (item.timestamp == null || displayDate.isEmpty) return displayDate;
-    return '$displayDate ${_formatTime(item.timestamp!)}';
-  }
-
-  String _formatDate(int timestampMs) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestampMs);
-    return '${date.year.toString().padLeft(4, '0')}-'
-        '${date.month.toString().padLeft(2, '0')}-'
-        '${date.day.toString().padLeft(2, '0')}';
+    if (item.timestamp == null) return item.date.trim();
+    final date = DateTime.fromMillisecondsSinceEpoch(item.timestamp!);
+    final now = nowOverride ?? DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final messageDay = DateTime(date.year, date.month, date.day);
+    final dayDifference = today.difference(messageDay).inDays;
+    final time = _formatTime(item.timestamp!);
+    if (dayDifference == 0) return '今天 $time';
+    if (dayDifference == 1) return '昨天 $time';
+    return '${date.month} 月 ${date.day} 日';
   }
 
   String _formatTime(int timestampMs) {
@@ -211,17 +106,16 @@ class MessageTile extends StatelessWidget {
 }
 
 class _MetadataTag extends StatelessWidget {
-  const _MetadataTag({required this.text, required this.primary});
+  const _MetadataTag({required this.text});
 
   final String text;
-  final bool primary;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: primary ? theme.color.brandTint : theme.color.sunken,
+        color: theme.color.brandTint,
         borderRadius: BorderRadius.circular(theme.radius.s),
       ),
       child: Padding(
@@ -238,8 +132,8 @@ class _MetadataTag extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.typography.caption.copyWith(
-              color: primary ? theme.color.brandInk : theme.color.muted,
-              fontWeight: FontWeight.w500,
+              color: theme.color.brandInk,
+              fontWeight: theme.typography.semibold,
             ),
           ),
         ),

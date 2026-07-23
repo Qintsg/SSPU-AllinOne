@@ -1,5 +1,7 @@
 part of 'info_page.dart';
 
+enum _InfoPrimarySource { all, schoolWebsite, academicOffice, wechat }
+
 const Map<MessageCategory, String> _infoCategoryToChannelId = {
   MessageCategory.latestInfo: 'latest_info',
   MessageCategory.notice: 'notice',
@@ -184,9 +186,10 @@ int _infoDateToTimestamp(String date) {
 void _applyInfoPageFilters(_InfoPageState state) {
   state._filteredMessages = state._allMessages.where((msg) {
     if (state._searchQuery.isNotEmpty &&
-        !msg.title.toLowerCase().contains(state._searchQuery.toLowerCase())) {
+        !_infoSearchText(msg).contains(state._searchQuery.toLowerCase())) {
       return false;
     }
+    if (!_matchesInfoPrimarySource(msg, state._primarySource)) return false;
     if (state._filterSourceType != null &&
         msg.sourceType != state._filterSourceType) {
       return false;
@@ -212,6 +215,29 @@ void _applyInfoPageFilters(_InfoPageState state) {
   state._currentPage = 0;
   state._refreshView();
 }
+
+String _infoSearchText(MessageItem message) => [
+  message.title,
+  message.sourceType.label,
+  message.sourceName.label,
+  message.category.label,
+  message.mpName ?? '',
+].join(' ').toLowerCase();
+
+bool _matchesInfoPrimarySource(
+  MessageItem message,
+  _InfoPrimarySource source,
+) => switch (source) {
+  _InfoPrimarySource.all => true,
+  _InfoPrimarySource.schoolWebsite =>
+    message.sourceType == MessageSourceType.schoolWebsite &&
+        message.sourceName != MessageSourceName.jwc,
+  _InfoPrimarySource.academicOffice =>
+    message.sourceName == MessageSourceName.jwc,
+  _InfoPrimarySource.wechat =>
+    message.sourceType == MessageSourceType.wechatPublic ||
+        message.sourceType == MessageSourceType.wechatService,
+};
 
 String _infoWechatMpName(MessageItem message) {
   final mpName = message.mpName?.trim();

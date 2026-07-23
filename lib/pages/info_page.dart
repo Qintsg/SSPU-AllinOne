@@ -23,10 +23,39 @@ import '../utils/app_web_launcher.dart';
 part 'info_page_filters.dart';
 part 'info_page_view.dart';
 
+/// 资讯页的确定性展示状态，仅用于视觉 fixture 与页面状态回归测试。
+enum InfoPageDisplayState { initial, loading, content, empty, stale, error }
+
 /// 信息中心页面
 /// 统一大列表展示所有渠道消息，支持搜索/筛选/已读未读/分页
 class InfoPage extends StatefulWidget {
-  const InfoPage({super.key});
+  const InfoPage({
+    super.key,
+    this.onOpenSourceSettings,
+    @visibleForTesting this.displayStateOverride,
+    @visibleForTesting this.messagesOverride,
+    @visibleForTesting this.wechatSourceConfiguredOverride,
+    @visibleForTesting this.nowOverride,
+    @visibleForTesting this.messageRenderLimitOverride,
+  });
+
+  /// 打开资讯来源与认证设置；由应用壳负责切换到对应设置分区。
+  final VoidCallback? onOpenSourceSettings;
+
+  @visibleForTesting
+  final InfoPageDisplayState? displayStateOverride;
+
+  @visibleForTesting
+  final List<MessageItem>? messagesOverride;
+
+  @visibleForTesting
+  final bool? wechatSourceConfiguredOverride;
+
+  @visibleForTesting
+  final DateTime? nowOverride;
+
+  @visibleForTesting
+  final int? messageRenderLimitOverride;
 
   @override
   State<InfoPage> createState() => _InfoPageState();
@@ -41,6 +70,14 @@ class _InfoPageState extends State<InfoPage> {
 
   /// 微信公众号来源是否已完成公众号平台认证。
   bool _wechatSourceConfigured = false;
+
+  bool _isInitializing = true;
+
+  Object? _loadError;
+
+  DateTime? _lastLoadedAt;
+
+  _InfoPrimarySource _primarySource = _InfoPrimarySource.all;
 
   /// 搜索关键词
   String _searchQuery = '';
@@ -78,16 +115,57 @@ class _InfoPageState extends State<InfoPage> {
   /// 自动刷新服务（用于手动全渠道刷新）
   final InfoRefreshService _refreshService = InfoRefreshService.instance;
 
+  bool _refreshListenerAttached = false;
+
   @override
   void initState() {
     super.initState();
-    _refreshService.addListener(_onRefreshServiceChanged);
+    if (widget.messagesOverride != null) {
+      _allMessages.addAll(widget.messagesOverride!);
+      _filteredMessages = List<MessageItem>.of(_allMessages);
+      _wechatSourceConfigured = widget.wechatSourceConfiguredOverride ?? false;
+      _lastLoadedAt = widget.nowOverride;
+      _isInitializing = false;
+      return;
+    }
+    _attachRefreshListener();
     _initAndLoad();
   }
 
   @override
+  void didUpdateWidget(InfoPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.messagesOverride == null && widget.messagesOverride != null) {
+      _detachRefreshListener();
+    } else if (oldWidget.messagesOverride != null &&
+        widget.messagesOverride == null) {
+      _attachRefreshListener();
+      _isInitializing = true;
+      _initAndLoad();
+    }
+    if (!identical(oldWidget.messagesOverride, widget.messagesOverride) &&
+        widget.messagesOverride != null) {
+      _allMessages
+        ..clear()
+        ..addAll(widget.messagesOverride!);
+      _filteredMessages = List<MessageItem>.of(_allMessages);
+      _primarySource = _InfoPrimarySource.all;
+      _searchController.clear();
+      _searchQuery = '';
+      _lastLoadedAt = widget.nowOverride;
+      _isInitializing = false;
+      _loadError = null;
+    }
+    if (oldWidget.wechatSourceConfiguredOverride !=
+        widget.wechatSourceConfiguredOverride) {
+      _wechatSourceConfigured =
+          widget.wechatSourceConfiguredOverride ?? _wechatSourceConfigured;
+    }
+  }
+
+  @override
   void dispose() {
-    _refreshService.removeListener(_onRefreshServiceChanged);
+    _detachRefreshListener();
     _searchController.dispose();
     _messageListController.dispose();
     super.dispose();
@@ -97,23 +175,47 @@ class _InfoPageState extends State<InfoPage> {
     _loadPersistedMessages();
   }
 
+  void _attachRefreshListener() {
+    if (_refreshListenerAttached) return;
+    _refreshService.addListener(_onRefreshServiceChanged);
+    _refreshListenerAttached = true;
+  }
+
+  void _detachRefreshListener() {
+    if (!_refreshListenerAttached) return;
+    _refreshService.removeListener(_onRefreshServiceChanged);
+    _refreshListenerAttached = false;
+  }
+
   Future<void> _loadPersistedMessages() async {
     final persisted = await _stateService.loadMessages();
     _allMessages
       ..clear()
       ..addAll(persisted);
     await _filterByEnabledChannels();
+    _lastLoadedAt = widget.nowOverride ?? DateTime.now();
   }
 
   /// 初始化状态服务，从本地存储加载消息并根据渠道开关过滤显示
   Future<void> _initAndLoad() async {
-    await _stateService.init();
-    await _loadPersistedMessages();
-
-    final wechatSourceConfigured = await WechatArticleService.instance
-        .hasConfiguredSource();
-    if (!mounted) return;
-    setState(() => _wechatSourceConfigured = wechatSourceConfigured);
+    try {
+      await _stateService.init();
+      await _loadPersistedMessages();
+      if (!mounted) return;
+      setState(() => _isInitializing = false);
+      final wechatSourceConfigured = await WechatArticleService.instance
+          .hasConfiguredSource();
+      if (!mounted) return;
+      setState(() {
+        _wechatSourceConfigured = wechatSourceConfigured;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = error;
+        _isInitializing = false;
+      });
+    }
   }
 
   /// 刷新官网消息：抓取所有已启用渠道的新数据并与已有数据合并持久化
@@ -175,8 +277,29 @@ class _InfoPageState extends State<InfoPage> {
   /// 应用搜索和筛选条件
   void _applyFilters() => _applyInfoPageFilters(this);
 
+  InfoPageDisplayState get _displayState {
+    final override = widget.displayStateOverride;
+    if (override != null) return override;
+    if (_isInitializing) return InfoPageDisplayState.loading;
+    if (_loadError != null && _allMessages.isEmpty) {
+      return InfoPageDisplayState.error;
+    }
+    if (_allMessages.isEmpty) return InfoPageDisplayState.empty;
+    if (_refreshService.snapshot.text.contains('失败')) {
+      return InfoPageDisplayState.stale;
+    }
+    return InfoPageDisplayState.content;
+  }
+
+  DateTime get _now => widget.nowOverride ?? DateTime.now();
+
   /// 获取当前页的消息列表
-  List<MessageItem> get _pagedMessages => _getPagedInfoMessages(this);
+  List<MessageItem> get _pagedMessages {
+    final messages = _getPagedInfoMessages(this);
+    final limit = widget.messageRenderLimitOverride;
+    if (limit == null || messages.length <= limit) return messages;
+    return messages.take(limit).toList(growable: false);
+  }
 
   /// 总页数
   int get _totalPages => _getInfoTotalPages(this);

@@ -5,11 +5,83 @@ import 'dart:async';
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/models/email_mailbox.dart';
+import 'package:sspu_allinone/models/message_item.dart';
 import 'package:sspu_allinone/services/academic_eams_service.dart';
 import 'package:sspu_allinone/services/email_service.dart';
 
 /// 视觉矩阵的固定本地时钟。
 final DateTime qingyuanVisualNow = DateTime(2026, 7, 18, 9, 30);
+
+/// 资讯页面的固定脱敏内容，不访问学校官网或公众号平台。
+final List<MessageItem> qingyuanInfoMessages = [
+  MessageItem(
+    id: 'visual-info-001',
+    title: '关于 2025–2026 学年夏季学期考试安排的通知',
+    date: '2026-07-18',
+    url: 'https://academic.example.invalid/exam-notice',
+    sourceType: MessageSourceType.schoolWebsite,
+    sourceName: MessageSourceName.jwc,
+    category: MessageCategory.jwcStudent,
+    timestamp: DateTime(2026, 7, 18, 8, 30).millisecondsSinceEpoch,
+  ),
+  MessageItem(
+    id: 'visual-info-002',
+    title: '图书馆暑期开放时间调整',
+    date: '2026-07-17',
+    url: 'https://library.example.invalid/summer-hours',
+    sourceType: MessageSourceType.schoolWebsite,
+    sourceName: MessageSourceName.libCenter,
+    category: MessageCategory.libCenterNotice,
+    timestamp: DateTime(2026, 7, 17, 17, 20).millisecondsSinceEpoch,
+  ),
+  MessageItem(
+    id: 'visual-info-003',
+    title: '校园夏日服务指南',
+    date: '2026-07-16',
+    url: 'https://wechat.example.invalid/summer-guide',
+    sourceType: MessageSourceType.wechatPublic,
+    sourceName: MessageSourceName.wechatPublicPlaceholder,
+    category: MessageCategory.wechatArticle,
+    mpBookId: 'visual-wechat-account',
+    mpName: '工大校园服务',
+    timestamp: DateTime(2026, 7, 16, 9).millisecondsSinceEpoch,
+  ),
+  for (var index = 0; index < 4; index++)
+    MessageItem(
+      id: 'visual-info-school-$index',
+      title: '学校官网脱敏资讯 ${index + 1}',
+      date: '2026-07-15',
+      url: 'https://www.example.invalid/news/$index',
+      sourceType: MessageSourceType.schoolWebsite,
+      sourceName: MessageSourceName.sspuOfficial,
+      category: MessageCategory.sspuNews,
+      timestamp: DateTime(2026, 7, 15, 12, index).millisecondsSinceEpoch,
+    ),
+  for (var index = 0; index < 3; index++)
+    MessageItem(
+      id: 'visual-info-academic-$index',
+      title: '教务处脱敏通知 ${index + 1}',
+      date: '2026-07-14',
+      url: 'https://academic.example.invalid/news/$index',
+      sourceType: MessageSourceType.schoolWebsite,
+      sourceName: MessageSourceName.jwc,
+      category: MessageCategory.jwcTeaching,
+      timestamp: DateTime(2026, 7, 14, 12, index).millisecondsSinceEpoch,
+    ),
+  for (var index = 0; index < 2; index++)
+    MessageItem(
+      id: 'visual-info-wechat-$index',
+      title: '微信公众号脱敏推文 ${index + 1}',
+      date: '2026-07-13',
+      url: 'https://wechat.example.invalid/article/$index',
+      sourceType: MessageSourceType.wechatPublic,
+      sourceName: MessageSourceName.wechatPublicPlaceholder,
+      category: MessageCategory.wechatArticle,
+      mpBookId: 'visual-wechat-account',
+      mpName: '工大校园服务',
+      timestamp: DateTime(2026, 7, 13, 12, index).millisecondsSinceEpoch,
+    ),
+];
 
 final Uri _entranceUri = Uri.parse(
   'https://oa.example.invalid/interface/Entrance.jsp?id=academic',

@@ -25,9 +25,8 @@ void main() {
             child: MessageTile(
               message: message,
               isRead: false,
-              isDark: false,
               onTap: () {},
-              onMarkRead: () {},
+              nowOverride: DateTime(2026, 4, 25, 12),
             ),
           ),
         ),
@@ -52,8 +51,8 @@ void main() {
 
     await pumpTile(tester, message);
 
-    expect(find.text('微信推文'), findsOneWidget);
-    expect(find.text('青春二工大'), findsOneWidget);
+    expect(find.textContaining('微信推文'), findsAtLeastNWidgets(1));
+    expect(find.textContaining('青春二工大'), findsOneWidget);
     expect(find.text('微信号：ssputw'), findsNothing);
   });
 
@@ -70,8 +69,8 @@ void main() {
 
     await pumpTile(tester, message);
 
-    expect(find.text('微信推文'), findsOneWidget);
-    expect(find.text('公众号名称未知'), findsOneWidget);
+    expect(find.textContaining('微信推文'), findsAtLeastNWidgets(1));
+    expect(find.textContaining('公众号名称未知'), findsOneWidget);
     expect(find.text('微信号未知'), findsNothing);
   });
 
@@ -88,9 +87,9 @@ void main() {
 
     await pumpTile(tester, message);
 
-    expect(find.text('学校官网'), findsOneWidget);
+    expect(find.textContaining('学校官网'), findsOneWidget);
     expect(find.text('教务处'), findsOneWidget);
-    expect(find.text('学生专栏'), findsOneWidget);
+    expect(find.textContaining('学生专栏'), findsOneWidget);
   });
 
   testWidgets('窄屏消息卡片保持微信账号 fallback 与操作区可布局', (tester) async {
@@ -108,9 +107,8 @@ void main() {
 
     await pumpTile(tester, message, width: 320);
 
-    expect(find.text('微信推文'), findsOneWidget);
-    expect(find.text('青春二工大'), findsOneWidget);
-    expect(find.byIcon(YhIcons.open), findsOneWidget);
-    expect(find.byIcon(YhIcons.check), findsOneWidget);
+    expect(find.textContaining('微信推文'), findsAtLeastNWidgets(1));
+    expect(find.textContaining('青春二工大'), findsOneWidget);
+    expect(find.bySemanticsLabel('打开消息：${message.title}'), findsOneWidget);
   });
 }

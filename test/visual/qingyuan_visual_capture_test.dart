@@ -14,6 +14,7 @@ import 'package:sspu_allinone/pages/about_page.dart';
 import 'package:sspu_allinone/pages/course_schedule_page.dart';
 import 'package:sspu_allinone/pages/email_page.dart';
 import 'package:sspu_allinone/pages/external_link_confirmation_page.dart';
+import 'package:sspu_allinone/pages/info_page.dart';
 import 'package:sspu_allinone/pages/legal_notice_page.dart';
 import 'package:sspu_allinone/pages/quick_links_page.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
@@ -250,6 +251,53 @@ final _surfaces = <_VisualSurface>[
     destination: '课表',
   ),
   _VisualSurface(
+    'info.feed',
+    () => _infoPage(InfoPageDisplayState.initial),
+    state: 'initial',
+    destination: '信息',
+  ),
+  _VisualSurface(
+    'info.feed',
+    () => _infoPage(InfoPageDisplayState.loading),
+    state: 'loading',
+    destination: '信息',
+  ),
+  _VisualSurface(
+    'info.feed',
+    () => _infoPage(InfoPageDisplayState.content, withMessages: true),
+    destination: '信息',
+  ),
+  _VisualSurface(
+    'info.feed',
+    () => _infoPage(InfoPageDisplayState.empty),
+    state: 'empty',
+    destination: '信息',
+  ),
+  _VisualSurface(
+    'info.feed',
+    () => _infoPage(InfoPageDisplayState.stale, withMessages: true),
+    state: 'stale',
+    destination: '信息',
+  ),
+  _VisualSurface(
+    'info.feed',
+    () => _infoPage(InfoPageDisplayState.error),
+    state: 'error',
+    destination: '信息',
+  ),
+  _VisualSurface(
+    'info.filters',
+    () => _infoPage(InfoPageDisplayState.content, withMessages: true),
+    destination: '信息',
+  ),
+  _VisualSurface(
+    'info.filters',
+    () => _infoPage(InfoPageDisplayState.content, withMessages: true),
+    state: 'empty',
+    prepare: _prepareInfoFilterEmpty,
+    destination: '信息',
+  ),
+  _VisualSurface(
     'mail.inbox',
     _mailInitial,
     state: 'initial',
@@ -337,6 +385,20 @@ final _surfaces = <_VisualSurface>[
     state: 'error',
   ),
 ];
+
+Widget _infoPage(InfoPageDisplayState state, {bool withMessages = false}) =>
+    InfoPage(
+      displayStateOverride: state,
+      messagesOverride: withMessages ? qingyuanInfoMessages : const [],
+      wechatSourceConfiguredOverride: true,
+      nowOverride: qingyuanVisualNow,
+      messageRenderLimitOverride: 3,
+    );
+
+Future<void> _prepareInfoFilterEmpty(WidgetTester tester) async {
+  await tester.enterText(find.byKey(const Key('info-search-field')), '不存在的资讯');
+  await tester.pump();
+}
 
 Widget _schedulePage({
   required QingyuanVisualAcademicEamsClient service,

@@ -74,7 +74,13 @@ class _AppShellState extends State<AppShell> {
     _AppDestination(
       title: '信息',
       icon: YhIcons.info,
-      body: _destinationBody('信息', const InfoPage()),
+      body: _destinationBody(
+        '信息',
+        InfoPage(
+          onOpenSourceSettings: () =>
+              _openSettings(SettingsLandingSection.wechat),
+        ),
+      ),
     ),
     _AppDestination(
       title: '邮箱',

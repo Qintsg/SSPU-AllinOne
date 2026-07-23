@@ -232,12 +232,14 @@ void main() {
         tester,
         find.byKey(const Key('info-mobile-controls')),
       );
-      final infoTitle = find.text('信息中心');
+      final infoTitle = find.text('校园资讯');
       final infoTitleTop = tester.getTopLeft(infoTitle).dy;
       expect(infoTitleTop, greaterThanOrEqualTo(topPadding));
-      expect(infoTitleTop, lessThanOrEqualTo(topPadding + 40));
+      expect(infoTitleTop, lessThanOrEqualTo(topPadding + 64));
+      final infoBody = find.byKey(const ValueKey('info-state-empty'));
+      await pumpUntilFound(tester, infoBody);
       expect(
-        tester.getTopLeft(find.byKey(const Key('info-mobile-controls'))).dy,
+        tester.getTopLeft(infoBody).dy,
         greaterThan(tester.getBottomLeft(infoTitle).dy),
       );
 
