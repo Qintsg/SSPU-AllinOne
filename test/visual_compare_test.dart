@@ -43,6 +43,29 @@ void main() {
     expect(result.heatmap.getPixel(0, 0).r, 255);
   });
 
+  test('抗锯齿归一化不会隐藏明显布局位移', () {
+    final baseline = _solidImage(64, 64, red: 255, green: 255, blue: 255);
+    final actual = image.Image.from(baseline);
+    for (var y = 16; y < 48; y += 1) {
+      for (var x = 8; x < 24; x += 1) {
+        baseline.setPixelRgb(x, y, 0, 0, 0);
+      }
+      for (var x = 16; x < 32; x += 1) {
+        actual.setPixelRgb(x, y, 0, 0, 0);
+      }
+    }
+
+    final result = compareVisuals(
+      baseline: baseline,
+      actual: actual,
+      applicationThreshold: 0.95,
+      externalThreshold: 0.95,
+    );
+
+    expect(result.applicationSsim, lessThan(0.95));
+    expect(result.passed, isFalse);
+  });
+
   test('外部区域按 0.95 独立判定且不拖低应用区域', () {
     final baseline = _solidImage(32, 32, red: 240, green: 240, blue: 240);
     final actual = image.Image.from(baseline);

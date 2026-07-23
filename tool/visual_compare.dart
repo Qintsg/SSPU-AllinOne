@@ -13,6 +13,7 @@ import 'dart:math' as math;
 import 'package:image/image.dart' as image;
 
 const int _windowSize = 8;
+const int _ssimPrefilterRadius = 5;
 
 class VisualRegion {
   const VisualRegion({
@@ -124,23 +125,80 @@ VisualComparison compareVisuals({
     }
   }
 
+  // Chromium 与 Flutter/Skia 对同一字体会产生亚像素级抗锯齿差异。
+  // SSIM 输入先做 5px 高斯低通，避免把字形边缘采样差异误判为布局变化；
+  // 热图仍使用原始像素，确保真实偏移和色差可定位。
+  final filteredBaseline = image.gaussianBlur(
+    image.Image.from(baseline),
+    radius: _ssimPrefilterRadius,
+  );
+  final filteredActual = image.gaussianBlur(
+    image.Image.from(actual),
+    radius: _ssimPrefilterRadius,
+  );
+
   return VisualComparison(
     applicationSsim: _windowedSsim(
-      baseline,
-      actual,
-      excludedRegions: externalRegions,
+      filteredBaseline,
+      filteredActual,
+      excludedRegions: _expandedRegions(
+        externalRegions,
+        width: baseline.width,
+        height: baseline.height,
+        margin: _ssimPrefilterRadius,
+      ),
     ),
     applicationThreshold: applicationThreshold,
     externalRegions: externalRegions
         .map(
           (region) => VisualRegionScore(
             region: region,
-            ssim: _windowedSsim(baseline, actual, includedRegion: region),
+            ssim: _windowedSsim(
+              filteredBaseline,
+              filteredActual,
+              includedRegion: _insetRegion(
+                region,
+                margin: _ssimPrefilterRadius,
+              ),
+            ),
             threshold: externalThreshold,
           ),
         )
         .toList(growable: false),
     heatmap: _createHeatmap(baseline, actual),
+  );
+}
+
+List<VisualRegion> _expandedRegions(
+  List<VisualRegion> regions, {
+  required int width,
+  required int height,
+  required int margin,
+}) => regions
+    .map((region) {
+      final x = math.max(0, region.x - margin);
+      final y = math.max(0, region.y - margin);
+      final right = math.min(width, region.x + region.width + margin);
+      final bottom = math.min(height, region.y + region.height + margin);
+      return VisualRegion(
+        id: region.id,
+        x: x,
+        y: y,
+        width: right - x,
+        height: bottom - y,
+      );
+    })
+    .toList(growable: false);
+
+VisualRegion _insetRegion(VisualRegion region, {required int margin}) {
+  final horizontalMargin = math.min(margin, (region.width - 1) ~/ 2);
+  final verticalMargin = math.min(margin, (region.height - 1) ~/ 2);
+  return VisualRegion(
+    id: region.id,
+    x: region.x + horizontalMargin,
+    y: region.y + verticalMargin,
+    width: region.width - horizontalMargin * 2,
+    height: region.height - verticalMargin * 2,
   );
 }
 
