@@ -100,6 +100,21 @@
     });
   }
 
+  function setHomeState(state) {
+    var homePage = document.querySelector('[data-screen="home"]');
+    if (!homePage) return;
+    var showContent = state === 'content' || state === 'stale';
+    homePage.dataset.homeState = state;
+    homePage.querySelectorAll('[data-home-content]').forEach(function (item) {
+      item.hidden = !showContent;
+    });
+    var staleBanner = homePage.querySelector('.home-stale-banner');
+    if (staleBanner) staleBanner.hidden = state !== 'stale';
+    homePage.querySelectorAll('[data-home-state-panel]').forEach(function (panel) {
+      panel.hidden = panel.dataset.homeStatePanel !== state;
+    });
+  }
+
   function setCampusCardHomeState(state) {
     var homePage = document.querySelector('[data-screen="home"]');
     if (!homePage) return;
@@ -455,6 +470,7 @@
     if (tab) panel.setAttribute('aria-labelledby', tab.id);
   });
   window.qingyuanPrototype = {
+    setHomeState: setHomeState,
     setCampusCardHomeState: setCampusCardHomeState,
     setCampusCardDetailState: setCampusCardDetailState,
     setInfoState: setInfoState,

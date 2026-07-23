@@ -279,6 +279,31 @@ def _capture_campus_card_home_state_references(
     page.locator('.prototype-main').evaluate("element => element.scrollTop = 0")
 
 
+def _capture_home_state_references(
+    page: Page,
+    output_dir: Path,
+    theme: str,
+    width: int,
+    height: int,
+) -> None:
+    for state in ("initial", "loading", "stale", "error"):
+        page.evaluate("state => window.qingyuanPrototype.setHomeState(state)", state)
+        if state == "stale":
+            _assert(page.locator('.home-stale-banner:visible').count() == 1, "首页 stale 状态未显示缓存提示")
+            _assert(page.locator('.home-layout:visible').count() == 1, "首页 stale 状态丢失已有内容")
+        else:
+            panel = page.locator(f'[data-home-state-panel="{state}"]:visible')
+            _assert(panel.count() == 1, f"首页 {state} 状态面板未显示")
+        _capture_reference(
+            page,
+            output_dir / f"home.dashboard--{state}--{theme}--{width}x{height}.png",
+            width,
+            height,
+        )
+    page.evaluate("window.qingyuanPrototype.setHomeState('content')")
+    page.locator('.prototype-main').evaluate("element => element.scrollTop = 0")
+
+
 def _capture_campus_card_detail_state_references(
     page: Page,
     output_dir: Path,
@@ -404,6 +429,7 @@ def verify(output_dir: Path) -> None:
                     height,
                 )
                 if screen == "home":
+                    _capture_home_state_references(page, output_dir, "light", width, height)
                     _capture_campus_card_home_state_references(page, output_dir, "light", width, height)
                 if screen == "campus-card-detail":
                     _capture_campus_card_detail_state_references(page, output_dir, "light", width, height)
@@ -452,6 +478,7 @@ def verify(output_dir: Path) -> None:
                     height,
                 )
                 if screen == "home":
+                    _capture_home_state_references(page, output_dir, "dark", width, height)
                     _capture_campus_card_home_state_references(page, output_dir, "dark", width, height)
                 if screen == "campus-card-detail":
                     _capture_campus_card_detail_state_references(page, output_dir, "dark", width, height)

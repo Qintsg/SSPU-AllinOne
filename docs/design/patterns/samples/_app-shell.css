@@ -254,6 +254,22 @@ button.overview-card:hover { border-color: var(--brand); background: var(--brand
 .overview-card b { display: block; font-size: var(--type-body); }
 .overview-card span { display: block; margin-top: var(--space-xs); color: var(--muted); font-size: var(--type-caption); }
 .overview-value { font: 600 var(--type-body)/1 var(--mono); }
+.home-stale-banner { max-width: none; margin-bottom: var(--space-m); }
+.home-utility-dock { display: grid; grid-template-columns: minmax(0, var(--responsive-home-secondary-flex)) minmax(0, var(--responsive-home-primary-flex)); gap: var(--space-m); margin-top: var(--space-m); }
+.home-second-classroom { display: grid; grid-template-columns: calc(var(--control-regular) - var(--space-xs)) minmax(0, 1fr) auto; align-items: center; gap: var(--space-m); }
+.home-second-classroom b, .home-second-classroom span { display: block; }
+.home-second-classroom span span { margin-top: var(--space-xs); color: var(--muted); font-size: var(--type-caption); }
+.home-quick-links { display: flex; align-items: center; justify-content: space-between; gap: var(--space-l); }
+.home-quick-links h2 { margin: 0; font: var(--weight-h3) var(--type-h3)/var(--line-height-h3) var(--font); }
+.home-quick-link-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-s); }
+.home-quick-link-actions button { min-height: var(--control-regular); display: inline-flex; align-items: center; gap: var(--space-s); padding: var(--space-s) var(--space-m); border: 1px solid var(--border); border-radius: var(--radius-input); color: var(--fg); background: var(--surface); cursor: pointer; }
+.home-quick-link-actions button:hover { color: var(--brand-ink); border-color: var(--brand); background: var(--brand-tint); }
+.home-quick-link-actions button:focus-visible { outline: var(--focus-ring-width) solid var(--brand-strong); outline-offset: var(--focus-ring-gap); }
+.home-quick-link-actions svg { width: calc(var(--space-l) - var(--space-xs)); height: calc(var(--space-l) - var(--space-xs)); fill: none; stroke: currentColor; stroke-width: 1.8; }
+.home-state-panel { min-height: calc(var(--layout-popover-width) + var(--space-xl)); display: grid; place-items: center; }
+.home-state-panel .yh-empty > svg { width: var(--control-regular); height: var(--control-regular); padding: var(--space-s); border-radius: var(--radius-m); color: var(--brand-strong); background: var(--brand-tint); fill: none; stroke: currentColor; stroke-width: 1.8; }
+.home-state-panel .yh-empty h2, .home-state-panel .yh-empty p { margin: 0; }
+.home-state-panel .yh-empty h2 { color: var(--fg); font: var(--weight-h3) var(--type-h3)/var(--line-height-h3) var(--font); }
 
 .content-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--space-m); }
 .span-4 { grid-column: span 4; }
@@ -431,7 +447,7 @@ button.overview-card:hover { border-color: var(--brand); background: var(--brand
 .prototype-toast { position: fixed; z-index: 20; right: var(--space-l); bottom: var(--space-l); max-width: min(360px, calc(100vw - var(--space-xl))); padding: var(--space-m); border: 1px solid var(--border); border-radius: var(--radius-m); color: var(--fg); background: var(--surface); box-shadow: var(--shadow-2); font-size: var(--type-small); }
 
 @media (max-width: 900px) {
-  .home-layout, .feed-layout, .mail-layout, .settings-layout { grid-template-columns: 1fr; }
+  .home-layout, .home-utility-dock, .feed-layout, .mail-layout, .settings-layout { grid-template-columns: 1fr; }
   .timeline-panel { min-height: auto; }
   .span-4, .span-5, .span-7, .span-8 { grid-column: span 6; }
   .link-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -467,6 +483,8 @@ button.overview-card:hover { border-color: var(--brand); background: var(--brand
   .page-heading p { font-size: var(--type-small); }
   .page-actions .yh-button { display: none; }
   .page-actions .mail-write-icon { display: grid; }
+  .home-quick-links { align-items: flex-start; flex-direction: column; }
+  .home-quick-link-actions { justify-content: flex-start; }
   .timeline-panel { padding: var(--space-l); border-radius: var(--radius-l); }
   .timeline-panel h2 { margin: var(--space-l) 0 var(--space-xl); font-size: var(--type-h1); }
   .content-grid { display: block; }

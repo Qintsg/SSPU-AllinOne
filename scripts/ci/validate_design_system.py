@@ -462,6 +462,13 @@ def _validate_page_prototype(project_root: Path) -> None:
             "首页校园卡原型缺少状态："
             + ", ".join(missing_campus_card_home_states)
         )
+    required_home_states = {"initial", "loading", "error"}
+    home_states = set(re.findall(r'data-home-state-panel="([a-z-]+)"', prototype))
+    missing_home_states = sorted(required_home_states - home_states)
+    if missing_home_states:
+        errors.append("首页原型缺少状态：" + ", ".join(missing_home_states))
+    if "home-stale-banner" not in prototype:
+        errors.append("首页原型缺少 stale 缓存提示")
     required_campus_card_detail_states = {"empty"}
     campus_card_detail_states = set(
         re.findall(r'data-campus-card-detail-state="([a-z-]+)"', prototype)
@@ -491,8 +498,16 @@ def _validate_page_prototype(project_root: Path) -> None:
         if marker not in prototype:
             errors.append(f"快捷入口原型缺少{label}")
 
+    for marker, label in (
+        ('aria-label="首页显示第二课堂"', "第二课堂辅助坞开关"),
+        ('aria-label="首页显示常用入口"', "常用入口辅助坞开关"),
+    ):
+        if marker not in prototype:
+            errors.append(f"设置原型缺少{label}")
+
     prototype_js = (project_root / "docs/design/patterns/samples/_app-shell.js").read_text(encoding="utf-8")
     for setter in (
+        "setHomeState",
         "setCampusCardHomeState",
         "setCampusCardDetailState",
         "setInfoState",
@@ -507,6 +522,7 @@ def _validate_page_prototype(project_root: Path) -> None:
     if verifier_path.exists():
         verifier = verifier_path.read_text(encoding="utf-8")
         for surface in (
+            "home.dashboard",
             "home.campus-card",
             "home.campus-card-detail",
             "info.feed",
