@@ -755,19 +755,35 @@ void main() {
     expect(find.text('显示时间轨待办'), findsOneWidget);
     expect(find.text('显示邮箱摘要磁贴'), findsOneWidget);
     expect(find.text('显示常用入口辅助坞'), findsOneWidget);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-home-student-profile-card-switch')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const Key('settings-home-student-profile-card-switch')),
     );
     await tester.pump();
     expect(studentVisible, isFalse);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-home-campus-card-switch')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('settings-home-campus-card-switch')));
     await tester.pump();
     expect(campusCardVisible, isFalse);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-home-today-courses-switch')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const Key('settings-home-today-courses-switch')),
     );
     await tester.pump();
     expect(todayCoursesVisible, isFalse);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-home-sports-attendance-switch')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const Key('settings-home-sports-attendance-switch')),
     );

@@ -8,10 +8,14 @@
 
 import '../design/qingyuan/qingyuan_ui.dart';
 import 'settings_update_section.dart';
+import 'settings_appearance_section.dart';
 import 'settings_widgets.dart';
 
 /// 常规设置分区。
 class SettingsGeneralSection extends StatelessWidget {
+  final YhThemeMode themeMode;
+  final ValueChanged<YhThemeMode>? onThemeModeChanged;
+
   /// 当前关闭行为。
   final String closeBehavior;
 
@@ -94,6 +98,8 @@ class SettingsGeneralSection extends StatelessWidget {
 
   const SettingsGeneralSection({
     super.key,
+    this.themeMode = YhThemeMode.system,
+    this.onThemeModeChanged,
     required this.closeBehavior,
     required this.notificationEnabled,
     required this.dndEnabled,
@@ -131,6 +137,11 @@ class SettingsGeneralSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildWindowBehaviorSection(context),
+        SizedBox(height: spacing.l),
+        SettingsAppearanceSection(
+          themeMode: themeMode,
+          onChanged: onThemeModeChanged,
+        ),
         SizedBox(height: spacing.l),
         _buildHomeDisplaySection(context),
         SizedBox(height: spacing.l),

@@ -18,6 +18,8 @@ class AppShell extends StatefulWidget {
     this.campusNetworkStatusService,
     this.initialDestinationIndex = 0,
     this.destinationOverrides = const {},
+    this.themeMode = YhThemeMode.system,
+    this.onThemeModeChanged,
   }) : assert(initialDestinationIndex >= 0 && initialDestinationIndex < 7);
 
   final VoidCallback? onLock;
@@ -28,6 +30,8 @@ class AppShell extends StatefulWidget {
 
   /// 测试专用：按用户可见名称替换页面，保留生产导航壳。
   final Map<String, Widget> destinationOverrides;
+  final YhThemeMode themeMode;
+  final ValueChanged<YhThemeMode>? onThemeModeChanged;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -93,6 +97,8 @@ class _AppShellState extends State<AppShell> {
         SettingsPage(
           onLock: widget.onLock,
           landingRequest: _settingsLandingRequest,
+          themeMode: widget.themeMode,
+          onThemeModeChanged: widget.onThemeModeChanged,
         ),
       ),
     ),

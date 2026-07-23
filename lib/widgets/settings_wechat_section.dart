@@ -15,6 +15,7 @@ import 'app_feedback.dart';
 import 'settings_wechat_config_dialog.dart';
 import 'settings_wechat_matrix_card.dart';
 import 'settings_wechat_refresh_card.dart';
+import 'settings_wechat_auth_status_card.dart';
 import '../pages/wxmp_login_page.dart';
 
 /// 微信推文设置分区。
@@ -149,91 +150,29 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
   }
 
   Widget _buildAuthCard(BuildContext context) {
-    final theme = context.yhTheme;
-    return YhCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: theme.spacing.s,
-            runSpacing: theme.spacing.s,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                '公众号平台认证',
-                style: theme.typography.body.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              YhChip(
-                label: _controller.wxmpAuthenticated ? '已认证' : '未认证',
-                selected: _controller.wxmpAuthenticated,
-              ),
-            ],
-          ),
-          if (_controller.wxmpAuthStatus != null) ...[
-            SizedBox(height: theme.spacing.xs),
-            Text(
-              _controller.wxmpAuthStatus!.message,
-              style: theme.typography.caption.copyWith(
-                color: theme.color.muted,
-              ),
-            ),
-          ],
-          SizedBox(height: theme.spacing.s),
-          YhSelectableText(
-            _controller.wxmpConfigPath.isEmpty
-                ? '认证配置路径加载中...'
-                : '配置文件：${_controller.wxmpConfigPath}',
-            style: theme.typography.caption.copyWith(color: theme.color.muted),
-          ),
-          if (_controller.wxmpConfigMessage.isNotEmpty) ...[
-            SizedBox(height: theme.spacing.xs),
-            Text(
-              _controller.wxmpConfigMessage,
-              style: theme.typography.caption.copyWith(
-                color: theme.color.muted,
-              ),
-            ),
-          ],
-          SizedBox(height: theme.spacing.m),
-          Wrap(
-            spacing: theme.spacing.s,
-            runSpacing: theme.spacing.s,
-            children: [
-              YhButton(
-                label: '扫码登录',
-                onTap: _openWxmpLogin,
-                leadingIcon: YhIcons.qrCode,
-              ),
-              YhButton(
-                label: '编辑配置文件',
-                onTap: _openConfigEditor,
-                leadingIcon: YhIcons.edit,
-                variant: YhButtonVariant.secondary,
-              ),
-              YhButton(
-                label: _controller.wxmpValidating ? '校验中' : '重新加载配置并校验',
-                onTap: _controller.wxmpValidating
-                    ? null
-                    : () async =>
-                          _showFeedback(await _controller.reloadConfigFile()),
-                disabled: _controller.wxmpValidating,
-                leadingIcon: _controller.wxmpValidating ? null : YhIcons.sync,
-                variant: YhButtonVariant.secondary,
-              ),
-              YhButton(
-                label: '清除认证',
-                onTap: _controller.wxmpAuthenticated
-                    ? () async => _showFeedback(await _controller.clearAuth())
-                    : null,
-                disabled: !_controller.wxmpAuthenticated,
-                variant: YhButtonVariant.secondary,
-              ),
-            ],
-          ),
-        ],
-      ),
+    final message = [
+      if (_controller.wxmpAuthStatus != null)
+        _controller.wxmpAuthStatus!.message,
+      if (_controller.wxmpConfigMessage.isNotEmpty)
+        _controller.wxmpConfigMessage,
+    ].join(' · ');
+    return SettingsWechatAuthStatusCard(
+      state: _controller.wxmpValidating
+          ? SettingsWechatAuthDisplayState.loading
+          : _controller.wxmpConfigMessage.contains('失败')
+          ? SettingsWechatAuthDisplayState.error
+          : _controller.wxmpAuthenticated
+          ? SettingsWechatAuthDisplayState.content
+          : SettingsWechatAuthDisplayState.initial,
+      configPath: _controller.wxmpConfigPath,
+      statusMessage: message.isEmpty ? '尚未连接公众号平台账号。' : message,
+      onLogin: _openWxmpLogin,
+      onEdit: _openConfigEditor,
+      onValidate: () async =>
+          _showFeedback(await _controller.reloadConfigFile()),
+      onClear: _controller.wxmpAuthenticated
+          ? () async => _showFeedback(await _controller.clearAuth())
+          : null,
     );
   }
 }

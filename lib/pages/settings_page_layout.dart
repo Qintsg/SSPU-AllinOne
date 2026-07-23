@@ -268,6 +268,8 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
     switch (_selectedTab) {
       case 0:
         return SettingsGeneralSection(
+          themeMode: widget.themeMode,
+          onThemeModeChanged: widget.onThemeModeChanged,
           closeBehavior: _closeBehavior,
           notificationEnabled: _notificationEnabled,
           dndEnabled: _dndEnabled,

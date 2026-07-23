@@ -53,11 +53,16 @@ class SettingsPage extends StatefulWidget {
   /// 初始或后续定位请求。
   final SettingsLandingRequest? landingRequest;
 
+  final YhThemeMode themeMode;
+  final ValueChanged<YhThemeMode>? onThemeModeChanged;
+
   const SettingsPage({
     super.key,
     this.onLock,
     this.academicTermNow,
     this.landingRequest,
+    this.themeMode = YhThemeMode.system,
+    this.onThemeModeChanged,
   });
 
   @override

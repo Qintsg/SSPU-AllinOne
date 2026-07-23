@@ -3,9 +3,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,6 +20,7 @@ import 'package:sspu_allinone/models/sports_attendance.dart';
 import 'package:sspu_allinone/models/student_report.dart';
 import 'package:sspu_allinone/pages/about_page.dart';
 import 'package:sspu_allinone/pages/academic_calendar_page.dart';
+import 'package:sspu_allinone/pages/academic_calendar_pdf_page.dart';
 import 'package:sspu_allinone/pages/academic_page.dart';
 import 'package:sspu_allinone/pages/course_schedule_page.dart';
 import 'package:sspu_allinone/pages/email_page.dart';
@@ -29,6 +32,7 @@ import 'package:sspu_allinone/pages/lock_page.dart';
 import 'package:sspu_allinone/pages/quick_links_page.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/services/system_auth_service.dart';
+import 'package:sspu_allinone/services/app_update_service.dart';
 import 'package:sspu_allinone/services/quick_links_config_service.dart';
 import 'package:sspu_allinone/services/campus_network_status_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
@@ -36,6 +40,11 @@ import 'package:sspu_allinone/widgets/app_close_confirmation_dialog.dart';
 import 'package:sspu_allinone/widgets/app_more_destinations.dart';
 import 'package:sspu_allinone/widgets/app_startup_status.dart';
 import 'package:sspu_allinone/widgets/legal_consent_dialog.dart';
+import 'package:sspu_allinone/widgets/settings_appearance_section.dart';
+import 'package:sspu_allinone/widgets/settings_general_section.dart';
+import 'package:sspu_allinone/widgets/settings_security_section.dart';
+import 'package:sspu_allinone/widgets/settings_update_section.dart';
+import 'package:sspu_allinone/widgets/settings_wechat_auth_status_card.dart';
 
 import '../support/qingyuan_visual_fixtures.dart';
 
@@ -224,7 +233,7 @@ Future<void> _writeExternalRegionSidecar({
   if (rect.isEmpty) {
     throw StateError('外部区域 $regionId 没有可比较像素：${target.path}');
   }
-  await File('${target.path}.regions.json').writeAsString(
+  File('${target.path}.regions.json').writeAsStringSync(
     const JsonEncoder.withIndent('  ').convert({
       'externalRegions': [
         {
@@ -236,6 +245,7 @@ Future<void> _writeExternalRegionSidecar({
         },
       ],
     }),
+    flush: true,
   );
 }
 
@@ -653,6 +663,7 @@ final _surfaces = <_VisualSurface>[
   _VisualSurface(
     'info.filters',
     () => _infoPage(InfoPageDisplayState.content, withMessages: true),
+    prepare: _prepareInfoFiltersContent,
     destination: '信息',
   ),
   _VisualSurface(
@@ -743,13 +754,395 @@ final _surfaces = <_VisualSurface>[
     state: 'error',
   ),
   _VisualSurface('legal.notice', () => const LegalNoticePage()),
+  _VisualSurface(
+    'legal.agreement',
+    () => LegalNoticePage(
+      title: '用户协议',
+      loadLegalNotice: (_) async => _visualLegalNotice,
+    ),
+  ),
+  _VisualSurface(
+    'legal.privacy',
+    () => LegalNoticePage(
+      title: '隐私协议',
+      loadLegalNotice: (_) async => _visualLegalNotice,
+    ),
+  ),
+  _VisualSurface('settings.account', _settingsAccountContent),
+  _VisualSurface('settings.account', _settingsAccountError, state: 'error'),
+  _VisualSurface(
+    'settings.home-notifications',
+    _settingsHomeNotifications,
+    prepare: _showSettingsNotifications,
+  ),
+  _VisualSurface('settings.appearance', _settingsAppearance),
+  for (final state in SettingsDataPrivacyState.values)
+    _VisualSurface(
+      'settings.data-privacy',
+      () => _settingsDataPrivacy(state),
+      state: state.name,
+    ),
+  for (final state in SettingsWechatAuthDisplayState.values)
+    _VisualSurface(
+      'settings.wechat-auth',
+      () => _settingsWechatAuth(state),
+      state: state.name,
+    ),
+  _VisualSurface('settings.update', _settingsUpdateInitial, state: 'initial'),
+  _VisualSurface(
+    'settings.update',
+    _settingsUpdateLoading,
+    state: 'loading',
+    prepare: _startSettingsUpdateCheck,
+  ),
+  _VisualSurface(
+    'settings.update',
+    _settingsUpdateContent,
+    prepare: _startSettingsUpdateCheck,
+  ),
+  _VisualSurface(
+    'settings.update',
+    _settingsUpdateError,
+    state: 'error',
+    prepare: _startSettingsUpdateCheck,
+  ),
   _VisualSurface('settings.about', () => const AboutPage()),
+  _VisualSurface(
+    'external.webview',
+    () => _externalWebViewSurface(loading: true),
+    state: 'loading',
+    externalRegionId: 'document',
+    externalRegionKey: _webViewExternalRegionKey,
+  ),
+  _VisualSurface(
+    'external.webview',
+    () => _externalWebViewSurface(loading: false),
+    externalRegionId: 'document',
+    externalRegionKey: _webViewExternalRegionKey,
+  ),
   _VisualSurface(
     'external.webview',
     () => const WebViewPage(url: 'invalid-url', initialTitle: '校园服务'),
     state: 'error',
   ),
+  for (final state in const ['loading', 'content', 'error'])
+    _VisualSurface(
+      'external.pdf',
+      () => _externalPdfSurface(state),
+      state: state,
+      externalRegionId: 'document',
+      externalRegionKey: _pdfExternalRegionKey,
+    ),
+  for (final state in const ['initial', 'content', 'error'])
+    _VisualSurface(
+      'external.system-auth',
+      () => _externalSystemAuthSurface(state),
+      state: state,
+      externalRegionId: 'system-dialog',
+      externalRegionKey: _systemAuthExternalRegionKey,
+    ),
 ];
+
+Widget _settingsPageSurface(String title, Widget child) => Builder(
+  builder: (context) {
+    final theme = context.yhTheme;
+    return YhPageScaffold(
+      appBar: YhAppBar(title: title),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(theme.spacing.m),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: theme.breakpoint.medium),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  },
+);
+
+Widget _settingsAppearance() => _settingsPageSurface(
+  '外观设置',
+  SettingsAppearanceSection(themeMode: YhThemeMode.system, onChanged: (_) {}),
+);
+
+Widget _settingsHomeNotifications() => _settingsPageSurface(
+  '首页与通知',
+  SettingsGeneralSection(
+    closeBehavior: 'ask',
+    notificationEnabled: true,
+    dndEnabled: true,
+    homeStudentProfileCardVisible: true,
+    homeCampusCardBalanceCardVisible: true,
+    homeTodayCoursesTileVisible: true,
+    homeSportsAttendanceTileVisible: true,
+    homeStudentReportTileVisible: true,
+    homeMessagesTileVisible: true,
+    homeEmailTileVisible: true,
+    homeQuickLinksTileVisible: true,
+    dndStartHour: 22,
+    dndStartMinute: 0,
+    dndEndHour: 7,
+    dndEndMinute: 0,
+    onCloseBehaviorChanged: (_) {},
+    onNotificationChanged: (_) {},
+    onDndChanged: (_) {},
+    onHomeStudentProfileCardVisibleChanged: (_) {},
+    onHomeCampusCardBalanceCardVisibleChanged: (_) {},
+    onHomeTodayCoursesTileVisibleChanged: (_) {},
+    onHomeSportsAttendanceTileVisibleChanged: (_) {},
+    onHomeStudentReportTileVisibleChanged: (_) {},
+    onHomeMessagesTileVisibleChanged: (_) {},
+    onHomeEmailTileVisibleChanged: (_) {},
+    onHomeQuickLinksTileVisibleChanged: (_) {},
+    onDndStartChanged: (_, _) async {},
+    onDndEndChanged: (_, _) async {},
+  ),
+);
+
+Future<void> _showSettingsNotifications(WidgetTester tester) async {
+  await tester.ensureVisible(find.text('消息推送'));
+  await tester.pump();
+}
+
+Widget _settingsAccountContent() =>
+    _settingsPageSurface('账户连接', _settingsSecuritySection());
+
+Widget _settingsAccountError() => _settingsPageSurface(
+  '账户连接',
+  Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const YhBanner(
+        text: '账号验证失败：校园服务暂时不可达。请检查网络后重新验证。',
+        kind: YhBannerKind.danger,
+      ),
+      SizedBox(height: YhTheme.light.spacing.m),
+      _settingsSecuritySection(),
+    ],
+  ),
+);
+
+Widget _settingsSecuritySection() => SettingsSecuritySection(
+  isPasswordEnabled: true,
+  onPasswordProtectionChanged: (_) {},
+  onChangePassword: () {},
+  isQuickAuthEnabled: true,
+  isQuickAuthAvailable: true,
+  isQuickAuthBusy: false,
+  onQuickAuthChanged: (_) {},
+  onLock: () {},
+  onClearMessageCache: () {},
+  onClearAllData: () {},
+);
+
+Widget _settingsDataPrivacy(SettingsDataPrivacyState state) =>
+    _settingsPageSurface(
+      '数据与隐私',
+      YhCard(
+        child: SettingsDataPrivacySection(
+          state: state,
+          errorMessage: '部分缓存被系统占用，未能全部清理。请关闭相关页面后重试。',
+          onClearMessageCache: () {},
+          onClearAllData: () {},
+        ),
+      ),
+    );
+
+Widget _settingsWechatAuth(SettingsWechatAuthDisplayState state) =>
+    _settingsPageSurface(
+      '微信认证',
+      SettingsWechatAuthStatusCard(
+        state: state,
+        configPath: '应用数据目录/wxmp_config.json',
+        statusMessage: switch (state) {
+          SettingsWechatAuthDisplayState.initial => '尚未连接公众号平台账号。',
+          SettingsWechatAuthDisplayState.loading => '正在校验 Cookie 与 Token…',
+          SettingsWechatAuthDisplayState.content => '认证有效，可获取已关注公众号推文。',
+          SettingsWechatAuthDisplayState.error => '认证已过期，请重新扫码登录。',
+        },
+        onLogin: () {},
+        onEdit: () {},
+        onValidate: () {},
+        onClear: state == SettingsWechatAuthDisplayState.content ? () {} : null,
+      ),
+    );
+
+Widget _settingsUpdateInitial() => _settingsUpdateSurface(
+  _VisualUpdateService(() async => _visualUpdateResult),
+);
+
+Widget _settingsUpdateLoading() => _settingsUpdateSurface(
+  _VisualUpdateService(() => Completer<AppUpdateCheckResult>().future),
+);
+
+Widget _settingsUpdateContent() => _settingsUpdateSurface(
+  _VisualUpdateService(() async => _visualUpdateResult),
+);
+
+Widget _settingsUpdateError() => _settingsUpdateSurface(
+  _VisualUpdateService(
+    () => Future.error(
+      DioException(
+        requestOptions: RequestOptions(path: '/releases'),
+        type: DioExceptionType.connectionError,
+        error: 'network unavailable',
+      ),
+    ),
+  ),
+);
+
+Widget _settingsUpdateSurface(AppUpdateService service) => _settingsPageSurface(
+  '应用更新',
+  SettingsUpdateSection(
+    updateService: service,
+    launchUrlOverride: (_) async => true,
+  ),
+);
+
+Future<void> _startSettingsUpdateCheck(WidgetTester tester) async {
+  await tester.tap(find.text('检查更新').last);
+  await tester.pump();
+  await tester.pump();
+}
+
+class _VisualUpdateService extends AppUpdateService {
+  _VisualUpdateService(this.loader);
+
+  final Future<AppUpdateCheckResult> Function() loader;
+
+  @override
+  Future<AppUpdateCheckResult> checkForUpdates({
+    AppUpdateChannel channel = AppUpdateChannel.stable,
+  }) => loader();
+}
+
+const AppUpdateCheckResult _visualUpdateResult = AppUpdateCheckResult(
+  status: AppUpdateStatus.upToDate,
+  currentVersion: '1.0.0',
+  channel: AppUpdateChannel.stable,
+  release: null,
+  recommendedAsset: null,
+  message: '当前已是正式版最新版本。',
+);
+
+const Key _webViewExternalRegionKey = Key('visual-webview-document');
+const Key _pdfExternalRegionKey = Key('visual-pdf-document');
+const Key _systemAuthExternalRegionKey = Key('visual-system-auth-dialog');
+
+Widget _externalWebViewSurface({required bool loading}) => WebViewPageFrame(
+  title: loading ? '正在打开校园门户' : '校园门户',
+  onBackPressed: () {},
+  progress: loading ? 0.38 : null,
+  actions: [
+    YhIconButton(semanticLabel: '刷新', icon: YhIcons.refresh, onTap: () {}),
+    YhIconButton(semanticLabel: '在浏览器中打开', icon: YhIcons.open, onTap: () {}),
+  ],
+  document: _externalDocumentRegion(
+    key: _webViewExternalRegionKey,
+    icon: YhIcons.open,
+    title: loading ? '网页正在加载' : '上海第二工业大学校园门户',
+    message: loading
+        ? '平台 WebView runner 将在此处加载真实网页。'
+        : '网页正文属于外部区域，按 SSIM 0.95 独立验收。',
+    loading: loading,
+  ),
+);
+
+Widget _externalPdfSurface(String state) => AcademicCalendarPdfFrame(
+  title: '2025—2026 学年校历',
+  onBack: () {},
+  onOpenExternal: () {},
+  document: _externalDocumentRegion(
+    key: _pdfExternalRegionKey,
+    icon: state == 'error' ? YhIcons.warning : YhIcons.library,
+    title: switch (state) {
+      'loading' => '正在加载校历 PDF',
+      'error' => 'PDF 加载失败',
+      _ => '2025—2026 学年校历正文',
+    },
+    message: switch (state) {
+      'loading' => '正在准备页面与字体…',
+      'error' => '无法读取 PDF。可使用右上角按钮在外部应用中打开。',
+      _ => 'PDF 正文属于外部区域，按 SSIM 0.95 独立验收。',
+    },
+    loading: state == 'loading',
+  ),
+);
+
+Widget _externalSystemAuthSurface(String state) => Builder(
+  builder: (context) => Stack(
+    fit: StackFit.expand,
+    children: [
+      _lockInitial(),
+      ColoredBox(color: context.yhTheme.color.scrim),
+      Center(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final theme = context.yhTheme;
+            final width = math.min(
+              theme.layout.dialogWidth,
+              constraints.maxWidth - theme.spacing.l * 2,
+            );
+            return KeyedSubtree(
+              key: _systemAuthExternalRegionKey,
+              child: SizedBox(
+                width: width,
+                height: theme.breakpoint.compact / 2,
+                child: YhCard(
+                  child: YhEmptyState(
+                    icon: state == 'error'
+                        ? YhIcons.warning
+                        : YhIcons.fingerprint,
+                    title: switch (state) {
+                      'initial' => '准备系统认证',
+                      'error' => '系统认证未完成',
+                      _ => '验证身份以解锁工大聚合',
+                    },
+                    message: switch (state) {
+                      'initial' => '系统即将请求设备 PIN 或生物识别。',
+                      'error' => '请重试系统认证，或返回应用输入密码。',
+                      _ => '此区域由操作系统绘制，按 SSIM 0.95 独立验收。',
+                    },
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    ],
+  ),
+);
+
+Widget _externalDocumentRegion({
+  required Key key,
+  required IconData icon,
+  required String title,
+  required String message,
+  bool loading = false,
+}) => Builder(
+  builder: (context) => KeyedSubtree(
+    key: key,
+    child: ColoredBox(
+      color: context.yhTheme.color.sunken,
+      child: Center(
+        child: loading
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const YhProgress(showPercent: false),
+                  SizedBox(height: context.yhTheme.spacing.m),
+                  Text(title),
+                  SizedBox(height: context.yhTheme.spacing.xs),
+                  Text(message),
+                ],
+              )
+            : YhEmptyState(icon: icon, title: title, message: message),
+      ),
+    ),
+  ),
+);
 
 Widget _shellNavigation({int initialDestinationIndex = 0}) {
   final page = const YhPageScaffold(
@@ -1187,11 +1580,13 @@ Widget _homeDashboardPage(HomeDashboardDisplayState state) =>
     _homeCampusCardPage(
       HomeCampusCardDisplayState.content,
       dashboardState: state,
+      focusCampusCard: false,
     );
 
 Widget _homeCampusCardPage(
   HomeCampusCardDisplayState state, {
   HomeDashboardDisplayState dashboardState = HomeDashboardDisplayState.content,
+  bool focusCampusCard = true,
 }) {
   final result = switch (state) {
     HomeCampusCardDisplayState.empty => qingyuanCampusCardEmptyResult,
@@ -1203,35 +1598,59 @@ Widget _homeCampusCardPage(
   return HomePage(
     campusCardService: QingyuanVisualCampusCardClient(result: result),
     academicEamsService: QingyuanVisualAcademicEamsClient(
-      result: qingyuanHomeAcademicResult,
-      cachedResult: qingyuanHomeAcademicResult,
-      cachedOverviewResult: qingyuanHomeAcademicResult,
+      result: focusCampusCard
+          ? qingyuanAcademicOverviewEmptyResult
+          : qingyuanHomeAcademicResult,
+      cachedResult: focusCampusCard
+          ? qingyuanAcademicOverviewEmptyResult
+          : qingyuanHomeAcademicResult,
+      cachedOverviewResult: focusCampusCard
+          ? qingyuanAcademicOverviewEmptyResult
+          : qingyuanHomeAcademicResult,
     ),
     sportsAttendanceService: QingyuanVisualSportsAttendanceClient(
-      qingyuanHomeSportsResult,
+      focusCampusCard
+          ? qingyuanAcademicSportsEmptyResult
+          : qingyuanHomeSportsResult,
     ),
     studentReportService: QingyuanVisualStudentReportClient(
-      qingyuanHomeStudentReportResult,
+      focusCampusCard
+          ? qingyuanAcademicStudentReportEmptyResult
+          : qingyuanHomeStudentReportResult,
     ),
     emailService: QingyuanVisualEmailClient(
-      cachedResult: qingyuanHomeEmailResult,
+      cachedResult: focusCampusCard
+          ? qingyuanEmailEmptyResult
+          : qingyuanHomeEmailResult,
     ),
     campusNetworkStatusService: _visualCampusNetworkStatusService(),
     campusCardAutoRefreshEnabledOverride: false,
     campusCardResultOverride: result,
     campusCardDisplayStateOverride: state,
     nowOverride: qingyuanVisualNow,
-    messagesOverride: qingyuanHomeMessages,
+    messagesOverride: focusCampusCard ? const [] : qingyuanHomeMessages,
     homeUpdatedAtOverride: DateTime(2026, 7, 18, 8, 42),
     homeCountdownMinutesOverride: 42,
     homeCourseTimeOverrides: const {'数据结构': '10:00'},
     dashboardDisplayStateOverride: dashboardState,
-    courseTableResultOverride: qingyuanHomeAcademicResult,
-    academicOverviewResultOverride: qingyuanHomeAcademicResult,
-    sportsAttendanceResultOverride: qingyuanHomeSportsResult,
-    emailResultOverride: qingyuanHomeEmailResult,
-    studentReportResultOverride: qingyuanHomeStudentReportResult,
-    quickLinkFavoritesOverride: _qingyuanHomeQuickLinks,
+    courseTableResultOverride: focusCampusCard
+        ? qingyuanAcademicOverviewEmptyResult
+        : qingyuanHomeAcademicResult,
+    academicOverviewResultOverride: focusCampusCard
+        ? qingyuanAcademicOverviewEmptyResult
+        : qingyuanHomeAcademicResult,
+    sportsAttendanceResultOverride: focusCampusCard
+        ? qingyuanAcademicSportsEmptyResult
+        : qingyuanHomeSportsResult,
+    emailResultOverride: focusCampusCard
+        ? qingyuanEmailEmptyResult
+        : qingyuanHomeEmailResult,
+    studentReportResultOverride: focusCampusCard
+        ? qingyuanAcademicStudentReportEmptyResult
+        : qingyuanHomeStudentReportResult,
+    quickLinkFavoritesOverride: focusCampusCard
+        ? const []
+        : _qingyuanHomeQuickLinks,
   );
 }
 
@@ -1246,7 +1665,21 @@ CampusNetworkStatusService _visualCampusNetworkStatusService() {
 }
 
 Future<void> _prepareHomeCampusCard(WidgetTester tester) async {
-  await _prepareHomeDashboard(tester);
+  for (var attempt = 0; attempt < 40; attempt++) {
+    await tester.pump(const Duration(milliseconds: 50));
+    if (find
+        .byKey(const Key('home-campus-card-balance-card'))
+        .evaluate()
+        .isNotEmpty) {
+      break;
+    }
+  }
+  if (find
+      .byKey(const Key('home-campus-card-balance-card'))
+      .evaluate()
+      .isEmpty) {
+    throw StateError('校园卡 fixture 未在固定等待窗口内完成加载');
+  }
   await _centerInScrollable(
     tester,
     find.byKey(const Key('home-campus-card-balance-card')),
@@ -1292,6 +1725,19 @@ Widget _infoPage(InfoPageDisplayState state, {bool withMessages = false}) =>
 
 Future<void> _prepareInfoFilterEmpty(WidgetTester tester) async {
   await tester.enterText(find.byKey(const Key('info-search-field')), '不存在的资讯');
+  await tester.pump();
+}
+
+Future<void> _prepareInfoFiltersContent(WidgetTester tester) async {
+  final schoolSource = find.textContaining('学校官网');
+  for (var attempt = 0; attempt < 40; attempt++) {
+    await tester.pump(const Duration(milliseconds: 50));
+    if (schoolSource.evaluate().isNotEmpty) break;
+  }
+  if (schoolSource.evaluate().isEmpty) {
+    throw StateError('资讯来源筛选未在固定等待窗口内完成加载');
+  }
+  await tester.tap(schoolSource.first);
   await tester.pump();
 }
 

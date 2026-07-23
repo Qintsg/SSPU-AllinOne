@@ -62,12 +62,29 @@ class AcademicEamsSummaryCard extends StatelessWidget {
               style: theme.typography.body.copyWith(color: theme.color.muted),
             )
           else if (result!.isSuccess && snapshot != null)
-            _AcademicEamsSnapshotView(
-              snapshot: snapshot,
-              examSnapshot: examResult?.snapshot?.exams ?? snapshot.exams,
-              gradeSnapshot: gradeResult?.snapshot?.grades ?? snapshot.grades,
-              status: result!.status,
-              onOpenCourseSchedule: onOpenCourseSchedule,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (result!.status ==
+                    AcademicEamsQueryStatus.partialSuccess) ...[
+                  YhBanner(
+                    text: [
+                      result!.message,
+                      result!.detail,
+                    ].where((value) => value.isNotEmpty).join('：'),
+                    kind: YhBannerKind.warn,
+                  ),
+                  SizedBox(height: theme.spacing.m),
+                ],
+                _AcademicEamsSnapshotView(
+                  snapshot: snapshot,
+                  examSnapshot: examResult?.snapshot?.exams ?? snapshot.exams,
+                  gradeSnapshot:
+                      gradeResult?.snapshot?.grades ?? snapshot.grades,
+                  status: result!.status,
+                  onOpenCourseSchedule: onOpenCourseSchedule,
+                ),
+              ],
             )
           else
             _AcademicEamsFailure(result: result!),

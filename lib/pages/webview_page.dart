@@ -13,6 +13,54 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/webview_compact_toolbar.dart';
 
+/// WebView 清源页面框架；生产插件与确定性外部区域 fixture 共享同一工具栏和进度布局。
+class WebViewPageFrame extends StatelessWidget {
+  const WebViewPageFrame({
+    super.key,
+    required this.title,
+    required this.document,
+    required this.onBackPressed,
+    this.actions = const [],
+    this.progress,
+  });
+
+  final String title;
+  final Widget document;
+  final VoidCallback onBackPressed;
+  final List<Widget> actions;
+  final double? progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = progress;
+    return YhPageScaffold(
+      body: Column(
+        children: [
+          WebViewCompactToolbar(
+            title: title,
+            onBackPressed: onBackPressed,
+            actions: actions,
+          ),
+          Expanded(
+            child: Stack(
+              children: [
+                Positioned.fill(child: document),
+                if (value != null && value > 0 && value < 1)
+                  PositionedDirectional(
+                    top: 0,
+                    start: 0,
+                    end: 0,
+                    child: YhProgressBar(value: value),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// 内嵌 WebView 页面。
 /// 在应用内打开网页链接，提供导航栏（返回/前进/刷新/外部浏览器）。
 class WebViewPage extends StatefulWidget {
@@ -137,90 +185,72 @@ class _WebViewPageState extends State<WebViewPage> {
       );
     }
 
-    return YhPageScaffold(
-      body: Column(
-        children: [
-          WebViewCompactToolbar(
-            title: _title,
-            onBackPressed: _handleBackOrClose,
-            actions: [
-              YhIconButton(
-                semanticLabel: '前进',
-                icon: YhIcons.chevronRight,
-                onTap: _canGoForward ? () => _controller?.goForward() : null,
-              ),
-              YhIconButton(
-                semanticLabel: '刷新',
-                icon: YhIcons.refresh,
-                onTap: _isReady ? () => _controller?.reload() : null,
-              ),
-              YhIconButton(
-                semanticLabel: '在浏览器中打开',
-                icon: YhIcons.open,
-                onTap: _fallbackToExternalBrowser,
-              ),
-            ],
-          ),
-          Expanded(
-            child: Stack(
-              children: [
-                InAppWebView(
-                  webViewEnvironment: widget.webViewEnvironment,
-                  initialUrlRequest: URLRequest(url: WebUri(widget.url)),
-                  initialSettings: InAppWebViewSettings(
-                    javaScriptEnabled: true,
-                    isInspectable: kDebugMode,
-                    // UA-POLICY-ALLOW: 通用内嵌网页用于学校官网/外部文章展示，需要浏览器 UA 兼容页面渲染。
-                    userAgent:
-                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-                        '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                  ),
-                  onWebViewCreated: (controller) {
-                    _controller = controller;
-                    if (mounted) {
-                      setState(() => _isReady = true);
-                    }
-                  },
-                  onTitleChanged: (controller, title) {
-                    if (mounted && title != null && title.isNotEmpty) {
-                      setState(() => _title = title);
-                    }
-                  },
-                  onUpdateVisitedHistory: (controller, url, isReload) {
-                    if (url != null && mounted) {
-                      setState(() => _currentUrl = url.toString());
-                      _updateNavigationState();
-                    }
-                  },
-                  onLoadStop: (controller, url) {
-                    if (url != null && mounted) {
-                      setState(() => _currentUrl = url.toString());
-                      _updateNavigationState();
-                    }
-                  },
-                  onProgressChanged: (controller, progress) {
-                    if (mounted) {
-                      setState(() => _progress = progress / 100.0);
-                    }
-                  },
-                  onReceivedError: (controller, request, error) {
-                    if (request.isForMainFrame == true && mounted) {
-                      setState(() => _initFailed = true);
-                      _fallbackToExternalBrowser();
-                    }
-                  },
-                ),
-                if (_progress > 0 && _progress < 1.0)
-                  PositionedDirectional(
-                    top: 0,
-                    start: 0,
-                    end: 0,
-                    child: YhProgressBar(value: _progress),
-                  ),
-              ],
-            ),
-          ),
-        ],
+    return WebViewPageFrame(
+      title: _title,
+      onBackPressed: _handleBackOrClose,
+      actions: [
+        YhIconButton(
+          semanticLabel: '前进',
+          icon: YhIcons.chevronRight,
+          onTap: _canGoForward ? () => _controller?.goForward() : null,
+        ),
+        YhIconButton(
+          semanticLabel: '刷新',
+          icon: YhIcons.refresh,
+          onTap: _isReady ? () => _controller?.reload() : null,
+        ),
+        YhIconButton(
+          semanticLabel: '在浏览器中打开',
+          icon: YhIcons.open,
+          onTap: _fallbackToExternalBrowser,
+        ),
+      ],
+      progress: _progress,
+      document: InAppWebView(
+        webViewEnvironment: widget.webViewEnvironment,
+        initialUrlRequest: URLRequest(url: WebUri(widget.url)),
+        initialSettings: InAppWebViewSettings(
+          javaScriptEnabled: true,
+          isInspectable: kDebugMode,
+          // UA-POLICY-ALLOW: 通用内嵌网页用于学校官网/外部文章展示，需要浏览器 UA 兼容页面渲染。
+          userAgent:
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+              '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        ),
+        onWebViewCreated: (controller) {
+          _controller = controller;
+          if (mounted) {
+            setState(() => _isReady = true);
+          }
+        },
+        onTitleChanged: (controller, title) {
+          if (mounted && title != null && title.isNotEmpty) {
+            setState(() => _title = title);
+          }
+        },
+        onUpdateVisitedHistory: (controller, url, isReload) {
+          if (url != null && mounted) {
+            setState(() => _currentUrl = url.toString());
+            _updateNavigationState();
+          }
+        },
+        onLoadStop: (controller, url) {
+          if (url != null && mounted) {
+            setState(() => _currentUrl = url.toString());
+            _updateNavigationState();
+          }
+        },
+        onProgressChanged: (controller, progress) {
+          if (mounted) {
+            setState(() => _progress = progress / 100.0);
+          }
+        },
+        onReceivedError: (controller, request, error) {
+          if (request.isForMainFrame == true && mounted) {
+            setState(() => _initFailed = true);
+            _fallbackToExternalBrowser();
+          }
+        },
       ),
     );
   }
@@ -231,16 +261,10 @@ class _WebViewPageState extends State<WebViewPage> {
     required String title,
     required Widget child,
   }) {
-    return YhPageScaffold(
-      body: Column(
-        children: [
-          WebViewCompactToolbar(
-            title: title,
-            onBackPressed: () => Navigator.of(context).maybePop(),
-          ),
-          Expanded(child: child),
-        ],
-      ),
+    return WebViewPageFrame(
+      title: title,
+      onBackPressed: () => Navigator.of(context).maybePop(),
+      document: child,
     );
   }
 }

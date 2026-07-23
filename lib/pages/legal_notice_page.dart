@@ -12,10 +12,17 @@ import '../legal/legal_documents.dart';
 
 /// 完整法律与隐私说明页面。
 class LegalNoticePage extends StatefulWidget {
-  const LegalNoticePage({super.key, this.title = '法律与隐私说明'});
+  const LegalNoticePage({
+    super.key,
+    this.title = '法律与隐私说明',
+    this.loadLegalNotice = loadLegalNoticeForLocale,
+  });
 
   /// 页面标题。
   final String title;
+
+  /// 可替换的协议正文加载器，视觉 fixture 不访问真实 asset I/O。
+  final Future<String> Function(Locale? locale) loadLegalNotice;
 
   @override
   State<LegalNoticePage> createState() => _LegalNoticePageState();
@@ -32,7 +39,7 @@ class _LegalNoticePageState extends State<LegalNoticePage> {
     final asset = legalNoticeAssetForLocale(locale);
     if (_legalNoticeAsset != asset) {
       _legalNoticeAsset = asset;
-      _legalNoticeFuture = loadLegalNoticeForLocale(locale);
+      _legalNoticeFuture = widget.loadLegalNotice(locale);
     }
   }
 

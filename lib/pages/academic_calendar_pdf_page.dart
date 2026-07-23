@@ -13,6 +13,44 @@ import 'package:url_launcher/url_launcher.dart';
 import '../widgets/empty_state_view.dart';
 import 'academic_calendar_pdf_file.dart';
 
+/// PDF 清源页面框架；真实 pdfrx 与确定性外部区域 fixture 共享工具栏。
+class AcademicCalendarPdfFrame extends StatelessWidget {
+  const AcademicCalendarPdfFrame({
+    super.key,
+    required this.title,
+    required this.document,
+    required this.onBack,
+    required this.onOpenExternal,
+  });
+
+  final String title;
+  final Widget document;
+  final VoidCallback onBack;
+  final VoidCallback onOpenExternal;
+
+  @override
+  Widget build(BuildContext context) => YhPageScaffold(
+    appBar: YhAppBar(
+      title: title,
+      leading: YhIconButton(
+        key: const Key('webview-back-close-button'),
+        icon: YhIcons.back,
+        semanticLabel: '返回',
+        variant: YhIconButtonVariant.ghost,
+        onTap: onBack,
+      ),
+      actions: [
+        YhIconButton(
+          icon: YhIcons.open,
+          semanticLabel: '外部打开校历 PDF',
+          onTap: onOpenExternal,
+        ),
+      ],
+    ),
+    body: document,
+  );
+}
+
 /// 校历 PDF 查看页。
 class AcademicCalendarPdfPage extends StatelessWidget {
   const AcademicCalendarPdfPage({
@@ -67,25 +105,11 @@ class AcademicCalendarPdfPage extends StatelessWidget {
       );
     }
 
-    return YhPageScaffold(
-      appBar: YhAppBar(
-        title: title,
-        leading: YhIconButton(
-          key: const Key('webview-back-close-button'),
-          icon: YhIcons.back,
-          semanticLabel: '返回',
-          variant: YhIconButtonVariant.ghost,
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
-        actions: [
-          YhIconButton(
-            icon: YhIcons.open,
-            semanticLabel: '外部打开校历 PDF',
-            onTap: _openExternal,
-          ),
-        ],
-      ),
-      body: body,
+    return AcademicCalendarPdfFrame(
+      title: title,
+      document: body,
+      onBack: () => Navigator.of(context).maybePop(),
+      onOpenExternal: _openExternal,
     );
   }
 

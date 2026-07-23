@@ -441,7 +441,7 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
           SizedBox(height: theme.spacing.xl),
           _securityDivider(context),
           SizedBox(height: theme.spacing.l),
-          _DataManagementRow(
+          SettingsDataPrivacySection(
             onClearMessageCache: widget.onClearMessageCache,
             onClearAllData: widget.onClearAllData,
           ),

@@ -101,9 +101,14 @@ class _FakeStudentReportClient implements StudentReportClient {
 }
 
 class _FakeAcademicEamsClient implements AcademicEamsClient {
-  _FakeAcademicEamsClient({required this.result, this.examResultResolver});
+  _FakeAcademicEamsClient({
+    required this.result,
+    this.cachedOverviewResult,
+    this.examResultResolver,
+  });
 
   final AcademicEamsQueryResult result;
+  final AcademicEamsQueryResult? cachedOverviewResult;
   final AcademicEamsQueryResult Function(
     AcademicTermChoice? term,
     AcademicEamsSemesterOption? semester,
@@ -128,7 +133,7 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
 
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedOverview() async {
-    return null;
+    return cachedOverviewResult;
   }
 
   @override

@@ -69,4 +69,7 @@ class YhIcons {
   static const IconData connect = system.FluentIcons.plug_connected_24_regular;
   static const IconData delete = system.FluentIcons.delete_24_regular;
   static const IconData clean = system.FluentIcons.broom_24_regular;
+  static const IconData sun = system.FluentIcons.weather_sunny_24_regular;
+  static const IconData moon = system.FluentIcons.weather_moon_24_regular;
+  static const IconData palette = system.FluentIcons.color_24_regular;
 }

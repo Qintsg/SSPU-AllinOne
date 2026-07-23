@@ -182,6 +182,32 @@ void main() {
     await disposeAcademicPage(tester);
   });
 
+  testWidgets('教务中心有缓存快照时仍明确展示部分降级提示', (tester) async {
+    final partial = AcademicEamsQueryResult(
+      status: AcademicEamsQueryStatus.partialSuccess,
+      message: '正在显示昨日教务缓存',
+      detail: '网络恢复后可手动刷新。',
+      checkedAt: DateTime(2026, 7, 17, 18),
+      entranceUri: Uri.parse('https://oa.example.invalid/academic'),
+      snapshot: _academicEamsResult.snapshot,
+    );
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(
+        result: partial,
+        cachedOverviewResult: partial,
+      ),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
+      ),
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+    );
+    await pumpUntilFound(tester, find.textContaining('正在显示昨日教务缓存'));
+
+    expect(find.text('正在显示昨日教务缓存：网络恢复后可手动刷新。'), findsOneWidget);
+    await disposeAcademicPage(tester);
+  });
+
   testWidgets('教务中心展示体育部考勤总次数并可进入明细页', (tester) async {
     final sportsService = _FakeSportsAttendanceClient(result: _successResult);
     await pumpAcademicPage(

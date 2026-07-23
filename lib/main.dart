@@ -92,6 +92,8 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 启动初始化失败时显示明确错误，避免长期停留在加载状态。
   String? _startupErrorMessage;
 
+  YhThemeMode _themeMode = YhThemeMode.system;
+
   /// 清源应用内部导航器 key，用于在 WindowListener 回调中弹出对话框。
   final _navigatorKey = GlobalKey<NavigatorState>();
 
@@ -124,11 +126,17 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       await StorageService.init();
       final agreementsOk = await StorageService.areCurrentAgreementsAccepted();
       final hasPassword = await PasswordService.isPasswordSet();
+      final themeMode = await StorageService.getThemeMode();
       if (!mounted) return;
       setState(() {
         _agreementsAccepted = agreementsOk;
         _isUnlocked = !hasPassword;
         _isInitialized = true;
+        _themeMode = switch (themeMode) {
+          'light' => YhThemeMode.light,
+          'dark' => YhThemeMode.dark,
+          _ => YhThemeMode.system,
+        };
       });
       unawaited(_initBackgroundServices());
     } catch (_) {
@@ -146,6 +154,17 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       _isInitialized = false;
     });
     unawaited(_initApp());
+  }
+
+  void _setThemeMode(YhThemeMode mode) {
+    setState(() => _themeMode = mode);
+    unawaited(
+      StorageService.setThemeMode(switch (mode) {
+        YhThemeMode.light => 'light',
+        YhThemeMode.dark => 'dark',
+        YhThemeMode.system => 'system',
+      }),
+    );
   }
 
   /// 初始化后台能力，不阻塞首屏渲染和用户进入主页。
@@ -306,7 +325,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       onGenerateTitle: AppDisplayName.of,
       theme: YhTheme.light,
       darkTheme: YhTheme.dark,
-      themeMode: YhThemeMode.system,
+      themeMode: _themeMode,
       debugShowCheckedModeBanner: false,
       home: _buildHome(),
       builder: (context, child) {
@@ -367,6 +386,8 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     return AppShell(
       onLock: _lockApp,
       campusNetworkStatusService: _campusNetworkStatusService,
+      themeMode: _themeMode,
+      onThemeModeChanged: _setThemeMode,
     );
   }
 }
