@@ -32,6 +32,22 @@
     error: ['暂时无法完成', '已有有效内容不会被清空。检查账户或网络后，可以从这里安全重试。', '需要处理'],
   };
 
+  function copyFor(entry, state) {
+    if (state === 'loading') {
+      return [`正在读取${entry.title}`, `正在从${entry.source}恢复数据；已有页面框架与输入保持可用。`, '读取中'];
+    }
+    if (state === 'error') {
+      return [`${entry.title}暂不可用`, `无法从${entry.source}完成本次操作；${entry.items[0]}仍保持原有状态，可检查条件后重试。`, '需要处理'];
+    }
+    if (state === 'empty') {
+      return [`当前没有${entry.title}内容`, `当前范围没有来自${entry.source}的记录；可调整范围或前往配置。`, '调整范围'];
+    }
+    if (state === 'initial') {
+      return [`尚未读取${entry.title}`, `先确认${entry.source}的访问范围，再由你决定是否开始。`, '尚未开始'];
+    }
+    return stateCopy[state];
+  }
+
   function navMarkup(active, compact = false) {
     const visible = compact ? navigation.slice(0, 3).concat([['more', '•••', '更多']]) : navigation;
     return visible.map(([id, icon, label]) => {
@@ -41,7 +57,7 @@
   }
 
   function contentMarkup(entry, state) {
-    const [heading, description, status] = stateCopy[state];
+    const [heading, description, status] = copyFor(entry, state);
     const id = entry.id;
     if (state === 'loading') {
       if (id === 'academic.calendar' || id === 'external.pdf' || id === 'external.webview') {
@@ -92,14 +108,20 @@
       return `<section class="reference-directory">${entry.items.map((item, index) => `<article class="reference-card reference-link-card"><span aria-hidden="true">${['锁', '书', '校'][index]}</span><h2>${item}</h2><p>${index === 0 ? '需要现有 OA 登录态' : '将在确认后打开外部目标'}</p><button type="button">查看目标 ↗</button></article>`).join('')}</section>`;
     }
     if (id.startsWith('settings.')) {
-      const usesSwitches = id === 'settings.home-notifications' || id === 'settings.appearance';
+      if (id === 'settings.appearance') {
+        return `<section class="reference-card reference-settings-list"><div class="reference-segmented" role="radiogroup" aria-label="颜色主题">${entry.items.map((item, index) => `<button type="button" role="radio" aria-checked="${index === 0}" class="${index === 0 ? 'is-selected' : ''}">${item}</button>`).join('')}</div></section>`;
+      }
+      const usesSwitches = id === 'settings.home-notifications';
       return `<section class="reference-card reference-settings-list">${banner}${entry.items.map((item, index) => `<div class="reference-setting-row"><span><strong>${item}</strong><small>${index === 0 ? '当前设置' : '保存在本机'}</small></span><button type="button"${usesSwitches ? ` role="switch" aria-checked="${index === 0}"` : ''}>${usesSwitches ? (index === 0 ? '已开启' : '关闭') : '打开'}</button></div>`).join('')}</section>`;
     }
     if (id.startsWith('legal.')) {
       return `<article class="reference-card reference-legal">${entry.items.map((item, index) => `<section><h2>${item}</h2><p>${index + 1}. 本节说明该数据与功能的使用边界、保存位置和用户可执行的管理方式。</p></section>`).join('')}</article>`;
     }
     if (id === 'academic.calendar' || id === 'external.pdf' || id === 'external.webview') {
-      return `<section class="reference-card reference-document"><div class="reference-document-toolbar"><span>${id === 'external.webview' ? 'portal.example.invalid' : '第 1 / 4 页'}</span><button type="button">刷新</button><button type="button">外部打开</button></div><div class="reference-document-canvas" data-external-region="document"><strong>${id === 'external.webview' ? '校园门户网页正文' : 'PDF 文档正文'}</strong><span>此外部内容区域由对应平台独立绘制</span></div></section>`;
+      const documentActions = id === 'external.webview'
+        ? '<button type="button">刷新</button><button type="button">外部打开</button>'
+        : '<button type="button">缩小</button><button type="button">放大</button><button type="button">外部打开</button>';
+      return `<section class="reference-card reference-document"><div class="reference-document-toolbar"><span>${id === 'external.webview' ? 'portal.example.invalid' : '第 1 / 4 页'}</span>${documentActions}</div><div class="reference-document-canvas" data-external-region="document"><strong>${id === 'external.webview' ? '校园门户网页正文' : 'PDF 文档正文'}</strong><span>此外部内容区域由对应平台独立绘制</span></div></section>`;
     }
     if (id === 'external.system-auth') {
       return `<section class="reference-auth-stage"><div class="reference-card reference-system-dialog" data-external-region="system-dialog"><span aria-hidden="true">◎</span><h2>Windows 安全中心</h2><p>验证身份以解锁工大聚合</p><button type="button">使用 PIN</button></div></section>`;

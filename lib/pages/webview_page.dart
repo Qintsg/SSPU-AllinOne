@@ -228,7 +228,6 @@ class _WebViewPageState extends State<WebViewPage> {
         onReceivedError: (controller, request, error) {
           if (request.isForMainFrame == true && mounted) {
             setState(() => _initFailed = true);
-            _fallbackToExternalBrowser();
           }
         },
       ),

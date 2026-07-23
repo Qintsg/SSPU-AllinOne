@@ -95,10 +95,13 @@ button:focus-visible { outline: calc(var(--layout-control-border) * 2) solid var
 .reference-setting-row > span { flex: 1; display: grid; gap: var(--space-xs); }
 .reference-setting-row small { color: var(--muted); }
 .reference-setting-row button { min-width: calc(var(--control-regular) * 2); min-height: var(--minimum-target); border: var(--layout-control-border) solid var(--border); border-radius: var(--radius-full); background: var(--sunken); }
+.reference-segmented { padding: var(--space-xs); border-radius: var(--radius-m); background: var(--sunken); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-xs); }
+.reference-segmented button { min-height: var(--minimum-target); border: 0; border-radius: var(--radius-input); background: transparent; }
+.reference-segmented button.is-selected { background: var(--surface); color: var(--brand-ink); font-weight: var(--weight-h3); }
 .reference-legal { grid-column: 1 / -1; overflow: auto; }
 .reference-legal section { max-width: calc(var(--control-regular) * 17); padding-block: var(--space-m); border-bottom: var(--layout-divider) solid var(--border); }
 .reference-document { grid-column: 1 / -1; padding: 0; overflow: hidden; display: flex; flex-direction: column; }
-.reference-document-toolbar { min-height: var(--minimum-target); padding: var(--space-s); border-bottom: var(--layout-divider) solid var(--border); display: flex; align-items: center; gap: var(--space-s); }
+.reference-document-toolbar { min-height: var(--minimum-target); padding: var(--space-s); border-bottom: var(--layout-divider) solid var(--border); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-s); }
 .reference-document-toolbar span { flex: 1; padding-inline: var(--space-s); color: var(--muted); }
 .reference-document-canvas { flex: 1; min-height: calc(var(--control-regular) * 6); background: var(--sunken); display: grid; place-items: center; align-content: center; gap: var(--space-s); color: var(--muted); }
 .reference-document-canvas strong { color: var(--fg); font-size: var(--type-h2); }
@@ -123,13 +126,12 @@ button:focus-visible { outline: calc(var(--layout-control-border) * 2) solid var
   .reference-aside { display: grid; grid-template-columns: 1fr 1fr; }
   .reference-metric { min-height: calc(var(--control-regular) * 3); }
   .reference-component-grid, .reference-directory, .reference-flow, .reference-balance, .reference-records, .reference-feed, .reference-mail { grid-template-columns: 1fr; }
-  .reference-component-grid article:not(:first-child), .reference-directory article:not(:first-child), .reference-flow article:not(:first-child), .reference-feed aside, .reference-record-summary { display: none; }
+  .reference-component-grid article:not(:first-child), .reference-flow article:not(:first-child), .reference-record-summary { display: none; }
   .reference-mail.is-inbox .reference-mail-body, .reference-mail.is-detail aside { display: none; }
   .reference-week { grid-template-columns: 1fr; }
   .reference-week > * { display: none; }
   .reference-week > .is-current { display: block; }
   .reference-compose > div { flex-direction: column-reverse; }
-  .reference-document-toolbar button:first-of-type { display: none; }
   .reference-bottom-nav { height: var(--layout-bottom-navigation-height); position: absolute; inset: auto 0 0; z-index: 2; padding: var(--space-xs) var(--space-s); border-top: var(--layout-divider) solid var(--border); background: var(--surface); display: grid; grid-template-columns: repeat(4, 1fr); }
   .reference-bottom-nav .reference-nav-item { padding: var(--space-xs); }
 }

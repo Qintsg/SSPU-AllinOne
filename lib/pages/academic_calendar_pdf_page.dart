@@ -140,6 +140,29 @@ class _AcademicCalendarPdfPageState extends State<AcademicCalendarPdfPage> {
   final PdfViewerController _pdfController = PdfViewerController();
   int _pageNumber = 1;
   int? _pageCount;
+  int _viewerRevision = 0;
+
+  String get _sourceLabel {
+    final source = widget.pdfUrl ?? widget.pdfFilePath;
+    if (source == null || source.isEmpty) return '未提供文件来源';
+    final uri = source.startsWith('http')
+        ? Uri.tryParse(source)
+        : Uri.file(source);
+    if (uri == null) return '无法识别的文件来源';
+    final name = uri.pathSegments.isEmpty ? '' : uri.pathSegments.last;
+    if (uri.host.isNotEmpty) {
+      return name.isEmpty ? uri.host : '${uri.host}/$name';
+    }
+    return name.isEmpty ? '本地 PDF 文件' : name;
+  }
+
+  void _retryPdf() {
+    setState(() {
+      _viewerRevision += 1;
+      _pageNumber = 1;
+      _pageCount = null;
+    });
+  }
 
   Future<void> _openExternal() async {
     final target = widget.pdfUrl ?? widget.pdfFilePath;
@@ -217,12 +240,14 @@ class _AcademicCalendarPdfPageState extends State<AcademicCalendarPdfPage> {
     if (academicCalendarPdfFileExists(widget.pdfFilePath)) {
       body = PdfViewer.file(
         widget.pdfFilePath!,
+        key: ValueKey(_viewerRevision),
         controller: _pdfController,
         params: _viewerParams,
       );
     } else if (widget.pdfUrl != null && widget.pdfUrl!.isNotEmpty) {
       body = PdfViewer.uri(
         Uri.parse(widget.pdfUrl!),
+        key: ValueKey(_viewerRevision),
         controller: _pdfController,
         params: _viewerParams,
       );
@@ -261,8 +286,19 @@ class _AcademicCalendarPdfPageState extends State<AcademicCalendarPdfPage> {
     return EmptyStateView(
       icon: YhIcons.warning,
       title: 'PDF 加载失败',
-      message: error.toString(),
-      action: YhButton(label: '在浏览器中打开', onTap: _openExternal),
+      message: '文件来源：$_sourceLabel。无法读取 PDF，请重试或改用外部应用打开。',
+      action: Wrap(
+        spacing: context.yhTheme.spacing.s,
+        runSpacing: context.yhTheme.spacing.s,
+        children: [
+          YhButton(label: '重试', onTap: _retryPdf),
+          YhButton(
+            label: '外部打开',
+            onTap: _openExternal,
+            variant: YhButtonVariant.secondary,
+          ),
+        ],
+      ),
     );
   }
 }
