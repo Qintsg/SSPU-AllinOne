@@ -55,12 +55,32 @@ class YhStatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    final (foreground, background) = switch (kind) {
-      YhStatusKind.success => (theme.color.success, theme.color.successTint),
-      YhStatusKind.warning => (theme.color.warning, theme.color.warningTint),
-      YhStatusKind.danger => (theme.color.danger, theme.color.dangerTint),
-      YhStatusKind.info => (theme.color.brandStrong, theme.color.brandTint),
-      YhStatusKind.neutral => (theme.color.muted, theme.color.sunken),
+    final (foreground, background, indicator) = switch (kind) {
+      YhStatusKind.success => (
+        theme.color.success,
+        theme.color.successTint,
+        theme.color.success,
+      ),
+      YhStatusKind.warning => (
+        theme.color.warning,
+        theme.color.warningTint,
+        theme.color.warning,
+      ),
+      YhStatusKind.danger => (
+        theme.color.danger,
+        theme.color.dangerTint,
+        theme.color.danger,
+      ),
+      YhStatusKind.info => (
+        theme.color.brandStrong,
+        theme.color.brandTint,
+        theme.color.brandStrong,
+      ),
+      YhStatusKind.neutral => (
+        theme.color.foreground,
+        theme.color.foreground.withValues(alpha: 0),
+        theme.color.foreground.withValues(alpha: 0),
+      ),
     };
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -77,7 +97,7 @@ class YhStatusPill extends StatelessWidget {
           children: [
             DecoratedBox(
               decoration: BoxDecoration(
-                color: foreground,
+                color: indicator,
                 shape: BoxShape.circle,
               ),
               child: SizedBox.square(

@@ -254,6 +254,22 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('清源 neutral 状态药丸保留几何但不绘制状态底色', (tester) async {
+    await tester.pumpWidget(const YhApp(home: YhStatusPill(label: '09:30 同步')));
+
+    final decorations = tester
+        .widgetList<DecoratedBox>(
+          find.descendant(
+            of: find.byType(YhStatusPill),
+            matching: find.byType(DecoratedBox),
+          ),
+        )
+        .map((box) => box.decoration as BoxDecoration)
+        .toList(growable: false);
+    expect(decorations, hasLength(2));
+    expect(decorations.every((decoration) => decoration.color?.a == 0), isTrue);
+  });
+
   testWidgets('清源快捷入口区分外部打开与独立收藏语义', (tester) async {
     var opens = 0;
     var favorites = 0;

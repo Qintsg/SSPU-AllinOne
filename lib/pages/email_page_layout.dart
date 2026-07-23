@@ -28,12 +28,34 @@ extension _EmailPageLayout on _EmailPageState {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: theme.spacing.xl2 * 2,
-              child: const YhProgress(showPercent: false),
+            ExcludeSemantics(
+              child: YhRing.activity(
+                size: theme.control.compact,
+                label: '正在读取最近邮件',
+              ),
             ),
             SizedBox(width: theme.spacing.m),
-            const Flexible(child: Text('正在读取最近邮件')),
+            Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '正在读取最近邮件',
+                    style: theme.typography.h3.copyWith(
+                      fontWeight: theme.typography.semibold,
+                    ),
+                  ),
+                  SizedBox(height: theme.spacing.xs),
+                  Text(
+                    '正在通过 ${_selectedProtocol.label} 获取学校最近邮件数据。',
+                    style: theme.typography.small.copyWith(
+                      color: theme.color.muted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       );
@@ -41,7 +63,8 @@ extension _EmailPageLayout on _EmailPageState {
     if (result == null) {
       return _buildMailboxStateCard(
         context,
-        child: YhEmptyState(
+        expandForStackedActions: true,
+        child: _EmailMailboxStateMessage(
           icon: YhIcons.mail,
           title: '尚未读取邮箱',
           message: '连接学校邮箱后读取最近邮件，正文只保存在本机。',
@@ -67,7 +90,7 @@ extension _EmailPageLayout on _EmailPageState {
     if (!result.isSuccess || result.snapshot == null) {
       return _buildMailboxStateCard(
         context,
-        child: YhEmptyState(
+        child: _EmailMailboxStateMessage(
           icon: YhIcons.info,
           title: result.message,
           message: result.detail,
@@ -91,6 +114,21 @@ extension _EmailPageLayout on _EmailPageState {
     final snapshot = result.snapshot!;
     final messages = snapshot.messages;
     _selectFirstMessageIfNeeded(messages);
+    if (messages.isEmpty) {
+      return _buildMailboxStateCard(
+        context,
+        child: _EmailMailboxStateMessage(
+          icon: YhIcons.mail,
+          title: '收件箱暂无邮件',
+          message: '连接正常，但当前查询范围没有可展示的邮件。',
+          action: YhButton(
+            label: '重新读取',
+            variant: YhButtonVariant.secondary,
+            onTap: _fetchMessages,
+          ),
+        ),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -119,24 +157,15 @@ extension _EmailPageLayout on _EmailPageState {
                 '当前显示 ${_formatClockTime(snapshot.fetchedAt)} 的本地邮件缓存；'
                 '网络恢复后可手动刷新。',
             kind: YhBannerKind.warn,
+            leadingIcon: YhIcons.info,
           ),
         ],
-        SizedBox(height: theme.spacing.m),
-        if (messages.isEmpty)
-          _buildMailboxStateCard(
-            context,
-            child: YhEmptyState(
-              icon: YhIcons.mail,
-              title: '收件箱暂无邮件',
-              message: '连接正常，但当前查询范围没有可展示的邮件。',
-              action: YhButton(
-                label: '重新读取',
-                variant: YhButtonVariant.secondary,
-                onTap: _fetchMessages,
-              ),
-            ),
-          )
-        else if (MediaQuery.sizeOf(context).width >= theme.breakpoint.expanded)
+        SizedBox(
+          height:
+              theme.spacing.m +
+              (_isMailboxSnapshotStale(snapshot) ? theme.layout.divider : 0),
+        ),
+        if (MediaQuery.sizeOf(context).width >= theme.breakpoint.expanded)
           _buildDesktopMailClient(context)
         else
           _EmailMailboxListPanel(
@@ -148,6 +177,7 @@ extension _EmailPageLayout on _EmailPageState {
             showSenderAnchor: false,
             senderLabel: _senderDisplayName,
             formatDateTime: _formatOptionalDateTime,
+            onMessageFocused: _focusMessage,
             onMessagePressed: (message) =>
                 _openOrSelectMessage(message, inline: false),
           ),
@@ -175,6 +205,7 @@ extension _EmailPageLayout on _EmailPageState {
             minHeight: theme.layout.popoverWidth + theme.spacing.xl2 * 2,
             senderLabel: _senderDisplayName,
             formatDateTime: _formatOptionalDateTime,
+            onMessageFocused: _focusMessage,
             onMessagePressed: (message) =>
                 _openOrSelectMessage(message, inline: true),
           ),
@@ -193,15 +224,25 @@ extension _EmailPageLayout on _EmailPageState {
     );
   }
 
-  Widget _buildMailboxStateCard(BuildContext context, {required Widget child}) {
+  Widget _buildMailboxStateCard(
+    BuildContext context, {
+    required Widget child,
+    bool expandForStackedActions = false,
+  }) {
     final theme = context.yhTheme;
-    return YhCard(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          minHeight: theme.layout.popoverWidth + theme.spacing.xl,
-        ),
-        child: Center(child: child),
+    final stackedActionAdjustment = expandForStackedActions
+        // 两个 48dp 动作在 compact 宽度换行；该补偿保持冻结卡片底边。
+        ? theme.spacing.m - theme.spacing.xs + theme.layout.divider
+        : 0.0;
+    return ConstrainedBox(
+      key: const Key('email-mailbox-state-card'),
+      constraints: BoxConstraints(
+        minHeight:
+            theme.layout.popoverWidth +
+            theme.spacing.xl +
+            stackedActionAdjustment,
       ),
+      child: YhCard(child: Center(child: child)),
     );
   }
 
@@ -294,5 +335,77 @@ extension _EmailPageLayout on _EmailPageState {
           ),
         )
         .toList(growable: false);
+  }
+}
+
+class _EmailMailboxStateMessage extends StatelessWidget {
+  const _EmailMailboxStateMessage({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.action,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    final compactGap = theme.spacing.xs + theme.layout.divider * 2;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: theme.spacing.l),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ExcludeSemantics(
+            child: Container(
+              key: const Key('email-mailbox-state-icon'),
+              width: theme.control.regular,
+              height: theme.control.regular,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: theme.color.brandTint,
+                borderRadius: BorderRadius.circular(theme.radius.m),
+              ),
+              child: Icon(
+                icon,
+                size: theme.spacing.xl,
+                color: theme.color.brandStrong,
+              ),
+            ),
+          ),
+          SizedBox(height: compactGap),
+          Semantics(
+            header: true,
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: theme.typography.h3.copyWith(
+                color: theme.color.foreground,
+                fontWeight: theme.typography.semibold,
+              ),
+            ),
+          ),
+          SizedBox(height: compactGap),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: theme.layout.statusProgressWidth,
+            ),
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: theme.typography.small.copyWith(color: theme.color.muted),
+            ),
+          ),
+          if (action != null) ...[
+            SizedBox(height: theme.spacing.s),
+            SizedBox(width: theme.layout.statusProgressWidth, child: action!),
+          ],
+        ],
+      ),
+    );
   }
 }

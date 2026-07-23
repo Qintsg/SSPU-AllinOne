@@ -1125,7 +1125,7 @@ final EmailMailboxQueryResult qingyuanEmailEmptyResult = _emailMailboxResult(
 );
 
 final EmailMailboxQueryResult qingyuanEmailStaleResult = _emailMailboxResult(
-  checkedAt: DateTime(2026, 7, 17, 18),
+  checkedAt: DateTime(2026, 7, 17, 9, 30),
   messages: qingyuanEmailMessages,
   message: '已显示本地邮件缓存',
 );
@@ -1134,8 +1134,8 @@ final EmailMailboxQueryResult qingyuanEmailErrorResult =
     EmailMailboxQueryResult(
       status: EmailQueryStatus.networkError,
       protocol: EmailProtocol.imap,
-      message: '暂时无法读取邮箱',
-      detail: '邮箱服务器连接超时，请稍后重试。',
+      message: '无法读取学校邮箱',
+      detail: '请检查邮箱账户、校园网或 VPN；已有本地缓存不会被删除。',
       checkedAt: qingyuanVisualNow,
       endpoint: qingyuanEmailImapEndpoint,
     );

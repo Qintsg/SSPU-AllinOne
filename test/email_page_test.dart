@@ -7,6 +7,7 @@
  */
 
 import 'dart:async';
+import 'dart:ui' show Tristate;
 
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -299,13 +300,142 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 120));
   });
+
+  testWidgets('邮箱紧凑状态卡遵循清源品牌图标与高度契约', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await pumpEmailPage(
+      tester,
+      emailService: _FakeEmailClient(),
+      emailAutoRefreshEnabledOverride: false,
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final card = find.byKey(const Key('email-mailbox-state-card'));
+    final icon = find.byKey(const Key('email-mailbox-state-icon'));
+    final theme = tester.element(card).yhTheme;
+    expect(card, findsOneWidget);
+    expect(icon, findsOneWidget);
+    expect(tester.getSize(icon), Size.square(theme.control.regular));
+    expect(
+      tester.getSize(card).height,
+      greaterThanOrEqualTo(theme.layout.popoverWidth + theme.spacing.xl),
+    );
+  });
+
+  testWidgets('邮箱读取中使用紧凑环形活动指示器与说明', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await pumpEmailPage(
+      tester,
+      emailService: _FakeEmailClient(deferFetch: true),
+      emailAutoRefreshEnabledOverride: false,
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    await tester.tap(find.text('读取最近邮件').first);
+    await tester.pump();
+
+    final ring = find.byType(YhRing);
+    final theme = tester.element(ring).yhTheme;
+    expect(ring, findsOneWidget);
+    expect(find.byType(YhProgress), findsNothing);
+    expect(tester.getSize(ring), Size.square(theme.control.compact));
+    expect(find.text('正在读取最近邮件'), findsOneWidget);
+    expect(find.textContaining('IMAP'), findsOneWidget);
+    expect(find.bySemanticsLabel('正在读取最近邮件'), findsOneWidget);
+    semantics.dispose();
+  });
+
+  testWidgets('邮箱紧凑邮件行保持双倍常规控件高度', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await pumpEmailPage(
+      tester,
+      emailService: _FakeEmailClient(cachedResult: _cachedMailboxResult),
+      emailAutoRefreshEnabledOverride: false,
+    );
+    await pumpUntilFound(
+      tester,
+      find.byKey(const Key('email-message-IMAP:cached')),
+    );
+
+    final row = find.byKey(const Key('email-message-IMAP:cached'));
+    final theme = tester.element(row).yhTheme;
+    expect(
+      tester.getSize(row).height,
+      closeTo(theme.control.regular * 2 - theme.layout.divider / 2, 0.1),
+    );
+    final preview = tester.widget<Text>(find.text('缓存邮件内容。'));
+    expect(preview.style?.color, theme.color.muted);
+    expect(preview.style?.height, theme.typography.body.height);
+  });
+
+  testWidgets('邮箱列表暴露互斥选择语义并支持上下方向键漫游', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await pumpEmailPage(
+      tester,
+      emailService: _FakeEmailClient(cachedResult: _twoMessageMailboxResult),
+      emailAutoRefreshEnabledOverride: false,
+    );
+    await pumpUntilFound(
+      tester,
+      find.byKey(const Key('email-message-IMAP:second')),
+    );
+
+    final firstRow = find.byKey(const Key('email-message-IMAP:cached'));
+    final secondRow = find.byKey(const Key('email-message-IMAP:second'));
+    final firstPressable = find.ancestor(
+      of: firstRow,
+      matching: find.byType(YhPressable),
+    );
+    final secondPressable = find.ancestor(
+      of: secondRow,
+      matching: find.byType(YhPressable),
+    );
+    expect(
+      tester.getSemantics(firstPressable).flagsCollection.isSelected,
+      Tristate.isTrue,
+    );
+
+    final firstDetector = tester.widget<FocusableActionDetector>(
+      find
+          .ancestor(
+            of: firstRow,
+            matching: find.byType(FocusableActionDetector),
+          )
+          .first,
+    );
+    firstDetector.focusNode!.requestFocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+
+    expect(
+      tester.getSemantics(secondPressable).flagsCollection.isSelected,
+      Tristate.isTrue,
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(find.text('邮件正文'), findsOneWidget);
+    expect(find.text('第二封邮件'), findsOneWidget);
+    semantics.dispose();
+  });
 }
 
 class _FakeEmailClient implements EmailMailboxClient {
-  _FakeEmailClient({this.cachedResult, this.deferValidation = false});
+  _FakeEmailClient({
+    this.cachedResult,
+    this.deferValidation = false,
+    this.deferFetch = false,
+  });
 
   final EmailMailboxQueryResult? cachedResult;
   final bool deferValidation;
+  final bool deferFetch;
   Completer<void>? _validationCompleter;
   int fetchCount = 0;
   int validateCount = 0;
@@ -326,6 +456,9 @@ class _FakeEmailClient implements EmailMailboxClient {
     int messageCount = 10,
   }) async {
     fetchCount++;
+    if (deferFetch) {
+      await Completer<void>().future;
+    }
     return EmailMailboxQueryResult(
       status: EmailQueryStatus.success,
       protocol: protocol,
@@ -433,6 +566,42 @@ final EmailMailboxQueryResult _cachedMailboxResult = EmailMailboxQueryResult(
     endpoint: _endpoint,
   ),
 );
+
+final EmailMailboxQueryResult _twoMessageMailboxResult =
+    EmailMailboxQueryResult(
+      status: EmailQueryStatus.success,
+      protocol: EmailProtocol.imap,
+      message: '已显示本地邮箱缓存',
+      detail: '显示最近一次成功读取并保存的 IMAP 邮件快照。',
+      checkedAt: DateTime.now(),
+      endpoint: _endpoint,
+      snapshot: EmailMailboxSnapshot(
+        protocol: EmailProtocol.imap,
+        account: 'student@sspu.edu.cn',
+        messages: const [
+          EmailMessageSnapshot(
+            id: 'IMAP:cached',
+            subject: '缓存通知',
+            senderName: '教务处',
+            senderAddress: 'notice@sspu.edu.cn',
+            preview: '缓存邮件内容。',
+            body: '缓存邮件内容。',
+            receivedAt: null,
+          ),
+          EmailMessageSnapshot(
+            id: 'IMAP:second',
+            subject: '第二封邮件',
+            senderName: '图书馆',
+            senderAddress: 'library@sspu.edu.cn',
+            preview: '第二封邮件内容。',
+            body: '第二封邮件内容。',
+            receivedAt: null,
+          ),
+        ],
+        fetchedAt: DateTime.now(),
+        endpoint: _endpoint,
+      ),
+    );
 
 final EmailMailboxQueryResult _staleMailboxResult = EmailMailboxQueryResult(
   status: EmailQueryStatus.success,

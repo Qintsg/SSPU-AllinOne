@@ -201,6 +201,11 @@ class _EmailPageState extends State<EmailPage> {
     _openMessageDetail(message);
   }
 
+  void _focusMessage(EmailMessageSnapshot message) {
+    if (_selectedMessageId == message.id) return;
+    setState(() => _selectedMessageId = message.id);
+  }
+
   void _selectFirstMessageIfNeeded(List<EmailMessageSnapshot> messages) {
     if (messages.isEmpty || _selectedMessage(messages) != null) return;
     _selectedMessageId = messages.first.id;
@@ -340,8 +345,10 @@ class _EmailPageState extends State<EmailPage> {
         ? theme.spacing.m
         : theme.spacing.xl +
               (theme.spacing.xl2 - theme.spacing.xl) * fluidPaddingProgress;
+    // Flutter 的 MiSans 顶部字面比 Chromium 更紧，使用语义 token
+    // 补偿首行原点，保证 compact 冻结像素而非 CSS 盒值逐字相等。
     final verticalPadding = viewportWidth < theme.breakpoint.medium
-        ? theme.spacing.xl
+        ? theme.spacing.l + theme.spacing.s + theme.layout.divider * 3
         : theme.spacing.xl + theme.spacing.s;
     return YhPageScaffold(
       appBar: canPop
@@ -371,7 +378,13 @@ class _EmailPageState extends State<EmailPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildMailPageHeader(context, viewportWidth),
-                  SizedBox(height: theme.spacing.l),
+                  SizedBox(
+                    height: viewportWidth < theme.breakpoint.medium
+                        ? theme.spacing.l +
+                              theme.spacing.xs +
+                              theme.layout.divider * 2
+                        : theme.spacing.l,
+                  ),
                   _buildEmailContent(context),
                 ],
               ),
