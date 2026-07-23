@@ -297,10 +297,14 @@ class YhResponsiveTokens {
   const YhResponsiveTokens({
     this.panelPaddingViewportPercent = 4,
     this.heroViewportPercent = 5,
+    this.homePrimaryFlex = 33,
+    this.homeSecondaryFlex = 16,
   });
 
   final double panelPaddingViewportPercent;
   final double heroViewportPercent;
+  final int homePrimaryFlex;
+  final int homeSecondaryFlex;
 }
 
 @immutable

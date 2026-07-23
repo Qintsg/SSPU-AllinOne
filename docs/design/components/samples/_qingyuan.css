@@ -115,6 +115,13 @@
   --type-body: 15px;
   --type-small: 13px;
   --type-caption: 11px;
+  --letter-spacing-hero: -1.68px;
+  --letter-spacing-display: -0.72px;
+  --letter-spacing-h1: -0.56px;
+  --letter-spacing-h2: -0.22px;
+  --letter-spacing-h3: -0.18px;
+  --letter-spacing-small: 0.13px;
+  --letter-spacing-caption: 0.11px;
   --line-height-hero: 1.15;
   --line-height-display: 1.1;
   --line-height-h1: 1.2;
@@ -140,6 +147,8 @@
   --breakpoint-large: 1600px;
   --responsive-panel-padding-viewport-percent: 4vw;
   --responsive-hero-viewport-percent: 5vw;
+  --responsive-home-primary-flex: 33fr;
+  --responsive-home-secondary-flex: 16fr;
   --control-compact: 40px;
   --control-regular: 48px;
   --control-touch: 48px;

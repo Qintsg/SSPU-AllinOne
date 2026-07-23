@@ -177,9 +177,9 @@ extension _HomeDashboardView on _HomePageState {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(flex: 33, child: timeline),
+        Expanded(flex: theme.responsive.homePrimaryFlex, child: timeline),
         SizedBox(width: theme.spacing.m),
-        Expanded(flex: 16, child: overview),
+        Expanded(flex: theme.responsive.homeSecondaryFlex, child: overview),
       ],
     );
   }
@@ -304,18 +304,18 @@ extension _HomeDashboardView on _HomePageState {
                             ),
                           )
                         else
-                    for (var index = 0; index < entries.length; index++)
-                      _HomeTimelineRow(
-                        entry: entries[index],
-                        current: index == nextIndex,
-                        last: index == entries.length - 1,
-                      ),
-                  SizedBox(
-                    height: compact
-                        ? theme.layout.divider
-                        : theme.focus.ringWidth,
-                  ),
-                ],
+                          for (var index = 0; index < entries.length; index++)
+                            _HomeTimelineRow(
+                              entry: entries[index],
+                              current: index == nextIndex,
+                              last: index == entries.length - 1,
+                            ),
+                        SizedBox(
+                          height: compact
+                              ? theme.layout.divider
+                              : theme.focus.ringWidth,
+                        ),
+                      ],
                     ),
                   ),
                 ),

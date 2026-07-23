@@ -200,7 +200,7 @@ button, input { font: inherit; }
 
 .home-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(280px, .8fr);
+  grid-template-columns: minmax(0, var(--responsive-home-primary-flex)) minmax(280px, var(--responsive-home-secondary-flex));
   gap: var(--space-m);
 }
 
@@ -225,7 +225,7 @@ button, input { font: inherit; }
   box-shadow: 0 0 0 36px color-mix(in srgb, var(--on-structural) 4%, transparent), 0 0 0 72px color-mix(in srgb, var(--on-structural) 3%, transparent);
 }
 .timeline-date { display: flex; justify-content: space-between; gap: var(--space-m); color: color-mix(in srgb, var(--on-structural) 72%, transparent); font-size: var(--type-small); }
-.timeline-panel h2 { max-width: 560px; margin: var(--space-xl) 0; font: var(--weight-hero) clamp(var(--type-h1), var(--responsive-hero-viewport-percent), var(--type-hero))/var(--line-height-hero) var(--font); letter-spacing: -.035em; }
+.timeline-panel h2 { max-width: 560px; margin: var(--space-xl) 0; font: var(--weight-hero) clamp(var(--type-h1), var(--responsive-hero-viewport-percent), var(--type-hero))/var(--line-height-hero) var(--font); letter-spacing: var(--letter-spacing-hero); }
 .timeline-panel h2 strong { color: var(--brand-tint); font-weight: 600; }
 .timeline { position: relative; z-index: 1; display: grid; gap: 0; }
 .timeline-item { position: relative; display: grid; grid-template-columns: 60px 18px 1fr; gap: var(--space-s); min-height: 82px; }

@@ -99,9 +99,15 @@ def _validate_css_tokens(project_root: Path, tokens: dict[str, Any]) -> None:
     for name, value in tokens["responsive"].items():
         kebab = re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
         css_name = f"responsive-{kebab}"
-        expected = f"{value:g}vw"
+        expected = f"{value:g}fr" if name.endswith("Flex") else f"{value:g}vw"
         if light.get(css_name) != expected:
             errors.append(f"responsive.{name} 与 --{css_name} 漂移：期望 {expected}，实际 {light.get(css_name)}")
+
+    for name, value in tokens["typography"]["letterSpacing"].items():
+        css_name = f"letter-spacing-{name}"
+        expected = f"{value:g}px"
+        if light.get(css_name) != expected:
+            errors.append(f"typography.letterSpacing.{name} 与 --{css_name} 漂移：期望 {expected}，实际 {light.get(css_name)}")
 
     control_names = {"compact": "control-compact", "regular": "control-regular", "touch": "control-touch", "minimumTarget": "minimum-target"}
     focus_names = {"ringWidth": "focus-ring-width", "ringGap": "focus-ring-gap"}
@@ -304,6 +310,10 @@ def _validate_flutter_scalars(project_root: Path, tokens: dict[str, Any]) -> Non
     for name, value in tokens["typography"]["weight"].items():
         if re.search(rf"fontWeight:\s*FontWeight\.w{value:g},", typography_blocks[name]) is None:
             errors.append(f"typography.weight.{name} 与 Flutter YhTypographyTokens.{name} 漂移：期望 {value:g}")
+
+    for name, value in tokens["typography"]["letterSpacing"].items():
+        if re.search(rf"letterSpacing:\s*{value:g},", typography_blocks[name]) is None:
+            errors.append(f"typography.letterSpacing.{name} 与 Flutter YhTypographyTokens.{name} 漂移：期望 {value:g}")
 
     for name, value in tokens["typography"]["lineHeight"].items():
         if name == "compact":
@@ -642,8 +652,8 @@ def _validate_component_manifest(project_root: Path) -> None:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     components = manifest.get("components", [])
     errors: list[str] = []
-    if manifest.get("version") != "0.3.0":
-        errors.append("组件清单 version 必须是 0.3.0")
+    if manifest.get("version") != "0.4.0":
+        errors.append("组件清单 version 必须是 0.4.0")
     if len(components) != 44:
         errors.append(f"组件清单必须恰好包含 44 个组件，当前为 {len(components)}")
     ids = [component.get("id") for component in components if isinstance(component, dict)]
@@ -689,8 +699,8 @@ def _validate_component_manifest(project_root: Path) -> None:
 def validate_design_system(project_root: Path) -> None:
     """通过公开仓库目录校验清源设计契约。"""
     tokens = _load_tokens(project_root)
-    if tokens.get("meta", {}).get("version") != "0.3.0":
-        raise DesignSystemValidationError("tokens.json meta.version 必须是 0.3.0。")
+    if tokens.get("meta", {}).get("version") != "0.4.0":
+        raise DesignSystemValidationError("tokens.json meta.version 必须是 0.4.0。")
     _validate_css_tokens(project_root, tokens)
     _validate_css_variable_references(project_root)
     _validate_flutter_colors(project_root, tokens)
