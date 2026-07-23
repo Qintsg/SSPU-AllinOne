@@ -38,6 +38,9 @@ part 'home_campus_card_balance_card.dart';
 part 'home_campus_card_detail_page.dart';
 part 'home_student_profile_card.dart';
 
+/// 首页校园卡概览的确定性展示状态，仅用于视觉 fixture 与状态回归测试。
+enum HomeCampusCardDisplayState { loading, content, empty, stale, error }
+
 /// 主页
 /// 展示欢迎信息与最新消息列表
 class HomePage extends StatefulWidget {
@@ -52,6 +55,15 @@ class HomePage extends StatefulWidget {
 
   /// 测试专用：覆盖校园卡余额自动刷新间隔。
   final int? campusCardAutoRefreshIntervalOverride;
+
+  /// 测试专用：跳过缓存读取并直接展示固定校园卡结果。
+  final CampusCardQueryResult? campusCardResultOverride;
+
+  /// 测试专用：覆盖首页校园卡概览状态。
+  final HomeCampusCardDisplayState? campusCardDisplayStateOverride;
+
+  /// 测试专用：固定缓存陈旧判断与详情页相对时间。
+  final DateTime? nowOverride;
 
   /// 本专科教务服务，测试中可替换为 fake。
   final AcademicEamsClient? academicEamsService;
@@ -74,6 +86,9 @@ class HomePage extends StatefulWidget {
     this.campusNetworkStatusService,
     this.campusCardAutoRefreshEnabledOverride,
     this.campusCardAutoRefreshIntervalOverride,
+    this.campusCardResultOverride,
+    this.campusCardDisplayStateOverride,
+    this.nowOverride,
     this.academicEamsService,
     this.sportsAttendanceService,
     this.studentReportService,
@@ -141,7 +156,9 @@ class _HomePageState extends State<HomePage> {
           applyResult: _applyCampusCardResult,
           checkedAt: () => _campusCardResult?.checkedAt,
           failureReason: _campusCardRefreshFailureReason,
+          now: widget.nowOverride == null ? null : () => widget.nowOverride!,
         )..addListener(_handleCampusCardRefreshControllerChanged);
+    _campusCardResult = widget.campusCardResultOverride;
     _credentialChangeSubscription = AcademicCredentialsService.instance.changes
         .listen((_) {
           _clearAuthenticatedState();
@@ -149,7 +166,12 @@ class _HomePageState extends State<HomePage> {
         });
     _loadLatestMessages();
     _loadStudentProfileCard();
-    _loadCampusCardCacheAndSettings();
+    if (widget.campusCardResultOverride == null &&
+        widget.campusCardDisplayStateOverride == null) {
+      _loadCampusCardCacheAndSettings();
+    } else {
+      _loadCampusCardAutoRefreshSettings();
+    }
     _loadDashboardCaches();
   }
 
@@ -401,6 +423,16 @@ class _HomePageState extends State<HomePage> {
             service: widget.campusNetworkStatusService,
             variant: CampusNetworkStatusIndicatorVariant.home,
             indicatorKey: const Key('campus-network-status-home'),
+          ),
+          RefreshFeedbackAction(
+            key: const Key('home-campus-card-refresh'),
+            tooltip: '刷新校园卡余额',
+            semanticLabel: '刷新校园卡余额',
+            isLoading: _campusCardRefreshController.isLoading,
+            feedback: _campusCardRefreshController.feedback,
+            onPressed: _loadCampusCard,
+            minTouchSize: theme.control.minimumTarget,
+            maxFeedbackWidth: theme.layout.inlineControlWidth,
           ),
         ],
       ),

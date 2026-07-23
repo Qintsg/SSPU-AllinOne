@@ -112,8 +112,14 @@ void main() {
       campusCardAutoRefreshEnabledOverride: false,
     );
 
-    expect(find.text('校园卡余额'), findsOneWidget);
-    expect(find.textContaining('自动刷新未开启'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('home-campus-card-balance-card')),
+        matching: find.text('校园卡'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('尚未读取余额'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('home-campus-card-refresh')));
     await pumpUntilFound(tester, find.text('¥23.45'));
@@ -124,32 +130,18 @@ void main() {
     expect(service.queryTransactionsValues, [false]);
     expect(service.syncAllTransactionsValues, [true]);
     expect(find.text('账户余额'), findsNothing);
-    expect(find.text('卡状态：冻结'), findsOneWidget);
     expect(find.textContaining('2026-04-29'), findsNothing);
     expect(find.textContaining('需要校园网或学校 VPN'), findsNothing);
-    expect(find.text('上次刷新时间：2026-04-30 10:20'), findsOneWidget);
-    final detailButton = find.byWidgetPredicate((widget) {
-      return widget is Semantics &&
-          widget.properties.button == true &&
-          widget.properties.label == '交易记录查询';
-    });
-    expect(detailButton, findsOneWidget);
-    expect(
-      find.descendant(
-        of: detailButton,
-        matching: find.byIcon(YhIcons.chevronRight),
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('校园卡 · 本地缓存'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
     await tester.pump();
     expect(find.text('刷新成功√'), findsNothing);
 
-    await tester.tap(find.text('交易记录查询'));
+    await tester.tap(find.byKey(const Key('home-campus-card-balance-card')));
     await tester.pumpAndSettle();
 
     expect(find.text('校园卡详情'), findsOneWidget);
-    expect(find.text('余额：¥23.45'), findsOneWidget);
+    expect(find.text('¥23.45'), findsOneWidget);
     expect(find.text('交易记录'), findsOneWidget);
     expect(service.fetchCount, 1);
     await disposeHomePage(tester);
@@ -170,7 +162,8 @@ void main() {
     await tester.tap(refreshButton);
     await pumpUntilFound(tester, find.text('刷新失败:未设置OA账号×'));
 
-    expect(find.text('需要先填写 OA 账号'), findsOneWidget);
+    expect(find.text('校园卡暂不可用'), findsOneWidget);
+    expect(find.text('请检查 OA 登录与校园网络'), findsOneWidget);
     expect(service.fetchCount, 1);
     await tester.pump(const Duration(seconds: 3));
     await tester.pump();
@@ -197,11 +190,7 @@ void main() {
 
     final card = find.byKey(const Key('home-campus-card-balance-card'));
     final cardRect = tester.getRect(card);
-    for (final text in [
-      '需要先填写 OA 账号',
-      '前往设置页保存学工号后，再刷新校园卡余额。',
-      '刷新失败:未设置OA账号×',
-    ]) {
+    for (final text in ['校园卡暂不可用', '请检查 OA 登录与校园网络', '重试']) {
       final textRect = tester.getRect(
         find.descendant(of: card, matching: find.text(text)),
       );
@@ -417,7 +406,7 @@ void main() {
     await disposeHomePage(tester);
   });
 
-  testWidgets('首页校园卡刷新控件保持在上次刷新文案右侧', (tester) async {
+  testWidgets('首页校园卡刷新控件位于应用栏且保持 48dp 触控目标', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1280, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await AcademicCredentialsService.instance.saveCredentials(
@@ -443,19 +432,16 @@ void main() {
       find.byKey(const Key('home-campus-card-balance-card')),
     );
 
-    final refreshCenter = tester.getCenter(
+    final refreshRect = tester.getRect(
       find.byKey(const Key('home-campus-card-refresh')),
     );
-    final lastRefresh = find.textContaining('上次刷新时间：').first;
-    final lastRefreshCenter = tester.getCenter(lastRefresh);
-    final lastRefreshRight = tester.getTopRight(lastRefresh).dx;
-    final refreshLeft = tester
-        .getTopLeft(find.byKey(const Key('home-campus-card-refresh')))
-        .dx;
+    final cardRect = tester.getRect(
+      find.byKey(const Key('home-campus-card-balance-card')),
+    );
 
-    expect((refreshCenter.dy - lastRefreshCenter.dy).abs(), lessThan(1));
-    expect(refreshLeft - lastRefreshRight, greaterThanOrEqualTo(0));
-    expect(refreshLeft - lastRefreshRight, lessThan(16));
+    expect(refreshRect.width, greaterThanOrEqualTo(48));
+    expect(refreshRect.height, greaterThanOrEqualTo(48));
+    expect(refreshRect.bottom, lessThan(cardRect.top));
     expect(tester.takeException(), isNull);
     await disposeHomePage(tester);
   });
@@ -509,7 +495,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('学籍信息'), findsNothing);
-    expect(find.text('校园卡余额'), findsOneWidget);
+    expect(
+      find.byKey(const Key('home-campus-card-balance-card')),
+      findsOneWidget,
+    );
     await disposeHomePage(tester);
   });
 
@@ -531,7 +520,10 @@ void main() {
     await pumpUntilFound(tester, find.text('学籍信息'));
 
     expect(find.text('学籍信息'), findsOneWidget);
-    expect(find.text('校园卡余额'), findsNothing);
+    expect(
+      find.byKey(const Key('home-campus-card-balance-card')),
+      findsNothing,
+    );
     await disposeHomePage(tester);
   });
 
@@ -594,7 +586,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('home-campus-card-refresh')));
     await pumpUntilFound(tester, find.text('¥120.00'));
-    await tester.tap(find.text('交易记录查询'));
+    await tester.tap(find.byKey(const Key('home-campus-card-balance-card')));
     await tester.pumpAndSettle();
 
     expect(service.fetchCount, 1);
@@ -620,11 +612,96 @@ void main() {
     await tester.tap(find.text('筛选'));
     await tester.pump();
 
-    expect(find.text('日期格式应为 yyyy-MM-dd。'), findsOneWidget);
+    expect(find.text('日期格式应为 yyyy-MM-dd；已保留上一次有效筛选结果。'), findsOneWidget);
     expect(service.fetchCount, 1);
-    // After bad-date filter, _filteredRecords returns empty, so "交易 21" is hidden.
-    // The page-2 assertion above already verified pagination.
+    expect(find.textContaining('第 2 / 2 页 · 共 21 条'), findsOneWidget);
+    expect(find.text('交易 21'), findsOneWidget);
     await disposeHomePage(tester);
+  });
+
+  testWidgets('校园卡详情近七天使用固定时钟并切换为空状态', (tester) async {
+    final snapshot = _manyRecordsResult.snapshot!;
+    await tester.pumpWidget(
+      YhApp(
+        home: CampusCardDetailPage(
+          initialSnapshot: snapshot,
+          campusCardService: _FakeCampusCardClient(result: _manyRecordsResult),
+          nowOverride: DateTime(2026, 6, 9, 9, 30),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('campus-card-recent-seven-days')));
+    await tester.pump();
+
+    final startField = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const Key('campus-card-start-date')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    final endField = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const Key('campus-card-end-date')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(startField.controller.text, '2026-06-03');
+    expect(endField.controller.text, '2026-06-09');
+    expect(find.text('交易 03'), findsOneWidget);
+    expect(find.text('交易 10'), findsNothing);
+
+    await tester.tap(find.text('收入'));
+    await tester.pump();
+
+    expect(find.text('当前范围没有交易记录'), findsOneWidget);
+    expect(find.text('清除筛选'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('校园卡详情交易卡在窄屏单列且宽屏三列', (tester) async {
+    Future<void> pumpAt(Size size) async {
+      await tester.binding.setSurfaceSize(size);
+      await tester.pumpWidget(
+        YhApp(
+          home: CampusCardDetailPage(
+            initialSnapshot: _manyRecordsResult.snapshot!,
+            campusCardService: _FakeCampusCardClient(
+              result: _manyRecordsResult,
+            ),
+            nowOverride: DateTime(2026, 6, 9, 9, 30),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await pumpAt(const Size(390, 900));
+    final compactFirst = tester.getTopLeft(
+      find.byKey(const Key('campus-card-transaction-0')),
+    );
+    final compactSecond = tester.getTopLeft(
+      find.byKey(const Key('campus-card-transaction-1')),
+    );
+    expect(compactFirst.dx, compactSecond.dx);
+    expect(compactSecond.dy, greaterThan(compactFirst.dy));
+
+    await pumpAt(const Size(1200, 900));
+    final expandedFirst = tester.getTopLeft(
+      find.byKey(const Key('campus-card-transaction-0')),
+    );
+    final expandedSecond = tester.getTopLeft(
+      find.byKey(const Key('campus-card-transaction-1')),
+    );
+    final expandedThird = tester.getTopLeft(
+      find.byKey(const Key('campus-card-transaction-2')),
+    );
+    expect(expandedFirst.dy, expandedSecond.dy);
+    expect(expandedSecond.dy, expandedThird.dy);
+    expect(expandedFirst.dx, lessThan(expandedSecond.dx));
+    expect(expandedSecond.dx, lessThan(expandedThird.dx));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('首页静默自动刷新失败时保留已有校园卡缓存', (tester) async {

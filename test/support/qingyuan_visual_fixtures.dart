@@ -4,13 +4,133 @@ import 'dart:async';
 
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
+import 'package:sspu_allinone/models/campus_card.dart';
 import 'package:sspu_allinone/models/email_mailbox.dart';
 import 'package:sspu_allinone/models/message_item.dart';
 import 'package:sspu_allinone/services/academic_eams_service.dart';
+import 'package:sspu_allinone/services/campus_card_service.dart';
 import 'package:sspu_allinone/services/email_service.dart';
 
 /// 视觉矩阵的固定本地时钟。
 final DateTime qingyuanVisualNow = DateTime(2026, 7, 18, 9, 30);
+
+final Uri _campusCardEntranceUri = Uri.parse(
+  'https://oa.example.invalid/interface/Entrance.jsp?id=campus-card',
+);
+final Uri _campusCardSourceUri = Uri.parse(
+  'https://card.example.invalid/epay/consume/query',
+);
+
+/// 校园卡页面的固定脱敏交易记录。
+const List<CampusCardTransactionRecord> qingyuanCampusCardTransactions = [
+  CampusCardTransactionRecord(
+    occurredAt: '2026-07-18 08:12',
+    amount: -12.5,
+    title: '一食堂 · POS 消费',
+    counterparty: '一食堂',
+    paymentMethod: '校园卡',
+    status: '成功',
+    direction: 'expense',
+    rawCells: ['2026-07-18 08:12', '一食堂 · POS 消费', '-12.50'],
+  ),
+  CampusCardTransactionRecord(
+    occurredAt: '2026-07-17 16:42',
+    amount: 100,
+    title: '校园卡充值',
+    counterparty: '在线充值',
+    paymentMethod: '在线充值',
+    status: '成功',
+    direction: 'income',
+    rawCells: ['2026-07-17 16:42', '校园卡充值', '+100.00'],
+  ),
+  CampusCardTransactionRecord(
+    occurredAt: '2026-07-16 12:06',
+    amount: -18.5,
+    title: '图书馆咖啡吧',
+    counterparty: '图书馆咖啡吧',
+    paymentMethod: '校园卡',
+    status: '成功',
+    direction: 'expense',
+    rawCells: ['2026-07-16 12:06', '图书馆咖啡吧', '-18.50'],
+  ),
+];
+
+/// 校园卡正常内容 fixture。
+final CampusCardQueryResult qingyuanCampusCardContentResult = _campusCardResult(
+  checkedAt: qingyuanVisualNow,
+  balance: 128.5,
+  records: qingyuanCampusCardTransactions,
+);
+
+/// 校园卡空内容 fixture，余额与交易均尚未读取。
+final CampusCardQueryResult qingyuanCampusCardEmptyResult = _campusCardResult(
+  checkedAt: qingyuanVisualNow,
+  balance: null,
+  records: const [],
+);
+
+/// 校园卡昨日缓存 fixture。
+final CampusCardQueryResult qingyuanCampusCardStaleResult = _campusCardResult(
+  checkedAt: DateTime(2026, 7, 17, 18),
+  balance: 128.5,
+  records: qingyuanCampusCardTransactions,
+  message: '已显示本地校园卡缓存',
+);
+
+/// 校园卡查询失败 fixture。
+final CampusCardQueryResult qingyuanCampusCardErrorResult =
+    CampusCardQueryResult(
+      status: CampusCardQueryStatus.networkError,
+      message: '校园卡暂不可用',
+      detail: '请检查 OA 登录与校园网络。',
+      checkedAt: qingyuanVisualNow,
+      entranceUri: _campusCardEntranceUri,
+    );
+
+CampusCardQueryResult _campusCardResult({
+  required DateTime checkedAt,
+  required double? balance,
+  required List<CampusCardTransactionRecord> records,
+  String message = '校园卡已同步',
+}) {
+  return CampusCardQueryResult(
+    status: CampusCardQueryStatus.success,
+    message: message,
+    detail: '已读取脱敏校园卡余额与交易记录。',
+    checkedAt: checkedAt,
+    entranceUri: _campusCardEntranceUri,
+    finalUri: _campusCardSourceUri,
+    snapshot: CampusCardSnapshot(
+      balance: balance,
+      status: '正常',
+      records: records,
+      fetchedAt: checkedAt,
+      sourceUri: _campusCardSourceUri,
+      transactionPageCount: 1,
+    ),
+  );
+}
+
+/// 视觉测试使用的无网络校园卡客户端。
+class QingyuanVisualCampusCardClient implements CampusCardBalanceClient {
+  QingyuanVisualCampusCardClient({required this.result, this.cachedResult});
+
+  final CampusCardQueryResult result;
+  final CampusCardQueryResult? cachedResult;
+
+  @override
+  Future<CampusCardQueryResult?> readLatestCachedCampusCard() async =>
+      cachedResult;
+
+  @override
+  Future<CampusCardQueryResult> fetchCampusCard({
+    DateTime? startDate,
+    DateTime? endDate,
+    bool requireCampusNetwork = true,
+    bool queryTransactions = false,
+    bool syncAllTransactions = false,
+  }) async => result;
+}
 
 /// 资讯页面的固定脱敏内容，不访问学校官网或公众号平台。
 final List<MessageItem> qingyuanInfoMessages = [

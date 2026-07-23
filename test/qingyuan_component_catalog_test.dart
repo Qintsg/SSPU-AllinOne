@@ -163,6 +163,45 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('清源页签横向露出当前项时不滚动外层纵向页面', (tester) async {
+    final outerController = ScrollController();
+    addTearDown(outerController.dispose);
+    await tester.pumpWidget(
+      YhApp(
+        home: SizedBox(
+          height: 200,
+          child: SingleChildScrollView(
+            controller: outerController,
+            child: Column(
+              children: [
+                const SizedBox(height: 300),
+                SizedBox(
+                  width: 320,
+                  child: YhTabs<int>(
+                    tabs: const [
+                      YhTab(value: 1, label: '周一'),
+                      YhTab(value: 2, label: '周二'),
+                      YhTab(value: 3, label: '周三'),
+                      YhTab(value: 4, label: '周四'),
+                      YhTab(value: 5, label: '周五'),
+                      YhTab(value: 6, label: '周六 · 今天'),
+                    ],
+                    value: 6,
+                    onChanged: (_) {},
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(outerController.offset, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('清源页签响应左右方向键并更新当前项', (tester) async {
     var value = 1;
     await tester.pumpWidget(

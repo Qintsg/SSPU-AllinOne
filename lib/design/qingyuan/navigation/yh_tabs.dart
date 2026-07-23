@@ -33,6 +33,8 @@ class YhTabs<T> extends StatefulWidget {
 
 class _YhTabsState<T> extends State<YhTabs<T>> {
   late List<GlobalKey> _tabKeys;
+  final GlobalKey _viewportKey = GlobalKey(debugLabel: 'YhTabsViewport');
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -64,13 +66,40 @@ class _YhTabsState<T> extends State<YhTabs<T>> {
       final index = widget.tabs.indexWhere((tab) => tab.value == widget.value);
       if (index < 0 || index >= _tabKeys.length) return;
       final targetContext = _tabKeys[index].currentContext;
-      if (targetContext == null) return;
-      Scrollable.ensureVisible(
-        targetContext,
-        alignment: 0.7,
-        duration: Duration.zero,
+      final viewportContext = _viewportKey.currentContext;
+      if (targetContext == null || viewportContext == null) return;
+      final targetBox = targetContext.findRenderObject() as RenderBox?;
+      final viewportBox = viewportContext.findRenderObject() as RenderBox?;
+      if (targetBox == null ||
+          viewportBox == null ||
+          !_scrollController.hasClients) {
+        return;
+      }
+      final targetLeft = targetBox.localToGlobal(Offset.zero).dx;
+      final targetRight = targetLeft + targetBox.size.width;
+      final viewportLeft = viewportBox.localToGlobal(Offset.zero).dx;
+      final viewportRight = viewportLeft + viewportBox.size.width;
+      var offset = _scrollController.offset;
+      if (targetLeft < viewportLeft) {
+        offset -= viewportLeft - targetLeft;
+      } else if (targetRight > viewportRight) {
+        offset += targetRight - viewportRight;
+      } else {
+        return;
+      }
+      _scrollController.jumpTo(
+        offset.clamp(
+          _scrollController.position.minScrollExtent,
+          _scrollController.position.maxScrollExtent,
+        ),
       );
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -86,6 +115,8 @@ class _YhTabsState<T> extends State<YhTabs<T>> {
             border: Border(bottom: BorderSide(color: theme.color.border)),
           ),
           child: SingleChildScrollView(
+            key: _viewportKey,
+            controller: _scrollController,
             scrollDirection: Axis.horizontal,
             primary: false,
             child: Row(

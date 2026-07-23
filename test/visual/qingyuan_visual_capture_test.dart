@@ -14,15 +14,18 @@ import 'package:sspu_allinone/pages/about_page.dart';
 import 'package:sspu_allinone/pages/course_schedule_page.dart';
 import 'package:sspu_allinone/pages/email_page.dart';
 import 'package:sspu_allinone/pages/external_link_confirmation_page.dart';
+import 'package:sspu_allinone/pages/home_page.dart';
 import 'package:sspu_allinone/pages/info_page.dart';
 import 'package:sspu_allinone/pages/legal_notice_page.dart';
 import 'package:sspu_allinone/pages/quick_links_page.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/services/quick_links_config_service.dart';
+import 'package:sspu_allinone/services/campus_network_status_service.dart';
 
 import '../support/qingyuan_visual_fixtures.dart';
 
 const _captureEnabled = bool.fromEnvironment('QINGYUAN_VISUAL_CAPTURE');
+const _surfacePrefix = String.fromEnvironment('QINGYUAN_VISUAL_SURFACE_PREFIX');
 const _platform = String.fromEnvironment(
   'QINGYUAN_VISUAL_PLATFORM',
   defaultValue: 'local',
@@ -46,6 +49,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   if (_captureEnabled) setUpAll(_loadVisualFonts);
   for (final surface in _surfaces) {
+    if (_surfacePrefix.isNotEmpty && !surface.id.startsWith(_surfacePrefix)) {
+      continue;
+    }
     for (final viewport in _viewports) {
       for (final mode in [YhThemeMode.light, YhThemeMode.dark]) {
         final themeName = mode == YhThemeMode.light ? 'light' : 'dark';
@@ -219,6 +225,55 @@ final _surfaces = <_VisualSurface>[
   _VisualSurface('components.data', _dataPanel),
   _VisualSurface('components.domain', _domainPanel),
   _VisualSurface(
+    'home.campus-card',
+    () => _homeCampusCardPage(HomeCampusCardDisplayState.loading),
+    state: 'loading',
+    prepare: _prepareHomeCampusCard,
+    destination: '主页',
+  ),
+  _VisualSurface(
+    'home.campus-card',
+    () => _homeCampusCardPage(HomeCampusCardDisplayState.content),
+    prepare: _prepareHomeCampusCard,
+    destination: '主页',
+  ),
+  _VisualSurface(
+    'home.campus-card',
+    () => _homeCampusCardPage(HomeCampusCardDisplayState.empty),
+    state: 'empty',
+    prepare: _prepareHomeCampusCard,
+    destination: '主页',
+  ),
+  _VisualSurface(
+    'home.campus-card',
+    () => _homeCampusCardPage(HomeCampusCardDisplayState.stale),
+    state: 'stale',
+    prepare: _prepareHomeCampusCard,
+    destination: '主页',
+  ),
+  _VisualSurface(
+    'home.campus-card',
+    () => _homeCampusCardPage(HomeCampusCardDisplayState.error),
+    state: 'error',
+    prepare: _prepareHomeCampusCard,
+    destination: '主页',
+  ),
+  _VisualSurface(
+    'home.campus-card-detail',
+    () => _campusCardDetailPage(CampusCardDetailDisplayState.content),
+    prepare: _prepareCampusCardDetailContent,
+  ),
+  _VisualSurface(
+    'home.campus-card-detail',
+    () => _campusCardDetailPage(CampusCardDetailDisplayState.empty),
+    state: 'empty',
+  ),
+  _VisualSurface(
+    'home.campus-card-detail',
+    () => _campusCardDetailPage(CampusCardDetailDisplayState.error),
+    state: 'error',
+  ),
+  _VisualSurface(
     'schedule.calendar',
     _scheduleInitial,
     state: 'initial',
@@ -385,6 +440,61 @@ final _surfaces = <_VisualSurface>[
     state: 'error',
   ),
 ];
+
+Widget _homeCampusCardPage(HomeCampusCardDisplayState state) {
+  final result = switch (state) {
+    HomeCampusCardDisplayState.empty => qingyuanCampusCardEmptyResult,
+    HomeCampusCardDisplayState.stale => qingyuanCampusCardStaleResult,
+    HomeCampusCardDisplayState.error => qingyuanCampusCardErrorResult,
+    HomeCampusCardDisplayState.loading ||
+    HomeCampusCardDisplayState.content => qingyuanCampusCardContentResult,
+  };
+  return HomePage(
+    campusCardService: QingyuanVisualCampusCardClient(result: result),
+    campusNetworkStatusService: _visualCampusNetworkStatusService(),
+    campusCardAutoRefreshEnabledOverride: false,
+    campusCardResultOverride: result,
+    campusCardDisplayStateOverride: state,
+    nowOverride: qingyuanVisualNow,
+  );
+}
+
+CampusNetworkStatusService _visualCampusNetworkStatusService() {
+  return CampusNetworkStatusService(
+    probe: (uri, timeout) async => CampusNetworkProbeResult(
+      reachable: true,
+      statusCode: 200,
+      detail: '视觉 fixture 已连接 ${uri.host}',
+    ),
+  );
+}
+
+Future<void> _prepareHomeCampusCard(WidgetTester tester) async {
+  await _centerInScrollable(
+    tester,
+    find.byKey(const Key('home-campus-card-balance-card')),
+  );
+  await tester.pump();
+}
+
+Widget _campusCardDetailPage(CampusCardDetailDisplayState state) {
+  final snapshot = state == CampusCardDetailDisplayState.empty
+      ? qingyuanCampusCardEmptyResult.snapshot!
+      : qingyuanCampusCardContentResult.snapshot!;
+  return CampusCardDetailPage(
+    initialSnapshot: snapshot,
+    campusCardService: QingyuanVisualCampusCardClient(
+      result: qingyuanCampusCardContentResult,
+    ),
+    nowOverride: qingyuanVisualNow,
+    displayStateOverride: state,
+  );
+}
+
+Future<void> _prepareCampusCardDetailContent(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('campus-card-recent-seven-days')));
+  await tester.pump();
+}
 
 Widget _infoPage(InfoPageDisplayState state, {bool withMessages = false}) =>
     InfoPage(
