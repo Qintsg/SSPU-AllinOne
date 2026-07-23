@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 from pathlib import Path
 import struct
 
@@ -12,6 +14,9 @@ from playwright.sync_api import Page, sync_playwright
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROTOTYPE = PROJECT_ROOT / "docs" / "design" / "patterns" / "samples" / "app-shell.html"
+STATE_REFERENCE = PROJECT_ROOT / "docs" / "design" / "patterns" / "samples" / "state-reference.html"
+VISUAL_MANIFEST = PROJECT_ROOT / "docs" / "design" / "resources" / "visual-manifest.json"
+REFERENCE_CATALOG = PROJECT_ROOT / "docs" / "design" / "resources" / "reference-catalog.json"
 SCREENS = ("home", "campus-card-detail", "academic", "schedule", "info", "mail", "mail-detail", "links", "link-confirmation", "settings")
 SCREEN_SURFACES = {
     "home": "home.dashboard",
@@ -62,6 +67,95 @@ def _capture_reference(page: Page, target: Path, width: int, height: int) -> Non
     _assert(
         (actual_width, actual_height) == (width, height),
         f"{target.name} 截图尺寸错误：{actual_width}x{actual_height} != {width}x{height}",
+    )
+
+
+def _load_reference_contract() -> tuple[dict, dict[str, dict], list[dict]]:
+    manifest = json.loads(VISUAL_MANIFEST.read_text(encoding="utf-8"))
+    catalog = json.loads(REFERENCE_CATALOG.read_text(encoding="utf-8"))
+    entries = {entry["id"]: entry for entry in catalog["surfaces"]}
+    expected: list[dict] = []
+    for surface in manifest["surfaces"]:
+        entry = entries[surface["id"]]
+        for state in surface["states"]:
+            for theme in manifest["meta"]["themes"]:
+                for viewport in manifest["meta"]["viewports"]:
+                    expected.append(
+                        {
+                            "entry": entry,
+                            "group": surface["group"],
+                            "surface": surface["id"],
+                            "state": state,
+                            "theme": theme,
+                            "width": viewport["width"],
+                            "height": viewport["height"],
+                            "filename": (
+                                f'{surface["id"]}--{state}--{theme}--'
+                                f'{viewport["width"]}x{viewport["height"]}.png'
+                            ),
+                        }
+                    )
+    return manifest, entries, expected
+
+
+def _capture_missing_state_references(page: Page, output_dir: Path, expected: list[dict]) -> None:
+    reference_url = STATE_REFERENCE.resolve().as_uri()
+    for width, height in VIEWPORTS:
+        page.set_viewport_size({"width": width, "height": height})
+        page.emulate_media(reduced_motion="reduce")
+        page.goto(reference_url, wait_until="networkidle")
+        page.evaluate("document.fonts.ready")
+        for item in expected:
+            if item["width"] != width or item["height"] != height:
+                continue
+            target = output_dir / item["filename"]
+            if target.exists():
+                continue
+            page.evaluate(
+                "payload => window.qingyuanStateReference.render(payload)",
+                {
+                    "entry": item["entry"],
+                    "group": item["group"],
+                    "state": item["state"],
+                    "theme": item["theme"],
+                },
+            )
+            _assert(
+                page.locator(f'body[data-surface="{item["surface"]}"][data-state="{item["state"]}"]').count() == 1,
+                f'{item["filename"]} 状态参考未正确渲染',
+            )
+            _assert_targets(page, width, item["surface"])
+            _capture_reference(page, target, width, height)
+
+
+def _write_reference_index(output_dir: Path, manifest: dict, expected: list[dict]) -> None:
+    expected_names = {item["filename"] for item in expected}
+    actual_files = sorted(output_dir.glob("*.png"), key=lambda item: item.name)
+    actual_names = {item.name for item in actual_files}
+    missing = sorted(expected_names - actual_names)
+    unexpected = sorted(actual_names - expected_names)
+    _assert(not missing, f"设计参考缺少 {len(missing)} 张：{', '.join(missing[:5])}")
+    _assert(not unexpected, f"设计参考存在清单外截图：{', '.join(unexpected[:5])}")
+    index = {
+        "meta": {
+            "version": manifest["meta"]["version"],
+            "designSystem": manifest["meta"]["designSystem"],
+            "fixture": manifest["meta"]["capture"]["fixture"],
+            "clock": manifest["meta"]["capture"]["clock"],
+            "count": len(actual_files),
+            "status": "design-review-candidate",
+        },
+        "files": [
+            {
+                "name": item.name,
+                "sha256": hashlib.sha256(item.read_bytes()).hexdigest(),
+            }
+            for item in actual_files
+        ],
+    }
+    (output_dir / "reference-index.json").write_text(
+        json.dumps(index, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
     )
 
 
@@ -367,6 +461,10 @@ def _capture_link_confirmation_state_references(
 
 def verify(output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
+    for stale_reference in output_dir.glob("*.png"):
+        stale_reference.unlink()
+    (output_dir / "reference-index.json").unlink(missing_ok=True)
+    manifest, _, expected = _load_reference_contract()
     prototype_url = PROTOTYPE.resolve().as_uri()
     errors: list[str] = []
 
@@ -491,11 +589,16 @@ def verify(output_dir: Path) -> None:
                 if screen == "link-confirmation":
                     _capture_link_confirmation_state_references(page, output_dir, "dark", width, height)
 
+        _capture_missing_state_references(page, output_dir, expected)
+        _write_reference_index(output_dir, manifest, expected)
         _assert(not errors, "浏览器控制台错误：" + " | ".join(errors))
         context.close()
         browser.close()
 
-    print(f"Qingyuan page prototype passed browser verification. Screenshots: {output_dir}")
+    print(
+        "Qingyuan page prototype passed browser verification. "
+        f"Screenshots: {len(expected)} at {output_dir}"
+    )
 
 
 def main() -> int:

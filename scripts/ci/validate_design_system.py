@@ -17,6 +17,7 @@ FLUTTER_THEME_PATH = Path("lib/design/qingyuan/theme/yh_theme.dart")
 PAGE_PROTOTYPE_PATH = Path("docs/design/patterns/samples/app-shell.html")
 PAGE_PROTOTYPE_CSS_PATH = Path("docs/design/patterns/samples/_app-shell.css")
 VISUAL_MANIFEST_PATH = Path("docs/design/resources/visual-manifest.json")
+REFERENCE_CATALOG_PATH = Path("docs/design/resources/reference-catalog.json")
 MARKDOWN_LINK_PATTERN = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
 
@@ -628,6 +629,72 @@ def _validate_visual_manifest(project_root: Path) -> None:
         raise DesignSystemValidationError("\n".join(errors))
 
 
+def _validate_reference_catalog(project_root: Path) -> None:
+    manifest_path = project_root / VISUAL_MANIFEST_PATH
+    catalog_path = project_root / REFERENCE_CATALOG_PATH
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise DesignSystemValidationError(f"{REFERENCE_CATALOG_PATH} 无法解析：{error}") from error
+
+    manifest_surfaces = {
+        item["id"]: set(item["states"])
+        for item in manifest.get("surfaces", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    }
+    entries = catalog.get("surfaces", [])
+    catalog_ids = [item.get("id") for item in entries if isinstance(item, dict)]
+    errors: list[str] = []
+    if catalog.get("meta", {}).get("visualManifest") != manifest.get("meta", {}).get("version"):
+        errors.append("全状态参考目录必须绑定当前 visual-manifest 版本")
+    duplicates = sorted({surface_id for surface_id in catalog_ids if catalog_ids.count(surface_id) > 1})
+    if duplicates:
+        errors.append(f"全状态参考目录存在重复界面：{', '.join(duplicates)}")
+    missing = sorted(set(manifest_surfaces) - set(catalog_ids))
+    unexpected = sorted(set(catalog_ids) - set(manifest_surfaces))
+    if missing:
+        errors.append(f"全状态参考目录缺少界面：{', '.join(missing)}")
+    if unexpected:
+        errors.append(f"全状态参考目录包含清单外界面：{', '.join(unexpected)}")
+
+    required_text = ("title", "kicker", "summary", "source", "primaryAction")
+    for entry in entries:
+        if not isinstance(entry, dict):
+            errors.append("全状态参考目录条目必须是对象")
+            continue
+        surface_id = entry.get("id")
+        if surface_id not in manifest_surfaces:
+            continue
+        for field in required_text:
+            if not isinstance(entry.get(field), str) or not entry[field].strip():
+                errors.append(f"全状态参考 {surface_id} 缺少 {field}")
+        states = set(entry.get("states", []))
+        if states != manifest_surfaces[surface_id]:
+            errors.append(f"全状态参考 {surface_id} 与视觉清单状态不一致")
+        items = entry.get("items")
+        if not isinstance(items, list) or len(items) < 3 or any(not isinstance(item, str) or not item for item in items):
+            errors.append(f"全状态参考 {surface_id} 必须提供至少三项确定性内容")
+
+    reference_files = (
+        Path("docs/design/patterns/samples/state-reference.html"),
+        Path("docs/design/patterns/samples/_state-reference.css"),
+        Path("docs/design/patterns/samples/_state-reference.js"),
+    )
+    for relative in reference_files:
+        if not (project_root / relative).exists():
+            errors.append(f"全状态参考缺少渲染资源：{relative}")
+    reference_css_path = project_root / reference_files[1]
+    if reference_css_path.exists():
+        reference_css = reference_css_path.read_text(encoding="utf-8")
+        if re.search(r"#[0-9A-Fa-f]{3,8}\b", reference_css):
+            errors.append(f"{reference_files[1]} 包含裸颜色值，应复用清源 token")
+        if "prefers-reduced-motion: reduce" not in reference_css:
+            errors.append(f"{reference_files[1]} 缺少减少动态适配")
+    if errors:
+        raise DesignSystemValidationError("\n".join(errors))
+
+
 def _validate_qingyuan_runtime(project_root: Path) -> None:
     runtime = project_root / "lib"
     if not runtime.exists():
@@ -734,6 +801,7 @@ def validate_design_system(project_root: Path) -> None:
     _validate_document_contract(project_root)
     _validate_page_prototype(project_root)
     _validate_visual_manifest(project_root)
+    _validate_reference_catalog(project_root)
     _validate_component_manifest(project_root)
     _validate_qingyuan_runtime(project_root)
     _validate_markdown_links(project_root)

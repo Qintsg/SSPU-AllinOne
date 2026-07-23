@@ -392,6 +392,35 @@ class DesignSystemValidatorTest(unittest.TestCase):
             with self.assertRaisesRegex(DesignSystemValidationError, r"视觉清单必须锁定"):
                 validate_design_system(root)
 
+    def test_reference_catalog_requires_every_visual_surface(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            catalog = root / "docs" / "design" / "resources" / "reference-catalog.json"
+            payload = json.loads(catalog.read_text(encoding="utf-8"))
+            payload["surfaces"] = [
+                entry for entry in payload["surfaces"] if entry["id"] != "external.system-auth"
+            ]
+            catalog.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+            with self.assertRaisesRegex(DesignSystemValidationError, r"全状态参考目录缺少界面.*external.system-auth"):
+                validate_design_system(root)
+
+    def test_reference_catalog_states_must_match_visual_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            catalog = root / "docs" / "design" / "resources" / "reference-catalog.json"
+            payload = json.loads(catalog.read_text(encoding="utf-8"))
+            target = next(entry for entry in payload["surfaces"] if entry["id"] == "mail.inbox")
+            target["states"].remove("error")
+            catalog.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+            with self.assertRaisesRegex(DesignSystemValidationError, r"mail.inbox.*状态不一致"):
+                validate_design_system(root)
+
     def test_component_manifest_requires_all_44_flutter_components(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

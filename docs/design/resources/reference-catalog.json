@@ -1,0 +1,63 @@
+{
+  "meta": {
+    "version": "0.1.0",
+    "visualManifest": "0.2.0",
+    "fixture": "qingyuan-sanitized-v1",
+    "purpose": "独立于 Flutter 实现的全状态设计参考目录"
+  },
+  "surfaces": [
+    {"id":"components.actions","title":"行动组件","kicker":"清源组件 · 行动","summary":"主要、次要与危险行动保持同一套键鼠、触控和禁用语法。","source":"清源组件契约","primaryAction":"确认行动","states":["content"],"items":["主要行动","次要行动","图标行动"]},
+    {"id":"components.inputs","title":"输入组件","kicker":"清源组件 · 输入","summary":"输入、选择和日期控件用持续标签表达上下文，不依赖占位符。","source":"清源组件契约","primaryAction":"保存输入","states":["content"],"items":["学号与账户","学期选择","日期范围"]},
+    {"id":"components.feedback","title":"反馈组件","kicker":"清源组件 · 反馈","summary":"进度、提示与错误都说明当前发生了什么以及下一步能做什么。","source":"清源组件契约","primaryAction":"重新尝试","states":["content"],"items":["完成反馈","缓存提示","错误恢复"]},
+    {"id":"components.navigation","title":"导航组件","kicker":"清源组件 · 导航","summary":"目的地、页内分段和分页共享清晰的选中与键盘焦点。","source":"清源组件契约","primaryAction":"打开目的地","states":["content"],"items":["主目的地","页内分段","分页与返回"]},
+    {"id":"components.data","title":"数据组件","kicker":"清源组件 · 数据","summary":"列表、指标和状态标签优先表达来源、时间与可比较关系。","source":"清源组件契约","primaryAction":"查看数据","states":["content"],"items":["指标摘要","连续列表","来源标签"]},
+    {"id":"components.domain","title":"校园业务组件","kicker":"清源组件 · 校园域","summary":"课程、余额、考勤和消息保留各自域色，但不争夺结构层级。","source":"清源组件契约","primaryAction":"查看详情","states":["content"],"items":["课程时间块","校园卡余额","体育考勤"]},
+
+    {"id":"shell.startup","title":"正在准备清源","kicker":"应用启动","summary":"先恢复本地设置与缓存，再决定是否访问校园服务。","source":"本机应用状态","primaryAction":"重试启动","states":["loading","error"],"items":["读取本地设置","恢复账户状态","准备校园服务"]},
+    {"id":"shell.navigation","title":"七个目的地，一条稳定路径","kicker":"响应式应用壳","summary":"底栏与导航轨只改变空间形态，不改变目的地名称、顺序和上下文。","source":"清源导航契约","primaryAction":"进入主页","states":["content"],"items":["主页与教务","课表与资讯","邮箱、入口与设置"]},
+    {"id":"shell.more-drawer","title":"更多校园服务","kicker":"紧凑导航","summary":"邮箱、快捷入口和设置在窄屏抽屉中保持可达，并在关闭后恢复焦点。","source":"清源导航契约","primaryAction":"打开邮箱","states":["content"],"items":["学校邮箱","快捷入口","设置"]},
+    {"id":"shell.close-confirmation","title":"关闭工大聚合？","kicker":"桌面窗口","summary":"关闭前说明后台行为，取消后回到原有页面与焦点。","source":"桌面窗口状态","primaryAction":"确认关闭","states":["content"],"items":["保留当前页面","停止后台刷新","可从托盘重新打开"]},
+    {"id":"consent.first-run","title":"先确认数据边界","kicker":"首次使用","summary":"校园服务只在主动操作时联网，本地缓存与账户连接均可随后清除。","source":"隐私与用户协议","primaryAction":"同意并继续","states":["initial","content"],"items":["只读访问校园数据","凭据保存在系统安全区","可随时清除本地数据"]},
+    {"id":"security.lock","title":"解锁工大聚合","kicker":"本机安全","summary":"使用设备认证或本地密码恢复会话，不向校园服务发送解锁信息。","source":"本机安全状态","primaryAction":"解锁","states":["initial","loading","error"],"items":["设备生物识别","本地密码","失败后安全重试"]},
+
+    {"id":"home.dashboard","title":"今天，从下一件事开始","kicker":"主页 · 2026 年 7 月 18 日","summary":"把课程、待办和校园服务收拢成一条有时间方向的今日学程。","source":"本地缓存 · 09:30","primaryAction":"刷新首页","states":["initial","loading","content","stale","error"],"items":["10:00 数据结构","14:00 图书馆还书","18:30 第二课堂签到"]},
+    {"id":"home.campus-card","title":"校园卡","kicker":"主页服务概览","summary":"余额、今日消费和更新时间并列呈现，缓存状态不会伪装成实时数据。","source":"校园卡本地快照","primaryAction":"查看交易","states":["loading","content","empty","stale","error"],"items":["余额 ¥128.50","今日消费 ¥18.50","09:30 更新"]},
+    {"id":"home.campus-card-detail","title":"校园卡详情","kicker":"余额与交易","summary":"按日期和收支方向筛选本机记录，错误不会清空上一次有效结果。","source":"校园卡本地快照","primaryAction":"应用筛选","states":["content","empty","error"],"items":["一食堂 · −¥12.50","在线充值 · +¥100.00","图书馆咖啡吧 · −¥18.50"]},
+
+    {"id":"academic.overview","title":"学习进度，一处看全","kicker":"教务中心","summary":"成绩、考试、培养方案与体育考勤保持只读，来源和更新时间始终可见。","source":"教务系统 · 本地快照","primaryAction":"刷新教务数据","states":["initial","loading","content","empty","stale","error"],"items":["平均绩点 3.62","已获学分 86.0","专业排名 12 / 96"]},
+    {"id":"academic.grade-detail","title":"课程成绩","kicker":"2025–2026 学年","summary":"按学期阅读成绩与学分，原始分值不参与本机推断。","source":"教务成绩 · 09:30","primaryAction":"切换学期","states":["loading","content","empty","error"],"items":["数据结构 · 92","离散数学 · 88","大学英语 · 90"]},
+    {"id":"academic.exam-detail","title":"考试安排","kicker":"本学期考试","summary":"时间、地点和考试类型采用连续时间顺序，临时变更显示来源。","source":"教务考试 · 09:30","primaryAction":"刷新安排","states":["loading","content","empty","error"],"items":["7 月 22 日 · 离散数学","7 月 25 日 · 数据结构","7 月 28 日 · 大学英语"]},
+    {"id":"academic.grade-process","title":"培养进度","kicker":"毕业要求","summary":"已修、在修和未完成模块保持可比较，缺失数据不折算为零。","source":"培养方案 · 本地快照","primaryAction":"查看课程","states":["loading","content","empty","error"],"items":["公共基础 32 / 36","专业核心 40 / 64","实践环节 14 / 20"]},
+    {"id":"academic.student-report","title":"第二课堂成绩单","kicker":"课外成长","summary":"活动记录、积分规则和完成度分开呈现，缓存结果带明确时间。","source":"第二课堂 · 09:30","primaryAction":"刷新成绩单","states":["loading","content","empty","stale","error"],"items":["志愿服务 3.0","创新实践 2.5","文体活动 3.0"]},
+    {"id":"academic.student-report-rules","title":"第二课堂积分规则","kicker":"计算说明","summary":"逐项说明必修、选修和上限，规则缺失时不推测最终学分。","source":"第二课堂规则","primaryAction":"返回成绩单","states":["content","empty"],"items":["必修项目","选修项目","单项积分上限"]},
+    {"id":"academic.sports-attendance","title":"体育考勤","kicker":"本学期运动记录","summary":"出勤、请假和异常按日期连续展示，状态色不替代文字结论。","source":"体育系统 · 本地快照","primaryAction":"刷新考勤","states":["loading","content","empty","stale","error"],"items":["晨跑 12 / 12","体育课 8 / 8","体测待完成 1 项"]},
+    {"id":"academic.calendar","title":"校历","kicker":"2025–2026 学年","summary":"工具栏、下载和错误反馈由清源绘制，PDF 正文保持独立外部区域。","source":"教务处校历","primaryAction":"下载 PDF","states":["loading","content","empty","stale","error"],"items":["第 20 教学周","暑期实践安排","下学期开学日期"]},
+
+    {"id":"schedule.calendar","title":"课程表","kicker":"2025–2026 第 2 学期","summary":"宽屏保持七天空间关系，窄屏切为按天列表，并始终露出今天。","source":"教务课表 · 09:30","primaryAction":"刷新课表","states":["initial","loading","content","empty","stale","error"],"items":["周一 · 数据结构","周三 · 离散数学","周五 · 大学英语"]},
+    {"id":"info.feed","title":"校园资讯","kicker":"学校与院系动态","summary":"按来源和时间阅读已缓存资讯，筛选无结果与来源为空保持不同语义。","source":"资讯聚合 · 09:30","primaryAction":"刷新资讯","states":["initial","loading","content","empty","stale","error"],"items":["暑期校园服务安排","图书馆开放时间调整","第二课堂活动报名"]},
+    {"id":"info.filters","title":"筛选校园资讯","kicker":"搜索与来源","summary":"搜索词、来源和结果数量共同保留，清除筛选可以恢复全部内容。","source":"3 个资讯来源","primaryAction":"清除筛选","states":["content","empty"],"items":["学校官网 · 5","教务处 · 4","图书馆 · 3"]},
+
+    {"id":"mail.inbox","title":"学校邮箱","kicker":"只读收件箱","summary":"列表与详情在宽屏并列、窄屏顺序进入，选中邮件保留来源和同步时间。","source":"学校邮箱 · 09:30","primaryAction":"写邮件","states":["initial","loading","content","empty","stale","error"],"items":["课程安排确认","图书馆借阅到期提醒","第二课堂活动通知"]},
+    {"id":"mail.message-detail","title":"课程安排确认","kicker":"邮件详情 · 只读","summary":"发件人、时间和正文保持完整，不把 HTML 邮件脚本带入应用。","source":"advisor@example.invalid","primaryAction":"返回收件箱","states":["content"],"items":["发件人：教学办公室","时间：7 月 18 日 08:42","附件：课程安排.pdf"]},
+    {"id":"mail.compose","title":"撰写邮件","kicker":"学校邮箱","summary":"收件人、主题和正文保持明确编辑顺序，发送失败保留全部草稿。","source":"草稿保存在本机","primaryAction":"发送邮件","states":["initial","loading","content","error"],"items":["收件人 advisor@example.invalid","主题 课程安排确认","正文已保存"]},
+
+    {"id":"links.directory","title":"快捷入口","kicker":"常用校园服务","summary":"按学生任务而不是技术来源分组，外部目标在打开前显示域名和认证边界。","source":"本机入口配置","primaryAction":"打开入口","states":["loading","content","empty","error"],"items":["统一身份认证","图书馆","学校官网"]},
+    {"id":"links.external-confirmation","title":"即将离开工大聚合","kicker":"外部网页确认","summary":"明确目标域名、凭据前置和返回路径，未满足条件时阻止跳转。","source":"auth.example.invalid","primaryAction":"继续打开","states":["content","error"],"items":["目标由外部网站提供","可能需要 OA 登录","可取消并返回入口"]},
+
+    {"id":"settings.account","title":"账户与连接","kicker":"设置","summary":"校园账户、邮箱和微信连接分别说明状态、用途与解除方式。","source":"本机账户状态","primaryAction":"管理连接","states":["content","error"],"items":["统一身份认证","学校邮箱","微信公众号"]},
+    {"id":"settings.home-notifications","title":"主页与通知","kicker":"设置","summary":"选择首页显示内容和本机提醒，不在后台静默访问校园服务。","source":"本机偏好设置","primaryAction":"保存设置","states":["content"],"items":["第二课堂摘要","校园卡余额","课程提醒"]},
+    {"id":"settings.appearance","title":"外观","kicker":"设置","summary":"跟随系统、亮色和暗色即时生效，并保持相同信息层级。","source":"本机外观设置","primaryAction":"应用主题","states":["content"],"items":["跟随系统","亮色","暗色"]},
+    {"id":"settings.data-privacy","title":"数据与隐私","kicker":"设置","summary":"清楚列出本地缓存、账户数据和清除后果，危险行动需要二次确认。","source":"本机存储","primaryAction":"管理本地数据","states":["content","loading","error"],"items":["清除校园缓存","断开账户连接","查看隐私说明"]},
+    {"id":"settings.about","title":"关于工大聚合","kicker":"设置","summary":"展示版本、开源许可、更新通道与清源设计语言来源。","source":"应用构建信息","primaryAction":"检查更新","states":["content"],"items":["版本 1.0.0","清源 0.4.0","Flutter 3.44.0"]},
+    {"id":"settings.wechat-auth","title":"微信公众号认证","kicker":"账户连接","summary":"扫码、等待、已连接和失败状态保持同一位置，过期二维码可明确刷新。","source":"微信公众号连接","primaryAction":"开始认证","states":["initial","loading","content","error"],"items":["生成登录二维码","等待手机确认","连接后只读取授权信息"]},
+    {"id":"settings.update","title":"应用更新","kicker":"设置","summary":"检查、可用版本和失败降级分开表达，不把网络失败误报为已是最新。","source":"GitHub Releases","primaryAction":"检查更新","states":["initial","loading","content","error"],"items":["当前版本 1.0.0","更新通道 stable","自动检查已关闭"]},
+
+    {"id":"legal.notice","title":"法律声明","kicker":"法律与许可","summary":"正文从应用内确定性资源加载，加载失败仍保留返回和重试。","source":"随应用发布的文本","primaryAction":"返回设置","states":["content"],"items":["非学校官方应用","数据来源说明","责任边界"]},
+    {"id":"legal.privacy","title":"隐私说明","kicker":"法律与隐私","summary":"按数据类型说明收集目的、存储位置、联网时机和删除方式。","source":"随应用发布的文本","primaryAction":"管理本地数据","states":["content"],"items":["账户凭据","校园数据缓存","诊断信息"]},
+    {"id":"legal.agreement","title":"用户协议","kicker":"法律与协议","summary":"说明只读聚合、用户责任和外部服务边界，首次确认后仍可再次阅读。","source":"随应用发布的文本","primaryAction":"返回","states":["content"],"items":["服务范围","使用规则","协议变更"]},
+
+    {"id":"external.webview","title":"校园网页","kicker":"外部内容","summary":"地址、刷新和返回由清源工具栏提供，网页正文单独按外部区域验收。","source":"portal.example.invalid","primaryAction":"刷新网页","states":["loading","content","error"],"items":["安全连接状态","当前目标域名","在浏览器中打开"]},
+    {"id":"external.pdf","title":"文档预览","kicker":"外部内容","summary":"页码、下载和返回由清源绘制，PDF 正文由平台查看器独立呈现。","source":"本地确定性 PDF","primaryAction":"下载文档","states":["loading","content","error"],"items":["第 1 / 4 页","适合宽度","原始文件 1.2 MB"]},
+    {"id":"external.system-auth","title":"验证你的身份","kicker":"系统认证","summary":"清源说明认证目的与降级路径，系统对话框区域由对应平台绘制。","source":"操作系统安全服务","primaryAction":"使用设备认证","states":["initial","content","error"],"items":["用于解锁本机会话","认证信息不会离开设备","可改用本地密码"]}
+  ]
+}

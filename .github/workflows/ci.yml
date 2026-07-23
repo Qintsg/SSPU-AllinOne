@@ -318,6 +318,13 @@ jobs:
           --dart-define=QINGYUAN_VISUAL_PLATFORM=${{ matrix.platform }}
           --timeout 300s
 
+      - name: 校验视觉候选清单、尺寸与外部区域
+        run: >
+          python scripts/ci/validate_visual_artifacts.py
+          --root build/visual/${{ matrix.platform }}
+          --manifest docs/design/resources/visual-manifest.json
+          --platform ${{ matrix.platform }}
+
       - name: 上传清源视觉候选
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
