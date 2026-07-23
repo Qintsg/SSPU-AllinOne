@@ -1,5 +1,7 @@
 /* 清源快速跳转页面测试。 */
 
+import 'dart:async';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -237,6 +239,49 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('清源快速跳转紧凑页首与首个内容区遵循参考锚点', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(360, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await tester.pumpWidget(
+      YhApp(
+        home: QuickLinksPage(
+          groupsLoader: () async => groups,
+          onOpenUrl: (_) async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final kicker = find.text('快速跳转');
+    final description = find.textContaining('名称使用学生熟悉的任务语言');
+    final search = find.byKey(const Key('quick-links-search-field'));
+    final theme = tester.element(kicker).yhTheme;
+    final safeTop = MediaQuery.paddingOf(tester.element(kicker)).top;
+
+    expect(
+      tester.getTopLeft(kicker).dy,
+      safeTop + theme.spacing.l + theme.spacing.s + theme.layout.divider * 3,
+    );
+    expect(
+      tester.getTopLeft(search).dy - tester.getBottomLeft(description).dy,
+      theme.spacing.l + theme.spacing.xs,
+    );
+    expect(
+      tester.widget<Text>(description).style?.fontSize,
+      theme.typography.small.fontSize,
+    );
+
+    final firstRow = find.bySemanticsLabel('教务处，外部链接，将打开外部应用');
+    final secondRow = find.bySemanticsLabel('图书馆，外部链接，将打开外部应用');
+    expect(
+      tester.getTopLeft(secondRow).dy - tester.getBottomLeft(firstRow).dy,
+      theme.spacing.s,
+    );
+    expect(find.text('↗'), findsNWidgets(3));
+  });
+
   testWidgets('清源快速跳转在 expanded 视口使用三列任务目录', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -291,5 +336,28 @@ void main() {
       tester.getSize(card).height,
       closeTo(theme.layout.popoverWidth + theme.spacing.xl, 0.1),
     );
+  });
+
+  testWidgets('清源快速跳转加载态使用紧凑环形活动指示器', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(360, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final pending = Completer<List<QuickLinkGroupConfig>>();
+    await tester.pumpWidget(
+      YhApp(
+        home: QuickLinksPage(
+          groupsLoader: () => pending.future,
+          onOpenUrl: (_) async {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final ring = find.byType(YhRing);
+    final theme = tester.element(ring).yhTheme;
+    expect(ring, findsOneWidget);
+    expect(find.byType(YhProgress), findsNothing);
+    expect(tester.getSize(ring), Size.square(theme.control.compact));
   });
 }

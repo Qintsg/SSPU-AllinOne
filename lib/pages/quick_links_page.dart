@@ -159,10 +159,8 @@ class _QuickLinksStatusPage extends StatelessWidget {
     return YhPageScaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final padding = _quickLinksPagePadding(
-            theme,
-            MediaQuery.sizeOf(context).width,
-          );
+          final viewportWidth = MediaQuery.sizeOf(context).width;
+          final padding = _quickLinksPagePadding(theme, viewportWidth);
           return SingleChildScrollView(
             padding: padding,
             child: Center(
@@ -174,7 +172,9 @@ class _QuickLinksStatusPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const _QuickLinksHeader(),
-                    SizedBox(height: theme.spacing.l),
+                    SizedBox(
+                      height: _quickLinksSectionGap(theme, viewportWidth),
+                    ),
                     ConstrainedBox(
                       constraints: BoxConstraints(
                         minHeight: theme.layout.popoverWidth + theme.spacing.xl,
@@ -185,11 +185,9 @@ class _QuickLinksStatusPage extends StatelessWidget {
                               ? Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    SizedBox(
-                                      width: theme.spacing.xl2 * 2,
-                                      child: const YhProgress(
-                                        showPercent: false,
-                                      ),
+                                    YhRing.activity(
+                                      size: theme.control.compact,
+                                      label: '正在读取校园入口',
                                     ),
                                     SizedBox(width: theme.spacing.m),
                                     Flexible(
@@ -316,10 +314,8 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
           appBar: null,
           body: LayoutBuilder(
             builder: (context, constraints) {
-              final pagePadding = _quickLinksPagePadding(
-                theme,
-                MediaQuery.sizeOf(context).width,
-              );
+              final viewportWidth = MediaQuery.sizeOf(context).width;
+              final pagePadding = _quickLinksPagePadding(theme, viewportWidth);
               return SingleChildScrollView(
                 padding: pagePadding,
                 child: Center(
@@ -331,7 +327,9 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const _QuickLinksHeader(),
-                        SizedBox(height: theme.spacing.l),
+                        SizedBox(
+                          height: _quickLinksSectionGap(theme, viewportWidth),
+                        ),
                         _buildSearchBar(searchResults),
                         SizedBox(height: theme.spacing.m),
                         if (hasSearchQuery)
@@ -466,13 +464,13 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
                           color: theme.color.muted,
                         ),
                       ),
-                      SizedBox(height: theme.spacing.m + theme.spacing.xs),
+                      SizedBox(height: theme.spacing.l),
                       for (
                         var index = 0;
                         index < group.items.length;
                         index++
                       ) ...[
-                        if (index > 0) SizedBox(height: theme.spacing.xs),
+                        if (index > 0) SizedBox(height: theme.spacing.s),
                         _QuickLinkDirectoryRow(
                           item: group.items[index],
                           icon: _resolveIcon(
@@ -654,10 +652,12 @@ class _QuickLinkDirectoryRow extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Icon(
-                    YhIcons.open,
-                    size: theme.spacing.m,
-                    color: theme.color.muted,
+                  Text(
+                    '↗',
+                    style: theme.typography.body.copyWith(
+                      color: theme.color.muted,
+                      fontFamily: YhTypographyTokens.fontFamilyMono,
+                    ),
                   ),
                 ],
               ),
@@ -750,6 +750,7 @@ class _QuickLinksHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -768,7 +769,8 @@ class _QuickLinksHeader extends StatelessWidget {
         SizedBox(height: theme.spacing.s),
         Text(
           '名称使用学生熟悉的任务语言；跳转前明确外部网站与当前登录要求。',
-          style: theme.typography.body.copyWith(color: theme.color.muted),
+          style: (compact ? theme.typography.small : theme.typography.body)
+              .copyWith(color: theme.color.muted),
         ),
       ],
     );
@@ -783,7 +785,7 @@ EdgeInsets _quickLinksPagePadding(YhTheme theme, double viewportWidth) {
   if (viewportWidth < theme.breakpoint.medium) {
     return EdgeInsets.symmetric(
       horizontal: theme.spacing.m,
-      vertical: theme.spacing.l + theme.spacing.s,
+      vertical: theme.spacing.l + theme.spacing.s + theme.layout.divider * 3,
     );
   }
   final progress =
@@ -797,3 +799,8 @@ EdgeInsets _quickLinksPagePadding(YhTheme theme, double viewportWidth) {
     vertical: theme.spacing.xl + theme.spacing.s,
   );
 }
+
+double _quickLinksSectionGap(YhTheme theme, double viewportWidth) =>
+    viewportWidth < theme.breakpoint.medium
+    ? theme.spacing.l + theme.spacing.xs
+    : theme.spacing.l;
