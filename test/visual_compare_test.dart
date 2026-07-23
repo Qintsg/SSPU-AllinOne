@@ -43,14 +43,14 @@ void main() {
     expect(result.heatmap.getPixel(0, 0).r, 255);
   });
 
-  test('抗锯齿归一化不会隐藏明显布局位移', () {
+  test('抗锯齿归一化不会隐藏 4px 布局位移', () {
     final baseline = _solidImage(64, 64, red: 255, green: 255, blue: 255);
     final actual = image.Image.from(baseline);
     for (var y = 16; y < 48; y += 1) {
       for (var x = 8; x < 24; x += 1) {
         baseline.setPixelRgb(x, y, 0, 0, 0);
       }
-      for (var x = 16; x < 32; x += 1) {
+      for (var x = 12; x < 28; x += 1) {
         actual.setPixelRgb(x, y, 0, 0, 0);
       }
     }
@@ -71,7 +71,7 @@ void main() {
     final actual = image.Image.from(baseline);
     for (var y = 8; y < 24; y += 1) {
       for (var x = 8; x < 24; x += 1) {
-        actual.setPixelRgb(x, y, 225, 225, 225);
+        actual.setPixelRgb(x, y, 238, 238, 238);
       }
     }
     const region = VisualRegion(
@@ -95,6 +95,40 @@ void main() {
     expect(result.externalRegions.single.threshold, 0.95);
     expect(result.externalRegions.single.passed, isTrue);
     expect(result.passed, isTrue);
+  });
+
+  test('外部区域滤波边缘差异仍由完整矩形门禁捕获', () {
+    final baseline = _solidImage(64, 64, red: 240, green: 240, blue: 240);
+    final actual = image.Image.from(baseline);
+    const region = VisualRegion(
+      id: 'document',
+      x: 16,
+      y: 16,
+      width: 32,
+      height: 32,
+    );
+    for (var y = region.y; y < region.y + region.height; y += 1) {
+      for (var x = region.x; x < region.x + region.width; x += 1) {
+        final onFilterEdge =
+            x < region.x + 6 ||
+            x >= region.x + region.width - 6 ||
+            y < region.y + 6 ||
+            y >= region.y + region.height - 6;
+        if (onFilterEdge) actual.setPixelRgb(x, y, 20, 20, 20);
+      }
+    }
+
+    final result = compareVisuals(
+      baseline: baseline,
+      actual: actual,
+      applicationThreshold: 0.95,
+      externalThreshold: 0.95,
+      externalRegions: const [region],
+    );
+
+    expect(result.applicationSsim, 1.0);
+    expect(result.externalRegions.single.ssim, lessThan(0.95));
+    expect(result.passed, isFalse);
   });
 
   test('尺寸不一致直接拒绝比较', () {

@@ -653,7 +653,7 @@ class _QuickLinkDirectoryRow extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '↗',
+                    YhIcons.externalIndicator,
                     style: theme.typography.body.copyWith(
                       color: theme.color.muted,
                       fontFamily: YhTypographyTokens.fontFamilyMono,

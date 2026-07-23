@@ -6,6 +6,8 @@ import 'package:fluentui_system_icons/fluentui_system_icons.dart' as system;
 class YhIcons {
   YhIcons._();
 
+  static const String externalIndicator = '↗';
+
   static const IconData home = system.FluentIcons.home_24_regular;
   static const IconData academic = system.FluentIcons.hat_graduation_24_regular;
   static const IconData calendar = system.FluentIcons.calendar_month_24_regular;

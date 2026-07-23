@@ -153,12 +153,19 @@ VisualComparison compareVisuals({
         .map(
           (region) => VisualRegionScore(
             region: region,
-            ssim: _windowedSsim(
-              filteredBaseline,
-              filteredActual,
-              includedRegion: _insetRegion(
-                region,
-                margin: _ssimPrefilterRadius,
+            ssim: math.min(
+              _windowedSsim(
+                filteredBaseline,
+                filteredActual,
+                includedRegion: _insetRegion(
+                  region,
+                  margin: _ssimPrefilterRadius,
+                ),
+              ),
+              _windowedSsim(
+                filteredBaseline,
+                filteredActual,
+                includedRegion: region,
               ),
             ),
             threshold: externalThreshold,

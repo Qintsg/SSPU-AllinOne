@@ -78,7 +78,7 @@ class YhQuickLink extends StatelessWidget {
               Text(label, style: theme.typography.body),
               SizedBox(width: theme.spacing.s),
               Text(
-                '↗',
+                YhIcons.externalIndicator,
                 style: theme.typography.body.copyWith(
                   color: theme.color.muted,
                   fontFamily: YhTypographyTokens.fontFamilyMono,
