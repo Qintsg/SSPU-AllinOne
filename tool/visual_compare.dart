@@ -13,7 +13,7 @@ import 'dart:math' as math;
 import 'package:image/image.dart' as image;
 
 const int _windowSize = 8;
-const int _ssimPrefilterRadius = 5;
+const int _ssimPrefilterRadius = 6;
 
 class VisualRegion {
   const VisualRegion({
@@ -126,7 +126,7 @@ VisualComparison compareVisuals({
   }
 
   // Chromium 与 Flutter/Skia 对同一字体会产生亚像素级抗锯齿差异。
-  // SSIM 输入先做 5px 高斯低通，避免把字形边缘采样差异误判为布局变化；
+  // SSIM 输入先做 6px 高斯低通，避免把字形边缘采样差异误判为布局变化；
   // 热图仍使用原始像素，确保真实偏移和色差可定位。
   final filteredBaseline = image.gaussianBlur(
     image.Image.from(baseline),
