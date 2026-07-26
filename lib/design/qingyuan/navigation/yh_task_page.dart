@@ -12,6 +12,8 @@ import 'yh_page_scaffold.dart';
 
 enum YhTaskAccent { brand, structural }
 
+enum YhTaskPageWidth { constrained, fluid }
+
 class YhTaskPage extends StatelessWidget {
   const YhTaskPage({
     super.key,
@@ -25,6 +27,7 @@ class YhTaskPage extends StatelessWidget {
     required this.body,
     this.sourceTimestamp,
     this.accent = YhTaskAccent.brand,
+    this.width = YhTaskPageWidth.constrained,
     this.onBack,
   });
 
@@ -38,6 +41,7 @@ class YhTaskPage extends StatelessWidget {
   final Widget body;
   final String? sourceTimestamp;
   final YhTaskAccent accent;
+  final YhTaskPageWidth width;
   final VoidCallback? onBack;
 
   @override
@@ -83,7 +87,9 @@ class YhTaskPage extends StatelessWidget {
             child: Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: theme.layout.pageContentWidth,
+                  maxWidth: width == YhTaskPageWidth.fluid
+                      ? double.infinity
+                      : theme.layout.pageContentWidth,
                   minHeight: constraints.maxHeight - pagePadding * 2,
                 ),
                 child: Column(

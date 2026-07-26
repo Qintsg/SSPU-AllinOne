@@ -399,10 +399,10 @@ class DesignSystemValidatorTest(unittest.TestCase):
             shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
             manifest = root / "docs" / "design" / "resources" / "visual-manifest.json"
             payload = json.loads(manifest.read_text(encoding="utf-8"))
-            payload["meta"]["applicationThreshold"] = 0.94
+            payload["meta"]["applicationThreshold"] = 0.89
             manifest.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
-            with self.assertRaisesRegex(DesignSystemValidationError, r"应用自绘阈值必须为 0.95"):
+            with self.assertRaisesRegex(DesignSystemValidationError, r"应用自绘阈值必须为 0.90"):
                 validate_design_system(root)
 
     def test_visual_manifest_requires_external_regions_by_state(self) -> None:

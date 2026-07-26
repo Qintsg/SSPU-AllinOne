@@ -64,6 +64,7 @@ void main() {
     AcademicOaSessionPrewarmService? academicOaSessionPrewarmService,
     SportsAttendanceClient? sportsAttendanceService,
     EmailMailboxClient? emailMailboxService,
+    VoidCallback? onOpenDataPrivacy,
   }) async {
     await tester.pumpWidget(
       YhApp(
@@ -78,8 +79,7 @@ void main() {
               isQuickAuthBusy: isQuickAuthBusy,
               onQuickAuthChanged: (_) {},
               onLock: null,
-              onClearMessageCache: () {},
-              onClearAllData: () {},
+              onOpenDataPrivacy: onOpenDataPrivacy,
               academicLoginValidationService: academicLoginValidationService,
               academicOaSessionPrewarmService: academicOaSessionPrewarmService,
               sportsAttendanceService: sportsAttendanceService,
@@ -256,8 +256,6 @@ void main() {
                       isQuickAuthBusy: false,
                       onQuickAuthChanged: (_) {},
                       onLock: null,
-                      onClearMessageCache: () {},
-                      onClearAllData: () {},
                       academicOaSessionPrewarmService:
                           _RecordingAcademicOaSessionPrewarmService(),
                     ),
@@ -332,35 +330,31 @@ void main() {
     expect(find.textContaining('仍可输入密码解锁'), findsOneWidget);
   });
 
-  testWidgets('数据管理操作在宽屏整合为一行', (tester) async {
+  testWidgets('安全分区的数据与隐私摘要进入独立任务页', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});
     await tester.binding.setSurfaceSize(const Size(960, 720));
     addTearDown(() => tester.binding.setSurfaceSize(null));
+    var opened = false;
 
     await pumpSecuritySection(
       tester,
       isPasswordEnabled: false,
       isQuickAuthEnabled: false,
       isQuickAuthAvailable: false,
+      onOpenDataPrivacy: () => opened = true,
     );
-    await pumpUntilFound(tester, find.text('数据管理'));
-    await tester.ensureVisible(
-      find.byKey(const Key('settings-clear-all-data')),
-    );
+    await pumpUntilFound(tester, find.text('打开数据与隐私'));
+    await tester.ensureVisible(find.text('打开数据与隐私'));
     await tester.pumpAndSettle();
 
-    final cacheButton = find.byKey(const Key('settings-clear-message-cache'));
-    final clearButton = find.byKey(const Key('settings-clear-all-data'));
-    expect(cacheButton, findsOneWidget);
-    expect(clearButton, findsOneWidget);
-    expect(
-      (tester.getCenter(cacheButton).dy - tester.getCenter(clearButton).dy)
-          .abs(),
-      lessThan(1),
-    );
+    expect(find.text('清理信息中心缓存'), findsNothing);
+    expect(find.text('清除本地数据'), findsNothing);
+    await tester.tap(find.text('打开数据与隐私'));
+    await tester.pump();
+    expect(opened, isTrue);
   });
 
-  testWidgets('窄屏安全设置堆叠 quick auth 与数据管理操作', (tester) async {
+  testWidgets('窄屏安全设置保留 quick auth 与数据隐私摘要', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});
     await configureNarrowView(tester);
 
@@ -371,13 +365,15 @@ void main() {
         isQuickAuthEnabled: true,
         isQuickAuthAvailable: true,
         isQuickAuthBusy: true,
+        onOpenDataPrivacy: () {},
       );
       await pumpUntilFound(tester, find.text('系统快速验证'));
 
       expect(find.text('系统快速验证'), findsOneWidget);
       expect(find.text('立即上锁'), findsOneWidget);
-      expect(find.text('清理信息中心缓存'), findsOneWidget);
-      expect(find.text('清除本地数据'), findsOneWidget);
+      expect(find.text('打开数据与隐私'), findsOneWidget);
+      expect(find.text('清理信息中心缓存'), findsNothing);
+      expect(find.text('清除本地数据'), findsNothing);
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();

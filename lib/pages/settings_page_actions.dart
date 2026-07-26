@@ -539,51 +539,151 @@ mixin _SettingsPageActions on State<SettingsPage> {
     _showErrorBar('系统认证未完成，已保留手动密码解锁');
   }
 
-  /// 清理信息中心缓存。
-  Future<void> _showClearMessageCacheDialog() async {
+  /// 清除校园业务缓存，保留账户连接和本机偏好。
+  Future<bool> _showClearCampusCacheDialog() async {
     final confirmed = await YhDialog.confirm(
       context,
-      title: '清理信息中心缓存',
+      title: '清除校园缓存',
       message:
-          '将清除信息中心缓存的官网消息和微信公众号文章。\n\n'
-          '登录信息、设置和关注列表不会受到影响。点击弹窗外区域可取消本次操作。',
-      confirmText: '确认清理',
+          '将清除教务、课表、校园卡、体育、第二课堂、学校邮箱和信息中心的本地缓存。\n\n'
+          '账户凭据、主题、通知、首页设置和关注列表会保留。',
+      confirmText: '清除校园缓存',
+      danger: true,
+      barrierDismissible: false,
     );
 
-    if (confirmed) {
+    if (!confirmed) return false;
+    const stages = ['校园业务缓存', '信息中心消息缓存', '信息中心已读状态'];
+    final completed = <String>[];
+    try {
+      await AuthenticatedDataCacheService.clearAll();
+      completed.add(stages[0]);
       await StorageService.remove(MessageChannelKeys.persistedMessages);
+      completed.add(stages[1]);
       await StorageService.remove(MessageChannelKeys.readMessageIds);
-      if (!mounted) return;
+      completed.add(stages[2]);
+    } catch (_) {
+      throw _dataPrivacyFailure(stages, completed);
+    }
+    if (mounted) {
       showAppFeedback(
         context,
-        message: '信息中心缓存已清理',
+        message: '校园缓存已清除',
         severity: AppFeedbackSeverity.success,
       );
+    }
+    return true;
+  }
+
+  /// 断开校园账户与微信公众号连接，保留普通偏好和信息中心缓存。
+  Future<bool> _showDisconnectAccountsDialog() async {
+    final confirmed = await YhDialog.confirm(
+      context,
+      title: '断开账户连接',
+      message:
+          '将移除 OA、体育、学校邮箱的本机凭据和登录会话，清除与账户关联的校园业务缓存，并清除微信公众号 Cookie 与 Token。\n\n'
+          '主题、通知、首页设置、关注列表和信息中心缓存会保留。',
+      confirmText: '断开连接',
+      danger: true,
+      barrierDismissible: false,
+    );
+
+    if (!confirmed) return false;
+    const stages = ['OA、体育与邮箱凭据及校园业务缓存', '微信公众号连接'];
+    final completed = <String>[];
+    try {
+      await AcademicCredentialsService.instance.clearAll();
+      completed.add(stages[0]);
+      await WxmpAuthService.instance.clearAuth();
+      completed.add(stages[1]);
+      if (mounted) _showSuccessBar('账户连接已断开');
+      return true;
+    } catch (_) {
+      if (mounted) {
+        _showErrorBar('断开失败，请确认系统安全存储和本机配置可用');
+      }
+      throw _dataPrivacyFailure(stages, completed);
     }
   }
 
   /// 清除所有本地数据并退出。
-  Future<void> _showClearAllDataDialog() async {
+  Future<bool> _showClearAllDataDialog() async {
     final confirmed = await YhDialog.confirm(
       context,
       title: '确认清除本地数据',
       message:
-          '将清除所有本地数据，包括登录信息、设置和缓存。\n\n'
-          '操作完成后应用会退出。点击弹窗外区域可取消本次操作。',
+          '将删除：OA、体育与邮箱凭据，微信连接，全部校园与信息缓存，以及主题、通知、首页和关注设置。\n\n'
+          '不会删除：系统账户、设备生物识别信息和校园服务器上的数据。\n\n'
+          '操作完成后应用会退出。',
       confirmText: '清除本地数据',
       danger: true,
       barrierDismissible: false,
     );
 
-    if (confirmed) {
-      try {
-        await AcademicCredentialsService.instance.clearAll();
-        await StorageService.clearAll();
-        await AppExitService.instance.exit();
-      } catch (_) {
-        if (!mounted) return;
+    if (!confirmed) return false;
+    const stages = ['OA、体育与邮箱凭据及校园业务缓存', '微信公众号连接', '本机偏好与信息缓存', '退出应用'];
+    final completed = <String>[];
+    try {
+      await AcademicCredentialsService.instance.clearAll();
+      completed.add(stages[0]);
+      await WxmpAuthService.instance.clearAuth();
+      completed.add(stages[1]);
+      await StorageService.clearAll();
+      completed.add(stages[2]);
+      await AppExitService.instance.exit();
+      completed.add(stages[3]);
+      return true;
+    } catch (_) {
+      if (mounted) {
         _showErrorBar('清除失败，请确认系统安全存储可用');
       }
+      throw _dataPrivacyFailure(stages, completed);
     }
+  }
+
+  SettingsDataPrivacyOperationException _dataPrivacyFailure(
+    List<String> stages,
+    List<String> completed,
+  ) {
+    return SettingsDataPrivacyOperationException(
+      completedItems: List.unmodifiable(completed),
+      remainingItems: List.unmodifiable(
+        stages.where((stage) => !completed.contains(stage)),
+      ),
+    );
+  }
+
+  Future<SettingsDataPrivacySnapshot> _loadDataPrivacySnapshot() async {
+    final hasCampusCache = await AuthenticatedDataCacheService.hasAny();
+    final persistedMessages = await StorageService.getString(
+      MessageChannelKeys.persistedMessages,
+    );
+    final readMessageIds = await StorageService.getString(
+      MessageChannelKeys.readMessageIds,
+    );
+    final hasMessageCache =
+        persistedMessages?.isNotEmpty == true ||
+        readMessageIds?.isNotEmpty == true;
+    final credentials = await AcademicCredentialsService.instance.getStatus();
+    final wxmp = await WxmpAuthService.instance.getAuthStatus();
+    final connections = <String>[
+      if (credentials.hasOaPassword) 'OA',
+      if (credentials.hasSportsQueryPassword) '体育',
+      if (credentials.hasEmailPassword) '邮箱',
+      if (wxmp.isUsable) '微信',
+    ];
+    final cacheStatus = switch ((hasCampusCache, hasMessageCache)) {
+      (true, true) => '已保存校园与信息缓存',
+      (true, false) => '已保存校园业务缓存',
+      (false, true) => '已保存信息中心缓存',
+      (false, false) => '当前无校园或信息缓存',
+    };
+    return SettingsDataPrivacySnapshot(
+      cacheStatus: cacheStatus,
+      accountStatus: connections.isEmpty
+          ? '当前未连接账户'
+          : '已连接：${connections.join('、')}',
+      privacyStatus: '随应用提供，可离线查看',
+    );
   }
 }

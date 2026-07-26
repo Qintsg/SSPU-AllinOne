@@ -284,4 +284,37 @@ void main() {
 
     expect(cachedEntry?.data['value'], 'persisted');
   });
+
+  test('全量清除覆盖成绩与过程化成绩缓存并更新存在状态', () async {
+    for (final collection in const [
+      StorageKeys.academicEamsGradeCacheCollection,
+      StorageKeys.academicEamsGradeProcessCacheCollection,
+    ]) {
+      await AuthenticatedDataCacheService.saveLatest(
+        collection: collection,
+        accountKey: '20260001',
+        fetchedAt: DateTime(2026, 7, 18, 9, 30),
+        data: const {'value': 'cached'},
+      );
+    }
+
+    expect(await AuthenticatedDataCacheService.hasAny(), isTrue);
+    await AuthenticatedDataCacheService.clearAll();
+
+    expect(await AuthenticatedDataCacheService.hasAny(), isFalse);
+    expect(
+      await AuthenticatedDataCacheService.readLatest(
+        StorageKeys.academicEamsGradeCacheCollection,
+        accountKey: '20260001',
+      ),
+      isNull,
+    );
+    expect(
+      await AuthenticatedDataCacheService.readLatest(
+        StorageKeys.academicEamsGradeProcessCacheCollection,
+        accountKey: '20260001',
+      ),
+      isNull,
+    );
+  });
 }

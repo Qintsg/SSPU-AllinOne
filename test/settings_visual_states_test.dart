@@ -49,16 +49,16 @@ void main() {
       YhApp(
         home: SettingsDataPrivacySection(
           state: SettingsDataPrivacyState.loading,
-          onClearMessageCache: () {},
-          onClearAllData: () {},
+          onClearCampusCache: () {},
+          onDisconnectAccounts: () {},
         ),
       ),
     );
 
-    expect(find.text('正在清理本地数据，请保持应用打开。'), findsOneWidget);
+    expect(find.text('正在从本机存储恢复数据；已有页面框架与输入保持可用。'), findsOneWidget);
     expect(
       tester
-          .getSemantics(find.bySemanticsLabel('清除本地数据'))
+          .getSemantics(find.bySemanticsLabel('处理中：清除校园缓存'))
           .flagsCollection
           .isEnabled,
       Tristate.isFalse,
@@ -69,15 +69,17 @@ void main() {
         home: SettingsDataPrivacySection(
           state: SettingsDataPrivacyState.error,
           errorMessage: '部分缓存未能清理，请重试。',
-          onClearMessageCache: () {},
-          onClearAllData: () {},
+          onClearCampusCache: () {},
+          onDisconnectAccounts: () {},
         ),
       ),
     );
     expect(find.text('部分缓存未能清理，请重试。'), findsOneWidget);
-    expect(find.text('已清除项目'), findsOneWidget);
-    expect(find.text('未清除项目'), findsOneWidget);
-    expect(find.text('清除本地数据'), findsOneWidget);
+    expect(find.text('已完成：清除校园缓存'), findsOneWidget);
+    expect(find.text('未完成：断开账户连接'), findsOneWidget);
+    expect(find.text('查看隐私说明'), findsOneWidget);
+    expect(find.text('查看'), findsNWidgets(2));
+    expect(find.text('重试'), findsOneWidget);
   });
 
   testWidgets('微信认证错误态保留扫码与重新校验路径', (tester) async {

@@ -31,6 +31,7 @@ import 'package:sspu_allinone/pages/legal_notice_page.dart';
 import 'package:sspu_allinone/pages/lock_page.dart';
 import 'package:sspu_allinone/pages/quick_links_page.dart';
 import 'package:sspu_allinone/pages/settings_appearance_page.dart';
+import 'package:sspu_allinone/pages/settings_data_privacy_page.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/services/system_auth_service.dart';
 import 'package:sspu_allinone/services/app_update_service.dart';
@@ -1034,20 +1035,16 @@ Widget _settingsSecuritySection() => SettingsSecuritySection(
   isQuickAuthBusy: false,
   onQuickAuthChanged: (_) {},
   onLock: () {},
-  onClearMessageCache: () {},
-  onClearAllData: () {},
 );
 
 Widget _settingsDataPrivacy(SettingsDataPrivacyState state) =>
-    _settingsPageSurface(
-      '数据与隐私',
-      YhCard(
-        child: SettingsDataPrivacySection(
-          state: state,
-          errorMessage: '部分缓存被系统占用，未能全部清理。请关闭相关页面后重试。',
-          onClearMessageCache: () {},
-          onClearAllData: () {},
-        ),
+    _stateReferenceShell(
+      SettingsDataPrivacyPage(
+        state: state,
+        sourceTimestamp: '2026-07-18 · 09:30',
+        onClearCampusCache: () async => true,
+        onDisconnectAccounts: () async => true,
+        onOpenPrivacy: () {},
       ),
     );
 

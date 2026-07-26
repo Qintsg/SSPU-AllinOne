@@ -50,11 +50,8 @@ class SettingsSecuritySection extends StatefulWidget {
   /// 立即上锁回调。
   final VoidCallback? onLock;
 
-  /// 清理消息缓存回调。
-  final VoidCallback onClearMessageCache;
-
-  /// 清除所有数据回调。
-  final VoidCallback onClearAllData;
+  /// 打开完整数据与隐私任务页。
+  final VoidCallback? onOpenDataPrivacy;
 
   /// 可替换的 OA 登录校验服务，便于测试中使用 fake 网关。
   final AcademicLoginValidationService? academicLoginValidationService;
@@ -78,8 +75,7 @@ class SettingsSecuritySection extends StatefulWidget {
     required this.isQuickAuthBusy,
     required this.onQuickAuthChanged,
     required this.onLock,
-    required this.onClearMessageCache,
-    required this.onClearAllData,
+    this.onOpenDataPrivacy,
     this.academicLoginValidationService,
     this.academicOaSessionPrewarmService,
     this.sportsAttendanceService,
@@ -441,10 +437,7 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
           SizedBox(height: theme.spacing.xl),
           _securityDivider(context),
           SizedBox(height: theme.spacing.l),
-          SettingsDataPrivacySection(
-            onClearMessageCache: widget.onClearMessageCache,
-            onClearAllData: widget.onClearAllData,
-          ),
+          SettingsDataPrivacySummary(onOpenDetails: widget.onOpenDataPrivacy),
         ],
       ),
     );

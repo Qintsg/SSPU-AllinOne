@@ -363,8 +363,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           isQuickAuthBusy: _isQuickAuthBusy,
           onQuickAuthChanged: _onQuickAuthChanged,
           onLock: widget.onLock,
-          onClearMessageCache: _showClearMessageCacheDialog,
-          onClearAllData: _showClearAllDataDialog,
+          onOpenDataPrivacy: _openDataPrivacySettings,
         );
       case 4:
         return ChannelListSection(
@@ -394,6 +393,30 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           themeMode: widget.themeMode,
           onChanged: widget.onThemeModeChanged,
           onApply: () => Navigator.of(context).maybePop(),
+        ),
+      ),
+    );
+  }
+
+  void _openDataPrivacySettings() {
+    Navigator.of(context).push(
+      YhPageRoute<void>(
+        builder: (_) => SettingsDataPrivacyPage(
+          onClearCampusCache: _showClearCampusCacheDialog,
+          onDisconnectAccounts: _showDisconnectAccountsDialog,
+          onClearAllData: _showClearAllDataDialog,
+          loadSnapshot: _loadDataPrivacySnapshot,
+          onOpenPrivacy: () => Navigator.of(context).push(
+            YhPageRoute<void>(
+              builder: (_) => LegalNoticePage(
+                title: '隐私说明',
+                kicker: '法律与隐私',
+                summary: '按数据类型说明收集目的、存储位置、联网时机和删除方式。',
+                primaryActionLabel: '返回数据与隐私',
+                onPrimaryAction: () => Navigator.of(context).maybePop(),
+              ),
+            ),
+          ),
         ),
       ),
     );

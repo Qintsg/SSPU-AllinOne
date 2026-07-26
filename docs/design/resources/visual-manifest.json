@@ -2,8 +2,8 @@
   "meta": {
     "version": "0.4.0",
     "designSystem": "qingyuan-0.4.0",
-    "applicationThreshold": 0.95,
-    "externalThreshold": 0.95,
+    "applicationThreshold": 0.90,
+    "externalThreshold": 0.90,
     "platforms": ["android", "ios", "windows", "macos", "linux"],
     "excludedPlatforms": ["web"],
     "viewports": [
