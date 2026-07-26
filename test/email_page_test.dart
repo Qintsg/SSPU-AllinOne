@@ -92,6 +92,25 @@ void main() {
     await tester.pump(const Duration(milliseconds: 120));
   });
 
+  testWidgets('邮件正文详情使用清源阅读排版与弱化前景', (tester) async {
+    await tester.pumpWidget(
+      YhApp(
+        home: EmailMessageDetailPage(
+          message: _message,
+          nowOverride: DateTime(2026, 7, 18, 9, 30),
+        ),
+      ),
+    );
+
+    final selectable = tester.widget<YhSelectableText>(
+      find.byType(YhSelectableText),
+    );
+    final theme = tester.element(find.byType(YhSelectableText)).yhTheme;
+    expect(selectable.style?.fontSize, theme.typography.reading.fontSize);
+    expect(selectable.style?.height, theme.typography.reading.height);
+    expect(selectable.style?.color, theme.color.muted);
+  });
+
   testWidgets('邮箱页面可触发 SMTP 登录校验但不读取邮件', (tester) async {
     final service = _FakeEmailClient();
     await pumpEmailPage(

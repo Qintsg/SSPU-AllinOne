@@ -346,7 +346,7 @@ button.overview-card:hover { border-color: var(--brand); background: var(--brand
 .mail-item span { margin-top: var(--space-xs); color: var(--muted); font-size: var(--type-caption); }
 .mail-content { min-height: 420px; }
 .mail-content h2 { font-size: var(--type-h2); }
-.mail-body { padding-top: var(--space-m); border-top: 1px solid var(--border); color: var(--muted); line-height: 1.75; }
+.mail-body { padding-top: var(--space-m); border-top: 1px solid var(--border); color: var(--muted); font-size: var(--type-reading); line-height: var(--line-height-reading); }
 .mail-back { display: none; min-height: 48px; margin-bottom: var(--space-m); padding: 0 var(--space-m); border: 0; border-radius: var(--radius-s); color: var(--brand-ink); background: var(--brand-tint); cursor: pointer; }
 .mail-write-icon { display: none; }
 .prototype-page.is-composing .page-actions { display: none; }

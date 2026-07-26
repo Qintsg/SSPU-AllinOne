@@ -90,6 +90,9 @@ class EmailMessageDetailPage extends StatelessWidget {
                       SizedBox(height: theme.spacing.m),
                       YhSelectableText(
                         message.body.isEmpty ? '无可展示正文。' : message.body,
+                        style: theme.typography.reading.copyWith(
+                          color: theme.color.muted,
+                        ),
                         semanticLabel: '邮件正文内容',
                       ),
                       SizedBox(height: theme.spacing.l),

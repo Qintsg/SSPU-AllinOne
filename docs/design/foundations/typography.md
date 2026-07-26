@@ -22,7 +22,7 @@ const yhMonoFamily = 'SF Mono';  // iOS 系统自带；Android 回退 Roboto Mon
 
 ## 2. 字阶 · Type scale
 
-**7 级**——从 caption 到 display，1.2 倍增（向上取整到偶数）。
+**7 级 + 1 个阅读变体**——界面字阶从 caption 到 display，长文阅读保持 body 字号并放大行高。
 
 | 级别 | Size | Line-height | Weight | 用途 | Flutter |
 |---|---|---|---|---|---|
@@ -31,6 +31,7 @@ const yhMonoFamily = 'SF Mono';  // iOS 系统自带；Android 回退 Roboto Mon
 | **h2** | 22 px | 1.3 | 500 (Medium) | 分组标题 / List section header | `22, 1.3, w500` |
 | **h3** | 18 px | 1.4 | 500 | 小节标题 / 卡片副标题 | `18, 1.4, w500` |
 | **body** | 15 px | 1.5 | 400 (Regular) | 正文 / 按钮文字 / 输入框 | `15, 1.5, w400` |
+| **reading** | 15 px | 1.75 | 400 | 邮件、法律和文档类长文阅读 | `15, 1.75, w400` |
 | **small** | 13 px | 1.4 | 400 | 辅助文字 / 时间戳 | `13, 1.4, w400` |
 | **caption** | 11 px | 1.3 | 400 | 提示文案 / 徽标数字 | `11, 1.3, w400` |
 
@@ -70,6 +71,7 @@ letterSpacing: 0.06 * fontSize,   // 全大写
 | 页面标题（AppBar） | h2 (22px) | 居中 / 可截断 |
 | 卡片主标题 | h3 (18px) | 最多两行 |
 | 正文 / 表单 | body (15px) | 单行高度 22.5px |
+| 长文阅读 | reading (15px) | 单行高度 26.25px |
 | 底栏标签 | small (13px) | 配 20×20 图标 |
 
 ### 桌面端（宽 > 1200dp）

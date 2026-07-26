@@ -30,6 +30,8 @@ void main() {
     expect(actual.color.brandStrong, const Color(0xFF478384));
     expect(actual.spacing.m, 16);
     expect(actual.typography.body.fontSize, 15);
+    expect(actual.typography.reading.fontSize, 15);
+    expect(actual.typography.reading.height, 1.75);
     expect(actual.motion.fast, const Duration(milliseconds: 120));
 
     await tester.pumpWidget(
