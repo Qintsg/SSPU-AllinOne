@@ -92,44 +92,47 @@ class SettingsWechatController extends ChangeNotifier {
   Future<void> load() async {
     if (_initialized) return;
     _initialized = true;
-
-    await _messageState.init();
-    await _wechatService.clearLegacyWereadState();
-
-    final stateFilePath = await StorageService.getStateFilePath();
-    var wxmpConfigPath = '';
-    var wxmpConfigMessage = '配置文件已就绪';
     try {
-      wxmpConfigPath = await _wxmpConfigService.ensureConfigFile();
+      await _messageState.init();
+      await _wechatService.clearLegacyWereadState();
+
+      final stateFilePath = await StorageService.getStateFilePath();
+      var wxmpConfigPath = '';
+      var wxmpConfigMessage = '配置文件已就绪';
+      try {
+        wxmpConfigPath = await _wxmpConfigService.ensureConfigFile();
+      } catch (error) {
+        wxmpConfigMessage = '配置文件初始化失败：$error';
+      }
+
+      final authStatus = await _wxmpAuth.getAuthStatus();
+      _wxmpAuthenticated = authStatus.isUsable;
+      _wxmpAuthStatus = authStatus;
+      _wxmpConfigPath = wxmpConfigPath;
+      _stateFilePath = stateFilePath;
+      _wxmpConfigMessage = wxmpConfigMessage;
+      _wechatAutoRefreshEnabled = await _messageState
+          .isChannelAutoRefreshEnabled('wechat_public');
+      _wechatRefreshInterval = await _messageState.getChannelDisplayInterval(
+        'wechat_public',
+        defaultValue: 120,
+      );
+      _wechatManualFetchCount = await _messageState.getChannelManualFetchCount(
+        'wechat_public',
+      );
+      _wechatAutoFetchCount = await _messageState.getChannelAutoFetchCount(
+        'wechat_public',
+      );
+
+      if (_wxmpAuthenticated) {
+        await _loadWxmpFollowedMps();
+      }
     } catch (error) {
-      wxmpConfigMessage = '配置文件初始化失败：$error';
+      _wxmpConfigMessage = '微信设置读取失败：$error';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-
-    final authStatus = await _wxmpAuth.getAuthStatus();
-    _wxmpAuthenticated = authStatus.isUsable;
-    _wxmpAuthStatus = authStatus;
-    _wxmpConfigPath = wxmpConfigPath;
-    _stateFilePath = stateFilePath;
-    _wxmpConfigMessage = wxmpConfigMessage;
-    _wechatAutoRefreshEnabled = await _messageState.isChannelAutoRefreshEnabled(
-      'wechat_public',
-    );
-    _wechatRefreshInterval = await _messageState.getChannelDisplayInterval(
-      'wechat_public',
-      defaultValue: 120,
-    );
-    _wechatManualFetchCount = await _messageState.getChannelManualFetchCount(
-      'wechat_public',
-    );
-    _wechatAutoFetchCount = await _messageState.getChannelAutoFetchCount(
-      'wechat_public',
-    );
-
-    if (_wxmpAuthenticated) {
-      await _loadWxmpFollowedMps();
-    }
-    _isLoading = false;
-    notifyListeners();
   }
 
   /// 修改手动刷新条数。
@@ -388,30 +391,57 @@ class SettingsWechatController extends ChangeNotifier {
     _wxmpConfigPath = await _wxmpConfigService.getConfigPath();
     _wxmpConfigMessage = '扫码登录已自动更新配置文件';
     if (authStatus.isUsable) {
-      await _loadWxmpFollowedMps();
+      try {
+        await _loadWxmpFollowedMps();
+      } catch (_) {
+        _wxmpConfigMessage = '认证已更新，但公众号列表刷新失败，可稍后重试校验';
+        notifyListeners();
+        return const SettingsWechatFeedback(
+          title: '登录成功，但公众号列表刷新失败',
+          content: '认证连接已保留；可返回微信推文设置稍后刷新，不需要重新扫码。',
+          severity: AppFeedbackSeverity.warning,
+        );
+      }
     }
     notifyListeners();
-    return const SettingsWechatFeedback(
-      title: '公众号平台登录成功',
-      severity: AppFeedbackSeverity.success,
+    return SettingsWechatFeedback(
+      title: authStatus.isUsable ? '公众号平台登录成功' : '登录结果缺少认证信息',
+      content: authStatus.isUsable ? null : authStatus.message,
+      severity: authStatus.isUsable
+          ? AppFeedbackSeverity.success
+          : AppFeedbackSeverity.warning,
     );
   }
 
   /// 清除公众号平台认证。
   Future<SettingsWechatFeedback> clearAuth() async {
-    await _wxmpAuth.clearAuth();
-    _wxmpAuthenticated = false;
-    _wxmpAuthStatus = const WxmpAuthStatus(
-      state: WxmpAuthState.missingCookie,
-      lastUpdate: null,
-    );
-    _wxmpFollowedMps = [];
-    _wxmpMpNotificationEnabled = {};
-    notifyListeners();
-    return const SettingsWechatFeedback(
-      title: '公众号平台认证已清除',
-      severity: AppFeedbackSeverity.info,
-    );
+    try {
+      await _wxmpAuth.clearAuth();
+      _wxmpAuthenticated = false;
+      _wxmpAuthStatus = const WxmpAuthStatus(
+        state: WxmpAuthState.missingCookie,
+        lastUpdate: null,
+      );
+      _wxmpFollowedMps = [];
+      _wxmpMpNotificationEnabled = {};
+      _wxmpConfigMessage = '本机 Cookie 与 Token 已清除';
+      notifyListeners();
+      return const SettingsWechatFeedback(
+        title: '公众号平台认证已清除',
+        severity: AppFeedbackSeverity.info,
+      );
+    } catch (_) {
+      try {
+        final authStatus = await _wxmpAuth.getAuthStatus();
+        _wxmpAuthStatus = authStatus;
+        _wxmpAuthenticated = authStatus.isUsable;
+      } catch (_) {
+        // 读取也失败时保留进入操作前的可见状态，避免误报已经清除。
+      }
+      _wxmpConfigMessage = '清除认证失败，请检查本机存储和配置文件权限';
+      notifyListeners();
+      rethrow;
+    }
   }
 
   /// 修改单个公众号的通知开关。

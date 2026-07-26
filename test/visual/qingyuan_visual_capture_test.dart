@@ -32,6 +32,7 @@ import 'package:sspu_allinone/pages/lock_page.dart';
 import 'package:sspu_allinone/pages/quick_links_page.dart';
 import 'package:sspu_allinone/pages/settings_appearance_page.dart';
 import 'package:sspu_allinone/pages/settings_data_privacy_page.dart';
+import 'package:sspu_allinone/pages/settings_wechat_auth_page.dart';
 import 'package:sspu_allinone/pages/settings_update_page.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/services/system_auth_service.dart';
@@ -1049,21 +1050,18 @@ Widget _settingsDataPrivacy(SettingsDataPrivacyState state) =>
     );
 
 Widget _settingsWechatAuth(SettingsWechatAuthDisplayState state) =>
-    _settingsPageSurface(
-      '微信认证',
-      SettingsWechatAuthStatusCard(
-        state: state,
-        configPath: '应用数据目录/wxmp_config.json',
-        statusMessage: switch (state) {
+    _stateReferenceShell(
+      SettingsWechatAuthPage(
+        previewState: state,
+        sourceTimestamp: '2026-07-18 · 09:30',
+        previewStatusMessage: switch (state) {
           SettingsWechatAuthDisplayState.initial => '尚未连接公众号平台账号。',
-          SettingsWechatAuthDisplayState.loading => '正在校验 Cookie 与 Token…',
+          SettingsWechatAuthDisplayState.loading =>
+            '正在从微信公众号连接恢复数据；已有页面框架与输入保持可用。',
           SettingsWechatAuthDisplayState.content => '认证有效，可获取已关注公众号推文。',
-          SettingsWechatAuthDisplayState.error => '认证已过期，请重新扫码登录。',
+          SettingsWechatAuthDisplayState.error =>
+            '无法从微信公众号连接完成本次操作；生成登录二维码仍保持原有状态，可检查条件后重试。',
         },
-        onLogin: () {},
-        onEdit: () {},
-        onValidate: () {},
-        onClear: state == SettingsWechatAuthDisplayState.content ? () {} : null,
       ),
     );
 

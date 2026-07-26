@@ -1058,7 +1058,7 @@ void main() {
     }
   });
 
-  testWidgets('微信推文设置显示精简刷新卡片和认证操作', (WidgetTester tester) async {
+  testWidgets('微信推文设置显示认证摘要并从独立页统一管理操作', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final previousTargetPlatform = debugDefaultTargetPlatformOverride;
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
@@ -1090,11 +1090,11 @@ void main() {
           ),
         ),
       );
-      await pumpUntilFound(tester, find.text('编辑配置文件'));
+      await pumpUntilFound(tester, find.text('管理微信公众号认证'));
 
-      expect(find.text('编辑配置文件'), findsOneWidget);
-      expect(find.text('重新加载配置并校验'), findsOneWidget);
-      expect(find.text('清除认证'), findsOneWidget);
+      expect(find.text('管理微信公众号认证'), findsOneWidget);
+      expect(find.text('编辑认证配置'), findsNothing);
+      expect(find.text('清除认证'), findsNothing);
       expect(find.text('打开配置文件所在文件夹'), findsNothing);
       expect(find.text('外部打开'), findsNothing);
       expect(find.text('校验有效性'), findsNothing);
@@ -1107,6 +1107,14 @@ void main() {
       expect(find.text('SSPU 微信矩阵'), findsNothing);
       expect(find.text('微信公众平台注册方式'), findsNothing);
       expect(find.textContaining('若频率过快'), findsNothing);
+
+      await tester.tap(find.text('管理微信公众号认证'));
+      await tester.pumpAndSettle();
+      expect(find.text('微信公众号认证'), findsOneWidget);
+      expect(find.text('生成登录二维码'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('更多操作'));
+      await tester.pumpAndSettle();
+      expect(find.text('编辑认证配置'), findsOneWidget);
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(milliseconds: 300));

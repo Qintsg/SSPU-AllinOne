@@ -14,6 +14,18 @@ enum YhTaskAccent { brand, structural }
 
 enum YhTaskPageWidth { constrained, fluid }
 
+class YhTaskPageAction {
+  const YhTaskPageAction({
+    required this.label,
+    required this.onTap,
+    this.variant = YhButtonVariant.secondary,
+  });
+
+  final String label;
+  final VoidCallback? onTap;
+  final YhButtonVariant variant;
+}
+
 class YhTaskPage extends StatelessWidget {
   const YhTaskPage({
     super.key,
@@ -29,6 +41,8 @@ class YhTaskPage extends StatelessWidget {
     this.accent = YhTaskAccent.brand,
     this.width = YhTaskPageWidth.constrained,
     this.onBack,
+    this.appBarEyebrow,
+    this.moreActions = const [],
   });
 
   final String title;
@@ -43,12 +57,14 @@ class YhTaskPage extends StatelessWidget {
   final YhTaskAccent accent;
   final YhTaskPageWidth width;
   final VoidCallback? onBack;
+  final String? appBarEyebrow;
+  final List<YhTaskPageAction> moreActions;
 
   @override
   Widget build(BuildContext context) {
     return YhPageScaffold(
       appBar: YhAppBar(
-        eyebrow: kicker,
+        eyebrow: appBarEyebrow ?? kicker,
         title: source,
         leading: YhIconButton(
           icon: YhIcons.back,
@@ -174,6 +190,19 @@ class YhTaskPage extends StatelessWidget {
                 style: theme.typography.small.copyWith(
                   color: theme.color.muted,
                 ),
+              ),
+            ],
+            for (final action in moreActions) ...[
+              SizedBox(height: theme.spacing.s),
+              YhButton(
+                label: action.label,
+                variant: action.variant,
+                onTap: action.onTap == null
+                    ? null
+                    : () {
+                        Navigator.of(drawerContext).pop();
+                        action.onTap!();
+                      },
               ),
             ],
             SizedBox(height: theme.spacing.l),

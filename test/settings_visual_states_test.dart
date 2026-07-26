@@ -82,24 +82,23 @@ void main() {
     expect(find.text('重试'), findsOneWidget);
   });
 
-  testWidgets('微信认证错误态保留扫码与重新校验路径', (tester) async {
+  testWidgets('微信认证错误态保留已完成结果与安全重试路径', (tester) async {
     await tester.pumpWidget(
       YhApp(
         home: SettingsWechatAuthStatusCard(
           state: SettingsWechatAuthDisplayState.error,
-          configPath: 'wxmp_config.json',
           statusMessage: '认证已过期，请重新扫码登录。',
           onLogin: () {},
-          onEdit: () {},
           onValidate: () {},
         ),
       ),
     );
 
     expect(find.text('认证已过期，请重新扫码登录。'), findsOneWidget);
-    expect(find.byType(YhStatusPill), findsOneWidget);
     expect(find.byType(YhChip), findsNothing);
-    expect(find.text('扫码登录'), findsOneWidget);
-    expect(find.text('重新加载配置并校验'), findsOneWidget);
+    expect(find.text('已完成：生成登录二维码'), findsOneWidget);
+    expect(find.text('未完成：等待手机确认'), findsOneWidget);
+    expect(find.text('重新认证'), findsNWidgets(2));
+    expect(find.text('重新校验'), findsOneWidget);
   });
 }

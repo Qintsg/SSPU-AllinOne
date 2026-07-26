@@ -22,7 +22,7 @@ class WebViewCompactToolbar extends StatelessWidget {
   final String title;
 
   /// 返回或退出按钮回调。
-  final VoidCallback onBackPressed;
+  final VoidCallback? onBackPressed;
 
   /// 返回按钮语义标签。
   final String backSemanticLabel;

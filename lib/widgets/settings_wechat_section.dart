@@ -9,14 +9,11 @@
 import '../design/qingyuan/qingyuan_ui.dart';
 
 import '../controllers/settings_wechat_controller.dart';
-import '../services/wxmp_config_service.dart';
-import '../utils/webview_env.dart';
+import '../pages/settings_wechat_auth_page.dart';
 import 'app_feedback.dart';
-import 'settings_wechat_config_dialog.dart';
 import 'settings_wechat_matrix_card.dart';
 import 'settings_wechat_refresh_card.dart';
 import 'settings_wechat_auth_status_card.dart';
-import '../pages/wxmp_login_page.dart';
 
 /// 微信推文设置分区。
 class SettingsWechatSection extends StatefulWidget {
@@ -48,45 +45,6 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
       details: feedback.content,
       severity: feedback.severity,
     );
-  }
-
-  Future<void> _openWxmpLogin() async {
-    final webViewEnvironment = await ensureGlobalWebViewEnvironment();
-    if (!mounted) return;
-
-    final success = await Navigator.of(context).push<bool>(
-      YhPageRoute<bool>(
-        builder: (_) => WxmpLoginPage(webViewEnvironment: webViewEnvironment),
-      ),
-    );
-    if (success == true) {
-      await _showFeedback(await _controller.handleLoginSuccess());
-    }
-  }
-
-  Future<void> _openConfigEditor() async {
-    late final WxmpConfig initialConfig;
-    try {
-      initialConfig = await _controller.loadConfig();
-    } catch (error) {
-      await _showFeedback(
-        SettingsWechatFeedback(
-          title: '读取配置文件失败',
-          content: '$error',
-          severity: AppFeedbackSeverity.error,
-        ),
-      );
-      return;
-    }
-
-    if (!mounted) return;
-    final savedConfig = await showSettingsWechatConfigDialog(
-      context: context,
-      initialConfig: initialConfig,
-    );
-
-    if (savedConfig == null) return;
-    await _showFeedback(await _controller.saveConfig(savedConfig));
   }
 
   @override
@@ -125,7 +83,7 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
                   _controller.setAutoFetchCount(value),
             ),
             SizedBox(height: theme.spacing.l),
-            _buildAuthCard(context),
+            _buildAuthSummary(context),
             SizedBox(height: theme.spacing.l),
             SettingsWechatMatrixCard(
               authenticated: _controller.wxmpAuthenticated,
@@ -149,14 +107,14 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
     );
   }
 
-  Widget _buildAuthCard(BuildContext context) {
+  Widget _buildAuthSummary(BuildContext context) {
     final message = [
       if (_controller.wxmpAuthStatus != null)
         _controller.wxmpAuthStatus!.message,
       if (_controller.wxmpConfigMessage.isNotEmpty)
         _controller.wxmpConfigMessage,
     ].join(' · ');
-    return SettingsWechatAuthStatusCard(
+    return SettingsWechatAuthSummary(
       state: _controller.wxmpValidating
           ? SettingsWechatAuthDisplayState.loading
           : _controller.wxmpConfigMessage.contains('失败')
@@ -164,15 +122,12 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
           : _controller.wxmpAuthenticated
           ? SettingsWechatAuthDisplayState.content
           : SettingsWechatAuthDisplayState.initial,
-      configPath: _controller.wxmpConfigPath,
       statusMessage: message.isEmpty ? '尚未连接公众号平台账号。' : message,
-      onLogin: _openWxmpLogin,
-      onEdit: _openConfigEditor,
-      onValidate: () async =>
-          _showFeedback(await _controller.reloadConfigFile()),
-      onClear: _controller.wxmpAuthenticated
-          ? () async => _showFeedback(await _controller.clearAuth())
-          : null,
+      onOpenDetails: () => Navigator.of(context).push(
+        YhPageRoute<void>(
+          builder: (_) => SettingsWechatAuthPage(controller: _controller),
+        ),
+      ),
     );
   }
 }

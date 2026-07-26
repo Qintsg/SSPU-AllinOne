@@ -187,6 +187,46 @@ void main() {
       await _resetMobileView(tester);
     }
   });
+
+  testWidgets('公众号登录主页面加载失败时提供明确重试入口', (tester) async {
+    testPlatform.controller.mainFrameErrorDescription = 'network unavailable';
+    await tester.pumpWidget(const qingyuan.YhApp(home: WxmpLoginPage()));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('无法打开微信登录页'), findsOneWidget);
+    expect(find.textContaining('network unavailable'), findsOneWidget);
+    expect(find.text('重新打开登录页'), findsOneWidget);
+  });
+
+  testWidgets('公众号登录工具栏可刷新过期二维码', (tester) async {
+    await tester.pumpWidget(const qingyuan.YhApp(home: WxmpLoginPage()));
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.bySemanticsLabel('刷新微信登录页'));
+    await tester.pump();
+
+    expect(testPlatform.controller.reloadCount, 1);
+  });
+
+  testWidgets('系统浏览器打开失败时说明认证不会自动回写', (tester) async {
+    await tester.pumpWidget(
+      qingyuan.YhApp(
+        home: WxmpLoginPage(launchUrlOverride: (_) async => false),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.bySemanticsLabel('在系统浏览器打开微信登录页'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('不与应用内登录页共享认证结果'), findsOneWidget);
+    await tester.tap(find.text('继续打开'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('系统浏览器未能打开微信登录页'), findsOneWidget);
+  });
 }
 
 /// 配置移动端窄屏视口。
@@ -238,6 +278,20 @@ class _TestPlatformInAppWebViewWidget extends PlatformInAppWebViewWidget {
         params.onWebViewCreated?.call(appController);
         params.onTitleChanged?.call(appController, '网页标题');
         params.onLoadStop?.call(appController, WebUri('https://example.com'));
+        final errorDescription = controller.mainFrameErrorDescription;
+        if (errorDescription != null) {
+          params.onReceivedError?.call(
+            appController,
+            WebResourceRequest(
+              url: WebUri('https://mp.weixin.qq.com/'),
+              isForMainFrame: true,
+            ),
+            WebResourceError(
+              description: errorDescription,
+              type: WebResourceErrorType.UNKNOWN,
+            ),
+          );
+        }
       });
     }
     return const ColoredBox(
@@ -269,6 +323,7 @@ class _TestPlatformInAppWebViewController
   int goForwardCount = 0;
   int reloadCount = 0;
   bool callbacksDispatched = false;
+  String? mainFrameErrorDescription;
 
   @override
   Future<bool> canGoBack() async => canGoBackValue;
