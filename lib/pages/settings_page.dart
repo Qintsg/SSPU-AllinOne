@@ -36,6 +36,7 @@ import '../widgets/settings_wechat_section.dart';
 import '../widgets/settings_widgets.dart';
 import 'about_page.dart';
 import 'academic_calendar_page.dart';
+import 'settings_appearance_page.dart';
 
 part 'settings_page_actions.dart';
 part 'settings_page_layout.dart';

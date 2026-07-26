@@ -79,7 +79,7 @@ class YhSegmentedOption<T> {
   final IconData? icon;
 }
 
-class YhSegmented<T> extends StatelessWidget {
+class YhSegmented<T> extends StatefulWidget {
   const YhSegmented({
     super.key,
     required this.options,
@@ -92,69 +92,166 @@ class YhSegmented<T> extends StatelessWidget {
   final ValueChanged<T>? onChanged;
 
   @override
+  State<YhSegmented<T>> createState() => _YhSegmentedState<T>();
+}
+
+class _MoveSegmentIntent extends Intent {
+  const _MoveSegmentIntent(this.offset);
+
+  final int offset;
+}
+
+class _YhSegmentedState<T> extends State<YhSegmented<T>> {
+  late List<FocusNode> _focusNodes = _createFocusNodes();
+
+  List<FocusNode> _createFocusNodes() => [
+    for (final option in widget.options)
+      FocusNode(debugLabel: 'YhSegmented(${option.label})'),
+  ];
+
+  @override
+  void didUpdateWidget(covariant YhSegmented<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_sameOptions(oldWidget.options, widget.options)) {
+      for (final node in _focusNodes) {
+        node.dispose();
+      }
+      _focusNodes = _createFocusNodes();
+    }
+    _updateTraversal();
+  }
+
+  bool _sameOptions(
+    List<YhSegmentedOption<T>> previous,
+    List<YhSegmentedOption<T>> current,
+  ) {
+    if (previous.length != current.length) return false;
+    for (var index = 0; index < previous.length; index++) {
+      if (previous[index].value != current[index].value ||
+          previous[index].label != current[index].label ||
+          previous[index].icon != current[index].icon) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @override
+  void dispose() {
+    for (final node in _focusNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  void _updateTraversal() {
+    for (var index = 0; index < _focusNodes.length; index++) {
+      _focusNodes[index].skipTraversal =
+          widget.onChanged == null ||
+          widget.options[index].value != widget.value;
+    }
+  }
+
+  void _moveSelection(int offset) {
+    if (widget.onChanged == null || widget.options.isEmpty) return;
+    var current = _focusNodes.indexWhere((node) => node.hasFocus);
+    if (current < 0) {
+      current = widget.options.indexWhere(
+        (option) => option.value == widget.value,
+      );
+    }
+    if (current < 0) current = 0;
+    final next = (current + offset) % widget.options.length;
+    widget.onChanged!(widget.options[next].value);
+    _focusNodes[next].requestFocus();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    return Semantics(
-      container: true,
-      explicitChildNodes: true,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: theme.color.sunken,
-          border: Border.all(color: theme.color.border),
-          borderRadius: BorderRadius.circular(theme.radius.input),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(theme.spacing.xs),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final option in options)
-                YhPressable(
-                  semanticLabel: option.label,
-                  selected: option.value == value,
-                  inMutuallyExclusiveGroup: true,
-                  onPressed: onChanged == null
-                      ? null
-                      : () => onChanged!(option.value),
-                  builder: (context, state, child) => DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: option.value == value
-                          ? theme.color.surface
-                          : state.hovered
-                          ? theme.color.brandTint
-                          : theme.color.surface.withValues(alpha: 0),
-                      borderRadius: BorderRadius.circular(theme.radius.s),
-                      boxShadow: option.value == value
-                          ? theme.elevation.e1
-                          : const [],
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: theme.spacing.m,
-                        vertical: theme.spacing.s,
-                      ),
-                      child: child,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (option.icon != null) ...[
-                        Icon(option.icon, size: theme.spacing.l),
-                        SizedBox(width: theme.spacing.s),
-                      ],
-                      Text(
-                        option.label,
-                        style: theme.typography.small.copyWith(
-                          color: option.value == value
-                              ? theme.color.brandInk
-                              : theme.color.muted,
+    _updateTraversal();
+    return Shortcuts(
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.arrowLeft): _MoveSegmentIntent(-1),
+        SingleActivator(LogicalKeyboardKey.arrowRight): _MoveSegmentIntent(1),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _MoveSegmentIntent: CallbackAction<_MoveSegmentIntent>(
+            onInvoke: (intent) {
+              _moveSelection(intent.offset);
+              return null;
+            },
+          ),
+        },
+        child: Semantics(
+          container: true,
+          explicitChildNodes: true,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.color.sunken,
+              border: Border.all(color: theme.color.border),
+              borderRadius: BorderRadius.circular(theme.radius.input),
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(theme.spacing.xs),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var index = 0; index < widget.options.length; index++)
+                    YhPressable(
+                      focusNode: _focusNodes[index],
+                      semanticLabel: widget.options[index].label,
+                      selected: widget.options[index].value == widget.value,
+                      inMutuallyExclusiveGroup: true,
+                      onPressed: widget.onChanged == null
+                          ? null
+                          : () =>
+                                widget.onChanged!(widget.options[index].value),
+                      builder: (context, state, child) => DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: widget.options[index].value == widget.value
+                              ? theme.color.surface
+                              : state.hovered
+                              ? theme.color.brandTint
+                              : theme.color.surface.withValues(alpha: 0),
+                          borderRadius: BorderRadius.circular(theme.radius.s),
+                          boxShadow: widget.options[index].value == widget.value
+                              ? theme.elevation.e1
+                              : const [],
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: theme.spacing.m,
+                            vertical: theme.spacing.s,
+                          ),
+                          child: child,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-            ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (widget.options[index].icon != null) ...[
+                            Icon(
+                              widget.options[index].icon,
+                              size: theme.spacing.l,
+                            ),
+                            SizedBox(width: theme.spacing.s),
+                          ],
+                          Text(
+                            widget.options[index].label,
+                            style: theme.typography.small.copyWith(
+                              color: widget.options[index].value == widget.value
+                                  ? theme.color.brandInk
+                                  : theme.color.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

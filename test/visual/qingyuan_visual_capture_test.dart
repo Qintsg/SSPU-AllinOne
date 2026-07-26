@@ -30,6 +30,7 @@ import 'package:sspu_allinone/pages/info_page.dart';
 import 'package:sspu_allinone/pages/legal_notice_page.dart';
 import 'package:sspu_allinone/pages/lock_page.dart';
 import 'package:sspu_allinone/pages/quick_links_page.dart';
+import 'package:sspu_allinone/pages/settings_appearance_page.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/services/system_auth_service.dart';
 import 'package:sspu_allinone/services/app_update_service.dart';
@@ -40,7 +41,6 @@ import 'package:sspu_allinone/widgets/app_close_confirmation_dialog.dart';
 import 'package:sspu_allinone/widgets/app_more_destinations.dart';
 import 'package:sspu_allinone/widgets/app_startup_status.dart';
 import 'package:sspu_allinone/widgets/legal_consent_dialog.dart';
-import 'package:sspu_allinone/widgets/settings_appearance_section.dart';
 import 'package:sspu_allinone/widgets/settings_general_section.dart';
 import 'package:sspu_allinone/widgets/settings_security_section.dart';
 import 'package:sspu_allinone/widgets/settings_update_section.dart';
@@ -851,9 +851,44 @@ Widget _settingsPageSurface(String title, Widget child) => Builder(
   },
 );
 
-Widget _settingsAppearance() => _settingsPageSurface(
-  '外观设置',
-  SettingsAppearanceSection(themeMode: YhThemeMode.system, onChanged: (_) {}),
+Widget _settingsAppearance() => _stateReferenceShell(
+  SettingsAppearancePage(
+    themeMode: YhThemeMode.system,
+    onChanged: (_) {},
+    onApply: () {},
+  ),
+);
+
+Widget _stateReferenceShell(Widget page) => Builder(
+  builder: (context) {
+    final theme = context.yhTheme;
+    final media = MediaQuery.of(context);
+    final shellMedia = media.copyWith(
+      size: Size(
+        math.min(
+          media.size.width,
+          theme.breakpoint.expanded - theme.layout.divider,
+        ),
+        media.size.height,
+      ),
+    );
+    return ColoredBox(
+      color: theme.color.background,
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: theme.spacing.l,
+          vertical: theme.spacing.l + theme.spacing.m,
+        ),
+        child: MediaQuery(
+          data: shellMedia,
+          child: AppShell(
+            initialDestinationIndex: _destinationIndex('设置'),
+            destinationOverrides: {'设置': page},
+          ),
+        ),
+      ),
+    );
+  },
 );
 
 Widget _legalNoticeSurface() => _legalReferenceSurface(

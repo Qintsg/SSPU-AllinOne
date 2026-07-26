@@ -368,16 +368,40 @@ class _NavigationBody extends StatelessWidget {
   }
 }
 
-class _DestinationNavigator extends StatelessWidget {
+class _DestinationNavigator extends StatefulWidget {
   const _DestinationNavigator({required this.body});
 
   final Widget body;
 
   @override
+  State<_DestinationNavigator> createState() => _DestinationNavigatorState();
+}
+
+class _DestinationNavigatorState extends State<_DestinationNavigator> {
+  late final ValueNotifier<Widget> _rootBody = ValueNotifier(widget.body);
+
+  @override
+  void didUpdateWidget(covariant _DestinationNavigator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _rootBody.value = widget.body;
+  }
+
+  @override
+  void dispose() {
+    _rootBody.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Navigator(
-      onGenerateRoute: (settings) =>
-          YhPageRoute<void>(settings: settings, builder: (_) => body),
+      onGenerateRoute: (settings) => YhPageRoute<void>(
+        settings: settings,
+        builder: (_) => ValueListenableBuilder<Widget>(
+          valueListenable: _rootBody,
+          builder: (_, body, _) => body,
+        ),
+      ),
     );
   }
 }

@@ -269,7 +269,9 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
       case 0:
         return SettingsGeneralSection(
           themeMode: widget.themeMode,
-          onThemeModeChanged: widget.onThemeModeChanged,
+          onOpenAppearance: widget.onThemeModeChanged == null
+              ? null
+              : _openAppearanceSettings,
           closeBehavior: _closeBehavior,
           notificationEnabled: _notificationEnabled,
           dndEnabled: _dndEnabled,
@@ -383,5 +385,17 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
       default:
         return const SizedBox.shrink();
     }
+  }
+
+  void _openAppearanceSettings() {
+    Navigator.of(context).push(
+      YhPageRoute<void>(
+        builder: (_) => SettingsAppearancePage(
+          themeMode: widget.themeMode,
+          onChanged: widget.onThemeModeChanged,
+          onApply: () => Navigator.of(context).maybePop(),
+        ),
+      ),
+    );
   }
 }

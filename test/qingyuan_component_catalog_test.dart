@@ -94,6 +94,64 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('分段控制器用方向键切换且 Tab 只停留在当前项', (tester) async {
+    var selected = 'system';
+    final semantics = tester.ensureSemantics();
+
+    await tester.pumpWidget(
+      YhApp(
+        home: StatefulBuilder(
+          builder: (context, setState) => Column(
+            children: [
+              YhSegmented<String>(
+                options: const [
+                  YhSegmentedOption(value: 'system', label: '跟随系统'),
+                  YhSegmentedOption(value: 'light', label: '亮色'),
+                  YhSegmentedOption(value: 'dark', label: '暗色'),
+                ],
+                value: selected,
+                onChanged: (value) => setState(() => selected = value),
+              ),
+              YhButton(label: '下一项', onTap: () {}),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    expect(
+      tester
+          .getSemantics(find.bySemanticsLabel('跟随系统'))
+          .flagsCollection
+          .isFocused,
+      Tristate.isTrue,
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(selected, 'light');
+    expect(
+      tester
+          .getSemantics(find.bySemanticsLabel('亮色'))
+          .flagsCollection
+          .isFocused,
+      Tristate.isTrue,
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    expect(
+      tester
+          .getSemantics(find.bySemanticsLabel('下一项'))
+          .flagsCollection
+          .isFocused,
+      Tristate.isTrue,
+    );
+    semantics.dispose();
+  });
+
   testWidgets('清源输入扩展覆盖错误、日期动作与 OTP 完成状态', (tester) async {
     final otp = TextEditingController();
     var completed = '';

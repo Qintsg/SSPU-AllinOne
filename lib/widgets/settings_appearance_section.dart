@@ -2,16 +2,16 @@
 
 import '../design/qingyuan/qingyuan_ui.dart';
 
-/// 主题模式设置，保持系统/亮色/暗色三态与清源宿主一致。
+/// 主题模式摘要；完整三态编辑由独立外观任务页承载。
 class SettingsAppearanceSection extends StatelessWidget {
   const SettingsAppearanceSection({
     super.key,
     required this.themeMode,
-    required this.onChanged,
+    this.onOpenDetails,
   });
 
   final YhThemeMode themeMode;
-  final ValueChanged<YhThemeMode>? onChanged;
+  final VoidCallback? onOpenDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -30,31 +30,6 @@ class SettingsAppearanceSection extends StatelessWidget {
             style: theme.typography.small.copyWith(color: theme.color.muted),
           ),
           SizedBox(height: theme.spacing.m),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: YhSegmented<YhThemeMode>(
-              value: themeMode,
-              onChanged: onChanged,
-              options: const [
-                YhSegmentedOption(
-                  value: YhThemeMode.system,
-                  label: '跟随系统',
-                  icon: YhIcons.settings,
-                ),
-                YhSegmentedOption(
-                  value: YhThemeMode.light,
-                  label: '亮色',
-                  icon: YhIcons.sun,
-                ),
-                YhSegmentedOption(
-                  value: YhThemeMode.dark,
-                  label: '暗色',
-                  icon: YhIcons.moon,
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: theme.spacing.m),
           DecoratedBox(
             decoration: BoxDecoration(
               color: theme.color.sunken,
@@ -68,19 +43,40 @@ class SettingsAppearanceSection extends StatelessWidget {
                   Icon(YhIcons.palette, color: theme.color.brandStrong),
                   SizedBox(width: theme.spacing.m),
                   Expanded(
-                    child: Text(
-                      '清源界面会同时保持 MiSans 排版、低饱和校园色与可见焦点。',
-                      style: theme.typography.small.copyWith(
-                        color: theme.color.muted,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('颜色主题', style: theme.typography.body),
+                        SizedBox(height: theme.spacing.xs),
+                        Text(
+                          '当前：${_themeModeLabel(themeMode)}',
+                          style: theme.typography.small.copyWith(
+                            color: theme.color.muted,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
           ),
+          if (onOpenDetails != null) ...[
+            SizedBox(height: theme.spacing.m),
+            YhButton(
+              label: '打开外观设置',
+              onTap: onOpenDetails,
+              variant: YhButtonVariant.secondary,
+            ),
+          ],
         ],
       ),
     );
   }
+
+  String _themeModeLabel(YhThemeMode mode) => switch (mode) {
+    YhThemeMode.system => '跟随系统',
+    YhThemeMode.light => '亮色',
+    YhThemeMode.dark => '暗色',
+  };
 }

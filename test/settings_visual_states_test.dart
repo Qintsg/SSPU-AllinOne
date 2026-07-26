@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
-import 'package:sspu_allinone/widgets/settings_appearance_section.dart';
+import 'package:sspu_allinone/pages/settings_appearance_page.dart';
 import 'package:sspu_allinone/widgets/settings_security_section.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_auth_status_card.dart';
 
@@ -32,9 +32,10 @@ void main() {
     YhThemeMode? selected;
     await tester.pumpWidget(
       YhApp(
-        home: SettingsAppearanceSection(
+        home: SettingsAppearancePage(
           themeMode: YhThemeMode.system,
           onChanged: (value) => selected = value,
+          onApply: () {},
         ),
       ),
     );

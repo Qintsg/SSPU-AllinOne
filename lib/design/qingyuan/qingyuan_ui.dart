@@ -35,6 +35,7 @@ export 'navigation/yh_navigation.dart';
 export 'navigation/yh_page_scaffold.dart';
 export 'navigation/yh_responsive_shell.dart';
 export 'navigation/yh_tabs.dart';
+export 'navigation/yh_task_page.dart';
 export 'foundations/yh_pressable.dart';
 export 'icons/yh_icons.dart';
 export 'navigation/yh_page_route.dart';

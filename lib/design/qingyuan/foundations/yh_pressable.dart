@@ -37,6 +37,7 @@ class YhPressable extends StatefulWidget {
     required this.child,
     this.builder,
     this.autofocus = false,
+    this.focusNode,
     this.selected,
     this.toggled,
     this.hint,
@@ -48,6 +49,7 @@ class YhPressable extends StatefulWidget {
   final Widget child;
   final YhPressableBuilder? builder;
   final bool autofocus;
+  final FocusNode? focusNode;
   final bool? selected;
   final bool? toggled;
   final String? hint;
@@ -58,12 +60,15 @@ class YhPressable extends StatefulWidget {
 }
 
 class _YhPressableState extends State<YhPressable> {
-  final FocusNode _focusNode = FocusNode(debugLabel: 'YhPressable');
+  FocusNode? _internalFocusNode;
   bool _hovered = false;
   bool _focused = false;
   bool _pressed = false;
 
   bool get _enabled => widget.onPressed != null;
+  FocusNode get _focusNode =>
+      widget.focusNode ??
+      (_internalFocusNode ??= FocusNode(debugLabel: 'YhPressable'));
 
   void _activate() {
     if (_enabled) widget.onPressed!();
@@ -71,7 +76,7 @@ class _YhPressableState extends State<YhPressable> {
 
   @override
   void dispose() {
-    _focusNode.dispose();
+    _internalFocusNode?.dispose();
     super.dispose();
   }
 

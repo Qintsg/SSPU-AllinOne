@@ -56,20 +56,23 @@
 ## Flutter API
 
 ```dart
-class YhSegmented<T> extends StatelessWidget {
+class YhSegmented<T> extends StatefulWidget {
   const YhSegmented({
     super.key,
-    required this.segments,    // List<({T value, String label})>
+    required this.options,     // List<YhSegmentedOption<T>>
     required this.value,
     required this.onChanged,
-    this.disabled = false,
   });
 }
 ```
 
 ```dart
 YhSegmented<String>(
-  segments: const [(value: 'all', label: '全部'), (value: 'unread', label: '未读'), (value: 'read', label: '已读')],
+  options: const [
+    YhSegmentedOption(value: 'all', label: '全部'),
+    YhSegmentedOption(value: 'unread', label: '未读'),
+    YhSegmentedOption(value: 'read', label: '已读'),
+  ],
   value: filter,
   onChanged: (v) => setState(() => filter = v),
 );
@@ -97,7 +100,8 @@ YhSegmented<String>(
 
 ## 无障碍 Accessibility
 
-- `Semantics`：每段 `inMutuallyExclusiveGroup: true, selected: ...`；键盘左右方向键切换。
+- `Semantics`：每段 `inMutuallyExclusiveGroup: true, selected: ...`。
+- roving focus：Tab 只进入当前段，左右方向键切换并把焦点移到新段。
 
 ---
 
@@ -105,4 +109,5 @@ YhSegmented<String>(
 
 | 版本 | 日期 | 变更内容 |
 |---|---|---|
+| 0.4.0 | 2026-07-26 | 落实左右方向键切换与 roving focus，并同步真实 Flutter API。 |
 | 0.1.0 | 2026-06-16 | 初始规格 · 响应色 #478384 |
