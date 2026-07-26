@@ -98,6 +98,7 @@ void main() {
     required InfoPageDisplayState displayState,
     List<MessageItem>? messages,
     VoidCallback? onOpenSourceSettings,
+    bool filterEmptyOverride = false,
   }) async {
     await configureView(tester, size: size);
     await tester.pumpWidget(
@@ -108,6 +109,7 @@ void main() {
           wechatSourceConfiguredOverride: true,
           nowOverride: DateTime(2026, 7, 18, 9, 30),
           onOpenSourceSettings: onOpenSourceSettings,
+          filterEmptyOverride: filterEmptyOverride,
         ),
       ),
     );
@@ -185,6 +187,26 @@ void main() {
       await tester.pump();
       expect(find.text('当前筛选没有结果'), findsOneWidget);
       expect(find.byKey(const Key('info-message-list')), findsNothing);
+
+      await pumpInfoFixture(
+        tester,
+        size: const Size(768, 900),
+        displayState: InfoPageDisplayState.content,
+        messages: _buildMessages(3),
+        filterEmptyOverride: true,
+      );
+      expect(find.byKey(const Key('info-filter-empty')), findsOneWidget);
+      expect(
+        tester.widget<EditableText>(find.byType(EditableText)).controller.text,
+        isEmpty,
+      );
+      final theme = tester
+          .element(find.byKey(const Key('info-filter-empty')))
+          .yhTheme;
+      expect(
+        tester.getSize(find.byKey(const Key('info-filter-empty'))).height,
+        theme.layout.popoverWidth + theme.spacing.xl,
+      );
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();

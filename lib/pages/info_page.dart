@@ -37,6 +37,7 @@ class InfoPage extends StatefulWidget {
     @visibleForTesting this.wechatSourceConfiguredOverride,
     @visibleForTesting this.nowOverride,
     @visibleForTesting this.messageRenderLimitOverride,
+    @visibleForTesting this.filterEmptyOverride = false,
   });
 
   /// 打开资讯来源与认证设置；由应用壳负责切换到对应设置分区。
@@ -56,6 +57,9 @@ class InfoPage extends StatefulWidget {
 
   @visibleForTesting
   final int? messageRenderLimitOverride;
+
+  @visibleForTesting
+  final bool filterEmptyOverride;
 
   @override
   State<InfoPage> createState() => _InfoPageState();

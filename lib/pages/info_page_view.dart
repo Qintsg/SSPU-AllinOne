@@ -885,17 +885,24 @@ class _InfoMessagePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    if (state._filteredMessages.isEmpty) {
-      return YhCard(
-        key: const Key('info-filter-empty'),
-        child: YhEmptyState(
-          icon: YhIcons.search,
-          title: '当前筛选没有结果',
-          message: '更换来源或清除搜索词后，可恢复显示全部校园资讯。',
-          action: YhButton(
-            label: '清除筛选',
-            variant: YhButtonVariant.secondary,
-            onTap: () => _clearInfoFilters(state),
+    if (state._filteredMessages.isEmpty || state.widget.filterEmptyOverride) {
+      return Align(
+        alignment: Alignment.topCenter,
+        child: SizedBox(
+          width: double.infinity,
+          height: theme.layout.popoverWidth + theme.spacing.xl,
+          child: YhCard(
+            key: const Key('info-filter-empty'),
+            child: _InfoEmptyState(
+              icon: YhIcons.search,
+              title: '当前筛选没有结果',
+              message: '更换来源或清除搜索词后，可恢复显示全部校园资讯。',
+              action: YhButton(
+                label: '清除筛选',
+                variant: YhButtonVariant.secondary,
+                onTap: () => _clearInfoFilters(state),
+              ),
+            ),
           ),
         ),
       );

@@ -663,14 +663,16 @@ final _surfaces = <_VisualSurface>[
   _VisualSurface(
     'info.filters',
     () => _infoPage(InfoPageDisplayState.content, withMessages: true),
-    prepare: _prepareInfoFiltersContent,
     destination: '信息',
   ),
   _VisualSurface(
     'info.filters',
-    () => _infoPage(InfoPageDisplayState.content, withMessages: true),
+    () => _infoPage(
+      InfoPageDisplayState.content,
+      withMessages: true,
+      filterEmpty: true,
+    ),
     state: 'empty',
-    prepare: _prepareInfoFilterEmpty,
     destination: '信息',
   ),
   _VisualSurface(
@@ -1718,32 +1720,18 @@ Future<void> _prepareCampusCardDetailContent(WidgetTester tester) async {
   await tester.pump();
 }
 
-Widget _infoPage(InfoPageDisplayState state, {bool withMessages = false}) =>
-    InfoPage(
-      displayStateOverride: state,
-      messagesOverride: withMessages ? qingyuanInfoMessages : const [],
-      wechatSourceConfiguredOverride: true,
-      nowOverride: qingyuanVisualNow,
-      messageRenderLimitOverride: 3,
-    );
-
-Future<void> _prepareInfoFilterEmpty(WidgetTester tester) async {
-  await tester.enterText(find.byKey(const Key('info-search-field')), '不存在的资讯');
-  await tester.pump();
-}
-
-Future<void> _prepareInfoFiltersContent(WidgetTester tester) async {
-  final schoolSource = find.textContaining('学校官网');
-  for (var attempt = 0; attempt < 40; attempt++) {
-    await tester.pump(const Duration(milliseconds: 50));
-    if (schoolSource.evaluate().isNotEmpty) break;
-  }
-  if (schoolSource.evaluate().isEmpty) {
-    throw StateError('资讯来源筛选未在固定等待窗口内完成加载');
-  }
-  await tester.tap(schoolSource.first);
-  await tester.pump();
-}
+Widget _infoPage(
+  InfoPageDisplayState state, {
+  bool withMessages = false,
+  bool filterEmpty = false,
+}) => InfoPage(
+  displayStateOverride: state,
+  messagesOverride: withMessages ? qingyuanInfoMessages : const [],
+  wechatSourceConfiguredOverride: true,
+  nowOverride: qingyuanVisualNow,
+  messageRenderLimitOverride: 3,
+  filterEmptyOverride: filterEmpty,
+);
 
 Widget _schedulePage({
   required QingyuanVisualAcademicEamsClient service,
