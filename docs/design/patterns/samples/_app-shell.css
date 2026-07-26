@@ -324,8 +324,8 @@ button.overview-card:hover { border-color: var(--brand); background: var(--brand
 [data-info-feed-list] { display: grid; gap: var(--space-s); }
 .feed-entry { padding: var(--space-l); border: 1px solid var(--border); border-radius: var(--radius-l); background: var(--surface); }
 .feed-meta { display: flex; justify-content: space-between; gap: var(--space-m); margin-bottom: var(--space-s); color: var(--muted); font-size: var(--type-caption); }
-.feed-entry h2 { margin: 0 0 var(--space-s); font: 600 var(--type-body)/1.45 var(--font); }
-.feed-entry p { margin: 0; color: var(--muted); font-size: var(--type-small); line-height: 1.65; }
+.feed-entry h2 { margin: 0 0 var(--space-s); font: var(--weight-feed) var(--type-feed)/var(--line-height-feed) var(--font); }
+.feed-entry p { margin: 0; color: var(--muted); font-size: var(--type-supporting); line-height: var(--line-height-supporting); }
 .info-stale-banner { max-width: none; margin-bottom: var(--space-m); }
 .info-state-panel,
 .info-filter-empty { min-height: calc(var(--layout-popover-width) + var(--space-xl)); display: grid; place-items: center; }

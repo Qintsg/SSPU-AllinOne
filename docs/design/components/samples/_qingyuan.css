@@ -113,8 +113,10 @@
   --type-h2: 22px;
   --type-h3: 18px;
   --type-body: 15px;
+  --type-feed: 15px;
   --type-reading: 15px;
   --type-small: 13px;
+  --type-supporting: 13px;
   --type-caption: 11px;
   --letter-spacing-hero: -1.68px;
   --letter-spacing-display: -0.72px;
@@ -129,8 +131,10 @@
   --line-height-h2: 1.3;
   --line-height-h3: 1.4;
   --line-height-body: 1.5;
+  --line-height-feed: 1.45;
   --line-height-reading: 1.75;
   --line-height-small: 1.4;
+  --line-height-supporting: 1.65;
   --line-height-caption: 1.3;
   --line-height-compact: 1;
   --weight-hero: 500;
@@ -139,8 +143,10 @@
   --weight-h2: 500;
   --weight-h3: 500;
   --weight-body: 400;
+  --weight-feed: 600;
   --weight-reading: 400;
   --weight-small: 400;
+  --weight-supporting: 400;
   --weight-caption: 400;
 
   /* 响应式与交互契约 */

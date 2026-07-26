@@ -10,15 +10,20 @@ Widget _buildInfoPageView(_InfoPageState state, BuildContext context) {
       builder: (context, constraints) {
         final compact = constraints.maxWidth < theme.breakpoint.medium;
         final displayState = state._displayState;
+        final pagePadding = _infoPagePadding(
+          theme,
+          MediaQuery.sizeOf(context).width,
+        );
         return Focus(
           autofocus: true,
           onKeyEvent: (node, event) => _handleInfoPaginationKey(state, event),
           child: Padding(
-            padding: _infoPagePadding(theme, MediaQuery.sizeOf(context).width),
+            padding: pagePadding,
             child: Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: theme.layout.pageContentWidth,
+                  maxWidth:
+                      theme.layout.pageContentWidth - pagePadding.horizontal,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -36,11 +41,19 @@ Widget _buildInfoPageView(_InfoPageState state, BuildContext context) {
                       )
                     else
                       Expanded(
-                        child: _InfoStatePanel(
-                          state: displayState,
-                          onReadOrRetry: state._refreshSchoolWebsite,
-                          onOpenSettings:
-                              state.widget.onOpenSourceSettings ?? () {},
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: SizedBox(
+                            width: double.infinity,
+                            height:
+                                theme.layout.popoverWidth + theme.spacing.xl,
+                            child: _InfoStatePanel(
+                              state: displayState,
+                              onReadOrRetry: state._refreshSchoolWebsite,
+                              onOpenSettings:
+                                  state.widget.onOpenSourceSettings ?? () {},
+                            ),
+                          ),
                         ),
                       ),
                   ],
@@ -56,9 +69,11 @@ Widget _buildInfoPageView(_InfoPageState state, BuildContext context) {
 
 EdgeInsets _infoPagePadding(YhTheme theme, double viewportWidth) {
   if (viewportWidth < theme.breakpoint.medium) {
-    return EdgeInsets.symmetric(
-      horizontal: theme.spacing.m,
-      vertical: theme.spacing.l + theme.spacing.s,
+    return EdgeInsets.fromLTRB(
+      theme.spacing.m,
+      theme.spacing.l + theme.spacing.s,
+      theme.spacing.m,
+      0,
     );
   }
   final progress =
@@ -105,7 +120,11 @@ class _InfoHeader extends StatelessWidget {
               SizedBox(height: theme.spacing.s),
               Text(
                 '先说明来源与更新时间，再提供标题和两行摘要；刷新时保留已有内容。',
-                style: theme.typography.body.copyWith(color: theme.color.muted),
+                style:
+                    (compact
+                            ? theme.typography.supporting
+                            : theme.typography.body)
+                        .copyWith(color: theme.color.muted),
               ),
             ],
           ),
@@ -182,7 +201,8 @@ class _InfoContent extends StatelessWidget {
                   ],
                 ),
         ),
-        if (state._totalPages > 1) ...[
+        if (state._totalPages > 1 &&
+            state.widget.messageRenderLimitOverride == null) ...[
           SizedBox(height: theme.spacing.s),
           SizedBox(
             key: Key(
@@ -478,12 +498,9 @@ class _InfoStatePanel extends StatelessWidget {
             ? Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SizedBox(
-                    width: theme.spacing.xl2 * 2,
-                    child: const YhProgress(
-                      showPercent: false,
-                      semanticLabel: '正在读取校园资讯',
-                    ),
+                  YhRing.activity(
+                    label: '正在读取校园资讯',
+                    size: theme.control.compact,
                   ),
                   SizedBox(width: theme.spacing.m),
                   Flexible(
@@ -504,14 +521,94 @@ class _InfoStatePanel extends StatelessWidget {
                   ),
                 ],
               )
-            : YhEmptyState(
+            : _InfoEmptyState(
                 icon: icon,
                 title: title,
                 message: message,
                 action: actionLabel == null
                     ? null
-                    : YhButton(label: actionLabel, onTap: action),
+                    : YhButton(
+                        label: actionLabel,
+                        variant: state == InfoPageDisplayState.empty
+                            ? YhButtonVariant.secondary
+                            : YhButtonVariant.primary,
+                        onTap: action,
+                      ),
               ),
+      ),
+    );
+  }
+}
+
+class _InfoEmptyState extends StatelessWidget {
+  const _InfoEmptyState({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.action,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(theme.spacing.l),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DecoratedBox(
+              key: const Key('info-state-icon'),
+              decoration: BoxDecoration(
+                color: theme.color.brandTint,
+                borderRadius: BorderRadius.circular(theme.radius.m),
+              ),
+              child: SizedBox.square(
+                dimension: theme.control.regular,
+                child: Icon(
+                  icon,
+                  size: theme.spacing.l,
+                  color: theme.color.brandStrong,
+                ),
+              ),
+            ),
+            SizedBox(height: theme.spacing.s),
+            Semantics(
+              header: true,
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: theme.typography.h3.copyWith(
+                  color: theme.color.foreground,
+                  fontWeight: theme.typography.semibold,
+                ),
+              ),
+            ),
+            SizedBox(height: theme.spacing.xs),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: theme.layout.statusProgressWidth,
+              ),
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                style: theme.typography.small.copyWith(
+                  color: theme.color.muted,
+                  height: theme.typography.body.height,
+                ),
+              ),
+            ),
+            if (action != null) ...[
+              SizedBox(height: theme.spacing.s + theme.spacing.xs),
+              action!,
+            ],
+          ],
+        ),
       ),
     );
   }

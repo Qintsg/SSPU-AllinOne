@@ -92,6 +92,30 @@ void main() {
     expect(find.textContaining('学生专栏'), findsOneWidget);
   });
 
+  testWidgets('资讯卡优先展示已提供摘要与语义来源药丸', (tester) async {
+    const message = MessageItem(
+      id: 'summary-1',
+      title: '暑期开放时间调整',
+      summary: '入馆前请查看最新安排。',
+      date: '2026-04-25',
+      url: 'https://library.example.invalid/notice',
+      sourceType: MessageSourceType.schoolWebsite,
+      sourceName: MessageSourceName.libCenter,
+      category: MessageCategory.libCenterNotice,
+    );
+
+    await pumpTile(tester, message);
+
+    expect(find.text('学校官网'), findsOneWidget);
+    expect(find.text('入馆前请查看最新安排。'), findsOneWidget);
+    expect(find.byType(YhStatusPill), findsOneWidget);
+    final summary = tester.widget<Text>(find.text('入馆前请查看最新安排。'));
+    final theme = tester.element(find.byType(MessageTile)).yhTheme;
+    expect(summary.style?.height, theme.typography.supporting.height);
+    final title = tester.widget<Text>(find.text('暑期开放时间调整'));
+    expect(title.style?.height, theme.typography.feed.height);
+  });
+
   testWidgets('窄屏消息卡片保持微信账号 fallback 与操作区可布局', (tester) async {
     const message = MessageItem(
       id: 'wechat-narrow',

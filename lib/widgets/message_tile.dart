@@ -33,7 +33,10 @@ class MessageTile extends StatelessWidget {
               Expanded(
                 child: Align(
                   alignment: AlignmentDirectional.centerStart,
-                  child: _MetadataTag(text: message.sourceName.label),
+                  child: YhStatusPill(
+                    label: _sourceLabel,
+                    kind: YhStatusKind.info,
+                  ),
                 ),
               ),
               SizedBox(width: theme.spacing.s),
@@ -52,9 +55,9 @@ class MessageTile extends StatelessWidget {
             message.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: theme.typography.body.copyWith(
+            style: theme.typography.feed.copyWith(
               color: isRead ? theme.color.muted : theme.color.foreground,
-              fontWeight: isRead ? null : theme.typography.semibold,
+              fontWeight: isRead ? theme.typography.body.fontWeight : null,
             ),
           ),
           SizedBox(height: theme.spacing.s),
@@ -62,7 +65,9 @@ class MessageTile extends StatelessWidget {
             _summary,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: theme.typography.small.copyWith(color: theme.color.muted),
+            style: theme.typography.supporting.copyWith(
+              color: theme.color.muted,
+            ),
           ),
         ],
       ),
@@ -70,6 +75,8 @@ class MessageTile extends StatelessWidget {
   }
 
   String get _summary {
+    final summary = message.summary?.trim();
+    if (summary != null && summary.isNotEmpty) return summary;
     if (_isWechatMessage) {
       return '${message.sourceType.label} · $_wechatAccountName，点击查看原文。';
     }
@@ -79,6 +86,15 @@ class MessageTile extends StatelessWidget {
   bool get _isWechatMessage =>
       message.sourceType == MessageSourceType.wechatPublic ||
       message.sourceType == MessageSourceType.wechatService;
+
+  String get _sourceLabel {
+    if (_isWechatMessage) return '微信公众号';
+    if (message.sourceType == MessageSourceType.schoolWebsite &&
+        message.sourceName != MessageSourceName.jwc) {
+      return '学校官网';
+    }
+    return message.sourceName.label;
+  }
 
   String get _wechatAccountName {
     final name = message.mpName?.trim();
@@ -102,42 +118,5 @@ class MessageTile extends StatelessWidget {
     final date = DateTime.fromMillisecondsSinceEpoch(timestampMs);
     return '${date.hour.toString().padLeft(2, '0')}:'
         '${date.minute.toString().padLeft(2, '0')}';
-  }
-}
-
-class _MetadataTag extends StatelessWidget {
-  const _MetadataTag({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.color.brandTint,
-        borderRadius: BorderRadius.circular(theme.radius.s),
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: theme.spacing.s,
-          vertical: theme.spacing.xs,
-        ),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: theme.breakpoint.compact / 2 - theme.spacing.m,
-          ),
-          child: Text(
-            text,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.typography.caption.copyWith(
-              color: theme.color.brandInk,
-              fontWeight: theme.typography.semibold,
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

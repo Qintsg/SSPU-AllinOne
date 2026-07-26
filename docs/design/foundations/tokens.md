@@ -15,7 +15,7 @@ YhTheme
 │  ├─ accent { academic, schedule, news, ... }  # 8 业务域
 │  └─ status { successBg, ... }
 ├─ typography             # 字体令牌（见 typography.md）
-│  ├─ hero / display / h1 / h2 / h3 / body / reading / small / caption
+│  ├─ hero / display / h1 / h2 / h3 / body / feed / reading / small / supporting / caption
 │  └─ fontFamilyDisplay / fontFamilyBody / fontFamilyMono
 ├─ spacing                # 间距（见 spacing.md）
 │  └─ xs / s / m / l / xl / xl2

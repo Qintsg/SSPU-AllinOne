@@ -22,7 +22,7 @@ const yhMonoFamily = 'SF Mono';  // iOS 系统自带；Android 回退 Roboto Mon
 
 ## 2. 字阶 · Type scale
 
-**7 级 + 1 个阅读变体**——界面字阶从 caption 到 display，长文阅读保持 body 字号并放大行高。
+**7 级 + 3 个内容变体**——界面字阶从 caption 到 display，feed、reading 与 supporting 分别服务资讯标题、长文和两行摘要。
 
 | 级别 | Size | Line-height | Weight | 用途 | Flutter |
 |---|---|---|---|---|---|
@@ -31,8 +31,10 @@ const yhMonoFamily = 'SF Mono';  // iOS 系统自带；Android 回退 Roboto Mon
 | **h2** | 22 px | 1.3 | 500 (Medium) | 分组标题 / List section header | `22, 1.3, w500` |
 | **h3** | 18 px | 1.4 | 500 | 小节标题 / 卡片副标题 | `18, 1.4, w500` |
 | **body** | 15 px | 1.5 | 400 (Regular) | 正文 / 按钮文字 / 输入框 | `15, 1.5, w400` |
+| **feed** | 15 px | 1.45 | 600 | 资讯卡两行标题 | `15, 1.45, w600` |
 | **reading** | 15 px | 1.75 | 400 | 邮件、法律和文档类长文阅读 | `15, 1.75, w400` |
 | **small** | 13 px | 1.4 | 400 | 辅助文字 / 时间戳 | `13, 1.4, w400` |
+| **supporting** | 13 px | 1.65 | 400 | 资讯卡、结果卡两行摘要 | `13, 1.65, w400` |
 | **caption** | 11 px | 1.3 | 400 | 提示文案 / 徽标数字 | `11, 1.3, w400` |
 
 **基准**：正文 **15 px**（比旧 Fluent 的 14 提 1px，提升可读性，移动端不显拥挤）。

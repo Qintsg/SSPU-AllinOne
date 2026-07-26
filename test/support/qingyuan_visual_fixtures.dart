@@ -279,6 +279,7 @@ final List<MessageItem> qingyuanInfoMessages = [
   MessageItem(
     id: 'visual-info-001',
     title: '关于 2025–2026 学年夏季学期考试安排的通知',
+    summary: '请同学们在教务系统中核对考试时间和地点，如有冲突及时联系学院教务老师。',
     date: '2026-07-18',
     url: 'https://academic.example.invalid/exam-notice',
     sourceType: MessageSourceType.schoolWebsite,
@@ -289,6 +290,7 @@ final List<MessageItem> qingyuanInfoMessages = [
   MessageItem(
     id: 'visual-info-002',
     title: '图书馆暑期开放时间调整',
+    summary: '暑期开放区域与服务时间有所调整，入馆前请查看最新安排。',
     date: '2026-07-17',
     url: 'https://library.example.invalid/summer-hours',
     sourceType: MessageSourceType.schoolWebsite,
@@ -299,6 +301,7 @@ final List<MessageItem> qingyuanInfoMessages = [
   MessageItem(
     id: 'visual-info-003',
     title: '校园夏日服务指南',
+    summary: '集中查看餐饮、班车、场馆与值班服务信息。',
     date: '2026-07-16',
     url: 'https://wechat.example.invalid/summer-guide',
     sourceType: MessageSourceType.wechatPublic,

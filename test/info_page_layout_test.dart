@@ -164,6 +164,12 @@ void main() {
           displayState: entry.key,
         );
         expect(find.text(entry.value), findsOneWidget);
+        if (entry.key == InfoPageDisplayState.loading) {
+          expect(find.byType(YhRing), findsOneWidget);
+          expect(find.byType(YhProgress), findsNothing);
+        } else {
+          expect(find.byKey(const Key('info-state-icon')), findsOneWidget);
+        }
       }
 
       await pumpInfoFixture(
@@ -200,6 +206,10 @@ void main() {
       await tester.pump();
 
       expect(openedSettings, isTrue);
+      final action = tester.widget<YhButton>(
+        find.widgetWithText(YhButton, '来源与认证设置'),
+      );
+      expect(action.variant, YhButtonVariant.secondary);
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();

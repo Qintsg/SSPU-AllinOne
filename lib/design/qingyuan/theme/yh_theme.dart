@@ -160,8 +160,10 @@ class YhTypographyTokens {
     required this.h2,
     required this.h3,
     required this.body,
+    required this.feed,
     required this.reading,
     required this.small,
+    required this.supporting,
     required this.caption,
   });
 
@@ -212,6 +214,12 @@ class YhTypographyTokens {
       height: 1.5,
       fontWeight: FontWeight.w400,
     ),
+    feed: TextStyle(
+      fontFamily: fontFamilyBody,
+      fontSize: 15,
+      height: 1.45,
+      fontWeight: FontWeight.w600,
+    ),
     reading: TextStyle(
       fontFamily: fontFamilyBody,
       fontSize: 15,
@@ -225,6 +233,12 @@ class YhTypographyTokens {
       fontWeight: FontWeight.w400,
       letterSpacing: 0.13,
     ),
+    supporting: TextStyle(
+      fontFamily: fontFamilyBody,
+      fontSize: 13,
+      height: 1.65,
+      fontWeight: FontWeight.w400,
+    ),
     caption: TextStyle(
       fontFamily: fontFamilyBody,
       fontSize: 11,
@@ -234,7 +248,17 @@ class YhTypographyTokens {
     ),
   );
 
-  final TextStyle hero, display, h1, h2, h3, body, reading, small, caption;
+  final TextStyle hero,
+      display,
+      h1,
+      h2,
+      h3,
+      body,
+      feed,
+      reading,
+      small,
+      supporting,
+      caption;
 
   FontWeight get semibold => display.fontWeight!;
 }
