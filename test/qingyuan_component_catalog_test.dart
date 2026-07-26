@@ -131,6 +131,114 @@ void main() {
     expect(completed, '123456');
   });
 
+  testWidgets('清源输入框在减少动态时立即提交焦点边框', (tester) async {
+    await tester.pumpWidget(
+      const YhApp(
+        home: MediaQuery(
+          data: MediaQueryData(disableAnimations: true),
+          child: YhTextField(label: '主题'),
+        ),
+      ),
+    );
+
+    final animated = tester.widget<AnimatedContainer>(
+      find.descendant(
+        of: find.byType(YhTextField),
+        matching: find.byType(AnimatedContainer),
+      ),
+    );
+    expect(animated.duration, Duration.zero);
+  });
+
+  testWidgets('清源多行输入将正文和提示统一置于顶部', (tester) async {
+    await tester.pumpWidget(
+      const YhApp(
+        home: YhTextField(label: '正文', hint: '输入邮件正文', maxLines: 4),
+      ),
+    );
+
+    final stack = tester.widget<Stack>(
+      find.descendant(
+        of: find.byType(YhTextField),
+        matching: find.byType(Stack),
+      ),
+    );
+    final animated = tester.widget<AnimatedContainer>(
+      find.descendant(
+        of: find.byType(YhTextField),
+        matching: find.byType(AnimatedContainer),
+      ),
+    );
+    final theme = tester.element(find.byType(YhTextField)).yhTheme;
+    final padding = animated.padding!.resolve(TextDirection.ltr);
+    expect(stack.alignment, Alignment.topLeft);
+    expect(padding.top, theme.spacing.s);
+    expect(padding.bottom, theme.spacing.s);
+  });
+
+  testWidgets('清源无弱化禁用输入保持前景与禁用语义', (tester) async {
+    final controller = TextEditingController(text: '课程安排确认');
+    addTearDown(controller.dispose);
+    final semantics = tester.ensureSemantics();
+
+    await tester.pumpWidget(
+      YhApp(
+        home: YhTextField(
+          label: '主题',
+          controller: controller,
+          enabled: false,
+          showDisabledAppearance: false,
+        ),
+      ),
+    );
+
+    final editable = tester.widget<EditableText>(find.byType(EditableText));
+    final opacity = tester.widget<Opacity>(
+      find.descendant(
+        of: find.byType(YhTextField),
+        matching: find.byType(Opacity),
+      ),
+    );
+    expect(editable.readOnly, isTrue);
+    expect(opacity.opacity, 1);
+    expect(
+      tester.getSemantics(find.byType(YhTextField)).flagsCollection.isEnabled,
+      Tristate.isFalse,
+    );
+    expect(
+      tester
+          .widget<ExcludeFocus>(
+            find.descendant(
+              of: find.byType(YhTextField),
+              matching: find.byType(ExcludeFocus),
+            ),
+          )
+          .excluding,
+      isTrue,
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('清源禁用输入仅弱化控件容器', (tester) async {
+    await tester.pumpWidget(
+      const YhApp(
+        home: YhTextField(label: '学号', helper: '10 位数字', enabled: false),
+      ),
+    );
+
+    final opacity = tester.widget<Opacity>(
+      find.descendant(
+        of: find.byType(YhTextField),
+        matching: find.byType(Opacity),
+      ),
+    );
+    final editable = tester.widget<EditableText>(find.byType(EditableText));
+    final theme = tester.element(find.byType(YhTextField)).yhTheme;
+    expect(opacity.opacity, 0.45);
+    expect(opacity.child, isA<ExcludeFocus>());
+    expect(editable.style.color, theme.color.foreground);
+  });
+
   testWidgets('清源页签在窄宽度横向滚动并露出当前项', (tester) async {
     await tester.pumpWidget(
       const YhApp(

@@ -19,6 +19,7 @@ class YhTextField extends StatefulWidget {
     this.obscure = false,
     this.maxLines = 1,
     this.enabled = true,
+    this.showDisabledAppearance = true,
     this.autofocus = false,
     this.textInputAction = TextInputAction.done,
     this.keyboardType,
@@ -39,6 +40,7 @@ class YhTextField extends StatefulWidget {
   final bool obscure;
   final int maxLines;
   final bool enabled;
+  final bool showDisabledAppearance;
   final bool autofocus;
   final TextInputAction textInputAction;
   final TextInputType? keyboardType;
@@ -93,6 +95,9 @@ class _YhTextFieldState extends State<YhTextField> {
       if (_ownsFocusNode) _focusNode.dispose();
       _attachFocusNode(widget.focusNode);
     }
+    if (oldWidget.enabled && !widget.enabled) {
+      _focusNode.unfocus();
+    }
   }
 
   @override
@@ -114,8 +119,10 @@ class _YhTextFieldState extends State<YhTextField> {
         ? theme.color.brandStrong
         : theme.color.border;
     final helpText = widget.errorText ?? widget.helper;
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final textStyle = theme.typography.body.copyWith(
-      color: widget.enabled ? theme.color.foreground : theme.color.muted,
+      color: theme.color.foreground,
     );
 
     return Semantics(
@@ -123,122 +130,131 @@ class _YhTextFieldState extends State<YhTextField> {
       enabled: widget.enabled,
       label: widget.label,
       value: widget.obscure ? null : _controller.text,
-      child: Opacity(
-        opacity: widget.enabled ? 1 : 0.45,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (widget.showLabel) ...[
-              Text(
-                widget.label,
-                style: theme.typography.small.copyWith(
-                  color: theme.color.muted,
-                ),
-              ),
-              SizedBox(height: theme.spacing.s - theme.spacing.xs / 2),
-            ],
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: widget.enabled ? _focusNode.requestFocus : null,
-              child: AnimatedContainer(
-                duration: theme.motion.fast,
-                curve: theme.motion.curve,
-                constraints: BoxConstraints(
-                  minHeight: widget.maxLines > 1
-                      ? theme.control.regular * widget.maxLines
-                      : theme.control.regular,
-                ),
-                decoration: BoxDecoration(
-                  color: widget.enabled
-                      ? theme.color.surface
-                      : theme.color.sunken,
-                  border: Border.all(
-                    color: borderColor,
-                    width: theme.layout.controlBorder,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (widget.showLabel) ...[
+            Text(
+              widget.label,
+              style: theme.typography.small.copyWith(color: theme.color.muted),
+            ),
+            SizedBox(height: theme.spacing.s - theme.spacing.xs / 2),
+          ],
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.enabled ? _focusNode.requestFocus : null,
+            child: Opacity(
+              opacity: widget.enabled || !widget.showDisabledAppearance
+                  ? 1
+                  : 0.45,
+              child: ExcludeFocus(
+                excluding: !widget.enabled,
+                child: AnimatedContainer(
+                  duration: theme.motion.effective(
+                    theme.motion.fast,
+                    disableAnimations: disableAnimations,
                   ),
-                  borderRadius: BorderRadius.circular(theme.radius.input),
-                ),
-                padding: EdgeInsets.symmetric(
-                  horizontal: theme.spacing.m - theme.spacing.xs / 2,
-                ),
-                child: Row(
-                  crossAxisAlignment: widget.maxLines > 1
-                      ? CrossAxisAlignment.start
-                      : CrossAxisAlignment.center,
-                  children: [
-                    if (widget.prefixIcon != null) ...[
-                      Padding(
-                        padding: EdgeInsets.only(
-                          top: widget.maxLines > 1 ? theme.spacing.m : 0,
+                  curve: theme.motion.curve,
+                  constraints: BoxConstraints(
+                    minHeight: widget.maxLines > 1
+                        ? theme.control.regular * widget.maxLines
+                        : theme.control.regular,
+                  ),
+                  decoration: BoxDecoration(
+                    color: widget.enabled || !widget.showDisabledAppearance
+                        ? theme.color.surface
+                        : theme.color.sunken,
+                    border: Border.all(
+                      color: borderColor,
+                      width: theme.layout.controlBorder,
+                    ),
+                    borderRadius: BorderRadius.circular(theme.radius.input),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: theme.spacing.m - theme.spacing.xs / 2,
+                    vertical: widget.maxLines > 1 ? theme.spacing.s : 0,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: widget.maxLines > 1
+                        ? CrossAxisAlignment.start
+                        : CrossAxisAlignment.center,
+                    children: [
+                      if (widget.prefixIcon != null) ...[
+                        Padding(
+                          padding: EdgeInsets.only(
+                            top: widget.maxLines > 1 ? theme.spacing.m : 0,
+                          ),
+                          child: Icon(
+                            widget.prefixIcon,
+                            size: 20,
+                            color: _focusNode.hasFocus
+                                ? theme.color.brandStrong
+                                : theme.color.muted,
+                          ),
                         ),
-                        child: Icon(
-                          widget.prefixIcon,
-                          size: 20,
-                          color: _focusNode.hasFocus
-                              ? theme.color.brandStrong
-                              : theme.color.muted,
-                        ),
-                      ),
-                      SizedBox(width: theme.spacing.s),
-                    ],
-                    Expanded(
-                      child: Stack(
-                        alignment: Alignment.centerLeft,
-                        children: [
-                          if (_controller.text.isEmpty && widget.hint != null)
-                            IgnorePointer(
-                              child: Text(
-                                widget.hint!,
-                                style: textStyle.copyWith(
-                                  color: theme.color.muted,
+                        SizedBox(width: theme.spacing.s),
+                      ],
+                      Expanded(
+                        child: Stack(
+                          alignment: widget.maxLines > 1
+                              ? Alignment.topLeft
+                              : Alignment.centerLeft,
+                          children: [
+                            if (_controller.text.isEmpty && widget.hint != null)
+                              IgnorePointer(
+                                child: Text(
+                                  widget.hint!,
+                                  style: textStyle.copyWith(
+                                    color: theme.color.muted,
+                                  ),
                                 ),
                               ),
+                            EditableText(
+                              controller: _controller,
+                              focusNode: _focusNode,
+                              style: textStyle,
+                              cursorColor: theme.color.brandStrong,
+                              backgroundCursorColor: theme.color.muted,
+                              selectionColor: theme.color.brand.withValues(
+                                alpha: 0.28,
+                              ),
+                              readOnly: !widget.enabled,
+                              autofocus: widget.autofocus && widget.enabled,
+                              obscureText: widget.obscure,
+                              maxLines: widget.obscure ? 1 : widget.maxLines,
+                              keyboardType: widget.keyboardType,
+                              inputFormatters: widget.inputFormatters,
+                              textInputAction: widget.textInputAction,
+                              onChanged: widget.onChanged,
+                              onSubmitted: widget.onSubmitted,
                             ),
-                          EditableText(
-                            controller: _controller,
-                            focusNode: _focusNode,
-                            style: textStyle,
-                            cursorColor: theme.color.brandStrong,
-                            backgroundCursorColor: theme.color.muted,
-                            selectionColor: theme.color.brand.withValues(
-                              alpha: 0.28,
-                            ),
-                            readOnly: !widget.enabled,
-                            autofocus: widget.autofocus,
-                            obscureText: widget.obscure,
-                            maxLines: widget.obscure ? 1 : widget.maxLines,
-                            keyboardType: widget.keyboardType,
-                            inputFormatters: widget.inputFormatters,
-                            textInputAction: widget.textInputAction,
-                            onChanged: widget.onChanged,
-                            onSubmitted: widget.onSubmitted,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    if (widget.suffix != null) ...[
-                      SizedBox(width: theme.spacing.s),
-                      widget.suffix!,
+                      if (widget.suffix != null) ...[
+                        SizedBox(width: theme.spacing.s),
+                        widget.suffix!,
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
-            if (helpText != null) ...[
-              SizedBox(height: theme.spacing.xs),
-              Semantics(
-                liveRegion: hasError,
-                child: Text(
-                  helpText,
-                  style: theme.typography.caption.copyWith(
-                    color: hasError ? theme.color.danger : theme.color.muted,
-                  ),
+          ),
+          if (helpText != null) ...[
+            SizedBox(height: theme.spacing.xs),
+            Semantics(
+              liveRegion: hasError,
+              child: Text(
+                helpText,
+                style: theme.typography.caption.copyWith(
+                  color: hasError ? theme.color.danger : theme.color.muted,
                 ),
               ),
-            ],
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

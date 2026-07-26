@@ -78,6 +78,7 @@ class YhTextField extends StatelessWidget {
     this.obscure = false,      // 密码
     this.maxLines = 1,         // >1 = textarea
     this.enabled = true,
+    this.showDisabledAppearance = true, // false 仅保留禁用语义
   });
   // 自建外壳：Column(label, Container(border)->Row(prefix, EditableText, suffix), helper)
   // EditableText 垂直居中由 Row crossAxisAlignment.center 保证；禁止 padding-top hack。
@@ -99,6 +100,7 @@ YhTextField(label: '意见反馈', maxLines: 3, helper: '请文明发言');
 - 标签放控件上方，正文与图标用 flex `align-items:center` 居中。
 - 占位符用 `--muted`（可见），不要设为透明。
 - 前/后置图标固定 20×20、`flex-shrink:0`，与文本留 10px 间距。
+- 发送或保存中仍需供用户校对内容时，可关闭 disabled 弱化外观；控件仍必须暴露禁用语义并退出键盘焦点序列。
 
 ### ❌ Don't
 - 给 input 加 `padding-top` 让文本偏离竖向中线。
@@ -122,5 +124,6 @@ YhTextField(label: '意见反馈', maxLines: 3, helper: '请文明发言');
 
 | 版本 | 日期 | 变更内容 |
 |---|---|---|
+| 0.3.0 | 2026-07-26 | disabled 可为短暂提交态保留标准外观，但始终暴露禁用语义并退出焦点序列；45% 弱化仅作用于控件容器 |
 | 0.2.0 | 2026-06-16 | 响应色 #478384 · 浮动标签改为标签在上 · 修正文本/图标竖向居中与重合 · 接入共享样例 |
 | 0.1.0 | 2026-06-16 | 初始规格 |

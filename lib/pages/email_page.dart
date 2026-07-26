@@ -380,9 +380,11 @@ class _EmailPageState extends State<EmailPage> {
                   _buildMailPageHeader(context, viewportWidth),
                   SizedBox(
                     height: viewportWidth < theme.breakpoint.medium
-                        ? theme.spacing.l +
-                              theme.spacing.xs +
-                              theme.layout.divider * 2
+                        ? _showComposePane
+                              ? theme.spacing.l + theme.layout.divider * 2
+                              : theme.spacing.l +
+                                    theme.spacing.xs +
+                                    theme.layout.divider * 2
                         : theme.spacing.l,
                   ),
                   _buildEmailContent(context),

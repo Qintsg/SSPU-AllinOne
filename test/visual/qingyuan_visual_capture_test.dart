@@ -1885,15 +1885,11 @@ Future<void> _prepareMailComposeSending(WidgetTester tester) async {
 Future<void> _prepareMailComposeLoading(WidgetTester tester) async {
   await _prepareMailComposeSending(tester);
   await tester.pump();
-  await _centerInScrollable(tester, find.text('正在发送'));
-  await tester.pump();
 }
 
 Future<void> _prepareMailComposeError(WidgetTester tester) async {
   await _prepareMailComposeSending(tester);
   await tester.pump();
-  await tester.pump();
-  await _centerInScrollable(tester, find.text('邮件未发送').first);
   await tester.pump();
 }
 

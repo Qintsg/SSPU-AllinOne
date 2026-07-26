@@ -208,9 +208,45 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('撰写邮件'), findsNWidgets(2));
+    final detail = tester.widget<Text>(
+      find.text('仅在点击发送后提交普通文本；不保存草稿，不在后台重试。'),
+    );
+    final theme = tester
+        .element(find.byKey(const Key('email-compose-panel')))
+        .yhTheme;
+    expect(detail.style?.fontSize, theme.typography.small.fontSize);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 120));
+  });
+
+  testWidgets('邮箱发送中字段保持可读外观与禁用语义', (tester) async {
+    final controllers = List.generate(5, (_) => TextEditingController());
+    for (final controller in controllers) {
+      addTearDown(controller.dispose);
+    }
+
+    await tester.pumpWidget(
+      YhApp(
+        home: SingleChildScrollView(
+          child: EmailComposePanel(
+            toController: controllers[0],
+            ccController: controllers[1],
+            bccController: controllers[2],
+            subjectController: controllers[3],
+            bodyController: controllers[4],
+            isSending: true,
+            severityOf: (_) => YhBannerKind.info,
+            onSend: () {},
+          ),
+        ),
+      ),
+    );
+
+    final fields = tester.widgetList<YhTextField>(find.byType(YhTextField));
+    expect(fields, hasLength(5));
+    expect(fields.every((field) => !field.enabled), isTrue);
+    expect(fields.every((field) => !field.showDisabledAppearance), isTrue);
   });
 
   testWidgets('邮箱页面桌面端使用列表详情双栏布局', (tester) async {
@@ -245,6 +281,38 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 120));
+  });
+
+  testWidgets('邮箱撰写地址字段在 900dp 内单列并在宽屏双列', (tester) async {
+    Future<(Offset, Offset)> fieldPositionsAt(Size size) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = size;
+      await tester.binding.setSurfaceSize(size);
+      await pumpEmailPage(
+        tester,
+        emailService: _FakeEmailClient(),
+        emailAutoRefreshEnabledOverride: false,
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      final composeOpen = find.byKey(const Key('email-compose-open'));
+      if (composeOpen.evaluate().isNotEmpty) {
+        await tester.tap(composeOpen);
+      }
+      await tester.pumpAndSettle();
+      return (
+        tester.getTopLeft(find.widgetWithText(YhTextField, '抄送')),
+        tester.getTopLeft(find.widgetWithText(YhTextField, '密送')),
+      );
+    }
+
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final medium = await fieldPositionsAt(const Size(768, 900));
+    expect(medium.$1.dy, lessThan(medium.$2.dy));
+
+    final expanded = await fieldPositionsAt(const Size(1200, 900));
+    expect(expanded.$1.dy, expanded.$2.dy);
   });
 
   testWidgets('邮箱自动刷新开启时会主动读取 IMAP 邮件', (tester) async {

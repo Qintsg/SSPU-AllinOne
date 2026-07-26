@@ -81,7 +81,7 @@ class EmailComposePanel extends StatelessWidget {
                     SizedBox(height: theme.spacing.xs),
                     Text(
                       '仅在点击发送后提交普通文本；不保存草稿，不在后台重试。',
-                      style: theme.typography.caption.copyWith(
+                      style: theme.typography.small.copyWith(
                         color: theme.color.muted,
                       ),
                     ),
@@ -103,8 +103,8 @@ class EmailComposePanel extends StatelessWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               final twoColumns =
-                  constraints.maxWidth >=
-                  theme.breakpoint.compact - theme.control.minimumTarget * 2;
+                  MediaQuery.sizeOf(context).width >
+                  theme.breakpoint.compact + theme.breakpoint.compact / 2;
               if (!twoColumns) {
                 return Column(
                   children: [
@@ -166,6 +166,7 @@ class EmailComposePanel extends StatelessWidget {
             label: '主题',
             hint: '邮件主题',
             enabled: !isSending,
+            showDisabledAppearance: false,
             textInputAction: TextInputAction.next,
           ),
           SizedBox(height: theme.spacing.m),
@@ -174,6 +175,7 @@ class EmailComposePanel extends StatelessWidget {
             label: '正文',
             hint: '输入邮件正文',
             enabled: !isSending,
+            showDisabledAppearance: false,
             maxLines: 4,
             keyboardType: TextInputType.multiline,
           ),
@@ -220,6 +222,7 @@ class EmailComposePanel extends StatelessWidget {
       label: label,
       hint: placeholder,
       enabled: !isSending,
+      showDisabledAppearance: false,
       textInputAction: TextInputAction.next,
     );
   }
