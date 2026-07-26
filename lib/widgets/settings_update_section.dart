@@ -6,6 +6,8 @@
  * @Date : 2026-05-18
  */
 
+import 'dart:async';
+
 import '../design/qingyuan/qingyuan_ui.dart';
 import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -13,6 +15,41 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/app_update_service.dart';
 import '../services/http_service.dart';
 import 'settings_widgets.dart';
+
+enum _UpdateErrorKind { check, releaseOpen }
+
+/// 常规设置中的应用更新摘要，完整操作统一进入独立任务页。
+class SettingsUpdateSummary extends StatelessWidget {
+  const SettingsUpdateSummary({super.key, this.onOpenDetails});
+
+  final VoidCallback? onOpenDetails;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('更新与版本', style: theme.typography.h3),
+          SizedBox(height: theme.spacing.s),
+          Text(
+            '手动检查 GitHub Releases，下载后必须通过 SHA-256 校验才能打开安装入口。',
+            style: theme.typography.small.copyWith(color: theme.color.muted),
+          ),
+          if (onOpenDetails != null) ...[
+            SizedBox(height: theme.spacing.m),
+            YhButton(
+              label: '打开应用更新',
+              variant: YhButtonVariant.secondary,
+              onTap: onOpenDetails,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
 
 /// 设置页应用更新检查卡片。
 class SettingsUpdateSection extends StatefulWidget {
@@ -22,10 +59,14 @@ class SettingsUpdateSection extends StatefulWidget {
   /// 打开外部链接回调，测试中可替换。
   final Future<bool> Function(Uri uri)? launchUrlOverride;
 
+  /// 是否使用独立清源任务页框架。
+  final bool taskPage;
+
   SettingsUpdateSection({
     super.key,
     AppUpdateService? updateService,
     this.launchUrlOverride,
+    this.taskPage = false,
   }) : updateService = updateService ?? AppUpdateService.instance;
 
   @override
@@ -42,7 +83,30 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
   bool _isChecking = false;
   bool _isDownloading = false;
   bool _isOpening = false;
+  bool _isOpeningExternal = false;
   String? _errorMessage;
+  _UpdateErrorKind? _errorKind;
+  String? _currentVersion;
+  String? _versionError;
+
+  bool get _isBusy =>
+      _isChecking || _isDownloading || _isOpening || _isOpeningExternal;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.taskPage) unawaited(_loadCurrentVersion());
+  }
+
+  @override
+  void didUpdateWidget(SettingsUpdateSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.taskPage &&
+        (!oldWidget.taskPage ||
+            oldWidget.updateService != widget.updateService)) {
+      unawaited(_loadCurrentVersion());
+    }
+  }
 
   @override
   void dispose() {
@@ -52,6 +116,7 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.taskPage) return _buildTaskPage(context);
     final theme = context.yhTheme;
 
     return YhCard(
@@ -91,8 +156,8 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
                 ),
                 YhButton(
                   label: _isChecking ? '检查中' : '检查更新',
-                  onTap: _isChecking ? null : _checkForUpdates,
-                  disabled: _isChecking,
+                  onTap: _isBusy ? null : _checkForUpdates,
+                  disabled: _isBusy,
                   leadingIcon: _isChecking ? null : YhIcons.refresh,
                 ),
               ],
@@ -113,7 +178,7 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
 
   Widget _buildChannelOption(AppUpdateChannel channel, String label) {
     final selected = _channel == channel;
-    final disabled = _isChecking || _isDownloading;
+    final disabled = _isBusy;
     final onPressed = disabled
         ? null
         : () => setState(() {
@@ -130,6 +195,191 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
 
   Widget _buildErrorMessage(BuildContext context, String message) {
     return YhBanner(text: message, kind: YhBannerKind.danger);
+  }
+
+  Widget _buildTaskPage(BuildContext context) {
+    return YhTaskPage(
+      title: '应用更新',
+      kicker: '设置',
+      summary: '检查、可用版本和失败降级分开表达，不把网络失败误报为已是最新。',
+      source: 'GitHub Releases',
+      sourceSymbol: '设',
+      primaryActionLabel: _isChecking ? '检查中' : '检查更新',
+      onPrimaryAction: _isBusy ? null : _checkForUpdates,
+      width: YhTaskPageWidth.fluid,
+      body: _buildTaskLedger(context),
+    );
+  }
+
+  Widget _buildTaskLedger(BuildContext context) {
+    final theme = context.yhTheme;
+    final checkError = _errorKind == _UpdateErrorKind.check;
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
+    if (compact &&
+        !_isBusy &&
+        _result == null &&
+        _errorMessage == null &&
+        _versionError == null) {
+      return _buildCompactInitial(context);
+    }
+    const checkingAction = _UpdateLedgerAction(label: '处理中');
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_versionError != null) ...[
+            YhBanner(text: _versionError!, kind: YhBannerKind.warn),
+          ],
+          if (_isChecking) ...[
+            const _UpdateStateBanner(
+              text: '正在从 GitHub Releases 恢复数据；已有页面框架与输入保持可用。',
+            ),
+          ],
+          if (_errorMessage != null) ...[
+            _UpdateStateBanner(
+              text: checkError
+                  ? '无法从 GitHub Releases 完成本次检查；'
+                        '当前版本 ${_currentVersion ?? '未知'} 保持原有状态。'
+                        '可检查网络条件后重试。'
+                  : _errorMessage!,
+              danger: true,
+            ),
+          ],
+          _UpdateTaskRow(
+            title:
+                '${checkError ? '已完成：' : ''}当前版本 ${_currentVersion ?? '读取中'}',
+            status: _isChecking
+                ? '保留当前设置'
+                : checkError
+                ? '结果已保留'
+                : _versionError == null
+                ? '当前设置'
+                : '版本状态暂不可用',
+            action: _isChecking
+                ? checkingAction
+                : !checkError
+                ? null
+                : _UpdateLedgerAction(
+                    label: '查看',
+                    onPressed: _showCurrentVersion,
+                  ),
+          ),
+          _UpdateTaskRow(
+            title: '${checkError ? '未完成：' : ''}更新通道 ${_channel.name}',
+            status: _isChecking
+                ? '保留当前设置'
+                : checkError
+                ? '可安全重试'
+                : '只在手动检查时联网',
+            action: _isChecking
+                ? checkingAction
+                : _UpdateLedgerAction(
+                    label: checkError ? '重试' : '切换',
+                    onPressed: _isBusy
+                        ? null
+                        : checkError
+                        ? _checkForUpdates
+                        : _toggleChannel,
+                  ),
+          ),
+          _UpdateTaskRow(
+            title: '自动检查已关闭',
+            status: _isChecking ? '保留当前设置' : '启动时不自动访问 GitHub',
+            action: _isChecking ? checkingAction : null,
+          ),
+          if (_result != null) ...[
+            SizedBox(height: theme.spacing.m),
+            _buildResult(context, _result!),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactInitial(BuildContext context) {
+    final theme = context.yhTheme;
+    return YhCard(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: theme.control.regular * 7),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(height: theme.spacing.l),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.color.brandTint,
+                borderRadius: BorderRadius.circular(theme.radius.input),
+              ),
+              child: SizedBox.square(
+                dimension: theme.control.regular + theme.control.regular / 2,
+                child: Icon(
+                  YhIcons.open,
+                  color: theme.color.brandStrong,
+                  size: theme.spacing.xl2,
+                ),
+              ),
+            ),
+            SizedBox(height: theme.spacing.m),
+            const YhStatusPill(label: '尚未开始'),
+            SizedBox(height: theme.spacing.s),
+            Text('尚未读取应用更新', style: theme.typography.h2),
+            SizedBox(height: theme.spacing.s),
+            Text(
+              '先确认 GitHub Releases 的访问范围，再由你决定是否开始。',
+              textAlign: TextAlign.center,
+              style: theme.typography.body.copyWith(color: theme.color.muted),
+            ),
+            SizedBox(height: theme.spacing.m),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: theme.spacing.s,
+              runSpacing: theme.spacing.xs,
+              children: [
+                YhStatusPill(label: '当前版本 ${_currentVersion ?? '读取中'}'),
+                YhStatusPill(label: '更新通道 ${_channel.name}'),
+                const YhStatusPill(label: '自动检查已关闭'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCurrentVersion() {
+    YhBottomDrawer.show<void>(
+      context,
+      title: '当前版本',
+      builder: (drawerContext) {
+        final theme = drawerContext.yhTheme;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(_currentVersion ?? '暂时无法读取'),
+            SizedBox(height: theme.spacing.l),
+            YhButton(
+              label: '关闭',
+              variant: YhButtonVariant.secondary,
+              onTap: () => Navigator.of(drawerContext).pop(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _toggleChannel() {
+    if (_isBusy) return;
+    setState(() {
+      _channel = _channel == AppUpdateChannel.stable
+          ? AppUpdateChannel.preview
+          : AppUpdateChannel.stable;
+      _result = null;
+      _errorMessage = null;
+      _errorKind = null;
+      _resetDownloadState();
+    });
   }
 
   Widget _buildResult(BuildContext context, AppUpdateCheckResult result) {
@@ -187,10 +437,11 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
                 runSpacing: theme.spacing.s,
                 children: [
                   YhButton(
-                    label: '打开 Release',
-                    onTap: release.htmlUrl.isEmpty
+                    label: _isOpeningExternal ? '打开中' : '打开 Release',
+                    onTap: release.htmlUrl.isEmpty || _isOpeningExternal
                         ? null
                         : () => _openExternalUrl(release.htmlUrl),
+                    disabled: release.htmlUrl.isEmpty || _isOpeningExternal,
                     leadingIcon: YhIcons.open,
                     variant: YhButtonVariant.secondary,
                   ),
@@ -213,7 +464,9 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
                     ),
                   if (_downloadResult?.isVerified == true)
                     YhButton(
-                      label: resolvedAsset?.openActionLabel ?? '打开安装入口',
+                      label: _isOpening
+                          ? '打开中'
+                          : resolvedAsset?.openActionLabel ?? '打开安装入口',
                       onTap: _isOpening ? null : _openInstaller,
                       disabled: _isOpening,
                       leadingIcon: _isOpening ? null : YhIcons.open,
@@ -361,10 +614,12 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
   }
 
   Future<void> _checkForUpdates() async {
+    if (_isBusy) return;
     _downloadCancelToken?.cancel('重新检查更新');
     setState(() {
       _isChecking = true;
       _errorMessage = null;
+      _errorKind = null;
       _result = null;
       _resetDownloadState();
     });
@@ -374,29 +629,66 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
         channel: _channel,
       );
       if (!mounted) return;
-      setState(() => _result = result);
+      setState(() {
+        _result = result;
+        _currentVersion = result.currentVersion;
+        _versionError = null;
+      });
     } catch (error) {
       if (!mounted) return;
-      setState(() => _errorMessage = HttpService.describeError(error));
+      setState(() {
+        _errorMessage = HttpService.describeError(error);
+        _errorKind = _UpdateErrorKind.check;
+      });
     } finally {
       if (mounted) setState(() => _isChecking = false);
     }
   }
 
   Future<void> _openExternalUrl(String url) async {
+    if (_isBusy) return;
     final uri = Uri.tryParse(url);
-    if (uri == null) return;
-    final launcher = widget.launchUrlOverride;
-    if (launcher != null) {
-      await launcher(uri);
+    if (uri == null) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Release 链接无效，无法打开。';
+          _errorKind = _UpdateErrorKind.releaseOpen;
+        });
+      }
       return;
     }
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    setState(() {
+      _isOpeningExternal = true;
+      _errorMessage = null;
+      _errorKind = null;
+    });
+    try {
+      final launcher = widget.launchUrlOverride;
+      final opened = launcher != null
+          ? await launcher(uri)
+          : await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened && mounted) {
+        setState(() {
+          _errorMessage = '系统未能打开 Release 页面，可稍后重试。';
+          _errorKind = _UpdateErrorKind.releaseOpen;
+        });
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = '打开 Release 页面失败：${HttpService.describeError(error)}';
+        _errorKind = _UpdateErrorKind.releaseOpen;
+      });
+    } finally {
+      if (mounted) setState(() => _isOpeningExternal = false);
+    }
   }
 
   bool _canStartDownload(AppUpdateResolvedAsset asset) {
     return !_isChecking &&
         !_isDownloading &&
+        !_isOpening &&
+        !_isOpeningExternal &&
         asset.asset.downloadUrl.isNotEmpty &&
         asset.hasChecksum &&
         asset.installSupport == AppUpdateInstallSupport.supported;
@@ -406,6 +698,7 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
     AppReleaseInfo release,
     AppUpdateResolvedAsset asset,
   ) async {
+    if (_isBusy) return;
     final cancelToken = CancelToken();
     setState(() {
       _isDownloading = true;
@@ -413,6 +706,8 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
       _downloadProgress = null;
       _downloadResult = null;
       _openResult = null;
+      _errorMessage = null;
+      _errorKind = null;
     });
 
     try {
@@ -456,10 +751,12 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
 
   Future<void> _openInstaller() async {
     final result = _downloadResult;
-    if (result == null) return;
+    if (result == null || _isBusy) return;
     setState(() {
       _isOpening = true;
       _openResult = null;
+      _errorMessage = null;
+      _errorKind = null;
     });
     try {
       final openResult = await widget.updateService.openVerifiedDownload(
@@ -496,5 +793,159 @@ class _SettingsUpdateSectionState extends State<SettingsUpdateSection> {
       AppUpdateDownloadStatus.canceled => '下载已取消。',
       AppUpdateDownloadStatus.failed => '下载或校验失败。',
     };
+  }
+
+  Future<void> _loadCurrentVersion() async {
+    try {
+      final version = await widget.updateService.loadCurrentVersion();
+      if (!mounted) return;
+      setState(() {
+        _currentVersion = version;
+        _versionError = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _versionError = '无法读取当前应用版本；仍可手动检查 Release。');
+    }
+  }
+}
+
+class _UpdateStateBanner extends StatelessWidget {
+  const _UpdateStateBanner({required this.text, this.danger = false});
+
+  final String text;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    final foreground = danger ? theme.color.danger : theme.color.warning;
+    return Semantics(
+      liveRegion: true,
+      container: true,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: danger ? theme.color.dangerTint : theme.color.warningTint,
+          borderRadius: BorderRadius.circular(theme.radius.s),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(theme.spacing.m),
+          child: Text(
+            text,
+            style: theme.typography.body.copyWith(
+              color: foreground,
+              fontWeight: theme.typography.h3.fontWeight,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UpdateTaskRow extends StatelessWidget {
+  const _UpdateTaskRow({
+    required this.title,
+    required this.status,
+    this.action,
+  });
+
+  final String title;
+  final String status;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: theme.color.border,
+            width: theme.layout.divider,
+          ),
+        ),
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: theme.control.minimumTarget + theme.spacing.m,
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: theme.spacing.s),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.typography.body.copyWith(
+                        fontWeight: theme.typography.h2.fontWeight,
+                      ),
+                    ),
+                    SizedBox(height: theme.spacing.xs),
+                    Text(
+                      status,
+                      style: theme.typography.small.copyWith(
+                        color: theme.color.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (action != null) ...[
+                SizedBox(width: theme.spacing.m),
+                action!,
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UpdateLedgerAction extends StatelessWidget {
+  const _UpdateLedgerAction({required this.label, this.onPressed});
+
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return YhPressable(
+      semanticLabel: label,
+      onPressed: onPressed,
+      builder: (context, state, child) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: state.hovered ? theme.color.brandTint : theme.color.sunken,
+          border: Border.all(
+            color: state.focused ? theme.color.brandStrong : theme.color.border,
+            width: theme.layout.controlBorder,
+          ),
+          borderRadius: BorderRadius.circular(theme.radius.full),
+        ),
+        child: child,
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minWidth: theme.control.regular * 2,
+          minHeight: theme.control.minimumTarget,
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: theme.typography.body.copyWith(
+              color: onPressed == null
+                  ? theme.color.muted
+                  : theme.color.foreground,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

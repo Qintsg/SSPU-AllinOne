@@ -41,6 +41,7 @@ import 'academic_calendar_page.dart';
 import 'legal_notice_page.dart';
 import 'settings_appearance_page.dart';
 import 'settings_data_privacy_page.dart';
+import 'settings_update_page.dart';
 
 part 'settings_page_actions.dart';
 part 'settings_page_layout.dart';

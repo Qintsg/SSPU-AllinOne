@@ -15,6 +15,7 @@ import 'settings_widgets.dart';
 class SettingsGeneralSection extends StatelessWidget {
   final YhThemeMode themeMode;
   final VoidCallback? onOpenAppearance;
+  final VoidCallback? onOpenUpdate;
 
   /// 当前关闭行为。
   final String closeBehavior;
@@ -100,6 +101,7 @@ class SettingsGeneralSection extends StatelessWidget {
     super.key,
     this.themeMode = YhThemeMode.system,
     this.onOpenAppearance,
+    this.onOpenUpdate,
     required this.closeBehavior,
     required this.notificationEnabled,
     required this.dndEnabled,
@@ -145,7 +147,7 @@ class SettingsGeneralSection extends StatelessWidget {
         SizedBox(height: spacing.l),
         _buildHomeDisplaySection(context),
         SizedBox(height: spacing.l),
-        SettingsUpdateSection(),
+        SettingsUpdateSummary(onOpenDetails: onOpenUpdate),
         SizedBox(height: spacing.l),
         _buildNotificationSection(context),
       ],

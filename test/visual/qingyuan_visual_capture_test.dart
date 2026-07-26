@@ -32,6 +32,7 @@ import 'package:sspu_allinone/pages/lock_page.dart';
 import 'package:sspu_allinone/pages/quick_links_page.dart';
 import 'package:sspu_allinone/pages/settings_appearance_page.dart';
 import 'package:sspu_allinone/pages/settings_data_privacy_page.dart';
+import 'package:sspu_allinone/pages/settings_update_page.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/services/system_auth_service.dart';
 import 'package:sspu_allinone/services/app_update_service.dart';
@@ -44,7 +45,6 @@ import 'package:sspu_allinone/widgets/app_startup_status.dart';
 import 'package:sspu_allinone/widgets/legal_consent_dialog.dart';
 import 'package:sspu_allinone/widgets/settings_general_section.dart';
 import 'package:sspu_allinone/widgets/settings_security_section.dart';
-import 'package:sspu_allinone/widgets/settings_update_section.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_auth_status_card.dart';
 
 import '../support/qingyuan_visual_fixtures.dart';
@@ -1091,9 +1091,8 @@ Widget _settingsUpdateError() => _settingsUpdateSurface(
   ),
 );
 
-Widget _settingsUpdateSurface(AppUpdateService service) => _settingsPageSurface(
-  '应用更新',
-  SettingsUpdateSection(
+Widget _settingsUpdateSurface(AppUpdateService service) => _stateReferenceShell(
+  SettingsUpdatePage(
     updateService: service,
     launchUrlOverride: (_) async => true,
   ),
@@ -1109,6 +1108,9 @@ class _VisualUpdateService extends AppUpdateService {
   _VisualUpdateService(this.loader);
 
   final Future<AppUpdateCheckResult> Function() loader;
+
+  @override
+  Future<String> loadCurrentVersion() async => '1.0.0';
 
   @override
   Future<AppUpdateCheckResult> checkForUpdates({

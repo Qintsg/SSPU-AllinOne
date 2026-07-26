@@ -272,6 +272,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           onOpenAppearance: widget.onThemeModeChanged == null
               ? null
               : _openAppearanceSettings,
+          onOpenUpdate: _openUpdateSettings,
           closeBehavior: _closeBehavior,
           notificationEnabled: _notificationEnabled,
           dndEnabled: _dndEnabled,
@@ -420,5 +421,11 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
         ),
       ),
     );
+  }
+
+  void _openUpdateSettings() {
+    Navigator.of(
+      context,
+    ).push(YhPageRoute<void>(builder: (_) => const SettingsUpdatePage()));
   }
 }

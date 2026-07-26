@@ -37,7 +37,7 @@ class YhTaskPage extends StatelessWidget {
   final String source;
   final String sourceSymbol;
   final String primaryActionLabel;
-  final VoidCallback onPrimaryAction;
+  final VoidCallback? onPrimaryAction;
   final Widget body;
   final String? sourceTimestamp;
   final YhTaskAccent accent;
@@ -204,7 +204,7 @@ class _TaskHeading extends StatelessWidget {
   final String kicker;
   final String summary;
   final String actionLabel;
-  final VoidCallback onAction;
+  final VoidCallback? onAction;
   final bool compact;
   final YhTaskAccent accent;
 

@@ -6,6 +6,9 @@
  * @Date : 2026-06-09
  */
 
+import 'dart:async';
+import 'dart:ui' show Tristate;
+
 import 'package:dio/dio.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,22 +21,23 @@ void main() {
     required _FakeAppUpdateService service,
     Future<bool> Function(Uri uri)? launchUrlOverride,
     Size? surfaceSize,
+    bool taskPage = false,
   }) async {
     if (surfaceSize != null) {
       tester.view.physicalSize = surfaceSize;
       tester.view.devicePixelRatio = 1.0;
       await tester.binding.setSurfaceSize(surfaceSize);
     }
+    final section = SettingsUpdateSection(
+      updateService: service,
+      launchUrlOverride: launchUrlOverride,
+      taskPage: taskPage,
+    );
     await tester.pumpWidget(
       YhApp(
-        home: YhPageScaffold(
-          body: SingleChildScrollView(
-            child: SettingsUpdateSection(
-              updateService: service,
-              launchUrlOverride: launchUrlOverride,
-            ),
-          ),
-        ),
+        home: taskPage
+            ? section
+            : YhPageScaffold(body: SingleChildScrollView(child: section)),
       ),
     );
   }
@@ -80,6 +84,20 @@ void main() {
     expect(find.text('取消'), findsOneWidget);
     expect(find.text('50%'), findsOneWidget);
     expect(find.text('512 B / 1.0 KB'), findsOneWidget);
+    expect(
+      tester
+          .getSemantics(find.widgetWithText(YhButton, '检查更新'))
+          .flagsCollection
+          .isEnabled,
+      Tristate.isFalse,
+    );
+    expect(
+      tester
+          .getSemantics(find.widgetWithText(YhButton, '正式版'))
+          .flagsCollection
+          .isEnabled,
+      Tristate.isFalse,
+    );
 
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
@@ -224,6 +242,168 @@ void main() {
       await resetView(tester);
     }
   });
+
+  testWidgets('取消下载后保留 Release 并可直接重试', (tester) async {
+    var downloadAttempt = 0;
+    final service = _FakeAppUpdateService(
+      checkResult: _availableResult(),
+      downloadHandler:
+          (
+            release,
+            asset, {
+            required cancelToken,
+            required onReceiveProgress,
+          }) async {
+            downloadAttempt += 1;
+            if (downloadAttempt == 1) {
+              await cancelToken.whenCancel;
+              return AppUpdateDownloadResult(
+                status: AppUpdateDownloadStatus.canceled,
+                asset: asset,
+                filePath: null,
+                message: '下载已取消。',
+                actualSha256: null,
+              );
+            }
+            return AppUpdateDownloadResult(
+              status: AppUpdateDownloadStatus.verified,
+              asset: asset,
+              filePath: 'C:/temp/installer.exe',
+              message: '安装包校验通过。',
+              actualSha256: _hash,
+            );
+          },
+    );
+
+    await pumpUpdateSection(tester, service: service);
+    await tapLastText(tester, '检查更新');
+    await tester.pump();
+    await tester.tap(find.text('下载并校验'));
+    await tester.pump();
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('下载已取消。'), findsOneWidget);
+    expect(find.text('打开 Release'), findsOneWidget);
+    await tester.tap(find.text('下载并校验'));
+    await tester.pumpAndSettle();
+    expect(find.text('安装包校验通过。'), findsOneWidget);
+    expect(downloadAttempt, 2);
+  });
+
+  testWidgets('Release 外部打开失败保留结果并显示重试反馈', (tester) async {
+    final service = _FakeAppUpdateService(checkResult: _availableResult());
+    await pumpUpdateSection(
+      tester,
+      service: service,
+      launchUrlOverride: (_) async => false,
+    );
+    await tapLastText(tester, '检查更新');
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('打开 Release'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('打开 Release'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('系统未能打开 Release'), findsOneWidget);
+    expect(find.text('打开 Release'), findsOneWidget);
+    expect(find.text('下载并校验'), findsOneWidget);
+  });
+
+  testWidgets('缺少校验值时不暴露当地安装入口', (tester) async {
+    final service = _FakeAppUpdateService(
+      checkResult: _availableResult(
+        resolvedAsset: _resolvedAsset(sha256: null),
+      ),
+    );
+    await pumpUpdateSection(tester, service: service);
+    await tapLastText(tester, '检查更新');
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('未找到 SHA-256'), findsOneWidget);
+    expect(find.text('下载并校验'), findsOneWidget);
+    expect(
+      tester
+          .getSemantics(find.widgetWithText(YhButton, '下载并校验'))
+          .flagsCollection
+          .isEnabled,
+      Tristate.isFalse,
+    );
+    expect(find.text('打开安装入口'), findsNothing);
+  });
+
+  testWidgets('打开安装入口时锁定检查与渠道操作', (tester) async {
+    final openCompleter = Completer<AppUpdateOpenResult>();
+    final service = _FakeAppUpdateService(
+      checkResult: _availableResult(),
+      openHandler: (_) => openCompleter.future,
+    );
+
+    await pumpUpdateSection(tester, service: service);
+    await tapLastText(tester, '检查更新');
+    await tester.pump();
+    await tester.tap(find.text('下载并校验'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('打开安装入口'));
+    await tester.pump();
+
+    expect(
+      tester
+          .getSemantics(find.widgetWithText(YhButton, '检查更新'))
+          .flagsCollection
+          .isEnabled,
+      Tristate.isFalse,
+    );
+    expect(
+      tester
+          .getSemantics(find.widgetWithText(YhButton, '测试版'))
+          .flagsCollection
+          .isEnabled,
+      Tristate.isFalse,
+    );
+
+    openCompleter.complete(
+      const AppUpdateOpenResult(
+        status: AppUpdateOpenStatus.opened,
+        message: '已打开安装入口。',
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('已打开安装入口。'), findsOneWidget);
+  });
+
+  testWidgets('任务页打开 Release 期间锁定其它操作且失败不冒充检查失败', (tester) async {
+    final launchCompleter = Completer<bool>();
+    final service = _FakeAppUpdateService(checkResult: _availableResult());
+    await pumpUpdateSection(
+      tester,
+      service: service,
+      taskPage: true,
+      launchUrlOverride: (_) => launchCompleter.future,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('检查更新'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('打开 Release'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('打开 Release'));
+    await tester.pump();
+
+    expect(find.text('打开中'), findsOneWidget);
+    expect(
+      tester
+          .getSemantics(find.bySemanticsLabel('检查更新'))
+          .flagsCollection
+          .isEnabled,
+      Tristate.isFalse,
+    );
+    launchCompleter.complete(false);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('系统未能打开 Release'), findsOneWidget);
+    expect(find.textContaining('无法从 GitHub Releases 完成本次检查'), findsNothing);
+    expect(find.text('打开 Release'), findsOneWidget);
+  });
 }
 
 /// 点击最后一个匹配文本，避开设置项标题与按钮标签重名。
@@ -240,10 +420,14 @@ typedef _FakeDownloadHandler =
       onReceiveProgress,
     });
 
+typedef _FakeOpenHandler =
+    Future<AppUpdateOpenResult> Function(AppUpdateDownloadResult result);
+
 class _FakeAppUpdateService extends AppUpdateService {
   _FakeAppUpdateService({
     required this.checkResult,
     this.downloadHandler,
+    this.openHandler,
     this.openResult = const AppUpdateOpenResult(
       status: AppUpdateOpenStatus.opened,
       message: '已打开安装入口，请按系统提示完成安装。',
@@ -252,6 +436,7 @@ class _FakeAppUpdateService extends AppUpdateService {
 
   final AppUpdateCheckResult checkResult;
   final _FakeDownloadHandler? downloadHandler;
+  final _FakeOpenHandler? openHandler;
   final AppUpdateOpenResult openResult;
   int openCalls = 0;
 
@@ -293,6 +478,8 @@ class _FakeAppUpdateService extends AppUpdateService {
     AppUpdateDownloadResult result,
   ) async {
     openCalls += 1;
+    final handler = openHandler;
+    if (handler != null) return handler(result);
     return openResult;
   }
 }
@@ -334,6 +521,7 @@ AppUpdateCheckResult _availableResult({
 AppUpdateResolvedAsset _resolvedAsset({
   String name = _assetName,
   AppUpdateInstallSupport installSupport = AppUpdateInstallSupport.supported,
+  String? sha256 = _hash,
 }) {
   return AppUpdateResolvedAsset(
     asset: AppUpdateAsset(
@@ -344,7 +532,7 @@ AppUpdateResolvedAsset _resolvedAsset({
     platform: 'windows',
     arch: 'x64',
     kind: 'installer',
-    sha256: _hash,
+    sha256: sha256,
     checksumSource: AppUpdateChecksumSource.manifest,
     installSupport: installSupport,
   );

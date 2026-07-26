@@ -58,14 +58,19 @@ class AppUpdateService {
   final AppUpdateEnsureDirectory _ensureDirectory;
   final AppUpdateLoadVersionInfo? _loadVersionInfo;
 
+  /// 读取当前应用版本，不访问网络。
+  Future<String> loadCurrentVersion() async {
+    final currentVersionInfo = await (_loadVersionInfo != null
+        ? _loadVersionInfo()
+        : _appInfoService.loadVersionInfo());
+    return normalizeVersion(currentVersionInfo.version);
+  }
+
   /// 检查指定渠道是否存在可用更新。
   Future<AppUpdateCheckResult> checkForUpdates({
     AppUpdateChannel channel = AppUpdateChannel.stable,
   }) async {
-    final currentVersionInfo = await (_loadVersionInfo != null
-        ? _loadVersionInfo()
-        : _appInfoService.loadVersionInfo());
-    final currentVersion = normalizeVersion(currentVersionInfo.version);
+    final currentVersion = await loadCurrentVersion();
     final releases = await _fetchReleases();
     final release = _selectRelease(releases, channel);
 
