@@ -92,6 +92,7 @@ class _AppShellState extends State<AppShell> {
     _AppDestination(
       title: '设置',
       icon: YhIcons.settings,
+      nestedNavigation: true,
       body: _destinationBody(
         '设置',
         SettingsPage(
@@ -158,11 +159,13 @@ class _AppDestination {
     required this.title,
     required this.icon,
     required this.body,
+    this.nestedNavigation = false,
   });
 
   final String title;
   final IconData icon;
   final Widget body;
+  final bool nestedNavigation;
 
   YhNavigationItem get navigationItem =>
       YhNavigationItem(icon: icon, label: title);
@@ -355,10 +358,26 @@ class _NavigationBody extends StatelessWidget {
           KeyedSubtree(
             key: ValueKey('app-destination-$index'),
             child: visitedIndexes.contains(index)
-                ? destinations[index].body
+                ? destinations[index].nestedNavigation
+                      ? _DestinationNavigator(body: destinations[index].body)
+                      : destinations[index].body
                 : const SizedBox.shrink(),
           ),
       ],
+    );
+  }
+}
+
+class _DestinationNavigator extends StatelessWidget {
+  const _DestinationNavigator({required this.body});
+
+  final Widget body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Navigator(
+      onGenerateRoute: (settings) =>
+          YhPageRoute<void>(settings: settings, builder: (_) => body),
     );
   }
 }

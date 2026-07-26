@@ -14,11 +14,12 @@
 
 ```
 ┌──────────────────────────────────────┐
-│ ‹  课程表              ⌕   ⋮          │  ← 高 56，前导返回 + 标题 + 尾随动作
+│ ‹  法律                 ⋮              │  ← 可选眉题
+│    随应用发布的文本                    │  ← 标题仍可省略号截断
 └──────────────────────────────────────┘
 ```
 
-**槽位**：leading（返回/菜单，可省）、title（可省略号截断）、actions（0–2 个图标，多则收进 ⋮）。
+**槽位**：leading（返回/菜单，可省）、eyebrow（可选上下文眉题）、title（可省略号截断）、actions（0–2 个图标，多则收进 ⋮）。不传 eyebrow 时保持单层标题。
 
 ---
 
@@ -54,14 +55,15 @@
 ## Flutter API
 
 ```dart
-class YhAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const YhAppBar({super.key, required this.title, this.leading, this.actions = const [], this.brand = false});
-  @override Size get preferredSize => const Size.fromHeight(56);
+class YhAppBar extends StatelessWidget {
+  const YhAppBar({super.key, required this.title, this.eyebrow, this.leading, this.actions = const [], this.brand = false, this.scrolled = false});
 }
 ```
 
 ```dart
 YhAppBar(title: '课程表', leading: YhIconButton(icon: YhIcons.back, semanticLabel: '返回', onTap: pop), actions: [YhIconButton(icon: YhIcons.search, semanticLabel: '搜索')]);
+
+YhAppBar(eyebrow: '法律', title: '随应用发布的文本', leading: backButton, actions: [moreButton]);
 ```
 
 ---
@@ -92,4 +94,5 @@ YhAppBar(title: '课程表', leading: YhIconButton(icon: YhIcons.back, semanticL
 
 | 版本 | 日期 | 变更内容 |
 |---|---|---|
+| 0.4.0 | 2026-07-26 | 新增可选 eyebrow 双层标题，用于法律与外部内容等次级阅读页 |
 | 0.1.0 | 2026-06-16 | 初始规格 · 响应色 #478384 |

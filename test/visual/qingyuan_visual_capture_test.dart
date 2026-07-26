@@ -755,21 +755,9 @@ final _surfaces = <_VisualSurface>[
     _externalLinkConfirmationError,
     state: 'error',
   ),
-  _VisualSurface('legal.notice', () => const LegalNoticePage()),
-  _VisualSurface(
-    'legal.agreement',
-    () => LegalNoticePage(
-      title: '用户协议',
-      loadLegalNotice: (_) async => _visualLegalNotice,
-    ),
-  ),
-  _VisualSurface(
-    'legal.privacy',
-    () => LegalNoticePage(
-      title: '隐私协议',
-      loadLegalNotice: (_) async => _visualLegalNotice,
-    ),
-  ),
+  _VisualSurface('legal.notice', _legalNoticeSurface),
+  _VisualSurface('legal.agreement', _legalAgreementSurface),
+  _VisualSurface('legal.privacy', _legalPrivacySurface),
   _VisualSurface('settings.account', _settingsAccountContent),
   _VisualSurface('settings.account', _settingsAccountError, state: 'error'),
   _VisualSurface(
@@ -866,6 +854,83 @@ Widget _settingsPageSurface(String title, Widget child) => Builder(
 Widget _settingsAppearance() => _settingsPageSurface(
   '外观设置',
   SettingsAppearanceSection(themeMode: YhThemeMode.system, onChanged: (_) {}),
+);
+
+Widget _legalNoticeSurface() => _legalReferenceSurface(
+  title: '法律声明',
+  kicker: '法律与许可',
+  summary: '正文从应用内确定性资源加载，加载失败仍保留返回和重试。',
+  primaryActionLabel: '返回设置',
+  sectionTitles: const ['非学校官方应用', '数据来源说明', '责任边界'],
+);
+
+Widget _legalPrivacySurface() => _legalReferenceSurface(
+  title: '隐私说明',
+  kicker: '法律与隐私',
+  summary: '按数据类型说明收集目的、存储位置、联网时机和删除方式。',
+  primaryActionLabel: '管理本地数据',
+  sectionTitles: const ['账户凭据', '校园数据缓存', '诊断信息'],
+);
+
+Widget _legalAgreementSurface() => _legalReferenceSurface(
+  title: '用户协议',
+  kicker: '法律与协议',
+  summary: '说明只读聚合、用户责任和外部服务边界，首次确认后仍可再次阅读。',
+  primaryActionLabel: '返回',
+  sectionTitles: const ['服务范围', '使用规则', '协议变更'],
+);
+
+Widget _legalReferenceSurface({
+  required String title,
+  required String kicker,
+  required String summary,
+  required String primaryActionLabel,
+  required List<String> sectionTitles,
+}) => Builder(
+  builder: (context) {
+    final theme = context.yhTheme;
+    final media = MediaQuery.of(context);
+    final shellMedia = media.copyWith(
+      size: Size(
+        math.min(
+          media.size.width,
+          theme.breakpoint.expanded - theme.layout.divider,
+        ),
+        media.size.height,
+      ),
+    );
+    final page = LegalNoticePage(
+      title: title,
+      kicker: kicker,
+      summary: summary,
+      source: '随应用发布的文本',
+      sourceTimestamp: '2026-07-18 · 09:30',
+      primaryActionLabel: primaryActionLabel,
+      sections: [
+        for (var index = 0; index < sectionTitles.length; index++)
+          LegalNoticeSection(
+            title: sectionTitles[index],
+            body: '${index + 1}. 本节说明该数据与功能的使用边界、保存位置和用户可执行的管理方式。',
+          ),
+      ],
+    );
+    return ColoredBox(
+      color: theme.color.background,
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: theme.spacing.l,
+          vertical: theme.spacing.l + theme.spacing.m,
+        ),
+        child: MediaQuery(
+          data: shellMedia,
+          child: AppShell(
+            initialDestinationIndex: _destinationIndex('设置'),
+            destinationOverrides: {'设置': page},
+          ),
+        ),
+      ),
+    );
+  },
 );
 
 Widget _settingsHomeNotifications() => _settingsPageSurface(

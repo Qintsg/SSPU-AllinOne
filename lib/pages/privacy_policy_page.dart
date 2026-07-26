@@ -9,6 +9,7 @@
 import '../design/qingyuan/qingyuan_ui.dart';
 
 import 'legal_notice_page.dart';
+import 'settings_page.dart';
 
 /// 隐私协议页面。
 class PrivacyPolicyPage extends StatelessWidget {
@@ -16,6 +17,20 @@ class PrivacyPolicyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const LegalNoticePage();
+    return LegalNoticePage(
+      title: '隐私说明',
+      kicker: '法律与隐私',
+      summary: '按数据类型说明收集目的、存储位置、联网时机和删除方式。',
+      primaryActionLabel: '管理本地数据',
+      onPrimaryAction: () => Navigator.of(context).pushReplacement(
+        YhPageRoute<void>(
+          builder: (_) => SettingsPage(
+            landingRequest: SettingsLandingRequest(
+              SettingsLandingSection.security,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
