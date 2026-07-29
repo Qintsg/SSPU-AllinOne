@@ -25,6 +25,7 @@ class YhSelect<T> extends StatefulWidget {
     this.hint = '请选择',
     this.enabled = true,
     this.showLabel = true,
+    this.compact = false,
   });
 
   final String label;
@@ -34,6 +35,7 @@ class YhSelect<T> extends StatefulWidget {
   final String hint;
   final bool enabled;
   final bool showLabel;
+  final bool compact;
 
   @override
   State<YhSelect<T>> createState() => _YhSelectState<T>();
@@ -54,6 +56,34 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
       if (option.value == widget.value) return option;
     }
     return null;
+  }
+
+  @override
+  void didUpdateWidget(covariant YhSelect<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final optionsChanged = !_sameOptions(oldWidget.options, widget.options);
+    final becameUnavailable = !_enabled;
+    if (_open &&
+        (becameUnavailable ||
+            optionsChanged ||
+            oldWidget.value != widget.value)) {
+      _removeOverlay();
+    }
+  }
+
+  bool _sameOptions(
+    List<YhSelectOption<T>> previous,
+    List<YhSelectOption<T>> current,
+  ) {
+    if (previous.length != current.length) return false;
+    for (var index = 0; index < previous.length; index++) {
+      if (previous[index].value != current[index].value ||
+          previous[index].label != current[index].label ||
+          previous[index].key != current[index].key) {
+        return false;
+      }
+    }
+    return true;
   }
 
   void _toggle() {
@@ -77,9 +107,14 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
   }
 
   void _close() {
+    _removeOverlay();
+    if (mounted) setState(() {});
+  }
+
+  void _removeOverlay() {
     _entry?.remove();
     _entry = null;
-    if (mounted) setState(() {});
+    _menuFocusNode.unfocus();
   }
 
   void _select(YhSelectOption<T> option) {
@@ -176,7 +211,7 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
 
   @override
   void dispose() {
-    _entry?.remove();
+    _removeOverlay();
     _menuFocusNode.dispose();
     super.dispose();
   }
@@ -185,6 +220,11 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     final selected = _selected;
+    final horizontalPadding = widget.compact
+        ? theme.spacing.s
+        : theme.spacing.m;
+    final indicatorGap = widget.compact ? theme.spacing.xs : theme.spacing.s;
+    final indicatorSize = widget.compact ? theme.spacing.m : theme.spacing.l;
     return Opacity(
       opacity: _enabled ? 1 : 0.45,
       child: Column(
@@ -225,7 +265,7 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
               child: SizedBox(
                 height: theme.control.regular,
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: theme.spacing.m),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   child: Row(
                     children: [
                       Expanded(
@@ -240,14 +280,14 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
                           ),
                         ),
                       ),
-                      SizedBox(width: theme.spacing.s),
+                      SizedBox(width: indicatorGap),
                       AnimatedRotation(
                         duration: theme.motion.base,
                         curve: theme.motion.curve,
                         turns: _open ? 0.25 : 0,
                         child: Icon(
                           YhIcons.chevronRight,
-                          size: theme.spacing.l,
+                          size: indicatorSize,
                           color: _open
                               ? theme.color.brandStrong
                               : theme.color.muted,

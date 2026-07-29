@@ -4,8 +4,8 @@
 
 ## 概述
 
-- **用途**：有限预设项的单选（学期、学院、排序）。选项 ≥ 6 或需搜索时用 Select；2–5 个互斥就地切换用 Segmented/Radio。
-- **变体**：single（单选，默认）。
+- **用途**：有限预设项的单选（学期、学院、排序）。选项 ≥ 6 或需搜索时用 Select；2–5 个固定互斥行动就地切换用 Segmented/Radio。作为多字段查询条件且选项由远端动态提供时，可继续使用 Select 保持字段结构、禁用态和键盘路径一致。
+- **变体**：single（单选，默认）；compact trigger（仅缩减触发器内边距与箭头，不缩减 48dp 高度）。
 - **关键状态**：closed / open / selected / disabled。
 
 ---
@@ -64,6 +64,7 @@ class YhSelect<T> extends StatelessWidget {
     required this.onChanged,
     this.hint = '请选择',
     this.enabled = true,
+    this.compact = false,       // 紧凑多列筛选仅压缩横向装饰
   });
   // 触发器 = YhTextField 外壳（只读）+ 尾随箭头；点击弹 YhMenu（自绘浮层）。
 }
@@ -84,12 +85,13 @@ YhSelect<String>(
 ## Do & Don't
 
 ### ✅ Do
-- 选项较多（≥ 6）或文案较长时用 Select。
+- 选项较多（≥ 6）、文案较长，或属于远端动态查询字段时用 Select。
 - 浮层项左文案、右选中勾，命中项青雾高亮。
 - 点空白处关闭，避免浮层滞留。
+- 多列筛选在紧凑视口可启用 `compact`；触控高度、完整语义标签和浮层文案保持不变。
 
 ### ❌ Don't
-- 2–5 个短选项还用 Select（用 Segmented/Radio 更直接）。
+- 2–5 个固定短行动还用 Select（用 Segmented/Radio 更直接）；远端动态查询字段除外。
 - 浮层无最大高度，选项几十个不滚动。
 
 ---
@@ -108,4 +110,5 @@ YhSelect<String>(
 
 | 版本 | 日期 | 变更内容 |
 |---|---|---|
+| 0.4.0 | 2026-07-30 | 增加紧凑触发器密度，保留 48dp 高度与完整选择语义 |
 | 0.1.0 | 2026-06-16 | 初始规格 · 响应色 #478384 · 复用 .yh-field 外壳 |

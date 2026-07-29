@@ -2,7 +2,7 @@
 
 清源的所有视觉值（颜色 / 字阶 / 间距 / 阴影 / 圆角 / 动效 / 断点 / 控件尺寸）都通过 token 声明。`docs/design/resources/tokens.json` 是唯一机器真源，代码层通过 `YhTheme` 读取其生成或校验后的 Flutter 映射。
 
-业务域图标浅底使用 `opacity.domainTint = 0.14` 与当前 `surface` 混合；页面和组件不得自行写透明度常量。
+业务域图标浅底使用 `opacity.domainTint = 0.14` 与当前 `surface` 混合；证据 chip 使用 `opacity.evidenceTint = 0.10` 与 `opacity.evidenceBorder = 0.24`。页面和组件不得自行写透明度常量。
 
 ## Token 结构
 
@@ -21,6 +21,8 @@ YhTheme
 │  └─ xs / s / m / l / xl / xl2
 ├─ opacity                # 混色透明度
 │  └─ domainTint
+│  ├─ evidenceTint
+│  └─ evidenceBorder
 ├─ elevation              # 阴影（见 elevation.md）
 │  └─ e0 / e1 / e2 / e3
 ├─ radius                 # 圆角

@@ -19,11 +19,15 @@ class AcademicEamsGradeProcessPage extends StatefulWidget {
   /// 进入时的 EAMS 学期。
   final AcademicEamsSemesterOption? initialSemester;
 
+  /// 上一级快照时间；首次自动读取期间用于保持来源上下文连续。
+  final DateTime? initialCheckedAt;
+
   const AcademicEamsGradeProcessPage({
     super.key,
     required this.academicEamsService,
     this.initialTerm,
     this.initialSemester,
+    this.initialCheckedAt,
   });
 
   @override
@@ -33,156 +37,236 @@ class AcademicEamsGradeProcessPage extends StatefulWidget {
 
 class _AcademicEamsGradeProcessPageState
     extends State<AcademicEamsGradeProcessPage> {
-  AcademicEamsQueryResult? _result;
+  late final RetainedRefreshController<AcademicEamsQueryResult>
+  _refreshController;
   AcademicTermChoice? _selectedTerm;
   AcademicEamsSemesterOption? _selectedSemester;
-  bool _isLoading = false;
+
+  AcademicEamsQueryResult? get _result => _refreshController.result;
+  bool get _isLoading => _refreshController.isRefreshing;
 
   @override
   void initState() {
     super.initState();
+    _refreshController = RetainedRefreshController(
+      initialResult: null,
+      isSuccess: (result) => result.isSuccess,
+      hasUsableContent: (result) => result.snapshot?.gradeProcess != null,
+      failureMessage: (result) => '${result.message}：${result.detail}',
+    )..addListener(_handleRefreshChanged);
     _selectedTerm = widget.initialTerm;
     _selectedSemester = widget.initialSemester;
     unawaited(_loadProcessGrades());
   }
 
+  void _handleRefreshChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void didUpdateWidget(covariant AcademicEamsGradeProcessPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final serviceChanged = !identical(
+      oldWidget.academicEamsService,
+      widget.academicEamsService,
+    );
+    final selectionChanged =
+        oldWidget.initialTerm != widget.initialTerm ||
+        oldWidget.initialSemester != widget.initialSemester;
+    if (!serviceChanged && !selectionChanged) return;
+    _selectedTerm = widget.initialTerm;
+    _selectedSemester = widget.initialSemester;
+    _refreshController.updateExternalResult(null);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_loadProcessGrades());
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshController
+      ..removeListener(_handleRefreshChanged)
+      ..dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    final checkedAt = _result?.checkedAt ?? widget.initialCheckedAt;
     final snapshot = _result?.snapshot?.gradeProcess;
     final records = snapshot?.records ?? const <AcademicGradeProcessRecord>[];
     final options = _semesterOptions(snapshot);
     final currentSemester = _currentSemester(snapshot, options);
+    return YhTaskPage(
+      title: '过程化成绩',
+      kicker: '课程内评价',
+      summary: '按学期核对课堂表现、作业与测验等原始评价证据，不与总评成绩混算。',
+      source: '过程化成绩 · 本地快照',
+      sourceSymbol: '学',
+      appBarTitle: _academicTaskAppBarTitle('过程化成绩', checkedAt),
+      sourceTimestamp: _academicDetailTimestamp(checkedAt),
+      primaryActionKey: const Key('academic-eams-grade-process-search'),
+      primaryActionLabel: _isLoading && _result != null ? '正在刷新…' : '刷新明细',
+      onPrimaryAction: _isLoading
+          ? null
+          : () => unawaited(_loadProcessGrades()),
+      width: YhTaskPageWidth.constrained,
+      rhythm: YhTaskPageRhythm.relaxedCompact,
+      body: _buildEvidenceBody(
+        context,
+        theme,
+        snapshot: snapshot,
+        records: records,
+        options: options,
+        currentSemester: currentSemester,
+      ),
+    );
+  }
 
-    return YhPageScaffold(
-      appBar: YhAppBar(
-        title: '过程化成绩',
-        leading: YhButton(
-          label: '返回',
-          leadingIcon: YhIcons.back,
-          variant: YhButtonVariant.text,
-          onTap: () => Navigator.of(context).pop(),
+  Widget _buildEvidenceBody(
+    BuildContext context,
+    YhTheme theme, {
+    required AcademicGradeProcessSnapshot? snapshot,
+    required List<AcademicGradeProcessRecord> records,
+    required List<AcademicEamsSemesterOption> options,
+    required AcademicEamsSemesterOption? currentSemester,
+  }) {
+    final gap = MediaQuery.sizeOf(context).width < theme.breakpoint.compact
+        ? theme.spacing.m
+        : theme.spacing.l;
+    final filter = _AcademicEamsFilterPanel(
+      children: [
+        _AcademicExamDropdownField<String>(
+          key: const Key('academic-eams-grade-process-semester-select'),
+          label: '学年学期',
+          width: MediaQuery.sizeOf(context).width < theme.breakpoint.compact
+              ? theme.breakpoint.compact / 2 - theme.spacing.xs
+              : theme.control.regular * 5,
+          value: currentSemester?.id,
+          placeholder: '选择学期',
+          items: [
+            for (final option in options)
+              _AcademicExamDropdownItem<String>(
+                key: Key(
+                  'academic-eams-grade-process-semester-option-${option.id}',
+                ),
+                value: option.id,
+                label: _academicProcessSemesterLabel(option),
+              ),
+          ],
+          onChanged: _isLoading || options.isEmpty
+              ? null
+              : (id) => _handleSemesterChanged(id, options),
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(theme.spacing.m),
-        child: Align(
-          alignment: AlignmentDirectional.topCenter,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _AcademicGradeProcessBanner(
-                  semesterLabel: currentSemester?.label,
-                  courseCount: records.length,
-                ),
-                SizedBox(height: theme.spacing.m),
-                YhCard(
-                  child: Wrap(
-                    spacing: theme.spacing.s,
-                    runSpacing: theme.spacing.s,
-                    crossAxisAlignment: WrapCrossAlignment.end,
-                    children: [
-                      _AcademicExamDropdownField<String>(
-                        key: const Key(
-                          'academic-eams-grade-process-semester-select',
-                        ),
-                        label: '学年学期',
-                        width:
-                            theme.breakpoint.compact / 3 +
-                            theme.spacing.m +
-                            theme.spacing.xs,
-                        value: currentSemester?.id,
-                        placeholder: '选择学期',
-                        items: [
-                          for (final option in options)
-                            _AcademicExamDropdownItem<String>(
-                              key: Key(
-                                'academic-eams-grade-process-semester-option-${option.id}',
-                              ),
-                              value: option.id,
-                              label: option.label,
-                            ),
-                        ],
-                        onChanged: _isLoading || options.isEmpty
-                            ? null
-                            : (id) => _handleSemesterChanged(id, options),
-                      ),
-                      SizedBox(
-                        height: theme.control.regular,
-                        child: Align(
-                          alignment: Alignment.bottomCenter,
-                          child: YhButton(
-                            key: const Key(
-                              'academic-eams-grade-process-search',
-                            ),
-                            label: _isLoading ? '搜索中' : '搜索',
-                            leadingIcon: _isLoading ? null : YhIcons.search,
-                            onTap: _isLoading ? null : _loadProcessGrades,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: theme.spacing.m),
-                if (_isLoading && _result == null)
-                  YhCard(
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: theme.spacing.xl2 * 2,
-                          child: const YhProgress(showPercent: false),
-                        ),
-                        SizedBox(width: theme.spacing.s),
-                        const Expanded(child: Text('正在读取过程化成绩...')),
-                      ],
-                    ),
-                  )
-                else if (_result != null &&
-                    (!_result!.isSuccess || snapshot == null))
-                  YhCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(_result!.message, style: theme.typography.h3),
-                        SizedBox(height: theme.spacing.s),
-                        YhBanner(
-                          text: _result!.detail,
-                          kind: _examBannerKind(_result!.status),
-                        ),
-                      ],
-                    ),
-                  )
-                else if (records.isEmpty)
-                  YhCard(
-                    key: const Key('academic-eams-grade-process-empty'),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('暂无过程化成绩', style: theme.typography.h3),
-                        SizedBox(height: theme.spacing.s),
-                        const YhBanner(text: '所选学期没有可展示的平时成绩记录。'),
-                      ],
-                    ),
-                  )
-                else
-                  YhCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('完整内容', style: theme.typography.h3),
-                        SizedBox(height: theme.spacing.m),
-                        _AcademicGradeProcessList(records: records),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
+      ],
+    );
+    Widget content;
+    if (_isLoading && _result == null) {
+      content = const _AcademicDetailStateCard(
+        child: _AcademicDetailLoadingState(
+          title: '正在读取过程化成绩',
+          source: '过程化成绩 · 本地快照',
+          alignEvidenceLedger: true,
+        ),
+      );
+    } else if (_result == null || !_result!.isSuccess || snapshot == null) {
+      content = _AcademicDetailStateCard(
+        child: _AcademicDetailMessageState(
+          symbol: '!',
+          title: '过程化成绩暂不可用',
+          message: _academicEamsFailureDescription(
+            _result,
+            fallback: '无法完成本次读取；可在本页重试，已有有效快照不会被清空。',
           ),
+          accent: theme.color.serviceAcademic,
+          actionLabel: '检查后重试',
+          onAction: () => unawaited(_loadProcessGrades()),
         ),
-      ),
+      );
+    } else if (records.isEmpty) {
+      content = _AcademicDetailStateCard(
+        key: const Key('academic-eams-grade-process-empty'),
+        child: _AcademicDetailMessageState(
+          symbol: '○',
+          title: '当前没有过程化成绩记录',
+          message: '当前筛选范围没有可展示的原始记录；可调整学期或稍后在原位置重新读取。',
+          accent: theme.color.serviceAcademic,
+          actionLabel: '重新读取',
+          onAction: () => unawaited(_loadProcessGrades()),
+        ),
+      );
+    } else {
+      final evidenceCount = records.fold<int>(
+        0,
+        (total, record) => total + record.items.length,
+      );
+      final credits = records.fold<double>(
+        0,
+        (total, record) => total + (record.credit ?? 0),
+      );
+      final hasUnknownCredits = records.any((record) => record.credit == null);
+      content = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _AcademicEvidenceMetricsPanel(
+            metrics: [
+              _AcademicEvidenceMetric('${records.length}', '有记录课程'),
+              _AcademicEvidenceMetric('$evidenceCount', '评价证据'),
+              _AcademicEvidenceMetric(
+                _formatGradeCredit(credits),
+                hasUnknownCredits ? '已知课程学分' : '课程学分',
+              ),
+            ],
+          ),
+          SizedBox(height: theme.spacing.m),
+          _AcademicEvidenceRecordsPanel(
+            kicker: '课程内原始评价',
+            title: '过程证据',
+            trailing: currentSemester == null
+                ? '当前学期'
+                : _academicProcessSemesterLabel(currentSemester),
+            children: [
+              for (final record in records)
+                _AcademicEvidenceRecord(
+                  title: record.courseName,
+                  meta: [
+                    if ((record.category ?? '').trim().isNotEmpty)
+                      record.category!.trim(),
+                    if (record.credit != null)
+                      '${_formatGradeCredit(record.credit!)} 学分',
+                  ].join(' · '),
+                  value: record.credit == null
+                      ? '—'
+                      : '${_formatGradeCredit(record.credit!)} 学分',
+                  status: record.termName ?? '原始记录',
+                  extra: _AcademicEvidenceChips(items: record.items),
+                ),
+            ],
+          ),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_isLoading && _result != null) ...[
+          const YhBanner(text: '正在刷新明细；当前筛选范围和有效记录保持可用，完成前已锁定重复请求与范围切换。'),
+          SizedBox(height: gap),
+        ] else if (_refreshController.retainedFailure case final failure?) ...[
+          YhBanner(text: failure, kind: YhBannerKind.danger),
+          SizedBox(height: gap),
+        ] else if (_isAcademicEamsStale(_result)) ...[
+          YhBanner(
+            text: _academicEamsSnapshotNotice(_result!),
+            kind: YhBannerKind.warn,
+          ),
+          SizedBox(height: gap),
+        ],
+        filter,
+        SizedBox(height: gap),
+        content,
+      ],
     );
   }
 
@@ -190,7 +274,7 @@ class _AcademicEamsGradeProcessPageState
     AcademicGradeProcessSnapshot? snapshot,
   ) {
     final options = [...?snapshot?.semesterOptions];
-    final selected = snapshot?.selectedSemester ?? _selectedSemester;
+    final selected = snapshot == null ? _selectedSemester : null;
     if (selected != null &&
         selected.id.isNotEmpty &&
         !options.any((option) => option.id == selected.id)) {
@@ -203,12 +287,11 @@ class _AcademicEamsGradeProcessPageState
     AcademicGradeProcessSnapshot? snapshot,
     List<AcademicEamsSemesterOption> options,
   ) {
-    final selected = snapshot?.selectedSemester ?? _selectedSemester;
-    if (selected != null) {
+    for (final selected in [_selectedSemester, snapshot?.selectedSemester]) {
+      if (selected == null) continue;
       for (final option in options) {
         if (option.id == selected.id) return option;
       }
-      if (selected.id.isNotEmpty) return selected;
     }
     return options.isEmpty ? null : options.first;
   }
@@ -229,191 +312,48 @@ class _AcademicEamsGradeProcessPageState
   }
 
   Future<void> _loadProcessGrades() async {
-    if (_isLoading) return;
-    setState(() => _isLoading = true);
-    final result = await widget.academicEamsService.fetchGradeProcess(
-      term: _selectedTerm,
-      semester: _selectedSemester,
-      requireCampusNetwork: false,
-    );
-    if (!mounted) return;
+    final generation = _refreshController.captureGeneration();
+    AcademicEamsQueryResult? fetched;
+    await _refreshController.refresh(() async {
+      fetched = await widget.academicEamsService.fetchGradeProcess(
+        term: _selectedTerm,
+        semester: _selectedSemester,
+        requireCampusNetwork: false,
+      );
+      return fetched;
+    });
+    if (!mounted ||
+        !_refreshController.isGenerationCurrent(generation) ||
+        fetched == null ||
+        !identical(_result, fetched)) {
+      return;
+    }
     setState(() {
-      _result = result;
-      _isLoading = false;
-      final selected = result.snapshot?.gradeProcess?.selectedSemester;
+      final snapshot = fetched!.snapshot?.gradeProcess;
+      final options = snapshot?.semesterOptions ?? const [];
+      final preferred = snapshot?.selectedSemester;
+      AcademicEamsSemesterOption? selected;
+      for (final candidate in [preferred, _selectedSemester]) {
+        if (candidate == null) continue;
+        for (final option in options) {
+          if (option.id == candidate.id) {
+            selected = option;
+            break;
+          }
+        }
+        if (selected != null) break;
+      }
+      selected ??= options.isEmpty ? null : options.first;
+      _selectedSemester = selected;
       if (selected != null) {
-        _selectedSemester = selected;
         _selectedTerm = selected.termChoice ?? _selectedTerm;
       }
     });
   }
 }
 
-/// 过程化成绩顶部汇总横幅。
-class _AcademicGradeProcessBanner extends StatelessWidget {
-  const _AcademicGradeProcessBanner({
-    required this.semesterLabel,
-    required this.courseCount,
-  });
-
-  final String? semesterLabel;
-  final int courseCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    final accent = theme.color.serviceAcademic;
-    final scope = semesterLabel ?? '过程化成绩';
-    final summary = courseCount == 0
-        ? '$scope · 暂无平时成绩'
-        : '$scope · $courseCount 门课程有平时成绩';
-    return YhCard(
-      child: Row(
-        children: [
-          SizedBox.square(
-            dimension: theme.control.compact,
-            child: Icon(YhIcons.certificate, color: accent),
-          ),
-          SizedBox(width: theme.spacing.m),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '过程化成绩',
-                  style: theme.typography.caption.copyWith(
-                    color: theme.color.muted,
-                  ),
-                ),
-                SizedBox(height: theme.spacing.xs),
-                Text(summary, style: theme.typography.h3),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AcademicGradeProcessList extends StatelessWidget {
-  const _AcademicGradeProcessList({required this.records});
-
-  final List<AcademicGradeProcessRecord> records;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    final borderColor = theme.color.border;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(theme.radius.input),
-      ),
-      child: Column(
-        children: [
-          for (var index = 0; index < records.length; index++) ...[
-            _AcademicGradeProcessListItem(record: records[index]),
-            if (index != records.length - 1)
-              Container(height: theme.layout.divider, color: borderColor),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _AcademicGradeProcessListItem extends StatelessWidget {
-  const _AcademicGradeProcessListItem({required this.record});
-
-  final AcademicGradeProcessRecord record;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    final meta = [
-      if ((record.category ?? '').trim().isNotEmpty) record.category!.trim(),
-      if (record.credit != null) '${_formatGradeCredit(record.credit!)} 学分',
-    ].join(' · ');
-    return Padding(
-      padding: EdgeInsets.all(theme.spacing.m),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  record.courseName,
-                  style: theme.typography.body.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              if (meta.isNotEmpty) ...[
-                SizedBox(width: theme.spacing.s),
-                Text(
-                  meta,
-                  style: theme.typography.caption.copyWith(
-                    color: theme.color.muted,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          SizedBox(height: theme.spacing.s),
-          Wrap(
-            spacing: theme.spacing.s,
-            runSpacing: theme.spacing.s,
-            children: [
-              for (final item in record.items)
-                _AcademicGradeProcessChip(item: item),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AcademicGradeProcessChip extends StatelessWidget {
-  const _AcademicGradeProcessChip({required this.item});
-
-  final AcademicGradeProcessItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    final accent = theme.color.serviceAcademic;
-    return Container(
-      constraints: BoxConstraints(minHeight: theme.spacing.xl),
-      padding: EdgeInsets.symmetric(
-        horizontal: theme.spacing.s,
-        vertical: theme.spacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(theme.radius.full),
-        border: Border.all(color: accent.withValues(alpha: 0.24)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            item.label,
-            style: theme.typography.caption.copyWith(color: theme.color.muted),
-          ),
-          SizedBox(width: theme.spacing.xs),
-          Text(
-            item.value,
-            style: theme.typography.caption.copyWith(
-              color: accent,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+String _academicProcessSemesterLabel(AcademicEamsSemesterOption option) {
+  final term = option.termChoice;
+  if (term == null) return option.label;
+  return '${term.academicYear}–${term.academicYear + 1} 学年${term.season.label}';
 }

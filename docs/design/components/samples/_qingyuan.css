@@ -94,6 +94,8 @@
   --space-2xl: 48px;
   --opacity-disabled: 0.4;
   --opacity-domain-tint: 0.14;
+  --opacity-evidence-tint: 0.1;
+  --opacity-evidence-border: 0.24;
   --opacity-content-muted: 0.82;
   --opacity-timeline-meta: 0.72;
   --opacity-timeline-detail: 0.66;

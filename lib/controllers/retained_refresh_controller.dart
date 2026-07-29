@@ -41,6 +41,14 @@ class RetainedRefreshController<T> extends ChangeNotifier {
   bool get isRefreshing => _isRefreshing;
   String? get retainedFailure => _retainedFailure;
 
+  /// 捕获当前凭据/宿主代次，供调用方隔离刷新后的附加副作用。
+  int captureGeneration() => _generation;
+
+  /// 判断刷新开始时捕获的代次是否仍属于当前页面。
+  bool isGenerationCurrent(int generation) {
+    return !_disposed && generation == _generation;
+  }
+
   /// 用宿主的新代结果整体替换当前状态，并使进行中的旧请求失效。
   void updateExternalResult(T? result) {
     if (_disposed) return;

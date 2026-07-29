@@ -169,6 +169,78 @@ void main() {
     expect(selected, 'wechat');
   });
 
+  testWidgets('紧凑选择器在三列筛选宽度保留完整语义且不溢出', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(
+      YhApp(
+        home: Center(
+          child: SizedBox(
+            width: 92,
+            child: YhSelect<String>(
+              label: '学期',
+              value: 'spring',
+              compact: true,
+              options: const [YhSelectOption(value: 'spring', label: '春季学期')],
+              onChanged: (_) {},
+              showLabel: false,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.bySemanticsLabel('学期：春季学期'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    semantics.dispose();
+  });
+
+  testWidgets('清源选择器外部换代时关闭旧选项浮层', (tester) async {
+    var enabled = true;
+    var options = const [YhSelectOption(value: 'old', label: '旧学期')];
+    late StateSetter rebuild;
+    await tester.pumpWidget(
+      YhApp(
+        home: Center(
+          child: SizedBox(
+            width: 240,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return YhSelect<String>(
+                  label: '学期',
+                  value: null,
+                  options: options,
+                  enabled: enabled,
+                  onChanged: (_) {},
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('请选择'));
+    await tester.pump();
+    expect(find.text('旧学期'), findsOneWidget);
+
+    rebuild(() {
+      options = const [YhSelectOption(value: 'new', label: '新学期')];
+    });
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('旧学期'), findsNothing);
+    expect(find.text('新学期'), findsNothing);
+
+    await tester.tap(find.text('请选择'));
+    await tester.pump();
+    expect(find.text('新学期'), findsOneWidget);
+    rebuild(() => enabled = false);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('新学期'), findsNothing);
+  });
+
   testWidgets('清源进度分别呈现百分比与未知加载语义', (tester) async {
     final semantics = tester.ensureSemantics();
     await tester.pumpWidget(

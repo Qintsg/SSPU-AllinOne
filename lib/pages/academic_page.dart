@@ -31,6 +31,7 @@ import 'course_schedule_page.dart';
 
 part 'academic_eams_summary_card.dart';
 part 'academic_detail_refresh_controller.dart';
+part 'academic_eams_evidence_widgets.dart';
 part 'academic_eams_exam_card.dart';
 part 'academic_eams_exam_detail_page.dart';
 part 'academic_eams_grade_card.dart';

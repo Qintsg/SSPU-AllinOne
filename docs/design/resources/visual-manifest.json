@@ -45,9 +45,9 @@
     {"id": "home.campus-card-detail", "group": "home", "states": ["content", "empty", "error"]},
 
     {"id": "academic.overview", "group": "academic", "states": ["initial", "loading", "content", "empty", "stale", "error", "partial-error", "credentials-required", "credentials-partial", "operation-locked"]},
-    {"id": "academic.grade-detail", "group": "academic", "states": ["loading", "content", "empty", "error"]},
-    {"id": "academic.exam-detail", "group": "academic", "states": ["loading", "content", "empty", "error"]},
-    {"id": "academic.grade-process", "group": "academic", "states": ["loading", "content", "empty", "error"]},
+    {"id": "academic.grade-detail", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
+    {"id": "academic.exam-detail", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
+    {"id": "academic.grade-process", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
     {"id": "academic.student-report", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
     {"id": "academic.student-report-rules", "group": "academic", "states": ["content", "empty"]},
     {"id": "academic.sports-attendance", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},

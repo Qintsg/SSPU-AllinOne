@@ -292,6 +292,8 @@ class YhOpacityTokens {
   const YhOpacityTokens({
     this.disabled = 0.4,
     this.domainTint = 0.14,
+    this.evidenceTint = 0.1,
+    this.evidenceBorder = 0.24,
     this.contentMuted = 0.82,
     this.timelineMeta = 0.72,
     this.timelineDetail = 0.66,
@@ -303,7 +305,7 @@ class YhOpacityTokens {
     this.timelineOrbitOuter = 0.03,
   });
 
-  final double disabled, domainTint, contentMuted;
+  final double disabled, domainTint, evidenceTint, evidenceBorder, contentMuted;
   final double timelineMeta, timelineDetail, timelineTrack, timelineDot;
   final double timelineCurrentRing;
   final double timelineOrbit, timelineOrbitMid, timelineOrbitOuter;

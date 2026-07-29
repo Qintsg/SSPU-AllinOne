@@ -535,8 +535,19 @@ final _surfaces = <_VisualSurface>[
   ),
   _VisualSurface(
     'academic.grade-detail',
+    () => _academicGradeDetail(qingyuanAcademicGradeStaleResult),
+    state: 'stale',
+  ),
+  _VisualSurface(
+    'academic.grade-detail',
     () => _academicGradeDetail(qingyuanAcademicDetailErrorResult),
     state: 'error',
+  ),
+  _VisualSurface(
+    'academic.grade-detail',
+    _academicGradeDetailOperationLocked,
+    state: 'operation-locked',
+    prepare: _prepareAcademicGradeDetailOperationLocked,
   ),
   _VisualSurface(
     'academic.exam-detail',
@@ -555,8 +566,19 @@ final _surfaces = <_VisualSurface>[
   ),
   _VisualSurface(
     'academic.exam-detail',
+    () => _academicExamDetail(qingyuanAcademicExamStaleResult),
+    state: 'stale',
+  ),
+  _VisualSurface(
+    'academic.exam-detail',
     () => _academicExamDetail(qingyuanAcademicDetailErrorResult),
     state: 'error',
+  ),
+  _VisualSurface(
+    'academic.exam-detail',
+    _academicExamDetailOperationLocked,
+    state: 'operation-locked',
+    prepare: _prepareAcademicExamDetailOperationLocked,
   ),
   _VisualSurface(
     'academic.grade-process',
@@ -574,8 +596,19 @@ final _surfaces = <_VisualSurface>[
   ),
   _VisualSurface(
     'academic.grade-process',
+    () => _academicGradeProcess(qingyuanAcademicGradeProcessStaleResult),
+    state: 'stale',
+  ),
+  _VisualSurface(
+    'academic.grade-process',
     () => _academicGradeProcess(qingyuanAcademicDetailErrorResult),
     state: 'error',
+  ),
+  _VisualSurface(
+    'academic.grade-process',
+    _academicGradeProcessOperationLocked,
+    state: 'operation-locked',
+    prepare: _prepareAcademicGradeProcessOperationLocked,
   ),
   _VisualSurface(
     'academic.student-report',
@@ -2086,6 +2119,24 @@ Widget _academicGradeDetailLoading() {
   );
 }
 
+Widget _academicGradeDetailOperationLocked() {
+  return AcademicEamsGradeDetailPage(
+    academicEamsService: QingyuanVisualAcademicEamsClient(
+      result: qingyuanAcademicGradeContentResult,
+      pendingGrades: Completer<AcademicEamsQueryResult>(),
+    ),
+    initialResult: qingyuanAcademicGradeContentResult,
+    onResultChanged: (_) {},
+  );
+}
+
+Future<void> _prepareAcademicGradeDetailOperationLocked(
+  WidgetTester tester,
+) async {
+  await tester.tap(find.byKey(const Key('academic-eams-grade-detail-refresh')));
+  await tester.pump();
+}
+
 Widget _academicExamDetail(AcademicEamsQueryResult result) {
   return AcademicEamsExamDetailPage(
     academicEamsService: QingyuanVisualAcademicEamsClient(
@@ -2121,6 +2172,28 @@ Future<void> _prepareAcademicExamLoading(WidgetTester tester) async {
   await tester.pump();
 }
 
+Widget _academicExamDetailOperationLocked() {
+  return AcademicEamsExamDetailPage(
+    academicEamsService: QingyuanVisualAcademicEamsClient(
+      result: qingyuanAcademicExamContentResult,
+      pendingExam: Completer<AcademicEamsQueryResult>(),
+    ),
+    initialResult: qingyuanAcademicExamContentResult,
+    initialSelectedTerm: qingyuanAcademicSemester.termChoice,
+    initialSelectedSemester: qingyuanAcademicSemester,
+    academicTermService: buildQingyuanVisualAcademicTermService(),
+    academicTermNow: qingyuanVisualNow,
+    onResultChanged: (_, _, _) {},
+  );
+}
+
+Future<void> _prepareAcademicExamDetailOperationLocked(
+  WidgetTester tester,
+) async {
+  await tester.tap(find.byKey(const Key('academic-eams-exam-detail-search')));
+  await tester.pump();
+}
+
 Future<void> _startStudentReportDetailRefresh(WidgetTester tester) async {
   await tester.tap(find.text('刷新成绩单'));
   await tester.pump();
@@ -2150,7 +2223,38 @@ Widget _academicGradeProcessLoading() {
     ),
     initialTerm: qingyuanAcademicSemester.termChoice,
     initialSemester: qingyuanAcademicSemester,
+    initialCheckedAt: qingyuanVisualNow,
   );
+}
+
+Widget _academicGradeProcessOperationLocked() {
+  final pending = Completer<AcademicEamsQueryResult>();
+  return AcademicEamsGradeProcessPage(
+    academicEamsService: QingyuanVisualAcademicEamsClient(
+      result: qingyuanAcademicGradeProcessContentResult,
+      gradeProcessResultResolver: (fetchCount) => fetchCount == 1
+          ? Future.value(qingyuanAcademicGradeProcessContentResult)
+          : pending.future,
+    ),
+    initialTerm: qingyuanAcademicSemester.termChoice,
+    initialSemester: qingyuanAcademicSemester,
+  );
+}
+
+Future<void> _prepareAcademicGradeProcessOperationLocked(
+  WidgetTester tester,
+) async {
+  for (var attempt = 0; attempt < 20; attempt++) {
+    await tester.pump(const Duration(milliseconds: 20));
+    final refresh = find.byKey(const Key('academic-eams-grade-process-search'));
+    if (refresh.evaluate().isNotEmpty &&
+        find.text('过程证据').evaluate().isNotEmpty) {
+      await tester.tap(refresh);
+      await tester.pump();
+      return;
+    }
+  }
+  throw StateError('过程化成绩未在固定等待窗口内进入可刷新内容态');
 }
 
 Widget _academicCalendarLoading() {

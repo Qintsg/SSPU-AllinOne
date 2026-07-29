@@ -239,6 +239,76 @@
     return `<section class="reference-academic-task" style="--academic-accent:${accent}"><header class="reference-academic-appbar"><button type="button" aria-label="返回">←</button><span><small>${entry.kicker}</small><strong>${appBarSource}</strong></span><button type="button" aria-label="更多操作">•••</button></header><main class="reference-academic-scroll"><div class="reference-academic-content"><section class="reference-academic-heading"><div><small>${entry.kicker}</small><h1>${entry.title}</h1><p>${entry.summary}</p></div><button type="button"${loading || busy ? ' disabled' : ''}>${busy ? '正在刷新…' : action}</button></section><div class="reference-academic-source"><i aria-hidden="true"></i><span>学　${source}</span><time>2026-07-18 · 08:42</time></div>${banner}${body}</div></main></section>`;
   }
 
+  function academicEamsFilterMarkup(entry, disabled) {
+    const field = (label, value) => `<label><small>${label}</small><button class="reference-academic-filter-trigger" type="button" aria-label="${label}：${value}" aria-haspopup="listbox" aria-expanded="false"${disabled ? ' disabled' : ''}><span>${value}</span><b aria-hidden="true">⌄</b></button></label>`;
+    if (entry.id === 'academic.grade-detail') {
+      return `<section class="reference-academic-filter${disabled ? ' is-disabled' : ''}" aria-label="成绩范围">${field('学年学期', '全部学期')}<button type="button"${disabled ? ' disabled' : ''}>过程化成绩</button></section>`;
+    }
+    if (entry.id === 'academic.exam-detail') {
+      return `<section class="reference-academic-filter is-exam${disabled ? ' is-disabled' : ''}" aria-label="考试范围">${field('学年', '2025–2026 学年')}${field('学期', '春季学期')}${field('考试类型', '期末考试')}</section>`;
+    }
+    return `<section class="reference-academic-filter${disabled ? ' is-disabled' : ''}" aria-label="过程化成绩范围">${field('学年学期', '2025–2026 学年春季学期')}</section>`;
+  }
+
+  function academicEamsGradeLedgerMarkup() {
+    const metrics = [['4.0', '当前 GPA'], ['11', '已获学分'], ['3 门', '课程成绩']];
+    const records = [
+      ['数据结构', '2025–2026 第 2 学期 · 4 学分', '绩点 4.2', '92', '总评'],
+      ['软件工程实践', '2025–2026 第 2 学期 · 2 学分', '绩点 4.5', '优秀', '总评'],
+      ['高等数学', '2025–2026 第 1 学期 · 5 学分', '绩点 3.8', '88', '总评'],
+    ];
+    return `<div class="reference-academic-ledger is-eams"><section class="reference-academic-summary"><div class="reference-academic-metrics is-three">${metrics.map(([value, label]) => `<span><strong>${value}</strong><small>${label}</small></span>`).join('')}</div></section><section class="reference-academic-records"><header><div><small>原始成绩证据</small><h2>课程成绩</h2></div><span>3 门课程</span></header><div>${records.map(([title, meta, detail, value, status]) => `<article><span class="reference-academic-record-mark" aria-hidden="true"></span><div><strong>${title}</strong><small>${meta}</small><p>${detail}</p></div><span><strong>${value}</strong><small>${status}</small></span></article>`).join('')}</div></section></div>`;
+  }
+
+  function academicEamsExamLedgerMarkup(disabled) {
+    const metrics = [['2', '考试课程'], ['1', '已经排期'], ['1', '等待公布']];
+    const records = [
+      ['07·22', '09:00–10:30', '数据结构', '教学楼 2 号楼 · 302', '期末考试 · 正常', '已排期', 'CS201'],
+      ['待定', '时间待公布', '软件工程实践', '地点待公布', '课程设计答辩安排另行通知', '待公布', 'SE202'],
+    ];
+    return `<div class="reference-academic-ledger is-eams"><section class="reference-academic-summary"><div class="reference-academic-metrics is-three">${metrics.map(([value, label]) => `<span><strong>${value}</strong><small>${label}</small></span>`).join('')}</div></section><section class="reference-academic-records"><header><div><small>连续时间正序</small><h2>考试时间轴</h2></div><div class="reference-academic-record-meta"><span>期末考试</span><div class="reference-academic-sort" role="radiogroup" aria-label="考试时间顺序"><button type="button" role="radio" aria-checked="true"${disabled ? ' disabled' : ''}>正序</button><button type="button" role="radio" aria-checked="false"${disabled ? ' disabled' : ''}>倒序</button></div></div></header><div>${records.map(([date, time, title, place, detail, status, code]) => `<article><time><strong>${date}</strong><small>${time}</small></time><div><strong>${title}</strong><small>${place}</small><p>${detail}</p></div><span><strong>${status}</strong><small>${code}</small></span></article>`).join('')}</div></section></div>`;
+  }
+
+  function academicEamsProcessLedgerMarkup() {
+    const chips = [['课堂表现', '95 / 10%'], ['课程作业', '90 / 30%'], ['期中测验', '88 / 20%']];
+    return `<div class="reference-academic-ledger is-eams"><section class="reference-academic-summary"><div class="reference-academic-metrics is-three"><span><strong>1</strong><small>有记录课程</small></span><span><strong>3</strong><small>评价证据</small></span><span><strong>4</strong><small>课程学分</small></span></div></section><section class="reference-academic-records reference-academic-process-records"><header><div><small>课程内原始评价</small><h2>过程证据</h2></div><span>2025–2026 第 2 学期</span></header><article><span class="reference-academic-record-mark" aria-hidden="true"></span><div><strong>数据结构</strong><small>专业基础课 · 4 学分</small><div class="reference-academic-evidence-chips">${chips.map(([label, value]) => `<span><small>${label}</small><strong>${value}</strong></span>`).join('')}</div></div></article></section></div>`;
+  }
+
+  function academicEamsSurfaceMarkup(entry, state) {
+    const loading = state === 'loading';
+    const empty = state === 'empty';
+    const error = state === 'error';
+    const stale = state === 'stale';
+    const busy = state === 'operation-locked';
+    const action = entry.primaryAction;
+    const source = entry.source.replace(' · 09:30', ' · 本地快照');
+    const appBarSource = entry.source.replace('本地快照', '09:30');
+    const banner = busy
+      ? `<div class="reference-academic-banner" role="status">正在${action}；当前筛选范围和有效记录保持可用，完成前已锁定重复请求与范围切换。</div>`
+      : stale
+      ? '<div class="reference-academic-banner is-warn" role="status">正在显示 07-17 18:00 缓存；刷新失败不会删除当前筛选范围与以下原始记录。</div>'
+      : '';
+    let body;
+    if (loading || empty || error) {
+      const symbol = loading ? '<span class="reference-spinner" aria-hidden="true"></span>' : `<span class="reference-academic-state-symbol" aria-hidden="true">${error ? '!' : '○'}</span>`;
+      const noun = entry.id === 'academic.exam-detail' ? '考试安排' : entry.id === 'academic.grade-process' ? '过程化成绩' : '课程成绩';
+      const title = loading ? `正在读取${noun}` : error ? `${noun}暂不可用` : `当前没有${noun}记录`;
+      const message = loading
+        ? `正在从${source}恢复数据；筛选范围、页面来源和返回路径保持可见。`
+        : error
+        ? '暂时无法读取教务数据：请检查校园网络或 VPN 后重试；已有本地数据不会被删除。'
+        : '当前筛选范围没有可展示的原始记录；可调整学期或稍后在原位置重新读取。';
+      body = `<section class="reference-academic-state-panel">${symbol}<h2>${title}</h2><p>${message}</p>${loading ? '' : `<button type="button">${error ? '检查后重试' : '重新读取'}</button>`}</section>`;
+    } else {
+      body = entry.id === 'academic.grade-detail'
+        ? academicEamsGradeLedgerMarkup()
+        : entry.id === 'academic.exam-detail'
+        ? academicEamsExamLedgerMarkup(busy)
+        : academicEamsProcessLedgerMarkup();
+    }
+    return `<section class="reference-academic-task" style="--academic-accent:var(--service-academic)"><header class="reference-academic-appbar"><button type="button" aria-label="返回">←</button><span><small>${entry.kicker}</small><strong>${appBarSource}</strong></span><button type="button" aria-label="更多操作">•••</button></header><main class="reference-academic-scroll"><div class="reference-academic-content"><section class="reference-academic-heading"><div><small>${entry.kicker}</small><h1>${entry.title}</h1><p>${entry.summary}</p></div><button type="button"${loading || busy ? ' disabled' : ''}>${busy ? '正在刷新…' : action}</button></section><div class="reference-academic-source"><i aria-hidden="true"></i><span>学　${source}</span><time>${stale ? '2026-07-17 · 18:00' : '2026-07-18 · 09:30'}</time></div>${banner}${academicEamsFilterMarkup(entry, loading || busy)}${body}</div></main></section>`;
+  }
+
   function studentReportLedgerMarkup() {
     const categories = [
       ['社会实践', '2.00 / 2.00', 'is-success'],
@@ -388,6 +458,7 @@
     if (entry.id === 'external.system-auth') return lockSurfaceMarkup(state, true);
     if (entry.id === 'external.webview') return webViewSurfaceMarkup(entry, state);
     if (entry.id === 'schedule.calendar') return scheduleSurfaceMarkup(entry, state);
+    if (['academic.grade-detail', 'academic.exam-detail', 'academic.grade-process'].includes(entry.id)) return academicEamsSurfaceMarkup(entry, state);
     if (entry.id === 'academic.student-report') return academicDetailStateMarkup(entry, state, 'var(--service-secondclass)');
     if (entry.id === 'academic.sports-attendance') return academicDetailStateMarkup(entry, state, 'var(--service-sports)');
     return null;

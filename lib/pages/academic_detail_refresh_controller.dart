@@ -9,7 +9,7 @@ typedef AcademicDetailRefreshTask<T> = RetainedRefreshTask<T>;
 typedef AcademicDetailRefreshController<T> = RetainedRefreshController<T>;
 
 class _AcademicDetailStateCard extends StatelessWidget {
-  const _AcademicDetailStateCard({required this.child});
+  const _AcademicDetailStateCard({super.key, required this.child});
 
   final Widget child;
 
@@ -34,42 +34,53 @@ class _AcademicDetailLoadingState extends StatelessWidget {
   const _AcademicDetailLoadingState({
     required this.title,
     required this.source,
+    this.alignEvidenceLedger = false,
   });
 
   final String title;
   final String source;
+  final bool alignEvidenceLedger;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Semantics(
-          label: title,
-          value: '加载中',
-          child: SizedBox.square(
-            dimension: theme.control.minimumTarget,
-            child: CustomPaint(
-              painter: _AcademicDetailSpinnerPainter(
-                trackColor: theme.color.border,
-                activeColor: theme.color.brandStrong,
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.compact;
+    return Transform.translate(
+      offset: Offset(
+        0,
+        compact && alignEvidenceLedger
+            ? -(theme.spacing.s + theme.layout.controlBorder * 2)
+            : 0,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Semantics(
+            label: title,
+            value: '加载中',
+            child: SizedBox.square(
+              dimension: theme.control.minimumTarget,
+              child: CustomPaint(
+                painter: _AcademicDetailSpinnerPainter(
+                  trackColor: theme.color.border,
+                  activeColor: theme.color.brandStrong,
+                ),
               ),
             ),
           ),
-        ),
-        SizedBox(height: theme.spacing.l),
-        Text(title, textAlign: TextAlign.center, style: theme.typography.h2),
-        SizedBox(height: theme.spacing.s),
-        ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: theme.control.regular * 11),
-          child: Text(
-            '正在从$source恢复数据；页面来源和返回路径保持可用。',
-            textAlign: TextAlign.center,
-            style: theme.typography.body.copyWith(color: theme.color.muted),
+          SizedBox(height: theme.spacing.l),
+          Text(title, textAlign: TextAlign.center, style: theme.typography.h2),
+          SizedBox(height: theme.spacing.s),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: theme.control.regular * 11),
+            child: Text(
+              '正在从$source恢复数据；页面来源和返回路径保持可用。',
+              textAlign: TextAlign.center,
+              style: theme.typography.body.copyWith(color: theme.color.muted),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

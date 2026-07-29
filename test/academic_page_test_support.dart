@@ -8,6 +8,32 @@
 
 part of 'academic_page_test.dart';
 
+class _DeferredAcademicTermService extends AcademicTermService {
+  _DeferredAcademicTermService(this.context);
+
+  final Future<AcademicTermContext> context;
+
+  @override
+  Future<AcademicTermContext> getEffectiveContext({DateTime? now}) => context;
+}
+
+class _ThrowingAcademicTermService extends AcademicTermService {
+  @override
+  Future<AcademicTermContext> getEffectiveContext({DateTime? now}) async {
+    throw StateError('term service unavailable');
+  }
+}
+
+AcademicTermContext _academicTermContext(AcademicTermChoice term) {
+  return AcademicTermContext(
+    term: term,
+    source: AcademicTermContextSource.selected,
+    dateStatus: AcademicTermDateStatus.unsupported,
+    resolvedAt: DateTime(2026, 7, 18),
+    isTeachingWeek: false,
+  );
+}
+
 class _FakeAcademicCalendarClient implements AcademicCalendarClient {
   int ensureForDateCount = 0;
 
@@ -126,6 +152,7 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
     this.pendingOverview,
     this.pendingExam,
     this.pendingGrades,
+    this.gradeProcessResultResolver,
   });
 
   final AcademicEamsQueryResult result;
@@ -142,6 +169,8 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   final Completer<AcademicEamsQueryResult>? pendingOverview;
   final Completer<AcademicEamsQueryResult>? pendingExam;
   final Completer<AcademicEamsQueryResult>? pendingGrades;
+  final Future<AcademicEamsQueryResult> Function(int fetchCount)?
+  gradeProcessResultResolver;
   int overviewFetchCount = 0;
   int courseTableFetchCount = 0;
   int examFetchCount = 0;
@@ -153,6 +182,8 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   int gradeFetchCount = 0;
   final List<bool> gradeRequireCampusNetworkValues = [];
   int gradeProcessFetchCount = 0;
+  final List<AcademicTermChoice?> gradeProcessTermValues = [];
+  final List<AcademicEamsSemesterOption?> gradeProcessSemesterValues = [];
 
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
@@ -237,7 +268,10 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
     bool requireCampusNetwork = true,
   }) async {
     gradeProcessFetchCount++;
-    return _gradeProcessResult;
+    gradeProcessTermValues.add(term);
+    gradeProcessSemesterValues.add(semester);
+    return gradeProcessResultResolver?.call(gradeProcessFetchCount) ??
+        _gradeProcessResult;
   }
 
   @override
@@ -245,6 +279,15 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
     return null;
   }
 }
+
+final AcademicEamsQueryResult _academicDetailFailureResult =
+    AcademicEamsQueryResult(
+      status: AcademicEamsQueryStatus.networkError,
+      message: '教务数据暂不可用',
+      detail: '请检查校园网络或 VPN 后重试。',
+      checkedAt: DateTime(2026, 7, 18, 9, 30),
+      entranceUri: Uri.parse('https://academic.example.invalid/entrance'),
+    );
 
 final SportsAttendanceQueryResult _successResult = SportsAttendanceQueryResult(
   status: SportsAttendanceQueryStatus.success,
@@ -583,6 +626,37 @@ final AcademicEamsQueryResult _gradeProcessResult = AcademicEamsQueryResult(
   ),
 );
 
+AcademicEamsQueryResult _gradeProcessResultWithSemesterOptions({
+  required List<AcademicEamsSemesterOption> options,
+  AcademicEamsSemesterOption? selectedSemester,
+}) {
+  final source = _gradeProcessResult;
+  final snapshot = source.snapshot!;
+  final process = snapshot.gradeProcess!;
+  return AcademicEamsQueryResult(
+    status: source.status,
+    message: source.message,
+    detail: source.detail,
+    checkedAt: source.checkedAt,
+    entranceUri: source.entranceUri,
+    finalUri: source.finalUri,
+    snapshot: AcademicEamsSnapshot(
+      fetchedAt: snapshot.fetchedAt,
+      sourceUri: snapshot.sourceUri,
+      warnings: snapshot.warnings,
+      hasCourseOfferingEntry: snapshot.hasCourseOfferingEntry,
+      hasFreeClassroomEntry: snapshot.hasFreeClassroomEntry,
+      gradeProcess: AcademicGradeProcessSnapshot(
+        records: process.records,
+        selectedSemester: selectedSemester,
+        semesterOptions: options,
+        fetchedAt: process.fetchedAt,
+        sourceUri: process.sourceUri,
+      ),
+    ),
+  );
+}
+
 final AcademicEamsQueryResult _academicExamResult = AcademicEamsQueryResult(
   status: AcademicEamsQueryStatus.success,
   message: '考试安排读取成功',
@@ -688,6 +762,48 @@ final AcademicEamsQueryResult _academicExamResult = AcademicEamsQueryResult(
     ),
   ),
 );
+
+AcademicEamsQueryResult _academicExamResultWithExamTypes(
+  Map<String, String> options, {
+  String? selectedExamType,
+}) {
+  final source = _academicExamResult;
+  final snapshot = source.snapshot!;
+  final exams = snapshot.exams!;
+  return AcademicEamsQueryResult(
+    status: source.status,
+    message: source.message,
+    detail: source.detail,
+    checkedAt: source.checkedAt,
+    entranceUri: source.entranceUri,
+    finalUri: source.finalUri,
+    campusNetworkStatus: source.campusNetworkStatus,
+    snapshot: AcademicEamsSnapshot(
+      fetchedAt: snapshot.fetchedAt,
+      sourceUri: snapshot.sourceUri,
+      warnings: snapshot.warnings,
+      hasCourseOfferingEntry: snapshot.hasCourseOfferingEntry,
+      hasFreeClassroomEntry: snapshot.hasFreeClassroomEntry,
+      profile: snapshot.profile,
+      courseTable: snapshot.courseTable,
+      grades: snapshot.grades,
+      gradeProcess: snapshot.gradeProcess,
+      programPlan: snapshot.programPlan,
+      programCompletion: snapshot.programCompletion,
+      courseOfferingsPreview: snapshot.courseOfferingsPreview,
+      freeClassroomsPreview: snapshot.freeClassroomsPreview,
+      exams: AcademicExamSnapshot(
+        records: exams.records,
+        fetchedAt: exams.fetchedAt,
+        sourceUri: exams.sourceUri,
+        selectedSemester: exams.selectedSemester,
+        semesterOptions: exams.semesterOptions,
+        selectedExamType: selectedExamType,
+        examTypeOptions: options,
+      ),
+    ),
+  );
+}
 
 /// 明显过期的考试缓存（2020-2021 秋），用于校验缓存学期与全局默认学期不一致时不展示。
 final AcademicEamsQueryResult _staleExamCacheResult = AcademicEamsQueryResult(

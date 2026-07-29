@@ -14,6 +14,8 @@ enum YhTaskAccent { brand, structural }
 
 enum YhTaskPageWidth { constrained, reading, fluid }
 
+enum YhTaskPageRhythm { standard, relaxedCompact }
+
 class YhTaskPageAction {
   const YhTaskPageAction({
     required this.label,
@@ -37,9 +39,11 @@ class YhTaskPage extends StatefulWidget {
     required this.primaryActionLabel,
     required this.onPrimaryAction,
     required this.body,
+    this.primaryActionKey,
     this.sourceTimestamp,
     this.accent = YhTaskAccent.brand,
     this.width = YhTaskPageWidth.constrained,
+    this.rhythm = YhTaskPageRhythm.standard,
     this.onBack,
     this.canPop = true,
     this.appBarEyebrow,
@@ -54,10 +58,12 @@ class YhTaskPage extends StatefulWidget {
   final String sourceSymbol;
   final String primaryActionLabel;
   final VoidCallback? onPrimaryAction;
+  final Key? primaryActionKey;
   final Widget body;
   final String? sourceTimestamp;
   final YhTaskAccent accent;
   final YhTaskPageWidth width;
+  final YhTaskPageRhythm rhythm;
   final VoidCallback? onBack;
   final bool canPop;
   final String? appBarEyebrow;
@@ -116,10 +122,22 @@ class _YhTaskPageState extends State<YhTaskPage> {
                           theme.responsive.panelPaddingViewportPercent /
                           100)
                       .clamp(theme.spacing.l, theme.spacing.xl2);
-            final topPagePadding =
-                compact && widget.width == YhTaskPageWidth.reading
-                ? pagePadding + theme.spacing.xs
-                : pagePadding;
+            final relaxedCompact =
+                widget.rhythm == YhTaskPageRhythm.relaxedCompact;
+            final topPagePadding = compact
+                ? pagePadding +
+                      (widget.width == YhTaskPageWidth.reading
+                          ? theme.spacing.xs
+                          : 0) +
+                      (relaxedCompact
+                          ? theme.spacing.xs + theme.layout.controlBorder
+                          : 0)
+                : pagePadding +
+                      (relaxedCompact &&
+                              MediaQuery.sizeOf(context).width ==
+                                  theme.breakpoint.medium
+                          ? theme.spacing.xs
+                          : 0);
             final minimumBodyHeight = _minimumBodyHeight(
               theme,
               compact: compact,
@@ -155,6 +173,7 @@ class _YhTaskPageState extends State<YhTaskPage> {
                         summary: widget.summary,
                         actionLabel: widget.primaryActionLabel,
                         onAction: widget.onPrimaryAction,
+                        actionKey: widget.primaryActionKey,
                         compact: compact,
                         accent: widget.accent,
                       ),
@@ -269,6 +288,7 @@ class _TaskHeading extends StatelessWidget {
     required this.summary,
     required this.actionLabel,
     required this.onAction,
+    required this.actionKey,
     required this.compact,
     required this.accent,
   });
@@ -278,6 +298,7 @@ class _TaskHeading extends StatelessWidget {
   final String summary;
   final String actionLabel;
   final VoidCallback? onAction;
+  final Key? actionKey;
   final bool compact;
   final YhTaskAccent accent;
 
@@ -319,6 +340,7 @@ class _TaskHeading extends StatelessWidget {
       ],
     );
     final action = YhButton(
+      key: actionKey,
       label: actionLabel,
       onTap: onAction,
       minWidth: compact ? double.infinity : null,

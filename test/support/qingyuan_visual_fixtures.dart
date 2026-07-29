@@ -530,6 +530,7 @@ class QingyuanVisualAcademicEamsClient implements AcademicEamsClient {
     this.examResult,
     this.gradeResult,
     this.gradeProcessResult,
+    this.gradeProcessResultResolver,
   });
 
   final AcademicEamsQueryResult result;
@@ -546,6 +547,9 @@ class QingyuanVisualAcademicEamsClient implements AcademicEamsClient {
   final AcademicEamsQueryResult? examResult;
   final AcademicEamsQueryResult? gradeResult;
   final AcademicEamsQueryResult? gradeProcessResult;
+  final Future<AcademicEamsQueryResult> Function(int fetchCount)?
+  gradeProcessResultResolver;
+  int _gradeProcessFetchCount = 0;
 
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
@@ -606,8 +610,12 @@ class QingyuanVisualAcademicEamsClient implements AcademicEamsClient {
     AcademicTermChoice? term,
     AcademicEamsSemesterOption? semester,
     bool requireCampusNetwork = true,
-  }) =>
-      pendingGradeProcess?.future ?? Future.value(gradeProcessResult ?? result);
+  }) {
+    _gradeProcessFetchCount++;
+    return gradeProcessResultResolver?.call(_gradeProcessFetchCount) ??
+        pendingGradeProcess?.future ??
+        Future.value(gradeProcessResult ?? result);
+  }
 }
 
 final Uri _academicVisualEntranceUri = Uri.parse(
@@ -635,7 +643,7 @@ final AcademicEamsQueryResult qingyuanAcademicGradeContentResult =
             scoreText: '92',
             totalScoreText: '92',
             credit: 4,
-            gradePoint: 4.2,
+            gradePoint: 4.0,
             rawCells: ['CS201', '数据结构', '4', '92'],
           ),
           AcademicGradeRecord(
@@ -804,6 +812,16 @@ final AcademicEamsQueryResult qingyuanAcademicGradeProcessEmptyResult =
         fetchedAt: qingyuanVisualNow,
         sourceUri: _academicVisualSourceUri,
       ),
+    );
+
+final AcademicEamsQueryResult qingyuanAcademicGradeProcessStaleResult =
+    _academicDetailResult(
+      status: AcademicEamsQueryStatus.partialSuccess,
+      message: '正在显示昨日过程化成绩缓存',
+      detail: '网络恢复后可手动刷新。',
+      checkedAt: DateTime(2026, 7, 17, 18),
+      gradeProcess:
+          qingyuanAcademicGradeProcessContentResult.snapshot!.gradeProcess,
     );
 
 final AcademicEamsQueryResult qingyuanAcademicDetailErrorResult =
