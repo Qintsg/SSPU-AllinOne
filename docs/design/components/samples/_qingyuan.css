@@ -92,6 +92,7 @@
   --space-l: 24px;
   --space-xl: 32px;
   --space-2xl: 48px;
+  --opacity-disabled: 0.4;
   --opacity-domain-tint: 0.14;
   --opacity-content-muted: 0.82;
   --opacity-timeline-meta: 0.72;
@@ -304,7 +305,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 .yh-button.text:hover:not(:disabled) { text-decoration: underline; }
 .yh-button.danger { background: var(--danger); color: #fff; }
 .yh-button.danger:hover:not(:disabled) { filter: brightness(0.92); }
-.yh-button:disabled { opacity: 0.4; cursor: not-allowed; }
+.yh-button:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 .yh-button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
 /* IconButton — .yh-icon-btn */
@@ -319,7 +320,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 .yh-icon-btn:hover:not(:disabled) { border-color: var(--brand-strong); color: var(--brand-strong); }
 .yh-icon-btn.ghost { border-color: transparent; }
 .yh-icon-btn.ghost:hover:not(:disabled) { background: var(--brand-tint); }
-.yh-icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.yh-icon-btn:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 .yh-icon-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
 /* FAB — .yh-fab */
@@ -371,7 +372,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 }
 .yh-switch.on { background: var(--brand-strong); }
 .yh-switch.on::after { left: 21px; }
-.yh-switch:disabled { opacity: 0.4; cursor: not-allowed; }
+.yh-switch:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 
 /* Checkbox — .yh-check(.on) */
 .yh-check {
@@ -612,7 +613,7 @@ h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 
 .yh-pagination button { min-width: 36px; height: 36px; padding: 0 8px; border: 1.5px solid var(--border); background: var(--surface); color: var(--fg); border-radius: 10px; font: 500 14px/1 var(--mono); cursor: pointer; transition: all var(--duration-fast); display: grid; place-items: center; }
 .yh-pagination button:hover:not(:disabled):not(.on) { border-color: var(--brand); color: var(--brand-strong); }
 .yh-pagination button.on { background: var(--brand-strong); border-color: var(--brand-strong); color: var(--on-brand); }
-.yh-pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+.yh-pagination button:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 .yh-pagination button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .yh-pagination .ellipsis { color: var(--muted); padding: 0 2px; }
 

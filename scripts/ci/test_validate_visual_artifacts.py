@@ -70,6 +70,22 @@ class VisualArtifactValidatorTest(unittest.TestCase):
             images, manifest = self._fixture(Path(temp_dir))
             self.assertEqual(validate_visual_artifacts(images, manifest, "windows"), (2, 1))
 
+    def test_registered_hyphenated_scenario_state_passes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            images, manifest = self._fixture(Path(temp_dir))
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            payload["meta"]["scenarioStates"] = ["operation-locked"]
+            payload["surfaces"][0]["states"].append("operation-locked")
+            manifest.write_text(json.dumps(payload), encoding="utf-8")
+            (images / "external.pdf--operation-locked--light--4x3.png").write_bytes(
+                _png(4, 3)
+            )
+
+            self.assertEqual(
+                validate_visual_artifacts(images, manifest, "windows"),
+                (3, 1),
+            )
+
     def test_missing_image_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             images, manifest = self._fixture(Path(temp_dir))

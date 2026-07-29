@@ -617,12 +617,24 @@ def _validate_visual_manifest(project_root: Path) -> None:
     declared_states = set(meta.get("states", []))
     if declared_states != required_states:
         errors.append("视觉清单必须声明统一六态")
+    scenario_states = meta.get("scenarioStates", [])
+    if (
+        not isinstance(scenario_states, list)
+        or any(not isinstance(state, str) or not state for state in scenario_states)
+        or len(set(scenario_states)) != len(scenario_states)
+        or set(scenario_states) & required_states
+    ):
+        errors.append("视觉清单场景态必须是不重复且不与统一六态冲突的名称")
+        declared_scenario_states: set[str] = set()
+    else:
+        declared_scenario_states = set(scenario_states)
+    allowed_states = required_states | declared_scenario_states
     for surface in surfaces:
         if not isinstance(surface, dict):
             errors.append("视觉清单界面条目必须是对象")
             continue
         states = set(surface.get("states", []))
-        if not states or not states <= required_states:
+        if not states or not states <= allowed_states:
             errors.append(f"视觉清单界面 {surface.get('id', '<unknown>')} 状态无效")
         external_regions = set(surface.get("externalRegions", []))
         external_region_states = surface.get("externalRegionStates", {})

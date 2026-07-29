@@ -17,6 +17,7 @@ class YhIconButton extends StatelessWidget {
     this.variant = YhIconButtonVariant.outline,
     this.disabled = false,
     this.size,
+    this.focusNode,
   });
 
   final IconData icon;
@@ -26,6 +27,7 @@ class YhIconButton extends StatelessWidget {
   final YhIconButtonVariant variant;
   final bool disabled;
   final double? size;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +37,7 @@ class YhIconButton extends StatelessWidget {
       semanticLabel: semanticLabel,
       onPressed: disabled ? null : onTap,
       selected: selected ? true : null,
+      focusNode: focusNode,
       builder: (context, state, child) => Opacity(
         opacity: state.disabled ? 0.4 : 1,
         child: SizedBox.square(

@@ -86,6 +86,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
 
   # 视觉回归比较器：解码 PNG、生成差异热图。
   image: ^4.8.0

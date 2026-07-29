@@ -381,7 +381,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
       case 6:
         return const SettingsWechatSection();
       case 7:
-        return const AboutSettingsSection();
+        return SettingsAboutSummary(onOpenDetails: _openAboutSettings);
       default:
         return const SizedBox.shrink();
     }
@@ -427,5 +427,11 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
     Navigator.of(
       context,
     ).push(YhPageRoute<void>(builder: (_) => const SettingsUpdatePage()));
+  }
+
+  void _openAboutSettings() {
+    Navigator.of(
+      context,
+    ).push(YhPageRoute<void>(builder: (_) => const SettingsAboutPage()));
   }
 }

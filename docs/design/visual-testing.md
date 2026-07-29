@@ -45,7 +45,7 @@ dart run tool/visual_compare.dart `
 
 ## 五平台 Flutter 候选采集
 
-候选图由真实 Flutter 渲染树生成，不复用 HTML 原型截图。CI 在 Android、iOS、Windows、macOS、Linux 五个平台标签下分别锁定目标平台，加载 MiSans 与 `YhIcons` 底层字体，并输出 `visual-manifest.json` 注册的 123 个页面/状态组合、四档视口与亮暗主题矩阵；每个平台必须恰好得到 984 张 PNG。候选上传前还会校验文件名、PNG 物理尺寸和外部区域 sidecar 边界：
+候选图由真实 Flutter 渲染树生成，不复用 HTML 原型截图。Android 与 iOS 必须分别由 Android Emulator 和 iOS Simulator 的 `integration_test` runner 渲染，截图字节通过 Flutter 设备测试通道回传 CI 主机；禁止用 `debugDefaultTargetPlatformOverride` 伪装移动平台。Windows、macOS、Linux 分别在同系统桌面 runner 上采集。五个平台均加载 MiSans 与 `YhIcons` 底层字体，并输出 `visual-manifest.json` 注册的 134 个页面/状态组合、四档视口与亮暗主题矩阵；每个平台必须恰好得到 1072 张 PNG。候选上传前还会校验文件名、PNG 物理尺寸和外部区域 sidecar 边界：
 
 ```bash
 flutter test test/visual/qingyuan_visual_capture_test.dart \
@@ -54,11 +54,21 @@ flutter test test/visual/qingyuan_visual_capture_test.dart \
   --timeout 300s
 ```
 
+移动端 runner 使用独立入口（示例中的 `<device-id>` 由 CI 启动的模拟器提供）：
+
+```bash
+flutter test -d <device-id> integration_test/qingyuan_visual_capture_test.dart \
+  --dart-define=QINGYUAN_VISUAL_CAPTURE=true \
+  --dart-define=QINGYUAN_VISUAL_DEVICE_CAPTURE=true \
+  --dart-define=QINGYUAN_VISUAL_PLATFORM=android \
+  --timeout 300s
+```
+
 输出位于 `build/visual/<platform>`。这些文件是待设计确认的候选图，不得直接作为新基线覆盖 SSIM 失败；确认后的冻结基线才进入 `test/visual/baselines/<platform>`。
 
 ## 全量设计参考候选
 
-浏览器原型会先采集应用壳中的高保真主流程，再用同一清源 token 和 [`reference-catalog.json`](./resources/reference-catalog.json) 补齐所有次级页面与六态。输出同样严格覆盖 123 × 4 × 2 = 984 张，并生成 `reference-index.json`，记录设计系统版本、固定 fixture 和每张图片的 SHA-256：
+浏览器原型会先采集应用壳中的高保真主流程，再用同一清源 token 和 [`reference-catalog.json`](./resources/reference-catalog.json) 补齐所有次级页面、六态与经确认的交互场景态。输出同样严格覆盖 134 × 4 × 2 = 1072 张，并生成 `reference-index.json`，记录设计系统版本、固定 fixture 和每张图片的 SHA-256：
 
 ```powershell
 python scripts/design/verify_design_prototype.py --output build/design-review

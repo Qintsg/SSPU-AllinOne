@@ -36,11 +36,11 @@ import '../widgets/settings_general_section.dart';
 import '../widgets/settings_security_section.dart';
 import '../widgets/settings_wechat_section.dart';
 import '../widgets/settings_widgets.dart';
-import 'about_page.dart';
 import 'academic_calendar_page.dart';
 import 'legal_notice_page.dart';
 import 'settings_appearance_page.dart';
 import 'settings_data_privacy_page.dart';
+import 'settings_about_page.dart';
 import 'settings_update_page.dart';
 
 part 'settings_page_actions.dart';

@@ -132,7 +132,56 @@ def _capture_missing_state_references(page: Page, output_dir: Path, expected: li
                 page.locator(f'body[data-surface="{item["surface"]}"][data-state="{item["state"]}"]').count() == 1,
                 f'{item["filename"]} 状态参考未正确渲染',
             )
+            document_width = page.evaluate("document.documentElement.scrollWidth")
+            _assert(
+                document_width <= width,
+                f'{item["filename"]} 出现页面级横向溢出：{document_width}>{width}',
+            )
             _assert_targets(page, width, item["surface"])
+            if item["state"] == "external-confirmation":
+                dialog = page.get_by_role("dialog")
+                _assert(dialog.count() == 1, f'{item["filename"]} 外部确认层缺少 dialog 语义')
+                _assert(dialog.get_attribute("aria-modal") == "true", f'{item["filename"]} 外部确认层缺少 aria-modal')
+                title_id = dialog.get_attribute("aria-labelledby")
+                _assert(bool(title_id), f'{item["filename"]} 外部确认层缺少标题关联')
+                _assert(
+                    page.locator(f"#{title_id}").count() == 1,
+                    f'{item["filename"]} 外部确认层标题关联无效',
+                )
+                cancel = dialog.get_by_role("button", name="取消")
+                confirm = dialog.get_by_role("button", name="继续打开")
+                _assert(cancel.evaluate("element => element === document.activeElement"), f'{item["filename"]} 默认焦点未落在安全行动')
+                page.keyboard.press("Shift+Tab")
+                _assert(confirm.evaluate("element => element === document.activeElement"), f'{item["filename"]} Shift+Tab 逃出对话框')
+                page.keyboard.press("Tab")
+                _assert(cancel.evaluate("element => element === document.activeElement"), f'{item["filename"]} Tab 逃出对话框')
+                page.keyboard.press("Escape")
+                _assert(page.locator('.reference-modal-scrim[hidden]').count() == 1, f'{item["filename"]} Escape 未关闭对话框')
+                return_focus = (
+                    page.locator('.reference-license-link').first
+                    if item["surface"] == "settings.licenses"
+                    else page.locator('[data-reference-more]')
+                )
+                _assert(
+                    return_focus.evaluate("element => element === document.activeElement"),
+                    f'{item["filename"]} 关闭后未归还触发器焦点',
+                )
+                page.evaluate(
+                    "payload => window.qingyuanStateReference.render(payload)",
+                    {
+                        "entry": item["entry"],
+                        "group": item["group"],
+                        "state": item["state"],
+                        "theme": item["theme"],
+                        "externalRegions": item["externalRegions"],
+                    },
+                )
+            elif item["state"] == "external-cancelled" and item["surface"] == "settings.about":
+                return_focus = page.locator('[data-reference-more]')
+                _assert(
+                    return_focus.evaluate("element => element === document.activeElement"),
+                    f'{item["filename"]} 取消态未保留触发器焦点',
+                )
             _capture_reference(page, target, width, height)
             if item["externalRegions"]:
                 regions = []
@@ -510,7 +559,7 @@ def _capture_link_confirmation_state_references(
     page.evaluate("window.qingyuanPrototype.setLinkConfirmationState('content')")
 
 
-def verify(output_dir: Path) -> None:
+def verify(output_dir: Path, surface_prefix: str | None = None) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     for stale_reference in output_dir.glob("*.png"):
         stale_reference.unlink()
@@ -518,6 +567,9 @@ def verify(output_dir: Path) -> None:
         stale_sidecar.unlink()
     (output_dir / "reference-index.json").unlink(missing_ok=True)
     manifest, _, expected = _load_reference_contract()
+    if surface_prefix:
+        expected = [item for item in expected if item["surface"].startswith(surface_prefix)]
+        _assert(bool(expected), f"视觉清单中没有界面前缀 {surface_prefix!r}")
     prototype_url = PROTOTYPE.resolve().as_uri()
     errors: list[str] = []
 
@@ -527,6 +579,18 @@ def verify(output_dir: Path) -> None:
         page = context.new_page()
         page.on("console", lambda message: errors.append(f"console {message.type}: {message.text}") if message.type == "error" else None)
         page.on("pageerror", lambda error: errors.append(f"pageerror: {error}"))
+
+        if surface_prefix:
+            _capture_missing_state_references(page, output_dir, expected)
+            _write_reference_index(output_dir, manifest, expected)
+            _assert(not errors, "浏览器控制台错误：" + " | ".join(errors))
+            context.close()
+            browser.close()
+            print(
+                "Qingyuan page prototype passed browser verification. "
+                f"Screenshots: {len(expected)} at {output_dir}"
+            )
+            return
 
         for width, height in VIEWPORTS:
             page.set_viewport_size({"width": width, "height": height})
@@ -657,8 +721,9 @@ def verify(output_dir: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--surface-prefix")
     args = parser.parse_args()
-    verify(args.output.resolve())
+    verify(args.output.resolve(), args.surface_prefix)
     return 0
 
 

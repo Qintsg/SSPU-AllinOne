@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../design/qingyuan/qingyuan_ui.dart';
 import '../services/app_display_name_service.dart';
 import '../services/app_info_service.dart';
+import '../widgets/app_feedback.dart';
 import 'legal_notice_page.dart';
 
 /// 使用/参考的开源项目列表。
@@ -198,6 +199,100 @@ class AboutPage extends StatelessWidget {
   }
 }
 
+/// 设置“关于”中的独立开源许可任务页。
+class OpenSourceLicensesPage extends StatefulWidget {
+  const OpenSourceLicensesPage({super.key, this.launchUrlOverride});
+
+  final Future<bool> Function(Uri uri)? launchUrlOverride;
+
+  @override
+  State<OpenSourceLicensesPage> createState() => _OpenSourceLicensesPageState();
+}
+
+class _OpenSourceLicensesPageState extends State<OpenSourceLicensesPage> {
+  bool _openingExternal = false;
+  String? _externalError;
+
+  @override
+  Widget build(BuildContext context) {
+    return YhTaskPage(
+      title: '开源许可',
+      kicker: '关于工大聚合',
+      appBarEyebrow: '设置',
+      summary: '按项查看应用使用的开源软件、字体与平台能力许可。',
+      source: '随应用发布的许可清单',
+      sourceSymbol: '许',
+      width: YhTaskPageWidth.fluid,
+      canPop: !_openingExternal,
+      primaryActionLabel: '返回关于',
+      onPrimaryAction: _openingExternal
+          ? null
+          : () => Navigator.of(context).maybePop(),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_openingExternal) ...[
+            const YhBanner(text: '正在交给系统浏览器；完成前已锁定其它外部链接。'),
+            SizedBox(height: context.yhTheme.spacing.m),
+          ] else if (_externalError != null) ...[
+            YhBanner(text: _externalError!, kind: YhBannerKind.danger),
+            SizedBox(height: context.yhTheme.spacing.m),
+          ],
+          _OpenSourceProjectsView(
+            onOpenProject: _openProject,
+            operationsLocked: _openingExternal,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openProject(_OpenSourceProject project) async {
+    if (_openingExternal) return;
+    final confirmed = await YhDialog.confirm(
+      context,
+      title: '打开 ${project.name}',
+      message: '即将在系统浏览器打开 ${Uri.parse(project.url).host}。离开应用后，网页不再受本应用的本地保护。',
+      confirmText: '继续打开',
+    );
+    if (!confirmed || !mounted) {
+      if (mounted) {
+        showAppFeedback(
+          context,
+          message: '已取消打开 ${project.name}',
+          details: '许可清单和阅读位置均已保留。',
+        );
+      }
+      return;
+    }
+    setState(() {
+      _openingExternal = true;
+      _externalError = null;
+    });
+    try {
+      final uri = Uri.parse(project.url);
+      final opened = await (widget.launchUrlOverride ?? _launchExternal)(uri);
+      if (!opened && mounted) {
+        setState(() {
+          _externalError = '系统浏览器未能打开 ${project.name}；请检查默认浏览器设置后重试。';
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _externalError = '系统浏览器未能打开 ${project.name}；请检查默认浏览器设置后重试。';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _openingExternal = false);
+    }
+  }
+
+  Future<bool> _launchExternal(Uri uri) {
+    return launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+}
+
 class AboutSettingsSection extends StatelessWidget {
   const AboutSettingsSection({super.key});
 
@@ -329,52 +424,145 @@ class AboutSettingsSection extends StatelessWidget {
   }
 
   Widget _buildOpenSourceCard(BuildContext context) {
+    return _OpenSourceProjectsView(
+      onOpenProject: (project) => _openUrl(project.url),
+    );
+  }
+}
+
+class _OpenSourceProjectsView extends StatelessWidget {
+  const _OpenSourceProjectsView({
+    required this.onOpenProject,
+    this.operationsLocked = false,
+  });
+
+  final ValueChanged<_OpenSourceProject> onOpenProject;
+  final bool operationsLocked;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    final borderSide = BorderSide(color: theme.color.border);
-    return YhCard(
-      padding: EdgeInsets.zero,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Table(
-          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-          columnWidths: {
-            0: FixedColumnWidth(theme.spacing.xl2 * 3),
-            1: FixedColumnWidth(theme.spacing.xl2 * 5),
-            2: FixedColumnWidth(theme.spacing.xl2 * 3),
-            3: FixedColumnWidth(theme.spacing.xl2 * 7),
-          },
-          border: TableBorder(
-            top: borderSide,
-            right: borderSide,
-            bottom: borderSide,
-            left: borderSide,
-            horizontalInside: borderSide,
-            verticalInside: borderSide,
-          ),
-          children: [
-            TableRow(
-              decoration: BoxDecoration(color: theme.color.sunken),
-              children: const [
-                _OpenSourceHeaderCell('项目'),
-                _OpenSourceHeaderCell('使用场景'),
-                _OpenSourceHeaderCell('许可证'),
-                _OpenSourceHeaderCell('许可证说明'),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < theme.breakpoint.medium) {
+          return Column(
+            children: [
+              for (final project in _openSourceProjects) ...[
+                _OpenSourceProjectCard(
+                  project: project,
+                  onTap: operationsLocked ? null : () => onOpenProject(project),
+                ),
+                if (project != _openSourceProjects.last)
+                  SizedBox(height: theme.spacing.s),
+              ],
+            ],
+          );
+        }
+        final borderSide = BorderSide(color: theme.color.border);
+        return YhCard(
+          padding: EdgeInsets.zero,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Table(
+              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+              columnWidths: {
+                0: FixedColumnWidth(theme.spacing.xl2 * 3),
+                1: FixedColumnWidth(theme.spacing.xl2 * 5),
+                2: FixedColumnWidth(theme.spacing.xl2 * 3),
+                3: FixedColumnWidth(theme.spacing.xl2 * 7),
+              },
+              border: TableBorder(
+                top: borderSide,
+                right: borderSide,
+                bottom: borderSide,
+                left: borderSide,
+                horizontalInside: borderSide,
+                verticalInside: borderSide,
+              ),
+              children: [
+                TableRow(
+                  decoration: BoxDecoration(color: theme.color.sunken),
+                  children: const [
+                    _OpenSourceHeaderCell('项目'),
+                    _OpenSourceHeaderCell('使用场景'),
+                    _OpenSourceHeaderCell('许可证'),
+                    _OpenSourceHeaderCell('许可证说明'),
+                  ],
+                ),
+                for (final project in _openSourceProjects)
+                  TableRow(
+                    children: [
+                      _OpenSourceLinkCell(
+                        name: project.name,
+                        onTap: operationsLocked
+                            ? null
+                            : () => onOpenProject(project),
+                      ),
+                      _OpenSourceBodyCell(project.description),
+                      _OpenSourceBodyCell(project.license),
+                      _OpenSourceBodyCell(project.licenseDescription),
+                    ],
+                  ),
               ],
             ),
-            for (final project in _openSourceProjects)
-              TableRow(
-                children: [
-                  _OpenSourceLinkCell(
-                    name: project.name,
-                    onTap: () => _openUrl(project.url),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _OpenSourceProjectCard extends StatelessWidget {
+  const _OpenSourceProjectCard({required this.project, required this.onTap});
+
+  final _OpenSourceProject project;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          YhPressable(
+            semanticLabel: '打开 ${project.name}',
+            onPressed: onTap,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    project.name,
+                    style: theme.typography.body.copyWith(
+                      color: theme.color.brandInk,
+                      fontWeight: theme.typography.feed.fontWeight,
+                    ),
                   ),
-                  _OpenSourceBodyCell(project.description),
-                  _OpenSourceBodyCell(project.license),
-                  _OpenSourceBodyCell(project.licenseDescription),
-                ],
-              ),
-          ],
-        ),
+                ),
+                Icon(
+                  YhIcons.open,
+                  size: theme.spacing.m + theme.layout.divider * 2,
+                  color: theme.color.brandStrong,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: theme.spacing.s),
+          Text(project.description, style: theme.typography.body),
+          SizedBox(height: theme.spacing.s),
+          Text(
+            project.license,
+            style: theme.typography.small.copyWith(
+              color: theme.color.brandStrong,
+              fontWeight: theme.typography.feed.fontWeight,
+            ),
+          ),
+          SizedBox(height: theme.spacing.xs),
+          Text(
+            project.licenseDescription,
+            style: theme.typography.small.copyWith(color: theme.color.muted),
+          ),
+        ],
       ),
     );
   }
@@ -417,7 +605,9 @@ class _InfoRow extends StatelessWidget {
         Flexible(
           child: Text(
             value,
-            style: theme.typography.body.copyWith(fontWeight: FontWeight.w600),
+            style: theme.typography.body.copyWith(
+              fontWeight: theme.typography.feed.fontWeight,
+            ),
           ),
         ),
       ],
@@ -470,7 +660,7 @@ class _ActionTile extends StatelessWidget {
                   Text(
                     title,
                     style: theme.typography.body.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: theme.typography.feed.fontWeight,
                     ),
                   ),
                   SizedBox(height: theme.spacing.xs),
@@ -507,7 +697,9 @@ class _OpenSourceHeaderCell extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: theme.typography.body.copyWith(fontWeight: FontWeight.w600),
+        style: theme.typography.body.copyWith(
+          fontWeight: theme.typography.feed.fontWeight,
+        ),
       ),
     );
   }
@@ -538,7 +730,7 @@ class _OpenSourceLinkCell extends StatelessWidget {
   const _OpenSourceLinkCell({required this.name, required this.onTap});
 
   final String name;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -554,14 +746,18 @@ class _OpenSourceLinkCell extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(YhIcons.open, size: 18, color: theme.color.brandStrong),
+            Icon(
+              YhIcons.open,
+              size: theme.spacing.m + theme.layout.divider * 2,
+              color: theme.color.brandStrong,
+            ),
             SizedBox(width: theme.spacing.s),
             Flexible(
               child: Text(
                 name,
                 style: theme.typography.small.copyWith(
                   color: theme.color.brandInk,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: theme.typography.feed.fontWeight,
                 ),
               ),
             ),

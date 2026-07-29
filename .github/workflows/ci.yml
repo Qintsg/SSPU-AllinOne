@@ -284,6 +284,7 @@ jobs:
   visual-candidate-matrix:
     name: Qingyuan Visual Candidates (${{ matrix.platform }})
     if: github.event.pull_request.draft == false
+    needs: design-prototype-gate
     strategy:
       fail-fast: false
       matrix:
@@ -311,11 +312,67 @@ jobs:
       - name: 安装 Flutter 依赖
         run: flutter pub get
 
-      - name: 采集清源组件与静态页面视觉候选
+      - name: 下载已核验的清源设计参考
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: qingyuan-design-review
+          path: build/design-review
+
+      - name: 在桌面 runner 采集清源视觉候选
+        if: matrix.platform != 'android' && matrix.platform != 'ios'
         run: >
           flutter test test/visual/qingyuan_visual_capture_test.dart
           --dart-define=QINGYUAN_VISUAL_CAPTURE=true
           --dart-define=QINGYUAN_VISUAL_PLATFORM=${{ matrix.platform }}
+          --timeout 300s
+
+      - name: 在 Android 模拟器采集清源视觉候选
+        if: matrix.platform == 'android'
+        uses: reactivecircus/android-emulator-runner@324029e2f414c084d8b15ba075288885e74aef9c # v2.34.0
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_2
+          disable-animations: true
+          script: >
+            flutter test -d emulator-5554
+            integration_test/qingyuan_visual_capture_test.dart
+            --dart-define=QINGYUAN_VISUAL_CAPTURE=true
+            --dart-define=QINGYUAN_VISUAL_DEVICE_CAPTURE=true
+            --dart-define=QINGYUAN_VISUAL_PLATFORM=android
+            --timeout 300s
+
+      - name: 启动 iOS 模拟器
+        if: matrix.platform == 'ios'
+        shell: bash
+        run: |
+          set -euo pipefail
+          device_id="$({ xcrun simctl list devices available -j; } | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          candidates = [
+              device["udid"]
+              for runtime in devices.values()
+              for device in runtime
+              if device.get("isAvailable") and device["name"].startswith("iPhone")
+          ]
+          if not candidates:
+              raise SystemExit("No available iPhone simulator")
+          print(candidates[0])
+          ')"
+          xcrun simctl boot "$device_id" || true
+          xcrun simctl bootstatus "$device_id" -b
+          echo "QINGYUAN_IOS_DEVICE=$device_id" >> "$GITHUB_ENV"
+
+      - name: 在 iOS 模拟器采集清源视觉候选
+        if: matrix.platform == 'ios'
+        run: >
+          flutter test -d "${{ env.QINGYUAN_IOS_DEVICE }}"
+          integration_test/qingyuan_visual_capture_test.dart
+          --dart-define=QINGYUAN_VISUAL_CAPTURE=true
+          --dart-define=QINGYUAN_VISUAL_DEVICE_CAPTURE=true
+          --dart-define=QINGYUAN_VISUAL_PLATFORM=ios
           --timeout 300s
 
       - name: 校验视觉候选清单、尺寸与外部区域
@@ -325,12 +382,23 @@ jobs:
           --manifest docs/design/resources/visual-manifest.json
           --platform ${{ matrix.platform }}
 
+      - name: 逐图比较清源设计参考
+        run: >
+          dart run tool/visual_compare.dart
+          --baseline build/design-review
+          --actual build/visual/${{ matrix.platform }}
+          --output build/visual-results/${{ matrix.platform }}
+          --manifest docs/design/resources/visual-manifest.json
+          --platform ${{ matrix.platform }}
+
       - name: 上传清源视觉候选
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: qingyuan-visual-candidates-${{ matrix.platform }}
-          path: build/visual/${{ matrix.platform }}
+          path: |
+            build/visual/${{ matrix.platform }}
+            build/visual-results/${{ matrix.platform }}
           if-no-files-found: error
 
   release-policy:

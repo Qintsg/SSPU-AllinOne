@@ -14,6 +14,7 @@
     ],
     "themes": ["light", "dark"],
     "states": ["initial", "loading", "content", "empty", "stale", "error"],
+    "scenarioStates": ["external-confirmation", "external-cancelled", "external-error", "operation-locked"],
     "capture": {
       "locale": "zh_CN",
       "timezone": "Asia/Shanghai",
@@ -67,7 +68,8 @@
     {"id": "settings.home-notifications", "group": "settings", "states": ["content"]},
     {"id": "settings.appearance", "group": "settings", "states": ["content"]},
     {"id": "settings.data-privacy", "group": "settings", "states": ["content", "loading", "error"]},
-    {"id": "settings.about", "group": "settings", "states": ["content"]},
+    {"id": "settings.about", "group": "settings", "states": ["loading", "content", "error", "external-confirmation", "external-cancelled", "external-error", "operation-locked"]},
+    {"id": "settings.licenses", "group": "settings", "states": ["content", "external-confirmation", "external-cancelled", "external-error", "operation-locked"]},
     {"id": "settings.wechat-auth", "group": "settings", "states": ["initial", "loading", "content", "error"]},
     {"id": "settings.update", "group": "settings", "states": ["initial", "loading", "content", "error"]},
 

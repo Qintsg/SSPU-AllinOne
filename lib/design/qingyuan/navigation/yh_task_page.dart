@@ -26,7 +26,7 @@ class YhTaskPageAction {
   final YhButtonVariant variant;
 }
 
-class YhTaskPage extends StatelessWidget {
+class YhTaskPage extends StatefulWidget {
   const YhTaskPage({
     super.key,
     required this.title,
@@ -41,6 +41,7 @@ class YhTaskPage extends StatelessWidget {
     this.accent = YhTaskAccent.brand,
     this.width = YhTaskPageWidth.constrained,
     this.onBack,
+    this.canPop = true,
     this.appBarEyebrow,
     this.moreActions = const [],
   });
@@ -57,91 +58,115 @@ class YhTaskPage extends StatelessWidget {
   final YhTaskAccent accent;
   final YhTaskPageWidth width;
   final VoidCallback? onBack;
+  final bool canPop;
   final String? appBarEyebrow;
   final List<YhTaskPageAction> moreActions;
 
   @override
+  State<YhTaskPage> createState() => _YhTaskPageState();
+}
+
+class _YhTaskPageState extends State<YhTaskPage> {
+  final FocusNode _moreActionsFocusNode = FocusNode(
+    debugLabel: 'YhTaskPage.moreActions',
+  );
+
+  @override
+  void dispose() {
+    _moreActionsFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return YhPageScaffold(
-      appBar: YhAppBar(
-        eyebrow: appBarEyebrow ?? kicker,
-        title: source,
-        leading: YhIconButton(
-          icon: YhIcons.back,
-          semanticLabel: '返回',
-          variant: YhIconButtonVariant.ghost,
-          onTap: onBack ?? () => Navigator.of(context).maybePop(),
-        ),
-        actions: [
-          YhIconButton(
-            icon: YhIcons.more,
-            semanticLabel: '更多操作',
+    return PopScope(
+      canPop: widget.canPop,
+      child: YhPageScaffold(
+        appBar: YhAppBar(
+          eyebrow: widget.appBarEyebrow ?? widget.kicker,
+          title: widget.source,
+          leading: YhIconButton(
+            icon: YhIcons.back,
+            semanticLabel: '返回',
             variant: YhIconButtonVariant.ghost,
-            onTap: () => _showSourceInfo(context),
+            onTap: widget.canPop
+                ? widget.onBack ?? () => Navigator.of(context).maybePop()
+                : null,
           ),
-        ],
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final theme = context.yhTheme;
-          final compact =
-              MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
-          final pagePadding = compact
-              ? theme.spacing.m
-              : (MediaQuery.sizeOf(context).width *
-                        theme.responsive.panelPaddingViewportPercent /
-                        100)
-                    .clamp(theme.spacing.l, theme.spacing.xl2);
-          final minimumBodyHeight = _minimumBodyHeight(
-            theme,
-            compact: compact,
-            bodyHeight: constraints.maxHeight,
-            pagePadding: pagePadding,
-          );
-          return SingleChildScrollView(
-            padding: EdgeInsets.all(pagePadding),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: width == YhTaskPageWidth.fluid
-                      ? double.infinity
-                      : theme.layout.pageContentWidth,
-                  minHeight: constraints.maxHeight - pagePadding * 2,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _TaskHeading(
-                      title: title,
-                      kicker: kicker,
-                      summary: summary,
-                      actionLabel: primaryActionLabel,
-                      onAction: onPrimaryAction,
-                      compact: compact,
-                      accent: accent,
-                    ),
-                    SizedBox(
-                      height: compact ? theme.spacing.m : theme.spacing.l,
-                    ),
-                    _TaskSourceStrip(
-                      source: source,
-                      sourceSymbol: sourceSymbol,
-                      timestamp: sourceTimestamp,
-                      accent: accent,
-                    ),
-                    SizedBox(
-                      height: compact ? theme.spacing.m : theme.spacing.l,
-                    ),
-                    ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: minimumBodyHeight),
-                      child: body,
-                    ),
-                  ],
+          actions: [
+            YhIconButton(
+              icon: YhIcons.more,
+              semanticLabel: '更多操作',
+              variant: YhIconButtonVariant.ghost,
+              focusNode: _moreActionsFocusNode,
+              onTap: () => _showSourceInfo(context),
+            ),
+          ],
+        ),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final theme = context.yhTheme;
+            final compact =
+                MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
+            final pagePadding = compact
+                ? theme.spacing.m
+                : (MediaQuery.sizeOf(context).width *
+                          theme.responsive.panelPaddingViewportPercent /
+                          100)
+                      .clamp(theme.spacing.l, theme.spacing.xl2);
+            final minimumBodyHeight = _minimumBodyHeight(
+              theme,
+              compact: compact,
+              bodyHeight: constraints.maxHeight,
+              pagePadding: pagePadding,
+            );
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(pagePadding),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: widget.width == YhTaskPageWidth.fluid
+                        ? double.infinity
+                        : theme.layout.pageContentWidth,
+                    minHeight: constraints.maxHeight - pagePadding * 2,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _TaskHeading(
+                        title: widget.title,
+                        kicker: widget.kicker,
+                        summary: widget.summary,
+                        actionLabel: widget.primaryActionLabel,
+                        onAction: widget.onPrimaryAction,
+                        compact: compact,
+                        accent: widget.accent,
+                      ),
+                      SizedBox(
+                        height: compact ? theme.spacing.m : theme.spacing.l,
+                      ),
+                      _TaskSourceStrip(
+                        source: widget.source,
+                        sourceSymbol: widget.sourceSymbol,
+                        timestamp: widget.sourceTimestamp,
+                        accent: widget.accent,
+                      ),
+                      SizedBox(
+                        height: compact ? theme.spacing.m : theme.spacing.l,
+                      ),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: minimumBodyHeight,
+                        ),
+                        child: widget.body,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -172,8 +197,8 @@ class YhTaskPage extends StatelessWidget {
     );
   }
 
-  void _showSourceInfo(BuildContext context) {
-    YhBottomDrawer.show<void>(
+  Future<void> _showSourceInfo(BuildContext context) async {
+    final selectedAction = await YhBottomDrawer.show<YhTaskPageAction>(
       context,
       title: '来源信息',
       builder: (drawerContext) {
@@ -182,27 +207,24 @@ class YhTaskPage extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(source),
-            if (sourceTimestamp != null) ...[
+            Text(widget.source),
+            if (widget.sourceTimestamp != null) ...[
               SizedBox(height: theme.spacing.s),
               Text(
-                sourceTimestamp!,
+                widget.sourceTimestamp!,
                 style: theme.typography.small.copyWith(
                   color: theme.color.muted,
                 ),
               ),
             ],
-            for (final action in moreActions) ...[
+            for (final action in widget.moreActions) ...[
               SizedBox(height: theme.spacing.s),
               YhButton(
                 label: action.label,
                 variant: action.variant,
                 onTap: action.onTap == null
                     ? null
-                    : () {
-                        Navigator.of(drawerContext).pop();
-                        action.onTap!();
-                      },
+                    : () => Navigator.of(drawerContext).pop(action),
               ),
             ],
             SizedBox(height: theme.spacing.l),
@@ -215,6 +237,9 @@ class YhTaskPage extends StatelessWidget {
         );
       },
     );
+    if (!mounted) return;
+    _moreActionsFocusNode.requestFocus();
+    selectedAction?.onTap?.call();
   }
 }
 

@@ -290,6 +290,7 @@ class YhProgressTokens {
 @immutable
 class YhOpacityTokens {
   const YhOpacityTokens({
+    this.disabled = 0.4,
     this.domainTint = 0.14,
     this.contentMuted = 0.82,
     this.timelineMeta = 0.72,
@@ -302,7 +303,7 @@ class YhOpacityTokens {
     this.timelineOrbitOuter = 0.03,
   });
 
-  final double domainTint, contentMuted;
+  final double disabled, domainTint, contentMuted;
   final double timelineMeta, timelineDetail, timelineTrack, timelineDot;
   final double timelineCurrentRing;
   final double timelineOrbit, timelineOrbitMid, timelineOrbitOuter;

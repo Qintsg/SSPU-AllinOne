@@ -31,6 +31,7 @@ import 'package:sspu_allinone/pages/legal_notice_page.dart';
 import 'package:sspu_allinone/pages/lock_page.dart';
 import 'package:sspu_allinone/pages/quick_links_page.dart';
 import 'package:sspu_allinone/pages/settings_appearance_page.dart';
+import 'package:sspu_allinone/pages/settings_about_page.dart';
 import 'package:sspu_allinone/pages/settings_data_privacy_page.dart';
 import 'package:sspu_allinone/pages/settings_wechat_auth_page.dart';
 import 'package:sspu_allinone/pages/settings_update_page.dart';
@@ -51,6 +52,7 @@ import 'package:sspu_allinone/widgets/settings_wechat_auth_status_card.dart';
 import '../support/qingyuan_visual_fixtures.dart';
 
 const _captureEnabled = bool.fromEnvironment('QINGYUAN_VISUAL_CAPTURE');
+const _deviceCapture = bool.fromEnvironment('QINGYUAN_VISUAL_DEVICE_CAPTURE');
 const _surfacePrefix = String.fromEnvironment('QINGYUAN_VISUAL_SURFACE_PREFIX');
 const _platform = String.fromEnvironment(
   'QINGYUAN_VISUAL_PLATFORM',
@@ -94,10 +96,12 @@ void main() {
             '${viewport.width.toInt()}x${viewport.height.toInt()}', (
           tester,
         ) async {
-          debugDefaultTargetPlatformOverride = _targetPlatform;
+          if (!_deviceCapture) {
+            debugDefaultTargetPlatformOverride = _targetPlatform;
+          }
           try {
-            final output = Directory('build/visual/$_platform')
-              ..createSync(recursive: true);
+            final output = Directory('build/visual/$_platform');
+            if (!_deviceCapture) output.createSync(recursive: true);
             await tester.binding.setSurfaceSize(viewport);
             final themeName = mode == YhThemeMode.light ? 'light' : 'dark';
             final boundaryKey = GlobalKey();
@@ -111,19 +115,19 @@ void main() {
                     destinationOverrides: {surface.destination!: page},
                   );
             await tester.pumpWidget(
-              YhApp(
-                themeMode: mode,
-                home: MediaQuery(
-                  data: MediaQueryData(
-                    size: viewport,
-                    devicePixelRatio: 1,
-                    disableAnimations: true,
-                    platformBrightness: mode == YhThemeMode.light
-                        ? Brightness.light
-                        : Brightness.dark,
-                  ),
-                  child: RepaintBoundary(
-                    key: boundaryKey,
+              RepaintBoundary(
+                key: boundaryKey,
+                child: YhApp(
+                  themeMode: mode,
+                  home: MediaQuery(
+                    data: MediaQueryData(
+                      size: viewport,
+                      devicePixelRatio: 1,
+                      disableAnimations: true,
+                      platformBrightness: mode == YhThemeMode.light
+                          ? Brightness.light
+                          : Brightness.dark,
+                    ),
                     child: SizedBox.expand(child: content),
                   ),
                 ),
@@ -146,10 +150,11 @@ void main() {
                 viewport: viewport,
               );
             }
-            expect(target.lengthSync(), greaterThan(0));
             await surface.cleanup?.call(tester);
           } finally {
-            debugDefaultTargetPlatformOverride = null;
+            if (!_deviceCapture) {
+              debugDefaultTargetPlatformOverride = null;
+            }
           }
         }, skip: !_captureEnabled);
       }
@@ -217,7 +222,8 @@ Future<void> _capture(
   if (result == null) throw StateError('Flutter 截图任务未返回：${target.path}');
   expect(result.width, viewport.width.toInt());
   expect(result.height, viewport.height.toInt());
-  target.writeAsBytesSync(result.bytes, flush: true);
+  await _writeVisualArtifact(target.path, result.bytes);
+  expect(result.bytes, isNotEmpty);
 }
 
 Future<void> _writeExternalRegionSidecar({
@@ -235,20 +241,32 @@ Future<void> _writeExternalRegionSidecar({
   if (rect.isEmpty) {
     throw StateError('外部区域 $regionId 没有可比较像素：${target.path}');
   }
-  File('${target.path}.regions.json').writeAsStringSync(
-    const JsonEncoder.withIndent('  ').convert({
-      'externalRegions': [
-        {
-          'id': regionId,
-          'x': rect.left.round(),
-          'y': rect.top.round(),
-          'width': rect.width.round(),
-          'height': rect.height.round(),
-        },
-      ],
-    }),
-    flush: true,
+  final sidecar = const JsonEncoder.withIndent('  ').convert({
+    'externalRegions': [
+      {
+        'id': regionId,
+        'x': rect.left.round(),
+        'y': rect.top.round(),
+        'width': rect.width.round(),
+        'height': rect.height.round(),
+      },
+    ],
+  });
+  await _writeVisualArtifact(
+    '${target.path}.regions.json',
+    Uint8List.fromList(utf8.encode('$sidecar\n')),
   );
+}
+
+Future<void> _writeVisualArtifact(String path, Uint8List bytes) async {
+  if (_deviceCapture) {
+    final hostRelativePath = '../${path.replaceAll('\\', '/')}';
+    await goldenFileComparator.update(Uri.parse(hostRelativePath), bytes);
+    return;
+  }
+  final target = File(path);
+  target.parent.createSync(recursive: true);
+  target.writeAsBytesSync(bytes, flush: true);
 }
 
 class _CapturedPng {
@@ -798,7 +816,65 @@ final _surfaces = <_VisualSurface>[
     state: 'error',
     prepare: _startSettingsUpdateCheck,
   ),
-  _VisualSurface('settings.about', () => const AboutPage()),
+  for (final state in SettingsAboutState.values)
+    _VisualSurface(
+      'settings.about',
+      () => _settingsAbout(state),
+      state: state.name,
+    ),
+  _VisualSurface(
+    'settings.about',
+    _interactiveSettingsAbout,
+    state: 'external-confirmation',
+    prepare: _showAboutExternalConfirmation,
+  ),
+  _VisualSurface(
+    'settings.about',
+    _interactiveSettingsAbout,
+    state: 'external-cancelled',
+    prepare: _cancelAboutExternalConfirmation,
+    cleanup: _dismissTransientFeedback,
+  ),
+  _VisualSurface(
+    'settings.about',
+    _failingSettingsAbout,
+    state: 'external-error',
+    prepare: _confirmAboutExternalOpen,
+  ),
+  _VisualSurface(
+    'settings.about',
+    _pendingSettingsAbout,
+    state: 'operation-locked',
+    prepare: _confirmAboutExternalOpen,
+    cleanup: _completeAboutExternalOpen,
+  ),
+  _VisualSurface('settings.licenses', _interactiveSettingsLicenses),
+  _VisualSurface(
+    'settings.licenses',
+    _interactiveSettingsLicenses,
+    state: 'external-confirmation',
+    prepare: _showLicenseExternalConfirmation,
+  ),
+  _VisualSurface(
+    'settings.licenses',
+    _interactiveSettingsLicenses,
+    state: 'external-cancelled',
+    prepare: _cancelLicenseExternalConfirmation,
+    cleanup: _dismissTransientFeedback,
+  ),
+  _VisualSurface(
+    'settings.licenses',
+    _failingSettingsLicenses,
+    state: 'external-error',
+    prepare: _confirmLicenseExternalOpen,
+  ),
+  _VisualSurface(
+    'settings.licenses',
+    _pendingSettingsLicenses,
+    state: 'operation-locked',
+    prepare: _confirmLicenseExternalOpen,
+    cleanup: _completeLicenseExternalOpen,
+  ),
   _VisualSurface(
     'external.webview',
     () => _externalWebViewSurface(loading: true),
@@ -1065,6 +1141,110 @@ Widget _settingsWechatAuth(SettingsWechatAuthDisplayState state) =>
       ),
     );
 
+Widget _settingsAbout(SettingsAboutState state) => _stateReferenceShell(
+  SettingsAboutPage(
+    previewState: state,
+    sourceTimestamp: '2026-07-18 · 09:30',
+    previewSnapshot: const SettingsAboutSnapshot(version: '1.0.0'),
+  ),
+);
+
+Completer<bool>? _aboutExternalOpen;
+Completer<bool>? _licenseExternalOpen;
+
+Widget _interactiveSettingsAbout() =>
+    _settingsAboutWithLauncher((_) async => true);
+
+Widget _failingSettingsAbout() =>
+    _settingsAboutWithLauncher((_) async => false);
+
+Widget _pendingSettingsAbout() {
+  _aboutExternalOpen = Completer<bool>();
+  return _settingsAboutWithLauncher((_) => _aboutExternalOpen!.future);
+}
+
+Widget _settingsAboutWithLauncher(Future<bool> Function(Uri) launcher) =>
+    _stateReferenceShell(
+      SettingsAboutPage(
+        loader: () async => const SettingsAboutSnapshot(version: '1.0.0'),
+        sourceTimestamp: '2026-07-18 · 09:30',
+        launchUrlOverride: launcher,
+      ),
+    );
+
+Future<void> _showAboutExternalConfirmation(WidgetTester tester) async {
+  await tester.tap(find.bySemanticsLabel('更多操作'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('打开 GitHub 仓库'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _cancelAboutExternalConfirmation(WidgetTester tester) async {
+  await _showAboutExternalConfirmation(tester);
+  await tester.tap(find.text('取消'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _confirmAboutExternalOpen(WidgetTester tester) async {
+  await _showAboutExternalConfirmation(tester);
+  await tester.tap(find.text('继续打开'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _completeAboutExternalOpen(WidgetTester tester) async {
+  final pending = _aboutExternalOpen;
+  if (pending != null && !pending.isCompleted) pending.complete(true);
+  await tester.pumpAndSettle();
+}
+
+Widget _interactiveSettingsLicenses() =>
+    _settingsLicensesWithLauncher((_) async => true);
+
+Widget _failingSettingsLicenses() =>
+    _settingsLicensesWithLauncher((_) async => false);
+
+Widget _pendingSettingsLicenses() {
+  _licenseExternalOpen = Completer<bool>();
+  return _settingsLicensesWithLauncher((_) => _licenseExternalOpen!.future);
+}
+
+Widget _settingsLicensesWithLauncher(Future<bool> Function(Uri) launcher) =>
+    _stateReferenceShell(OpenSourceLicensesPage(launchUrlOverride: launcher));
+
+Future<void> _showLicenseExternalConfirmation(WidgetTester tester) async {
+  final target = find.bySemanticsLabel('打开 Flutter');
+  final detector = tester.widget<FocusableActionDetector>(
+    find.descendant(of: target, matching: find.byType(FocusableActionDetector)),
+  );
+  detector.focusNode?.requestFocus();
+  await tester.pump();
+  await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _cancelLicenseExternalConfirmation(WidgetTester tester) async {
+  await tester.tap(find.bySemanticsLabel('打开 Flutter'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('取消'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _confirmLicenseExternalOpen(WidgetTester tester) async {
+  await _showLicenseExternalConfirmation(tester);
+  await tester.tap(find.text('继续打开'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _completeLicenseExternalOpen(WidgetTester tester) async {
+  final pending = _licenseExternalOpen;
+  if (pending != null && !pending.isCompleted) pending.complete(true);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _dismissTransientFeedback(WidgetTester tester) async {
+  await tester.pump(const Duration(seconds: 3));
+}
+
 Widget _settingsUpdateInitial() => _settingsUpdateSurface(
   _VisualUpdateService(() async => _visualUpdateResult),
 );
@@ -1143,7 +1323,7 @@ Widget _externalWebViewSurface({required bool loading}) => WebViewPageFrame(
     title: loading ? '网页正在加载' : '上海第二工业大学校园门户',
     message: loading
         ? '平台 WebView runner 将在此处加载真实网页。'
-        : '网页正文属于外部区域，按 SSIM 0.95 独立验收。',
+        : '网页正文属于外部区域，按 SSIM 0.90 独立验收。',
     loading: loading,
   ),
 );
@@ -1167,7 +1347,7 @@ Widget _externalPdfSurface(String state) => AcademicCalendarPdfFrame(
     message: switch (state) {
       'loading' => '正在准备页面与字体…',
       'error' => '无法读取 PDF。可使用右上角按钮在外部应用中打开。',
-      _ => 'PDF 正文属于外部区域，按 SSIM 0.95 独立验收。',
+      _ => 'PDF 正文属于外部区域，按 SSIM 0.90 独立验收。',
     },
     loading: state == 'loading',
   ),
@@ -1205,7 +1385,7 @@ Widget _externalSystemAuthSurface(String state) => Builder(
                     message: switch (state) {
                       'initial' => '系统即将请求设备 PIN 或生物识别。',
                       'error' => '请重试系统认证，或返回应用输入密码。',
-                      _ => '此区域由操作系统绘制，按 SSIM 0.95 独立验收。',
+                      _ => '此区域由操作系统绘制，按 SSIM 0.90 独立验收。',
                     },
                   ),
                 ),
@@ -1653,7 +1833,7 @@ Widget _academicCalendarPage(QingyuanVisualAcademicCalendarClient service) {
                 : '${entry.schoolYearLabel} · 外部 PDF 区域',
             message: entry == null
                 ? '从校历列表选择一个学年。'
-                : '平台 runner 验证真实 PDF 正文；此区域按外部内容 0.95 独立判定。',
+                : '平台 runner 验证真实 PDF 正文；此区域按外部内容 0.90 独立判定。',
           ),
         ),
       );

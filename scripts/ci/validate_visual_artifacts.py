@@ -12,7 +12,7 @@ import struct
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 FILE_PATTERN = re.compile(
-    r"^(?P<surface>.+)--(?P<state>[^-]+)--(?P<theme>light|dark)--"
+    r"^(?P<surface>.+?)--(?P<state>[a-z0-9]+(?:-[a-z0-9]+)*)--(?P<theme>light|dark)--"
     r"(?P<width>\d+)x(?P<height>\d+)\.png$"
 )
 
