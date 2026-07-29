@@ -446,6 +446,19 @@ class DesignSystemValidatorTest(unittest.TestCase):
             with self.assertRaisesRegex(DesignSystemValidationError, r"应用自绘阈值必须为 0.90"):
                 validate_design_system(root)
 
+    def test_visual_manifest_requires_interaction_acceptance_checks(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            manifest = root / "docs" / "design" / "resources" / "visual-manifest.json"
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            payload["meta"]["interactionChecks"] = ["inline-retry"]
+            manifest.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+            with self.assertRaisesRegex(DesignSystemValidationError, r"交互验收必须覆盖"):
+                validate_design_system(root)
+
     def test_visual_manifest_scenario_states_cannot_conflict_with_six_states(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

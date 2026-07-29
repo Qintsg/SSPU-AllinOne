@@ -939,9 +939,23 @@ final _surfaces = <_VisualSurface>[
   ),
   _VisualSurface(
     'external.webview',
-    () => const WebViewPage(url: 'invalid-url', initialTitle: '校园服务'),
+    _externalWebViewFailureSurface,
     state: 'error',
   ),
+  _VisualSurface(
+    'external.webview',
+    _externalWebViewConfirmationSurface,
+    state: 'external-confirmation',
+    prepare: _showWebViewExternalConfirmation,
+  ),
+  for (final state in const ['external-error', 'operation-locked'])
+    _VisualSurface(
+      'external.webview',
+      () => _externalWebViewRetainedSurface(state),
+      state: state,
+      externalRegionId: 'document',
+      externalRegionKey: _webViewExternalRegionKey,
+    ),
   for (final state in const ['loading', 'content', 'error'])
     _VisualSurface(
       'external.pdf',
@@ -1378,6 +1392,87 @@ Widget _externalWebViewSurface({required bool loading}) => WebViewPageFrame(
     loading: loading,
   ),
 );
+
+Widget _externalWebViewFailureSurface() => WebViewPageFrame(
+  title: '校园门户',
+  onBackPressed: () {},
+  actions: [
+    YhIconButton(semanticLabel: '刷新', icon: YhIcons.refresh, onTap: () {}),
+    YhIconButton(semanticLabel: '在浏览器中打开', icon: YhIcons.open, onTap: () {}),
+  ],
+  document: WebViewFailureDocument(
+    target: 'portal.example.invalid',
+    loadError: '校园网或 WebView 运行时暂不可用',
+    onRetry: () {},
+    onOpenExternal: () {},
+  ),
+);
+
+Widget _externalWebViewRetainedSurface(String state) {
+  final openingExternal = state == 'operation-locked';
+  const externalError = '系统浏览器未能打开校园网页；仍停留在应用内，可检查默认浏览器设置后重试。';
+  return WebViewPageFrame(
+    title: '校园门户',
+    onBackPressed: () {},
+    statusBanner: openingExternal
+        ? const YhBanner(
+            kind: YhBannerKind.info,
+            text: '正在交给系统浏览器；完成前已锁定重复外部打开，网页和返回路径保持可用。',
+          )
+        : state != 'external-error'
+        ? null
+        : const YhBanner(kind: YhBannerKind.danger, text: externalError),
+    actions: [
+      YhIconButton(
+        semanticLabel: '刷新',
+        icon: YhIcons.refresh,
+        onTap: openingExternal ? null : () {},
+      ),
+      YhIconButton(
+        semanticLabel: '在浏览器中打开',
+        icon: YhIcons.open,
+        onTap: openingExternal ? null : () {},
+      ),
+    ],
+    document: _externalDocumentRegion(
+      key: _webViewExternalRegionKey,
+      icon: YhIcons.open,
+      title: '上海第二工业大学校园门户',
+      message: '网页正文属于外部区域，按 SSIM 0.90 独立验收。',
+    ),
+  );
+}
+
+Widget _externalWebViewConfirmationSurface() => Builder(
+  builder: (context) => WebViewPageFrame(
+    title: '校园门户',
+    onBackPressed: () {},
+    actions: [
+      YhIconButton(semanticLabel: '刷新', icon: YhIcons.refresh, onTap: () {}),
+      YhIconButton(
+        semanticLabel: '在浏览器中打开',
+        icon: YhIcons.open,
+        onTap: () => unawaited(
+          confirmWebViewExternalOpen(
+            context,
+            Uri.parse('https://portal.example.invalid/'),
+          ),
+        ),
+      ),
+    ],
+    document: _externalDocumentRegion(
+      key: _webViewExternalRegionKey,
+      icon: YhIcons.open,
+      title: '上海第二工业大学校园门户',
+      message: '网页正文属于外部区域，按 SSIM 0.90 独立验收。',
+    ),
+  ),
+);
+
+Future<void> _showWebViewExternalConfirmation(WidgetTester tester) async {
+  await tester.tap(find.bySemanticsLabel('在浏览器中打开'));
+  await tester.pumpAndSettle();
+}
 
 Widget _externalPdfSurface(String state) => AcademicCalendarPdfFrame(
   title: '2025—2026 学年校历',

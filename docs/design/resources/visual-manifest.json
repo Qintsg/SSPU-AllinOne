@@ -15,6 +15,7 @@
     "themes": ["light", "dark"],
     "states": ["initial", "loading", "content", "empty", "stale", "error"],
     "scenarioStates": ["external-confirmation", "external-cancelled", "external-error", "operation-locked", "partial-error", "credentials-required", "credentials-partial"],
+    "interactionChecks": ["single-flight", "stale-result-isolation", "system-back", "cancel", "context-preservation", "inline-retry", "external-failure"],
     "capture": {
       "locale": "zh_CN",
       "timezone": "Asia/Shanghai",
@@ -77,7 +78,7 @@
     {"id": "legal.privacy", "group": "legal", "states": ["content"]},
     {"id": "legal.agreement", "group": "legal", "states": ["content"]},
 
-    {"id": "external.webview", "group": "external", "states": ["loading", "content", "error"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content"]}},
+    {"id": "external.webview", "group": "external", "states": ["loading", "content", "error", "external-confirmation", "external-error", "operation-locked"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content", "external-error", "operation-locked"]}},
     {"id": "external.pdf", "group": "external", "states": ["loading", "content", "error"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content"]}},
     {"id": "external.system-auth", "group": "external", "states": ["initial", "content", "error"], "externalRegions": ["system-dialog"], "externalRegionStates": {"system-dialog": ["content"]}}
   ]

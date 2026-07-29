@@ -8,6 +8,7 @@
 
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'dart:async';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart' as qingyuan;
 import 'package:sspu_allinone/pages/webview_page.dart';
@@ -97,6 +98,251 @@ void main() {
     expect(testPlatform.controller.goBackCount, 1);
   });
 
+  testWidgets('WebView 快速重复返回只执行一次网页后退', (tester) async {
+    testPlatform.controller.canGoBackValue = true;
+    testPlatform.controller.goBackCompletion = Completer<void>();
+
+    await tester.pumpWidget(
+      const YhApp(
+        home: WebViewPage(
+          url: 'https://example.com/news',
+          initialTitle: '网页标题',
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final back = find.byKey(const Key('webview-back-close-button'));
+    await tester.tap(back);
+    await tester.tap(back);
+    await tester.pump();
+
+    expect(testPlatform.controller.goBackCount, 1);
+    testPlatform.controller.goBackCompletion!.complete();
+    await tester.pump();
+  });
+
+  testWidgets('WebView 系统返回与工具栏协同并优先后退网页历史', (tester) async {
+    testPlatform.controller.canGoBackValue = true;
+
+    await tester.pumpWidget(
+      const YhApp(
+        home: WebViewPage(
+          url: 'https://example.com/news',
+          initialTitle: '网页标题',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+
+    expect(testPlatform.controller.goBackCount, 1);
+    expect(find.byType(WebViewPage), findsOneWidget);
+  });
+
+  testWidgets('WebView 主文档失败时不虚报已外部打开并提供原地恢复', (tester) async {
+    testPlatform.controller.mainFrameErrorDescription = 'network unavailable';
+
+    await tester.pumpWidget(
+      const YhApp(
+        home: WebViewPage(
+          url: 'https://example.com/news',
+          initialTitle: '校园网页',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('网页加载失败'), findsOneWidget);
+    expect(find.textContaining('network unavailable'), findsOneWidget);
+    expect(find.textContaining('已在默认浏览器中打开'), findsNothing);
+    expect(find.text('重新加载'), findsOneWidget);
+    expect(find.text('在浏览器中打开'), findsOneWidget);
+
+    await tester.tap(find.text('重新加载'));
+    await tester.pump();
+
+    expect(testPlatform.widgetCreationCount, 2);
+    expect(testPlatform.controller.reloadCount, 0);
+    expect(find.text('网页加载失败'), findsNothing);
+  });
+
+  testWidgets('WebView 重定向失败时原地重试失败请求地址', (tester) async {
+    await tester.pumpWidget(
+      const YhApp(
+        home: WebViewPage(
+          url: 'https://example.com/news',
+          initialTitle: '校园网页',
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await testPlatform.controller.failMainFrame(
+      'https://example.com/next',
+      'network unavailable',
+    );
+    await tester.pump();
+    await tester.tap(find.text('重新加载'));
+    await tester.pump();
+
+    expect(testPlatform.createdUrls.last, 'https://example.com/next');
+  });
+
+  testWidgets('WebView 运行时未创建时转入可恢复错误而不是永久等待', (tester) async {
+    testPlatform.dispatchCallbacks = false;
+
+    await tester.pumpWidget(
+      const YhApp(
+        home: WebViewPage(
+          url: 'https://example.com/news',
+          initialTitle: '校园网页',
+          initializationTimeout: Duration(milliseconds: 20),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 30));
+
+    expect(find.text('网页加载失败'), findsOneWidget);
+    expect(find.textContaining('WebView 运行时未响应'), findsOneWidget);
+    expect(find.text('重新加载'), findsOneWidget);
+  });
+
+  testWidgets('WebView 外部打开单飞且失败后保留当前网页与重试入口', (tester) async {
+    final completion = Completer<bool>();
+    var launchCount = 0;
+
+    await tester.pumpWidget(
+      YhApp(
+        home: WebViewPage(
+          url: 'https://example.com/news',
+          initialTitle: '校园网页',
+          launchUrlOverride: (_) {
+            launchCount++;
+            return completion.future;
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final externalAction = find.bySemanticsLabel('在浏览器中打开');
+    await tester.tap(externalAction);
+    await tester.pumpAndSettle();
+
+    expect(find.text('在系统浏览器中打开？'), findsOneWidget);
+    expect(find.textContaining('example.com'), findsOneWidget);
+    expect(find.textContaining('不再受本应用的本地保护'), findsOneWidget);
+    expect(launchCount, 0);
+
+    await tester.tap(find.text('继续打开'));
+    await tester.pump();
+    await tester.tap(find.bySemanticsLabel('刷新'));
+    await tester.pump();
+
+    expect(launchCount, 1);
+    expect(testPlatform.controller.reloadCount, 0);
+    expect(find.textContaining('正在交给系统浏览器'), findsOneWidget);
+    expect(find.byKey(const Key('fake-in-app-webview')), findsOneWidget);
+
+    completion.complete(false);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.textContaining('系统浏览器未能打开校园网页'), findsOneWidget);
+    expect(find.byKey(const Key('fake-in-app-webview')), findsOneWidget);
+
+    await tester.tap(externalAction);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('继续打开'));
+    await tester.pump();
+    expect(launchCount, 2);
+  });
+
+  testWidgets('WebView 导航后丢弃旧 URL 的外部打开失败结果', (tester) async {
+    final completion = Completer<bool>();
+    await tester.pumpWidget(
+      YhApp(
+        home: WebViewPage(
+          url: 'https://example.com/news',
+          initialTitle: '校园网页',
+          launchUrlOverride: (_) => completion.future,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.bySemanticsLabel('在浏览器中打开'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('继续打开'));
+    await tester.pump();
+
+    await testPlatform.controller.visit('https://example.com/next');
+    await tester.pump();
+    completion.complete(false);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.textContaining('系统浏览器未能打开校园网页'), findsNothing);
+    expect(find.byKey(const Key('fake-in-app-webview')), findsOneWidget);
+  });
+
+  testWidgets('WebView 导航到新地址时清除旧页面的外部打开失败', (tester) async {
+    await tester.pumpWidget(
+      YhApp(
+        home: WebViewPage(
+          url: 'https://example.com/news',
+          initialTitle: '校园网页',
+          launchUrlOverride: (_) async => false,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.bySemanticsLabel('在浏览器中打开'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('继续打开'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.textContaining('系统浏览器未能打开校园网页'), findsOneWidget);
+
+    await testPlatform.controller.visit('https://example.com/next');
+    await tester.pump();
+
+    expect(find.textContaining('系统浏览器未能打开校园网页'), findsNothing);
+    expect(find.byKey(const Key('fake-in-app-webview')), findsOneWidget);
+  });
+
+  testWidgets('WebView 取消外部打开时保留网页且不启动系统浏览器', (tester) async {
+    var launchCount = 0;
+    await tester.pumpWidget(
+      YhApp(
+        home: WebViewPage(
+          url: 'https://example.com/news',
+          initialTitle: '校园网页',
+          launchUrlOverride: (_) async {
+            launchCount++;
+            return true;
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.bySemanticsLabel('在浏览器中打开'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+
+    expect(launchCount, 0);
+    expect(find.byKey(const Key('fake-in-app-webview')), findsOneWidget);
+    expect(find.byType(WebViewPage), findsOneWidget);
+  });
+
   testWidgets('WebView 无效链接仍保留刷新与外部打开工具栏动作', (tester) async {
     await tester.pumpWidget(
       const YhApp(
@@ -143,6 +389,59 @@ void main() {
     expect(testPlatform.controller.goBackCount, 0);
     expect(find.text('打开 WebView'), findsOneWidget);
     expect(find.text('网页标题'), findsNothing);
+  });
+
+  testWidgets('WebView 历史能力异常时返回仍安全退出当前路由', (tester) async {
+    testPlatform.controller.canGoBackError = StateError('controller disposed');
+
+    await tester.pumpWidget(
+      YhApp(
+        home: Builder(
+          builder: (context) => YhButton(
+            label: '打开异常 WebView',
+            onTap: () => Navigator.of(context).push(
+              YhPageRoute(
+                builder: (_) => const WebViewPage(
+                  url: 'https://example.com/news',
+                  initialTitle: '网页标题',
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('打开异常 WebView'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('webview-back-close-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('打开异常 WebView'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('WebView 根路由无法退出后下一次系统返回仍重新检查网页历史', (tester) async {
+    testPlatform.controller.canGoBackValue = false;
+    await tester.pumpWidget(
+      const YhApp(
+        home: WebViewPage(
+          url: 'https://example.com/news',
+          initialTitle: '网页标题',
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    await tester.pump();
+
+    testPlatform.controller.canGoBackValue = true;
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+
+    expect(testPlatform.controller.goBackCount, 1);
   });
 
   testWidgets('WebView 无效链接状态页也保留顶部退出入口', (tester) async {
@@ -246,6 +545,9 @@ Future<void> _resetMobileView(WidgetTester tester) async {
 class _TestInAppWebViewPlatform extends InAppWebViewPlatform {
   final _TestPlatformInAppWebViewController controller =
       _TestPlatformInAppWebViewController();
+  bool dispatchCallbacks = true;
+  int widgetCreationCount = 0;
+  final List<String?> createdUrls = [];
 
   @override
   PlatformInAppWebViewController createPlatformInAppWebViewController(
@@ -258,20 +560,36 @@ class _TestInAppWebViewPlatform extends InAppWebViewPlatform {
   PlatformInAppWebViewWidget createPlatformInAppWebViewWidget(
     PlatformInAppWebViewWidgetCreationParams params,
   ) {
-    return _TestPlatformInAppWebViewWidget(params, controller);
+    widgetCreationCount++;
+    createdUrls.add(params.initialUrlRequest?.url.toString());
+    return _TestPlatformInAppWebViewWidget(
+      params,
+      controller,
+      dispatchCallbacks: dispatchCallbacks,
+    );
   }
 }
 
 class _TestPlatformInAppWebViewWidget extends PlatformInAppWebViewWidget {
-  _TestPlatformInAppWebViewWidget(super.params, this.controller)
-    : super.implementation();
+  _TestPlatformInAppWebViewWidget(
+    super.params,
+    this.controller, {
+    required this.dispatchCallbacks,
+  }) : super.implementation();
 
   final _TestPlatformInAppWebViewController controller;
+  final bool dispatchCallbacks;
 
   @override
   Widget build(BuildContext context) {
     final appController = params.controllerFromPlatform?.call(controller);
-    if (appController is InAppWebViewController &&
+    if (appController is InAppWebViewController) {
+      controller.appController = appController;
+      controller.onUpdateVisitedHistory = params.onUpdateVisitedHistory;
+      controller.onReceivedError = params.onReceivedError;
+    }
+    if (dispatchCallbacks &&
+        appController is InAppWebViewController &&
         !controller.callbacksDispatched) {
       controller.callbacksDispatched = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -324,13 +642,24 @@ class _TestPlatformInAppWebViewController
   int reloadCount = 0;
   bool callbacksDispatched = false;
   String? mainFrameErrorDescription;
+  Object? canGoBackError;
+  Completer<void>? goBackCompletion;
+  InAppWebViewController? appController;
+  void Function(InAppWebViewController, WebUri?, bool?)? onUpdateVisitedHistory;
+  void Function(InAppWebViewController, WebResourceRequest, WebResourceError)?
+  onReceivedError;
 
   @override
-  Future<bool> canGoBack() async => canGoBackValue;
+  Future<bool> canGoBack() async {
+    final error = canGoBackError;
+    if (error != null) throw error;
+    return canGoBackValue;
+  }
 
   @override
   Future<void> goBack() async {
     goBackCount++;
+    await goBackCompletion?.future;
   }
 
   @override
@@ -344,6 +673,25 @@ class _TestPlatformInAppWebViewController
   @override
   Future<void> reload() async {
     reloadCount++;
+  }
+
+  Future<void> visit(String url) async {
+    final controller = appController;
+    if (controller == null) throw StateError('WebView controller not ready');
+    onUpdateVisitedHistory?.call(controller, WebUri(url), false);
+  }
+
+  Future<void> failMainFrame(String url, String description) async {
+    final controller = appController;
+    if (controller == null) throw StateError('WebView controller not ready');
+    onReceivedError?.call(
+      controller,
+      WebResourceRequest(url: WebUri(url), isForMainFrame: true),
+      WebResourceError(
+        description: description,
+        type: WebResourceErrorType.UNKNOWN,
+      ),
+    );
   }
 
   @override

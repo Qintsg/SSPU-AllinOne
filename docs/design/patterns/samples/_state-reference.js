@@ -166,6 +166,33 @@
     return `${base}<div class="reference-modal-scrim"><section class="reference-card reference-modal" role="dialog" aria-modal="true" aria-labelledby="${titleId}" data-reference-modal><h2 id="${titleId}">打开${entry.id === 'settings.licenses' ? ' Flutter' : ' GitHub 仓库'}</h2><p>即将在系统浏览器打开 ${target}。离开应用后，网页不再受本应用的本地保护。</p><div><button type="button" data-reference-modal-cancel>取消</button><button class="reference-demo-primary" type="button">继续打开</button></div></section></div>`;
   }
 
+  function webViewSurfaceMarkup(entry, state) {
+    const busy = state === 'operation-locked';
+    const externalError = state === 'external-error';
+    const externalConfirmation = state === 'external-confirmation';
+    const loading = state === 'loading';
+    const content = state === 'content';
+    const banner = busy
+      ? '<div class="reference-banner" role="status">正在交给系统浏览器；完成前已锁定重复外部打开，网页和返回路径保持可用。</div>'
+      : externalError
+      ? '<div class="reference-banner is-error" role="alert">系统浏览器未能打开校园网页；仍停留在应用内，可检查默认浏览器设置后重试。</div>'
+      : '';
+    const heading = '网页加载失败';
+    const description = '无法加载 portal.example.invalid：校园网或 WebView 运行时暂不可用。没有自动离开应用。';
+    const retainedContent = content || externalError || busy || externalConfirmation;
+    const scoredExternalContent = content || externalError || busy;
+    const body = loading
+      ? '<main class="reference-webview-document is-external"><span class="reference-spinner" aria-hidden="true"></span><strong>网页正在加载</strong><p>平台 WebView runner 将在此处加载真实网页。</p></main>'
+      : retainedContent
+      ? `<main class="reference-webview-document is-external"${scoredExternalContent ? ' data-external-region="document"' : ''}><span class="reference-webview-symbol" aria-hidden="true">↗</span><strong>上海第二工业大学校园门户</strong><p>网页正文属于外部区域，按 SSIM 0.90 独立验收。</p></main>`
+      : `<main class="reference-webview-document"><svg class="reference-webview-warning" aria-hidden="true" viewBox="0 0 48 48"><path d="M24 6 43 40H5Z"/><path d="M24 17v12"/><circle cx="24" cy="35" r="1"/></svg><strong>${heading}</strong><p>${description}</p><div class="reference-webview-actions"><button class="reference-demo-primary" type="button"${busy ? ' disabled' : ''}>重新加载</button><button type="button"${busy ? ' disabled' : ''}>${busy ? '正在外部打开…' : '在浏览器中打开'}</button></div></main>`;
+    const progress = loading ? '<div class="reference-webview-progress" aria-hidden="true"><i></i></div>' : '';
+    const confirmation = externalConfirmation
+      ? '<div class="reference-modal-scrim"><section class="reference-card reference-modal" role="dialog" aria-modal="true" aria-labelledby="reference-webview-external-title" data-reference-modal><h2 id="reference-webview-external-title">在系统浏览器中打开？</h2><p>即将在系统浏览器打开 portal.example.invalid。离开应用后，网页不再受本应用的本地保护。</p><div><button type="button" data-reference-modal-cancel>取消</button><button class="reference-demo-primary" type="button">继续打开</button></div></section></div>'
+      : '';
+    return `<section class="reference-webview-stage"><header class="reference-webview-toolbar"><button class="reference-webview-back" type="button" aria-label="返回">←</button><strong>${loading ? '正在打开校园门户' : '校园门户'}</strong><button type="button" aria-label="刷新"${busy ? ' disabled' : ''}>↻</button><button type="button" aria-label="在浏览器中打开"${busy ? ' disabled' : ''}>↗</button></header>${banner}${progress}${body}${confirmation}</section>`;
+  }
+
   function lockSurfaceMarkup(state, includeExternalDialog = false) {
     const loading = state === 'loading';
     const error = state === 'error';
@@ -236,6 +263,7 @@
     if (entry.id === 'consent.first-run') return consentSurfaceMarkup(state);
     if (entry.id === 'security.lock') return lockSurfaceMarkup(state);
     if (entry.id === 'external.system-auth') return lockSurfaceMarkup(state, true);
+    if (entry.id === 'external.webview') return webViewSurfaceMarkup(entry, state);
     return null;
   }
 

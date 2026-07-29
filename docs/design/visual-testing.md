@@ -16,6 +16,8 @@
 - 外部区域不得扩大到应用工具栏、弹层或错误反馈。一个截图存在外部区域时，在基准图旁增加同名 sidecar：`<image>.regions.json`。
 - `visual-manifest.json` 通过 `externalRegionStates` 逐区域声明允许生成 sidecar 的页面状态；清源自绘的 loading、empty、error、认证说明和降级反馈同样按 0.90 逐图判定，不能因为位于 WebView/PDF/系统认证流程中就跳过比较。
 
+SSIM 只判定参考稿与实现的视觉接近程度。发布门禁还必须通过对应页面的行为测试，重点验证重复操作互斥、旧请求隔离、系统返回、取消、失败后上下文保留和原地恢复；设计稿未列出的插件异常、外部应用拒绝、权限变化与部分完成状态一经发现，必须先加入参考清单和行为契约，不能以“没有基准图”为由跳过。
+
 ```json
 {
   "externalRegions": [
@@ -45,7 +47,7 @@ dart run tool/visual_compare.dart `
 
 ## 五平台 Flutter 候选采集
 
-候选图由真实 Flutter 渲染树生成，不复用 HTML 原型截图。Android 与 iOS 必须分别由 Android Emulator 和 iOS Simulator 的 `integration_test` runner 渲染，截图字节通过 Flutter 设备测试通道回传 CI 主机；禁止用 `debugDefaultTargetPlatformOverride` 伪装移动平台。Windows、macOS、Linux 分别在同系统桌面 runner 上采集。五个平台均加载 MiSans 与 `YhIcons` 底层字体，并输出 `visual-manifest.json` 注册的 143 个页面/状态组合、四档视口与亮暗主题矩阵；每个平台必须恰好得到 1144 张 PNG。候选上传前还会校验文件名、PNG 物理尺寸和外部区域 sidecar 边界：
+候选图由真实 Flutter 渲染树生成，不复用 HTML 原型截图。Android 与 iOS 必须分别由 Android Emulator 和 iOS Simulator 的 `integration_test` runner 渲染，截图字节通过 Flutter 设备测试通道回传 CI 主机；禁止用 `debugDefaultTargetPlatformOverride` 伪装移动平台。Windows、macOS、Linux 分别在同系统桌面 runner 上采集。五个平台均加载 MiSans 与 `YhIcons` 底层字体，并输出 `visual-manifest.json` 注册的 146 个页面/状态组合、四档视口与亮暗主题矩阵；每个平台必须恰好得到 1168 张 PNG。候选上传前还会校验文件名、PNG 物理尺寸和外部区域 sidecar 边界：
 
 ```bash
 flutter test test/visual/qingyuan_visual_capture_test.dart \
@@ -68,7 +70,7 @@ flutter test -d <device-id> integration_test/qingyuan_visual_capture_test.dart \
 
 ## 全量设计参考候选
 
-浏览器原型会先采集应用壳中的高保真主流程，再用同一清源 token 和 [`reference-catalog.json`](./resources/reference-catalog.json) 补齐所有次级页面、六态与经确认的交互场景态。输出同样严格覆盖 143 × 4 × 2 = 1144 张，并生成 `reference-index.json`，记录设计系统版本、固定 fixture 和每张图片的 SHA-256：
+浏览器原型会先采集应用壳中的高保真主流程，再用同一清源 token 和 [`reference-catalog.json`](./resources/reference-catalog.json) 补齐所有次级页面、六态与经确认的交互场景态。输出同样严格覆盖 146 × 4 × 2 = 1168 张，并生成 `reference-index.json`，记录设计系统版本、固定 fixture 和每张图片的 SHA-256：
 
 ```powershell
 python scripts/design/verify_design_prototype.py --output build/design-review

@@ -614,6 +614,19 @@ def _validate_visual_manifest(project_root: Path) -> None:
         errors.append("视觉清单应用自绘阈值必须为 0.90")
     if meta.get("externalThreshold") != 0.90:
         errors.append("视觉清单外部区域阈值必须为 0.90")
+    required_interaction_checks = {
+        "single-flight",
+        "stale-result-isolation",
+        "system-back",
+        "cancel",
+        "context-preservation",
+        "inline-retry",
+        "external-failure",
+    }
+    if set(meta.get("interactionChecks", [])) != required_interaction_checks:
+        errors.append(
+            "视觉清单交互验收必须覆盖单飞、旧结果隔离、系统返回、取消、上下文保留、原地重试与外部失败"
+        )
     capture = meta.get("capture", {})
     required_capture = {
         "locale": "zh_CN",

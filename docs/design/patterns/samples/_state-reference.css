@@ -134,6 +134,26 @@ button:focus-visible { outline: calc(var(--layout-control-border) * 2) solid var
 .reference-document-toolbar span { flex: 1; padding-inline: var(--space-s); color: var(--muted); }
 .reference-document-canvas { flex: 1; min-height: calc(var(--control-regular) * 6); background: var(--sunken); display: grid; place-items: center; align-content: center; gap: var(--space-s); color: var(--muted); }
 .reference-document-canvas strong { color: var(--fg); font-size: var(--type-h2); }
+.reference-webview-stage { position: fixed; inset: 0; min-width: 0; min-height: 0; background: var(--bg); color: var(--fg); display: flex; flex-direction: column; }
+.reference-webview-toolbar { height: var(--layout-app-bar-height); flex: 0 0 var(--layout-app-bar-height); padding-inline: var(--space-m); border-bottom: var(--layout-divider) solid var(--border); background: var(--surface); display: flex; align-items: center; gap: var(--space-s); }
+.reference-webview-toolbar strong { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--type-h3); font-weight: var(--weight-h3); }
+.reference-webview-toolbar button { width: var(--minimum-target); height: var(--minimum-target); flex: 0 0 var(--minimum-target); border: var(--layout-control-border) solid var(--border); border-radius: var(--radius-input); background: var(--surface); color: var(--muted); font-size: var(--type-h3); }
+.reference-webview-toolbar .reference-webview-back { border-color: transparent; background: transparent; }
+.reference-webview-toolbar button:disabled, .reference-webview-actions button:disabled { opacity: var(--opacity-disabled); }
+.reference-webview-stage > .reference-banner { margin: var(--space-s) var(--space-m) 0; }
+.reference-webview-progress { height: var(--space-xs); flex: 0 0 var(--space-xs); background: var(--brand-tint); overflow: hidden; }
+.reference-webview-progress i { width: calc(var(--breakpoint-compact) / 2); height: 100%; display: block; background: var(--brand-strong); }
+.reference-webview-document { min-height: 0; flex: 1; padding: var(--space-l); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--muted); }
+.reference-webview-document.is-external { background: var(--sunken); }
+.reference-webview-document > strong { margin-top: var(--space-m); color: var(--fg); font-size: var(--type-h2); line-height: var(--line-height-h2); }
+.reference-webview-document > p { max-width: var(--layout-form-content-width); margin: var(--space-s) 0 0; font-size: var(--type-body); line-height: var(--line-height-body); }
+.reference-webview-symbol { color: var(--muted); font-size: var(--type-display); line-height: var(--line-height-compact); }
+.reference-webview-warning { width: var(--space-2xl); height: var(--space-2xl); overflow: visible; fill: none; stroke: var(--muted); stroke-width: calc(var(--layout-divider) * 3); stroke-linecap: round; stroke-linejoin: round; }
+.reference-webview-warning circle { fill: var(--muted); stroke: none; }
+.reference-webview-actions { margin-top: var(--space-l); display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-s); }
+.reference-webview-actions button { min-height: var(--minimum-target); padding-inline: var(--space-l); border: var(--layout-control-border) solid var(--brand); border-radius: var(--radius-m); background: transparent; color: var(--brand-strong); font-weight: var(--weight-h3); }
+.reference-webview-actions .reference-demo-primary { border-color: var(--brand-strong); background: var(--brand-strong); color: var(--on-brand); }
+body[data-surface="external.webview"] .reference-bottom-nav { display: none; }
 .reference-auth-stage { grid-column: 1 / -1; display: grid; place-items: center; background: var(--scrim); border-radius: var(--radius-m); }
 .reference-system-dialog { width: min(calc(var(--control-regular) * 11), calc(100% - var(--space-xl))); text-align: center; display: grid; place-items: center; gap: var(--space-m); }
 .reference-system-dialog > span { width: var(--layout-bottom-navigation-height); height: var(--layout-bottom-navigation-height); display: grid; place-items: center; border-radius: var(--radius-full); background: var(--brand-tint); color: var(--brand-ink); font-size: var(--type-display); }
