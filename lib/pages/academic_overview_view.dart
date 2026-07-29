@@ -15,6 +15,7 @@ enum AcademicOverviewDisplayState {
 extension _AcademicOverviewStateView on _AcademicPageState {
   Widget _buildAcademicOverview(BuildContext context) {
     final state = _academicOverviewDisplayState;
+    final failedSources = _academicOverviewEffectiveFailedSources;
     final grades = _academicGradeResult?.snapshot?.grades;
     final completion = _academicEamsResult?.snapshot?.programCompletion;
     final totalCredits = completion == null
@@ -45,7 +46,11 @@ extension _AcademicOverviewStateView on _AcademicPageState {
       completionValue: completionValue,
       completedCredits: completion?.completedCredits,
       totalCredits: totalCredits,
-      failedSources: _failedAcademicSources,
+      failedSources: failedSources,
+      failedSourcesWithoutFallback: failedSources
+          .where((source) => !_academicSourceHasFallbackData(source))
+          .toSet(),
+      hasContent: _academicOverviewHasContent,
       credentialsIncomplete: _academicOverviewHasMissingCredentials,
       oaStatusLabel: _academicOverviewOaStatusLabel,
       oaStatusKind: _academicOverviewOaStatusKind,
@@ -131,6 +136,10 @@ extension _AcademicOverviewStateView on _AcademicPageState {
     if (_anyAcademicSourceLoading && !hasContent) {
       return AcademicOverviewDisplayState.loading;
     }
+    if (!hasContent &&
+        (_failedAcademicSources.isNotEmpty || _academicOverviewHasHardError)) {
+      return AcademicOverviewDisplayState.error;
+    }
     if (!hasContent && !_academicOverviewHasAnyResult) {
       return AcademicOverviewDisplayState.initial;
     }
@@ -140,9 +149,6 @@ extension _AcademicOverviewStateView on _AcademicPageState {
     if ((_failedAcademicSources.isNotEmpty || _academicOverviewHasHardError) &&
         hasContent) {
       return AcademicOverviewDisplayState.partialError;
-    }
-    if (!hasContent && _academicOverviewHasHardError) {
-      return AcademicOverviewDisplayState.error;
     }
     if (!hasContent && _academicOverviewHasAnyResult) {
       return AcademicOverviewDisplayState.empty;
@@ -180,6 +186,7 @@ extension _AcademicOverviewStateView on _AcademicPageState {
       _studentReportResult != null;
 
   bool get _academicOverviewHasMissingCredentials {
+    if (_credentialsStatus == null) return false;
     bool missing(AcademicEamsQueryResult? result) =>
         result?.status == AcademicEamsQueryStatus.missingOaAccount ||
         result?.status == AcademicEamsQueryStatus.missingOaPassword;
@@ -191,20 +198,30 @@ extension _AcademicOverviewStateView on _AcademicPageState {
   }
 
   String get _academicOverviewOaStatusLabel {
+    if (_credentialsStatus == null) return 'OA 状态读取中';
     if (!_academicOaCredentialsReady) return 'OA 凭据待补充';
-    final hasFreshOaData = [
+    final oaResults = [
       _academicEamsResult,
       _academicGradeResult,
       _academicExamResult,
-    ].any((result) => result?.status == AcademicEamsQueryStatus.success);
+    ];
+    final hasPartialOaData = oaResults.any(
+      (result) => result?.status == AcademicEamsQueryStatus.partialSuccess,
+    );
+    if (hasPartialOaData) return 'OA 数据部分读取';
+    final hasFreshOaData = oaResults.any(
+      (result) => result?.status == AcademicEamsQueryStatus.success,
+    );
     return hasFreshOaData ? 'OA 数据已读取' : 'OA 状态未校验';
   }
 
   YhStatusKind get _academicOverviewOaStatusKind {
     if (!_academicOaCredentialsReady) return YhStatusKind.warning;
-    return _academicOverviewOaStatusLabel == 'OA 数据已读取'
-        ? YhStatusKind.success
-        : YhStatusKind.neutral;
+    return switch (_academicOverviewOaStatusLabel) {
+      'OA 数据已读取' => YhStatusKind.success,
+      'OA 数据部分读取' => YhStatusKind.warning,
+      _ => YhStatusKind.neutral,
+    };
   }
 
   DateTime? get _academicOverviewLatestCheckedAt {
@@ -240,6 +257,24 @@ extension _AcademicOverviewStateView on _AcademicPageState {
             !_sportsAttendanceResult!.isSuccess) ||
         (_studentReportResult != null && !_studentReportResult!.isSuccess);
   }
+
+  Set<String> get _academicOverviewEffectiveFailedSources {
+    bool academicFailed(AcademicEamsQueryResult? result) =>
+        result != null &&
+        result.status != AcademicEamsQueryStatus.success &&
+        result.status != AcademicEamsQueryStatus.partialSuccess;
+    return {
+      ..._failedAcademicSources,
+      if (academicFailed(_academicEamsResult)) '教务摘要',
+      if (academicFailed(_academicExamResult)) '考试',
+      if (academicFailed(_academicGradeResult)) '成绩',
+      if (_sportsAttendanceResult != null &&
+          !_sportsAttendanceResult!.isSuccess)
+        '体育考勤',
+      if (_studentReportResult != null && !_studentReportResult!.isSuccess)
+        '第二课堂',
+    };
+  }
 }
 
 class _AcademicOverviewPage extends StatelessWidget {
@@ -254,6 +289,8 @@ class _AcademicOverviewPage extends StatelessWidget {
     required this.completedCredits,
     required this.totalCredits,
     required this.failedSources,
+    required this.failedSourcesWithoutFallback,
+    required this.hasContent,
     required this.credentialsIncomplete,
     required this.oaStatusLabel,
     required this.oaStatusKind,
@@ -280,6 +317,8 @@ class _AcademicOverviewPage extends StatelessWidget {
   final double? completedCredits;
   final double totalCredits;
   final Set<String> failedSources;
+  final Set<String> failedSourcesWithoutFallback;
+  final bool hasContent;
   final bool credentialsIncomplete;
   final String oaStatusLabel;
   final YhStatusKind oaStatusKind;
@@ -299,7 +338,7 @@ class _AcademicOverviewPage extends StatelessWidget {
       state == AcademicOverviewDisplayState.content ||
       state == AcademicOverviewDisplayState.stale ||
       state == AcademicOverviewDisplayState.partialError ||
-      state == AcademicOverviewDisplayState.operationLocked;
+      (state == AcademicOverviewDisplayState.operationLocked && hasContent);
 
   @override
   Widget build(BuildContext context) {
@@ -396,9 +435,10 @@ class _AcademicOverviewPage extends StatelessWidget {
                           AcademicOverviewDisplayState.partialError) ...[
                         YhBanner(
                           kind: YhBannerKind.warn,
-                          text: failedSources.isEmpty
-                              ? '成绩与培养进度已更新；考试、体育考勤和第二课堂未完成。已保留各自最后一次有效结果。'
-                              : '${failedSources.join('、')}未完成；其余来源已更新，并保留各区域最后一次有效结果。',
+                          text: _academicPartialFailureText(
+                            failedSources,
+                            failedSourcesWithoutFallback,
+                          ),
                         ),
                         SizedBox(height: theme.spacing.m),
                       ],
@@ -431,6 +471,7 @@ class _AcademicOverviewPage extends StatelessWidget {
                     ] else
                       _AcademicStatePanel(
                         state: state,
+                        refreshSourceCount: refreshSourceCount,
                         onRefresh: onRefresh,
                         onOpenAccountConnections: onOpenAccountConnections,
                         onAdjustAcademicTerm: onAdjustAcademicTerm,
@@ -465,6 +506,16 @@ String _formatAcademicCheckedAt(DateTime? value) {
   if (value == null) return '最近一次保存';
   final minute = value.minute.toString().padLeft(2, '0');
   return '${value.month} 月 ${value.day} 日 ${value.hour}:$minute';
+}
+
+String _academicPartialFailureText(
+  Set<String> failedSources,
+  Set<String> failedSourcesWithoutFallback,
+) {
+  final retainedSources = failedSources.difference(
+    failedSourcesWithoutFallback,
+  );
+  return '${['${failedSources.join('、')}未完成', if (retainedSources.isNotEmpty) '${retainedSources.join('、')}继续显示最后有效数据', if (failedSourcesWithoutFallback.isNotEmpty) '${failedSourcesWithoutFallback.join('、')}暂无可保留数据', '可在详细数据源中分别重试'].join('；')}。';
 }
 
 String _academicCredentialWarningText(int refreshSourceCount) {
@@ -1112,12 +1163,14 @@ class _AcademicInlineEmpty extends StatelessWidget {
 class _AcademicStatePanel extends StatelessWidget {
   const _AcademicStatePanel({
     required this.state,
+    required this.refreshSourceCount,
     required this.onRefresh,
     required this.onOpenAccountConnections,
     required this.onAdjustAcademicTerm,
   });
 
   final AcademicOverviewDisplayState state;
+  final int refreshSourceCount;
   final VoidCallback? onRefresh;
   final VoidCallback? onOpenAccountConnections;
   final VoidCallback? onAdjustAcademicTerm;
@@ -1125,7 +1178,10 @@ class _AcademicStatePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    if (state == AcademicOverviewDisplayState.loading) {
+    if (state == AcademicOverviewDisplayState.loading ||
+        state == AcademicOverviewDisplayState.operationLocked) {
+      final operationLocked =
+          state == AcademicOverviewDisplayState.operationLocked;
       return YhCard(
         child: ConstrainedBox(
           constraints: BoxConstraints(
@@ -1145,10 +1201,20 @@ class _AcademicStatePanel extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('正在恢复本机教务快照', style: theme.typography.h3),
+                      Semantics(
+                        liveRegion: operationLocked,
+                        child: Text(
+                          operationLocked
+                              ? '正在读取 $refreshSourceCount 个可用教务来源'
+                              : '正在恢复本机教务快照',
+                          style: theme.typography.h3,
+                        ),
+                      ),
                       SizedBox(height: theme.spacing.s),
                       Text(
-                        '页面结构与已有导航保持可用；网络读取完成后再替换各区域。',
+                        operationLocked
+                            ? '完成前已锁定重复刷新和详情导航；若部分来源失败，将保留各自最后有效数据。'
+                            : '页面结构与已有导航保持可用；网络读取完成后再替换各区域。',
                         style: theme.typography.small.copyWith(
                           color: theme.color.muted,
                         ),
@@ -1190,7 +1256,7 @@ class _AcademicStatePanel extends StatelessWidget {
       _ => (
         YhIcons.info,
         '无法读取教务数据',
-        '请检查校园网络或 VPN 后重试；本机已有数据不会被删除。',
+        '未读取到可用快照；请检查校园网络或 VPN 后重试。',
         '检查后重试',
         onRefresh,
         YhButtonVariant.primary,

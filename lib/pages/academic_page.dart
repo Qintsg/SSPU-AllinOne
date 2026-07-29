@@ -229,13 +229,18 @@ class _AcademicPageState extends State<AcademicPage> {
   void _clearAuthenticatedState() {
     if (!mounted) return;
     _credentialGeneration++;
-    _academicEamsRefreshController.clearTransientState();
-    _academicExamRefreshController.clearTransientState();
-    _academicGradeRefreshController.clearTransientState();
-    _sportsAttendanceRefreshController.clearTransientState();
-    _studentReportRefreshController.clearTransientState();
+    _academicEamsRefreshController.clearTransientState(stopAutoRefresh: true);
+    _academicExamRefreshController.clearTransientState(stopAutoRefresh: true);
+    _academicGradeRefreshController.clearTransientState(stopAutoRefresh: true);
+    _sportsAttendanceRefreshController.clearTransientState(
+      stopAutoRefresh: true,
+    );
+    _studentReportRefreshController.clearTransientState(stopAutoRefresh: true);
     _credentialsStatusFuture = null;
+    _coordinatedRefreshFuture = null;
     setState(() {
+      _isCoordinatedRefresh = false;
+      _failedAcademicSources = const {};
       _credentialsStatus = null;
       _academicEamsResult = null;
       _academicExamResult = null;
@@ -363,10 +368,12 @@ class _AcademicPageState extends State<AcademicPage> {
   Future<AcademicEamsQueryResult> _fetchAcademicEamsForController({
     required bool silent,
   }) async {
+    final generation = _credentialGeneration;
     _academicEamsLastRefreshHadExamFailure = false;
     final result = await _academicEamsService.fetchOverview(
       requireCampusNetwork: silent,
     );
+    if (!mounted || generation != _credentialGeneration) return result;
     if (!_isCoordinatedRefresh && (result.isSuccess || !silent)) {
       await _academicExamRefreshController.runRefresh(silent: silent);
       final examResult = _academicExamResult;
@@ -383,7 +390,10 @@ class _AcademicPageState extends State<AcademicPage> {
 
   void _applyAcademicEamsResult(AcademicEamsQueryResult result) {
     if (!mounted) return;
-    setState(() => _academicEamsResult = result);
+    setState(() {
+      _academicEamsResult = result;
+      _updateAcademicSourceFailure('教务摘要', failed: !result.isSuccess);
+    });
   }
 
   Future<AcademicEamsQueryResult> _fetchAcademicExamForController({
@@ -401,6 +411,7 @@ class _AcademicPageState extends State<AcademicPage> {
     final selectedSemester = result.snapshot?.exams?.selectedSemester;
     setState(() {
       _academicExamResult = result;
+      _updateAcademicSourceFailure('考试', failed: !result.isSuccess);
       if (selectedSemester != null) {
         _academicExamSelectedSemester = selectedSemester;
         _academicExamSelectedTerm =
@@ -417,7 +428,10 @@ class _AcademicPageState extends State<AcademicPage> {
 
   void _applyAcademicGradeResult(AcademicEamsQueryResult result) {
     if (!mounted) return;
-    setState(() => _academicGradeResult = result);
+    setState(() {
+      _academicGradeResult = result;
+      _updateAcademicSourceFailure('成绩', failed: !result.isSuccess);
+    });
   }
 
   void _openAcademicGradeDetail() {
@@ -511,6 +525,9 @@ class _AcademicPageState extends State<AcademicPage> {
       );
       return;
     }
+    final requestedSourceCount =
+        (refreshAcademic ? 4 : 0) + (refreshSports ? 1 : 0);
+    final hadContentBeforeRefresh = _academicOverviewHasContent;
     setState(() {
       _isCoordinatedRefresh = true;
       _failedAcademicSources = const {};
@@ -543,14 +560,24 @@ class _AcademicPageState extends State<AcademicPage> {
               .then((value) => sportsOutcome = value),
       ]);
     } finally {
-      if (mounted) {
+      if (mounted && generation == _credentialGeneration) {
         final failedSources = {
-          if (overviewOutcome?.success != true) '教务摘要',
-          if (examOutcome?.success != true) '考试',
-          if (gradeOutcome?.success != true) '成绩',
-          if (sportsOutcome?.success != true) '体育考勤',
-          if (reportOutcome?.success != true) '第二课堂',
+          if (refreshAcademic && overviewOutcome?.success != true) '教务摘要',
+          if (refreshAcademic && examOutcome?.success != true) '考试',
+          if (refreshAcademic && gradeOutcome?.success != true) '成绩',
+          if (refreshSports && sportsOutcome?.success != true) '体育考勤',
+          if (refreshAcademic && reportOutcome?.success != true) '第二课堂',
         };
+        final unavailableSources = {
+          if (!refreshAcademic) ...['教务摘要', '考试', '成绩', '第二课堂'],
+          if (!refreshSports) '体育考勤',
+        };
+        final failedSourcesWithoutFallback = failedSources
+            .where((source) => !_academicSourceHasFallbackData(source))
+            .toSet();
+        final retainedFailedSources = failedSources.difference(
+          failedSourcesWithoutFallback,
+        );
         setState(() {
           _failedAcademicSources = failedSources;
           _isCoordinatedRefresh = false;
@@ -558,21 +585,26 @@ class _AcademicPageState extends State<AcademicPage> {
         if (failedSources.isEmpty) {
           showAppFeedback(
             context,
-            message: '教务数据已刷新',
+            message: unavailableSources.isEmpty ? '教务数据已刷新' : '可用教务数据已刷新',
+            details: unavailableSources.isEmpty
+                ? null
+                : '${unavailableSources.join('、')}未连接，本次未请求。',
             severity: AppFeedbackSeverity.success,
           );
-        } else if (failedSources.length == 5) {
+        } else if (failedSources.length == requestedSourceCount) {
           showAppFeedback(
             context,
-            message: '教务数据刷新失败',
-            details: '${failedSources.join('、')}均未完成；本机已有数据未被删除。',
+            message: unavailableSources.isEmpty ? '教务数据刷新失败' : '可用教务数据刷新失败',
+            details:
+                '${['${failedSources.join('、')}均未完成', if (unavailableSources.isNotEmpty) '${unavailableSources.join('、')}未连接，本次未请求', if (retainedFailedSources.isNotEmpty) '${retainedFailedSources.join('、')}继续显示最后有效数据', if (failedSourcesWithoutFallback.isNotEmpty) '${failedSourcesWithoutFallback.join('、')}暂无可保留数据', if (!hadContentBeforeRefresh || failedSourcesWithoutFallback.isNotEmpty) '请检查校园网/VPN 或稍后重试'].join('；')}。',
             severity: AppFeedbackSeverity.error,
           );
         } else {
           showAppFeedback(
             context,
             message: '教务数据部分更新',
-            details: '${failedSources.join('、')}未完成；已保留各区域最后一次有效结果。',
+            details:
+                '${['${failedSources.join('、')}未完成', if (unavailableSources.isNotEmpty) '${unavailableSources.join('、')}未连接，本次未请求', if (retainedFailedSources.isNotEmpty) '${retainedFailedSources.join('、')}继续显示最后有效数据', if (failedSourcesWithoutFallback.isNotEmpty) '${failedSourcesWithoutFallback.join('、')}暂无可保留数据，可稍后分别重试'].join('；')}。',
             severity: AppFeedbackSeverity.warning,
           );
         }
@@ -692,7 +724,10 @@ class _AcademicPageState extends State<AcademicPage> {
 
   void _applySportsAttendanceResult(SportsAttendanceQueryResult result) {
     if (!mounted) return;
-    setState(() => _sportsAttendanceResult = result);
+    setState(() {
+      _sportsAttendanceResult = result;
+      _updateAcademicSourceFailure('体育考勤', failed: !result.isSuccess);
+    });
   }
 
   /// 读取第二课堂学分自动刷新设置；未启用时不主动访问学工报表。
@@ -741,7 +776,37 @@ class _AcademicPageState extends State<AcademicPage> {
 
   void _applyStudentReportResult(StudentReportQueryResult result) {
     if (!mounted) return;
-    setState(() => _studentReportResult = result);
+    setState(() {
+      _studentReportResult = result;
+      _updateAcademicSourceFailure('第二课堂', failed: !result.isSuccess);
+    });
+  }
+
+  void _updateAcademicSourceFailure(String source, {required bool failed}) {
+    final updatedSources = {..._failedAcademicSources};
+    if (failed) {
+      updatedSources.add(source);
+    } else {
+      updatedSources.remove(source);
+    }
+    _failedAcademicSources = updatedSources;
+  }
+
+  bool _academicSourceHasFallbackData(String source) {
+    return switch (source) {
+      '教务摘要' =>
+        _academicEamsResult?.isSuccess == true &&
+            _academicEamsResult?.snapshot != null,
+      '考试' =>
+        _academicExamResult?.isSuccess == true &&
+            _academicExamResult?.snapshot != null,
+      '成绩' =>
+        _academicGradeResult?.isSuccess == true &&
+            _academicGradeResult?.snapshot != null,
+      '体育考勤' => _sportsAttendanceResult?.isSuccess == true,
+      '第二课堂' => _studentReportResult?.isSuccess == true,
+      _ => false,
+    };
   }
 
   String _academicEamsRefreshFailureReason(AcademicEamsQueryResult result) {

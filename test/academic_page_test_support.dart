@@ -54,11 +54,13 @@ class _FakeSportsAttendanceClient implements SportsAttendanceClient {
     required this.result,
     this.cachedResult,
     this.pendingFetch,
+    this.resultResolver,
   });
 
   final SportsAttendanceQueryResult result;
   final SportsAttendanceQueryResult? cachedResult;
   final Completer<SportsAttendanceQueryResult>? pendingFetch;
+  final SportsAttendanceQueryResult Function(int fetchCount)? resultResolver;
   int fetchCount = 0;
   final List<bool> requireCampusNetworkValues = [];
 
@@ -74,7 +76,7 @@ class _FakeSportsAttendanceClient implements SportsAttendanceClient {
   }) async {
     fetchCount++;
     requireCampusNetworkValues.add(requireCampusNetwork);
-    return pendingFetch?.future ?? result;
+    return pendingFetch?.future ?? resultResolver?.call(fetchCount) ?? result;
   }
 }
 

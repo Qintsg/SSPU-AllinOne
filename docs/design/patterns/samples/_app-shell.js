@@ -112,6 +112,13 @@
     academicPage.querySelector('.academic-partial-banner').hidden = state !== 'partial-error';
     academicPage.querySelector('.academic-credentials-banner').hidden = state !== 'credentials-partial';
     academicPage.querySelector('.academic-locked-banner').hidden = state !== 'operation-locked';
+    var oaStatus = academicPage.querySelector('.academic-oa-status');
+    if (oaStatus) {
+      var oaIsPartial = state === 'stale';
+      oaStatus.textContent = oaIsPartial ? 'OA 数据部分读取' : 'OA 数据已读取';
+      oaStatus.classList.toggle('ok', !oaIsPartial);
+      oaStatus.classList.toggle('warn', oaIsPartial);
+    }
     academicPage.querySelectorAll('[data-academic-state-panel]').forEach(function (panel) {
       panel.hidden = panel.dataset.academicStatePanel !== state;
     });

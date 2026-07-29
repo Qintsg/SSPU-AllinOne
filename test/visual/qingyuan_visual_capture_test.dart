@@ -1693,8 +1693,7 @@ Widget _academicOverview(_AcademicOverviewScenario scenario) {
   final examResult = switch (scenario) {
     _AcademicOverviewScenario.empty => qingyuanAcademicExamEmptyResult,
     _AcademicOverviewScenario.stale => qingyuanAcademicExamStaleResult,
-    _AcademicOverviewScenario.error ||
-    _AcademicOverviewScenario.partialError => qingyuanAcademicDetailErrorResult,
+    _AcademicOverviewScenario.error => qingyuanAcademicDetailErrorResult,
     _AcademicOverviewScenario.credentialsRequired => credentialsResult,
     _ => qingyuanAcademicOverviewExamContentResult,
   };
