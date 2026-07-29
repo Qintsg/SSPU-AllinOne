@@ -170,6 +170,47 @@ class DesignSystemValidatorTest(unittest.TestCase):
             ):
                 validate_design_system(root)
 
+    def test_academic_prototype_requires_uncovered_coordination_states(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            prototype = root / "docs" / "design" / "patterns" / "samples" / "app-shell.html"
+            prototype.write_text(
+                prototype.read_text(encoding="utf-8").replace(
+                    'data-academic-state-panel="credentials-required"',
+                    'data-academic-state-panel="missing-credentials"',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                DesignSystemValidationError,
+                r"教务原型缺少状态：credentials-required",
+            ):
+                validate_design_system(root)
+
+    def test_academic_prototype_requires_deterministic_state_setter(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            prototype_js = root / "docs" / "design" / "patterns" / "samples" / "_app-shell.js"
+            prototype_js.write_text(
+                prototype_js.read_text(encoding="utf-8").replace(
+                    "setAcademicState",
+                    "missingAcademicState",
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                DesignSystemValidationError,
+                r"页面原型缺少确定性状态接口 setAcademicState",
+            ):
+                validate_design_system(root)
+
     def test_info_prototype_requires_deterministic_state_setters(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

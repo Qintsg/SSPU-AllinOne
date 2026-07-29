@@ -14,7 +14,7 @@
     ],
     "themes": ["light", "dark"],
     "states": ["initial", "loading", "content", "empty", "stale", "error"],
-    "scenarioStates": ["external-confirmation", "external-cancelled", "external-error", "operation-locked"],
+    "scenarioStates": ["external-confirmation", "external-cancelled", "external-error", "operation-locked", "partial-error", "credentials-required"],
     "capture": {
       "locale": "zh_CN",
       "timezone": "Asia/Shanghai",
@@ -43,7 +43,7 @@
     {"id": "home.campus-card", "group": "home", "states": ["loading", "content", "empty", "stale", "error"]},
     {"id": "home.campus-card-detail", "group": "home", "states": ["content", "empty", "error"]},
 
-    {"id": "academic.overview", "group": "academic", "states": ["initial", "loading", "content", "empty", "stale", "error"]},
+    {"id": "academic.overview", "group": "academic", "states": ["initial", "loading", "content", "empty", "stale", "error", "partial-error", "credentials-required", "operation-locked"]},
     {"id": "academic.grade-detail", "group": "academic", "states": ["loading", "content", "empty", "error"]},
     {"id": "academic.exam-detail", "group": "academic", "states": ["loading", "content", "empty", "error"]},
     {"id": "academic.grade-process", "group": "academic", "states": ["loading", "content", "empty", "error"]},

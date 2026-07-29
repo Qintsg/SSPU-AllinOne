@@ -13,6 +13,7 @@ import '../design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/academic_eams.dart';
+import '../models/academic_credentials.dart';
 import '../models/academic_term.dart';
 import '../models/sports_attendance.dart';
 import '../models/student_report.dart';
@@ -22,6 +23,7 @@ import '../services/academic_term_service.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/student_report_service.dart';
 import '../utils/query_result_messages.dart';
+import '../widgets/app_feedback.dart';
 import '../widgets/refresh_feedback_action.dart';
 import 'course_schedule_page.dart';
 
@@ -37,6 +39,7 @@ part 'academic_student_report_card.dart';
 part 'academic_student_report_summary.dart';
 part 'academic_student_report_detail_page.dart';
 part 'academic_student_report_rule_matrix.dart';
+part 'academic_overview_view.dart';
 
 /// 仅当缓存考试快照的学期与目标学期一致时才返回该缓存，否则返回 null。
 ///
@@ -88,6 +91,15 @@ class AcademicPage extends StatefulWidget {
   /// 测试专用：覆盖本专科教务自动刷新间隔。
   final int? academicEamsAutoRefreshIntervalOverride;
 
+  /// 凭据缺失时进入账户与连接的宿主导航回调。
+  final VoidCallback? onOpenAccountConnections;
+
+  /// 空数据时进入全局学期设置的宿主导航回调。
+  final VoidCallback? onAdjustAcademicTerm;
+
+  /// 测试与离线视觉 fixture 可注入确定性的凭据状态；生产读取安全存储。
+  final AcademicCredentialsStatus? credentialsStatusOverride;
+
   const AcademicPage({
     super.key,
     this.sportsAttendanceService,
@@ -101,6 +113,9 @@ class AcademicPage extends StatefulWidget {
     this.academicTermNow,
     this.academicEamsAutoRefreshEnabledOverride,
     this.academicEamsAutoRefreshIntervalOverride,
+    this.onOpenAccountConnections,
+    this.onAdjustAcademicTerm,
+    this.credentialsStatusOverride,
   });
 
   @override
@@ -129,6 +144,15 @@ class _AcademicPageState extends State<AcademicPage> {
   late final CardAutoRefreshController<StudentReportQueryResult>
   _studentReportRefreshController;
   StreamSubscription<int>? _credentialChangeSubscription;
+  Future<void>? _coordinatedRefreshFuture;
+  bool _isCoordinatedRefresh = false;
+  Set<String> _failedAcademicSources = const {};
+  AcademicCredentialsStatus? _credentialsStatus;
+  Future<AcademicCredentialsStatus>? _credentialsStatusFuture;
+  final GlobalKey _academicLegacySourcesKey = GlobalKey();
+  final FocusNode _academicLegacySourcesFocusNode = FocusNode(
+    debugLabel: 'academic-legacy-sources',
+  );
 
   SportsAttendanceClient get _sportsAttendanceService {
     return widget.sportsAttendanceService ?? SportsAttendanceService.instance;
@@ -208,7 +232,9 @@ class _AcademicPageState extends State<AcademicPage> {
     _academicGradeRefreshController.clearTransientState();
     _sportsAttendanceRefreshController.clearTransientState();
     _studentReportRefreshController.clearTransientState();
+    _credentialsStatusFuture = null;
     setState(() {
+      _credentialsStatus = null;
       _academicEamsResult = null;
       _academicExamResult = null;
       _academicExamSelectedSemester = null;
@@ -216,6 +242,29 @@ class _AcademicPageState extends State<AcademicPage> {
       _sportsAttendanceResult = null;
       _studentReportResult = null;
     });
+    unawaited(_reloadAcademicSourcesAfterCredentialChange());
+  }
+
+  Future<AcademicCredentialsStatus> _loadCredentialsStatus() {
+    final active = _credentialsStatusFuture;
+    if (active != null) return active;
+    final future = () async {
+      final status =
+          widget.credentialsStatusOverride ??
+          await AcademicCredentialsService.instance.getStatus();
+      if (mounted) setState(() => _credentialsStatus = status);
+      return status;
+    }();
+    _credentialsStatusFuture = future;
+    return future;
+  }
+
+  Future<void> _reloadAcademicSourcesAfterCredentialChange() async {
+    await Future.wait<void>([
+      _loadAcademicEamsCacheAndSettings(),
+      _loadSportsAttendanceCacheAndSettings(),
+      _loadStudentReportCacheAndSettings(),
+    ]);
   }
 
   /// 读取本专科教务自动刷新设置；未启用时不主动访问教务系统。
@@ -229,9 +278,12 @@ class _AcademicPageState extends State<AcademicPage> {
     final interval =
         widget.academicEamsAutoRefreshIntervalOverride ??
         await service.getAutoRefreshIntervalMinutes();
+    final credentials = await _loadCredentialsStatus();
+    final credentialsReady =
+        credentials.oaAccount.trim().isNotEmpty && credentials.hasOaPassword;
     if (!mounted) return;
     _academicEamsRefreshController.configureAutoRefresh(
-      enabled: enabled,
+      enabled: enabled && credentialsReady,
       intervalMinutes: interval,
     );
   }
@@ -294,7 +346,7 @@ class _AcademicPageState extends State<AcademicPage> {
     final result = await _academicEamsService.fetchOverview(
       requireCampusNetwork: silent,
     );
-    if (result.isSuccess || !silent) {
+    if (!_isCoordinatedRefresh && (result.isSuccess || !silent)) {
       await _academicExamRefreshController.runRefresh(silent: silent);
       final examResult = _academicExamResult;
       _academicEamsLastRefreshHadExamFailure =
@@ -348,6 +400,7 @@ class _AcademicPageState extends State<AcademicPage> {
   }
 
   void _openAcademicGradeDetail() {
+    if (_isCoordinatedRefresh) return;
     Navigator.of(context).push(
       YhPageRoute(
         builder: (_) => AcademicEamsGradeDetailPage(
@@ -360,6 +413,7 @@ class _AcademicPageState extends State<AcademicPage> {
   }
 
   void _openAcademicExamDetail() {
+    if (_isCoordinatedRefresh) return;
     Navigator.of(context).push(
       YhPageRoute(
         builder: (_) => AcademicEamsExamDetailPage(
@@ -392,6 +446,125 @@ class _AcademicPageState extends State<AcademicPage> {
     });
   }
 
+  void _openCourseSchedule() {
+    if (_isCoordinatedRefresh) return;
+    Navigator.of(context).push(
+      YhPageRoute(
+        builder: (_) => CourseSchedulePage(
+          academicEamsService: _academicEamsService,
+          initialResult: _academicEamsResult,
+          autoRefreshEnabledOverride:
+              _academicEamsRefreshController.autoRefreshEnabled,
+          autoRefreshIntervalOverride:
+              _academicEamsRefreshController.autoRefreshIntervalMinutes,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _refreshAllAcademicSources() {
+    final active = _coordinatedRefreshFuture;
+    if (active != null) return active;
+    final future = _performCoordinatedRefresh();
+    _coordinatedRefreshFuture = future;
+    return future.whenComplete(() {
+      if (identical(_coordinatedRefreshFuture, future)) {
+        _coordinatedRefreshFuture = null;
+      }
+    });
+  }
+
+  Future<void> _performCoordinatedRefresh() async {
+    if (!mounted || _anyAcademicSourceLoading) return;
+    setState(() {
+      _isCoordinatedRefresh = true;
+      _failedAcademicSources = const {};
+    });
+
+    CardRefreshOutcome<AcademicEamsQueryResult>? overviewOutcome;
+    CardRefreshOutcome<AcademicEamsQueryResult>? examOutcome;
+    CardRefreshOutcome<AcademicEamsQueryResult>? gradeOutcome;
+    CardRefreshOutcome<SportsAttendanceQueryResult>? sportsOutcome;
+    CardRefreshOutcome<StudentReportQueryResult>? reportOutcome;
+    try {
+      await Future.wait<void>([
+        _academicEamsRefreshController
+            .runRefresh(silent: true)
+            .then((value) => overviewOutcome = value),
+        _academicExamRefreshController
+            .runRefresh(silent: true)
+            .then((value) => examOutcome = value),
+        _academicGradeRefreshController
+            .runRefresh(silent: true)
+            .then((value) => gradeOutcome = value),
+        _sportsAttendanceRefreshController
+            .runRefresh(silent: true)
+            .then((value) => sportsOutcome = value),
+        _studentReportRefreshController
+            .runRefresh(silent: true)
+            .then((value) => reportOutcome = value),
+      ]);
+    } finally {
+      if (mounted) {
+        final failedSources = {
+          if (overviewOutcome?.success != true) '教务摘要',
+          if (examOutcome?.success != true) '考试',
+          if (gradeOutcome?.success != true) '成绩',
+          if (sportsOutcome?.success != true) '体育考勤',
+          if (reportOutcome?.success != true) '第二课堂',
+        };
+        setState(() {
+          _failedAcademicSources = failedSources;
+          _isCoordinatedRefresh = false;
+        });
+        if (failedSources.isEmpty) {
+          showAppFeedback(
+            context,
+            message: '教务数据已刷新',
+            severity: AppFeedbackSeverity.success,
+          );
+        } else if (failedSources.length == 5) {
+          showAppFeedback(
+            context,
+            message: '教务数据刷新失败',
+            details: '${failedSources.join('、')}均未完成；本机已有数据未被删除。',
+            severity: AppFeedbackSeverity.error,
+          );
+        } else {
+          showAppFeedback(
+            context,
+            message: '教务数据部分更新',
+            details: '${failedSources.join('、')}未完成；已保留各区域最后一次有效结果。',
+            severity: AppFeedbackSeverity.warning,
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _openAcademicLegacySources() async {
+    final targetContext = _academicLegacySourcesKey.currentContext;
+    if (targetContext == null || _isCoordinatedRefresh) return;
+    final theme = context.yhTheme;
+    await Scrollable.ensureVisible(
+      targetContext,
+      duration: theme.motion.effective(
+        theme.motion.slow,
+        disableAnimations: MediaQuery.disableAnimationsOf(context),
+      ),
+      curve: theme.motion.curve,
+      alignment: 0,
+    );
+    if (mounted) _academicLegacySourcesFocusNode.requestFocus();
+  }
+
+  bool get _anyAcademicSourceLoading =>
+      _academicEamsRefreshController.isLoading ||
+      _academicExamRefreshController.isLoading ||
+      _academicGradeRefreshController.isLoading ||
+      _sportsAttendanceRefreshController.isLoading ||
+      _studentReportRefreshController.isLoading;
+
   AcademicEamsSemesterOption? _findAcademicExamSemesterForTerm(
     Iterable<AcademicEamsSemesterOption> options,
     AcademicTermChoice term,
@@ -410,9 +583,13 @@ class _AcademicPageState extends State<AcademicPage> {
     final interval =
         widget.sportsAttendanceAutoRefreshIntervalOverride ??
         await SportsAttendanceService.instance.getAutoRefreshIntervalMinutes();
+    final credentials = await _loadCredentialsStatus();
+    final credentialsReady =
+        credentials.oaAccount.trim().isNotEmpty &&
+        credentials.hasSportsQueryPassword;
     if (!mounted) return;
     _sportsAttendanceRefreshController.configureAutoRefresh(
-      enabled: enabled,
+      enabled: enabled && credentialsReady,
       intervalMinutes: interval,
     );
   }
@@ -453,9 +630,12 @@ class _AcademicPageState extends State<AcademicPage> {
     final interval =
         widget.studentReportAutoRefreshIntervalOverride ??
         await StudentReportService.instance.getAutoRefreshIntervalMinutes();
+    final credentials = await _loadCredentialsStatus();
+    final credentialsReady =
+        credentials.oaAccount.trim().isNotEmpty && credentials.hasOaPassword;
     if (!mounted) return;
     _studentReportRefreshController.configureAutoRefresh(
-      enabled: enabled,
+      enabled: enabled && credentialsReady,
       intervalMinutes: interval,
     );
   }
@@ -558,6 +738,7 @@ class _AcademicPageState extends State<AcademicPage> {
   @override
   void dispose() {
     _credentialChangeSubscription?.cancel();
+    _academicLegacySourcesFocusNode.dispose();
     _academicEamsRefreshController
       ..removeListener(_handleRefreshControllerChanged)
       ..dispose();
@@ -578,92 +759,7 @@ class _AcademicPageState extends State<AcademicPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return YhPageScaffold(
-      appBar: const YhAppBar(title: '教务中心'),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal:
-              MediaQuery.sizeOf(context).width < theme.breakpoint.compact
-              ? theme.spacing.m
-              : theme.spacing.l,
-          vertical: theme.spacing.m,
-        ),
-        child: Align(
-          alignment: AlignmentDirectional.topCenter,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
-            child: Column(
-              children: [
-                _AcademicDashboardGrid(
-                  primary: AcademicEamsSummaryCard(
-                    result: _academicEamsResult,
-                    isLoading: _academicEamsRefreshController.isLoading,
-                    isRefreshActionLoading:
-                        _academicEamsRefreshController.isLoading ||
-                        _academicExamRefreshController.isLoading,
-                    autoRefreshEnabled:
-                        _academicEamsRefreshController.autoRefreshEnabled,
-                    refreshFeedback: _academicEamsRefreshController.feedback,
-                    onRefresh: _loadAcademicEamsOverview,
-                    onOpenCourseSchedule: () => Navigator.of(context).push(
-                      YhPageRoute(
-                        builder: (_) => CourseSchedulePage(
-                          academicEamsService: _academicEamsService,
-                          initialResult: _academicEamsResult,
-                          autoRefreshEnabledOverride:
-                              _academicEamsRefreshController.autoRefreshEnabled,
-                          autoRefreshIntervalOverride:
-                              _academicEamsRefreshController
-                                  .autoRefreshIntervalMinutes,
-                        ),
-                      ),
-                    ),
-                    examResult: _academicExamResult,
-                    examSchedule: AcademicEamsExamCard(
-                      result: _academicExamResult,
-                      isLoading: _academicExamRefreshController.isLoading,
-                      selectedTerm: _academicExamSelectedTerm,
-                      onOpenDetail: _openAcademicExamDetail,
-                    ),
-                    gradeResult: _academicGradeResult,
-                    gradeCard: AcademicEamsGradeCard(
-                      result: _academicGradeResult,
-                      isLoading: _academicGradeRefreshController.isLoading,
-                      onOpenDetail: _openAcademicGradeDetail,
-                    ),
-                  ),
-                  sports: AcademicSportsAttendanceCard(
-                    result: _sportsAttendanceResult,
-                    isLoading: _sportsAttendanceRefreshController.isLoading,
-                    autoRefreshEnabled:
-                        _sportsAttendanceRefreshController.autoRefreshEnabled,
-                    refreshFeedback:
-                        _sportsAttendanceRefreshController.feedback,
-                    onRefresh: _loadSportsAttendance,
-                  ),
-                  secondClassroom: AcademicStudentReportCard(
-                    result: _studentReportResult,
-                    isLoading: _studentReportRefreshController.isLoading,
-                    autoRefreshEnabled:
-                        _studentReportRefreshController.autoRefreshEnabled,
-                    refreshFeedback: _studentReportRefreshController.feedback,
-                    onRefresh: _loadStudentReport,
-                  ),
-                ),
-                SizedBox(height: theme.spacing.m),
-                const YhBanner(
-                  text:
-                      '只读边界：'
-                      '本专科教务仅接入个人信息、课表、成绩、考试、培养计划、开课检索和空闲教室等只读能力；'
-                      '不提供选课、退课、调课、教学评价、提交申请或任何状态变更入口。',
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    return _buildAcademicOverview(context);
   }
 }
 

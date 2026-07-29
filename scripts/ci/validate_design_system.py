@@ -507,6 +507,28 @@ def _validate_page_prototype(project_root: Path) -> None:
         if marker not in prototype:
             errors.append(f"快捷入口原型缺少{label}")
 
+    academic_states = set(
+        re.findall(r'data-academic-state-panel="([^"]+)"', prototype)
+    )
+    required_academic_states = {
+        "initial",
+        "loading",
+        "empty",
+        "error",
+        "credentials-required",
+    }
+    missing_academic_states = sorted(required_academic_states - academic_states)
+    if missing_academic_states:
+        errors.append("教务原型缺少状态：" + ", ".join(missing_academic_states))
+    for marker, label in (
+        ("academic-stale-banner", "陈旧快照提示"),
+        ("academic-partial-banner", "部分失败提示"),
+        ("academic-locked-banner", "协同刷新锁定提示"),
+        ("data-academic-route", "详情导航互斥标记"),
+    ):
+        if marker not in prototype:
+            errors.append(f"教务原型缺少{label}")
+
     for marker, label in (
         ('aria-label="首页显示第二课堂"', "第二课堂辅助坞开关"),
         ('aria-label="首页显示常用入口"', "常用入口辅助坞开关"),
@@ -518,6 +540,7 @@ def _validate_page_prototype(project_root: Path) -> None:
     prototype_js = (project_root / "docs/design/patterns/samples/_app-shell.js").read_text(encoding="utf-8")
     for setter in (
         "setHomeState",
+        "setAcademicState",
         "setCampusCardHomeState",
         "setCampusCardDetailState",
         "setInfoState",
@@ -535,6 +558,7 @@ def _validate_page_prototype(project_root: Path) -> None:
             "home.dashboard",
             "home.campus-card",
             "home.campus-card-detail",
+            "academic.overview",
             "info.feed",
             "info.filters",
             "mail.inbox",

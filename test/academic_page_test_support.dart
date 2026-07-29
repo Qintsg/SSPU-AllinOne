@@ -50,16 +50,22 @@ class _FakeAcademicCalendarClient implements AcademicCalendarClient {
 }
 
 class _FakeSportsAttendanceClient implements SportsAttendanceClient {
-  _FakeSportsAttendanceClient({required this.result});
+  _FakeSportsAttendanceClient({
+    required this.result,
+    this.cachedResult,
+    this.pendingFetch,
+  });
 
   final SportsAttendanceQueryResult result;
+  final SportsAttendanceQueryResult? cachedResult;
+  final Completer<SportsAttendanceQueryResult>? pendingFetch;
   int fetchCount = 0;
   final List<bool> requireCampusNetworkValues = [];
 
   @override
   Future<SportsAttendanceQueryResult?>
   readLatestCachedAttendanceSummary() async {
-    return null;
+    return cachedResult;
   }
 
   @override
@@ -68,21 +74,27 @@ class _FakeSportsAttendanceClient implements SportsAttendanceClient {
   }) async {
     fetchCount++;
     requireCampusNetworkValues.add(requireCampusNetwork);
-    return result;
+    return pendingFetch?.future ?? result;
   }
 }
 
 class _FakeStudentReportClient implements StudentReportClient {
-  _FakeStudentReportClient({required this.result});
+  _FakeStudentReportClient({
+    required this.result,
+    this.cachedResult,
+    this.pendingFetch,
+  });
 
   final StudentReportQueryResult result;
+  final StudentReportQueryResult? cachedResult;
+  final Completer<StudentReportQueryResult>? pendingFetch;
   int fetchCount = 0;
   final List<bool> requireCampusNetworkValues = [];
 
   @override
   Future<StudentReportQueryResult?>
   readLatestCachedSecondClassroomCredits() async {
-    return null;
+    return cachedResult;
   }
 
   @override
@@ -91,7 +103,7 @@ class _FakeStudentReportClient implements StudentReportClient {
   }) async {
     fetchCount++;
     requireCampusNetworkValues.add(requireCampusNetwork);
-    return result;
+    return pendingFetch?.future ?? result;
   }
 
   @override
@@ -104,16 +116,30 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   _FakeAcademicEamsClient({
     required this.result,
     this.cachedOverviewResult,
+    this.cachedExamResult,
+    this.cachedGradeResult,
     this.examResultResolver,
+    this.examResult,
+    this.gradeResult,
+    this.pendingOverview,
+    this.pendingExam,
+    this.pendingGrades,
   });
 
   final AcademicEamsQueryResult result;
   final AcademicEamsQueryResult? cachedOverviewResult;
+  final AcademicEamsQueryResult? cachedExamResult;
+  final AcademicEamsQueryResult? cachedGradeResult;
   final AcademicEamsQueryResult Function(
     AcademicTermChoice? term,
     AcademicEamsSemesterOption? semester,
   )?
   examResultResolver;
+  final AcademicEamsQueryResult? examResult;
+  final AcademicEamsQueryResult? gradeResult;
+  final Completer<AcademicEamsQueryResult>? pendingOverview;
+  final Completer<AcademicEamsQueryResult>? pendingExam;
+  final Completer<AcademicEamsQueryResult>? pendingGrades;
   int overviewFetchCount = 0;
   int courseTableFetchCount = 0;
   int examFetchCount = 0;
@@ -138,7 +164,7 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
 
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedExamSchedule() async {
-    return null;
+    return cachedExamResult;
   }
 
   @override
@@ -159,7 +185,7 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   }) async {
     courseTableFetchCount++;
     courseTableRequireCampusNetworkValues.add(requireCampusNetwork);
-    return result;
+    return pendingOverview?.future ?? result;
   }
 
   @override
@@ -168,7 +194,7 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   }) async {
     overviewFetchCount++;
     overviewRequireCampusNetworkValues.add(requireCampusNetwork);
-    return result;
+    return pendingOverview?.future ?? result;
   }
 
   @override
@@ -182,7 +208,10 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
     examTermValues.add(term);
     examSemesterValues.add(semester);
     examTypeValues.add(examTypeId);
-    return examResultResolver?.call(term, semester) ?? result;
+    return pendingExam?.future ??
+        examResultResolver?.call(term, semester) ??
+        examResult ??
+        result;
   }
 
   @override
@@ -191,12 +220,12 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   }) async {
     gradeFetchCount++;
     gradeRequireCampusNetworkValues.add(requireCampusNetwork);
-    return result;
+    return pendingGrades?.future ?? gradeResult ?? result;
   }
 
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedGrades() async {
-    return null;
+    return cachedGradeResult;
   }
 
   @override

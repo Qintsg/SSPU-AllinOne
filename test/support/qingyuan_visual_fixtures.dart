@@ -716,6 +716,32 @@ final AcademicEamsQueryResult qingyuanAcademicExamContentResult =
       ),
     );
 
+final AcademicEamsQueryResult qingyuanAcademicOverviewExamContentResult =
+    _academicDetailResult(
+      message: '考试安排读取成功',
+      exams: AcademicExamSnapshot(
+        selectedSemester: AcademicEamsSemesterOption.fromEamsFields(
+          id: 'visual-summer',
+          schoolYear: '2025-2026',
+          termCode: '3',
+        ),
+        records: const [
+          AcademicExamRecord(
+            examType: '期末考试',
+            courseSequence: 'MA302',
+            courseName: '离散数学',
+            examDate: '2026-07-22',
+            examArrange: '09:00',
+            examLocation: '教一 201',
+            examSituation: '正常',
+            rawCells: ['期末考试', 'MA302', '离散数学', '2026-07-22'],
+          ),
+        ],
+        fetchedAt: qingyuanVisualNow,
+        sourceUri: _academicVisualSourceUri,
+      ),
+    );
+
 final AcademicEamsQueryResult qingyuanAcademicExamEmptyResult =
     _academicDetailResult(
       message: '当前学期暂无考试安排',

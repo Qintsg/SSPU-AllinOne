@@ -449,6 +449,79 @@ def _capture_info_state_references(
     page.evaluate("window.qingyuanPrototype.setInfoFilterState('content')")
 
 
+def _capture_academic_state_references(
+    page: Page,
+    output_dir: Path,
+    theme: str,
+    width: int,
+    height: int,
+) -> None:
+    states = (
+        "initial",
+        "loading",
+        "empty",
+        "stale",
+        "error",
+        "partial-error",
+        "credentials-required",
+        "operation-locked",
+    )
+    for state in states:
+        page.evaluate("state => window.qingyuanPrototype.setAcademicState(state)", state)
+        if state in ("stale", "partial-error", "operation-locked"):
+            banner_class = {
+                "stale": "academic-stale-banner",
+                "partial-error": "academic-partial-banner",
+                "operation-locked": "academic-locked-banner",
+            }[state]
+            banner = page.locator(f'.{banner_class}:visible')
+            _assert(banner.count() == 1, f"教务 {state} 状态缺少协同提示")
+            _assert(page.locator('[data-academic-content]:visible').count() >= 2, f"教务 {state} 丢失已有内容")
+        else:
+            panel = page.locator(f'[data-academic-state-panel="{state}"]:visible')
+            _assert(panel.count() == 1, f"教务 {state} 状态面板未显示")
+        if state == "operation-locked":
+            _assert(page.locator('[data-academic-refresh]:not([disabled])').count() == 0, "教务协同刷新期间仍可重复刷新")
+            _assert(page.locator('[data-academic-route]:not([disabled])').count() == 0, "教务协同刷新期间仍可进入详情")
+        _capture_reference(
+            page,
+            output_dir / f"academic.overview--{state}--{theme}--{width}x{height}.png",
+            width,
+            height,
+        )
+    page.evaluate("window.qingyuanPrototype.setAcademicState('content')")
+
+
+def _capture_academic_surface_prefix(
+    page: Page,
+    output_dir: Path,
+    prototype_url: str,
+) -> None:
+    for width, height in VIEWPORTS:
+        page.set_viewport_size({"width": width, "height": height})
+        page.emulate_media(reduced_motion="reduce")
+        page.goto(prototype_url, wait_until="networkidle")
+        for theme in ("light", "dark"):
+            page.evaluate(
+                "theme => localStorage.setItem('qingyuan:samples:theme', theme)",
+                theme,
+            )
+            _open_screen(page, prototype_url, "academic")
+            _capture_reference(
+                page,
+                output_dir / f"academic.overview--content--{theme}--{width}x{height}.png",
+                width,
+                height,
+            )
+            _capture_academic_state_references(
+                page,
+                output_dir,
+                theme,
+                width,
+                height,
+            )
+
+
 def _capture_campus_card_home_state_references(
     page: Page,
     output_dir: Path,
@@ -581,7 +654,14 @@ def verify(output_dir: Path, surface_prefix: str | None = None) -> None:
         page.on("pageerror", lambda error: errors.append(f"pageerror: {error}"))
 
         if surface_prefix:
-            _capture_missing_state_references(page, output_dir, expected)
+            if surface_prefix == "academic.overview":
+                _capture_academic_surface_prefix(
+                    page,
+                    output_dir,
+                    prototype_url,
+                )
+            else:
+                _capture_missing_state_references(page, output_dir, expected)
             _write_reference_index(output_dir, manifest, expected)
             _assert(not errors, "浏览器控制台错误：" + " | ".join(errors))
             context.close()
@@ -648,6 +728,8 @@ def verify(output_dir: Path, surface_prefix: str | None = None) -> None:
                     _capture_campus_card_home_state_references(page, output_dir, "light", width, height)
                 if screen == "campus-card-detail":
                     _capture_campus_card_detail_state_references(page, output_dir, "light", width, height)
+                if screen == "academic":
+                    _capture_academic_state_references(page, output_dir, "light", width, height)
                 if screen == "info":
                     _capture_info_state_references(page, output_dir, "light", width, height)
                 if screen == "mail":
@@ -697,6 +779,8 @@ def verify(output_dir: Path, surface_prefix: str | None = None) -> None:
                     _capture_campus_card_home_state_references(page, output_dir, "dark", width, height)
                 if screen == "campus-card-detail":
                     _capture_campus_card_detail_state_references(page, output_dir, "dark", width, height)
+                if screen == "academic":
+                    _capture_academic_state_references(page, output_dir, "dark", width, height)
                 if screen == "info":
                     _capture_info_state_references(page, output_dir, "dark", width, height)
                 if screen == "mail":

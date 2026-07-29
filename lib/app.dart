@@ -61,7 +61,15 @@ class _AppShellState extends State<AppShell> {
     _AppDestination(
       title: '教务',
       icon: YhIcons.academic,
-      body: _destinationBody('教务', const AcademicPage()),
+      body: _destinationBody(
+        '教务',
+        AcademicPage(
+          onOpenAccountConnections: () =>
+              _openSettings(SettingsLandingSection.security),
+          onAdjustAcademicTerm: () =>
+              _openSettings(SettingsLandingSection.academicTerm),
+        ),
+      ),
     ),
     _AppDestination(
       title: '课表',

@@ -6,10 +6,14 @@
  * @Date : 2026-04-30
  */
 
+import 'dart:async';
+import 'dart:ui' show Tristate;
+
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/models/academic_calendar.dart';
+import 'package:sspu_allinone/models/academic_credentials.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/models/sports_attendance.dart';
@@ -24,6 +28,14 @@ import 'package:sspu_allinone/services/storage_service.dart';
 
 part 'academic_page_test_support.dart';
 
+const _completeAcademicCredentials = AcademicCredentialsStatus(
+  oaAccount: '20260001',
+  emailAccount: '20260001@sspu.edu.cn',
+  hasOaPassword: true,
+  hasSportsQueryPassword: true,
+  hasEmailPassword: true,
+);
+
 /// 等待异步卡片加载完成。
 Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
   for (var attempt = 0; attempt < 40; attempt++) {
@@ -34,7 +46,7 @@ Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
 
 /// 推进页面动画和 Fluent 点击态短计时器，避免组件卸载后残留 timer。
 Future<void> disposeAcademicPage(WidgetTester tester) async {
-  await tester.pump(const Duration(milliseconds: 420));
+  await tester.pump(const Duration(seconds: 4));
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pump(const Duration(milliseconds: 120));
 }
@@ -46,10 +58,15 @@ Future<void> pumpAcademicPage(
   required StudentReportClient studentReportService,
   AcademicTermService? academicTermService,
   bool academicEamsAutoRefreshEnabledOverride = false,
+  int academicEamsAutoRefreshIntervalOverride = 30,
   bool sportsAttendanceAutoRefreshEnabledOverride = false,
   int sportsAttendanceAutoRefreshIntervalOverride = 30,
   bool studentReportAutoRefreshEnabledOverride = false,
   int studentReportAutoRefreshIntervalOverride = 30,
+  VoidCallback? onOpenAccountConnections,
+  VoidCallback? onAdjustAcademicTerm,
+  AcademicCredentialsStatus credentialsStatusOverride =
+      _completeAcademicCredentials,
 }) async {
   await tester.pumpWidget(
     YhApp(
@@ -60,6 +77,8 @@ Future<void> pumpAcademicPage(
         studentReportService: studentReportService,
         academicEamsAutoRefreshEnabledOverride:
             academicEamsAutoRefreshEnabledOverride,
+        academicEamsAutoRefreshIntervalOverride:
+            academicEamsAutoRefreshIntervalOverride,
         sportsAttendanceAutoRefreshEnabledOverride:
             sportsAttendanceAutoRefreshEnabledOverride,
         sportsAttendanceAutoRefreshIntervalOverride:
@@ -68,12 +87,268 @@ Future<void> pumpAcademicPage(
             studentReportAutoRefreshEnabledOverride,
         studentReportAutoRefreshIntervalOverride:
             studentReportAutoRefreshIntervalOverride,
+        onOpenAccountConnections: onOpenAccountConnections,
+        onAdjustAcademicTerm: onAdjustAcademicTerm,
+        credentialsStatusOverride: credentialsStatusOverride,
       ),
     ),
   );
 }
 
 void main() {
+  testWidgets('学程总览协同刷新期间锁定重复动作且每个来源只请求一次', (tester) async {
+    final semantics = tester.ensureSemantics();
+    final overview = Completer<AcademicEamsQueryResult>();
+    final exams = Completer<AcademicEamsQueryResult>();
+    final grades = Completer<AcademicEamsQueryResult>();
+    final sports = Completer<SportsAttendanceQueryResult>();
+    final report = Completer<StudentReportQueryResult>();
+    final academicClient = _FakeAcademicEamsClient(
+      result: _academicEamsResult,
+      pendingOverview: overview,
+      pendingExam: exams,
+      pendingGrades: grades,
+    );
+    final sportsClient = _FakeSportsAttendanceClient(
+      result: _successResult,
+      pendingFetch: sports,
+    );
+    final reportClient = _FakeStudentReportClient(
+      result: _creditResult,
+      pendingFetch: report,
+    );
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: academicClient,
+      sportsAttendanceService: sportsClient,
+      studentReportService: reportClient,
+    );
+    await tester.pump();
+
+    final refresh = find.byKey(const ValueKey('academic-overview-refresh'));
+    expect(refresh, findsOneWidget);
+    await tester.tap(refresh);
+    await tester.pump();
+
+    expect(find.textContaining('正在协同刷新 5 个只读来源'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('academic-overview-grade')),
+        matching: find.byType(YhPressable),
+      ),
+      findsNothing,
+    );
+    expect(academicClient.overviewFetchCount, 1);
+    expect(academicClient.examFetchCount, 1);
+    expect(academicClient.gradeFetchCount, 1);
+    expect(sportsClient.fetchCount, 1);
+    expect(reportClient.fetchCount, 1);
+
+    await tester.tap(refresh);
+    await tester.pump();
+    expect(academicClient.overviewFetchCount, 1);
+    expect(sportsClient.fetchCount, 1);
+
+    final lockedSources = tester.getSemantics(
+      find.bySemanticsLabel('详细数据源，协同刷新期间不可用'),
+    );
+    expect(lockedSources.flagsCollection.isEnabled, Tristate.isFalse);
+
+    final legacyDetail = find.byKey(
+      const Key('academic-student-report-detail'),
+    );
+    await tester.ensureVisible(legacyDetail);
+    await tester.tap(legacyDetail, warnIfMissed: false);
+    await tester.pump();
+    expect(find.text('第二课堂详情'), findsNothing);
+
+    overview.complete(_academicEamsResult);
+    exams.complete(_academicEamsResult);
+    grades.complete(_academicEamsResult);
+    sports.complete(_successResult);
+    report.complete(_creditResult);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('正在协同刷新 5 个只读来源'), findsNothing);
+    expect(find.text('教务数据已刷新'), findsOneWidget);
+    semantics.dispose();
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('详细数据源入口满足触控尺寸并在跳转后转移键盘焦点', (tester) async {
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(
+        result: _academicEamsResult,
+        cachedOverviewResult: _academicEamsResult,
+        cachedExamResult: _academicEamsResult,
+        cachedGradeResult: _academicEamsResult,
+      ),
+      sportsAttendanceService: _FakeSportsAttendanceClient(
+        result: _successResult,
+        cachedResult: _successResult,
+      ),
+      studentReportService: _FakeStudentReportClient(
+        result: _creditResult,
+        cachedResult: _creditResult,
+      ),
+    );
+    await pumpUntilFound(tester, find.text('查看详细数据源'));
+
+    final shortcut = find.byKey(
+      const ValueKey('academic-overview-detailed-sources'),
+    );
+    expect(tester.getSize(shortcut).height, greaterThanOrEqualTo(48));
+    await tester.ensureVisible(shortcut);
+    await tester.pumpAndSettle();
+    await tester.tap(shortcut);
+    await tester.pumpAndSettle();
+
+    final headingTop = tester.getTopLeft(find.text('详细数据源')).dy;
+    expect(headingTop, inInclusiveRange(0, tester.view.physicalSize.height));
+    final focus = tester.widget<Focus>(
+      find.byKey(const ValueKey('academic-legacy-sources-focus')),
+    );
+    expect(focus.focusNode?.hasFocus, isTrue);
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('有本地快照的自动刷新明确显示正在更新且保留内容', (tester) async {
+    final sports = Completer<SportsAttendanceQueryResult>();
+    final sportsClient = _FakeSportsAttendanceClient(
+      result: _successResult,
+      cachedResult: _successResult,
+      pendingFetch: sports,
+    );
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(
+        result: _academicEamsResult,
+        cachedOverviewResult: _academicEamsResult,
+      ),
+      sportsAttendanceService: sportsClient,
+      studentReportService: _FakeStudentReportClient(result: _creditResult),
+      sportsAttendanceAutoRefreshEnabledOverride: true,
+    );
+    await pumpUntilFound(tester, find.text('正在更新'));
+
+    expect(find.text('本地快照可用'), findsOneWidget);
+    expect(find.text('正在更新'), findsOneWidget);
+    expect(
+      tester.widget<AcademicSportsAttendanceCard>(
+        find.byType(AcademicSportsAttendanceCard),
+      ).result,
+      same(_successResult),
+    );
+
+    sports.complete(_successResult);
+    await tester.pumpAndSettle();
+    expect(find.text('正在更新'), findsNothing);
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('缺少 OA 凭据时不请求任何校园来源并打开账户连接', (tester) async {
+    final missingCredentials = AcademicEamsQueryResult(
+      status: AcademicEamsQueryStatus.missingOaAccount,
+      message: '请先保存学工号（OA账号）',
+      detail: '当前不会访问校园服务。',
+      checkedAt: DateTime(2026, 7, 18, 9),
+      entranceUri: Uri.parse('https://oa.example.invalid/academic'),
+    );
+    final academicClient = _FakeAcademicEamsClient(
+      result: missingCredentials,
+      cachedOverviewResult: missingCredentials,
+    );
+    final sportsClient = _FakeSportsAttendanceClient(result: _successResult);
+    final reportClient = _FakeStudentReportClient(result: _creditResult);
+    var openedConnections = 0;
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: academicClient,
+      sportsAttendanceService: sportsClient,
+      studentReportService: reportClient,
+      academicEamsAutoRefreshEnabledOverride: true,
+      sportsAttendanceAutoRefreshEnabledOverride: true,
+      studentReportAutoRefreshEnabledOverride: true,
+      credentialsStatusOverride: const AcademicCredentialsStatus.empty(),
+      onOpenAccountConnections: () => openedConnections++,
+    );
+    await pumpUntilFound(tester, find.text('需要先完成教务账户连接'));
+
+    await tester.tap(find.byKey(const ValueKey('academic-overview-refresh')));
+    await tester.pump();
+
+    expect(academicClient.overviewFetchCount, 0);
+    expect(academicClient.examFetchCount, 0);
+    expect(academicClient.gradeFetchCount, 0);
+    expect(sportsClient.fetchCount, 0);
+    expect(reportClient.fetchCount, 0);
+
+    await tester.tap(find.text('前往账户与连接'));
+    await tester.pump();
+    expect(openedConnections, 1);
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('协同刷新部分失败时保留各来源最后有效缓存', (tester) async {
+    final academicFailure = AcademicEamsQueryResult(
+      status: AcademicEamsQueryStatus.networkError,
+      message: '暂时无法读取',
+      detail: '网络不可用',
+      checkedAt: DateTime(2026, 7, 18, 9),
+      entranceUri: Uri.parse('https://oa.example.invalid/academic'),
+    );
+    final sportsFailure = SportsAttendanceQueryResult(
+      status: SportsAttendanceQueryStatus.networkError,
+      message: '暂时无法读取体育考勤',
+      detail: '网络不可用',
+      checkedAt: DateTime(2026, 7, 18, 9),
+      entranceUri: Uri.parse('https://sports.example.invalid/login'),
+    );
+    final reportFailure = StudentReportQueryResult(
+      status: StudentReportQueryStatus.networkError,
+      message: '暂时无法读取第二课堂',
+      detail: '网络不可用',
+      checkedAt: DateTime(2026, 7, 18, 9),
+      entranceUri: Uri.parse('https://oa.example.invalid/report'),
+    );
+    final academicClient = _FakeAcademicEamsClient(
+      result: _academicEamsResult,
+      cachedOverviewResult: _academicEamsResult,
+      cachedGradeResult: _academicEamsResult,
+      examResult: academicFailure,
+      gradeResult: academicFailure,
+    );
+    final sportsClient = _FakeSportsAttendanceClient(
+      result: sportsFailure,
+      cachedResult: _successResult,
+    );
+    final reportClient = _FakeStudentReportClient(
+      result: reportFailure,
+      cachedResult: _creditResult,
+    );
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: academicClient,
+      sportsAttendanceService: sportsClient,
+      studentReportService: reportClient,
+    );
+    await pumpUntilFound(tester, find.text('3.0'));
+
+    await tester.tap(find.byKey(const ValueKey('academic-overview-refresh')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('3.0'), findsOneWidget);
+    expect(find.textContaining('未完成；其余来源已更新'), findsOneWidget);
+    expect(find.text('教务数据部分更新'), findsOneWidget);
+    expect(academicClient.overviewFetchCount, 1);
+    expect(academicClient.examFetchCount, 1);
+    expect(academicClient.gradeFetchCount, 1);
+    expect(sportsClient.fetchCount, 1);
+    expect(reportClient.fetchCount, 1);
+    await disposeAcademicPage(tester);
+  });
+
   testWidgets('第二课堂详情通过查询结果展示加载与错误状态', (tester) async {
     await tester.pumpWidget(
       const YhApp(home: StudentReportDetailPage(result: null, isLoading: true)),
@@ -204,6 +479,10 @@ void main() {
     );
     await pumpUntilFound(tester, find.textContaining('正在显示昨日教务缓存'));
 
+    expect(
+      find.text('当前显示 7 月 17 日 18:00 的本地教务快照；刷新失败不会删除这些内容。'),
+      findsOneWidget,
+    );
     expect(find.text('正在显示昨日教务缓存：网络恢复后可手动刷新。'), findsOneWidget);
     await disposeAcademicPage(tester);
   });
@@ -701,7 +980,9 @@ void main() {
       studentReportService: _FakeStudentReportClient(result: _creditResult),
     );
 
-    await tester.tap(find.byKey(const Key('academic-eams-refresh')));
+    final legacyRefresh = find.byKey(const Key('academic-eams-refresh'));
+    await tester.ensureVisible(legacyRefresh);
+    await tester.tap(legacyRefresh);
     await pumpUntilFound(tester, find.textContaining('姓名：张三'));
 
     expect(find.text('本专科教务'), findsOneWidget);
@@ -812,13 +1093,13 @@ void main() {
       find.descendant(of: primaryCard, matching: examCard),
       findsOneWidget,
     );
-    expect(find.text('大学生心理健康教育'), findsOneWidget);
+    expect(find.text('大学生心理健康教育'), findsWidgets);
     expect(find.text('高等数学D2'), findsNothing);
     expect(find.text('通用学术英语B'), findsNothing);
     expect(find.textContaining('考试情况尚未发布'), findsNothing);
     expect(find.textContaining('暂无信息'), findsNothing);
     expect(find.textContaining('2026-06-17'), findsOneWidget);
-    expect(find.textContaining('4201'), findsOneWidget);
+    expect(find.textContaining('4201'), findsWidgets);
     expect(find.textContaining('考试 3场'), findsOneWidget);
     expect(find.textContaining('还有 2 门考试信息'), findsOneWidget);
     expect(
@@ -883,7 +1164,7 @@ void main() {
       );
     }
     expect(find.text('高等数学D2'), findsOneWidget);
-    expect(find.text('大学生心理健康教育'), findsOneWidget);
+    expect(find.text('大学生心理健康教育'), findsWidgets);
     expect(find.text('通用学术英语B'), findsOneWidget);
     expect(find.textContaining('考试情况尚未发布'), findsNothing);
     expect(find.textContaining('暂无信息'), findsNothing);
@@ -952,7 +1233,7 @@ void main() {
 
     await tester.tap(find.text('返回'));
     await tester.pumpAndSettle();
-    expect(find.text('大学生心理健康教育'), findsOneWidget);
+    expect(find.text('大学生心理健康教育'), findsWidgets);
     expect(find.textContaining('考试 3场'), findsOneWidget);
     await disposeAcademicPage(tester);
   });

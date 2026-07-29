@@ -21,6 +21,27 @@ class YhProgress extends StatelessWidget {
     final theme = context.yhTheme;
     final normalized = value?.clamp(0.0, 1.0);
     final label = normalized == null ? '加载中' : '${(normalized * 100).round()}%';
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final activeColor = normalized == 1
+        ? theme.color.success
+        : theme.color.brandStrong;
+    final determinateProgress = normalized == null
+        ? null
+        : Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: disableAnimations
+                ? FractionallySizedBox(
+                    widthFactor: normalized,
+                    child: ColoredBox(color: activeColor),
+                  )
+                : AnimatedFractionallySizedBox(
+                    duration: theme.motion.slow,
+                    curve: theme.motion.curve,
+                    widthFactor: normalized,
+                    child: ColoredBox(color: activeColor),
+                  ),
+          );
     final bar = Semantics(
       label: semanticLabel ?? '加载进度',
       value: label,
@@ -32,19 +53,7 @@ class YhProgress extends StatelessWidget {
             color: theme.color.border,
             child: normalized == null
                 ? const _IndeterminateProgress()
-                : Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: AnimatedFractionallySizedBox(
-                      duration: theme.motion.slow,
-                      curve: theme.motion.curve,
-                      widthFactor: normalized,
-                      child: ColoredBox(
-                        color: normalized == 1
-                            ? theme.color.success
-                            : theme.color.brandStrong,
-                      ),
-                    ),
-                  ),
+                : determinateProgress!,
           ),
         ),
       ),

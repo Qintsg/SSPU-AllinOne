@@ -100,6 +100,28 @@
     });
   }
 
+  function setAcademicState(state) {
+    var academicPage = document.querySelector('[data-screen="academic"]');
+    if (!academicPage) return;
+    var showContent = ['content', 'stale', 'partial-error', 'operation-locked'].indexOf(state) >= 0;
+    academicPage.dataset.academicState = state;
+    academicPage.querySelectorAll('[data-academic-content]').forEach(function (item) {
+      item.hidden = !showContent;
+    });
+    academicPage.querySelector('.academic-stale-banner').hidden = state !== 'stale';
+    academicPage.querySelector('.academic-partial-banner').hidden = state !== 'partial-error';
+    academicPage.querySelector('.academic-locked-banner').hidden = state !== 'operation-locked';
+    academicPage.querySelectorAll('[data-academic-state-panel]').forEach(function (panel) {
+      panel.hidden = panel.dataset.academicStatePanel !== state;
+    });
+    academicPage.querySelectorAll('[data-academic-refresh]').forEach(function (button) {
+      button.disabled = state === 'operation-locked';
+    });
+    academicPage.querySelectorAll('[data-academic-route]').forEach(function (button) {
+      button.disabled = state === 'operation-locked';
+    });
+  }
+
   function setHomeState(state) {
     var homePage = document.querySelector('[data-screen="home"]');
     if (!homePage) return;
@@ -288,6 +310,19 @@
       return;
     }
 
+    var academicSourcesJump = event.target.closest('[data-academic-sources-jump]');
+    if (academicSourcesJump && !academicSourcesJump.disabled) {
+      var academicSources = document.querySelector('[data-academic-source-target]');
+      if (academicSources) {
+        academicSources.scrollIntoView({
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+          block: 'start'
+        });
+        academicSources.focus({ preventScroll: true });
+      }
+      return;
+    }
+
     var tab = event.target.closest('[data-screen="schedule"] .domain-tab');
     if (tab) {
       activateScheduleTab(tab);
@@ -471,6 +506,7 @@
   });
   window.qingyuanPrototype = {
     setHomeState: setHomeState,
+    setAcademicState: setAcademicState,
     setCampusCardHomeState: setCampusCardHomeState,
     setCampusCardDetailState: setCampusCardDetailState,
     setInfoState: setInfoState,

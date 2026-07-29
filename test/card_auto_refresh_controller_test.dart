@@ -45,13 +45,35 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await controller.runRefresh(silent: true);
+    final outcome = await controller.runRefresh(silent: true);
 
     expect(fetchCount, 1);
     expect(appliedResult.success, isTrue);
     expect(appliedResult.checkedAt, DateTime(2026, 6, 11, 8));
     expect(controller.isLoading, isFalse);
     expect(controller.feedback, isNull);
+    expect(outcome?.result?.success, isFalse);
+    expect(outcome?.success, isFalse);
+    expect(outcome?.applied, isFalse);
+  });
+
+  test('刷新任务抛出异常后解除加载锁并返回失败结果', () async {
+    final controller = CardAutoRefreshController<_RefreshResult>(
+      refreshTask: ({required bool silent}) =>
+          Future<_RefreshResult>.error(StateError('network exploded')),
+      isSuccess: (result) => result.success,
+      applyResult: (_) {},
+      checkedAt: () => null,
+      failureReason: (result) => result.reason,
+    );
+    addTearDown(controller.dispose);
+
+    final outcome = await controller.runRefresh(silent: true);
+
+    expect(outcome?.success, isFalse);
+    expect(outcome?.applied, isFalse);
+    expect(outcome?.error, isA<StateError>());
+    expect(controller.isLoading, isFalse);
   });
 
   testWidgets('手动刷新失败显示短反馈并在三秒后恢复', (tester) async {

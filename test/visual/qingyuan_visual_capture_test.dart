@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/app.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/models/academic_calendar.dart';
+import 'package:sspu_allinone/models/academic_credentials.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/email_mailbox.dart';
 import 'package:sspu_allinone/models/sports_attendance.dart';
@@ -466,6 +467,25 @@ final _surfaces = <_VisualSurface>[
     'academic.overview',
     () => _academicOverview(_AcademicOverviewScenario.error),
     state: 'error',
+    destination: '教务',
+  ),
+  _VisualSurface(
+    'academic.overview',
+    () => _academicOverview(_AcademicOverviewScenario.partialError),
+    state: 'partial-error',
+    destination: '教务',
+  ),
+  _VisualSurface(
+    'academic.overview',
+    () => _academicOverview(_AcademicOverviewScenario.credentialsRequired),
+    state: 'credentials-required',
+    destination: '教务',
+  ),
+  _VisualSurface(
+    'academic.overview',
+    () => _academicOverview(_AcademicOverviewScenario.operationLocked),
+    state: 'operation-locked',
+    prepare: _prepareAcademicOverviewOperationLocked,
     destination: '教务',
   ),
   _VisualSurface(
@@ -1610,82 +1630,142 @@ enum _AcademicOverviewScenario {
   empty,
   stale,
   error,
+  partialError,
+  credentialsRequired,
+  operationLocked,
 }
 
 Widget _academicOverview(_AcademicOverviewScenario scenario) {
   final loading = scenario == _AcademicOverviewScenario.loading;
+  final operationLocked = scenario == _AcademicOverviewScenario.operationLocked;
+  final credentialsRequired =
+      scenario == _AcademicOverviewScenario.credentialsRequired;
+  const completeCredentials = AcademicCredentialsStatus(
+    oaAccount: '20260001',
+    emailAccount: '20260001@sspu.edu.cn',
+    hasOaPassword: true,
+    hasSportsQueryPassword: true,
+    hasEmailPassword: true,
+  );
   final hasCache = switch (scenario) {
     _AcademicOverviewScenario.initial ||
-    _AcademicOverviewScenario.loading => false,
+    _AcademicOverviewScenario.loading ||
+    _AcademicOverviewScenario.credentialsRequired => false,
     _ => true,
   };
+  final credentialsResult = AcademicEamsQueryResult(
+    status: AcademicEamsQueryStatus.missingOaAccount,
+    message: '请先保存学工号（OA账号）',
+    detail: '当前不会发起校园服务请求。',
+    checkedAt: qingyuanVisualNow,
+    entranceUri: Uri.parse('https://oa.example.invalid/academic'),
+  );
   final overviewResult = switch (scenario) {
     _AcademicOverviewScenario.empty => qingyuanAcademicOverviewEmptyResult,
     _AcademicOverviewScenario.stale => qingyuanAcademicOverviewStaleResult,
     _AcademicOverviewScenario.error => qingyuanAcademicDetailErrorResult,
+    _AcademicOverviewScenario.credentialsRequired => credentialsResult,
     _ => qingyuanHomeAcademicResult,
   };
   final gradeResult = switch (scenario) {
     _AcademicOverviewScenario.empty => qingyuanAcademicGradeEmptyResult,
     _AcademicOverviewScenario.stale => qingyuanAcademicGradeStaleResult,
     _AcademicOverviewScenario.error => qingyuanAcademicDetailErrorResult,
+    _AcademicOverviewScenario.credentialsRequired => credentialsResult,
     _ => qingyuanAcademicGradeContentResult,
   };
   final examResult = switch (scenario) {
     _AcademicOverviewScenario.empty => qingyuanAcademicExamEmptyResult,
     _AcademicOverviewScenario.stale => qingyuanAcademicExamStaleResult,
-    _AcademicOverviewScenario.error => qingyuanAcademicDetailErrorResult,
-    _ => qingyuanAcademicExamContentResult,
+    _AcademicOverviewScenario.error ||
+    _AcademicOverviewScenario.partialError => qingyuanAcademicDetailErrorResult,
+    _AcademicOverviewScenario.credentialsRequired => credentialsResult,
+    _ => qingyuanAcademicOverviewExamContentResult,
   };
   final sportsResult = switch (scenario) {
     _AcademicOverviewScenario.empty => qingyuanAcademicSportsEmptyResult,
     _AcademicOverviewScenario.stale => qingyuanAcademicSportsStaleResult,
-    _AcademicOverviewScenario.error => qingyuanAcademicSportsErrorResult,
+    _AcademicOverviewScenario.error ||
+    _AcademicOverviewScenario.partialError => qingyuanAcademicSportsErrorResult,
     _ => qingyuanHomeSportsResult,
   };
   final reportResult = switch (scenario) {
     _AcademicOverviewScenario.empty => qingyuanAcademicStudentReportEmptyResult,
     _AcademicOverviewScenario.stale => qingyuanAcademicStudentReportStaleResult,
-    _AcademicOverviewScenario.error => qingyuanAcademicStudentReportErrorResult,
+    _AcademicOverviewScenario.error || _AcademicOverviewScenario.partialError =>
+      qingyuanAcademicStudentReportErrorResult,
     _ => qingyuanHomeStudentReportResult,
   };
   return AcademicPage(
     academicEamsService: QingyuanVisualAcademicEamsClient(
       result: overviewResult,
-      cachedOverviewResult: hasCache ? overviewResult : null,
-      cachedGradeResult: hasCache ? gradeResult : null,
-      cachedExamResult: hasCache ? examResult : null,
+      cachedOverviewResult: hasCache || credentialsRequired
+          ? overviewResult
+          : null,
+      cachedGradeResult: hasCache || credentialsRequired ? gradeResult : null,
+      cachedExamResult: hasCache || credentialsRequired ? examResult : null,
       examResult: examResult,
       gradeResult: gradeResult,
-      pendingOverview: loading ? Completer<AcademicEamsQueryResult>() : null,
+      pendingOverview: loading || operationLocked
+          ? Completer<AcademicEamsQueryResult>()
+          : null,
+      pendingExam: operationLocked
+          ? Completer<AcademicEamsQueryResult>()
+          : null,
+      pendingGrades: operationLocked
+          ? Completer<AcademicEamsQueryResult>()
+          : null,
     ),
     sportsAttendanceService: QingyuanVisualSportsAttendanceClient(
       sportsResult,
       cacheEnabled: hasCache,
-      pendingFetch: loading ? Completer<SportsAttendanceQueryResult>() : null,
+      pendingFetch: loading || operationLocked
+          ? Completer<SportsAttendanceQueryResult>()
+          : null,
     ),
     studentReportService: QingyuanVisualStudentReportClient(
       reportResult,
       cacheEnabled: hasCache,
-      pendingFetch: loading ? Completer<StudentReportQueryResult>() : null,
+      pendingFetch: loading || operationLocked
+          ? Completer<StudentReportQueryResult>()
+          : null,
     ),
     academicTermService: buildQingyuanVisualAcademicTermService(),
     academicTermNow: qingyuanVisualNow,
+    credentialsStatusOverride: credentialsRequired
+        ? const AcademicCredentialsStatus.empty()
+        : completeCredentials,
     academicEamsAutoRefreshEnabledOverride: loading,
     academicEamsAutoRefreshIntervalOverride: 30,
     sportsAttendanceAutoRefreshEnabledOverride: loading,
     sportsAttendanceAutoRefreshIntervalOverride: 30,
     studentReportAutoRefreshEnabledOverride: loading,
     studentReportAutoRefreshIntervalOverride: 30,
+    onOpenAccountConnections: () {},
+    onAdjustAcademicTerm: () {},
   );
 }
 
 Future<void> _prepareAcademicOverviewLoading(WidgetTester tester) async {
   for (var attempt = 0; attempt < 40; attempt++) {
     await tester.pump(const Duration(milliseconds: 50));
-    if (find.text('正在读取本专科教务摘要...').evaluate().isNotEmpty) return;
+    if (find.text('正在恢复本机教务快照').evaluate().isNotEmpty) return;
   }
   throw StateError('教务概览未在固定等待窗口内进入 loading 状态');
+}
+
+Future<void> _prepareAcademicOverviewOperationLocked(
+  WidgetTester tester,
+) async {
+  final refresh = find.byKey(const ValueKey('academic-overview-refresh'));
+  await tester.tap(refresh);
+  for (var attempt = 0; attempt < 40; attempt++) {
+    await tester.pump(const Duration(milliseconds: 50));
+    if (find.textContaining('正在协同刷新 5 个只读来源').evaluate().isNotEmpty) {
+      return;
+    }
+  }
+  throw StateError('教务概览未在固定等待窗口内进入 operation-locked 状态');
 }
 
 Widget _academicGradeDetail(AcademicEamsQueryResult result) {

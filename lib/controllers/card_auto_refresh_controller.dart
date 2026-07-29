@@ -30,6 +30,24 @@ typedef CardRefreshResultApplier<T> = void Function(T result);
 /// 读取当前卡片数据的刷新时间。
 typedef CardRefreshCheckedAtReader = DateTime? Function();
 
+/// 单次刷新尝试的可观察结果。
+///
+/// 静默刷新失败会返回 [applied] 为 false，调用方因此可以协调多个来源，
+/// 同时继续保留各卡片最后一次有效数据。
+class CardRefreshOutcome<T> {
+  const CardRefreshOutcome({
+    this.result,
+    this.error,
+    required this.success,
+    required this.applied,
+  });
+
+  final T? result;
+  final Object? error;
+  final bool success;
+  final bool applied;
+}
+
 /// 控制校园业务卡片的自动刷新、静默刷新和手动刷新短反馈。
 class CardAutoRefreshController<T> extends ChangeNotifier {
   /// 构造卡片刷新控制器。
@@ -111,8 +129,8 @@ class CardAutoRefreshController<T> extends ChangeNotifier {
   }
 
   /// 执行刷新；静默刷新失败不会覆盖旧缓存，也不会显示反馈。
-  Future<void> runRefresh({bool silent = false}) async {
-    if (_isLoading) return;
+  Future<CardRefreshOutcome<T>?> runRefresh({bool silent = false}) async {
+    if (_isLoading) return null;
     if (!silent) {
       _feedbackTimer?.cancel();
       _feedback = null;
@@ -120,19 +138,39 @@ class CardAutoRefreshController<T> extends ChangeNotifier {
     _isLoading = true;
     _notifyIfAlive();
 
-    final result = await _refreshTask(silent: silent);
-    if (_disposed) return;
+    late final T result;
+    try {
+      result = await _refreshTask(silent: silent);
+    } catch (error) {
+      if (!_disposed) {
+        _isLoading = false;
+        if (!silent) {
+          _feedbackTimer?.cancel();
+          _feedback = const RefreshActionFeedback.failure('刷新任务异常');
+        }
+        _notifyIfAlive();
+      }
+      return CardRefreshOutcome(error: error, success: false, applied: false);
+    }
     final success = _isSuccess(result);
+    if (_disposed) {
+      return CardRefreshOutcome(
+        result: result,
+        success: success,
+        applied: false,
+      );
+    }
     if (silent && !success) {
       _isLoading = false;
       _notifyIfAlive();
-      return;
+      return CardRefreshOutcome(result: result, success: false, applied: false);
     }
 
     _applyResult(result);
     _isLoading = false;
     if (!silent) _showFeedback(result);
     _notifyIfAlive();
+    return CardRefreshOutcome(result: result, success: success, applied: true);
   }
 
   /// 判断给定刷新时间是否已超过刷新间隔。
