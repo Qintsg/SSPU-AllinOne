@@ -149,6 +149,7 @@ class _AcademicPageState extends State<AcademicPage> {
   Set<String> _failedAcademicSources = const {};
   AcademicCredentialsStatus? _credentialsStatus;
   Future<AcademicCredentialsStatus>? _credentialsStatusFuture;
+  int _credentialGeneration = 0;
   final GlobalKey _academicLegacySourcesKey = GlobalKey();
   final FocusNode _academicLegacySourcesFocusNode = FocusNode(
     debugLabel: 'academic-legacy-sources',
@@ -227,6 +228,7 @@ class _AcademicPageState extends State<AcademicPage> {
 
   void _clearAuthenticatedState() {
     if (!mounted) return;
+    _credentialGeneration++;
     _academicEamsRefreshController.clearTransientState();
     _academicExamRefreshController.clearTransientState();
     _academicGradeRefreshController.clearTransientState();
@@ -248,11 +250,19 @@ class _AcademicPageState extends State<AcademicPage> {
   Future<AcademicCredentialsStatus> _loadCredentialsStatus() {
     final active = _credentialsStatusFuture;
     if (active != null) return active;
+    final generation = _credentialGeneration;
     final future = () async {
-      final status =
-          widget.credentialsStatusOverride ??
-          await AcademicCredentialsService.instance.getStatus();
-      if (mounted) setState(() => _credentialsStatus = status);
+      AcademicCredentialsStatus status;
+      try {
+        status =
+            widget.credentialsStatusOverride ??
+            await AcademicCredentialsService.instance.getStatus();
+      } catch (_) {
+        status = const AcademicCredentialsStatus.empty();
+      }
+      if (mounted && generation == _credentialGeneration) {
+        setState(() => _credentialsStatus = status);
+      }
       return status;
     }();
     _credentialsStatusFuture = future;
@@ -269,6 +279,7 @@ class _AcademicPageState extends State<AcademicPage> {
 
   /// 读取本专科教务自动刷新设置；未启用时不主动访问教务系统。
   Future<void> _loadAcademicEamsAutoRefreshSettings() async {
+    final generation = _credentialGeneration;
     final service = widget.academicEamsService is AcademicEamsService
         ? widget.academicEamsService as AcademicEamsService
         : AcademicEamsService.instance;
@@ -281,7 +292,7 @@ class _AcademicPageState extends State<AcademicPage> {
     final credentials = await _loadCredentialsStatus();
     final credentialsReady =
         credentials.oaAccount.trim().isNotEmpty && credentials.hasOaPassword;
-    if (!mounted) return;
+    if (!mounted || generation != _credentialGeneration) return;
     _academicEamsRefreshController.configureAutoRefresh(
       enabled: enabled && credentialsReady,
       intervalMinutes: interval,
@@ -290,24 +301,34 @@ class _AcademicPageState extends State<AcademicPage> {
 
   /// 先显示本地本专科教务缓存，再按间隔决定是否静默刷新。
   Future<void> _loadAcademicEamsCacheAndSettings() async {
+    final generation = _credentialGeneration;
     final cachedResult = await _academicEamsService.readLatestCachedOverview();
-    if (mounted && cachedResult != null) {
+    if (!mounted || generation != _credentialGeneration) return;
+    if (cachedResult != null) {
       setState(() => _academicEamsResult = cachedResult);
     }
     await _loadAcademicExamCacheAndDefaultTerm();
+    if (!mounted || generation != _credentialGeneration) return;
     await _loadAcademicGradeCache();
+    if (!mounted || generation != _credentialGeneration) return;
     await _loadAcademicEamsAutoRefreshSettings();
   }
 
   /// 读取成绩缓存以便先展示本地数据，再按刷新策略决定是否联网。
   Future<void> _loadAcademicGradeCache() async {
+    final generation = _credentialGeneration;
     final cachedResult = await _academicEamsService.readLatestCachedGrades();
-    if (!mounted || cachedResult == null) return;
+    if (!mounted ||
+        generation != _credentialGeneration ||
+        cachedResult == null) {
+      return;
+    }
     setState(() => _academicGradeResult = cachedResult);
   }
 
   /// 读取考试安排缓存，并把卡片学期默认到全局查询学期。
   Future<void> _loadAcademicExamCacheAndDefaultTerm() async {
+    final generation = _credentialGeneration;
     final cachedResult = await _academicEamsService
         .readLatestCachedExamSchedule();
     final context = await _academicTermService.getEffectiveContext(
@@ -321,7 +342,7 @@ class _AcademicPageState extends State<AcademicPage> {
       cachedResult,
       defaultTerm,
     );
-    if (!mounted) return;
+    if (!mounted || generation != _credentialGeneration) return;
     setState(() {
       _academicExamSelectedTerm = defaultTerm;
       _academicExamResult = displayableCache;
@@ -476,6 +497,20 @@ class _AcademicPageState extends State<AcademicPage> {
 
   Future<void> _performCoordinatedRefresh() async {
     if (!mounted || _anyAcademicSourceLoading) return;
+    final generation = _credentialGeneration;
+    await _loadCredentialsStatus();
+    if (!mounted || generation != _credentialGeneration) return;
+    final refreshAcademic = _academicOaCredentialsReady;
+    final refreshSports = _academicSportsCredentialsReady;
+    if (!refreshAcademic && !refreshSports) {
+      showAppFeedback(
+        context,
+        message: '请先完成教务账户连接',
+        details: '未发起任何校园服务请求。',
+        severity: AppFeedbackSeverity.warning,
+      );
+      return;
+    }
     setState(() {
       _isCoordinatedRefresh = true;
       _failedAcademicSources = const {};
@@ -488,21 +523,24 @@ class _AcademicPageState extends State<AcademicPage> {
     CardRefreshOutcome<StudentReportQueryResult>? reportOutcome;
     try {
       await Future.wait<void>([
-        _academicEamsRefreshController
-            .runRefresh(silent: true)
-            .then((value) => overviewOutcome = value),
-        _academicExamRefreshController
-            .runRefresh(silent: true)
-            .then((value) => examOutcome = value),
-        _academicGradeRefreshController
-            .runRefresh(silent: true)
-            .then((value) => gradeOutcome = value),
-        _sportsAttendanceRefreshController
-            .runRefresh(silent: true)
-            .then((value) => sportsOutcome = value),
-        _studentReportRefreshController
-            .runRefresh(silent: true)
-            .then((value) => reportOutcome = value),
+        if (refreshAcademic) ...[
+          _academicEamsRefreshController
+              .runRefresh(silent: true)
+              .then((value) => overviewOutcome = value),
+          _academicExamRefreshController
+              .runRefresh(silent: true)
+              .then((value) => examOutcome = value),
+          _academicGradeRefreshController
+              .runRefresh(silent: true)
+              .then((value) => gradeOutcome = value),
+          _studentReportRefreshController
+              .runRefresh(silent: true)
+              .then((value) => reportOutcome = value),
+        ],
+        if (refreshSports)
+          _sportsAttendanceRefreshController
+              .runRefresh(silent: true)
+              .then((value) => sportsOutcome = value),
       ]);
     } finally {
       if (mounted) {
@@ -565,6 +603,38 @@ class _AcademicPageState extends State<AcademicPage> {
       _sportsAttendanceRefreshController.isLoading ||
       _studentReportRefreshController.isLoading;
 
+  bool get _academicOaCredentialsReady {
+    final status = _credentialsStatus;
+    if (status == null ||
+        status.oaAccount.trim().isEmpty ||
+        !status.hasOaPassword) {
+      return false;
+    }
+    bool missing(AcademicEamsQueryResult? result) =>
+        result?.status == AcademicEamsQueryStatus.missingOaAccount ||
+        result?.status == AcademicEamsQueryStatus.missingOaPassword;
+    return !missing(_academicEamsResult) &&
+        !missing(_academicGradeResult) &&
+        !missing(_academicExamResult);
+  }
+
+  bool get _academicSportsCredentialsReady {
+    final status = _credentialsStatus;
+    if (status == null ||
+        status.oaAccount.trim().isEmpty ||
+        !status.hasSportsQueryPassword) {
+      return false;
+    }
+    return _sportsAttendanceResult?.status !=
+            SportsAttendanceQueryStatus.missingStudentId &&
+        _sportsAttendanceResult?.status !=
+            SportsAttendanceQueryStatus.missingSportsPassword;
+  }
+
+  int get _academicAvailableRefreshSourceCount =>
+      (_academicOaCredentialsReady ? 4 : 0) +
+      (_academicSportsCredentialsReady ? 1 : 0);
+
   AcademicEamsSemesterOption? _findAcademicExamSemesterForTerm(
     Iterable<AcademicEamsSemesterOption> options,
     AcademicTermChoice term,
@@ -577,6 +647,7 @@ class _AcademicPageState extends State<AcademicPage> {
 
   /// 读取体育部自动刷新设置；未启用时不主动访问体育部系统。
   Future<void> _loadSportsAttendanceAutoRefreshSettings() async {
+    final generation = _credentialGeneration;
     final enabled =
         widget.sportsAttendanceAutoRefreshEnabledOverride ??
         await SportsAttendanceService.instance.isAutoRefreshEnabled();
@@ -587,7 +658,7 @@ class _AcademicPageState extends State<AcademicPage> {
     final credentialsReady =
         credentials.oaAccount.trim().isNotEmpty &&
         credentials.hasSportsQueryPassword;
-    if (!mounted) return;
+    if (!mounted || generation != _credentialGeneration) return;
     _sportsAttendanceRefreshController.configureAutoRefresh(
       enabled: enabled && credentialsReady,
       intervalMinutes: interval,
@@ -596,9 +667,11 @@ class _AcademicPageState extends State<AcademicPage> {
 
   /// 先显示本地体育部考勤缓存，再按间隔决定是否静默刷新。
   Future<void> _loadSportsAttendanceCacheAndSettings() async {
+    final generation = _credentialGeneration;
     final cachedResult = await _sportsAttendanceService
         .readLatestCachedAttendanceSummary();
-    if (mounted && cachedResult != null) {
+    if (!mounted || generation != _credentialGeneration) return;
+    if (cachedResult != null) {
       setState(() => _sportsAttendanceResult = cachedResult);
     }
     await _loadSportsAttendanceAutoRefreshSettings();
@@ -624,6 +697,7 @@ class _AcademicPageState extends State<AcademicPage> {
 
   /// 读取第二课堂学分自动刷新设置；未启用时不主动访问学工报表。
   Future<void> _loadStudentReportAutoRefreshSettings() async {
+    final generation = _credentialGeneration;
     final enabled =
         widget.studentReportAutoRefreshEnabledOverride ??
         await StudentReportService.instance.isAutoRefreshEnabled();
@@ -633,7 +707,7 @@ class _AcademicPageState extends State<AcademicPage> {
     final credentials = await _loadCredentialsStatus();
     final credentialsReady =
         credentials.oaAccount.trim().isNotEmpty && credentials.hasOaPassword;
-    if (!mounted) return;
+    if (!mounted || generation != _credentialGeneration) return;
     _studentReportRefreshController.configureAutoRefresh(
       enabled: enabled && credentialsReady,
       intervalMinutes: interval,
@@ -642,9 +716,11 @@ class _AcademicPageState extends State<AcademicPage> {
 
   /// 先显示本地第二课堂学分缓存，再按间隔决定是否静默刷新。
   Future<void> _loadStudentReportCacheAndSettings() async {
+    final generation = _credentialGeneration;
     final cachedResult = await _studentReportService
         .readLatestCachedSecondClassroomCredits();
-    if (mounted && cachedResult != null) {
+    if (!mounted || generation != _credentialGeneration) return;
+    if (cachedResult != null) {
       setState(() => _studentReportResult = cachedResult);
     }
     await _loadStudentReportAutoRefreshSettings();

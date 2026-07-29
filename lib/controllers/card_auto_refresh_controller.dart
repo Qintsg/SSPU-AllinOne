@@ -83,6 +83,7 @@ class CardAutoRefreshController<T> extends ChangeNotifier {
   int _autoRefreshIntervalMinutes = 0;
   RefreshActionFeedback? _feedback;
   bool _disposed = false;
+  int _generation = 0;
 
   /// 当前是否正在刷新。
   bool get isLoading => _isLoading;
@@ -98,6 +99,7 @@ class CardAutoRefreshController<T> extends ChangeNotifier {
 
   /// 清除加载态、反馈和定时器，用于凭据切换等场景。
   void clearTransientState({bool stopAutoRefresh = false}) {
+    _generation++;
     _feedbackTimer?.cancel();
     _feedbackTimer = null;
     if (stopAutoRefresh) {
@@ -131,6 +133,7 @@ class CardAutoRefreshController<T> extends ChangeNotifier {
   /// 执行刷新；静默刷新失败不会覆盖旧缓存，也不会显示反馈。
   Future<CardRefreshOutcome<T>?> runRefresh({bool silent = false}) async {
     if (_isLoading) return null;
+    final generation = _generation;
     if (!silent) {
       _feedbackTimer?.cancel();
       _feedback = null;
@@ -142,6 +145,9 @@ class CardAutoRefreshController<T> extends ChangeNotifier {
     try {
       result = await _refreshTask(silent: silent);
     } catch (error) {
+      if (generation != _generation) {
+        return CardRefreshOutcome(error: error, success: false, applied: false);
+      }
       if (!_disposed) {
         _isLoading = false;
         if (!silent) {
@@ -153,7 +159,7 @@ class CardAutoRefreshController<T> extends ChangeNotifier {
       return CardRefreshOutcome(error: error, success: false, applied: false);
     }
     final success = _isSuccess(result);
-    if (_disposed) {
+    if (_disposed || generation != _generation) {
       return CardRefreshOutcome(
         result: result,
         success: success,

@@ -46,6 +46,10 @@ extension _AcademicOverviewStateView on _AcademicPageState {
       completedCredits: completion?.completedCredits,
       totalCredits: totalCredits,
       failedSources: _failedAcademicSources,
+      credentialsIncomplete: _academicOverviewHasMissingCredentials,
+      oaStatusLabel: _academicOverviewOaStatusLabel,
+      oaStatusKind: _academicOverviewOaStatusKind,
+      refreshSourceCount: _academicAvailableRefreshSourceCount,
       staleCheckedAt: _academicOverviewLatestCheckedAt,
       backgroundRefreshing:
           _anyAcademicSourceLoading &&
@@ -54,7 +58,8 @@ extension _AcademicOverviewStateView on _AcademicPageState {
       onRefresh:
           _isCoordinatedRefresh ||
               _anyAcademicSourceLoading ||
-              state == AcademicOverviewDisplayState.credentialsRequired
+              _credentialsStatus == null ||
+              _academicAvailableRefreshSourceCount == 0
           ? null
           : () => unawaited(_refreshAllAcademicSources()),
       onOpenGrades: _isCoordinatedRefresh ? null : _openAcademicGradeDetail,
@@ -118,7 +123,9 @@ extension _AcademicOverviewStateView on _AcademicPageState {
       return AcademicOverviewDisplayState.operationLocked;
     }
     final hasContent = _academicOverviewHasContent;
-    if (_academicOverviewNeedsCredentials && !hasContent) {
+    if (_academicAvailableRefreshSourceCount == 0 &&
+        _credentialsStatus != null &&
+        !hasContent) {
       return AcademicOverviewDisplayState.credentialsRequired;
     }
     if (_anyAcademicSourceLoading && !hasContent) {
@@ -172,30 +179,43 @@ extension _AcademicOverviewStateView on _AcademicPageState {
       _sportsAttendanceResult != null ||
       _studentReportResult != null;
 
-  bool get _academicOverviewNeedsCredentials {
+  bool get _academicOverviewHasMissingCredentials {
     bool missing(AcademicEamsQueryResult? result) =>
         result?.status == AcademicEamsQueryStatus.missingOaAccount ||
         result?.status == AcademicEamsQueryStatus.missingOaPassword;
-    final status = _credentialsStatus;
-    final storedCredentialsMissing =
-        status != null &&
-        (status.oaAccount.trim().isEmpty ||
-            !status.hasOaPassword ||
-            !status.hasSportsQueryPassword);
-    return storedCredentialsMissing ||
+    return !_academicOaCredentialsReady ||
+        !_academicSportsCredentialsReady ||
         missing(_academicEamsResult) ||
         missing(_academicGradeResult) ||
         missing(_academicExamResult);
   }
 
+  String get _academicOverviewOaStatusLabel {
+    if (!_academicOaCredentialsReady) return 'OA 凭据待补充';
+    final hasFreshOaData = [
+      _academicEamsResult,
+      _academicGradeResult,
+      _academicExamResult,
+    ].any((result) => result?.status == AcademicEamsQueryStatus.success);
+    return hasFreshOaData ? 'OA 数据已读取' : 'OA 状态未校验';
+  }
+
+  YhStatusKind get _academicOverviewOaStatusKind {
+    if (!_academicOaCredentialsReady) return YhStatusKind.warning;
+    return _academicOverviewOaStatusLabel == 'OA 数据已读取'
+        ? YhStatusKind.success
+        : YhStatusKind.neutral;
+  }
+
   DateTime? get _academicOverviewLatestCheckedAt {
-    final values = <DateTime?>[
-      _academicEamsResult?.checkedAt,
-      _academicGradeResult?.checkedAt,
-      _academicExamResult?.checkedAt,
-      _sportsAttendanceResult?.checkedAt,
-      _studentReportResult?.checkedAt,
-    ].whereType<DateTime>();
+    final values =
+        [_academicEamsResult, _academicGradeResult, _academicExamResult]
+            .where(
+              (result) =>
+                  result?.status == AcademicEamsQueryStatus.partialSuccess,
+            )
+            .map((result) => result?.checkedAt)
+            .whereType<DateTime>();
     DateTime? latest;
     for (final value in values) {
       if (latest == null || value.isAfter(latest)) latest = value;
@@ -234,6 +254,10 @@ class _AcademicOverviewPage extends StatelessWidget {
     required this.completedCredits,
     required this.totalCredits,
     required this.failedSources,
+    required this.credentialsIncomplete,
+    required this.oaStatusLabel,
+    required this.oaStatusKind,
+    required this.refreshSourceCount,
     required this.staleCheckedAt,
     required this.backgroundRefreshing,
     required this.onRefresh,
@@ -256,6 +280,10 @@ class _AcademicOverviewPage extends StatelessWidget {
   final double? completedCredits;
   final double totalCredits;
   final Set<String> failedSources;
+  final bool credentialsIncomplete;
+  final String oaStatusLabel;
+  final YhStatusKind oaStatusKind;
+  final int refreshSourceCount;
   final DateTime? staleCheckedAt;
   final bool backgroundRefreshing;
   final VoidCallback? onRefresh;
@@ -317,6 +345,10 @@ class _AcademicOverviewPage extends StatelessWidget {
                         spacing: theme.spacing.s,
                         runSpacing: theme.spacing.s,
                         children: [
+                          YhStatusPill(
+                            label: oaStatusLabel,
+                            kind: oaStatusKind,
+                          ),
                           const YhStatusPill(
                             label: '本地快照可用',
                             kind: YhStatusKind.success,
@@ -326,13 +358,32 @@ class _AcademicOverviewPage extends StatelessWidget {
                             kind: YhStatusKind.info,
                           ),
                           if (backgroundRefreshing)
-                            const YhStatusPill(
-                              label: '正在更新',
-                              kind: YhStatusKind.info,
+                            Semantics(
+                              liveRegion: true,
+                              child: const YhStatusPill(
+                                label: '正在更新',
+                                kind: YhStatusKind.info,
+                              ),
                             ),
                         ],
                       ),
                       SizedBox(height: theme.spacing.m),
+                      if (credentialsIncomplete) ...[
+                        YhBanner(
+                          kind: YhBannerKind.warn,
+                          text: _academicCredentialWarningText(
+                            refreshSourceCount,
+                          ),
+                          action: onOpenAccountConnections == null
+                              ? null
+                              : YhButton(
+                                  label: '连接设置',
+                                  variant: YhButtonVariant.secondary,
+                                  onTap: onOpenAccountConnections,
+                                ),
+                        ),
+                        SizedBox(height: theme.spacing.m),
+                      ],
                       if (state == AcademicOverviewDisplayState.stale) ...[
                         YhBanner(
                           kind: YhBannerKind.warn,
@@ -355,8 +406,9 @@ class _AcademicOverviewPage extends StatelessWidget {
                           AcademicOverviewDisplayState.operationLocked) ...[
                         Semantics(
                           liveRegion: true,
-                          child: const YhBanner(
-                            text: '正在协同刷新 5 个只读来源；完成前已锁定重复刷新和详情导航。',
+                          child: YhBanner(
+                            text:
+                                '正在协同刷新 $refreshSourceCount 个可用只读来源；完成前已锁定重复刷新和详情导航。',
                           ),
                         ),
                         SizedBox(height: theme.spacing.m),
@@ -396,7 +448,7 @@ class _AcademicOverviewPage extends StatelessWidget {
                         onTap: onOpenDetailedSources,
                       ),
                     ),
-                    SizedBox(height: theme.layout.formContentWidth),
+                    SizedBox(height: theme.spacing.xl2 * 4),
                     legacyDetails,
                   ],
                 ),
@@ -413,6 +465,16 @@ String _formatAcademicCheckedAt(DateTime? value) {
   if (value == null) return '最近一次保存';
   final minute = value.minute.toString().padLeft(2, '0');
   return '${value.month} 月 ${value.day} 日 ${value.hour}:$minute';
+}
+
+String _academicCredentialWarningText(int refreshSourceCount) {
+  if (refreshSourceCount == 4) {
+    return '体育考勤连接未完成；刷新只会访问其余 4 个可用只读来源。';
+  }
+  if (refreshSourceCount == 1) {
+    return 'OA 连接未完成；刷新只会访问体育考勤，成绩、考试与第二课堂保持本地快照。';
+  }
+  return '部分教务连接未完成；刷新只会访问已配置的只读来源。';
 }
 
 class _AcademicHeading extends StatelessWidget {
@@ -1235,6 +1297,9 @@ class _AcademicLegacySources extends StatelessWidget {
     final content = Focus(
       key: const ValueKey('academic-legacy-sources-focus'),
       focusNode: focusNode,
+      canRequestFocus: !locked,
+      descendantsAreFocusable: !locked,
+      descendantsAreTraversable: !locked,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

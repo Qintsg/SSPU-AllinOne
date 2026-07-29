@@ -464,14 +464,16 @@ def _capture_academic_state_references(
         "error",
         "partial-error",
         "credentials-required",
+        "credentials-partial",
         "operation-locked",
     )
     for state in states:
         page.evaluate("state => window.qingyuanPrototype.setAcademicState(state)", state)
-        if state in ("stale", "partial-error", "operation-locked"):
+        if state in ("stale", "partial-error", "credentials-partial", "operation-locked"):
             banner_class = {
                 "stale": "academic-stale-banner",
                 "partial-error": "academic-partial-banner",
+                "credentials-partial": "academic-credentials-banner",
                 "operation-locked": "academic-locked-banner",
             }[state]
             banner = page.locator(f'.{banner_class}:visible')

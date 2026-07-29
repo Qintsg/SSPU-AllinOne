@@ -36,6 +36,14 @@ const _completeAcademicCredentials = AcademicCredentialsStatus(
   hasEmailPassword: true,
 );
 
+const _partialAcademicCredentials = AcademicCredentialsStatus(
+  oaAccount: '20260001',
+  emailAccount: '20260001@sspu.edu.cn',
+  hasOaPassword: true,
+  hasSportsQueryPassword: false,
+  hasEmailPassword: true,
+);
+
 /// 等待异步卡片加载完成。
 Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
   for (var attempt = 0; attempt < 40; attempt++) {
@@ -130,7 +138,7 @@ void main() {
     await tester.tap(refresh);
     await tester.pump();
 
-    expect(find.textContaining('正在协同刷新 5 个只读来源'), findsOneWidget);
+    expect(find.textContaining('正在协同刷新 5 个'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('academic-overview-grade')),
@@ -153,6 +161,12 @@ void main() {
       find.bySemanticsLabel('详细数据源，协同刷新期间不可用'),
     );
     expect(lockedSources.flagsCollection.isEnabled, Tristate.isFalse);
+    final lockedFocus = tester.widget<Focus>(
+      find.byKey(const ValueKey('academic-legacy-sources-focus')),
+    );
+    expect(lockedFocus.canRequestFocus, isFalse);
+    expect(lockedFocus.descendantsAreFocusable, isFalse);
+    expect(lockedFocus.descendantsAreTraversable, isFalse);
 
     final legacyDetail = find.byKey(
       const Key('academic-student-report-detail'),
@@ -169,7 +183,7 @@ void main() {
     report.complete(_creditResult);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('正在协同刷新 5 个只读来源'), findsNothing);
+    expect(find.textContaining('正在协同刷新 5 个'), findsNothing);
     expect(find.text('教务数据已刷新'), findsOneWidget);
     semantics.dispose();
     await disposeAcademicPage(tester);
@@ -235,9 +249,11 @@ void main() {
     expect(find.text('本地快照可用'), findsOneWidget);
     expect(find.text('正在更新'), findsOneWidget);
     expect(
-      tester.widget<AcademicSportsAttendanceCard>(
-        find.byType(AcademicSportsAttendanceCard),
-      ).result,
+      tester
+          .widget<AcademicSportsAttendanceCard>(
+            find.byType(AcademicSportsAttendanceCard),
+          )
+          .result,
       same(_successResult),
     );
 
@@ -287,6 +303,49 @@ void main() {
     await tester.tap(find.text('前往账户与连接'));
     await tester.pump();
     expect(openedConnections, 1);
+    await disposeAcademicPage(tester);
+  });
+
+  testWidgets('仅缺体育凭据时保留缓存且协同刷新跳过不可用来源', (tester) async {
+    final academicClient = _FakeAcademicEamsClient(
+      result: _academicEamsResult,
+      cachedOverviewResult: _academicEamsResult,
+      cachedExamResult: _academicEamsResult,
+      cachedGradeResult: _academicEamsResult,
+    );
+    final sportsClient = _FakeSportsAttendanceClient(
+      result: _successResult,
+      cachedResult: _successResult,
+    );
+    final reportClient = _FakeStudentReportClient(
+      result: _creditResult,
+      cachedResult: _creditResult,
+    );
+    var openedConnections = 0;
+    await pumpAcademicPage(
+      tester,
+      academicEamsService: academicClient,
+      sportsAttendanceService: sportsClient,
+      studentReportService: reportClient,
+      credentialsStatusOverride: _partialAcademicCredentials,
+      onOpenAccountConnections: () => openedConnections++,
+    );
+    await pumpUntilFound(tester, find.text('体育考勤连接未完成；刷新只会访问其余 4 个可用只读来源。'));
+
+    expect(find.text('OA 数据已读取'), findsOneWidget);
+    await tester.tap(find.text('连接设置'));
+    await tester.pump();
+    expect(openedConnections, 1);
+
+    await tester.tap(find.byKey(const ValueKey('academic-overview-refresh')));
+    await tester.pumpAndSettle();
+
+    expect(academicClient.overviewFetchCount, 1);
+    expect(academicClient.examFetchCount, 1);
+    expect(academicClient.gradeFetchCount, 1);
+    expect(reportClient.fetchCount, 1);
+    expect(sportsClient.fetchCount, 0);
+    expect(find.text('教务数据部分更新'), findsOneWidget);
     await disposeAcademicPage(tester);
   });
 

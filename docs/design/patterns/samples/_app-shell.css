@@ -253,6 +253,7 @@ button.overview-card { width: 100%; border: 1px solid var(--border); color: var(
 button.overview-card:hover { border-color: var(--brand); background: var(--brand-tint); }
 .campus-card-state { display: contents; }
 .service-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 13px; color: var(--domain, var(--brand-ink)); background: color-mix(in srgb, var(--domain, var(--brand)) calc(var(--opacity-domain-tint) * 100%), var(--surface)); }
+.content-grid .service-icon { color: var(--brand-strong); background: var(--brand-tint); }
 .overview-card b { display: block; font-size: var(--type-body); }
 .overview-card span { display: block; margin-top: var(--space-xs); color: var(--muted); font-size: var(--type-caption); }
 .overview-value { font: 600 var(--type-body)/1 var(--mono); }
@@ -285,7 +286,7 @@ button.overview-card:hover { border-color: var(--brand); background: var(--brand
 
 .metric-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-s); }
 .metric-box { padding: var(--space-m); border-radius: var(--radius-m); background: var(--sunken); }
-.metric-box span { color: var(--muted); font-size: var(--type-caption); }
+.metric-box span { color: var(--muted); font-size: var(--type-caption); white-space: nowrap; }
 .metric-box strong { display: block; margin-top: var(--space-s); font: 600 var(--type-h2)/1 var(--mono); }
 .metric-progress { margin-top: var(--space-m); }
 
@@ -330,6 +331,7 @@ button.overview-card:hover { border-color: var(--brand); background: var(--brand
 .info-stale-banner,
 .academic-stale-banner,
 .academic-partial-banner,
+.academic-credentials-banner,
 .academic-locked-banner { max-width: none; margin-bottom: var(--space-m); }
 .academic-state-panel,
 .info-state-panel,
@@ -337,7 +339,11 @@ button.overview-card:hover { border-color: var(--brand); background: var(--brand
 .academic-source-jump { display: flex; margin-top: var(--space-xl); }
 .academic-source-jump .yh-button { min-height: var(--control-regular); gap: var(--space-s); }
 .academic-source-jump svg { width: calc(var(--control-compact) / 2); height: calc(var(--control-compact) / 2); fill: none; stroke: currentColor; stroke-width: var(--focus-ring-width); }
-.academic-source-target { margin-top: var(--layout-form-content-width); outline: none; }
+.academic-credentials-banner > span { flex: 1; }
+.academic-credentials-banner { align-items: center; }
+.academic-credentials-banner > svg { margin-top: 0; }
+.academic-credentials-banner .yh-button { flex: 0 0 auto; margin-inline-start: auto; }
+.academic-source-target { margin-top: calc(var(--space-2xl) * 4); outline: none; }
 .academic-source-target h2 { margin: 0 0 var(--space-m); font: var(--weight-h2) var(--type-h2)/var(--line-height-h2) var(--font); }
 .academic-state-panel .yh-empty > svg,
 .info-state-panel .yh-empty > svg,
@@ -461,6 +467,11 @@ button.overview-card:hover { border-color: var(--brand); background: var(--brand
 
 .mobile-bar, .more-sheet { display: none; }
 .prototype-toast { position: fixed; z-index: 20; right: var(--space-l); bottom: var(--space-l); max-width: min(360px, calc(100vw - var(--space-xl))); padding: var(--space-m); border: 1px solid var(--border); border-radius: var(--radius-m); color: var(--fg); background: var(--surface); box-shadow: var(--shadow-2); font-size: var(--type-small); }
+
+@media (min-width: 768px) and (max-width: 900px) {
+  .content-grid > .span-8,
+  .content-grid > .span-4 { min-height: calc(var(--control-regular) * 5 + var(--space-s)); }
+}
 
 @media (max-width: 900px) {
   .home-layout, .home-utility-dock, .feed-layout, .mail-layout, .settings-layout { grid-template-columns: 1fr; }

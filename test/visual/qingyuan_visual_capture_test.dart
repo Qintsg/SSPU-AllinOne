@@ -483,6 +483,12 @@ final _surfaces = <_VisualSurface>[
   ),
   _VisualSurface(
     'academic.overview',
+    () => _academicOverview(_AcademicOverviewScenario.credentialsPartial),
+    state: 'credentials-partial',
+    destination: '教务',
+  ),
+  _VisualSurface(
+    'academic.overview',
     () => _academicOverview(_AcademicOverviewScenario.operationLocked),
     state: 'operation-locked',
     prepare: _prepareAcademicOverviewOperationLocked,
@@ -1632,6 +1638,7 @@ enum _AcademicOverviewScenario {
   error,
   partialError,
   credentialsRequired,
+  credentialsPartial,
   operationLocked,
 }
 
@@ -1640,11 +1647,20 @@ Widget _academicOverview(_AcademicOverviewScenario scenario) {
   final operationLocked = scenario == _AcademicOverviewScenario.operationLocked;
   final credentialsRequired =
       scenario == _AcademicOverviewScenario.credentialsRequired;
+  final credentialsPartial =
+      scenario == _AcademicOverviewScenario.credentialsPartial;
   const completeCredentials = AcademicCredentialsStatus(
     oaAccount: '20260001',
     emailAccount: '20260001@sspu.edu.cn',
     hasOaPassword: true,
     hasSportsQueryPassword: true,
+    hasEmailPassword: true,
+  );
+  const partialCredentials = AcademicCredentialsStatus(
+    oaAccount: '20260001',
+    emailAccount: '20260001@sspu.edu.cn',
+    hasOaPassword: true,
+    hasSportsQueryPassword: false,
     hasEmailPassword: true,
   );
   final hasCache = switch (scenario) {
@@ -1734,6 +1750,8 @@ Widget _academicOverview(_AcademicOverviewScenario scenario) {
     academicTermNow: qingyuanVisualNow,
     credentialsStatusOverride: credentialsRequired
         ? const AcademicCredentialsStatus.empty()
+        : credentialsPartial
+        ? partialCredentials
         : completeCredentials,
     academicEamsAutoRefreshEnabledOverride: loading,
     academicEamsAutoRefreshIntervalOverride: 30,
@@ -1761,7 +1779,7 @@ Future<void> _prepareAcademicOverviewOperationLocked(
   await tester.tap(refresh);
   for (var attempt = 0; attempt < 40; attempt++) {
     await tester.pump(const Duration(milliseconds: 50));
-    if (find.textContaining('正在协同刷新 5 个只读来源').evaluate().isNotEmpty) {
+    if (find.textContaining('正在协同刷新 5 个').evaluate().isNotEmpty) {
       return;
     }
   }

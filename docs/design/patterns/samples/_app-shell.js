@@ -103,13 +103,14 @@
   function setAcademicState(state) {
     var academicPage = document.querySelector('[data-screen="academic"]');
     if (!academicPage) return;
-    var showContent = ['content', 'stale', 'partial-error', 'operation-locked'].indexOf(state) >= 0;
+    var showContent = ['content', 'stale', 'partial-error', 'credentials-partial', 'operation-locked'].indexOf(state) >= 0;
     academicPage.dataset.academicState = state;
     academicPage.querySelectorAll('[data-academic-content]').forEach(function (item) {
       item.hidden = !showContent;
     });
     academicPage.querySelector('.academic-stale-banner').hidden = state !== 'stale';
     academicPage.querySelector('.academic-partial-banner').hidden = state !== 'partial-error';
+    academicPage.querySelector('.academic-credentials-banner').hidden = state !== 'credentials-partial';
     academicPage.querySelector('.academic-locked-banner').hidden = state !== 'operation-locked';
     academicPage.querySelectorAll('[data-academic-state-panel]').forEach(function (panel) {
       panel.hidden = panel.dataset.academicStatePanel !== state;
