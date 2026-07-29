@@ -327,19 +327,44 @@ final _surfaces = <_VisualSurface>[
   _VisualSurface('components.domain', _domainPanel),
   _VisualSurface(
     'shell.startup',
-    () => const AppStartupStatus(progressLabel: '正在初始化应用'),
+    () => const AppStartupStatus(progressLabel: '读取本地设置'),
     state: 'loading',
   ),
   _VisualSurface(
     'shell.startup',
-    () => AppStartupStatus(errorMessage: '启动初始化失败：本地存储暂时不可用。', onRetry: () {}),
+    () => AppStartupStatus(errorMessage: '本地存储不可用；', onRetry: () {}),
     state: 'error',
   ),
   _VisualSurface('shell.navigation', _shellNavigation),
   _VisualSurface('shell.more-drawer', _moreDrawerSurface),
   _VisualSurface('shell.close-confirmation', _closeConfirmationSurface),
+  _VisualSurface(
+    'shell.close-confirmation',
+    () => _closeConfirmationSurface(
+      AppCloseConfirmationDisplayState.operationLocked,
+    ),
+    state: 'operation-locked',
+  ),
+  _VisualSurface(
+    'shell.close-confirmation',
+    () => _closeConfirmationSurface(AppCloseConfirmationDisplayState.error),
+    state: 'error',
+  ),
   _VisualSurface('consent.first-run', _consentInitial, state: 'initial'),
   _VisualSurface('consent.first-run', _consentContent),
+  _VisualSurface('consent.first-run', _consentError, state: 'error'),
+  _VisualSurface(
+    'consent.first-run',
+    _consentOperationLocked,
+    state: 'operation-locked',
+    prepare: _prepareConsentAccept,
+  ),
+  _VisualSurface(
+    'consent.first-run',
+    _consentPersistenceError,
+    state: 'partial-error',
+    prepare: _prepareConsentAccept,
+  ),
   _VisualSurface('security.lock', _lockInitial, state: 'initial'),
   _VisualSurface(
     'security.lock',
@@ -1397,23 +1422,11 @@ Widget _externalSystemAuthSurface(String state) => Builder(
               key: _systemAuthExternalRegionKey,
               child: SizedBox(
                 width: width,
-                height: theme.breakpoint.compact / 2,
-                child: YhCard(
-                  child: YhEmptyState(
-                    icon: state == 'error'
-                        ? YhIcons.warning
-                        : YhIcons.fingerprint,
-                    title: switch (state) {
-                      'initial' => '准备系统认证',
-                      'error' => '系统认证未完成',
-                      _ => '验证身份以解锁工大聚合',
-                    },
-                    message: switch (state) {
-                      'initial' => '系统即将请求设备 PIN 或生物识别。',
-                      'error' => '请重试系统认证，或返回应用输入密码。',
-                      _ => '此区域由操作系统绘制，按 SSIM 0.90 独立验收。',
-                    },
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: theme.breakpoint.compact / 2,
                   ),
+                  child: YhCard(child: _SystemAuthVisualDialog(state: state)),
                 ),
               ),
             );
@@ -1423,6 +1436,95 @@ Widget _externalSystemAuthSurface(String state) => Builder(
     ],
   ),
 );
+
+class _SystemAuthVisualDialog extends StatelessWidget {
+  const _SystemAuthVisualDialog({required this.state});
+
+  final String state;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    final title = switch (state) {
+      'initial' => '准备系统认证',
+      'error' => '系统认证未完成',
+      _ => '验证身份以解锁工大聚合',
+    };
+    final message = switch (state) {
+      'initial' => '系统即将请求设备 PIN 或生物识别。',
+      'error' => '可重试系统认证，或返回应用输入本地密码。',
+      _ => '此区域由操作系统绘制，认证信息不会离开设备。',
+    };
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < theme.breakpoint.compact;
+        final actions = [
+          YhButton(
+            label: '返回密码',
+            variant: YhButtonVariant.secondary,
+            minWidth: compact ? theme.breakpoint.compact : null,
+            onTap: () {},
+          ),
+          YhButton(
+            label: state == 'error' ? '重试认证' : '继续',
+            minWidth: compact ? theme.breakpoint.compact : null,
+            onTap: () {},
+          ),
+        ];
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.color.brandTint,
+                shape: BoxShape.circle,
+              ),
+              child: SizedBox.square(
+                dimension: theme.control.regular + theme.spacing.m,
+                child: Icon(
+                  state == 'error' ? YhIcons.warning : YhIcons.fingerprint,
+                  color: theme.color.brandInk,
+                ),
+              ),
+            ),
+            SizedBox(height: theme.spacing.m),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: theme.typography.h3,
+            ),
+            SizedBox(height: theme.spacing.s),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: theme.typography.body.copyWith(color: theme.color.muted),
+            ),
+            SizedBox(height: theme.spacing.m),
+            if (compact)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(width: double.infinity, child: actions[0]),
+                  SizedBox(height: theme.spacing.s),
+                  SizedBox(width: double.infinity, child: actions[1]),
+                ],
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  actions[0],
+                  SizedBox(width: theme.spacing.s),
+                  actions[1],
+                ],
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
 
 Widget _externalDocumentRegion({
   required Key key,
@@ -1516,11 +1618,16 @@ Widget _moreDrawerSurface() => Builder(
   },
 );
 
-Widget _closeConfirmationSurface() => _modalSurface(
+Widget _closeConfirmationSurface([
+  AppCloseConfirmationDisplayState displayState =
+      AppCloseConfirmationDisplayState.content,
+]) => _modalSurface(
   background: _shellNavigation(),
   modal: AppCloseConfirmationDialog(
+    onCancel: () {},
     onMinimize: (_) async {},
     onExit: (_) async {},
+    initialDisplayState: displayState,
   ),
 );
 
@@ -1542,6 +1649,38 @@ Widget _consentContent() => _modalSurface(
   ),
 );
 
+Widget _consentError() => _modalSurface(
+  background: const AppStartupStatus(progressLabel: '正在准备法律与隐私说明'),
+  modal: LegalConsentDialog(
+    onAccept: () {},
+    onDecline: () {},
+    loadLegalNotice: (_) =>
+        Future<String>.error(StateError('visual legal notice unavailable')),
+  ),
+);
+
+Widget _consentOperationLocked() =>
+    _consentWithAction(() => Completer<void>().future);
+
+Widget _consentPersistenceError() => _consentWithAction(
+  () => Future<void>.error(StateError('visual storage unavailable')),
+);
+
+Widget _consentWithAction(LegalConsentAction onAccept) => _modalSurface(
+  background: const AppStartupStatus(progressLabel: '正在准备法律与隐私说明'),
+  modal: LegalConsentDialog(
+    onAccept: onAccept,
+    onDecline: () {},
+    loadLegalNotice: (_) async => _visualLegalNotice,
+  ),
+);
+
+Future<void> _prepareConsentAccept(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('legal-consent-accept')));
+  await tester.pump();
+  await tester.pump();
+}
+
 Widget _modalSurface({required Widget background, required Widget modal}) =>
     Builder(
       builder: (context) => Stack(
@@ -1557,17 +1696,13 @@ Widget _modalSurface({required Widget background, required Widget modal}) =>
 const String _visualLegalNotice = '''
 工大聚合法律与隐私说明
 
-一、免责声明
-本应用仅在用户设备本地聚合校园服务信息，不代表学校官方发布渠道。
+一、独立工具，不代表学校官方
 
-二、用户协议
-用户应妥善保管账户信息，仅将本应用用于本人校园学习与生活服务。
+二、仅供本人校园学习与生活使用
 
-三、隐私协议
-凭据与业务缓存保存在本地；主动刷新时，数据会提交给对应校园服务处理。
+三、凭据与缓存只保存在本机
 
-四、第三方协议
-开源软件、字体和平台能力按照各自许可证与系统条款使用。
+四、第三方能力遵循各自许可
 ''';
 
 Widget _lockInitial() => LockPage(

@@ -12,18 +12,23 @@ class YhDialog extends StatelessWidget {
     required this.content,
     required this.actions,
     this.constraints,
+    this.eyebrow,
+    this.stackActionsOnCompact = false,
   });
 
   final String title;
   final Widget content;
   final List<Widget> actions;
   final BoxConstraints? constraints;
+  final String? eyebrow;
+  final bool stackActionsOnCompact;
 
   static Future<T?> show<T>(
     BuildContext context, {
     required WidgetBuilder builder,
     bool barrierDismissible = true,
     String barrierLabel = '关闭对话框',
+    bool canPop = true,
   }) {
     final theme = context.yhTheme;
     return showGeneralDialog<T>(
@@ -33,7 +38,7 @@ class YhDialog extends StatelessWidget {
       barrierColor: theme.color.scrim,
       transitionDuration: theme.motion.base,
       pageBuilder: (dialogContext, animation, secondaryAnimation) =>
-          builder(dialogContext),
+          PopScope(canPop: canPop, child: builder(dialogContext)),
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         final disableAnimations =
             MediaQuery.maybeOf(context)?.disableAnimations ?? false;
@@ -114,6 +119,16 @@ class YhDialog extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (eyebrow != null) ...[
+                      Text(
+                        eyebrow!,
+                        style: theme.typography.caption.copyWith(
+                          color: theme.color.brandStrong,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: theme.spacing.xs),
+                    ],
                     Semantics(
                       header: true,
                       child: Text(
@@ -131,16 +146,34 @@ class YhDialog extends StatelessWidget {
                       child: content,
                     ),
                     SizedBox(height: theme.spacing.l),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Wrap(
-                        spacing: theme.spacing.s,
-                        runSpacing: theme.spacing.s,
-                        alignment: WrapAlignment.end,
-                        runAlignment: WrapAlignment.end,
-                        children: actions,
+                    if (stackActionsOnCompact &&
+                        MediaQuery.sizeOf(context).width <
+                            theme.breakpoint.compact)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (
+                            var index = 0;
+                            index < actions.length;
+                            index++
+                          ) ...[
+                            actions[index],
+                            if (index < actions.length - 1)
+                              SizedBox(height: theme.spacing.s),
+                          ],
+                        ],
+                      )
+                    else
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Wrap(
+                          spacing: theme.spacing.s,
+                          runSpacing: theme.spacing.s,
+                          alignment: WrapAlignment.end,
+                          runAlignment: WrapAlignment.end,
+                          children: actions,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),

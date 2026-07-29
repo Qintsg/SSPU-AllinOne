@@ -6,6 +6,8 @@
  * @Date : 2026-05-15
  */
 
+import 'dart:async';
+
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart' as qingyuan;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
@@ -344,5 +346,101 @@ void main() {
 
     expect(accepted, isFalse);
     expect(declined, isFalse);
+  });
+
+  testWidgets('协议选择保存期间互斥，失败后保留正文并可重试', (tester) async {
+    final firstAttempt = Completer<void>();
+    var acceptAttempts = 0;
+    var declined = false;
+
+    await tester.pumpWidget(
+      zhYhApp(
+        home: LegalConsentDialog(
+          onAccept: () {
+            acceptAttempts++;
+            if (acceptAttempts == 1) return firstAttempt.future;
+            return Future<void>.value();
+          },
+          onDecline: () => declined = true,
+          loadLegalNotice: (_) async => '法律与隐私说明正文',
+        ),
+      ),
+    );
+    await pumpPageAnimations(tester);
+
+    await tester.tap(find.byKey(const Key('legal-consent-accept')));
+    await tester.pump();
+
+    expect(acceptAttempts, 1);
+    expect(find.text('正在保存…'), findsOneWidget);
+    expect(find.textContaining('正在将协议选择安全保存到本机'), findsOneWidget);
+    expect(
+      tester
+          .widget<qingyuan.YhButton>(
+            find.byKey(const Key('legal-consent-decline')),
+          )
+          .onTap,
+      isNull,
+    );
+    await tester.tap(
+      find.byKey(const Key('legal-consent-decline')),
+      warnIfMissed: false,
+    );
+    expect(declined, isFalse);
+
+    firstAttempt.completeError(StateError('storage unavailable'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.textContaining('未能保存协议选择'), findsOneWidget);
+    expect(find.text('法律与隐私说明正文'), findsOneWidget);
+    expect(find.text('重试保存并继续'), findsOneWidget);
+    expect(
+      tester
+          .widget<qingyuan.YhButton>(
+            find.byKey(const Key('legal-consent-decline')),
+          )
+          .onTap,
+      isNotNull,
+    );
+
+    await tester.tap(find.byKey(const Key('legal-consent-accept')));
+    await tester.pump();
+    expect(acceptAttempts, 2);
+    expect(find.textContaining('未能保存协议选择'), findsNothing);
+  });
+
+  testWidgets('协议正文加载失败后可在原弹窗重试', (tester) async {
+    var attempts = 0;
+    await tester.pumpWidget(
+      zhYhApp(
+        home: LegalConsentDialog(
+          onAccept: () {},
+          onDecline: () {},
+          loadLegalNotice: (_) async {
+            attempts++;
+            if (attempts == 1) throw StateError('asset unavailable');
+            return '重新加载后的协议正文';
+          },
+        ),
+      ),
+    );
+    await pumpPageAnimations(tester);
+
+    expect(find.text('无法加载协议正文'), findsOneWidget);
+    await tester.tap(find.text('重试加载协议'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(attempts, 2);
+    expect(find.text('重新加载后的协议正文'), findsOneWidget);
+    expect(
+      tester
+          .widget<qingyuan.YhButton>(
+            find.byKey(const Key('legal-consent-accept')),
+          )
+          .onTap,
+      isNotNull,
+    );
   });
 }

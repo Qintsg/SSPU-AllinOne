@@ -20,7 +20,7 @@ void main() {
     await tester.pumpWidget(YhApp(home: LockPage(onUnlocked: () {})));
     await tester.pump();
 
-    expect(find.text('应用已锁定'), findsOneWidget);
+    expect(find.textContaining('应用已锁定'), findsOneWidget);
     expect(find.byType(YhTextField), findsOneWidget);
     expect(find.byType(YhButton), findsOneWidget);
     await tester.tap(find.text('解锁'));

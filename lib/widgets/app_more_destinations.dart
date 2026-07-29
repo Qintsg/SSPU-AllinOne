@@ -7,12 +7,14 @@ class AppMoreDestination {
     required this.label,
     required this.icon,
     required this.onSelected,
+    this.description,
     this.selected = false,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback onSelected;
+  final String? description;
   final bool selected;
 }
 
@@ -25,6 +27,16 @@ class AppMoreDestinationsContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    String descriptionFor(AppMoreDestination item) {
+      if (item.description != null) return item.description!;
+      return switch (item.label) {
+        '邮箱' => '查看学校邮件',
+        '跳转' => '打开校园服务',
+        '设置' => '管理本地数据',
+        _ => '打开${item.label}',
+      };
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -32,7 +44,21 @@ class AppMoreDestinationsContent extends StatelessWidget {
         for (var index = 0; index < items.length; index++) ...[
           YhListItem(
             title: items[index].label,
-            leading: Icon(items[index].icon, size: theme.spacing.l),
+            subtitle: descriptionFor(items[index]),
+            leading: DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.color.brandTint,
+                borderRadius: BorderRadius.circular(theme.radius.input),
+              ),
+              child: SizedBox.square(
+                dimension: theme.control.minimumTarget,
+                child: Icon(
+                  items[index].icon,
+                  size: theme.spacing.l,
+                  color: theme.color.brandInk,
+                ),
+              ),
+            ),
             trailing: Icon(
               items[index].selected ? YhIcons.check : YhIcons.chevronRight,
               size: theme.spacing.l,

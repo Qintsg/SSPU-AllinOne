@@ -155,9 +155,7 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _focusNode.requestFocus();
-      }
+      if (mounted) _focusNode.requestFocus();
     });
 
     unawaited(_loadAndTrySystemAuth());
@@ -174,7 +172,7 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
 
   /// 执行密码验证。
   Future<void> _handleUnlock() async {
-    if (_hasCompletedUnlock) return;
+    if (_hasCompletedUnlock || _isVerifying || _isSystemAuthenticating) return;
     final inputPassword = _passwordController.text;
 
     if (inputPassword.isEmpty) {
@@ -188,7 +186,18 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
       _errorMessage = null;
     });
 
-    final isCorrect = await widget.authentication.verifyPassword(inputPassword);
+    late final bool isCorrect;
+    try {
+      isCorrect = await widget.authentication.verifyPassword(inputPassword);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isVerifying = false;
+        _errorMessage = '暂时无法验证密码，请稍后重试';
+      });
+      _restorePasswordFocus();
+      return;
+    }
 
     if (!mounted) return;
 
@@ -201,17 +210,24 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
       });
       _passwordController.clear();
       _triggerShake();
-      _focusNode.requestFocus();
+      _restorePasswordFocus();
     }
   }
 
   /// 加载系统快速验证配置，并在可用时优先尝试系统认证。
   Future<void> _loadAndTrySystemAuth() async {
-    final quickAuthEnabled = await widget.authentication.isQuickAuthEnabled();
-    if (!quickAuthEnabled) return;
-
-    final systemAuthAvailable = await widget.authentication
-        .isSystemAuthAvailable();
+    late final bool quickAuthEnabled;
+    late final bool systemAuthAvailable;
+    try {
+      quickAuthEnabled = await widget.authentication.isQuickAuthEnabled();
+      if (!quickAuthEnabled) return;
+      systemAuthAvailable = await widget.authentication.isSystemAuthAvailable();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _errorMessage = '系统认证设置暂不可用，请输入密码解锁');
+      _restorePasswordFocus();
+      return;
+    }
     if (!mounted || !systemAuthAvailable) return;
 
     setState(() => _isSystemAuthEnabled = true);
@@ -220,16 +236,27 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
 
   /// 执行系统认证解锁。失败、取消、超时或不可用时保留手动密码路径。
   Future<void> _handleSystemUnlock({bool autoTriggered = false}) async {
-    if (_hasCompletedUnlock || _isSystemAuthenticating) return;
+    if (_hasCompletedUnlock || _isSystemAuthenticating || _isVerifying) return;
 
     setState(() {
       _isSystemAuthenticating = true;
       if (!autoTriggered) _errorMessage = null;
     });
 
-    final result = await widget.authentication.authenticate(
-      '验证身份以解锁 ${AppDisplayName.of(context)}',
-    );
+    late final SystemAuthResult result;
+    try {
+      result = await widget.authentication.authenticate(
+        '验证身份以解锁 ${AppDisplayName.of(context)}',
+      );
+    } catch (_) {
+      if (!mounted || _hasCompletedUnlock) return;
+      setState(() {
+        _isSystemAuthenticating = false;
+        _errorMessage = '系统认证暂不可用，请输入密码解锁';
+      });
+      _restorePasswordFocus();
+      return;
+    }
 
     if (!mounted || _hasCompletedUnlock) return;
 
@@ -240,9 +267,21 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
 
     setState(() {
       _isSystemAuthenticating = false;
-      _errorMessage = '系统认证未完成，请输入密码解锁';
+      _errorMessage = switch (result) {
+        SystemAuthResult.failed => '系统认证未通过或已取消，请输入密码解锁',
+        SystemAuthResult.unavailable => '当前设备无法使用系统认证，请输入密码解锁',
+        SystemAuthResult.success => null,
+      };
     });
-    _focusNode.requestFocus();
+    _restorePasswordFocus();
+  }
+
+  void _restorePasswordFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_isVerifying && !_isSystemAuthenticating) {
+        _focusNode.requestFocus();
+      }
+    });
   }
 
   /// 播放解锁动画并通知上层进入主界面。
@@ -288,17 +327,37 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
               padding: EdgeInsets.all(theme.spacing.m),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: theme.breakpoint.compact - theme.spacing.xl2 * 5,
+                  maxWidth: theme.control.regular * 7.5,
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset(
-                      'assets/images/logo.png',
-                      width: theme.control.regular + theme.spacing.xl,
-                      height: theme.control.regular + theme.spacing.xl,
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: theme.color.structural,
+                        borderRadius: BorderRadius.circular(theme.radius.l),
+                      ),
+                      child: SizedBox.square(
+                        dimension: theme.control.regular + theme.spacing.l,
+                        child: Center(
+                          child: Text(
+                            '源',
+                            style: theme.typography.h1.copyWith(
+                              color: theme.color.onStructural,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                    SizedBox(height: theme.spacing.l),
+                    SizedBox(height: theme.spacing.m),
+                    Text(
+                      '本机安全',
+                      style: theme.typography.caption.copyWith(
+                        color: theme.color.brandStrong,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: theme.spacing.s),
                     Semantics(
                       header: true,
                       child: Text(
@@ -308,9 +367,10 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
-                    SizedBox(height: theme.spacing.s),
+                    SizedBox(height: theme.spacing.m),
                     Text(
-                      '应用已锁定',
+                      '应用已锁定，解锁信息只在本机验证。',
+                      textAlign: TextAlign.center,
                       style: theme.typography.body.copyWith(
                         color: theme.color.muted,
                       ),
@@ -349,6 +409,7 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
             hint: '输入密码以解锁',
             prefixIcon: YhIcons.lock,
             errorText: _errorMessage,
+            enabled: !_isVerifying && !_isSystemAuthenticating,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _handleUnlock(),
           ),
@@ -357,8 +418,11 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
             width: double.infinity,
             child: YhButton(
               label: _isVerifying ? '正在验证…' : '解锁',
-              onTap: _isVerifying ? null : _handleUnlock,
-              disabled: _isVerifying,
+              minWidth: theme.control.regular * 7.5,
+              onTap: _isVerifying || _isSystemAuthenticating
+                  ? null
+                  : _handleUnlock,
+              disabled: _isVerifying || _isSystemAuthenticating,
             ),
           ),
           if (_isSystemAuthEnabled) ...[
@@ -367,15 +431,22 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
               width: double.infinity,
               child: YhButton(
                 label: _isSystemAuthenticating ? '等待系统认证' : '使用系统认证',
+                minWidth: theme.control.regular * 7.5,
                 variant: YhButtonVariant.secondary,
                 leadingIcon: YhIcons.fingerprint,
-                onTap: _isSystemAuthenticating
+                onTap: _isSystemAuthenticating || _isVerifying
                     ? null
                     : () => _handleSystemUnlock(),
-                disabled: _isSystemAuthenticating,
+                disabled: _isSystemAuthenticating || _isVerifying,
               ),
             ),
           ],
+          SizedBox(height: theme.spacing.m),
+          Text(
+            '系统认证取消或不可用时，仍可使用本地密码。',
+            textAlign: TextAlign.center,
+            style: theme.typography.caption.copyWith(color: theme.color.muted),
+          ),
         ],
       ),
     );

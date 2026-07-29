@@ -166,8 +166,83 @@
     return `${base}<div class="reference-modal-scrim"><section class="reference-card reference-modal" role="dialog" aria-modal="true" aria-labelledby="${titleId}" data-reference-modal><h2 id="${titleId}">打开${entry.id === 'settings.licenses' ? ' Flutter' : ' GitHub 仓库'}</h2><p>即将在系统浏览器打开 ${target}。离开应用后，网页不再受本应用的本地保护。</p><div><button type="button" data-reference-modal-cancel>取消</button><button class="reference-demo-primary" type="button">继续打开</button></div></section></div>`;
   }
 
+  function lockSurfaceMarkup(state, includeExternalDialog = false) {
+    const loading = state === 'loading';
+    const error = state === 'error';
+    const errorText = error ? '<p class="reference-lock-error" role="status">密码错误，请重试</p>' : '';
+    const lock = `<section class="reference-global-stage reference-lock-stage"><main class="reference-lock-panel"><div class="reference-security-mark" aria-hidden="true">源</div><p class="reference-eyebrow">本机安全</p><h1>工大聚合</h1><p>应用已锁定，解锁信息只在本机验证。</p><label class="reference-lock-field"><span>密码</span><span class="reference-input${error ? ' is-error' : ''}${loading ? ' is-disabled' : ''}">🔒 <b>${loading ? '••••••••' : '输入密码以解锁'}</b></span></label>${errorText}<button class="reference-lock-action" type="button"${loading ? ' disabled' : ''}>${loading ? '正在验证…' : '解锁'}</button><small>系统认证取消或不可用时，仍可使用本地密码。</small></main></section>`;
+    if (!includeExternalDialog) return lock;
+    const dialogTitle = state === 'initial' ? '准备系统认证' : state === 'error' ? '系统认证未完成' : '验证身份以解锁工大聚合';
+    const dialogMessage = state === 'initial' ? '系统即将请求设备 PIN 或生物识别。' : state === 'error' ? '可重试系统认证，或返回应用输入本地密码。' : '此区域由操作系统绘制，认证信息不会离开设备。';
+    return `${lock}<div class="reference-auth-scrim"></div><section class="reference-system-auth-dialog" data-external-region="system-dialog"><span aria-hidden="true">${state === 'error' ? '!' : '◎'}</span><h2>${dialogTitle}</h2><p>${dialogMessage}</p><div><button type="button">返回密码</button><button class="reference-demo-primary" type="button">${state === 'error' ? '重试认证' : '继续'}</button></div></section>`;
+  }
+
+  function consentSurfaceMarkup(state) {
+    const loading = state === 'initial';
+    const error = state === 'error';
+    const busy = state === 'operation-locked';
+    const persistenceError = state === 'partial-error';
+    const document = loading
+      ? '<div class="reference-consent-document is-loading" role="status"><span class="reference-spinner" aria-hidden="true"></span><strong>正在加载协议正文</strong><p>正文完整读取后才可继续。</p></div>'
+      : error
+      ? '<div class="reference-consent-document is-error" role="alert"><strong>无法加载协议正文</strong><p>本地协议文件未就绪；当前不会记录同意，可在这里重试。</p><button type="button">↻　重试加载协议</button></div>'
+      : '<div class="reference-consent-document"><h2>工大聚合法律与隐私说明</h2><h3>一、独立工具，不代表学校官方</h3><h3>二、仅供本人校园学习与生活使用</h3><h3>三、凭据与缓存只保存在本机</h3><h3>四、第三方能力遵循各自许可</h3></div>';
+    const operationFeedback = busy
+      ? '<div class="reference-banner" role="status">正在将协议选择安全保存到本机，完成前请保持应用开启。</div>'
+      : persistenceError
+      ? '<div class="reference-banner is-error" role="alert">未能保存协议选择；当前不会视为已同意。请检查本机存储后重试，或退出应用。</div>'
+      : '';
+    return `<section class="reference-global-stage reference-consent-stage"><article class="reference-consent-panel" role="dialog" aria-modal="true" aria-labelledby="reference-consent-title"><header><p class="reference-eyebrow">首次使用</p><h1 id="reference-consent-title">法律与隐私说明</h1><p>请完整阅读。一次同意将同时确认免责声明、用户协议、隐私协议与第三方协议。</p></header>${document}${operationFeedback}<p class="reference-consent-note">${loading || error ? '协议正文加载完成后才可继续。' : '同意后仍可在设置中查看协议并清除本地数据。'}</p><div class="reference-consent-actions"><button type="button"${busy ? ' disabled' : ''}>不同意并退出</button><button class="reference-demo-primary" type="button"${loading || error || busy ? ' disabled' : ''}>${busy ? '正在保存…' : persistenceError ? '重试保存并继续' : '同意全部协议并继续'}</button></div></article></section>`;
+  }
+
+  function closeConfirmationMarkup(state) {
+    const busy = state === 'operation-locked';
+    const error = state === 'error';
+    const banner = busy ? '<div class="reference-banner" role="status">正在保存关闭选择并处理窗口，完成前已锁定重复操作。</div>' : error ? '<div class="reference-banner is-error" role="alert">未能完成窗口操作；当前页面和选择仍已保留，可重试或取消。</div>' : '';
+    return `${qingyuanShellMarkup('主页')}<div class="reference-close-scrim"></div><section class="reference-close-dialog" role="dialog" aria-modal="true" aria-labelledby="reference-close-title"><p class="reference-eyebrow">桌面窗口</p><h2 id="reference-close-title">关闭工大聚合？</h2><p>最小化会保留当前页面与后台刷新；退出会停止本机任务。</p>${banner}<label class="reference-remember"><span aria-hidden="true">☐</span><span>以后都使用本次选择</span></label><div class="reference-close-actions"><button type="button"${busy ? ' disabled' : ''}>取消</button><button type="button"${busy ? ' disabled' : ''}>−　最小化到托盘</button><button class="is-danger" type="button"${busy ? ' disabled' : ''}>${busy ? '正在处理…' : '⏻　退出应用'}</button></div></section>`;
+  }
+
+  function qingyuanShellMarkup(activeDestination) {
+    const destinations = [
+      ['⌂', '主页'],
+      ['学', '教务'],
+      ['▦', '课表'],
+      ['ⓘ', '信息'],
+      ['✉', '邮箱'],
+      ['↗', '跳转'],
+      ['⚙', '设置'],
+    ];
+    const compactActive = ['主页', '教务', '课表', '信息'].includes(activeDestination) ? activeDestination : '更多';
+    const desktopNavigation = destinations.map(([icon, label]) => `<button class="reference-shell-destination${label === activeDestination ? ' is-active' : ''}" type="button"${label === activeDestination ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span><strong>${label}</strong></button>`).join('');
+    const compactNavigation = destinations.slice(0, 4).concat([['•••', '更多']]).map(([icon, label]) => `<button class="reference-shell-destination${label === compactActive ? ' is-active' : ''}" type="button"${label === compactActive ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span><strong>${label}</strong></button>`).join('');
+    return `<section class="reference-qingyuan-shell"><aside class="reference-shell-rail"><div class="reference-shell-brand" aria-label="工大聚合">工</div><nav>${desktopNavigation}</nav></aside><main><header>清源导航</header><div class="reference-shell-empty"><span aria-hidden="true">⌂</span><h1>校园服务都在这里</h1><p>主目的地随窗口宽度切换为底栏、紧凑导航轨或扩展导航轨。</p></div><nav class="reference-shell-bottom">${compactNavigation}</nav></main></section>`;
+  }
+
+  function moreDrawerMarkup() {
+    const shell = qingyuanShellMarkup('邮箱');
+    const drawer = '<div class="reference-more-scrim"></div><section class="reference-more-drawer" role="dialog" aria-modal="true" aria-labelledby="reference-more-title"><h2 id="reference-more-title">更多</h2><button class="is-selected" type="button" aria-current="page"><span>✉</span><strong>邮箱</strong><small>查看学校邮件</small><b>✓</b></button><button type="button"><span>↗</span><strong>跳转</strong><small>打开校园服务</small><b>›</b></button><button type="button"><span>⚙</span><strong>设置</strong><small>管理本地数据</small><b>›</b></button></section>';
+    return `${shell}${drawer}`;
+  }
+
+  function startupSurfaceMarkup(state) {
+    const error = state === 'error';
+    return `<section class="reference-global-stage reference-startup-stage"><article class="reference-startup-panel"><div class="reference-security-mark" aria-hidden="true">源</div><p class="reference-eyebrow">应用启动</p><h1>${error ? '暂时无法启动' : '正在准备清源'}</h1><p>${error ? '本地设置或缓存还未就绪，没有访问校园服务。' : '先恢复本地设置与安全状态，再决定是否访问校园服务。'}</p>${error ? '<div class="reference-banner is-error">本地存储不可用；请检查应用数据目录权限后重试。</div><button class="reference-startup-action" type="button">重试启动</button>' : '<div class="reference-startup-progress"><i></i></div><ol><li class="is-current">读取本地设置</li><li>恢复账户状态</li><li>准备校园服务</li></ol>'}</article></section>`;
+  }
+
+  function specialSurfaceMarkup(entry, state) {
+    if (entry.id === 'shell.startup') return startupSurfaceMarkup(state);
+    if (entry.id === 'shell.more-drawer') return moreDrawerMarkup();
+    if (entry.id === 'shell.close-confirmation') return closeConfirmationMarkup(state);
+    if (entry.id === 'consent.first-run') return consentSurfaceMarkup(state);
+    if (entry.id === 'security.lock') return lockSurfaceMarkup(state);
+    if (entry.id === 'external.system-auth') return lockSurfaceMarkup(state, true);
+    return null;
+  }
+
   function contentMarkup(entry, state) {
     const id = entry.id;
+    const special = specialSurfaceMarkup(entry, state);
+    if (special) return special;
     if ((id === 'settings.about' || id === 'settings.licenses') && ['external-confirmation', 'external-cancelled', 'external-error', 'operation-locked'].includes(state)) {
       return externalScenarioMarkup(entry, state);
     }

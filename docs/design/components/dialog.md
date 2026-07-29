@@ -15,6 +15,7 @@
 ```
 ░░░░░░░░░░░░░░░░░░░░░░░░  ← 遮罩 rgba 半透明，点击可关（非危险操作）
 ░  ┌──────────────────┐  ░
+░  │ 桌面窗口           │  ← 可选 eyebrow，说明决策上下文
 ░  │ 删除该课程？       │  ← h3 标题
 ░  │ 此操作不可撤销…    │  ← p 正文（--muted）
 ░  │        [取消][删除] │  ← acts 右对齐
@@ -33,7 +34,7 @@
 | **visible** | 焦点陷入面板（Tab 不逃出）；Esc 关闭（非危险时） |
 | **exit** | 反向淡出 |
 
-主操作放右、危险操作用 `danger` 按钮；取消放左为 secondary/text。
+主操作放右、危险操作用 `danger` 按钮；取消放左为 secondary/text。低于 compact 断点且操作较多时，可启用整行纵向操作区；DOM、键盘与视觉顺序必须一致。不可被系统返回中断的关键任务使用 `canPop: false`，并始终提供显式取消或恢复路径。
 
 ---
 
@@ -57,6 +58,19 @@ final ok = await YhDialog.confirm(
   message: '此操作不可撤销，删除后需重新导入。',
   confirmText: '删除',
   danger: true,
+);
+
+await YhDialog.show<void>(
+  context,
+  barrierDismissible: false,
+  canPop: false,
+  builder: (_) => YhDialog(
+    eyebrow: '桌面窗口',
+    title: '关闭应用？',
+    content: const Text('完成前保留当前页面。'),
+    stackActionsOnCompact: true,
+    actions: actions,
+  ),
 );
 ```
 
@@ -91,3 +105,4 @@ final ok = await YhDialog.confirm(
 | 版本 | 日期 | 变更内容 |
 |---|---|---|
 | 0.1.0 | 2026-06-16 | 初始规格 · 响应色 #478384 |
+| 0.4.0 | 2026-07-29 | 增加 eyebrow、紧凑纵向操作区与系统返回锁定契约 |

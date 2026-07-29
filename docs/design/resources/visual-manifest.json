@@ -35,8 +35,8 @@
     {"id": "shell.startup", "group": "global", "states": ["loading", "error"]},
     {"id": "shell.navigation", "group": "global", "states": ["content"]},
     {"id": "shell.more-drawer", "group": "global", "states": ["content"]},
-    {"id": "shell.close-confirmation", "group": "global", "states": ["content"]},
-    {"id": "consent.first-run", "group": "global", "states": ["initial", "content"]},
+    {"id": "shell.close-confirmation", "group": "global", "states": ["content", "operation-locked", "error"]},
+    {"id": "consent.first-run", "group": "global", "states": ["initial", "content", "error", "operation-locked", "partial-error"]},
     {"id": "security.lock", "group": "global", "states": ["initial", "loading", "error"]},
 
     {"id": "home.dashboard", "group": "home", "states": ["initial", "loading", "content", "stale", "error"]},

@@ -92,6 +92,10 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 启动初始化失败时显示明确错误，避免长期停留在加载状态。
   String? _startupErrorMessage;
 
+  /// 启动初始化同一时间只允许一个代次写回，避免快速重试触发旧请求覆盖。
+  bool _initializationInFlight = false;
+  int _initializationGeneration = 0;
+
   YhThemeMode _themeMode = YhThemeMode.system;
 
   /// 清源应用内部导航器 key，用于在 WindowListener 回调中弹出对话框。
@@ -108,7 +112,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       windowManager.addListener(this);
       trayManager.addListener(this);
     }
-    _initApp();
+    _startInitialization();
   }
 
   @override
@@ -121,13 +125,20 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   }
 
   /// 初始化应用状态：先检查协议确认状态，再检查密码。
-  Future<void> _initApp() async {
+  void _startInitialization() {
+    if (_initializationInFlight) return;
+    _initializationInFlight = true;
+    final generation = ++_initializationGeneration;
+    unawaited(_runInitialization(generation));
+  }
+
+  Future<void> _runInitialization(int generation) async {
     try {
       await StorageService.init();
       final agreementsOk = await StorageService.areCurrentAgreementsAccepted();
       final hasPassword = await PasswordService.isPasswordSet();
       final themeMode = await StorageService.getThemeMode();
-      if (!mounted) return;
+      if (!mounted || generation != _initializationGeneration) return;
       setState(() {
         _agreementsAccepted = agreementsOk;
         _isUnlocked = !hasPassword;
@@ -140,20 +151,25 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       });
       unawaited(_initBackgroundServices());
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || generation != _initializationGeneration) return;
       setState(() {
         _startupErrorMessage = '启动初始化失败：无法读取本地设置。';
         _isInitialized = true;
       });
+    } finally {
+      if (generation == _initializationGeneration) {
+        _initializationInFlight = false;
+      }
     }
   }
 
   void _retryInitialization() {
+    if (_initializationInFlight) return;
     setState(() {
       _startupErrorMessage = null;
       _isInitialized = false;
     });
-    unawaited(_initApp());
+    _startInitialization();
   }
 
   void _setThemeMode(YhThemeMode mode) {
@@ -231,20 +247,22 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     YhDialog.show<void>(
       ctx,
       barrierDismissible: false,
+      canPop: false,
       builder: (dialogContext) => AppCloseConfirmationDialog(
+        onCancel: () => Navigator.pop(dialogContext),
         onMinimize: (rememberChoice) async {
-          Navigator.pop(dialogContext);
           if (rememberChoice) {
             await StorageService.setCloseBehavior('minimize');
           }
           await windowManager.hide();
+          if (dialogContext.mounted) Navigator.pop(dialogContext);
         },
         onExit: (rememberChoice) async {
-          Navigator.pop(dialogContext);
           if (rememberChoice) {
             await StorageService.setCloseBehavior('exit');
           }
           await AppExitService.instance.exit();
+          if (dialogContext.mounted) Navigator.pop(dialogContext);
         },
       ),
     ).whenComplete(() {
@@ -295,10 +313,12 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     _agreementDialogShowing = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      showLegalConsentDialog(context: context).then((accepted) async {
+      showLegalConsentDialog(
+        context: context,
+        onAccept: StorageService.acceptCurrentAgreements,
+      ).then((accepted) async {
         _agreementDialogShowing = false;
         if (accepted == true) {
-          await StorageService.acceptCurrentAgreements();
           if (mounted) {
             setState(() => _agreementsAccepted = true);
           }
@@ -353,7 +373,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 根据初始化、协议确认和密码验证状态构建首屏
   Widget _buildHome() {
     if (!_isInitialized) {
-      return const AppStartupStatus(progressLabel: '正在初始化应用');
+      return const AppStartupStatus(progressLabel: '读取本地设置');
     }
 
     if (_startupErrorMessage != null) {
