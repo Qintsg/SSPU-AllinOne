@@ -23,6 +23,16 @@
     ['settings', '设', '设置'],
   ];
 
+  const qingyuanDestinations = [
+    ['⌂', '主页'],
+    ['学', '教务'],
+    ['▦', '课表'],
+    ['ⓘ', '信息'],
+    ['✉', '邮箱'],
+    ['↗', '跳转'],
+    ['⚙', '设置'],
+  ];
+
   const stateCopy = {
     initial: ['准备好后再开始', '当前还没有读取校园数据。先说明将要访问的来源，再由你决定是否继续。', '开始读取'],
     loading: ['正在读取本地快照', '先恢复已经保存在设备上的数据；只有主动刷新时才连接校园服务。', '读取中'],
@@ -258,6 +268,63 @@
     return `<div class="reference-academic-ledger"><section class="reference-academic-summary is-sports"><div class="reference-academic-metrics">${metrics.map(([value, label]) => `<span><strong>${value}</strong><small>${label}</small></span>`).join('')}</div></section><section class="reference-academic-records"><header><div><small>本学期运动证据</small><h2>考勤明细</h2></div><span>2 条记录</span></header><div>${records.map(([date, time, project, place, status, count]) => `<article><time><strong>${date}</strong><small>${time}</small></time><div><strong>${project}</strong><small>${place}</small><p>${status}</p></div><span><strong>${count}</strong><small>原始记录已保留</small></span></article>`).join('')}</div></section></div>`;
   }
 
+  function scheduleNavigationMarkup() {
+    const desktop = qingyuanDestinations.map(([icon, label]) => `<button class="reference-shell-destination${label === '课表' ? ' is-active' : ''}" type="button"${label === '课表' ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span><strong>${label}</strong></button>`).join('');
+    const bottom = qingyuanDestinations.slice(0, 4).concat([['•••', '更多']]).map(([icon, label]) => `<button class="reference-shell-destination${label === '课表' ? ' is-active' : ''}" type="button"${label === '课表' ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span><strong>${label}</strong></button>`).join('');
+    return {desktop, bottom};
+  }
+
+  function scheduleLedgerMarkup(banner = '') {
+    const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const periods = [
+      ['1–2', '08:00', [['数据结构', '计算机楼 301', 1]]],
+      ['3–4', '09:50', [['软件工程实践', '实训中心 405', 6]]],
+      ['5–6', '11:25', [['人机交互设计', '艺术楼 B204', 3]]],
+    ];
+    const header = `<div class="reference-schedule-week-header"><strong>节次</strong>${weekdays.map((day, index) => `<strong class="${index === 5 ? 'is-current' : ''}">${day}${index === 5 ? ' · 今天' : ''}</strong>`).join('')}</div>`;
+    const rows = periods.map(([period, time, courses]) => `<div class="reference-schedule-week-row"><span><strong>${period}</strong><small>${time}</small></span>${weekdays.map((_, index) => {
+      const course = courses.find(item => item[2] === index + 1);
+      return `<span class="${index === 5 ? 'is-current' : ''}">${course ? `<b>${course[0]}</b><small>${course[1]}</small>` : ''}</span>`;
+    }).join('')}</div>`).join('');
+    return `${banner}<div class="reference-schedule-tabs">${weekdays.map((day, index) => `<strong class="${index === 5 ? 'is-current' : ''}">${day}${index === 5 ? ' · 今天' : ''}</strong>`).join('')}</div><section class="reference-schedule-mobile-course"><time><strong>09:50 · 3–4 节</strong></time><div><strong>软件工程实践</strong><small>实训中心 405</small></div></section><section class="reference-schedule-week-grid">${header}${rows}</section>`;
+  }
+
+  function scheduleStatePanelMarkup(state) {
+    const loading = state === 'loading';
+    const error = state === 'error';
+    const empty = state === 'empty';
+    const symbol = loading ? '<span class="reference-spinner" aria-hidden="true"></span>' : `<span class="reference-schedule-state-symbol" aria-hidden="true">${error ? '!' : empty ? '○' : '→'}</span>`;
+    const title = loading ? '正在读取当前学期课表' : error ? '课表暂不可用' : empty ? '本学期暂无课程' : '准备读取课程表';
+    const message = loading
+      ? '正在从教务课表恢复数据；页面、校历入口和返回路径保持可用。'
+      : error
+      ? '无法完成本次读取；检查 OA 登录或校园网络后可在原位置重试。'
+      : empty
+      ? '当前学期没有可展示的课程；刚完成选课时可稍后刷新，或查看校历确认学期。'
+      : '首次读取只访问当前 OA 登录态下的课表；由你决定何时开始。';
+    const context = error ? '已有缓存不会被清空' : empty ? '0 门课程 · 09:30 更新' : '只读访问 · 当前学期';
+    return `<section class="reference-schedule-state-panel">${symbol}<small>${loading ? '读取中' : error ? '需要处理' : empty ? '当前范围' : '尚未开始'}</small><h2>${title}</h2><p>${message}</p><span>${context}</span>${loading ? '' : `<div><button type="button">查看校历</button><button class="reference-demo-primary" type="button">${error ? '检查后重试' : empty ? '重新读取' : '开始读取'}</button></div>`}</section>`;
+  }
+
+  function scheduleSurfaceMarkup(entry, state) {
+    const {desktop, bottom} = scheduleNavigationMarkup();
+    const busy = state === 'operation-locked';
+    const stale = state === 'stale';
+    const content = state === 'content' || stale || busy;
+    const loading = state === 'loading';
+    const metadata = content || state === 'empty'
+      ? `<div class="reference-schedule-meta"><span>● ${state === 'empty' ? '0' : '3'} 门课程</span><span>● ${stale ? '昨日 18:00' : '09:30'} 更新</span>${stale ? '<span class="is-warn">● 本地缓存</span>' : ''}</div>`
+      : '';
+    const banner = busy
+      ? '<div class="reference-schedule-banner" role="status">正在刷新课表；当前课程、星期选择和校历入口保持可用，完成前已锁定重复刷新。</div>'
+      : stale
+      ? '<div class="reference-schedule-banner is-warn" role="status">正在显示昨日缓存；刷新失败不会删除当前周视图，可在原位置重试。</div>'
+      : '';
+    const body = content ? scheduleLedgerMarkup(banner) : scheduleStatePanelMarkup(state);
+    const actionLabel = busy ? '正在刷新…' : loading ? '正在读取…' : '刷新课表';
+    return `<section class="reference-qingyuan-shell reference-schedule-stage"><aside class="reference-shell-rail"><div class="reference-shell-brand" aria-label="工大聚合">工</div><nav>${desktop}</nav></aside><main><div class="reference-schedule-scroll"><div class="reference-schedule-content"><header class="reference-schedule-heading"><div><small>2025–2026 第 2 学期</small><h1>课程表</h1><p>周视图在桌面保持七天空间关系，窄屏切换为按天列表；课程颜色只表达课表业务域。</p></div><div><button type="button">查看校历</button><button class="reference-demo-primary" type="button"${busy || loading ? ' disabled' : ''}>${actionLabel}</button></div></header>${metadata}<main>${body}</main></div></div><nav class="reference-shell-bottom">${bottom}</nav></main></section>`;
+  }
+
   function lockSurfaceMarkup(state, includeExternalDialog = false) {
     const loading = state === 'loading';
     const error = state === 'error';
@@ -295,18 +362,9 @@
   }
 
   function qingyuanShellMarkup(activeDestination) {
-    const destinations = [
-      ['⌂', '主页'],
-      ['学', '教务'],
-      ['▦', '课表'],
-      ['ⓘ', '信息'],
-      ['✉', '邮箱'],
-      ['↗', '跳转'],
-      ['⚙', '设置'],
-    ];
     const compactActive = ['主页', '教务', '课表', '信息'].includes(activeDestination) ? activeDestination : '更多';
-    const desktopNavigation = destinations.map(([icon, label]) => `<button class="reference-shell-destination${label === activeDestination ? ' is-active' : ''}" type="button"${label === activeDestination ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span><strong>${label}</strong></button>`).join('');
-    const compactNavigation = destinations.slice(0, 4).concat([['•••', '更多']]).map(([icon, label]) => `<button class="reference-shell-destination${label === compactActive ? ' is-active' : ''}" type="button"${label === compactActive ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span><strong>${label}</strong></button>`).join('');
+    const desktopNavigation = qingyuanDestinations.map(([icon, label]) => `<button class="reference-shell-destination${label === activeDestination ? ' is-active' : ''}" type="button"${label === activeDestination ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span><strong>${label}</strong></button>`).join('');
+    const compactNavigation = qingyuanDestinations.slice(0, 4).concat([['•••', '更多']]).map(([icon, label]) => `<button class="reference-shell-destination${label === compactActive ? ' is-active' : ''}" type="button"${label === compactActive ? ' aria-current="page"' : ''}><span aria-hidden="true">${icon}</span><strong>${label}</strong></button>`).join('');
     return `<section class="reference-qingyuan-shell"><aside class="reference-shell-rail"><div class="reference-shell-brand" aria-label="工大聚合">工</div><nav>${desktopNavigation}</nav></aside><main><header>清源导航</header><div class="reference-shell-empty"><span aria-hidden="true">⌂</span><h1>校园服务都在这里</h1><p>主目的地随窗口宽度切换为底栏、紧凑导航轨或扩展导航轨。</p></div><nav class="reference-shell-bottom">${compactNavigation}</nav></main></section>`;
   }
 
@@ -329,6 +387,7 @@
     if (entry.id === 'security.lock') return lockSurfaceMarkup(state);
     if (entry.id === 'external.system-auth') return lockSurfaceMarkup(state, true);
     if (entry.id === 'external.webview') return webViewSurfaceMarkup(entry, state);
+    if (entry.id === 'schedule.calendar') return scheduleSurfaceMarkup(entry, state);
     if (entry.id === 'academic.student-report') return academicDetailStateMarkup(entry, state, 'var(--service-secondclass)');
     if (entry.id === 'academic.sports-attendance') return academicDetailStateMarkup(entry, state, 'var(--service-sports)');
     return null;

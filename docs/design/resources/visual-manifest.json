@@ -53,7 +53,7 @@
     {"id": "academic.sports-attendance", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
     {"id": "academic.calendar", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content", "stale"]}},
 
-    {"id": "schedule.calendar", "group": "schedule", "states": ["initial", "loading", "content", "empty", "stale", "error"]},
+    {"id": "schedule.calendar", "group": "schedule", "states": ["initial", "loading", "content", "empty", "stale", "error", "operation-locked"]},
 
     {"id": "info.feed", "group": "info", "states": ["initial", "loading", "content", "empty", "stale", "error"]},
     {"id": "info.filters", "group": "info", "states": ["content", "empty"]},

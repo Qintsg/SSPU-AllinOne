@@ -466,8 +466,8 @@ final AcademicEamsQueryResult qingyuanScheduleStaleResult = _scheduleResult(
 final AcademicEamsQueryResult qingyuanScheduleErrorResult =
     AcademicEamsQueryResult(
       status: AcademicEamsQueryStatus.networkError,
-      message: '暂时无法读取课表',
-      detail: '请检查校园网络或 VPN 后重试，已保留本地数据。',
+      message: '课表暂不可用',
+      detail: '无法完成本次读取；检查 OA 登录或校园网络后可在原位置重试。',
       checkedAt: qingyuanVisualNow,
       entranceUri: _entranceUri,
     );

@@ -739,6 +739,13 @@ final _surfaces = <_VisualSurface>[
     destination: '课表',
   ),
   _VisualSurface(
+    'schedule.calendar',
+    _scheduleOperationLocked,
+    state: 'operation-locked',
+    prepare: _startScheduleLoading,
+    destination: '课表',
+  ),
+  _VisualSurface(
     'info.feed',
     () => _infoPage(InfoPageDisplayState.initial),
     state: 'initial',
@@ -2398,6 +2405,7 @@ Widget _schedulePage({
     initialResult: initialResult,
     autoRefreshEnabledOverride: false,
     nowOverride: qingyuanVisualNow,
+    termLabelOverride: '2025-2026 第2学期',
   );
 }
 
@@ -2444,6 +2452,14 @@ Widget _scheduleError() => _schedulePage(
     result: qingyuanScheduleErrorResult,
   ),
   initialResult: qingyuanScheduleErrorResult,
+);
+
+Widget _scheduleOperationLocked() => _schedulePage(
+  service: QingyuanVisualAcademicEamsClient(
+    result: qingyuanScheduleContentResult,
+    pendingCourseTable: Completer<AcademicEamsQueryResult>(),
+  ),
+  initialResult: qingyuanScheduleContentResult,
 );
 
 Widget _mailPage(QingyuanVisualEmailClient service) {

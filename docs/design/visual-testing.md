@@ -47,7 +47,7 @@ dart run tool/visual_compare.dart `
 
 ## 五平台 Flutter 候选采集
 
-候选图由真实 Flutter 渲染树生成，不复用 HTML 原型截图。Android 与 iOS 必须分别由 Android Emulator 和 iOS Simulator 的 `integration_test` runner 渲染，截图字节通过 Flutter 设备测试通道回传 CI 主机；禁止用 `debugDefaultTargetPlatformOverride` 伪装移动平台。Windows、macOS、Linux 分别在同系统桌面 runner 上采集。五个平台均加载 MiSans 与 `YhIcons` 底层字体，并输出 `visual-manifest.json` 注册的 148 个页面/状态组合、四档视口与亮暗主题矩阵；每个平台必须恰好得到 1184 张 PNG。候选上传前还会校验文件名、PNG 物理尺寸和外部区域 sidecar 边界：
+候选图由真实 Flutter 渲染树生成，不复用 HTML 原型截图。Android 与 iOS 必须分别由 Android Emulator 和 iOS Simulator 的 `integration_test` runner 渲染，截图字节通过 Flutter 设备测试通道回传 CI 主机；禁止用 `debugDefaultTargetPlatformOverride` 伪装移动平台。Windows、macOS、Linux 分别在同系统桌面 runner 上采集。五个平台均加载 MiSans 与 `YhIcons` 底层字体，并输出 `visual-manifest.json` 注册的 149 个页面/状态组合、四档视口与亮暗主题矩阵；每个平台必须恰好得到 1192 张 PNG。候选上传前还会校验文件名、PNG 物理尺寸和外部区域 sidecar 边界：
 
 ```bash
 flutter test test/visual/qingyuan_visual_capture_test.dart \
@@ -70,7 +70,7 @@ flutter test -d <device-id> integration_test/qingyuan_visual_capture_test.dart \
 
 ## 全量设计参考候选
 
-浏览器原型会先采集应用壳中的高保真主流程，再用同一清源 token 和 [`reference-catalog.json`](./resources/reference-catalog.json) 补齐所有次级页面、六态与经确认的交互场景态。输出同样严格覆盖 148 × 4 × 2 = 1184 张，并生成 `reference-index.json`，记录设计系统版本、固定 fixture 和每张图片的 SHA-256：
+浏览器原型会先采集应用壳中的高保真主流程，再用同一清源 token 和 [`reference-catalog.json`](./resources/reference-catalog.json) 补齐所有次级页面、六态与经确认的交互场景态。输出同样严格覆盖 149 × 4 × 2 = 1192 张，并生成 `reference-index.json`，记录设计系统版本、固定 fixture 和每张图片的 SHA-256：
 
 ```powershell
 python scripts/design/verify_design_prototype.py --output build/design-review

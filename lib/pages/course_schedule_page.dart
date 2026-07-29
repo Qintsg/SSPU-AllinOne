@@ -7,7 +7,9 @@
  */
 
 import 'dart:async';
+import 'dart:math' as math;
 
+import '../controllers/retained_refresh_controller.dart';
 import '../design/qingyuan/qingyuan_ui.dart';
 import '../models/academic_eams.dart';
 import '../models/course_period.dart';
@@ -34,6 +36,9 @@ class CourseSchedulePage extends StatefulWidget {
   /// 测试专用：锁定当前时间，确保星期高亮和刷新判定可重现。
   final DateTime? nowOverride;
 
+  /// 测试专用：锁定页头学期文案，避免视觉 fixture 依赖本机日期。
+  final String? termLabelOverride;
+
   /// 校历客户端，测试中可替换为 fake。
   final AcademicCalendarClient? academicCalendarService;
 
@@ -44,6 +49,7 @@ class CourseSchedulePage extends StatefulWidget {
     this.autoRefreshEnabledOverride,
     this.autoRefreshIntervalOverride,
     this.nowOverride,
+    this.termLabelOverride,
     this.academicCalendarService,
   });
 
@@ -52,13 +58,16 @@ class CourseSchedulePage extends StatefulWidget {
 }
 
 class _CourseSchedulePageState extends State<CourseSchedulePage> {
-  AcademicEamsQueryResult? _result;
-  bool _isLoading = false;
+  late final RetainedRefreshController<AcademicEamsQueryResult>
+  _refreshController;
   Timer? _autoRefreshTimer;
   StreamSubscription<int>? _credentialChangeSubscription;
   late int _selectedMobileWeekday;
+  int _resultGeneration = 0;
 
   DateTime get _now => widget.nowOverride ?? DateTime.now();
+  AcademicEamsQueryResult? get _result => _refreshController.result;
+  bool get _isLoading => _refreshController.isRefreshing;
 
   AcademicEamsClient get _academicEamsService {
     return widget.academicEamsService ?? AcademicEamsService.instance;
@@ -68,18 +77,33 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   void initState() {
     super.initState();
     _selectedMobileWeekday = _now.weekday;
+    _refreshController = RetainedRefreshController(
+      initialResult: widget.initialResult,
+      isSuccess: (result) => result.isSuccess,
+      hasUsableContent: (result) => result.snapshot?.courseTable != null,
+      failureMessage: (result) => '${result.message}：${result.detail}',
+    )..addListener(_handleRefreshChanged);
     _credentialChangeSubscription = AcademicCredentialsService.instance.changes
         .listen((_) => _clearAuthenticatedState());
-    _result = widget.initialResult;
     _loadCacheAndAutoRefreshSettings();
   }
 
+  @override
+  void didUpdateWidget(covariant CourseSchedulePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.initialResult, widget.initialResult)) {
+      _resultGeneration++;
+      _refreshController.updateExternalResult(widget.initialResult);
+    }
+  }
+
+  void _handleRefreshChanged() {
+    if (mounted) setState(() {});
+  }
+
   void _clearAuthenticatedState() {
-    if (!mounted) return;
-    setState(() {
-      _result = null;
-      _isLoading = false;
-    });
+    _resultGeneration++;
+    _refreshController.updateExternalResult(null);
   }
 
   Future<void> _loadAutoRefreshSettings() async {
@@ -111,10 +135,14 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   }
 
   Future<void> _loadCacheAndAutoRefreshSettings() async {
+    final generation = _resultGeneration;
     final cachedResult = await _academicEamsService
         .readLatestCachedCourseTable();
-    if (mounted && cachedResult != null && !_hasUsableCourseTable(_result)) {
-      setState(() => _result = cachedResult);
+    if (mounted &&
+        generation == _resultGeneration &&
+        cachedResult != null &&
+        !_hasUsableCourseTable(_result)) {
+      _refreshController.updateExternalResult(cachedResult);
     }
     await _loadAutoRefreshSettings();
   }
@@ -125,18 +153,9 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   }
 
   Future<void> _loadCourseTable({bool silent = false}) async {
-    if (_isLoading) return;
-    if (!silent) setState(() => _isLoading = true);
-
-    final result = await _academicEamsService.fetchCourseTable(
-      requireCampusNetwork: silent,
+    await _refreshController.refresh(
+      () => _academicEamsService.fetchCourseTable(requireCampusNetwork: silent),
     );
-    if (!mounted) return;
-    if (silent && !result.isSuccess) return;
-    setState(() {
-      _result = result;
-      if (!silent) _isLoading = false;
-    });
   }
 
   bool _shouldAutoRefresh(DateTime? fetchedAt, int intervalMinutes) {
@@ -158,6 +177,9 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   void dispose() {
     _credentialChangeSubscription?.cancel();
     _autoRefreshTimer?.cancel();
+    _refreshController
+      ..removeListener(_handleRefreshChanged)
+      ..dispose();
     super.dispose();
   }
 
@@ -179,10 +201,12 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
         : fluidHorizontalPadding;
     final verticalPadding = viewportWidth < theme.breakpoint.medium
         ? theme.spacing.xl
-        : theme.spacing.xl + theme.spacing.s;
-    final contentGap = _result?.isSuccess == true && courseTable != null
+        : fluidHorizontalPadding + theme.spacing.s;
+    final contentGap = viewportWidth < theme.breakpoint.medium
         ? theme.spacing.m
-        : theme.spacing.l;
+        : (_result?.isSuccess == true && courseTable != null
+              ? theme.spacing.m
+              : theme.spacing.l);
 
     return YhPageScaffold(
       appBar: canPop
@@ -230,7 +254,28 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   ) {
     final theme = context.yhTheme;
     final normalizedTerm = _resolvedTermName(courseTable);
-    final showCalendar = viewportWidth >= theme.breakpoint.medium;
+    final compact = viewportWidth < theme.breakpoint.medium;
+    final actionMinWidth = compact
+        ? (viewportWidth - theme.spacing.m * 2 - theme.spacing.s) / 2
+        : theme.control.minimumTarget * 2 + theme.spacing.m;
+    final actions = <Widget>[
+      YhButton(
+        key: const Key('open-academic-calendar'),
+        label: '查看校历',
+        minWidth: actionMinWidth,
+        variant: YhButtonVariant.secondary,
+        onTap: _openAcademicCalendar,
+      ),
+      YhButton(
+        key: const Key('course-schedule-refresh'),
+        label: _isLoading ? '正在刷新…' : '刷新课表',
+        minWidth: !compact && _isLoading
+            ? actionMinWidth + theme.spacing.s
+            : actionMinWidth,
+        disabled: _isLoading,
+        onTap: _loadCourseTable,
+      ),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -244,7 +289,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
                   Text(
                     normalizedTerm,
                     style: theme.typography.caption.copyWith(
-                      color: theme.color.brandInk,
+                      color: theme.color.serviceSchedule,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -258,7 +303,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
                     '周视图在桌面保持七天空间关系，窄屏切换为按天列表；'
                     '课程颜色只表达课表业务域。',
                     style:
-                        (viewportWidth < theme.breakpoint.medium
+                        (compact
                                 ? theme.typography.small
                                 : theme.typography.body)
                             .copyWith(color: theme.color.muted),
@@ -266,38 +311,34 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
                 ],
               ),
             ),
-            SizedBox(width: theme.spacing.l),
-            Transform.translate(
-              offset: Offset(0, -theme.spacing.s),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (showCalendar) ...[
-                    YhButton(
-                      key: const Key('open-academic-calendar'),
-                      label: '查看校历',
-                      variant: YhButtonVariant.secondary,
-                      onTap: _openAcademicCalendar,
-                    ),
+            if (!compact) ...[
+              SizedBox(width: theme.spacing.l),
+              Transform.translate(
+                offset: Offset(0, -theme.spacing.s),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    actions.first,
                     SizedBox(width: theme.spacing.s),
+                    actions.last,
                   ],
-                  YhIconButton(
-                    key: const Key('course-schedule-refresh'),
-                    icon: YhIcons.refresh,
-                    semanticLabel: _isLoading ? '正在刷新课程表' : '刷新课程表',
-                    onTap: _isLoading ? null : _loadCourseTable,
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ],
         ),
-        if (_result?.isSuccess == true && courseTable != null) ...[
-          SizedBox(
-            height: viewportWidth < theme.breakpoint.medium
-                ? theme.spacing.xl
-                : theme.spacing.l,
+        if (compact) ...[
+          SizedBox(height: theme.spacing.l),
+          Row(
+            children: [
+              Expanded(child: actions.first),
+              SizedBox(width: theme.spacing.s),
+              Expanded(child: actions.last),
+            ],
           ),
+        ],
+        if (_result?.isSuccess == true && courseTable != null) ...[
+          SizedBox(height: compact ? theme.spacing.m : theme.spacing.l),
           Wrap(
             spacing: theme.spacing.s,
             runSpacing: theme.spacing.s,
@@ -322,7 +363,9 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   }
 
   String _resolvedTermName(AcademicCourseTableSnapshot? courseTable) {
-    final termName = courseTable?.termName?.trim();
+    final termName = widget.termLabelOverride?.trim().isNotEmpty == true
+        ? widget.termLabelOverride!.trim()
+        : courseTable?.termName?.trim();
     if (termName != null && termName.isNotEmpty) {
       return termName.replaceFirst('-', '–');
     }
@@ -338,50 +381,76 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
 
   Widget _buildContent(AcademicCourseTableSnapshot? courseTable) {
     final theme = context.yhTheme;
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
     if (_isLoading && _result == null) {
-      return YhCard(
-        child: Row(
-          children: [
-            SizedBox(
-              width: theme.spacing.xl2 * 2,
-              child: const YhProgress(showPercent: false),
-            ),
-            SizedBox(width: theme.spacing.m),
-            const Expanded(child: Text('正在读取当前学期课表...')),
-          ],
-        ),
+      return const _ScheduleStatePanel(
+        loading: true,
+        statusLabel: '读取中',
+        title: '正在读取当前学期课表',
+        message: '正在从教务课表恢复数据；页面、校历入口和返回路径保持可用。',
+        contextLabel: '只读访问 · 当前学期',
       );
     }
     if (_result == null) {
-      return const YhBanner(text: '尚未读取课表：点击“刷新课表”即可按当前 OA 登录态只读获取本学期课表。');
+      return _ScheduleStatePanel(
+        symbol: '→',
+        statusLabel: '尚未开始',
+        title: '准备读取课程表',
+        message: '首次读取只访问当前 OA 登录态下的课表；由你决定何时开始。',
+        contextLabel: '只读访问 · 当前学期',
+        primaryActionLabel: '开始读取',
+        onPrimaryAction: _loadCourseTable,
+        onCalendar: _openAcademicCalendar,
+      );
     }
     if (!_result!.isSuccess || courseTable == null) {
-      return YhCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Semantics(
-              header: true,
-              child: Text(_result!.message, style: theme.typography.h3),
-            ),
-            SizedBox(height: theme.spacing.s),
-            YhBanner(
-              text: _result!.detail,
-              kind: _bannerKindOf(_result!.status),
-            ),
-          ],
-        ),
+      return _ScheduleStatePanel(
+        symbol: '!',
+        statusLabel: '需要处理',
+        title: _result!.message,
+        message: _result!.detail,
+        contextLabel: '已有缓存不会被清空',
+        primaryActionLabel: '检查后重试',
+        onPrimaryAction: _loadCourseTable,
+        onCalendar: _openAcademicCalendar,
       );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (_isLoading) ...[
+          if (compact) SizedBox(height: theme.spacing.xs),
+          const YhBanner(text: '正在刷新课表；当前课程、星期选择和校历入口保持可用，完成前已锁定重复刷新。'),
+          SizedBox(height: theme.spacing.m),
+        ],
+        if (_refreshController.retainedFailure case final failure?) ...[
+          YhBanner(text: failure, kind: YhBannerKind.danger),
+          SizedBox(height: theme.spacing.m),
+        ],
+        if (courseTable.entries.isNotEmpty &&
+            _result!.snapshot!.warnings.isNotEmpty) ...[
+          if (compact) SizedBox(height: theme.spacing.xs),
+          const YhBanner(
+            text: '正在显示昨日缓存；刷新失败不会删除当前周视图，可在原位置重试。',
+            kind: YhBannerKind.warn,
+          ),
+          SizedBox(height: theme.spacing.m),
+        ],
         if (courseTable.entries.isEmpty)
-          const YhCard(
-            child: YhEmptyState(
-              icon: YhIcons.calendar,
+          Padding(
+            padding: EdgeInsets.only(
+              top: theme.spacing.s - theme.spacing.xs / 2,
+            ),
+            child: _ScheduleStatePanel(
+              symbol: '○',
+              statusLabel: '当前范围',
               title: '本学期暂无课程',
-              message: '如果刚完成选课，可稍后刷新课表查看最新安排。',
+              message: '当前学期没有可展示的课程；刚完成选课时可稍后刷新，或查看校历确认学期。',
+              contextLabel:
+                  '0 门课程 · ${_formatCheckedTime(_result!.checkedAt)} 更新',
+              primaryActionLabel: '重新读取',
+              onPrimaryAction: _loadCourseTable,
+              onCalendar: _openAcademicCalendar,
             ),
           )
         else
@@ -397,21 +466,212 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     );
   }
 
-  YhBannerKind _bannerKindOf(AcademicEamsQueryStatus status) {
-    return switch (status) {
-      AcademicEamsQueryStatus.success => YhBannerKind.success,
-      AcademicEamsQueryStatus.partialSuccess ||
-      AcademicEamsQueryStatus.missingOaAccount ||
-      AcademicEamsQueryStatus.missingOaPassword ||
-      AcademicEamsQueryStatus.campusNetworkUnavailable => YhBannerKind.warn,
-      AcademicEamsQueryStatus.oaLoginRequired ||
-      AcademicEamsQueryStatus.systemUnavailable ||
-      AcademicEamsQueryStatus.readOnlyEntryUnavailable ||
-      AcademicEamsQueryStatus.queryFormUnavailable ||
-      AcademicEamsQueryStatus.parseFailed ||
-      AcademicEamsQueryStatus.networkError ||
-      AcademicEamsQueryStatus.unexpectedError => YhBannerKind.danger,
-    };
+  String _formatCheckedTime(DateTime checkedAt) {
+    return '${checkedAt.hour.toString().padLeft(2, '0')}:'
+        '${checkedAt.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _ScheduleStatePanel extends StatelessWidget {
+  const _ScheduleStatePanel({
+    this.loading = false,
+    this.symbol,
+    required this.statusLabel,
+    required this.title,
+    required this.message,
+    required this.contextLabel,
+    this.primaryActionLabel,
+    this.onPrimaryAction,
+    this.onCalendar,
+  });
+
+  final bool loading;
+  final String? symbol;
+  final String statusLabel;
+  final String title;
+  final String message;
+  final String contextLabel;
+  final String? primaryActionLabel;
+  final VoidCallback? onPrimaryAction;
+  final VoidCallback? onCalendar;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    final effectiveAccent = theme.color.serviceSchedule;
+    final viewportWidth = MediaQuery.sizeOf(context).width;
+    final compact = viewportWidth < theme.breakpoint.medium;
+    final compactActionMinWidth =
+        (viewportWidth -
+            theme.spacing.m * 2 -
+            theme.spacing.l * 2 -
+            theme.spacing.s -
+            theme.spacing.xs) /
+        2;
+    return YhCard(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: compact
+              ? theme.control.regular * 6 + theme.spacing.xl
+              : theme.control.regular * 8,
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (loading)
+                Semantics(
+                  label: title,
+                  value: '加载中',
+                  child: SizedBox.square(
+                    dimension: theme.control.minimumTarget,
+                    child: CustomPaint(
+                      painter: _ScheduleSpinnerPainter(
+                        trackColor: theme.color.border,
+                        activeColor: effectiveAccent,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  width: theme.layout.bottomNavigationHeight,
+                  height: theme.layout.bottomNavigationHeight,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: effectiveAccent.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(theme.radius.l),
+                  ),
+                  child: Text(
+                    symbol ?? '→',
+                    style: theme.typography.display.copyWith(
+                      color: effectiveAccent,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              SizedBox(height: theme.spacing.l),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.color.brandTint,
+                  borderRadius: BorderRadius.circular(theme.radius.full),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: theme.spacing.s,
+                    vertical: theme.spacing.xs,
+                  ),
+                  child: Text(
+                    statusLabel,
+                    style: theme.typography.caption.copyWith(
+                      color: effectiveAccent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: theme.spacing.s),
+              Semantics(
+                header: true,
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: theme.typography.h2,
+                ),
+              ),
+              SizedBox(height: theme.spacing.s),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: theme.control.regular * 11,
+                ),
+                child: Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: theme.typography.body.copyWith(
+                    color: theme.color.muted,
+                  ),
+                ),
+              ),
+              SizedBox(height: theme.spacing.m),
+              Text(
+                contextLabel,
+                style: theme.typography.small.copyWith(
+                  color: theme.color.muted,
+                ),
+              ),
+              if (!loading &&
+                  primaryActionLabel != null &&
+                  onPrimaryAction != null &&
+                  onCalendar != null) ...[
+                SizedBox(height: theme.spacing.l),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: theme.spacing.s,
+                  runSpacing: theme.spacing.s,
+                  children: [
+                    YhButton(
+                      key: const Key('schedule-state-calendar'),
+                      label: '查看校历',
+                      minWidth: compact ? compactActionMinWidth : null,
+                      variant: YhButtonVariant.secondary,
+                      onTap: onCalendar,
+                    ),
+                    YhButton(
+                      key: const Key('schedule-state-primary'),
+                      label: primaryActionLabel!,
+                      minWidth: compact ? compactActionMinWidth : null,
+                      onTap: onPrimaryAction,
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScheduleSpinnerPainter extends CustomPainter {
+  const _ScheduleSpinnerPainter({
+    required this.trackColor,
+    required this.activeColor,
+  });
+
+  final Color trackColor;
+  final Color activeColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final strokeWidth = size.shortestSide / 12;
+    final bounds = Offset.zero & size;
+    final arcBounds = bounds.deflate(strokeWidth / 2);
+    canvas.drawCircle(
+      bounds.center,
+      (size.shortestSide - strokeWidth) / 2,
+      Paint()
+        ..color = trackColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth,
+    );
+    canvas.drawArc(
+      arcBounds,
+      -math.pi / 2,
+      math.pi * 0.72,
+      false,
+      Paint()
+        ..color = activeColor
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = strokeWidth,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ScheduleSpinnerPainter oldDelegate) {
+    return trackColor != oldDelegate.trackColor ||
+        activeColor != oldDelegate.activeColor;
   }
 }
 

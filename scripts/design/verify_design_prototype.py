@@ -719,12 +719,15 @@ def verify(output_dir: Path, surface_prefix: str | None = None) -> None:
                 # 交互验证会改变 Tab、筛选和详情选中态；参考稿必须回到默认内容态。
                 _open_screen(page, prototype_url, screen)
                 surface = SCREEN_SURFACES[screen]
-                _capture_reference(
-                    page,
-                    output_dir / f"{surface}--content--light--{width}x{height}.png",
-                    width,
-                    height,
-                )
+                # 课表已经迁移到全状态冻结参考；旧交互原型只继续承担行为核验，
+                # 不得抢先写入同名 content 基线并遮蔽状态参考。
+                if surface != "schedule.calendar":
+                    _capture_reference(
+                        page,
+                        output_dir / f"{surface}--content--light--{width}x{height}.png",
+                        width,
+                        height,
+                    )
                 if screen == "home":
                     _capture_home_state_references(page, output_dir, "light", width, height)
                     _capture_campus_card_home_state_references(page, output_dir, "light", width, height)
@@ -770,12 +773,13 @@ def verify(output_dir: Path, surface_prefix: str | None = None) -> None:
                 _open_screen(page, prototype_url, screen)
                 _assert(page.locator("html").get_attribute("data-theme") == "dark", f"{width}px {screen} 暗色参考稿未生效")
                 surface = SCREEN_SURFACES[screen]
-                _capture_reference(
-                    page,
-                    output_dir / f"{surface}--content--dark--{width}x{height}.png",
-                    width,
-                    height,
-                )
+                if surface != "schedule.calendar":
+                    _capture_reference(
+                        page,
+                        output_dir / f"{surface}--content--dark--{width}x{height}.png",
+                        width,
+                        height,
+                    )
                 if screen == "home":
                     _capture_home_state_references(page, output_dir, "dark", width, height)
                     _capture_campus_card_home_state_references(page, output_dir, "dark", width, height)

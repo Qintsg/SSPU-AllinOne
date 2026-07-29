@@ -6,6 +6,9 @@
  * @Date : 2026-05-02
  */
 
+import 'dart:async';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/models/academic_calendar.dart';
@@ -14,6 +17,7 @@ import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/models/course_period.dart';
 import 'package:sspu_allinone/pages/course_schedule_page.dart';
 import 'package:sspu_allinone/services/academic_calendar_service.dart';
+import 'package:sspu_allinone/services/academic_credentials_service.dart';
 import 'package:sspu_allinone/services/academic_eams_service.dart';
 import 'package:sspu_allinone/utils/course_week_parser.dart';
 
@@ -100,6 +104,141 @@ void main() {
     await disposeCourseSchedulePage(tester);
   });
 
+  testWidgets('课程表原地刷新单飞且失败保留星期选择与当前课程', (tester) async {
+    final completion = Completer<AcademicEamsQueryResult>();
+    final service = _FakeAcademicEamsClient(
+      result: _missingPassword,
+      pendingCourseTable: completion,
+    );
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      initialResult: _successResult,
+      nowOverride: DateTime(2026, 5, 4),
+    );
+    await tester.pump();
+
+    final refresh = find.byKey(const Key('course-schedule-refresh'));
+    await tester.tap(refresh);
+    await tester.pump();
+    await tester.tap(refresh);
+    await tester.pump();
+
+    expect(service.courseTableFetchCount, 1);
+    expect(find.text('高等数学'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is YhTabs<int> && widget.value == 1,
+      ),
+      findsOneWidget,
+    );
+
+    completion.complete(_missingPassword);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('高等数学'), findsOneWidget);
+    expect(find.textContaining('请先保存 OA 账号密码'), findsOneWidget);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表操作锁期间保留内容且重复行动不产生第二个请求', (tester) async {
+    final completion = Completer<AcademicEamsQueryResult>();
+    final service = _FakeAcademicEamsClient(
+      result: _successResult,
+      pendingCourseTable: completion,
+    );
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      initialResult: _successResult,
+      nowOverride: DateTime(2026, 5, 4),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('course-schedule-refresh')));
+    await tester.pump();
+
+    expect(find.text('正在刷新…'), findsOneWidget);
+    expect(find.text('高等数学'), findsOneWidget);
+    expect(find.textContaining('星期选择和校历入口保持可用'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is YhTabs<int> && widget.value == 1,
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('course-schedule-refresh')));
+    await tester.pump();
+    expect(service.courseTableFetchCount, 1);
+
+    completion.complete(_successResult);
+    await tester.pump();
+    await tester.pump();
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表凭据换代立即解除刷新且旧结果不得回写', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final completion = Completer<AcademicEamsQueryResult>();
+    final service = _FakeAcademicEamsClient(
+      result: _successResult,
+      pendingCourseTable: completion,
+    );
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      initialResult: _successResult,
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('course-schedule-refresh')));
+    await tester.pump();
+    expect(find.text('高等数学'), findsOneWidget);
+
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260002',
+      oaPassword: 'new-password',
+      sportsQueryPassword: 'new-sports-password',
+    );
+    await tester.pump();
+    expect(find.text('高等数学'), findsNothing);
+
+    completion.complete(_successResult);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('高等数学'), findsNothing);
+    expect(find.text('准备读取课程表'), findsOneWidget);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表凭据换代后迟到的旧缓存不得重新进入页面', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final cachedCompletion = Completer<AcademicEamsQueryResult?>();
+    final service = _FakeAcademicEamsClient(
+      result: _successResult,
+      pendingCachedCourseTable: cachedCompletion,
+    );
+    await pumpCourseSchedulePage(tester, academicEamsService: service);
+    await tester.pump();
+
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260003',
+      oaPassword: 'replacement-password',
+    );
+    await tester.pump();
+
+    cachedCompletion.complete(_successResult);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('高等数学'), findsNothing);
+    expect(find.text('准备读取课程表'), findsOneWidget);
+    await disposeCourseSchedulePage(tester);
+  });
+
   testWidgets('课程表页面展示缺少 OA 密码提示', (tester) async {
     await pumpCourseSchedulePage(
       tester,
@@ -180,6 +319,22 @@ void main() {
     await disposeCourseSchedulePage(tester);
   });
 
+  testWidgets('课程表紧凑端仍保留可触达的校历与文字刷新行动', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _successResult),
+      initialResult: _successResult,
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('open-academic-calendar')), findsOneWidget);
+    expect(find.text('刷新课表'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await disposeCourseSchedulePage(tester);
+  });
+
   testWidgets('课程表页头推断缺失学期并在窄屏自适应', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
@@ -235,23 +390,73 @@ void main() {
     await tester.pump();
 
     expect(find.text('本学期暂无课程'), findsOneWidget);
-    expect(find.textContaining('如果刚完成选课'), findsOneWidget);
+    expect(find.textContaining('刚完成选课时'), findsOneWidget);
     await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表空态可在原位置重新读取并恢复课程', (tester) async {
+    final service = _FakeAcademicEamsClient(result: _successResult);
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      initialResult: _successResultWithEmptyCourseTable,
+      nowOverride: DateTime(2026, 5, 4),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('schedule-state-primary')));
+    await tester.pumpAndSettle();
+
+    expect(service.courseTableFetchCount, 1);
+    expect(find.text('高等数学'), findsOneWidget);
+    expect(find.text('本学期暂无课程'), findsNothing);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表页面退出后忽略尚未完成的读取结果', (tester) async {
+    final completion = Completer<AcademicEamsQueryResult>();
+    final service = _FakeAcademicEamsClient(
+      result: _successResult,
+      pendingCourseTable: completion,
+    );
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      initialResult: _successResult,
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('course-schedule-refresh')));
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
+
+    completion.complete(_successResult);
+    await tester.pump();
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
   });
 }
 
 class _FakeAcademicEamsClient implements AcademicEamsClient {
-  _FakeAcademicEamsClient({required this.result, this.cachedResult});
+  _FakeAcademicEamsClient({
+    required this.result,
+    this.cachedResult,
+    this.pendingCourseTable,
+    this.pendingCachedCourseTable,
+  });
 
   final AcademicEamsQueryResult result;
   final AcademicEamsQueryResult? cachedResult;
+  final Completer<AcademicEamsQueryResult>? pendingCourseTable;
+  final Completer<AcademicEamsQueryResult?>? pendingCachedCourseTable;
   int courseTableFetchCount = 0;
   int cachedCourseTableReadCount = 0;
 
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
     cachedCourseTableReadCount++;
-    return cachedResult;
+    return pendingCachedCourseTable?.future ?? cachedResult;
   }
 
   @override
@@ -281,7 +486,7 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
     bool requireCampusNetwork = true,
   }) async {
     courseTableFetchCount++;
-    return result;
+    return pendingCourseTable?.future ?? result;
   }
 
   @override
