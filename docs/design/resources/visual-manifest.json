@@ -48,9 +48,9 @@
     {"id": "academic.grade-detail", "group": "academic", "states": ["loading", "content", "empty", "error"]},
     {"id": "academic.exam-detail", "group": "academic", "states": ["loading", "content", "empty", "error"]},
     {"id": "academic.grade-process", "group": "academic", "states": ["loading", "content", "empty", "error"]},
-    {"id": "academic.student-report", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"]},
+    {"id": "academic.student-report", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
     {"id": "academic.student-report-rules", "group": "academic", "states": ["content", "empty"]},
-    {"id": "academic.sports-attendance", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"]},
+    {"id": "academic.sports-attendance", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
     {"id": "academic.calendar", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content", "stale"]}},
 
     {"id": "schedule.calendar", "group": "schedule", "states": ["initial", "loading", "content", "empty", "stale", "error"]},

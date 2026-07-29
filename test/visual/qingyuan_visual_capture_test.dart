@@ -579,17 +579,24 @@ final _surfaces = <_VisualSurface>[
   ),
   _VisualSurface(
     'academic.student-report',
-    () => const StudentReportDetailPage(result: null, isLoading: true),
+    () => StudentReportDetailPage(
+      result: qingyuanHomeStudentReportResult,
+      isLoading: true,
+    ),
     state: 'loading',
   ),
   _VisualSurface(
     'academic.student-report',
-    () => StudentReportDetailPage(result: qingyuanHomeStudentReportResult),
+    () => StudentReportDetailPage(
+      result: qingyuanHomeStudentReportResult,
+      onRefresh: () async => qingyuanHomeStudentReportResult,
+    ),
   ),
   _VisualSurface(
     'academic.student-report',
     () => StudentReportDetailPage(
       result: qingyuanAcademicStudentReportEmptyResult,
+      onRefresh: () async => qingyuanAcademicStudentReportEmptyResult,
     ),
     state: 'empty',
   ),
@@ -597,6 +604,7 @@ final _surfaces = <_VisualSurface>[
     'academic.student-report',
     () => StudentReportDetailPage(
       result: qingyuanAcademicStudentReportStaleResult,
+      onRefresh: () async => qingyuanAcademicStudentReportStaleResult,
     ),
     state: 'stale',
   ),
@@ -604,8 +612,18 @@ final _surfaces = <_VisualSurface>[
     'academic.student-report',
     () => StudentReportDetailPage(
       result: qingyuanAcademicStudentReportErrorResult,
+      onRefresh: () async => qingyuanAcademicStudentReportErrorResult,
     ),
     state: 'error',
+  ),
+  _VisualSurface(
+    'academic.student-report',
+    () => StudentReportDetailPage(
+      result: qingyuanHomeStudentReportResult,
+      onRefresh: () => Completer<StudentReportQueryResult>().future,
+    ),
+    state: 'operation-locked',
+    prepare: _startStudentReportDetailRefresh,
   ),
   _VisualSurface(
     'academic.student-report-rules',
@@ -622,27 +640,51 @@ final _surfaces = <_VisualSurface>[
   ),
   _VisualSurface(
     'academic.sports-attendance',
-    () => const SportsAttendanceDetailPage(result: null, isLoading: true),
+    () => SportsAttendanceDetailPage(
+      result: qingyuanHomeSportsResult,
+      isLoading: true,
+    ),
     state: 'loading',
   ),
   _VisualSurface(
     'academic.sports-attendance',
-    () => SportsAttendanceDetailPage(result: qingyuanHomeSportsResult),
+    () => SportsAttendanceDetailPage(
+      result: qingyuanHomeSportsResult,
+      onRefresh: () async => qingyuanHomeSportsResult,
+    ),
   ),
   _VisualSurface(
     'academic.sports-attendance',
-    () => SportsAttendanceDetailPage(result: qingyuanAcademicSportsEmptyResult),
+    () => SportsAttendanceDetailPage(
+      result: qingyuanAcademicSportsEmptyResult,
+      onRefresh: () async => qingyuanAcademicSportsEmptyResult,
+    ),
     state: 'empty',
   ),
   _VisualSurface(
     'academic.sports-attendance',
-    () => SportsAttendanceDetailPage(result: qingyuanAcademicSportsStaleResult),
+    () => SportsAttendanceDetailPage(
+      result: qingyuanAcademicSportsStaleResult,
+      onRefresh: () async => qingyuanAcademicSportsStaleResult,
+    ),
     state: 'stale',
   ),
   _VisualSurface(
     'academic.sports-attendance',
-    () => SportsAttendanceDetailPage(result: qingyuanAcademicSportsErrorResult),
+    () => SportsAttendanceDetailPage(
+      result: qingyuanAcademicSportsErrorResult,
+      onRefresh: () async => qingyuanAcademicSportsErrorResult,
+    ),
     state: 'error',
+  ),
+  _VisualSurface(
+    'academic.sports-attendance',
+    () => SportsAttendanceDetailPage(
+      result: qingyuanHomeSportsResult,
+      onRefresh: () => Completer<SportsAttendanceQueryResult>().future,
+    ),
+    state: 'operation-locked',
+    prepare: _startSportsAttendanceDetailRefresh,
   ),
   _VisualSurface(
     'academic.calendar',
@@ -2069,6 +2111,16 @@ Widget _academicExamDetailLoading() {
 
 Future<void> _prepareAcademicExamLoading(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('academic-eams-exam-detail-search')));
+  await tester.pump();
+}
+
+Future<void> _startStudentReportDetailRefresh(WidgetTester tester) async {
+  await tester.tap(find.text('刷新成绩单'));
+  await tester.pump();
+}
+
+Future<void> _startSportsAttendanceDetailRefresh(WidgetTester tester) async {
+  await tester.tap(find.text('刷新考勤'));
   await tester.pump();
 }
 

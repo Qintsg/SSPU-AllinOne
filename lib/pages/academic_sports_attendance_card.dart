@@ -15,6 +15,7 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
   final bool autoRefreshEnabled;
   final RefreshActionFeedback? refreshFeedback;
   final VoidCallback onRefresh;
+  final AcademicDetailRefreshTask<SportsAttendanceQueryResult>? onDetailRefresh;
 
   const AcademicSportsAttendanceCard({
     super.key,
@@ -23,6 +24,7 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
     required this.autoRefreshEnabled,
     required this.refreshFeedback,
     required this.onRefresh,
+    this.onDetailRefresh,
   });
 
   @override
@@ -39,6 +41,7 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
             result: result,
             summary: summary,
             canOpenDetail: result?.isSuccess == true && summary != null,
+            onDetailRefresh: onDetailRefresh,
           ),
           SizedBox(height: theme.spacing.m),
           _SportsAttendanceCardContent(
@@ -93,11 +96,13 @@ class _SportsAttendanceCardHeader extends StatelessWidget {
     required this.result,
     required this.summary,
     required this.canOpenDetail,
+    required this.onDetailRefresh,
   });
 
   final SportsAttendanceQueryResult? result;
   final SportsAttendanceSummary? summary;
   final bool canOpenDetail;
+  final AcademicDetailRefreshTask<SportsAttendanceQueryResult>? onDetailRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +137,10 @@ class _SportsAttendanceCardHeader extends StatelessWidget {
           onTap: canOpenDetail && summary != null
               ? () => Navigator.of(context).push(
                   YhPageRoute(
-                    builder: (_) => SportsAttendanceDetailPage(result: result),
+                    builder: (_) => SportsAttendanceDetailPage(
+                      result: result,
+                      onRefresh: onDetailRefresh,
+                    ),
                   ),
                 )
               : null,

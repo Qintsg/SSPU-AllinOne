@@ -25,6 +25,9 @@ class AcademicStudentReportCard extends StatelessWidget {
   /// 手动刷新回调。
   final VoidCallback onRefresh;
 
+  /// 详情页原地刷新 adapter。
+  final AcademicDetailRefreshTask<StudentReportQueryResult>? onDetailRefresh;
+
   const AcademicStudentReportCard({
     super.key,
     required this.result,
@@ -32,6 +35,7 @@ class AcademicStudentReportCard extends StatelessWidget {
     required this.autoRefreshEnabled,
     required this.refreshFeedback,
     required this.onRefresh,
+    this.onDetailRefresh,
   });
 
   @override
@@ -52,6 +56,7 @@ class AcademicStudentReportCard extends StatelessWidget {
             isLoading: isLoading,
             refreshFeedback: refreshFeedback,
             onRefresh: onRefresh,
+            onDetailRefresh: onDetailRefresh,
           ),
           SizedBox(height: theme.spacing.m),
           _SecondClassroomCardContent(
@@ -165,6 +170,7 @@ class _SecondClassroomCardHeader extends StatelessWidget {
     required this.isLoading,
     required this.refreshFeedback,
     required this.onRefresh,
+    required this.onDetailRefresh,
   });
 
   final StudentReportQueryResult? result;
@@ -174,6 +180,7 @@ class _SecondClassroomCardHeader extends StatelessWidget {
   final bool isLoading;
   final RefreshActionFeedback? refreshFeedback;
   final VoidCallback onRefresh;
+  final AcademicDetailRefreshTask<StudentReportQueryResult>? onDetailRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -211,7 +218,10 @@ class _SecondClassroomCardHeader extends StatelessWidget {
             onTap: canOpenDetail && summary != null
                 ? () => Navigator.of(context).push(
                     YhPageRoute(
-                      builder: (_) => StudentReportDetailPage(result: result),
+                      builder: (_) => StudentReportDetailPage(
+                        result: result,
+                        onRefresh: onDetailRefresh,
+                      ),
                     ),
                   )
                 : null,

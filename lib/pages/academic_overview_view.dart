@@ -110,6 +110,8 @@ extension _AcademicOverviewStateView on _AcademicPageState {
               _sportsAttendanceRefreshController.autoRefreshEnabled,
           refreshFeedback: _sportsAttendanceRefreshController.feedback,
           onRefresh: () => unawaited(_loadSportsAttendance()),
+          onDetailRefresh: () async =>
+              (await _sportsAttendanceRefreshController.runRefresh())?.result,
         ),
         secondClassroom: AcademicStudentReportCard(
           result: _studentReportResult,
@@ -118,6 +120,8 @@ extension _AcademicOverviewStateView on _AcademicPageState {
               _studentReportRefreshController.autoRefreshEnabled,
           refreshFeedback: _studentReportRefreshController.feedback,
           onRefresh: () => unawaited(_loadStudentReport()),
+          onDetailRefresh: () async =>
+              (await _studentReportRefreshController.runRefresh())?.result,
         ),
       ),
     );

@@ -21,6 +21,9 @@ import 'package:sspu_allinone/services/student_report_service.dart';
 /// 视觉矩阵的固定本地时钟。
 final DateTime qingyuanVisualNow = DateTime(2026, 7, 18, 9, 30);
 
+/// 教务证据页的冻结来源时间，与对应 HTML 参考稿保持一致。
+final DateTime qingyuanAcademicEvidenceTime = DateTime(2026, 7, 18, 8, 42);
+
 /// 完全离线的学期解析模块，视觉采集不得访问真实教务处校历。
 AcademicTermService buildQingyuanVisualAcademicTermService() {
   return AcademicTermService(
@@ -886,7 +889,7 @@ final SportsAttendanceQueryResult qingyuanAcademicSportsEmptyResult =
       status: SportsAttendanceQueryStatus.success,
       message: '当前范围暂无体育考勤',
       detail: '已读取固定脱敏体育考勤数据。',
-      checkedAt: qingyuanVisualNow,
+      checkedAt: qingyuanAcademicEvidenceTime,
       entranceUri: Uri.parse('https://sports.example.invalid/login'),
       summary: SportsAttendanceSummary(
         morningExerciseCount: 0,
@@ -894,7 +897,7 @@ final SportsAttendanceQueryResult qingyuanAcademicSportsEmptyResult =
         countAdjustmentCount: 0,
         sportsCorridorCount: 0,
         records: const [],
-        fetchedAt: qingyuanVisualNow,
+        fetchedAt: qingyuanAcademicEvidenceTime,
         sourceUri: Uri.parse('https://sports.example.invalid/attendance'),
       ),
     );
@@ -914,7 +917,7 @@ final SportsAttendanceQueryResult qingyuanAcademicSportsErrorResult =
       status: SportsAttendanceQueryStatus.networkError,
       message: '暂时无法读取体育考勤',
       detail: '请检查校园网络或 VPN 后重试。',
-      checkedAt: qingyuanVisualNow,
+      checkedAt: qingyuanAcademicEvidenceTime,
       entranceUri: Uri.parse('https://sports.example.invalid/login'),
     );
 
@@ -1016,7 +1019,7 @@ final StudentReportQueryResult qingyuanAcademicStudentReportEmptyResult =
       status: StudentReportQueryStatus.success,
       message: '当前范围暂无第二课堂记录',
       detail: '已读取固定脱敏第二课堂数据。',
-      checkedAt: qingyuanVisualNow,
+      checkedAt: qingyuanAcademicEvidenceTime,
       entranceUri: Uri.parse('https://oa.example.invalid/student-report'),
       summary: SecondClassroomCreditSummary(
         records: const [],
@@ -1024,7 +1027,7 @@ final StudentReportQueryResult qingyuanAcademicStudentReportEmptyResult =
           totalEarnedCredit: 0,
           totalRequiredCredit: 0,
         ),
-        fetchedAt: qingyuanVisualNow,
+        fetchedAt: qingyuanAcademicEvidenceTime,
         sourceUri: Uri.parse('https://student.example.invalid/report'),
       ),
     );
@@ -1044,7 +1047,7 @@ final StudentReportQueryResult qingyuanAcademicStudentReportErrorResult =
       status: StudentReportQueryStatus.networkError,
       message: '暂时无法读取第二课堂学分',
       detail: '请检查 OA 登录与校园网络后重试。',
-      checkedAt: qingyuanVisualNow,
+      checkedAt: qingyuanAcademicEvidenceTime,
       entranceUri: Uri.parse('https://oa.example.invalid/student-report'),
     );
 

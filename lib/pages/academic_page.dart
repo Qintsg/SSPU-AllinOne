@@ -7,6 +7,7 @@
  */
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import '../controllers/card_auto_refresh_controller.dart';
 import '../design/qingyuan/qingyuan_ui.dart';
@@ -28,6 +29,7 @@ import '../widgets/refresh_feedback_action.dart';
 import 'course_schedule_page.dart';
 
 part 'academic_eams_summary_card.dart';
+part 'academic_detail_refresh_controller.dart';
 part 'academic_eams_exam_card.dart';
 part 'academic_eams_exam_detail_page.dart';
 part 'academic_eams_grade_card.dart';

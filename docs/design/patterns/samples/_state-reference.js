@@ -193,6 +193,71 @@
     return `<section class="reference-webview-stage"><header class="reference-webview-toolbar"><button class="reference-webview-back" type="button" aria-label="返回">←</button><strong>${loading ? '正在打开校园门户' : '校园门户'}</strong><button type="button" aria-label="刷新"${busy ? ' disabled' : ''}>↻</button><button type="button" aria-label="在浏览器中打开"${busy ? ' disabled' : ''}>↗</button></header>${banner}${progress}${body}${confirmation}</section>`;
   }
 
+  function academicDetailStateMarkup(entry, state, accent) {
+    const loading = state === 'loading';
+    const empty = state === 'empty';
+    const error = state === 'error';
+    const busy = state === 'operation-locked';
+    const stale = state === 'stale';
+    const action = entry.id === 'academic.student-report' ? '刷新成绩单' : '刷新考勤';
+    const source = entry.id === 'academic.student-report' ? '第二课堂 · 本地快照' : '体育系统 · 本地快照';
+    const appBarSource = entry.id === 'academic.student-report' ? '第二课堂 · 08:42' : '体育系统 · 08:42';
+    const banner = busy
+      ? `<div class="reference-academic-banner" role="status">正在${action}；当前内容和返回路径保持可用，完成前已锁定重复刷新。</div>`
+      : stale
+      ? '<div class="reference-academic-banner is-warn" role="status">正在显示昨日缓存；刷新失败不会删除以下完成度与证据记录。</div>'
+      : '';
+    let body;
+    if (loading || empty || error) {
+      const symbol = loading ? '<span class="reference-spinner" aria-hidden="true"></span>' : `<span class="reference-academic-state-symbol" aria-hidden="true">${error ? '!' : '○'}</span>`;
+      const title = loading
+        ? `正在读取${entry.title}`
+        : error
+        ? `${entry.title}暂不可用`
+        : `当前没有${entry.title}记录`;
+      const message = loading
+        ? `正在从${source}恢复数据；页面来源和返回路径保持可用。`
+        : error
+        ? `无法完成本次读取；检查账户或网络后可在本页重试，已有有效缓存不会被清空。`
+        : `当前范围没有可展示的记录；可返回教务中心确认学期与账户后再次刷新。`;
+      body = `<section class="reference-academic-state-panel">${symbol}<h2>${title}</h2><p>${message}</p>${loading ? '' : '<button type="button">返回教务中心</button>'}</section>`;
+    } else {
+      body = entry.id === 'academic.student-report'
+        ? studentReportLedgerMarkup()
+        : sportsAttendanceLedgerMarkup();
+    }
+    return `<section class="reference-academic-task" style="--academic-accent:${accent}"><header class="reference-academic-appbar"><button type="button" aria-label="返回">←</button><span><small>${entry.kicker}</small><strong>${appBarSource}</strong></span><button type="button" aria-label="更多操作">•••</button></header><main class="reference-academic-scroll"><div class="reference-academic-content"><section class="reference-academic-heading"><div><small>${entry.kicker}</small><h1>${entry.title}</h1><p>${entry.summary}</p></div><button type="button"${loading || busy ? ' disabled' : ''}>${busy ? '正在刷新…' : action}</button></section><div class="reference-academic-source"><i aria-hidden="true"></i><span>学　${source}</span><time>2026-07-18 · 08:42</time></div>${banner}${body}</div></main></section>`;
+  }
+
+  function studentReportLedgerMarkup() {
+    const categories = [
+      ['社会实践', '2.00 / 2.00', 'is-success'],
+      ['创新创业活动', '1.50 / 1.00', 'is-success'],
+      ['报告与讲座', '0.50 / 1.00', 'is-progress'],
+      ['校园文化活动', '—', 'is-muted'],
+    ];
+    const records = [
+      ['社区数字助老志愿服务', '社会实践 · 志愿服务', '累计 20 小时', '+2.0', '已认定'],
+      ['校园应用创新训练', '创新创业 · 创新训练项目', '校级 · 已结项', '+1.5', '通过'],
+    ];
+    return `<div class="reference-academic-ledger"><section class="reference-academic-summary"><div class="reference-academic-metrics"><span><strong>8.5</strong><small>总已获分数</small></span><span><strong>10</strong><small>总必修积分</small></span><span><strong>进行中</strong><small>总体通过情况</small></span><span><strong>2 项</strong><small>证据记录</small></span></div><div class="reference-academic-categories">${categories.map(([label, value, kind]) => `<span class="${kind}"><small>${label}</small><strong>${value}</strong></span>`).join('')}</div></section><section class="reference-academic-records"><header><div><small>积分证据</small><h2>已获积分记录</h2></div><button type="button">查看积分规则</button></header><div>${records.map(([title, meta, detail, value, status]) => `<article><span class="reference-academic-record-mark" aria-hidden="true"></span><div><strong>${title}</strong><small>${meta}</small><p>${detail}</p></div><span><strong>${value}</strong><small>${status}</small></span></article>`).join('')}</div></section></div>`;
+  }
+
+  function sportsAttendanceLedgerMarkup() {
+    const metrics = [
+      ['12', '总次数'],
+      ['6', '晨跑次数'],
+      ['6', '课外活动'],
+      ['0', '体育长廊'],
+      ['0', '次数调整'],
+    ];
+    const records = [
+      ['07·15', '06:45', '晨跑', '学校操场', '有效', '1 次'],
+      ['07·17', '18:30', '羽毛球活动', '体育馆 2 号场', '已签到', '1 次'],
+    ];
+    return `<div class="reference-academic-ledger"><section class="reference-academic-summary is-sports"><div class="reference-academic-metrics">${metrics.map(([value, label]) => `<span><strong>${value}</strong><small>${label}</small></span>`).join('')}</div></section><section class="reference-academic-records"><header><div><small>本学期运动证据</small><h2>考勤明细</h2></div><span>2 条记录</span></header><div>${records.map(([date, time, project, place, status, count]) => `<article><time><strong>${date}</strong><small>${time}</small></time><div><strong>${project}</strong><small>${place}</small><p>${status}</p></div><span><strong>${count}</strong><small>原始记录已保留</small></span></article>`).join('')}</div></section></div>`;
+  }
+
   function lockSurfaceMarkup(state, includeExternalDialog = false) {
     const loading = state === 'loading';
     const error = state === 'error';
@@ -264,6 +329,8 @@
     if (entry.id === 'security.lock') return lockSurfaceMarkup(state);
     if (entry.id === 'external.system-auth') return lockSurfaceMarkup(state, true);
     if (entry.id === 'external.webview') return webViewSurfaceMarkup(entry, state);
+    if (entry.id === 'academic.student-report') return academicDetailStateMarkup(entry, state, 'var(--service-secondclass)');
+    if (entry.id === 'academic.sports-attendance') return academicDetailStateMarkup(entry, state, 'var(--service-sports)');
     return null;
   }
 

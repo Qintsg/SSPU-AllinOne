@@ -12,7 +12,7 @@ import 'yh_page_scaffold.dart';
 
 enum YhTaskAccent { brand, structural }
 
-enum YhTaskPageWidth { constrained, fluid }
+enum YhTaskPageWidth { constrained, reading, fluid }
 
 class YhTaskPageAction {
   const YhTaskPageAction({
@@ -43,6 +43,7 @@ class YhTaskPage extends StatefulWidget {
     this.onBack,
     this.canPop = true,
     this.appBarEyebrow,
+    this.appBarTitle,
     this.moreActions = const [],
   });
 
@@ -60,6 +61,7 @@ class YhTaskPage extends StatefulWidget {
   final VoidCallback? onBack;
   final bool canPop;
   final String? appBarEyebrow;
+  final String? appBarTitle;
   final List<YhTaskPageAction> moreActions;
 
   @override
@@ -84,7 +86,7 @@ class _YhTaskPageState extends State<YhTaskPage> {
       child: YhPageScaffold(
         appBar: YhAppBar(
           eyebrow: widget.appBarEyebrow ?? widget.kicker,
-          title: widget.source,
+          title: widget.appBarTitle ?? widget.source,
           leading: YhIconButton(
             icon: YhIcons.back,
             semanticLabel: '返回',
@@ -114,6 +116,10 @@ class _YhTaskPageState extends State<YhTaskPage> {
                           theme.responsive.panelPaddingViewportPercent /
                           100)
                       .clamp(theme.spacing.l, theme.spacing.xl2);
+            final topPagePadding =
+                compact && widget.width == YhTaskPageWidth.reading
+                ? pagePadding + theme.spacing.xs
+                : pagePadding;
             final minimumBodyHeight = _minimumBodyHeight(
               theme,
               compact: compact,
@@ -121,14 +127,24 @@ class _YhTaskPageState extends State<YhTaskPage> {
               pagePadding: pagePadding,
             );
             return SingleChildScrollView(
-              padding: EdgeInsets.all(pagePadding),
+              padding: EdgeInsets.fromLTRB(
+                pagePadding,
+                topPagePadding,
+                pagePadding,
+                pagePadding,
+              ),
               child: Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxWidth: widget.width == YhTaskPageWidth.fluid
-                        ? double.infinity
-                        : theme.layout.pageContentWidth,
-                    minHeight: constraints.maxHeight - pagePadding * 2,
+                    maxWidth: switch (widget.width) {
+                      YhTaskPageWidth.constrained =>
+                        theme.layout.pageContentWidth,
+                      YhTaskPageWidth.reading =>
+                        theme.layout.pageContentWidth - theme.spacing.xl2 * 2,
+                      YhTaskPageWidth.fluid => double.infinity,
+                    },
+                    minHeight:
+                        constraints.maxHeight - topPagePadding - pagePadding,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -177,7 +193,10 @@ class _YhTaskPageState extends State<YhTaskPage> {
     required double bodyHeight,
     required double pagePadding,
   }) {
-    if (compact) return theme.control.regular * 9;
+    if (compact) {
+      return theme.control.regular *
+          (widget.width == YhTaskPageWidth.reading ? 7 : 9);
+    }
     final small = theme.typography.small;
     final display = theme.typography.display;
     final bodyStyle = theme.typography.body;

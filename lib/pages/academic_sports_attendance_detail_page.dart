@@ -9,7 +9,7 @@
 part of 'academic_page.dart';
 
 /// 体育部课外活动考勤明细二级页面。
-class SportsAttendanceDetailPage extends StatelessWidget {
+class SportsAttendanceDetailPage extends StatefulWidget {
   /// 最近一次体育考勤查询结果；加载首帧可为空。
   final SportsAttendanceQueryResult? result;
 
@@ -19,102 +19,195 @@ class SportsAttendanceDetailPage extends StatelessWidget {
   /// 是否正在读取体育考勤详情。
   final bool isLoading;
 
+  /// 详情页原地刷新 seam；为空时保留只读兼容行为。
+  final AcademicDetailRefreshTask<SportsAttendanceQueryResult>? onRefresh;
+
   const SportsAttendanceDetailPage({
     super.key,
     this.result,
     this.summary,
     this.isLoading = false,
+    this.onRefresh,
   }) : assert(result != null || summary != null || isLoading);
+
+  @override
+  State<SportsAttendanceDetailPage> createState() =>
+      _SportsAttendanceDetailPageState();
+}
+
+class _SportsAttendanceDetailPageState
+    extends State<SportsAttendanceDetailPage> {
+  late final AcademicDetailRefreshController<SportsAttendanceQueryResult>
+  _refreshController;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshController = AcademicDetailRefreshController(
+      initialResult: widget.result,
+      isSuccess: (result) => result.isSuccess,
+      hasUsableContent: (result) => result.summary != null,
+      failureMessage: (result) => '${result.message}：${result.detail}',
+    )..addListener(_handleRefreshChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant SportsAttendanceDetailPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.result, widget.result)) {
+      _refreshController.updateExternalResult(widget.result);
+    }
+  }
+
+  void _handleRefreshChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _refreshController
+      ..removeListener(_handleRefreshChanged)
+      ..dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    final summary = result?.summary ?? this.summary;
-    return YhPageScaffold(
-      appBar: YhAppBar(
-        title: '课外活动考勤记录',
-        leading: YhButton(
-          label: '返回',
-          leadingIcon: YhIcons.back,
-          variant: YhButtonVariant.text,
-          onTap: () => Navigator.of(context).pop(),
-        ),
+    final current = _refreshController.result;
+    final summary = current?.summary ?? widget.summary;
+    return YhTaskPage(
+      title: '体育考勤',
+      kicker: '本学期运动记录',
+      summary: '汇总与原始考勤证据按日期连续展示；移动端保留全部字段且无需横向拖动。',
+      source: '体育系统 · 本地快照',
+      sourceSymbol: '学',
+      appBarTitle: _academicTaskAppBarTitle(
+        '体育系统',
+        summary?.fetchedAt ?? current?.checkedAt,
       ),
-      body: _buildBody(context, theme, summary),
+      sourceTimestamp: _academicDetailTimestamp(
+        summary?.fetchedAt ?? current?.checkedAt,
+      ),
+      primaryActionLabel: _refreshController.isRefreshing ? '正在刷新…' : '刷新考勤',
+      onPrimaryAction:
+          widget.onRefresh == null ||
+              widget.isLoading ||
+              _refreshController.isRefreshing
+          ? null
+          : () => unawaited(_refreshController.refresh(widget.onRefresh)),
+      width: YhTaskPageWidth.reading,
+      moreActions: [
+        if (current != null && !current.isSuccess)
+          YhTaskPageAction(
+            label: '查看失败原因',
+            onTap: () => unawaited(
+              _showAcademicDetailFailure(
+                context,
+                title: '体育考勤读取未完成',
+                message: current.message,
+                detail: current.detail,
+              ),
+            ),
+          ),
+      ],
+      body: _buildBody(context, theme, current, summary),
     );
   }
 
   Widget _buildBody(
     BuildContext context,
     YhTheme theme,
+    SportsAttendanceQueryResult? current,
     SportsAttendanceSummary? summary,
   ) {
-    if (isLoading) {
-      return Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: theme.spacing.xl2 * 5),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const YhProgress(showPercent: false, semanticLabel: '正在读取体育考勤详情'),
-              SizedBox(height: theme.spacing.m),
-              Text('正在读取体育考勤详情...', style: theme.typography.body),
-            ],
-          ),
+    if (widget.isLoading) {
+      return const _AcademicDetailStateCard(
+        child: _AcademicDetailLoadingState(
+          title: '正在读取体育考勤',
+          source: '体育系统 · 本地快照',
         ),
       );
     }
 
-    final current = result;
     if ((current != null && !current.isSuccess) || summary == null) {
-      return YhEmptyState(
-        icon: YhIcons.warning,
-        title: current?.message ?? '尚未读取体育考勤详情',
-        message: current?.detail ?? '返回教务中心刷新体育考勤后再试。',
-        action: YhButton(
-          label: '返回教务中心刷新',
-          leadingIcon: YhIcons.back,
-          variant: YhButtonVariant.secondary,
-          onTap: () => Navigator.of(context).maybePop(),
+      return _AcademicDetailStateCard(
+        child: _AcademicDetailMessageState(
+          symbol: '!',
+          title: '体育考勤暂不可用',
+          message: '无法完成本次读取；检查账户或网络后可在本页重试，已有有效缓存不会被清空。',
+          accent: theme.color.serviceSports,
+          actionLabel: '返回教务中心',
+          onAction: () => Navigator.of(context).maybePop(),
         ),
       );
     }
 
     if (summary.totalCount == 0 && summary.records.isEmpty) {
-      return YhEmptyState(
-        icon: YhIcons.sports,
-        title: '暂无体育考勤记录',
-        message: '当前查询没有可展示的汇总或明细；返回教务中心刷新后可再次查看。',
-        action: YhButton(
-          label: '返回教务中心刷新',
-          leadingIcon: YhIcons.back,
-          variant: YhButtonVariant.secondary,
-          onTap: () => Navigator.of(context).maybePop(),
+      return _AcademicDetailStateCard(
+        child: _AcademicDetailMessageState(
+          symbol: '○',
+          title: '当前没有体育考勤记录',
+          message: '当前范围没有可展示的记录；可返回教务中心确认学期与账户后再次刷新。',
+          accent: theme.color.serviceSports,
+          actionLabel: '返回教务中心',
+          onAction: () => Navigator.of(context).maybePop(),
         ),
       );
     }
 
     final showCacheNotice = current?.message.contains('缓存') ?? false;
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(theme.spacing.m),
-      child: Align(
-        alignment: AlignmentDirectional.topCenter,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (showCacheNotice) ...[
-                YhBanner(text: current!.detail, kind: YhBannerKind.warn),
-                SizedBox(height: theme.spacing.m),
-              ],
-              _SportsAttendanceSummaryPanel(summary: summary),
-              SizedBox(height: theme.spacing.m),
-              _SportsAttendanceRecordsPanel(summary: summary),
-            ],
+    final stateGap = MediaQuery.sizeOf(context).width < theme.breakpoint.compact
+        ? theme.spacing.m
+        : theme.spacing.l;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_refreshController.isRefreshing) ...[
+          const YhBanner(text: '正在刷新考勤；当前内容和返回路径保持可用，完成前已锁定重复刷新。'),
+          SizedBox(height: stateGap),
+        ] else if (_refreshController.retainedFailure case final failure?) ...[
+          YhBanner(text: failure, kind: YhBannerKind.danger),
+          SizedBox(height: stateGap),
+        ] else if (showCacheNotice) ...[
+          const YhBanner(
+            text: '正在显示昨日缓存；刷新失败不会删除以下汇总与考勤证据记录。',
+            kind: YhBannerKind.warn,
           ),
+          SizedBox(height: stateGap),
+        ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final useColumns =
+                constraints.maxWidth >=
+                theme.breakpoint.medium + theme.control.regular * 4;
+            final summaryPanel = _SportsAttendanceSummaryPanel(
+              summary: summary,
+            );
+            final recordsPanel = _SportsAttendanceRecordsPanel(
+              summary: summary,
+            );
+            if (!useColumns) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  summaryPanel,
+                  SizedBox(height: theme.spacing.m),
+                  recordsPanel,
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 9, child: summaryPanel),
+                SizedBox(width: theme.spacing.m),
+                Expanded(flex: 13, child: recordsPanel),
+              ],
+            );
+          },
         ),
-      ),
+      ],
     );
   }
 }
@@ -127,39 +220,82 @@ class _SportsAttendanceSummaryPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    return YhCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('汇总表', style: theme.typography.h3),
-          SizedBox(height: theme.spacing.m),
-          _AdaptiveSportsAttendanceTable(
-            minWidth: theme.breakpoint.compact + theme.control.compact,
-            child: _SportsAttendanceTable(
-              headers: const ['总次数', '晨跑次数', '课外活动', '体育长廊', '次数调整', '明细条数'],
-              rows: [
-                [
-                  '${summary.totalCount} 次',
-                  '${summary.morningExerciseCount} 次',
-                  '${summary.extracurricularActivityCount} 次',
-                  '${summary.sportsCorridorCount} 次',
-                  '${summary.countAdjustmentCount} 次',
-                  '${summary.records.length} 条',
-                ],
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.compact;
+    final metrics = [
+      ('总次数', summary.totalCount),
+      ('晨跑次数', summary.morningExerciseCount),
+      ('课外活动', summary.extracurricularActivityCount),
+      ('体育长廊', summary.sportsCorridorCount),
+      ('次数调整', summary.countAdjustmentCount),
+    ];
+    return DecoratedBox(
+      decoration: _summaryPanelDecoration(context),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          compact ? theme.spacing.m : theme.spacing.l,
+          theme.spacing.l,
+          compact ? theme.spacing.m : theme.spacing.l,
+          compact ? theme.spacing.m : theme.spacing.l,
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < theme.breakpoint.compact;
+            return Wrap(
+              spacing: theme.spacing.l,
+              runSpacing: theme.spacing.m,
+              children: [
+                for (var index = 0; index < metrics.length; index++)
+                  SizedBox(
+                    width: compact
+                        ? (constraints.maxWidth - theme.spacing.l) / 2
+                        : null,
+                    child: _SportsAttendanceMetric(
+                      label: metrics[index].$1,
+                      value: '${metrics[index].$2}',
+                      emphasized: index == 0,
+                    ),
+                  ),
               ],
-              centerColumns: const {0, 1, 2, 3, 4, 5},
-              columnWidths: const {
-                0: FlexColumnWidth(),
-                1: FlexColumnWidth(),
-                2: FlexColumnWidth(),
-                3: FlexColumnWidth(),
-                4: FlexColumnWidth(),
-                5: FlexColumnWidth(),
-              },
-            ),
-          ),
-        ],
+            );
+          },
+        ),
       ),
+    );
+  }
+}
+
+class _SportsAttendanceMetric extends StatelessWidget {
+  const _SportsAttendanceMetric({
+    required this.label,
+    required this.value,
+    this.emphasized = false,
+  });
+
+  final String label;
+  final String value;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: (emphasized ? theme.typography.display : theme.typography.h2)
+              .copyWith(
+                color: emphasized ? theme.color.serviceSports : null,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        SizedBox(height: theme.spacing.xs),
+        Text(
+          label,
+          style: theme.typography.caption.copyWith(color: theme.color.muted),
+        ),
+      ],
     );
   }
 }
@@ -176,158 +312,187 @@ class _SportsAttendanceRecordsPanel extends StatelessWidget {
     }
 
     final theme = context.yhTheme;
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.compact;
     return YhCard(
+      padding: EdgeInsets.fromLTRB(
+        compact ? theme.spacing.m : theme.spacing.l,
+        theme.spacing.l,
+        compact ? theme.spacing.m : theme.spacing.l,
+        0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('明细表', style: theme.typography.h3),
-          SizedBox(height: theme.spacing.m),
-          _AdaptiveSportsAttendanceTable(
-            minWidth:
-                theme.breakpoint.medium +
-                theme.spacing.xl2 +
-                theme.spacing.m +
-                theme.spacing.l +
-                theme.spacing.xs,
-            child: _SportsAttendanceTable(
-              headers: const ['类别', '日期/时间', '项目', '地点', '备注', '次数', '原始记录'],
-              rows: [
-                for (final record in summary.records)
-                  [
-                    record.category.label,
-                    record.occurredAt ?? '',
-                    record.project ?? '',
-                    record.location ?? '',
-                    record.remark ?? '',
-                    '${record.count} 次',
-                    record.cells.join(' / '),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '本学期运动证据',
+                      style: theme.typography.caption.copyWith(
+                        color: theme.color.serviceSports,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: theme.spacing.xs),
+                    Text('考勤明细', style: theme.typography.h2),
                   ],
-              ],
-              centerColumns: const {0, 5},
-              columnWidths: const {
-                0: FlexColumnWidth(1.05),
-                1: FlexColumnWidth(1.45),
-                2: FlexColumnWidth(1.12),
-                3: FlexColumnWidth(1.12),
-                4: FlexColumnWidth(1.25),
-                5: FlexColumnWidth(0.84),
-                6: FlexColumnWidth(2.65),
-              },
-            ),
+                ),
+              ),
+              Text(
+                '${summary.records.length} 条记录',
+                style: theme.typography.small.copyWith(
+                  color: theme.color.muted,
+                ),
+              ),
+            ],
           ),
+          SizedBox(height: theme.spacing.m),
+          Container(height: theme.layout.divider, color: theme.color.border),
+          for (final record in summary.records)
+            _SportsAttendanceEvidenceRecord(record: record),
         ],
       ),
     );
   }
 }
 
-class _AdaptiveSportsAttendanceTable extends StatelessWidget {
-  const _AdaptiveSportsAttendanceTable({
-    required this.minWidth,
-    required this.child,
-  });
+class _SportsAttendanceEvidenceRecord extends StatelessWidget {
+  const _SportsAttendanceEvidenceRecord({required this.record});
 
-  final double minWidth;
-  final Widget child;
+  final SportsAttendanceRecord record;
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    final occurred = _sportsAttendanceDateParts(record.occurredAt);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final tableWidth =
-            constraints.maxWidth.isFinite && constraints.maxWidth > minWidth
-            ? constraints.maxWidth
-            : minWidth;
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(width: tableWidth, child: child),
+        final compact = constraints.maxWidth < theme.breakpoint.compact;
+        final date = SizedBox(
+          width: theme.control.regular + theme.spacing.s,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                occurred.$1,
+                style: theme.typography.h3.copyWith(
+                  color: theme.color.serviceSports,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(height: theme.spacing.xs),
+              Text(
+                occurred.$2,
+                style: theme.typography.small.copyWith(
+                  color: theme.color.muted,
+                ),
+              ),
+            ],
+          ),
+        );
+        final details = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              record.project?.trim().isNotEmpty == true
+                  ? record.project!.trim()
+                  : record.category.label,
+              style: theme.typography.body.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: theme.spacing.xs),
+            Text(
+              '${record.category.label} · ${_sportsAttendanceEmptyAsDash(record.location ?? '')}',
+              style: theme.typography.caption.copyWith(
+                color: theme.color.muted,
+              ),
+            ),
+            SizedBox(height: theme.spacing.xs),
+            Text(
+              _sportsAttendanceEmptyAsDash(record.remark ?? ''),
+              style: theme.typography.caption.copyWith(
+                color: theme.color.foreground,
+              ),
+            ),
+            SizedBox(height: theme.spacing.xs),
+            Text(
+              '原始记录已保留：${record.cells.join(' / ')}',
+              style: theme.typography.caption.copyWith(
+                color: theme.color.muted,
+              ),
+            ),
+          ],
+        );
+        final count = Column(
+          crossAxisAlignment: compact
+              ? CrossAxisAlignment.start
+              : CrossAxisAlignment.end,
+          children: [
+            Text(
+              '${record.count} 次',
+              style: theme.typography.h3.copyWith(
+                color: theme.color.serviceSports,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            SizedBox(height: theme.spacing.xs),
+            Text(
+              '原始记录已保留',
+              style: theme.typography.caption.copyWith(
+                color: theme.color.muted,
+              ),
+            ),
+          ],
+        );
+        return Padding(
+          padding: EdgeInsets.symmetric(vertical: theme.spacing.m),
+          child: compact
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    date,
+                    SizedBox(width: theme.spacing.m),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          details,
+                          SizedBox(height: theme.spacing.s),
+                          count,
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    date,
+                    SizedBox(width: theme.spacing.m),
+                    Expanded(child: details),
+                    SizedBox(width: theme.spacing.m),
+                    count,
+                  ],
+                ),
         );
       },
     );
   }
 }
 
-class _SportsAttendanceTable extends StatelessWidget {
-  const _SportsAttendanceTable({
-    required this.headers,
-    required this.rows,
-    this.centerColumns = const {},
-    this.columnWidths,
-  });
-
-  final List<String> headers;
-  final List<List<String>> rows;
-  final Set<int> centerColumns;
-  final Map<int, TableColumnWidth>? columnWidths;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return Table(
-      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-      border: TableBorder.all(color: theme.color.border),
-      columnWidths:
-          columnWidths ??
-          {
-            for (var index = 0; index < headers.length; index++)
-              index: const FlexColumnWidth(),
-          },
-      children: [
-        TableRow(
-          decoration: BoxDecoration(color: theme.color.sunken),
-          children: [
-            for (var index = 0; index < headers.length; index++)
-              _SportsAttendanceTableCell(
-                headers[index],
-                header: true,
-                alignCenter: true,
-              ),
-          ],
-        ),
-        for (final row in rows)
-          TableRow(
-            children: [
-              for (var index = 0; index < headers.length; index++)
-                _SportsAttendanceTableCell(
-                  index < row.length ? row[index] : '',
-                  alignCenter: centerColumns.contains(index),
-                ),
-            ],
-          ),
-      ],
-    );
-  }
-}
-
-class _SportsAttendanceTableCell extends StatelessWidget {
-  const _SportsAttendanceTableCell(
-    this.text, {
-    this.header = false,
-    this.alignCenter = false,
-  });
-
-  final String text;
-  final bool header;
-  final bool alignCenter;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    final style = theme.typography.body.copyWith(
-      fontWeight: header ? FontWeight.w700 : FontWeight.w400,
-    );
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: theme.spacing.s,
-        vertical: theme.spacing.s,
-      ),
-      child: Text(
-        _sportsAttendanceEmptyAsDash(text),
-        textAlign: alignCenter ? TextAlign.center : TextAlign.start,
-        style: style,
-      ),
-    );
-  }
+(String, String) _sportsAttendanceDateParts(String? value) {
+  final normalized = value?.trim() ?? '';
+  if (normalized.isEmpty) return ('—', '—');
+  final parts = normalized.split(RegExp(r'\s+'));
+  final dateParts = parts.first.split('-');
+  final date = dateParts.length == 3
+      ? '${dateParts[1]}·${dateParts[2]}'
+      : parts.first;
+  return (date, parts.length > 1 ? parts.sublist(1).join(' ') : '—');
 }
 
 String _sportsAttendanceEmptyAsDash(String value) {
