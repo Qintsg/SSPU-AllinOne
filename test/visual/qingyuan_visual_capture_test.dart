@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/app.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/models/academic_calendar.dart';
+import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/models/academic_credentials.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
 import 'package:sspu_allinone/models/email_mailbox.dart';
@@ -42,6 +43,7 @@ import 'package:sspu_allinone/services/app_update_service.dart';
 import 'package:sspu_allinone/services/quick_links_config_service.dart';
 import 'package:sspu_allinone/services/campus_network_status_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
+import 'package:sspu_allinone/services/academic_term_service.dart';
 import 'package:sspu_allinone/widgets/app_close_confirmation_dialog.dart';
 import 'package:sspu_allinone/widgets/app_more_destinations.dart';
 import 'package:sspu_allinone/widgets/app_startup_status.dart';
@@ -773,6 +775,35 @@ final _surfaces = <_VisualSurface>[
   ),
   _VisualSurface('academic.calendar', _academicCalendarError, state: 'error'),
   _VisualSurface(
+    'academic.calendar',
+    _academicCalendarPartialError,
+    state: 'partial-error',
+    externalRegionId: 'document',
+    externalRegionKey: _academicCalendarExternalRegionKey,
+  ),
+  _VisualSurface(
+    'academic.calendar',
+    _academicCalendarOperationLocked,
+    state: 'operation-locked',
+    prepare: _startAcademicCalendarRefresh,
+    externalRegionId: 'document',
+    externalRegionKey: _academicCalendarExternalRegionKey,
+  ),
+  _VisualSurface(
+    'academic.calendar',
+    _academicCalendarExternalConfirmation,
+    state: 'external-confirmation',
+    prepare: _showAcademicCalendarExternalConfirmation,
+  ),
+  _VisualSurface(
+    'academic.calendar',
+    _academicCalendarExternalError,
+    state: 'external-error',
+    prepare: _failAcademicCalendarExternalOpen,
+    externalRegionId: 'document',
+    externalRegionKey: _academicCalendarExternalRegionKey,
+  ),
+  _VisualSurface(
     'schedule.calendar',
     _scheduleInitial,
     state: 'initial',
@@ -1071,14 +1102,46 @@ final _surfaces = <_VisualSurface>[
       externalRegionId: 'document',
       externalRegionKey: _webViewExternalRegionKey,
     ),
-  for (final state in const ['loading', 'content', 'error'])
+  for (final state in const [
+    'loading',
+    'content',
+    'empty',
+    'error',
+    'partial-error',
+    'operation-locked',
+    'external-error',
+  ])
     _VisualSurface(
       'external.pdf',
       () => _externalPdfSurface(state),
       state: state,
-      externalRegionId: state == 'content' ? 'document' : null,
-      externalRegionKey: state == 'content' ? _pdfExternalRegionKey : null,
+      prepare: (tester) => _prepareExternalPdfState(tester, state),
+      cleanup: (tester) => _cleanupExternalPdfState(tester, state),
+      externalRegionId:
+          const [
+            'content',
+            'partial-error',
+            'operation-locked',
+            'external-error',
+          ].contains(state)
+          ? 'document'
+          : null,
+      externalRegionKey:
+          const [
+            'content',
+            'partial-error',
+            'operation-locked',
+            'external-error',
+          ].contains(state)
+          ? _pdfExternalRegionKey
+          : null,
     ),
+  _VisualSurface(
+    'external.pdf',
+    _externalPdfConfirmationSurface,
+    state: 'external-confirmation',
+    prepare: _showExternalPdfConfirmation,
+  ),
   for (final state in const ['initial', 'content', 'error'])
     _VisualSurface(
       'external.system-auth',
@@ -1589,30 +1652,122 @@ Future<void> _showWebViewExternalConfirmation(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Widget _externalPdfSurface(String state) => AcademicCalendarPdfFrame(
-  title: '2025—2026 学年校历',
-  onBack: () {},
-  pageLabel: state == 'content' ? '第 1 / 4 页' : '页码加载中',
-  onZoomOut: state == 'content' ? () {} : null,
-  onZoomIn: state == 'content' ? () {} : null,
-  onDownload: () {},
-  onOpenExternal: () {},
-  document: _externalDocumentRegion(
+Widget _externalPdfSurface(String state) {
+  final retained = const [
+    'content',
+    'partial-error',
+    'operation-locked',
+    'external-error',
+  ].contains(state);
+  if (state == 'operation-locked') {
+    _externalPdfDownloadCompleter = Completer<void>();
+  }
+  final source = state == 'empty'
+      ? null
+      : 'https://jwc.sspu.edu.cn/calendar.pdf';
+  return AcademicCalendarPdfPage(
+    title: '2025–2026 学年校历',
+    pdfUrl: source,
+    initialPageCount: retained ? 4 : null,
+    initialDocumentState: switch (state) {
+      'loading' => AcademicCalendarPdfDocumentState.loading,
+      'empty' => AcademicCalendarPdfDocumentState.empty,
+      'error' => AcademicCalendarPdfDocumentState.error,
+      _ => AcademicCalendarPdfDocumentState.content,
+    },
+    documentBuilder: state == 'empty'
+        ? null
+        : (context, current, revision, actions) =>
+              _externalPdfDocument(context, state, actions),
+    downloadOverride: (current, title) async {
+      if (state == 'operation-locked') {
+        await _externalPdfDownloadCompleter!.future;
+      } else if (state == 'partial-error') {
+        throw StateError('deterministic download failure');
+      }
+    },
+    launchExternalOverride: (uri) async => false,
+  );
+}
+
+Completer<void>? _externalPdfDownloadCompleter;
+
+Widget _externalPdfDocument(
+  BuildContext context,
+  String state,
+  AcademicCalendarPdfDocumentActions actions,
+) {
+  if (state == 'error') {
+    return YhEmptyState(
+      icon: YhIcons.warning,
+      title: 'PDF 加载失败',
+      message: '文件来源：jwc.sspu.edu.cn/calendar.pdf。可重试读取或改用外部应用打开。',
+      action: Wrap(
+        spacing: context.yhTheme.spacing.s,
+        children: [
+          YhButton(label: '重试读取', onTap: actions.retry),
+          YhButton(
+            label: '外部打开',
+            variant: YhButtonVariant.secondary,
+            onTap: actions.openExternal,
+          ),
+        ],
+      ),
+    );
+  }
+  return _externalDocumentRegion(
     key: _pdfExternalRegionKey,
-    icon: state == 'error' ? YhIcons.warning : YhIcons.library,
-    title: switch (state) {
-      'loading' => '正在加载校历 PDF',
-      'error' => 'PDF 加载失败',
-      _ => '2025—2026 学年校历正文',
-    },
-    message: switch (state) {
-      'loading' => '正在准备页面与字体…',
-      'error' => '无法读取 PDF。可使用右上角按钮在外部应用中打开。',
-      _ => 'PDF 正文属于外部区域，按 SSIM 0.90 独立验收。',
-    },
+    icon: YhIcons.library,
+    title: state == 'loading' ? '正在加载校历 PDF' : '2025—2026 学年校历正文',
+    message: state == 'loading'
+        ? '正在准备页面与字体；返回操作始终可用。'
+        : 'PDF 正文属于外部区域，按 SSIM 0.90 独立验收。',
     loading: state == 'loading',
-  ),
+  );
+}
+
+Future<void> _prepareExternalPdfState(WidgetTester tester, String state) async {
+  if (state == 'partial-error' || state == 'operation-locked') {
+    await tester.tap(find.bySemanticsLabel('下载校历 PDF'));
+    if (state == 'partial-error') {
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 4));
+    } else {
+      await tester.pump();
+    }
+  } else if (state == 'external-error') {
+    await tester.tap(find.bySemanticsLabel('外部打开校历 PDF'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('继续打开'));
+    await tester.pumpAndSettle();
+  }
+}
+
+Future<void> _cleanupExternalPdfState(WidgetTester tester, String state) async {
+  if (state == 'partial-error') {
+    await tester.pump(const Duration(seconds: 4));
+  }
+}
+
+Widget _externalPdfConfirmationSurface() => AcademicCalendarPdfPage(
+  title: '2025–2026 学年校历',
+  pdfUrl: 'https://jwc.sspu.edu.cn/calendar.pdf',
+  initialPageCount: 4,
+  initialDocumentState: AcademicCalendarPdfDocumentState.content,
+  documentBuilder: (context, source, revision, actions) =>
+      _externalDocumentRegion(
+        key: _pdfExternalRegionKey,
+        icon: YhIcons.library,
+        title: '2025—2026 学年校历正文',
+        message: 'PDF 正文属于外部区域，按 SSIM 0.90 独立验收。',
+      ),
+  launchExternalOverride: (uri) async => true,
 );
+
+Future<void> _showExternalPdfConfirmation(WidgetTester tester) async {
+  await tester.tap(find.bySemanticsLabel('外部打开校历 PDF'));
+  await tester.pumpAndSettle();
+}
 
 Widget _externalSystemAuthSurface(String state) => Builder(
   builder: (context) => Stack(
@@ -2332,36 +2487,179 @@ Widget _academicCalendarError() {
   );
 }
 
+Widget _academicCalendarPartialError() {
+  return _academicCalendarPage(
+    QingyuanVisualAcademicCalendarClient(
+      cachedEntries: qingyuanAcademicCalendarEntries,
+      viewerResult: qingyuanAcademicCalendarPartialErrorResult,
+    ),
+  );
+}
+
+Widget _academicCalendarOperationLocked() {
+  return _academicCalendarPage(
+    QingyuanVisualAcademicCalendarClient(
+      cachedEntries: qingyuanAcademicCalendarEntries,
+      viewerResult: qingyuanAcademicCalendarContentResult,
+      pendingRefresh: Completer<List<AcademicCalendarCacheEntry>>(),
+    ),
+  );
+}
+
+Widget _academicCalendarExternalConfirmation() => _academicCalendarPage(
+  QingyuanVisualAcademicCalendarClient(
+    cachedEntries: qingyuanAcademicCalendarEntries,
+    viewerResult: qingyuanAcademicCalendarContentResult,
+  ),
+  launchExternalOverride: (uri) async => true,
+);
+
+Widget _academicCalendarExternalError() => _academicCalendarPage(
+  QingyuanVisualAcademicCalendarClient(
+    cachedEntries: qingyuanAcademicCalendarEntries,
+    viewerResult: qingyuanAcademicCalendarContentResult,
+  ),
+  launchExternalOverride: (uri) async => false,
+);
+
+Future<void> _startAcademicCalendarRefresh(WidgetTester tester) async {
+  await _waitForVisualFinder(tester, find.bySemanticsLabel('刷新校历'), '校历刷新入口');
+  await tester.tap(find.bySemanticsLabel('刷新校历'));
+  await tester.pump();
+}
+
+Future<void> _showAcademicCalendarExternalConfirmation(
+  WidgetTester tester,
+) async {
+  await _waitForVisualFinder(
+    tester,
+    find.bySemanticsLabel('外部打开校历 PDF'),
+    '校历外部打开入口',
+  );
+  await tester.tap(find.bySemanticsLabel('外部打开校历 PDF'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _failAcademicCalendarExternalOpen(WidgetTester tester) async {
+  await _showAcademicCalendarExternalConfirmation(tester);
+  await tester.tap(find.text('继续打开'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _waitForVisualFinder(
+  WidgetTester tester,
+  Finder finder,
+  String description,
+) async {
+  for (var attempt = 0; attempt < 40; attempt++) {
+    await tester.pump(const Duration(milliseconds: 25));
+    if (finder.evaluate().isNotEmpty) return;
+  }
+  throw StateError('$description 未在固定等待窗口内出现');
+}
+
 const Key _academicCalendarExternalRegionKey = Key(
   'academic-calendar-external-region',
 );
 
-Widget _academicCalendarPage(QingyuanVisualAcademicCalendarClient service) {
+Widget _academicCalendarPage(
+  QingyuanVisualAcademicCalendarClient service, {
+  Future<bool> Function(Uri uri)? launchExternalOverride,
+}) {
   return AcademicCalendarPage(
     service: service,
+    termService: _QingyuanVisualAcademicTermService(),
+    now: DateTime(2026, 7, 18, 9, 30),
+    launchExternalOverride: launchExternalOverride,
     viewerBuilder: (context, entry) {
       final theme = context.yhTheme;
       return KeyedSubtree(
         key: _academicCalendarExternalRegionKey,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: theme.color.sunken,
-            border: Border.all(color: theme.color.border),
-            borderRadius: BorderRadius.circular(theme.radius.l),
-          ),
-          child: YhEmptyState(
-            icon: YhIcons.library,
-            title: entry == null
-                ? '请选择校历'
-                : '${entry.schoolYearLabel} · 外部 PDF 区域',
-            message: entry == null
-                ? '从校历列表选择一个学年。'
-                : '平台 runner 验证真实 PDF 正文；此区域按外部内容 0.90 独立判定。',
+        child: ColoredBox(
+          color: theme.color.sunken,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  YhIcons.library,
+                  size: theme.spacing.xl,
+                  color: theme.color.muted,
+                ),
+                SizedBox(height: theme.spacing.m),
+                Text(
+                  entry == null
+                      ? '请选择校历'
+                      : '${entry.schoolYearStart}–${entry.schoolYearStart + 1} 学年校历正文',
+                  textAlign: TextAlign.center,
+                  style: theme.typography.h3.copyWith(
+                    color: theme.color.foreground,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: theme.spacing.s),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: theme.breakpoint.compact / 2,
+                  ),
+                  child: Text(
+                    entry == null
+                        ? '从校历列表选择一个学年。'
+                        : 'PDF 正文由平台查看器绘制，应用只负责来源、选择与恢复操作。',
+                    textAlign: TextAlign.center,
+                    style: theme.typography.small.copyWith(
+                      color: theme.color.muted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     },
   );
+}
+
+class _QingyuanVisualAcademicTermService extends AcademicTermService {
+  static const _actual = AcademicTermChoice(
+    academicYear: 2025,
+    season: AcademicTermSeason.summer,
+  );
+  AcademicTermSettings _settings = const AcademicTermSettings(
+    selectedTerm: AcademicTermChoice(
+      academicYear: 2025,
+      season: AcademicTermSeason.fall,
+    ),
+  );
+
+  @override
+  AcademicTermSettings get settings => _settings;
+
+  @override
+  List<AcademicTermChoice> get availableTerms => [
+    for (final season in AcademicTermSeason.values)
+      AcademicTermChoice(academicYear: 2025, season: season),
+  ];
+
+  @override
+  Future<AcademicTermSettings> loadSettings() async => _settings;
+
+  @override
+  Future<AcademicTermContext> getEffectiveContext({DateTime? now}) async =>
+      AcademicTermContext(
+        term: _actual,
+        queryTerm: _settings.selectedTerm,
+        source: AcademicTermContextSource.selected,
+        dateStatus: AcademicTermDateStatus.summerVacation,
+        resolvedAt: now ?? DateTime(2026, 7, 18, 9, 30),
+        isTeachingWeek: false,
+      );
+
+  @override
+  Future<void> setSelectedTerm(AcademicTermChoice term) async {
+    _settings = AcademicTermSettings(selectedTerm: term);
+  }
 }
 
 const _qingyuanHomeQuickLinks = <QuickLinkItemConfig>[

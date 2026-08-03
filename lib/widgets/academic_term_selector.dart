@@ -44,10 +44,16 @@ class AcademicTermSelector extends StatelessWidget {
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
-            final stack = constraints.maxWidth < theme.breakpoint.compact;
+            final stack =
+                variant != AcademicTermSelectorVariant.compact &&
+                constraints.maxWidth < theme.breakpoint.compact;
+            final compactWidth = (constraints.maxWidth - theme.spacing.s) / 2;
+            final controlWidth = variant == AcademicTermSelectorVariant.compact
+                ? compactWidth
+                : theme.spacing.xl2 * 4;
             final controls = [
               SizedBox(
-                width: theme.spacing.xl2 * 4,
+                width: controlWidth,
                 child: YhSelect<int>(
                   key: const Key('academic-term-year-select'),
                   label: '学年',
@@ -57,7 +63,9 @@ class AcademicTermSelector extends StatelessWidget {
                     for (final year in years)
                       YhSelectOption(
                         value: year,
-                        label: '$year-${year + 1} 学年',
+                        label: variant == AcademicTermSelectorVariant.compact
+                            ? '$year–${(year + 1).toString().substring(2)} 学年'
+                            : '$year-${year + 1} 学年',
                       ),
                   ],
                   onChanged: (year) {
@@ -68,7 +76,7 @@ class AcademicTermSelector extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                width: theme.spacing.xl2 * 4,
+                width: controlWidth,
                 child: YhSelect<AcademicTermSeason>(
                   key: const Key('academic-term-season-select'),
                   label: '学期',
@@ -105,18 +113,35 @@ class AcademicTermSelector extends StatelessWidget {
           },
         ),
         SizedBox(height: theme.spacing.s),
-        _TermContextLine(
-          icon: YhIcons.calendar,
-          primary: summaryText,
-          secondary: sourceText,
-          warning: contextSummary?.isUnsupported == true,
-        ),
-        if (contextSummary?.hasDifferentQueryTerm == true) ...[
-          SizedBox(height: theme.spacing.xs),
-          _TermContextLine(
-            icon: YhIcons.search,
-            primary: '查询使用：${contextSummary!.effectiveQueryTerm.label}',
+        if (variant == AcademicTermSelectorVariant.compact) ...[
+          Text('当前实际：$summaryText', style: theme.typography.small),
+          Text(
+            sourceText,
+            style: theme.typography.small.copyWith(
+              color: contextSummary?.isUnsupported == true
+                  ? theme.color.warning
+                  : theme.color.muted,
+            ),
           ),
+          if (contextSummary?.hasDifferentQueryTerm == true)
+            Text(
+              '查询使用：${contextSummary!.effectiveQueryTerm.label}',
+              style: theme.typography.small,
+            ),
+        ] else ...[
+          _TermContextLine(
+            icon: YhIcons.calendar,
+            primary: '当前实际：$summaryText',
+            secondary: sourceText,
+            warning: contextSummary?.isUnsupported == true,
+          ),
+          if (contextSummary?.hasDifferentQueryTerm == true) ...[
+            SizedBox(height: theme.spacing.xs),
+            _TermContextLine(
+              icon: YhIcons.search,
+              primary: '查询使用：${contextSummary!.effectiveQueryTerm.label}',
+            ),
+          ],
         ],
       ],
     );

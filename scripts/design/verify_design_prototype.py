@@ -157,11 +157,12 @@ def _capture_missing_state_references(page: Page, output_dir: Path, expected: li
                 _assert(cancel.evaluate("element => element === document.activeElement"), f'{item["filename"]} Tab 逃出对话框')
                 page.keyboard.press("Escape")
                 _assert(page.locator('.reference-modal-scrim[hidden]').count() == 1, f'{item["filename"]} Escape 未关闭对话框')
-                return_focus = (
-                    page.locator('.reference-license-link').first
-                    if item["surface"] == "settings.licenses"
-                    else page.locator('[data-reference-more]')
-                )
+                if item["surface"] == "settings.licenses":
+                    return_focus = page.locator('.reference-license-link').first
+                elif page.locator('[data-reference-external-trigger]').count() > 0:
+                    return_focus = page.locator('[data-reference-external-trigger]').first
+                else:
+                    return_focus = page.locator('[data-reference-more]')
                 _assert(
                     return_focus.evaluate("element => element === document.activeElement"),
                     f'{item["filename"]} 关闭后未归还触发器焦点',

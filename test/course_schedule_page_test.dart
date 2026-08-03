@@ -310,11 +310,11 @@ void main() {
     await tester.tap(find.byKey(const Key('open-academic-calendar')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
-    await pumpUntilFound(tester, find.text('2025-2026学年'));
+    await pumpUntilFound(tester, find.text('2025–2026 学年'));
 
     expect(find.text('校历'), findsWidgets);
-    expect(find.text('2025-2026学年'), findsWidgets);
-    expect(find.bySemanticsLabel('外部打开'), findsOneWidget);
+    expect(find.text('2025–2026 学年'), findsWidgets);
+    expect(find.bySemanticsLabel('外部打开校历 PDF'), findsOneWidget);
     expect(find.text('秋季学期'), findsNothing);
     await disposeCourseSchedulePage(tester);
   });

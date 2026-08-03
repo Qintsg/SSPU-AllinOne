@@ -40,11 +40,13 @@ class QingyuanVisualAcademicCalendarClient implements AcademicCalendarClient {
       refreshed: false,
     ),
     this.pendingViewer,
+    this.pendingRefresh,
   });
 
   final List<AcademicCalendarCacheEntry> cachedEntries;
   final AcademicCalendarSyncResult viewerResult;
   final Completer<AcademicCalendarSyncResult>? pendingViewer;
+  final Completer<List<AcademicCalendarCacheEntry>>? pendingRefresh;
 
   @override
   Future<AcademicCalendarSyncResult> ensureCalendarsForDate({
@@ -75,24 +77,61 @@ class QingyuanVisualAcademicCalendarClient implements AcademicCalendarClient {
   @override
   Future<List<AcademicCalendarCacheEntry>> refreshCalendars({
     List<int>? targetYears,
-  }) async => viewerResult.entries;
+  }) => pendingRefresh?.future ?? Future.value(viewerResult.entries);
 }
+
+final AcademicCalendarTermSchedule qingyuanAcademicCalendarSchedule =
+    AcademicCalendarTermSchedule(
+      schoolYearStart: 2025,
+      fallStart: DateTime(2025, 9, 22),
+      fallEnd: DateTime(2026, 1, 18),
+      springStart: DateTime(2026, 3, 2),
+      springEnd: DateTime(2026, 6, 28),
+      summerStart: DateTime(2026, 6, 29),
+      summerEnd: DateTime(2026, 9, 20),
+      summerSegments: [
+        AcademicTermTeachingSegment(
+          startDate: DateTime(2026, 6, 29),
+          endDate: DateTime(2026, 7, 12),
+          startWeek: 1,
+          endWeek: 2,
+        ),
+        AcademicTermTeachingSegment(
+          startDate: DateTime(2026, 8, 31),
+          endDate: DateTime(2026, 9, 20),
+          startWeek: 3,
+          endWeek: 5,
+        ),
+      ],
+      dayTags: [
+        AcademicCalendarDayTag(
+          date: DateTime(2025, 11, 7),
+          type: AcademicCalendarDayTagType.sportsDay,
+          label: '校运会停课一天',
+          sourceText: '校运会 11 月 7 日停课',
+        ),
+      ],
+      pendingHolidayNotices: const [
+        AcademicCalendarPendingHolidayNotice(sourceText: '节假日安排以学校后续通知为准'),
+      ],
+      parseWarnings: const [],
+    );
 
 final List<AcademicCalendarCacheEntry> qingyuanAcademicCalendarEntries = [
   AcademicCalendarCacheEntry(
     schoolYearStart: 2025,
     title: '2025-2026 学年校历',
-    detailUrl: 'https://calendar.example.invalid/2025-2026',
+    detailUrl: 'https://jwc.sspu.edu.cn/2025-2026',
     publishDate: '2025-04-24',
-    pdfUrl: 'https://calendar.example.invalid/2025-2026.pdf',
+    pdfUrl: 'https://jwc.sspu.edu.cn/calendar.pdf',
     imageUrls: const [],
     sourceType: AcademicCalendarSourceType.pdf,
-    fetchedAt: DateTime(2026, 7, 18, 8, 42),
+    fetchedAt: DateTime(2026, 7, 18, 9, 30),
     parseVersion: AcademicCalendarService.parseVersion,
     pdfFilePath: null,
     rawTextFilePath: null,
     rawExtractedText: null,
-    schedule: null,
+    schedule: qingyuanAcademicCalendarSchedule,
     warnings: const [],
     errorMessage: null,
   ),
@@ -104,7 +143,7 @@ final List<AcademicCalendarCacheEntry> qingyuanAcademicCalendarEntries = [
     pdfUrl: 'https://calendar.example.invalid/2024-2025.pdf',
     imageUrls: const [],
     sourceType: AcademicCalendarSourceType.pdf,
-    fetchedAt: DateTime(2026, 7, 18, 8, 42),
+    fetchedAt: DateTime(2026, 7, 18, 9, 30),
     parseVersion: AcademicCalendarService.parseVersion,
     pdfFilePath: null,
     rawTextFilePath: null,
@@ -131,10 +170,20 @@ const AcademicCalendarSyncResult qingyuanAcademicCalendarEmptyResult =
 
 final AcademicCalendarSyncResult qingyuanAcademicCalendarStaleResult =
     AcademicCalendarSyncResult(
+      entries: qingyuanAcademicCalendarEntries
+          .map((entry) => entry.copyWith(isStale: true))
+          .toList(),
+      loadedFromCache: true,
+      refreshed: false,
+      errorMessage: '当前显示 7 月 17 日保存的公开校历；原始 PDF 与学年选择仍可使用。',
+    );
+
+final AcademicCalendarSyncResult qingyuanAcademicCalendarPartialErrorResult =
+    AcademicCalendarSyncResult(
       entries: qingyuanAcademicCalendarEntries,
       loadedFromCache: true,
       refreshed: false,
-      errorMessage: '正在显示本地校历缓存；网络恢复后可刷新。',
+      errorMessage: '公开校历刷新未完成；当前仍显示 7 月 17 日保存的有效档案，可在原位置重试。',
     );
 
 const AcademicCalendarSyncResult qingyuanAcademicCalendarErrorResult =

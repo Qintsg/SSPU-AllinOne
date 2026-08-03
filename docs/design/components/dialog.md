@@ -72,7 +72,18 @@ await YhDialog.show<void>(
     actions: actions,
   ),
 );
+
+YhDialog(
+  eyebrow: '外部 PDF',
+  title: '在外部应用打开校历？',
+  headerInset: context.yhTheme.spacing.l,
+  titleStyle: context.yhTheme.typography.h3,
+  content: const Text('离开应用后的本地保护边界说明。'),
+  actions: actions,
+);
 ```
+
+`headerInset` 与 `titleStyle` 是受控的阅读层级参数，仅用于外部边界等已冻结的紧凑确认稿；取值必须来自 `YhTheme` token，业务页不得用它们构造任意弹窗视觉。
 
 ---
 
@@ -104,5 +115,6 @@ await YhDialog.show<void>(
 
 | 版本 | 日期 | 变更内容 |
 |---|---|---|
+| 0.4.1 | 2026-08-03 | 记录外部边界确认所需的 token 化标题间距与样式参数 |
 | 0.1.0 | 2026-06-16 | 初始规格 · 响应色 #478384 |
 | 0.4.0 | 2026-07-29 | 增加 eyebrow、紧凑纵向操作区与系统返回锁定契约 |

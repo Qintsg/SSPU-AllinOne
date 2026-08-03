@@ -127,7 +127,7 @@ class _YhPressableState extends State<YhPressable> {
           ),
         },
         onShowHoverHighlight: (value) => setState(() => _hovered = value),
-        onShowFocusHighlight: (value) => setState(() => _focused = value),
+        onFocusChange: (value) => setState(() => _focused = value),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: _enabled ? _activate : null,

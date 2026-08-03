@@ -51,7 +51,7 @@
     {"id": "academic.student-report", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
     {"id": "academic.student-report-rules", "group": "academic", "states": ["content", "empty"]},
     {"id": "academic.sports-attendance", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
-    {"id": "academic.calendar", "group": "academic", "states": ["loading", "content", "empty", "stale", "error"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content", "stale"]}},
+    {"id": "academic.calendar", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "partial-error", "operation-locked", "external-confirmation", "external-error"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content", "stale", "partial-error", "operation-locked", "external-error"]}},
 
     {"id": "schedule.calendar", "group": "schedule", "states": ["initial", "loading", "content", "empty", "stale", "error", "operation-locked"]},
 
@@ -79,7 +79,7 @@
     {"id": "legal.agreement", "group": "legal", "states": ["content"]},
 
     {"id": "external.webview", "group": "external", "states": ["loading", "content", "error", "external-confirmation", "external-error", "operation-locked"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content", "external-error", "operation-locked"]}},
-    {"id": "external.pdf", "group": "external", "states": ["loading", "content", "error"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content"]}},
+    {"id": "external.pdf", "group": "external", "states": ["loading", "content", "empty", "error", "partial-error", "operation-locked", "external-confirmation", "external-error"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content", "partial-error", "operation-locked", "external-error"]}},
     {"id": "external.system-auth", "group": "external", "states": ["initial", "content", "error"], "externalRegions": ["system-dialog"], "externalRegionStates": {"system-dialog": ["content"]}}
   ]
 }

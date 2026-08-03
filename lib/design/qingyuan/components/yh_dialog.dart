@@ -14,6 +14,8 @@ class YhDialog extends StatelessWidget {
     this.constraints,
     this.eyebrow,
     this.stackActionsOnCompact = false,
+    this.headerInset = 0,
+    this.titleStyle,
   });
 
   final String title;
@@ -22,6 +24,8 @@ class YhDialog extends StatelessWidget {
   final BoxConstraints? constraints;
   final String? eyebrow;
   final bool stackActionsOnCompact;
+  final double headerInset;
+  final TextStyle? titleStyle;
 
   static Future<T?> show<T>(
     BuildContext context, {
@@ -119,6 +123,7 @@ class YhDialog extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (headerInset > 0) SizedBox(height: headerInset),
                     if (eyebrow != null) ...[
                       Text(
                         eyebrow!,
@@ -133,9 +138,13 @@ class YhDialog extends StatelessWidget {
                       header: true,
                       child: Text(
                         title,
-                        style: theme.typography.h3.copyWith(
-                          color: theme.color.foreground,
-                        ),
+                        style:
+                            titleStyle?.copyWith(
+                              color: theme.color.foreground,
+                            ) ??
+                            theme.typography.h3.copyWith(
+                              color: theme.color.foreground,
+                            ),
                       ),
                     ),
                     SizedBox(height: theme.spacing.m),

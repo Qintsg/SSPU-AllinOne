@@ -49,7 +49,7 @@ void main() {
     );
 
     expect(find.byKey(const Key('academic-term-selector')), findsOneWidget);
-    expect(find.text('2025-2026 学年夏季学期 暑假'), findsOneWidget);
+    expect(find.text('当前实际：2025-2026 学年夏季学期 暑假'), findsOneWidget);
     expect(find.byKey(const Key('academic-term-year-select')), findsOneWidget);
     expect(
       find.byKey(const Key('academic-term-season-select')),

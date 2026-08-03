@@ -56,9 +56,11 @@
 enum YhBannerKind { info, success, warn, danger }
 
 class YhBanner extends StatelessWidget {
-  const YhBanner({super.key, required this.text, this.kind = YhBannerKind.info, this.leadingIcon, this.action, this.onClose});
+  const YhBanner({super.key, required this.text, this.kind = YhBannerKind.info, this.leadingIcon, this.denseLeading = false, this.action, this.onClose});
 }
 ```
+
+`denseLeading` 只用于高度受限但仍需保留 live-region 反馈的紧凑状态条；它收紧图标与正文的首行对齐，不改变最小触控目标或语义。
 
 ```dart
 YhBanner(text: '数据仅保留在本地设备，不会上传服务器');
@@ -94,4 +96,5 @@ YhBanner(text: '今晚 23:00–24:00 系统维护', kind: YhBannerKind.warn);
 
 | 版本 | 日期 | 变更内容 |
 |---|---|---|
+| 0.4.1 | 2026-08-03 | 补充 `denseLeading` 紧凑状态条契约，用于校历/PDF 等保留正文的操作反馈 |
 | 0.1.0 | 2026-06-16 | 初始规格 · 响应色 #478384 |

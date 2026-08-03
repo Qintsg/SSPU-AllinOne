@@ -203,6 +203,83 @@
     return `<section class="reference-webview-stage"><header class="reference-webview-toolbar"><button class="reference-webview-back" type="button" aria-label="返回">←</button><strong>${loading ? '正在打开校园门户' : '校园门户'}</strong><button type="button" aria-label="刷新"${busy ? ' disabled' : ''}>↻</button><button type="button" aria-label="在浏览器中打开"${busy ? ' disabled' : ''}>↗</button></header>${banner}${progress}${body}${confirmation}</section>`;
   }
 
+  function calendarSurfaceMarkup(entry, state) {
+    const loading = state === 'loading';
+    const empty = state === 'empty';
+    const error = state === 'error';
+    const stale = state === 'stale';
+    const partialError = state === 'partial-error';
+    const busy = state === 'operation-locked';
+    const externalError = state === 'external-error';
+    const externalConfirmation = state === 'external-confirmation';
+    const retained = !loading && !empty && !error;
+    const scoredDocument = ['content', 'stale', 'partial-error', 'operation-locked', 'external-error'].includes(state);
+    const banner = busy
+      ? '<div class="reference-calendar-banner" role="status">正在刷新公开校历；当前学年、PDF 和返回路径保持可用，完成前已锁定其它远端操作。</div>'
+      : partialError
+      ? '<div class="reference-calendar-banner is-error" role="alert">公开校历刷新未完成；当前仍显示 7 月 17 日保存的有效档案，可在原位置重试。</div>'
+      : externalError
+      ? '<div class="reference-calendar-banner is-error" role="alert">系统未能打开教务处校历 PDF；仍停留在当前学年，可检查默认 PDF 应用后重试。</div>'
+      : stale
+      ? '<div class="reference-calendar-banner is-warn" role="status">当前显示 7 月 17 日保存的公开校历；原始 PDF 与学年选择仍可使用。</div>'
+      : '';
+    const appbar = `<header class="reference-calendar-appbar"><button type="button" aria-label="返回">←</button><strong>校历</strong><button type="button" aria-label="刷新校历"${loading || busy ? ' disabled' : ''}>↻</button><button type="button" aria-label="外部打开校历 PDF" data-reference-external-trigger${!retained || busy ? ' disabled' : ''}>↗</button></header>`;
+    if (!retained) {
+      const symbol = loading ? '<span class="reference-spinner" aria-hidden="true"></span>' : `<span class="reference-calendar-state-symbol" aria-hidden="true">${error ? '!' : '○'}</span>`;
+      const title = loading ? '正在恢复公开校历' : error ? '暂时无法读取公开校历' : '尚未找到可查看的校历';
+      const message = loading
+        ? '先读取本机档案；需要时再访问无需登录的教务处公开页面。'
+        : error
+        ? '本机没有有效档案，教务处公开页面也未完成读取；可在这里重试。'
+        : '读取已完成，但 2021 年以后没有可用 PDF；可刷新公开来源。';
+      return `<section class="reference-calendar-stage">${appbar}<main class="reference-calendar-state-panel">${symbol}<h1>${title}</h1><p>${message}</p>${loading ? '' : `<button type="button">${error ? '重新读取公开校历' : '刷新公开校历'}</button>`}</main></section>`;
+    }
+    const confirmation = externalConfirmation
+      ? '<div class="reference-modal-scrim"><section class="reference-card reference-modal" role="dialog" aria-modal="true" aria-labelledby="reference-calendar-external-title" data-reference-modal><p class="reference-eyebrow">外部 PDF</p><h2 id="reference-calendar-external-title">在外部应用打开校历？</h2><p>即将打开 jwc.sspu.edu.cn/calendar.pdf。离开应用后，文档不再受本应用的本地保护。</p><div><button type="button" data-reference-modal-cancel>取消</button><button class="reference-demo-primary" type="button">继续打开</button></div></section></div>'
+      : '';
+    const documentAttribute = scoredDocument ? ' data-external-region="document"' : '';
+    const term = `<section class="reference-calendar-term"><small>统一查询学期</small><div class="reference-calendar-term-controls"><label class="reference-calendar-term-control">学年<span><em>2025–26 学年</em><b aria-hidden="true">›</b></span></label><label class="reference-calendar-term-control">学期<span><em>秋季学期</em><b aria-hidden="true">›</b></span></label></div><div class="reference-calendar-term-context"><span>当前实际：2025-2026 学年夏季学期 暑假</span><span>当前日期</span><span>查询使用：2025-2026 学年秋季学期</span></div></section>`;
+    return `<section class="reference-calendar-stage">${appbar}<main class="reference-calendar-body">${banner}<div class="reference-calendar-layout"><aside class="reference-calendar-index"><div class="reference-calendar-source"><i aria-hidden="true"></i><span><strong>教务处公开校历</strong><small>无需登录 · 09:30 更新</small></span></div>${term}<nav class="reference-calendar-years" aria-label="学年档案"><button class="is-selected" type="button"${busy ? ' disabled' : ''}><span>2025–2026 学年</span><small>2025-04-24</small></button><button type="button"${busy ? ' disabled' : ''}><span>2024–2025 学年</span><small>2024-04-26</small></button></nav><section class="reference-calendar-evidence"><small>学期边界</small><strong>2025–2026 学年</strong><dl><div><dt>秋季</dt><dd>09.22—01.18</dd></div><div><dt>春季</dt><dd>03.02—06.28</dd></div><div><dt>夏季</dt><dd>5 个教学周</dd></div></dl><p>校运会 11 月 7 日停课；节假日安排以学校后续通知为准</p></section></aside><section class="reference-calendar-document"><header><span><small>原始证据</small><strong>2025–2026 学年校历 PDF</strong></span><button type="button"${busy ? ' disabled' : ''}>专注查看</button></header><div class="reference-calendar-paper"${documentAttribute}><span aria-hidden="true">▤</span><strong>2025–2026 学年校历正文</strong><p>PDF 正文由平台查看器绘制，应用只负责来源、选择与恢复操作。</p></div></section></div></main>${confirmation}</section>`;
+  }
+
+  function pdfSurfaceMarkup(entry, state) {
+    const loading = state === 'loading';
+    const empty = state === 'empty';
+    const error = state === 'error';
+    const partialError = state === 'partial-error';
+    const busy = state === 'operation-locked';
+    const externalError = state === 'external-error';
+    const externalConfirmation = state === 'external-confirmation';
+    const retained = ['content', 'partial-error', 'operation-locked', 'external-error', 'external-confirmation'].includes(state);
+    const scoredDocument = ['content', 'partial-error', 'operation-locked', 'external-error'].includes(state);
+    const banner = busy
+      ? '<div class="reference-pdf-banner" role="status">正在下载校历 PDF；当前页码、缩放和正文保持可用，完成前已锁定重复操作。</div>'
+      : partialError
+      ? '<div class="reference-pdf-banner is-error" role="alert">校历 PDF 未能保存到下载目录；正文和第 1 / 4 页位置已保留，可检查权限后重试。</div>'
+      : externalError
+      ? '<div class="reference-pdf-banner is-error" role="alert">系统未能打开校历 PDF；仍停留在第 1 / 4 页，可检查默认 PDF 应用后重试。</div>'
+      : '';
+    const appbar = `<header class="reference-pdf-appbar"><button type="button" aria-label="返回">←</button><strong>2025–2026 学年校历</strong><button type="button" aria-label="下载校历 PDF"${loading || empty || error || busy ? ' disabled' : ''}>↓</button><button type="button" aria-label="外部打开校历 PDF" data-reference-external-trigger${loading || empty || busy ? ' disabled' : ''}>↗</button></header>`;
+    const toolbar = `<div class="reference-pdf-toolbar"><span>${retained ? '第 1 / 4 页' : '页码加载中'}</span><button type="button" aria-label="缩小 PDF"${!retained || busy ? ' disabled' : ''}>−</button><button type="button" aria-label="放大 PDF"${!retained || busy ? ' disabled' : ''}>＋</button></div>`;
+    let document;
+    if (retained) {
+      document = `<main class="reference-pdf-document is-external"${scoredDocument ? ' data-external-region="document"' : ''}><span aria-hidden="true">▤</span><strong>2025–2026 学年校历正文</strong><p>PDF 正文属于外部区域，按 SSIM 0.90 独立验收。</p></main>`;
+    } else {
+      const symbol = loading ? '<span class="reference-spinner" aria-hidden="true"></span>' : `<span class="reference-calendar-state-symbol" aria-hidden="true">${error ? '△' : '▤'}</span>`;
+      const title = loading ? '正在加载校历 PDF' : error ? 'PDF 加载失败' : '暂无可查看的 PDF';
+      const message = loading
+        ? '正在准备页面与字体；返回操作始终可用。'
+        : error
+        ? '文件来源：jwc.sspu.edu.cn/calendar.pdf。可重试读取或改用外部应用打开。'
+        : '当前校历没有本地文件或可用网络地址；请返回校历档案重新选择。';
+      document = `<main class="reference-pdf-document">${symbol}<strong>${title}</strong><p>${message}</p>${loading ? '' : `<div><button type="button">${error ? '重试读取' : '返回校历'}</button>${error ? '<button type="button" data-reference-external-trigger>外部打开</button>' : ''}</div>`}</main>`;
+    }
+    const confirmation = externalConfirmation
+      ? '<div class="reference-modal-scrim"><section class="reference-card reference-modal" role="dialog" aria-modal="true" aria-labelledby="reference-pdf-external-title" data-reference-modal><p class="reference-eyebrow">外部 PDF</p><h2 id="reference-pdf-external-title">在外部应用打开校历？</h2><p>即将打开 jwc.sspu.edu.cn/calendar.pdf。外部应用中的文档不再受本应用本地保护。</p><div><button type="button" data-reference-modal-cancel>取消</button><button class="reference-demo-primary" type="button">继续打开</button></div></section></div>'
+      : '';
+    return `<section class="reference-pdf-stage">${appbar}${banner}${toolbar}${document}${confirmation}</section>`;
+  }
+
   function academicDetailStateMarkup(entry, state, accent) {
     const loading = state === 'loading';
     const empty = state === 'empty';
@@ -457,6 +534,8 @@
     if (entry.id === 'security.lock') return lockSurfaceMarkup(state);
     if (entry.id === 'external.system-auth') return lockSurfaceMarkup(state, true);
     if (entry.id === 'external.webview') return webViewSurfaceMarkup(entry, state);
+    if (entry.id === 'academic.calendar') return calendarSurfaceMarkup(entry, state);
+    if (entry.id === 'external.pdf') return pdfSurfaceMarkup(entry, state);
     if (entry.id === 'schedule.calendar') return scheduleSurfaceMarkup(entry, state);
     if (['academic.grade-detail', 'academic.exam-detail', 'academic.grade-process'].includes(entry.id)) return academicEamsSurfaceMarkup(entry, state);
     if (entry.id === 'academic.student-report') return academicDetailStateMarkup(entry, state, 'var(--service-secondclass)');
@@ -579,7 +658,7 @@
       stateHost.innerHTML = contentMarkup(entry, state);
       const externalReturnFocus = entry.id === 'settings.licenses'
         ? stateHost.querySelector('.reference-license-link')
-        : document.querySelector('[data-reference-more]');
+        : stateHost.querySelector('[data-reference-external-trigger]') ?? document.querySelector('[data-reference-more]');
       if (state === 'external-confirmation') {
         externalReturnFocus?.focus();
         prepareReferenceModal(externalReturnFocus);

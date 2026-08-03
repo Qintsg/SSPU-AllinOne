@@ -16,6 +16,7 @@ class YhBanner extends StatelessWidget {
     this.leadingIcon,
     this.action,
     this.onClose,
+    this.denseLeading = false,
   });
 
   final String text;
@@ -23,6 +24,7 @@ class YhBanner extends StatelessWidget {
   final IconData? leadingIcon;
   final Widget? action;
   final VoidCallback? onClose;
+  final bool denseLeading;
 
   @override
   Widget build(BuildContext context) {
@@ -62,10 +64,16 @@ class YhBanner extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                size: theme.spacing.m + theme.layout.divider * 2,
+                size: denseLeading
+                    ? theme.spacing.m
+                    : theme.spacing.m + theme.layout.divider * 2,
                 color: colors.$2,
               ),
-              SizedBox(width: theme.spacing.s + theme.layout.divider * 2),
+              SizedBox(
+                width: denseLeading
+                    ? theme.spacing.s
+                    : theme.spacing.s + theme.layout.divider * 2,
+              ),
               Expanded(
                 child: Text(
                   text,

@@ -56,9 +56,11 @@
 
 ```dart
 class YhAppBar extends StatelessWidget {
-  const YhAppBar({super.key, required this.title, this.eyebrow, this.leading, this.actions = const [], this.brand = false, this.scrolled = false});
+  const YhAppBar({super.key, required this.title, this.eyebrow, this.leading, this.actions = const [], this.brand = false, this.scrolled = false, this.horizontalPadding, this.actionSpacing});
 }
 ```
+
+`horizontalPadding` 与 `actionSpacing` 仅用于 PDF/WebView 等工具栏密集的已冻结次级阅读页；值必须来自 `YhTheme.spacing`，动作仍限制为 1–2 个且每项保持 48dp 目标。
 
 ```dart
 YhAppBar(title: '课程表', leading: YhIconButton(icon: YhIcons.back, semanticLabel: '返回', onTap: pop), actions: [YhIconButton(icon: YhIcons.search, semanticLabel: '搜索')]);
@@ -94,5 +96,6 @@ YhAppBar(eyebrow: '法律', title: '随应用发布的文本', leading: backButt
 
 | 版本 | 日期 | 变更内容 |
 |---|---|---|
+| 0.4.1 | 2026-08-03 | 补充次级阅读页的 token 化横向边距与动作间距契约 |
 | 0.4.0 | 2026-07-26 | 新增可选 eyebrow 双层标题，用于法律与外部内容等次级阅读页 |
 | 0.1.0 | 2026-06-16 | 初始规格 · 响应色 #478384 |

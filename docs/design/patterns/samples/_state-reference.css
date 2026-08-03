@@ -154,6 +154,73 @@ button:focus-visible { outline: calc(var(--layout-control-border) * 2) solid var
 .reference-webview-actions button { min-height: var(--minimum-target); padding-inline: var(--space-l); border: var(--layout-control-border) solid var(--brand); border-radius: var(--radius-m); background: transparent; color: var(--brand-strong); font-weight: var(--weight-h3); }
 .reference-webview-actions .reference-demo-primary { border-color: var(--brand-strong); background: var(--brand-strong); color: var(--on-brand); }
 body[data-surface="external.webview"] .reference-bottom-nav { display: none; }
+.reference-calendar-stage, .reference-pdf-stage { position: fixed; inset: 0; z-index: 40; min-width: 0; min-height: 0; background: var(--bg); color: var(--fg); display: flex; flex-direction: column; }
+.reference-calendar-appbar, .reference-pdf-appbar { height: var(--layout-app-bar-height); flex: 0 0 var(--layout-app-bar-height); padding-inline: var(--space-s); border-bottom: var(--layout-divider) solid var(--border); background: var(--surface); display: flex; align-items: center; gap: var(--space-s); }
+.reference-calendar-appbar strong, .reference-pdf-appbar strong { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--type-h3); font-weight: var(--weight-h3); }
+.reference-calendar-appbar button, .reference-pdf-appbar button, .reference-pdf-toolbar button { width: var(--minimum-target); height: var(--minimum-target); flex: 0 0 var(--minimum-target); border: var(--layout-control-border) solid var(--border); border-radius: var(--radius-input); background: var(--surface); color: var(--muted); font-size: var(--type-h3); }
+.reference-calendar-appbar button:first-child, .reference-pdf-appbar button:first-child { border-color: transparent; background: transparent; }
+.reference-calendar-appbar button:disabled, .reference-pdf-appbar button:disabled, .reference-pdf-toolbar button:disabled, .reference-calendar-years button:disabled, .reference-calendar-document button:disabled { opacity: var(--opacity-disabled); }
+.reference-calendar-body { width: min(var(--layout-page-content-width), 100%); min-height: 0; flex: 1; margin-inline: auto; padding: var(--space-m); display: flex; flex-direction: column; gap: var(--space-s); }
+.reference-calendar-banner, .reference-pdf-banner { padding: calc(var(--space-s) + var(--space-xs)) var(--space-m); border-radius: var(--radius-input); background: var(--brand-tint); color: var(--brand-ink); font-size: var(--type-small); line-height: var(--line-height-small); }
+.reference-calendar-banner::before, .reference-pdf-banner::before { content: 'ⓘ'; margin-right: var(--space-s); }
+.reference-calendar-banner.is-warn { background: var(--warn-tint); color: var(--warn); }
+.reference-calendar-banner.is-error, .reference-pdf-banner.is-error { background: var(--danger-tint); color: var(--danger); }
+.reference-calendar-layout { min-height: 0; flex: 1; display: grid; grid-template-columns: calc(var(--control-regular) * 6) minmax(0, 1fr); gap: var(--space-m); }
+.reference-calendar-index, .reference-calendar-document { min-width: 0; min-height: 0; }
+.reference-calendar-index { display: flex; flex-direction: column; gap: calc(var(--space-s) - var(--layout-divider) * 2); }
+.reference-calendar-source { min-height: var(--minimum-target); padding: var(--space-s) var(--space-m); border: var(--layout-control-border) solid var(--border); border-radius: var(--radius-input); background: var(--surface); display: flex; align-items: center; gap: var(--space-s); }
+.reference-calendar-source i { width: var(--space-s); height: var(--space-s); flex: 0 0 var(--space-s); border-radius: var(--radius-full); background: var(--service-academic); }
+.reference-calendar-source span { min-width: 0; display: flex; flex-direction: column; }
+.reference-calendar-source strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--type-small); }
+.reference-calendar-source small { color: var(--muted); font-size: var(--type-caption); }
+.reference-calendar-years { display: grid; gap: var(--space-xs); }
+.reference-calendar-years button { min-height: calc(var(--minimum-target) + var(--space-m)); padding: var(--space-s) var(--space-m); border: var(--layout-control-border) solid var(--border); border-radius: var(--radius-input); background: var(--surface); display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; }
+.reference-calendar-years button.is-selected { border-color: var(--service-academic); background: color-mix(in srgb, var(--service-academic) calc(var(--opacity-domain-tint) * 100%), var(--surface)); color: var(--service-academic); }
+.reference-calendar-years span { font-weight: var(--weight-h3); }
+.reference-calendar-years small { margin-top: var(--space-xs); color: var(--muted); font-size: var(--type-caption); }
+.reference-calendar-evidence { min-height: 0; flex: 1; padding: var(--space-m); border: var(--layout-control-border) solid var(--border); border-radius: var(--radius-m); background: var(--sunken); overflow: auto; }
+.reference-calendar-evidence > small { color: var(--service-academic); font-size: var(--type-caption); font-weight: var(--weight-h3); }
+.reference-calendar-evidence > strong { margin-top: var(--space-xs); display: block; font-size: var(--type-h3); }
+.reference-calendar-evidence dl { margin: var(--space-m) 0; display: grid; gap: var(--space-s); }
+.reference-calendar-evidence dl div { display: flex; gap: var(--space-s); }
+.reference-calendar-evidence dt { min-width: calc(var(--control-regular) + var(--space-s)); color: var(--muted); }
+.reference-calendar-evidence dd { margin: 0; font-variant-numeric: tabular-nums; }
+.reference-calendar-evidence p { margin: 0; padding-top: var(--space-m); border-top: var(--layout-divider) solid var(--border); color: var(--muted); font-size: var(--type-small); line-height: var(--line-height-supporting); }
+.reference-calendar-document { overflow: hidden; border: var(--layout-control-border) solid var(--border); border-radius: var(--radius-l); background: var(--surface); display: flex; flex-direction: column; }
+.reference-calendar-document > header { min-height: calc(var(--minimum-target) + var(--space-s)); padding: var(--space-s) var(--space-m); border-bottom: var(--layout-divider) solid var(--border); display: flex; align-items: center; gap: var(--space-m); }
+.reference-calendar-document > header span { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.reference-calendar-document > header small { color: var(--service-academic); font-size: var(--type-caption); font-weight: var(--weight-h3); }
+.reference-calendar-document > header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--type-small); }
+.reference-calendar-document > header button, .reference-calendar-state-panel button, .reference-pdf-document > div button { min-height: var(--minimum-target); padding-inline: var(--space-m); border: var(--layout-control-border) solid var(--brand-strong); border-radius: var(--radius-m); background: transparent; color: var(--brand-strong); font-weight: var(--weight-h3); }
+.reference-calendar-paper, .reference-pdf-document { min-height: 0; flex: 1; padding: var(--space-l); background: var(--sunken); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--muted); }
+.reference-calendar-paper > span, .reference-pdf-document > span:not(.reference-spinner) { color: var(--muted); font-size: var(--type-display); line-height: var(--line-height-compact); }
+.reference-calendar-paper > strong, .reference-pdf-document > strong { margin-top: var(--space-m); color: var(--fg); font-size: var(--type-h2); line-height: var(--line-height-h2); }
+.reference-calendar-paper > p, .reference-pdf-document > p { max-width: var(--layout-form-content-width); margin: var(--space-s) 0 0; line-height: var(--line-height-body); }
+.reference-calendar-state-panel { min-height: 0; flex: 1; padding: var(--space-xl); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.reference-calendar-state-symbol { width: var(--layout-bottom-navigation-height); height: var(--layout-bottom-navigation-height); margin-bottom: var(--space-l); border-radius: var(--radius-l); background: color-mix(in srgb, var(--service-academic) calc(var(--opacity-evidence-tint) * 100%), transparent); color: var(--service-academic); display: grid; place-items: center; font-size: var(--type-display); }
+.reference-calendar-term { padding: var(--space-s) var(--space-m) var(--space-m); border: var(--layout-control-border) solid var(--border); border-radius: var(--radius-m); background: var(--surface); }
+.reference-calendar-term > small { color: var(--brand-strong); font-size: var(--type-caption); font-weight: var(--weight-h3); }
+.reference-calendar-term-controls { margin-top: var(--space-s); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-s); }
+.reference-calendar-term-control { display: grid; gap: var(--space-xs); color: var(--muted); font-size: var(--type-caption); }
+.reference-calendar-term-control span { min-height: var(--minimum-target); padding-inline: var(--space-m); border: var(--layout-control-border) solid var(--border); border-radius: var(--radius-input); background: var(--surface); color: var(--fg); display: flex; align-items: center; justify-content: space-between; font-size: var(--type-small); }
+.reference-calendar-term-control span em { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-style: normal; }
+.reference-calendar-term-control span b { flex: 0 0 auto; color: var(--muted); font-size: var(--type-h3); font-weight: var(--weight-body); }
+.reference-calendar-term-context { margin-top: var(--space-s); display: grid; gap: 0; color: var(--fg); font-size: var(--type-small); line-height: var(--line-height-small); }
+.reference-calendar-term-context span:nth-child(2) { color: var(--muted); }
+.reference-calendar-years, .reference-calendar-evidence { margin-top: calc(var(--layout-divider) * 2); }
+.reference-calendar-state-panel h1 { margin: var(--space-l) 0 0; font-size: var(--type-h2); }
+.reference-calendar-state-panel p { max-width: var(--layout-form-content-width); margin: var(--space-s) 0 0; color: var(--muted); line-height: var(--line-height-body); }
+.reference-calendar-state-panel button { margin-top: var(--space-l); }
+.reference-pdf-stage > .reference-pdf-banner { margin: var(--space-s) var(--space-m) 0; }
+.reference-pdf-toolbar { min-height: var(--minimum-target); padding-inline: var(--space-m); border-bottom: var(--layout-divider) solid var(--border); background: var(--surface); display: flex; align-items: center; gap: var(--space-s); }
+.reference-pdf-toolbar span { min-width: 0; flex: 1; color: var(--muted); font-size: var(--type-small); font-variant-numeric: tabular-nums; }
+.reference-pdf-toolbar button { border-color: transparent; background: transparent; }
+.reference-pdf-document.is-external { background: var(--sunken); }
+.reference-pdf-document > .reference-spinner { margin-bottom: var(--space-m); }
+.reference-pdf-document > .reference-calendar-state-symbol { width: var(--layout-bottom-navigation-height); height: var(--layout-bottom-navigation-height); margin-bottom: 0; background: transparent; color: var(--muted); font-size: var(--type-display); }
+.reference-pdf-document > .reference-calendar-state-symbol, .reference-pdf-document > .reference-calendar-state-symbol ~ strong, .reference-pdf-document > .reference-calendar-state-symbol ~ p, .reference-pdf-document > .reference-calendar-state-symbol ~ div { transform: translateY(calc(var(--space-s) * -1)); }
+.reference-pdf-document > div { margin-top: var(--space-l); display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-s); }
+.reference-pdf-document > div button:first-child { border-color: var(--brand-strong); background: var(--brand-strong); color: var(--on-brand); }
 .reference-academic-task { position: fixed; inset: 0; z-index: 40; min-width: 0; min-height: 0; background: var(--bg); color: var(--fg); display: flex; flex-direction: column; }
 .reference-academic-appbar { height: var(--layout-app-bar-height); flex: 0 0 var(--layout-app-bar-height); padding-inline: var(--space-s); border-bottom: var(--layout-divider) solid var(--border); background: var(--surface); display: flex; align-items: center; gap: var(--space-s); }
 .reference-academic-appbar button { width: var(--minimum-target); height: var(--minimum-target); flex: 0 0 var(--minimum-target); border: 0; border-radius: var(--radius-input); background: transparent; color: var(--muted); font-size: var(--type-h3); }
@@ -503,6 +570,31 @@ body[data-surface="external.webview"] .reference-bottom-nav { display: none; }
   .reference-schedule-mobile-course > div { padding: var(--space-s) var(--space-m); border-radius: var(--radius-input); background: color-mix(in srgb, var(--service-academic) 12%, transparent); display: flex; flex-direction: column; gap: var(--space-xs); }
   .reference-schedule-mobile-course > div strong { color: var(--service-academic); }
   .reference-schedule-mobile-course > div small { color: var(--muted); }
+  .reference-calendar-body { padding: var(--space-s) var(--space-m); }
+  .reference-calendar-layout { display: flex; flex-direction: column; gap: var(--space-s); }
+  .reference-calendar-index { flex: 0 0 auto; }
+  .reference-calendar-index { gap: var(--space-s); }
+  .reference-calendar-source { display: none; }
+  .reference-calendar-term { padding: var(--space-xs) var(--space-s) var(--space-s); }
+  .reference-calendar-term-controls { margin-top: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .reference-calendar-term-control span { min-width: 0; padding-inline: var(--space-m); }
+  .reference-calendar-years { display: flex; overflow-x: auto; }
+  .reference-calendar-years { order: 1; }
+  .reference-calendar-term { order: 2; }
+  .reference-calendar-evidence { order: 3; }
+  .reference-calendar-years, .reference-calendar-evidence { margin-top: 0; }
+  .reference-calendar-years button { min-width: calc(var(--control-regular) * 4); flex: 0 0 calc(var(--control-regular) * 4); }
+  .reference-calendar-evidence { min-height: var(--minimum-target); flex: 0 0 auto; padding: var(--space-s) var(--space-m); display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-xs); overflow: visible; }
+  .reference-calendar-evidence > small, .reference-calendar-evidence dl { display: none; }
+  .reference-calendar-evidence > strong { margin: 0; font-size: var(--type-small); line-height: var(--line-height-small); }
+  .reference-calendar-evidence > strong::after { content: ' · 秋季 09.22—01.18 · 春季 03.02—06.28 · 夏季 5 个教学周'; color: var(--muted); font-weight: var(--weight-body); }
+  .reference-calendar-evidence p { padding: 0; border: 0; font-size: var(--type-caption); line-height: var(--line-height-small); }
+  .reference-calendar-document { min-height: calc(var(--control-regular) * 6); flex: 1; }
+  .reference-calendar-document > header button { padding-inline: var(--space-s); }
+  .reference-calendar-paper, .reference-pdf-document { padding: var(--space-m); }
+  .reference-calendar-paper > strong, .reference-pdf-document > strong { font-size: var(--type-h3); }
+  .reference-calendar-paper > p, .reference-pdf-document > p { font-size: var(--type-small); }
+  .reference-pdf-stage > .reference-pdf-banner { margin-inline: var(--space-s); }
 }
 
 @media (min-width: 1200px) {

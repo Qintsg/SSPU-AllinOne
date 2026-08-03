@@ -13,6 +13,8 @@ class YhAppBar extends StatelessWidget {
     this.actions = const <Widget>[],
     this.brand = false,
     this.scrolled = false,
+    this.horizontalPadding,
+    this.actionSpacing,
   });
 
   final String title;
@@ -21,6 +23,8 @@ class YhAppBar extends StatelessWidget {
   final List<Widget> actions;
   final bool brand;
   final bool scrolled;
+  final double? horizontalPadding;
+  final double? actionSpacing;
 
   @override
   Widget build(BuildContext context) {
@@ -39,9 +43,11 @@ class YhAppBar extends StatelessWidget {
         ),
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: eyebrow != null && compact
-                ? theme.spacing.s
-                : theme.spacing.m,
+            horizontal:
+                horizontalPadding ??
+                (eyebrow != null && compact
+                    ? theme.spacing.s
+                    : theme.spacing.m),
           ),
           child: Row(
             children: [
@@ -92,7 +98,14 @@ class YhAppBar extends StatelessWidget {
               ),
               if (actions.isNotEmpty) ...[
                 SizedBox(width: theme.spacing.s),
-                ...actions.take(2),
+                for (
+                  var index = 0;
+                  index < actions.take(2).length;
+                  index++
+                ) ...[
+                  if (index > 0) SizedBox(width: actionSpacing ?? 0),
+                  actions[index],
+                ],
               ],
             ],
           ),

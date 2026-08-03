@@ -53,7 +53,7 @@ void main() {
     );
     expect(find.text('学期设置'), findsOneWidget);
     expect(find.text('查看校历'), findsOneWidget);
-    expect(find.text('2025-2026 学年春季学期 第 1 / 17 周'), findsOneWidget);
+    expect(find.text('当前实际：2025-2026 学年春季学期 第 1 / 17 周'), findsOneWidget);
     expect(find.text('已定位当前教学周'), findsNothing);
     expect(find.text('已根据内置校历计算当前教学周。'), findsNothing);
     expect(find.text('规则说明'), findsNothing);
@@ -99,7 +99,7 @@ void main() {
     );
 
     expect(find.text('已定位当前日期所在学期'), findsNothing);
-    expect(find.text('2024-2025 学年春季学期 第 1 / 17 周'), findsWidgets);
+    expect(find.text('当前实际：2024-2025 学年春季学期 第 1 / 17 周'), findsWidgets);
     expect(find.text('查询使用：2024-2025 学年秋季学期'), findsWidgets);
     expect(find.text('规则说明'), findsNothing);
     expect(find.textContaining('按寒假处理'), findsNothing);
