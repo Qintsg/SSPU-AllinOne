@@ -459,6 +459,7 @@ def _validate_page_prototype(project_root: Path) -> None:
         "empty",
         "stale",
         "error",
+        "operation-locked",
     }
     campus_card_home_states = set(
         re.findall(r'data-campus-card-home-state="([a-z-]+)"', prototype)
@@ -478,7 +479,7 @@ def _validate_page_prototype(project_root: Path) -> None:
         errors.append("首页原型缺少状态：" + ", ".join(missing_home_states))
     if "home-stale-banner" not in prototype:
         errors.append("首页原型缺少 stale 缓存提示")
-    required_campus_card_detail_states = {"empty"}
+    required_campus_card_detail_states = {"empty", "error"}
     campus_card_detail_states = set(
         re.findall(r'data-campus-card-detail-state="([a-z-]+)"', prototype)
     )
@@ -493,7 +494,11 @@ def _validate_page_prototype(project_root: Path) -> None:
     for marker, label in (
         ('data-screen="campus-card-detail"', "详情页"),
         ("data-campus-card-detail-content", "详情内容态"),
-        ("data-campus-card-detail-error", "日期筛选错误态"),
+        ("data-campus-card-detail-validation", "日期筛选错误态"),
+        ("data-campus-card-stale", "详情缓存态"),
+        ("data-campus-card-partial-error", "详情保留式失败态"),
+        ("data-campus-card-operation", "详情操作锁定态"),
+        ("data-campus-card-remote-action", "详情远端只读操作"),
     ):
         if marker not in prototype:
             errors.append(f"校园卡原型缺少{label}")

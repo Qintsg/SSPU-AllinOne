@@ -444,6 +444,13 @@ final _surfaces = <_VisualSurface>[
     destination: '主页',
   ),
   _VisualSurface(
+    'home.campus-card',
+    () => _homeCampusCardPage(HomeCampusCardDisplayState.operationLocked),
+    state: 'operation-locked',
+    prepare: _prepareHomeCampusCard,
+    destination: '主页',
+  ),
+  _VisualSurface(
     'home.campus-card-detail',
     () => _campusCardDetailPage(CampusCardDetailDisplayState.content),
     prepare: _prepareCampusCardDetailContent,
@@ -452,11 +459,37 @@ final _surfaces = <_VisualSurface>[
     'home.campus-card-detail',
     () => _campusCardDetailPage(CampusCardDetailDisplayState.empty),
     state: 'empty',
+    prepare: _prepareCampusCardDetailEmpty,
+  ),
+  _VisualSurface(
+    'home.campus-card-detail',
+    () => _campusCardDetailPage(CampusCardDetailDisplayState.stale),
+    state: 'stale',
+    prepare: _prepareCampusCardDetailContent,
   ),
   _VisualSurface(
     'home.campus-card-detail',
     () => _campusCardDetailPage(CampusCardDetailDisplayState.error),
     state: 'error',
+    prepare: _prepareCampusCardDetailError,
+  ),
+  _VisualSurface(
+    'home.campus-card-detail',
+    () => _campusCardDetailPage(CampusCardDetailDisplayState.partialError),
+    state: 'partial-error',
+    prepare: _prepareCampusCardDetailContent,
+  ),
+  _VisualSurface(
+    'home.campus-card-detail',
+    () => _campusCardDetailPage(CampusCardDetailDisplayState.operationLocked),
+    state: 'operation-locked',
+    prepare: _prepareCampusCardDetailContent,
+  ),
+  _VisualSurface(
+    'home.campus-card-detail',
+    () => _campusCardDetailPage(CampusCardDetailDisplayState.validationError),
+    state: 'validation-error',
+    prepare: _prepareCampusCardDetailValidationError,
   ),
   _VisualSurface(
     'academic.overview',
@@ -2353,77 +2386,53 @@ Widget _homeDashboardPage(HomeDashboardDisplayState state) =>
     _homeCampusCardPage(
       HomeCampusCardDisplayState.content,
       dashboardState: state,
-      focusCampusCard: false,
     );
 
 Widget _homeCampusCardPage(
   HomeCampusCardDisplayState state, {
   HomeDashboardDisplayState dashboardState = HomeDashboardDisplayState.content,
-  bool focusCampusCard = true,
 }) {
   final result = switch (state) {
     HomeCampusCardDisplayState.empty => qingyuanCampusCardEmptyResult,
     HomeCampusCardDisplayState.stale => qingyuanCampusCardStaleResult,
     HomeCampusCardDisplayState.error => qingyuanCampusCardErrorResult,
     HomeCampusCardDisplayState.loading ||
-    HomeCampusCardDisplayState.content => qingyuanCampusCardContentResult,
+    HomeCampusCardDisplayState.content ||
+    HomeCampusCardDisplayState.operationLocked =>
+      qingyuanCampusCardContentResult,
   };
   return HomePage(
     campusCardService: QingyuanVisualCampusCardClient(result: result),
     academicEamsService: QingyuanVisualAcademicEamsClient(
-      result: focusCampusCard
-          ? qingyuanAcademicOverviewEmptyResult
-          : qingyuanHomeAcademicResult,
-      cachedResult: focusCampusCard
-          ? qingyuanAcademicOverviewEmptyResult
-          : qingyuanHomeAcademicResult,
-      cachedOverviewResult: focusCampusCard
-          ? qingyuanAcademicOverviewEmptyResult
-          : qingyuanHomeAcademicResult,
+      result: qingyuanHomeAcademicResult,
+      cachedResult: qingyuanHomeAcademicResult,
+      cachedOverviewResult: qingyuanHomeAcademicResult,
     ),
     sportsAttendanceService: QingyuanVisualSportsAttendanceClient(
-      focusCampusCard
-          ? qingyuanAcademicSportsEmptyResult
-          : qingyuanHomeSportsResult,
+      qingyuanHomeSportsResult,
     ),
     studentReportService: QingyuanVisualStudentReportClient(
-      focusCampusCard
-          ? qingyuanAcademicStudentReportEmptyResult
-          : qingyuanHomeStudentReportResult,
+      qingyuanHomeStudentReportResult,
     ),
     emailService: QingyuanVisualEmailClient(
-      cachedResult: focusCampusCard
-          ? qingyuanEmailEmptyResult
-          : qingyuanHomeEmailResult,
+      cachedResult: qingyuanHomeEmailResult,
     ),
     campusNetworkStatusService: _visualCampusNetworkStatusService(),
     campusCardAutoRefreshEnabledOverride: false,
     campusCardResultOverride: result,
     campusCardDisplayStateOverride: state,
     nowOverride: qingyuanVisualNow,
-    messagesOverride: focusCampusCard ? const [] : qingyuanHomeMessages,
+    messagesOverride: qingyuanHomeMessages,
     homeUpdatedAtOverride: DateTime(2026, 7, 18, 8, 42),
     homeCountdownMinutesOverride: 42,
     homeCourseTimeOverrides: const {'数据结构': '10:00'},
     dashboardDisplayStateOverride: dashboardState,
-    courseTableResultOverride: focusCampusCard
-        ? qingyuanAcademicOverviewEmptyResult
-        : qingyuanHomeAcademicResult,
-    academicOverviewResultOverride: focusCampusCard
-        ? qingyuanAcademicOverviewEmptyResult
-        : qingyuanHomeAcademicResult,
-    sportsAttendanceResultOverride: focusCampusCard
-        ? qingyuanAcademicSportsEmptyResult
-        : qingyuanHomeSportsResult,
-    emailResultOverride: focusCampusCard
-        ? qingyuanEmailEmptyResult
-        : qingyuanHomeEmailResult,
-    studentReportResultOverride: focusCampusCard
-        ? qingyuanAcademicStudentReportEmptyResult
-        : qingyuanHomeStudentReportResult,
-    quickLinkFavoritesOverride: focusCampusCard
-        ? const []
-        : _qingyuanHomeQuickLinks,
+    courseTableResultOverride: qingyuanHomeAcademicResult,
+    academicOverviewResultOverride: qingyuanHomeAcademicResult,
+    sportsAttendanceResultOverride: qingyuanHomeSportsResult,
+    emailResultOverride: qingyuanHomeEmailResult,
+    studentReportResultOverride: qingyuanHomeStudentReportResult,
+    quickLinkFavoritesOverride: _qingyuanHomeQuickLinks,
   );
 }
 
@@ -2456,6 +2465,22 @@ Future<void> _prepareHomeCampusCard(WidgetTester tester) async {
   await _centerInScrollable(
     tester,
     find.byKey(const Key('home-campus-card-balance-card')),
+    alignment:
+        MediaQuery.sizeOf(
+              tester.element(
+                find.byKey(const Key('home-campus-card-balance-card')),
+              ),
+            ).width <
+            768
+        ? 0.557
+        : MediaQuery.sizeOf(
+                tester.element(
+                  find.byKey(const Key('home-campus-card-balance-card')),
+                ),
+              ).width <
+              900
+        ? 0.5
+        : 0.5,
   );
   await tester.pump();
 }
@@ -2470,7 +2495,7 @@ Future<void> _prepareHomeDashboard(WidgetTester tester) async {
 
 Widget _campusCardDetailPage(CampusCardDetailDisplayState state) {
   final snapshot = state == CampusCardDetailDisplayState.empty
-      ? qingyuanCampusCardEmptyResult.snapshot!
+      ? qingyuanCampusCardContentResult.snapshot!.copyWith(records: const [])
       : qingyuanCampusCardContentResult.snapshot!;
   return CampusCardDetailPage(
     initialSnapshot: snapshot,
@@ -2485,6 +2510,63 @@ Widget _campusCardDetailPage(CampusCardDetailDisplayState state) {
 Future<void> _prepareCampusCardDetailContent(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('campus-card-recent-seven-days')));
   await tester.pump();
+}
+
+Future<void> _prepareCampusCardDetailEmpty(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('campus-card-recent-seven-days')));
+  await tester.pump();
+  final target = find.byKey(const Key('campus-card-empty-panel'));
+  final width = MediaQuery.sizeOf(tester.element(target)).width;
+  await _centerInScrollable(tester, target);
+  final correction = width < 768
+      ? 16.0
+      : width < 1000
+      ? 16.0
+      : width < 1400
+      ? 16.0
+      : 0.0;
+  if (correction > 0) {
+    await tester.drag(
+      find.ancestor(of: target, matching: find.byType(SingleChildScrollView)),
+      Offset(0, correction),
+    );
+    await tester.pump();
+  }
+}
+
+Future<void> _prepareCampusCardDetailError(WidgetTester tester) async {
+  await _centerInScrollable(
+    tester,
+    find.byKey(const Key('campus-card-terminal-error')),
+  );
+}
+
+Future<void> _prepareCampusCardDetailValidationError(
+  WidgetTester tester,
+) async {
+  await tester.enterText(
+    find.byKey(const Key('campus-card-start-date')),
+    '2026-07-19',
+  );
+  await tester.enterText(
+    find.byKey(const Key('campus-card-end-date')),
+    '2026-07-18',
+  );
+  await tester.tap(find.byKey(const Key('campus-card-apply-filter')));
+  await tester.pump();
+  await _revealAtViewportEnd(
+    tester,
+    find.byKey(const Key('campus-card-validation-banner')),
+  );
+}
+
+Future<void> _revealAtViewportEnd(WidgetTester tester, Finder finder) async {
+  await Scrollable.ensureVisible(
+    tester.element(finder),
+    alignment: 1,
+    alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+    duration: Duration.zero,
+  );
 }
 
 Widget _infoPage(
@@ -2657,10 +2739,14 @@ Future<void> _prepareMailComposeError(WidgetTester tester) async {
   await tester.pump();
 }
 
-Future<void> _centerInScrollable(WidgetTester tester, Finder finder) async {
+Future<void> _centerInScrollable(
+  WidgetTester tester,
+  Finder finder, {
+  double alignment = 0.5,
+}) async {
   await Scrollable.ensureVisible(
     tester.element(finder),
-    alignment: 0.5,
+    alignment: alignment,
     duration: Duration.zero,
   );
 }

@@ -1095,8 +1095,8 @@ void main() {
 
     expect(service.fetchCount, 1);
     expect(find.textContaining('第 1 / 2 页 · 共 21 条'), findsOneWidget);
-    expect(find.text('交易 01'), findsOneWidget);
-    expect(find.text('交易 21'), findsNothing);
+    expect(find.text('交易 21'), findsOneWidget);
+    expect(find.text('交易 01'), findsNothing);
 
     await tester.ensureVisible(find.byKey(const Key('campus-card-next-page')));
     await tester.pumpAndSettle();
@@ -1105,7 +1105,7 @@ void main() {
 
     expect(find.textContaining('第 2 / 2 页 · 共 21 条'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 200));
-    expect(find.text('交易 21'), findsOneWidget);
+    expect(find.text('交易 01'), findsOneWidget);
 
     await tester.ensureVisible(find.text('开始日期'));
     await tester.pumpAndSettle();
@@ -1113,13 +1113,13 @@ void main() {
       find.byKey(const Key('campus-card-start-date')),
       'bad-date',
     );
-    await tester.tap(find.text('筛选'));
+    await tester.tap(find.byKey(const Key('campus-card-apply-filter')));
     await tester.pump();
 
     expect(find.text('日期格式应为 yyyy-MM-dd；已保留上一次有效筛选结果。'), findsOneWidget);
     expect(service.fetchCount, 1);
     expect(find.textContaining('第 2 / 2 页 · 共 21 条'), findsOneWidget);
-    expect(find.text('交易 21'), findsOneWidget);
+    expect(find.text('交易 01'), findsOneWidget);
     await disposeHomePage(tester);
   });
 
@@ -1205,6 +1205,431 @@ void main() {
     expect(expandedSecond.dy, expandedThird.dy);
     expect(expandedFirst.dx, lessThan(expandedSecond.dx));
     expect(expandedSecond.dx, lessThan(expandedThird.dx));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('校园卡详情日期查询单飞并传递真实范围', (tester) async {
+    final pending = Completer<CampusCardQueryResult>();
+    final service = _FakeCampusCardClient(
+      result: _manyRecordsResult,
+      fetcher: () => pending.future,
+    );
+    await tester.pumpWidget(
+      YhApp(
+        home: CampusCardDetailPage(
+          initialSnapshot: _manyRecordsResult.snapshot!,
+          campusCardService: service,
+          nowOverride: DateTime(2026, 6, 9, 9, 30),
+        ),
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('campus-card-start-date')),
+      '2026-06-03',
+    );
+    await tester.enterText(
+      find.byKey(const Key('campus-card-end-date')),
+      '2026-06-09',
+    );
+    await tester.tap(find.byKey(const Key('campus-card-apply-filter')));
+    await tester.tap(find.byKey(const Key('campus-card-apply-filter')));
+    await tester.pump();
+
+    expect(service.fetchCount, 1);
+    expect(service.startDateValues, [DateTime(2026, 6, 3)]);
+    expect(service.endDateValues, [DateTime(2026, 6, 9)]);
+    expect(service.queryTransactionsValues, [true]);
+    expect(service.syncAllTransactionsValues, [false]);
+    expect(
+      find.byKey(const Key('campus-card-operation-banner')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<YhButton>(find.byKey(const Key('campus-card-apply-filter')))
+          .onTap,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<YhButton>(find.byKey(const Key('campus-card-sync-all')))
+          .onTap,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<YhButton>(
+            find.byKey(const Key('campus-card-recent-seven-days')),
+          )
+          .onTap,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<YhTextField>(find.byKey(const Key('campus-card-start-date')))
+          .enabled,
+      isFalse,
+    );
+    expect(
+      tester
+          .widget<YhTextField>(find.byKey(const Key('campus-card-end-date')))
+          .enabled,
+      isFalse,
+    );
+
+    pending.complete(_manyRecordsResult);
+    await tester.pumpAndSettle();
+    expect(find.text('交易 09'), findsOneWidget);
+    expect(find.text('交易 10'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('校园卡详情日期查询失败保留上次有效范围页码与输入', (tester) async {
+    final service = _FakeCampusCardClient(result: _missingAccountResult);
+    await tester.pumpWidget(
+      YhApp(
+        home: CampusCardDetailPage(
+          initialSnapshot: _manyRecordsResult.snapshot!,
+          campusCardService: service,
+          nowOverride: DateTime(2026, 6, 9, 9, 30),
+        ),
+      ),
+    );
+    await tester.ensureVisible(find.byKey(const Key('campus-card-next-page')));
+    await tester.tap(find.byKey(const Key('campus-card-next-page')));
+    await tester.pump();
+    expect(find.textContaining('第 2 / 2 页'), findsOneWidget);
+    expect(find.text('交易 01'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('campus-card-start-date')),
+      '2026-06-03',
+    );
+    await tester.enterText(
+      find.byKey(const Key('campus-card-end-date')),
+      '2026-06-09',
+    );
+    await tester.tap(find.byKey(const Key('campus-card-apply-filter')));
+    await tester.pump();
+    await tester.pump();
+
+    expect(service.fetchCount, 1);
+    expect(find.textContaining('第 2 / 2 页'), findsOneWidget);
+    expect(find.text('交易 01'), findsOneWidget);
+    expect(find.textContaining('只读查询未完成'), findsOneWidget);
+    final startField = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const Key('campus-card-start-date')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    final endField = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const Key('campus-card-end-date')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(startField.controller.text, '2026-06-03');
+    expect(endField.controller.text, '2026-06-09');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('校园卡详情无有效快照时查询失败进入终端错误并原样重试', (tester) async {
+    final service = _FakeCampusCardClient(result: _missingAccountResult);
+    final emptySnapshot = CampusCardSnapshot(
+      balance: null,
+      status: '',
+      records: const [],
+      fetchedAt: DateTime(2026, 6, 9, 8),
+      sourceUri: Uri.parse('https://card.sspu.edu.cn/epay/'),
+    );
+    await tester.pumpWidget(
+      YhApp(
+        home: CampusCardDetailPage(
+          initialSnapshot: emptySnapshot,
+          campusCardService: service,
+          nowOverride: DateTime(2026, 6, 9, 9, 30),
+        ),
+      ),
+    );
+    await tester.enterText(
+      find.byKey(const Key('campus-card-start-date')),
+      '2026-06-03',
+    );
+    await tester.enterText(
+      find.byKey(const Key('campus-card-end-date')),
+      '2026-06-09',
+    );
+    await tester.tap(find.byKey(const Key('campus-card-apply-filter')));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const Key('campus-card-terminal-error')), findsOneWidget);
+    expect(find.byKey(const Key('campus-card-balance-hero')), findsNothing);
+    expect(find.textContaining('只读查询未完成：未设置 OA 账号'), findsOneWidget);
+    expect(find.text('重试只读查询'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('campus-card-retry-query')));
+    await tester.pump();
+    await tester.pump();
+    expect(service.fetchCount, 2);
+    expect(service.startDateValues, [
+      DateTime(2026, 6, 3),
+      DateTime(2026, 6, 3),
+    ]);
+    expect(service.endDateValues, [DateTime(2026, 6, 9), DateTime(2026, 6, 9)]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('校园卡详情全量同步失败保留输入页码与旧快照', (tester) async {
+    final service = _FakeCampusCardClient(result: _missingAccountResult);
+    await tester.pumpWidget(
+      YhApp(
+        home: CampusCardDetailPage(
+          initialSnapshot: _manyRecordsResult.snapshot!,
+          campusCardService: service,
+          nowOverride: DateTime(2026, 6, 9, 9, 30),
+        ),
+      ),
+    );
+    await tester.enterText(
+      find.byKey(const Key('campus-card-start-date')),
+      '2026-01-01',
+    );
+    await tester.ensureVisible(find.byKey(const Key('campus-card-next-page')));
+    await tester.tap(find.byKey(const Key('campus-card-next-page')));
+    await tester.pump();
+    expect(find.textContaining('第 2 / 2 页'), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const Key('campus-card-sync-all')));
+    await tester.tap(find.byKey(const Key('campus-card-sync-all')));
+    await tester.pump();
+    await tester.pump();
+
+    expect(service.fetchCount, 1);
+    expect(service.queryTransactionsValues, [true]);
+    expect(service.syncAllTransactionsValues, [true]);
+    expect(
+      find.byKey(const Key('campus-card-partial-error-banner')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('第 2 / 2 页'), findsOneWidget);
+    expect(find.text('交易 01'), findsOneWidget);
+    final startField = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const Key('campus-card-start-date')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(startField.controller.text, '2026-01-01');
+    expect(find.text('¥120.00'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('校园卡详情父快照换代后忽略旧服务迟到结果', (tester) async {
+    final pending = Completer<CampusCardQueryResult>();
+    final oldService = _FakeCampusCardClient(
+      result: _manyRecordsResult,
+      fetcher: () => pending.future,
+    );
+    await tester.pumpWidget(
+      YhApp(
+        home: CampusCardDetailPage(
+          initialSnapshot: _manyRecordsResult.snapshot!,
+          campusCardService: oldService,
+          nowOverride: DateTime(2026, 6, 9, 9, 30),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('campus-card-sync-all')));
+    await tester.pump();
+
+    final replacementSnapshot = _manyRecordsResult.snapshot!.copyWith(
+      balance: 77,
+    );
+    final replacementResult = _resultWithSnapshot(replacementSnapshot);
+    await tester.pumpWidget(
+      YhApp(
+        home: CampusCardDetailPage(
+          initialSnapshot: replacementSnapshot,
+          campusCardService: _FakeCampusCardClient(result: replacementResult),
+          nowOverride: DateTime(2026, 6, 9, 9, 30),
+        ),
+      ),
+    );
+    expect(find.text('¥77.00'), findsOneWidget);
+
+    pending.complete(
+      _resultWithSnapshot(_manyRecordsResult.snapshot!.copyWith(balance: 999)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('¥77.00'), findsOneWidget);
+    expect(find.text('¥999.00'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('校园卡详情账户换代立即隐藏旧账户并隔离迟到结果', (tester) async {
+    final pending = Completer<CampusCardQueryResult>();
+    await tester.pumpWidget(
+      YhApp(
+        home: CampusCardDetailPage(
+          initialSnapshot: _manyRecordsResult.snapshot!,
+          campusCardService: _FakeCampusCardClient(
+            result: _manyRecordsResult,
+            fetcher: () => pending.future,
+          ),
+          nowOverride: DateTime(2026, 6, 9, 9, 30),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('campus-card-sync-all')));
+    await tester.pump();
+
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'new-password',
+    );
+    await tester.pump();
+    expect(find.text('账户连接已变化，旧账户记录已从本页隐藏；请返回首页读取当前账户。'), findsOneWidget);
+    expect(find.text('¥120.00'), findsNothing);
+
+    pending.complete(
+      _resultWithSnapshot(_manyRecordsResult.snapshot!.copyWith(balance: 999)),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('¥999.00'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('校园卡详情忽略与 OA 身份无关的凭据变化', (tester) async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-password',
+    );
+    await tester.pumpWidget(
+      YhApp(
+        home: CampusCardDetailPage(
+          initialSnapshot: _manyRecordsResult.snapshot!,
+          campusCardService: _FakeCampusCardClient(result: _manyRecordsResult),
+          nowOverride: DateTime(2026, 6, 9, 9, 30),
+        ),
+      ),
+    );
+
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      emailPassword: 'mail-password',
+      sportsQueryPassword: 'sports-password',
+    );
+    await tester.pump();
+
+    expect(find.text('¥120.00'), findsOneWidget);
+    expect(find.byKey(const Key('campus-card-terminal-error')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('校园卡详情终端错误不展示无效余额并使用同步恢复动词', (tester) async {
+    await tester.pumpWidget(
+      YhApp(
+        home: CampusCardDetailPage(
+          initialSnapshot: _manyRecordsResult.snapshot!,
+          campusCardService: _FakeCampusCardClient(
+            result: _missingAccountResult,
+          ),
+          nowOverride: DateTime(2026, 6, 9, 9, 30),
+          displayStateOverride: CampusCardDetailDisplayState.error,
+        ),
+      ),
+    );
+
+    expect(find.byKey(const Key('campus-card-balance-hero')), findsNothing);
+    expect(find.text('重试只读同步'), findsOneWidget);
+    expect(find.text('¥120.00'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('校园卡详情销毁后请求完成不会回写或抛异常', (tester) async {
+    final pending = Completer<CampusCardQueryResult>();
+    await tester.pumpWidget(
+      YhApp(
+        home: CampusCardDetailPage(
+          initialSnapshot: _manyRecordsResult.snapshot!,
+          campusCardService: _FakeCampusCardClient(
+            result: _manyRecordsResult,
+            fetcher: () => pending.future,
+          ),
+          nowOverride: DateTime(2026, 6, 9, 9, 30),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('campus-card-sync-all')));
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
+    pending.complete(_manyRecordsResult);
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('校园卡详情服务异常解除操作锁并保留只读恢复路径', (tester) async {
+    final service = _FakeCampusCardClient(
+      result: _manyRecordsResult,
+      fetcher: () async => throw StateError('plugin unavailable'),
+    );
+    await tester.pumpWidget(
+      YhApp(
+        home: CampusCardDetailPage(
+          initialSnapshot: _manyRecordsResult.snapshot!,
+          campusCardService: service,
+          nowOverride: DateTime(2026, 6, 9, 9, 30),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('campus-card-sync-all')));
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('campus-card-partial-error-banner')),
+      findsOneWidget,
+    );
+    expect(find.text('¥120.00'), findsOneWidget);
+    expect(
+      tester
+          .widget<YhButton>(find.byKey(const Key('campus-card-sync-all')))
+          .onTap,
+      isNotNull,
+    );
+    expect(find.text('充值'), findsNothing);
+    expect(find.text('挂失'), findsNothing);
+    expect(find.text('解挂'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('首页已有缓存刷新时保留余额与详情入口', (tester) async {
+    final pending = Completer<CampusCardQueryResult>();
+    final service = _FakeCampusCardClient(
+      result: _successResult,
+      cachedResult: _staleCachedResult,
+      fetcher: () => pending.future,
+    );
+    await pumpHomePage(
+      tester,
+      campusCardService: service,
+      campusNetworkStatusService: _buildCampusNetworkStatusService(),
+      campusCardAutoRefreshEnabledOverride: true,
+    );
+    await pumpUntilFound(tester, find.text('校园卡 · 正在更新'));
+
+    expect(find.text('¥66.66'), findsOneWidget);
+    expect(find.text('旧余额仍可查看'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('home-campus-card-balance-card')));
+    await tester.pumpAndSettle();
+    expect(find.text('余额与交易记录'), findsOneWidget);
+
+    pending.complete(_successResult);
+    await disposeHomePage(tester);
     expect(tester.takeException(), isNull);
   });
 
@@ -1295,10 +1720,15 @@ CampusNetworkStatusService _buildCampusNetworkStatusService() {
 }
 
 class _FakeCampusCardClient implements CampusCardBalanceClient {
-  _FakeCampusCardClient({required this.result, this.cachedResult});
+  _FakeCampusCardClient({
+    required this.result,
+    this.cachedResult,
+    this.fetcher,
+  });
 
   final CampusCardQueryResult result;
   final CampusCardQueryResult? cachedResult;
+  final Future<CampusCardQueryResult> Function()? fetcher;
   int fetchCount = 0;
   final List<bool> requireCampusNetworkValues = [];
 
@@ -1321,7 +1751,7 @@ class _FakeCampusCardClient implements CampusCardBalanceClient {
     endDateValues.add(endDate);
     queryTransactionsValues.add(queryTransactions);
     syncAllTransactionsValues.add(syncAllTransactions);
-    return result;
+    return fetcher?.call() ?? result;
   }
 
   final List<DateTime?> startDateValues = [];
@@ -1586,6 +2016,20 @@ final CampusCardQueryResult _manyRecordsResult = CampusCardQueryResult(
     ),
   ),
 );
+
+CampusCardQueryResult _resultWithSnapshot(CampusCardSnapshot snapshot) {
+  return CampusCardQueryResult(
+    status: CampusCardQueryStatus.success,
+    message: '校园卡查询成功',
+    detail: '已读取校园卡余额、卡状态和交易记录。',
+    checkedAt: snapshot.fetchedAt,
+    entranceUri: Uri.parse(
+      'https://oa.sspu.edu.cn//interface/Entrance.jsp?id=xykxt',
+    ),
+    finalUri: snapshot.sourceUri,
+    snapshot: snapshot,
+  );
+}
 
 final CampusCardQueryResult _freshCachedResult = _buildCachedResult(
   balance: 88.88,

@@ -17,7 +17,8 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
     final content = _homeCampusCardContent(state, result, snapshot);
     final canOpenDetails =
         (state == HomeCampusCardDisplayState.content ||
-            state == HomeCampusCardDisplayState.stale) &&
+            state == HomeCampusCardDisplayState.stale ||
+            state == HomeCampusCardDisplayState.operationLocked) &&
         snapshot != null;
 
     return YhCard(
@@ -26,7 +27,7 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
       onTap: canOpenDetails ? () => _openCampusCardDetail(snapshot) : null,
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          minHeight: theme.control.regular + theme.spacing.l - theme.spacing.xs,
+          minHeight: theme.control.regular - theme.spacing.xs,
         ),
         child: Row(
           children: [
@@ -101,7 +102,9 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
     final override = widget.campusCardDisplayStateOverride;
     if (override != null) return override;
     if (_campusCardRefreshController.isLoading) {
-      return HomeCampusCardDisplayState.loading;
+      return snapshot == null
+          ? HomeCampusCardDisplayState.loading
+          : HomeCampusCardDisplayState.operationLocked;
     }
     if (result == null ||
         (result.isSuccess &&
@@ -160,6 +163,12 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
         caption: '请检查 OA 登录与校园网络',
         value: '重试',
         semanticLabel: '校园卡暂不可用，请检查 OA 登录与校园网络',
+      ),
+      HomeCampusCardDisplayState.operationLocked => _HomeCampusCardContent(
+        title: '校园卡 · 正在更新',
+        caption: '旧余额仍可查看',
+        value: balance,
+        semanticLabel: '校园卡正在更新，旧余额 $balance 仍可查看，详情入口可用',
       ),
     };
   }

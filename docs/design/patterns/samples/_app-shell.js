@@ -162,14 +162,40 @@
     var detailPage = document.querySelector('[data-screen="campus-card-detail"]');
     if (!detailPage) return;
     detailPage.dataset.state = state;
+    var contentRetained = ['content', 'stale', 'partial-error', 'operation-locked', 'validation-error'].indexOf(state) >= 0;
     detailPage.querySelectorAll('[data-campus-card-detail-content]').forEach(function (item) {
-      item.hidden = state === 'empty';
+      item.hidden = !contentRetained;
     });
     detailPage.querySelectorAll('[data-campus-card-detail-state]').forEach(function (panel) {
       panel.hidden = panel.dataset.campusCardDetailState !== state;
     });
-    var error = detailPage.querySelector('[data-campus-card-detail-error]');
-    if (error) error.hidden = state !== 'error';
+    var stale = detailPage.querySelector('[data-campus-card-stale]');
+    if (stale) stale.hidden = state !== 'stale';
+    var partialError = detailPage.querySelector('[data-campus-card-partial-error]');
+    if (partialError) partialError.hidden = state !== 'partial-error';
+    var operation = detailPage.querySelector('[data-campus-card-operation]');
+    if (operation) operation.hidden = state !== 'operation-locked';
+    var balance = detailPage.querySelector('[data-campus-card-balance]');
+    if (balance) balance.hidden = state === 'error';
+    var filter = detailPage.querySelector('.campus-card-filter');
+    if (filter) filter.hidden = state === 'error';
+    detailPage.querySelectorAll('[data-campus-card-operation-lock]').forEach(function (control) {
+      control.disabled = state === 'operation-locked';
+    });
+    var validation = detailPage.querySelector('[data-campus-card-detail-validation]');
+    if (validation) validation.hidden = state !== 'validation-error';
+    var dateInputs = detailPage.querySelectorAll('.campus-card-filter input');
+    if (dateInputs.length >= 2) {
+      dateInputs[0].value = state === 'validation-error' ? '2026-07-19' : '2026-07-12';
+      dateInputs[1].value = '2026-07-18';
+    }
+  }
+
+  function setCampusCardValidation(visible) {
+    var detailPage = document.querySelector('[data-screen="campus-card-detail"]');
+    if (!detailPage) return;
+    var validation = detailPage.querySelector('[data-campus-card-detail-validation]');
+    if (validation) validation.hidden = !visible;
   }
 
   function setInfoFilterState(state) {
@@ -517,6 +543,7 @@
     setAcademicState: setAcademicState,
     setCampusCardHomeState: setCampusCardHomeState,
     setCampusCardDetailState: setCampusCardDetailState,
+    setCampusCardValidation: setCampusCardValidation,
     setInfoState: setInfoState,
     setInfoFilterState: setInfoFilterState,
     setMailState: setMailState,

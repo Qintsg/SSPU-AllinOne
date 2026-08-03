@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../controllers/card_auto_refresh_controller.dart';
+import '../controllers/retained_refresh_controller.dart';
 import '../design/qingyuan/qingyuan_ui.dart';
 import '../models/campus_card.dart';
 import '../models/course_period.dart';
@@ -39,7 +40,14 @@ part 'home_campus_card_detail_page.dart';
 part 'home_dashboard_view.dart';
 
 /// 首页校园卡概览的确定性展示状态，仅用于视觉 fixture 与状态回归测试。
-enum HomeCampusCardDisplayState { loading, content, empty, stale, error }
+enum HomeCampusCardDisplayState {
+  loading,
+  content,
+  empty,
+  stale,
+  error,
+  operationLocked,
+}
 
 /// 首页整体的确定性展示状态，用于缓存生命周期与视觉回归。
 enum HomeDashboardDisplayState { initial, loading, content, stale, error }

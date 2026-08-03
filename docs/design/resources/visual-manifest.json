@@ -14,7 +14,7 @@
     ],
     "themes": ["light", "dark"],
     "states": ["initial", "loading", "content", "empty", "stale", "error"],
-    "scenarioStates": ["external-confirmation", "external-cancelled", "external-error", "operation-locked", "partial-error", "credentials-required", "credentials-partial"],
+    "scenarioStates": ["external-confirmation", "external-cancelled", "external-error", "operation-locked", "partial-error", "credentials-required", "credentials-partial", "validation-error"],
     "interactionChecks": ["single-flight", "stale-result-isolation", "system-back", "cancel", "context-preservation", "inline-retry", "external-failure"],
     "capture": {
       "locale": "zh_CN",
@@ -41,8 +41,8 @@
     {"id": "security.lock", "group": "global", "states": ["initial", "loading", "error"]},
 
     {"id": "home.dashboard", "group": "home", "states": ["initial", "loading", "content", "stale", "error"]},
-    {"id": "home.campus-card", "group": "home", "states": ["loading", "content", "empty", "stale", "error"]},
-    {"id": "home.campus-card-detail", "group": "home", "states": ["content", "empty", "error"]},
+    {"id": "home.campus-card", "group": "home", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
+    {"id": "home.campus-card-detail", "group": "home", "states": ["content", "empty", "stale", "error", "partial-error", "operation-locked", "validation-error"]},
 
     {"id": "academic.overview", "group": "academic", "states": ["initial", "loading", "content", "empty", "stale", "error", "partial-error", "credentials-required", "credentials-partial", "operation-locked"]},
     {"id": "academic.grade-detail", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},

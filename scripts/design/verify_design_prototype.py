@@ -276,9 +276,16 @@ def _assert_screen_interactions(page: Page, screen: str, viewport_width: int) ->
         page.keyboard.press("ArrowRight")
         _assert(page.get_by_role("tab", name="收入").get_attribute("aria-selected") == "true", "校园卡方向键未切换收支方向")
         _assert(page.locator('.campus-card-transaction:visible').count() == 1, "校园卡收入筛选结果错误")
-        page.evaluate("window.qingyuanPrototype.setCampusCardDetailState('error')")
+        page.evaluate("window.qingyuanPrototype.setCampusCardValidation(true)")
         _assert(page.locator('.campus-card-filter-error:visible').count() == 1, "校园卡日期错误没有明确提示")
         _assert(page.locator('[data-campus-card-detail-content]:visible').count() == 1, "校园卡日期错误清空了上次有效结果")
+        page.evaluate("window.qingyuanPrototype.setCampusCardDetailState('operation-locked')")
+        _assert(page.locator('[data-campus-card-operation]:visible').count() == 1, "校园卡同步锁缺少可感知反馈")
+        _assert(page.locator('[data-campus-card-detail-content]:visible').count() == 1, "校园卡同步锁清空了有效记录")
+        _assert(page.locator('[data-campus-card-operation-lock]:not([disabled])').count() == 0, "校园卡同步期间仍可修改日期范围或重复触发远端操作")
+        page.evaluate("window.qingyuanPrototype.setCampusCardDetailState('partial-error')")
+        _assert(page.locator('[data-campus-card-partial-error]:visible').count() == 1, "校园卡部分失败缺少恢复提示")
+        _assert(page.locator('[data-campus-card-detail-content]:visible').count() == 1, "校园卡部分失败清空了有效记录")
     elif screen == "schedule":
         schedule_page = page.locator('[data-screen="schedule"]')
         if viewport_width < 768:
@@ -531,7 +538,7 @@ def _capture_campus_card_home_state_references(
     width: int,
     height: int,
 ) -> None:
-    for state in ("loading", "content", "empty", "stale", "error"):
+    for state in ("loading", "content", "empty", "stale", "error", "operation-locked"):
         page.evaluate("state => window.qingyuanPrototype.setCampusCardHomeState(state)", state)
         visible = page.locator(f'[data-campus-card-home-state="{state}"]:visible')
         _assert(visible.count() == 1, f"首页校园卡 {state} 状态未唯一显示")
@@ -580,17 +587,37 @@ def _capture_campus_card_detail_state_references(
     width: int,
     height: int,
 ) -> None:
-    for state in ("empty", "error"):
+    for state in ("empty", "stale", "error", "partial-error", "operation-locked", "validation-error"):
+        page.evaluate("window.scrollTo(0, 0)")
+        page.locator('.prototype-main').evaluate("element => element.scrollTop = 0")
         page.evaluate("state => window.qingyuanPrototype.setCampusCardDetailState(state)", state)
         if state == "empty":
             panel = page.locator('.campus-card-detail-state[data-campus-card-detail-state="empty"]:visible')
             _assert(panel.count() == 1, "校园卡详情 empty 状态未显示")
             panel.scroll_into_view_if_needed()
+        elif state == "error":
+            panel = page.locator('.campus-card-detail-state[data-campus-card-detail-state="error"]:visible')
+            _assert(panel.count() == 1, "校园卡详情 error 状态未显示")
+            _assert(page.locator('[data-campus-card-detail-content]:visible').count() == 0, "校园卡详情首次失败错误保留了无效记录")
+            _assert(page.locator('[data-campus-card-balance]:visible').count() == 0, "校园卡详情首次失败错误展示了无效余额")
+            panel.scroll_into_view_if_needed()
+        elif state == "validation-error":
+            banner = page.locator('[data-campus-card-detail-validation]:visible')
+            _assert(banner.count() == 1, "校园卡详情日期校验错误未显示")
+            _assert(page.locator('[data-campus-card-detail-content]:visible').count() == 1, "校园卡详情日期校验错误清空了有效记录")
+            banner.scroll_into_view_if_needed()
         else:
-            error = page.locator('.campus-card-filter-error:visible')
-            _assert(error.count() == 1, "校园卡详情 error 状态未显示")
-            _assert(page.locator('[data-campus-card-detail-content]:visible').count() == 1, "校园卡详情 error 状态丢失有效记录")
-            error.scroll_into_view_if_needed()
+            banner_selector = {
+                "stale": "[data-campus-card-stale]",
+                "partial-error": "[data-campus-card-partial-error]",
+                "operation-locked": "[data-campus-card-operation]",
+            }[state]
+            banner = page.locator(f'{banner_selector}:visible')
+            _assert(banner.count() == 1, f"校园卡详情 {state} 缺少协同提示")
+            _assert(page.locator('[data-campus-card-detail-content]:visible').count() == 1, f"校园卡详情 {state} 丢失有效记录")
+            if state == "operation-locked":
+                _assert(page.locator('[data-campus-card-operation-lock]:not([disabled])').count() == 0, "校园卡详情操作锁未冻结日期范围与远端操作")
+            banner.scroll_into_view_if_needed()
         _capture_reference(
             page,
             output_dir / f"home.campus-card-detail--{state}--{theme}--{width}x{height}.png",
@@ -599,6 +626,40 @@ def _capture_campus_card_detail_state_references(
         )
     page.evaluate("window.qingyuanPrototype.setCampusCardDetailState('content')")
     page.locator('.prototype-main').evaluate("element => element.scrollTop = 0")
+
+
+def _capture_campus_card_surface_prefix(
+    page: Page,
+    output_dir: Path,
+    prototype_url: str,
+    include_home: bool,
+    include_detail: bool,
+) -> None:
+    for width, height in VIEWPORTS:
+        page.set_viewport_size({"width": width, "height": height})
+        page.emulate_media(reduced_motion="reduce")
+        page.goto(prototype_url, wait_until="networkidle")
+        for theme in ("light", "dark"):
+            page.evaluate(
+                "theme => localStorage.setItem('qingyuan:samples:theme', theme)",
+                theme,
+            )
+            if include_home:
+                _open_screen(page, prototype_url, "home")
+                _capture_campus_card_home_state_references(
+                    page, output_dir, theme, width, height
+                )
+            if include_detail:
+                _open_screen(page, prototype_url, "campus-card-detail")
+                _capture_reference(
+                    page,
+                    output_dir / f"home.campus-card-detail--content--{theme}--{width}x{height}.png",
+                    width,
+                    height,
+                )
+                _capture_campus_card_detail_state_references(
+                    page, output_dir, theme, width, height
+                )
 
 
 def _capture_links_state_references(
@@ -661,6 +722,14 @@ def verify(output_dir: Path, surface_prefix: str | None = None) -> None:
                     page,
                     output_dir,
                     prototype_url,
+                )
+            elif surface_prefix in ("home.campus-card", "home.campus-card-detail"):
+                _capture_campus_card_surface_prefix(
+                    page,
+                    output_dir,
+                    prototype_url,
+                    include_home=surface_prefix == "home.campus-card",
+                    include_detail=True,
                 )
             else:
                 _capture_missing_state_references(page, output_dir, expected)
