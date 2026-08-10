@@ -29,10 +29,10 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Run OSV Scanner
-        uses: google/osv-scanner-action@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+        uses: google/osv-scanner-action@8deb546fdb875b9996d27d4950be7312dac076a1 # v2.5.0
         with:
           scan-args: |-
             --output-format=sarif
@@ -40,6 +40,6 @@ jobs:
             .
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
+        uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
         with:
           sarif_file: osv-results.sarif
