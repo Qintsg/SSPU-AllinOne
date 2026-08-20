@@ -44,7 +44,11 @@ mixin _SettingsPageLayout
               left: theme.spacing.l,
               top: theme.spacing.s,
             ),
-            child: _buildSettingsNavigation(context),
+            child: _buildSettingsNavigationWidget(
+              context: context,
+              selectedIndex: _selectedTab,
+              onSelect: (index) => setState(() => _selectedTab = index),
+            ),
           ),
         ),
         Padding(
@@ -85,7 +89,13 @@ mixin _SettingsPageLayout
             theme.spacing.m,
             theme.spacing.s,
           ),
-          child: _buildSettingsTabCombo(context),
+          child: _buildSettingsTabCombo(
+            context: context,
+            selectedIndex: _selectedTab,
+            sections: _settingsSections,
+            focusNode: _settingsSectionTriggerFocusNode,
+            onOpenDrawer: () => _showSettingsSectionDrawer(context),
+          ),
         ),
         SizedBox(
           height: theme.layout.divider,
@@ -131,172 +141,6 @@ mixin _SettingsPageLayout
           ),
         ),
       ],
-    );
-  }
-
-  /// 左侧导航。
-  Widget _buildSettingsNavigation(BuildContext context) {
-    final theme = context.yhTheme;
-    final captionStyle = theme.typography.caption.copyWith(
-      color: theme.color.muted,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            theme.spacing.s,
-            theme.spacing.xs,
-            theme.spacing.s,
-            theme.spacing.s,
-          ),
-          child: Text('系统设置', style: captionStyle),
-        ),
-        buildSettingsNavItem(
-          context: context,
-          index: 0,
-          selectedIndex: _selectedTab,
-          icon: YhIcons.settings,
-          label: '常规',
-          onTap: () => setState(() => _selectedTab = 0),
-        ),
-        SizedBox(height: theme.spacing.xs),
-        buildSettingsNavItem(
-          context: context,
-          index: 1,
-          selectedIndex: _selectedTab,
-          icon: YhIcons.calendar,
-          label: '学期',
-          onTap: () => setState(() => _selectedTab = 1),
-        ),
-        SizedBox(height: theme.spacing.xs),
-        buildSettingsNavItem(
-          context: context,
-          index: 2,
-          selectedIndex: _selectedTab,
-          icon: YhIcons.sync,
-          label: '自动刷新',
-          onTap: () => setState(() => _selectedTab = 2),
-        ),
-        SizedBox(height: theme.spacing.xs),
-        buildSettingsNavItem(
-          context: context,
-          index: 3,
-          selectedIndex: _selectedTab,
-          icon: YhIcons.lock,
-          label: '安全',
-          onTap: () => setState(() => _selectedTab = 3),
-        ),
-        _buildSettingsDivider(context),
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            theme.spacing.s,
-            0,
-            theme.spacing.s,
-            theme.spacing.s,
-          ),
-          child: Text('消息推送设置', style: captionStyle),
-        ),
-        buildSettingsNavItem(
-          context: context,
-          index: 4,
-          selectedIndex: _selectedTab,
-          icon: YhIcons.education,
-          label: '职能部门',
-          onTap: () => setState(() => _selectedTab = 4),
-        ),
-        SizedBox(height: theme.spacing.xs),
-        buildSettingsNavItem(
-          context: context,
-          index: 5,
-          selectedIndex: _selectedTab,
-          icon: YhIcons.library,
-          label: '教学单位',
-          onTap: () => setState(() => _selectedTab = 5),
-        ),
-        SizedBox(height: theme.spacing.xs),
-        buildSettingsNavItem(
-          context: context,
-          index: 6,
-          selectedIndex: _selectedTab,
-          icon: YhIcons.chat,
-          label: '微信推文',
-          onTap: () => setState(() => _selectedTab = 6),
-        ),
-        _buildSettingsDivider(context),
-        buildSettingsNavItem(
-          context: context,
-          index: 7,
-          selectedIndex: _selectedTab,
-          icon: YhIcons.info,
-          label: '关于',
-          onTap: () => setState(() => _selectedTab = 7),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSettingsDivider(BuildContext context) {
-    final theme = context.yhTheme;
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        vertical: theme.spacing.s,
-        horizontal: theme.spacing.s,
-      ),
-      child: SizedBox(
-        height: theme.layout.divider,
-        width: double.infinity,
-        child: ColoredBox(color: theme.color.border),
-      ),
-    );
-  }
-
-  /// 窄屏顶部下拉。
-  Widget _buildSettingsTabCombo(BuildContext context) {
-    final theme = context.yhTheme;
-    final current = _settingsSections[_selectedTab];
-    return YhPressable(
-      key: const Key('settings-narrow-section-trigger'),
-      semanticLabel: '当前设置分区：${current.label}，打开设置分区',
-      focusNode: _settingsSectionTriggerFocusNode,
-      onPressed: () => _showSettingsSectionDrawer(context),
-      builder: (context, state, child) => DecoratedBox(
-        decoration: BoxDecoration(
-          color: state.hovered ? theme.color.brandTint : theme.color.surface,
-          border: Border.all(
-            color: state.focused ? theme.color.brandStrong : theme.color.border,
-            width: theme.layout.controlBorder,
-          ),
-          borderRadius: BorderRadius.circular(theme.radius.s),
-        ),
-        child: child,
-      ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: theme.control.minimumTarget),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: theme.spacing.m),
-          child: Row(
-            children: [
-              Icon(current.icon, size: theme.spacing.l),
-              SizedBox(width: theme.spacing.s),
-              Expanded(
-                child: Text(
-                  current.label,
-                  style: theme.typography.body.copyWith(
-                    fontWeight: theme.typography.semibold,
-                  ),
-                ),
-              ),
-              Icon(
-                YhIcons.chevronDown,
-                size: theme.spacing.l,
-                color: theme.color.muted,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

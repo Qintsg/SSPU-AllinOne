@@ -47,6 +47,7 @@ import 'settings_update_page.dart';
 part 'settings_page_actions.dart';
 part 'settings_page_security_privacy_actions.dart';
 part 'settings_page_layout.dart';
+part 'settings_page_navigation_builders.dart';
 
 /// 设置页面。
 /// 页面本身只负责分区切换、常规/安全状态与顶部布局；
