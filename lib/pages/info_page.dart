@@ -20,6 +20,7 @@ import '../services/message_state_service.dart';
 import '../utils/app_web_launcher.dart';
 
 part 'info_page_filters.dart';
+part 'info_page_filter_catalog.dart';
 part 'info_page_filter_view.dart';
 part 'info_page_view.dart';
 part 'info_page_header.dart';
