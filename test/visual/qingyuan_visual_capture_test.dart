@@ -45,7 +45,7 @@ import 'package:sspu_allinone/pages/settings_page.dart';
 import 'package:sspu_allinone/pages/settings_wechat_auth_page.dart';
 import 'package:sspu_allinone/pages/wxmp_login_page.dart';
 import 'package:sspu_allinone/pages/settings_update_page.dart';
-import 'package:sspu_allinone/pages/webview_page.dart';
+import 'package:sspu_allinone/pages/webview_page_frame.dart';
 import 'package:sspu_allinone/services/system_auth_service.dart';
 import 'package:sspu_allinone/services/app_update_service.dart';
 import 'package:sspu_allinone/services/quick_links_config_service.dart';
