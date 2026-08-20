@@ -14,6 +14,7 @@ export 'app/yh_app.dart';
 export 'components/yh_button.dart';
 export 'components/yh_banner.dart';
 export 'components/yh_action_controls.dart';
+export 'components/yh_action_controls_extras.dart';
 export 'components/yh_bottom_drawer.dart';
 export 'components/yh_card.dart';
 export 'components/yh_chip.dart';
