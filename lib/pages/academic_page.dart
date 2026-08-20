@@ -39,6 +39,7 @@ part 'academic_eams_grade_detail_page.dart';
 part 'academic_eams_grade_process_page.dart';
 part 'academic_sports_attendance_card.dart';
 part 'academic_sports_attendance_detail_page.dart';
+part 'academic_sports_attendance_detail_panels.dart';
 part 'academic_student_report_card.dart';
 part 'academic_student_report_summary.dart';
 part 'academic_student_report_progress_helpers.dart';
