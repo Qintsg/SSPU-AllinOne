@@ -114,24 +114,27 @@ class YhDatePicker extends StatelessWidget {
               ),
               borderRadius: BorderRadius.circular(theme.radius.input),
             ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: theme.spacing.m),
-              child: Row(
-                children: [
-                  Icon(YhIcons.calendar, color: theme.color.brandStrong),
-                  SizedBox(width: theme.spacing.s),
-                  Expanded(
-                    child: Text(
-                      value ?? placeholder,
-                      style: theme.typography.body.copyWith(
-                        color: value == null
-                            ? theme.color.muted
-                            : theme.color.foreground,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: theme.control.regular),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: theme.spacing.m),
+                child: Row(
+                  children: [
+                    Icon(YhIcons.calendar, color: theme.color.brandStrong),
+                    SizedBox(width: theme.spacing.s),
+                    Expanded(
+                      child: Text(
+                        value ?? placeholder,
+                        style: theme.typography.body.copyWith(
+                          color: value == null
+                              ? theme.color.muted
+                              : theme.color.foreground,
+                        ),
                       ),
                     ),
-                  ),
-                  Icon(YhIcons.chevronRight, color: theme.color.muted),
-                ],
+                    Icon(YhIcons.chevronRight, color: theme.color.muted),
+                  ],
+                ),
               ),
             ),
           ),

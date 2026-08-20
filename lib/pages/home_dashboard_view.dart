@@ -2,11 +2,14 @@
  * 清源首页视图 — 今日学程时间轨与校园服务概览
  * @Project : SSPU-AllinOne
  * @File : home_dashboard_view.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-14
  */
 
 part of 'home_page.dart';
 
 extension _HomeDashboardView on _HomePageState {
+  /// 构建清源首页固定首屏骨架。
   Widget _buildQingyuanHomePage(BuildContext context) {
     final theme = context.yhTheme;
     return SafeArea(
@@ -14,70 +17,122 @@ extension _HomeDashboardView on _HomePageState {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final viewportWidth = MediaQuery.sizeOf(context).width;
-          final mobile = constraints.maxWidth < theme.breakpoint.compact;
-          final pagePadding = mobile
+          final compact =
+              viewportWidth < theme.breakpoint.compact ||
+              constraints.maxWidth < theme.breakpoint.compact;
+          final textScale = MediaQuery.textScalerOf(context).scale(1);
+          final minimumFixedViewportHeight =
+              theme.layout.formContentWidth +
+              theme.control.regular * 3 +
+              theme.spacing.s;
+          final allowScrolling =
+              textScale > 1.2 ||
+              constraints.maxHeight < minimumFixedViewportHeight;
+          final pagePadding = compact
               ? theme.spacing.m
               : viewportWidth < theme.breakpoint.expanded
               ? theme.spacing.xl
               : theme.spacing.xl2;
-          return SingleChildScrollView(
-            child: Align(
-              alignment: AlignmentDirectional.topCenter,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: theme.layout.pageContentWidth,
+          final page = Align(
+            alignment: AlignmentDirectional.topCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: theme.layout.pageContentWidth,
+                minHeight: allowScrolling ? 0 : constraints.maxHeight,
+              ),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  pagePadding,
+                  compact ? theme.spacing.m : theme.spacing.xl,
+                  pagePadding,
+                  compact ? theme.spacing.s : theme.spacing.xl,
                 ),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    pagePadding,
-                    mobile
-                        ? theme.spacing.l + theme.layout.divider * 2
-                        : theme.spacing.xl,
-                    pagePadding,
-                    theme.spacing.xl2 + theme.spacing.m,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildHomeHeading(theme, compact: mobile),
-                      if (_homeDashboardDisplayState ==
-                              HomeDashboardDisplayState.content ||
-                          _homeDashboardDisplayState ==
-                              HomeDashboardDisplayState.stale) ...[
-                        if (mobile) SizedBox(height: theme.layout.divider),
-                        _buildHomeStatusRow(theme),
-                        if (_homeDashboardDisplayState ==
-                            HomeDashboardDisplayState.stale) ...[
-                          if (viewportWidth >= theme.breakpoint.medium &&
-                              viewportWidth < theme.breakpoint.expanded)
-                            SizedBox(height: theme.layout.divider),
-                          YhBanner(
-                            key: const Key('home-dashboard-stale-banner'),
-                            text:
-                                '当前显示 ${_latestHomeUpdate == null ? '较早' : _formatHomeTime(_latestHomeUpdate!)} 的本地首页缓存；部分校园服务可能已更新。',
-                            kind: YhBannerKind.warn,
-                            leadingIcon: YhIcons.info,
-                          ),
-                          SizedBox(height: theme.spacing.m),
-                        ],
-                        _buildHomePrimaryLayout(theme, constraints.maxWidth),
-                        _buildHomeUtilityDock(theme, constraints.maxWidth),
-                      ] else
-                        _buildHomeStatePanel(theme, _homeDashboardDisplayState),
-                    ],
-                  ),
+                child: _buildHomeViewport(
+                  theme,
+                  width: constraints.maxWidth,
+                  compact: compact,
+                  allowScrolling: allowScrolling,
                 ),
               ),
             ),
           );
+          if (allowScrolling) {
+            return SingleChildScrollView(child: page);
+          }
+          return page;
         },
       ),
+    );
+  }
+
+  /// 按可用宽高编排时间轨、概览与行动坞。
+  Widget _buildHomeViewport(
+    YhTheme theme, {
+    required double width,
+    required bool compact,
+    required bool allowScrolling,
+  }) {
+    final state = _homeDashboardDisplayState;
+    final retainedContent = {
+      HomeDashboardDisplayState.content,
+      HomeDashboardDisplayState.stale,
+      HomeDashboardDisplayState.partialError,
+      HomeDashboardDisplayState.credentialsPartial,
+      HomeDashboardDisplayState.operationLocked,
+    }.contains(state);
+    final body = <Widget>[
+      _buildHomeHeading(theme, compact: compact),
+      if (retainedContent) ...[
+        if (state == HomeDashboardDisplayState.content)
+          _buildHomeStatusRow(theme),
+        if (state != HomeDashboardDisplayState.content) ...[
+          _buildHomeRetainedBanner(state),
+          SizedBox(height: theme.spacing.m),
+        ],
+        if (allowScrolling)
+          SizedBox(
+            height: compact
+                ? theme.layout.formContentWidth + theme.spacing.xl2
+                : theme.layout.formContentWidth,
+            child: _buildHomePrimaryLayout(theme, width, compact: compact),
+          )
+        else if (compact)
+          SizedBox(
+            height: _homeCompactPrimaryHeight(
+              theme,
+              contentState: state == HomeDashboardDisplayState.content,
+            ),
+            child: _buildHomePrimaryLayout(theme, width, compact: compact),
+          )
+        else
+          SizedBox(
+            height:
+                (MediaQuery.sizeOf(context).height *
+                        theme.responsive.homeContentHeightViewportPercent /
+                        100)
+                    .clamp(
+                      theme.layout.homeContentMinHeight,
+                      theme.layout.homeContentMaxHeight,
+                    ),
+            child: _buildHomePrimaryLayout(theme, width, compact: compact),
+          ),
+        _buildHomeUtilityDock(theme, compact: compact),
+      ] else
+        _buildHomeStatePanel(theme, state),
+    ];
+    return Column(
+      mainAxisSize: allowScrolling ? MainAxisSize.min : MainAxisSize.max,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: body,
     );
   }
 
   HomeDashboardDisplayState get _homeDashboardDisplayState {
     final override = widget.dashboardDisplayStateOverride;
     if (override != null) return override;
+    if (_campusCardRefreshController.isLoading && _hasHomeCacheData) {
+      return HomeDashboardDisplayState.operationLocked;
+    }
     if (_dashboardCachesLoading) return HomeDashboardDisplayState.loading;
     if (_dashboardCacheError != null) {
       return _hasHomeCacheData
@@ -170,17 +225,61 @@ extension _HomeDashboardView on _HomePageState {
         action: YhButton(label: '重试', onTap: _refreshHome),
       ),
       HomeDashboardDisplayState.content ||
-      HomeDashboardDisplayState.stale => const SizedBox.shrink(),
+      HomeDashboardDisplayState.stale ||
+      HomeDashboardDisplayState.partialError ||
+      HomeDashboardDisplayState.credentialsPartial ||
+      HomeDashboardDisplayState.operationLocked => const SizedBox.shrink(),
     };
-    return YhCard(
-      key: ValueKey('home-dashboard-state-${state.name}'),
-      padding: EdgeInsets.zero,
+    return Align(
+      alignment: AlignmentDirectional.topStart,
       child: ConstrainedBox(
-        constraints: BoxConstraints(
-          minHeight: theme.layout.popoverWidth + theme.spacing.xl,
+        constraints: BoxConstraints(maxWidth: theme.layout.formContentWidth),
+        child: YhCard(
+          key: ValueKey('home-dashboard-state-${state.name}'),
+          padding: EdgeInsets.zero,
+          child: state == HomeDashboardDisplayState.loading
+              ? Padding(
+                  padding: EdgeInsets.all(theme.spacing.l),
+                  child: content,
+                )
+              : content,
         ),
-        child: Center(child: content),
       ),
+    );
+  }
+
+  /// 构建保留有效内容的协同状态横幅。
+  Widget _buildHomeRetainedBanner(HomeDashboardDisplayState state) {
+    final (text, kind, icon) = switch (state) {
+      HomeDashboardDisplayState.stale => (
+        '当前显示 ${_latestHomeUpdate == null ? '较早' : _formatHomeTime(_latestHomeUpdate!)} 的本地首页缓存；部分校园服务可能已更新。',
+        YhBannerKind.warn,
+        YhIcons.info,
+      ),
+      HomeDashboardDisplayState.partialError => (
+        '邮箱与体育考勤更新失败；课程、校园卡和已有摘要仍可使用。',
+        YhBannerKind.warn,
+        YhIcons.warning,
+      ),
+      HomeDashboardDisplayState.credentialsPartial => (
+        '邮箱与体育尚未连接；本机课程和校园卡仍可使用，可稍后在设置中连接。',
+        YhBannerKind.info,
+        YhIcons.info,
+      ),
+      HomeDashboardDisplayState.operationLocked => (
+        '正在刷新首页；当前内容保持可用，完成前不会重复请求。',
+        YhBannerKind.info,
+        YhIcons.sync,
+      ),
+      _ => ('', YhBannerKind.info, YhIcons.info),
+    };
+    final banner = YhBanner(text: text, kind: kind, leadingIcon: icon);
+    final theme = context.yhTheme;
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.compact;
+    return Padding(
+      key: Key('home-dashboard-${state.name}-banner'),
+      padding: EdgeInsets.only(top: compact ? theme.spacing.xs : 0),
+      child: banner,
     );
   }
 
@@ -240,10 +339,12 @@ extension _HomeDashboardView on _HomePageState {
 
   Widget _buildHomeHeading(YhTheme theme, {required bool compact}) {
     final now = widget.nowOverride ?? DateTime.now();
+    final greeting = _greetingPhrases(now);
     final heading = Column(
       key: const Key('home-page-heading'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (compact) SizedBox(height: theme.spacing.xs),
         Text(
           '${now.month} 月 ${now.day} 日 · ${_weekdayLabel(now.weekday)}',
           style: theme.typography.caption.copyWith(
@@ -252,18 +353,26 @@ extension _HomeDashboardView on _HomePageState {
             letterSpacing: theme.layout.divider,
           ),
         ),
-        SizedBox(height: theme.spacing.s),
+        SizedBox(height: compact ? theme.spacing.xs : theme.spacing.s),
         Semantics(
           header: true,
-          child: Text(_greeting(now), style: theme.typography.h1),
+          label: greeting.text,
+          child: compact
+              ? _HomeGreetingPhraseWrap(
+                  leading: greeting.leading,
+                  focus: greeting.focus,
+                  style: theme.typography.h1,
+                )
+              : Text(greeting.text, style: theme.typography.h1),
         ),
-        SizedBox(height: compact ? theme.spacing.xs : theme.spacing.s),
-        Text(
-          key: const Key('home-heading-description'),
-          '课程、待办和校园服务状态集中在同一条时间语境里，数据均保留在本机。',
-          style: (compact ? theme.typography.small : theme.typography.body)
-              .copyWith(color: theme.color.muted),
-        ),
+        if (!compact) ...[
+          SizedBox(height: theme.spacing.s),
+          Text(
+            key: const Key('home-heading-description'),
+            '课程、待办和校园服务状态集中在同一条时间语境里，数据均保留在本机。',
+            style: theme.typography.body.copyWith(color: theme.color.muted),
+          ),
+        ],
       ],
     );
     final refreshAction = RefreshFeedbackAction(
@@ -272,7 +381,11 @@ extension _HomeDashboardView on _HomePageState {
       semanticLabel: '刷新首页',
       isLoading: _campusCardRefreshController.isLoading,
       feedback: _campusCardRefreshController.feedback,
-      onPressed: _refreshHome,
+      onPressed:
+          _homeDashboardDisplayState ==
+              HomeDashboardDisplayState.operationLocked
+          ? null
+          : _refreshHome,
       minTouchSize: theme.control.minimumTarget,
       maxFeedbackWidth: theme.layout.inlineControlWidth,
     );
@@ -280,12 +393,7 @@ extension _HomeDashboardView on _HomePageState {
         ? Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Transform.translate(
-                  offset: Offset(0, theme.spacing.s),
-                  child: heading,
-                ),
-              ),
+              Expanded(child: heading),
               SizedBox(width: theme.spacing.s),
               refreshAction,
             ],
@@ -312,9 +420,7 @@ extension _HomeDashboardView on _HomePageState {
           );
     return Padding(
       padding: EdgeInsets.only(
-        bottom: compact
-            ? theme.spacing.l + theme.spacing.s + theme.layout.divider * 2
-            : theme.spacing.l + theme.layout.divider * 3,
+        bottom: compact ? theme.spacing.xs : theme.spacing.m + theme.spacing.xs,
       ),
       child: content,
     );
@@ -343,889 +449,5 @@ extension _HomeDashboardView on _HomePageState {
         ],
       ),
     );
-  }
-
-  Widget _buildHomePrimaryLayout(YhTheme theme, double width) {
-    final stacked =
-        width <=
-        theme.breakpoint.medium +
-            theme.layout.inlineControlWidth -
-            theme.spacing.xl2;
-    final timeline = _buildTimelinePanel(theme);
-    final overview = _buildHomeOverviewStack(theme);
-    if (stacked) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          timeline,
-          SizedBox(height: theme.spacing.m),
-          overview,
-        ],
-      );
-    }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(flex: theme.responsive.homePrimaryFlex, child: timeline),
-        SizedBox(width: theme.spacing.m),
-        Expanded(flex: theme.responsive.homeSecondaryFlex, child: overview),
-      ],
-    );
-  }
-
-  Widget _buildTimelinePanel(YhTheme theme) {
-    final entries = _homeTimelineEntries;
-    final nextIndex = entries.indexWhere((entry) => entry.isUpcoming);
-    final next = nextIndex < 0 ? null : entries[nextIndex];
-    final viewportWidth = MediaQuery.sizeOf(context).width;
-    final stacked =
-        viewportWidth <=
-        theme.breakpoint.medium +
-            theme.layout.inlineControlWidth -
-            theme.spacing.xl2;
-    final minimumHeight = stacked
-        ? 0.0
-        : theme.layout.formContentWidth -
-              theme.spacing.xl2 -
-              theme.layout.divider * 2;
-    final compact = viewportWidth < theme.breakpoint.compact;
-    final fluidPanelPadding =
-        viewportWidth * theme.responsive.panelPaddingViewportPercent / 100;
-    final panelPadding = compact
-        ? theme.spacing.l
-        : fluidPanelPadding
-              .clamp(theme.spacing.l, theme.spacing.xl2)
-              .toDouble();
-    final fluidHeroSize =
-        viewportWidth * theme.responsive.heroViewportPercent / 100;
-    final heroStyle = compact
-        ? theme.typography.h1.copyWith(
-            fontSize: theme.typography.h1.fontSize! - theme.layout.divider,
-            height: theme.typography.hero.height,
-            fontWeight: theme.typography.hero.fontWeight,
-          )
-        : theme.typography.hero.copyWith(
-            fontSize: fluidHeroSize
-                .clamp(
-                  theme.typography.h1.fontSize!,
-                  theme.typography.hero.fontSize!,
-                )
-                .toDouble(),
-          );
-    return Semantics(
-      label: '今日学程时间轨',
-      container: true,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(theme.radius.l),
-        child: DecoratedBox(
-          key: const Key('home-today-courses-tile'),
-          decoration: BoxDecoration(color: theme.color.structural),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: minimumHeight),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _HomeTimelineBackdropPainter(theme),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(panelPadding),
-                  child: DefaultTextStyle.merge(
-                    style: theme.typography.body.copyWith(
-                      color: theme.color.onStructural,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '今日学程时间轨',
-                                style: _timelineMetaStyle(theme),
-                              ),
-                            ),
-                            Text(
-                              '${_todayCourseEntries.length} 节课 · '
-                              '${_latestMessages.length} 项待办',
-                              style: _timelineMetaStyle(theme),
-                            ),
-                          ],
-                        ),
-                        SizedBox(
-                          height: compact
-                              ? theme.spacing.l + theme.layout.divider * 2
-                              : theme.spacing.xl,
-                        ),
-                        if (next == null)
-                          Text(
-                            '今天的已缓存日程已经看完',
-                            style: heroStyle.copyWith(
-                              color: theme.color.onStructural,
-                            ),
-                          )
-                        else
-                          Text.rich(
-                            TextSpan(
-                              children: [
-                                const TextSpan(text: '下一项是 '),
-                                TextSpan(
-                                  text: next.title,
-                                  style: TextStyle(
-                                    color: theme.color.brandTint,
-                                    fontWeight: theme.typography.semibold,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text:
-                                      '\n还有 ${widget.homeCountdownMinutesOverride ?? next.minutesUntil} 分钟开始',
-                                ),
-                              ],
-                            ),
-                            style: heroStyle.copyWith(
-                              color: theme.color.onStructural,
-                            ),
-                          ),
-                        SizedBox(
-                          height: compact
-                              ? theme.spacing.xl + theme.layout.divider * 2
-                              : theme.spacing.xl,
-                        ),
-                        if (entries.isEmpty)
-                          Text(
-                            '打开课表或信息页刷新后，今天的课程与待办会显示在这里。',
-                            style: theme.typography.body.copyWith(
-                              color: _timelineDetailColor(theme),
-                            ),
-                          )
-                        else
-                          for (var index = 0; index < entries.length; index++)
-                            _HomeTimelineRow(
-                              entry: entries[index],
-                              current: index == nextIndex,
-                              last: index == entries.length - 1,
-                            ),
-                        SizedBox(
-                          height: compact
-                              ? theme.layout.divider
-                              : theme.focus.ringWidth,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  TextStyle _timelineMetaStyle(YhTheme theme) {
-    return theme.typography.small.copyWith(
-      color: theme.color.onStructural.withValues(
-        alpha: theme.opacity.timelineMeta,
-      ),
-    );
-  }
-
-  Color _timelineDetailColor(YhTheme theme) {
-    return theme.color.onStructural.withValues(
-      alpha: theme.opacity.timelineDetail,
-    );
-  }
-
-  Widget _buildHomeOverviewStack(YhTheme theme) {
-    final children = <Widget>[];
-    void add(Widget child) {
-      if (children.isNotEmpty) children.add(SizedBox(height: theme.spacing.m));
-      children.add(child);
-    }
-
-    if (_studentProfileCardVisible) add(_buildProgramOverviewCard(theme));
-    if (_campusCardCardVisible) add(_buildCampusCardBalanceCard(context));
-    if (_emailTileVisible) add(_buildEmailOverviewCard(theme));
-    if (_sportsAttendanceTileVisible) add(_buildSportsOverviewCard(theme));
-    return Column(
-      key: const Key('home-overview-stack'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: children,
-    );
-  }
-
-  Widget _buildHomeUtilityDock(YhTheme theme, double width) {
-    if (!_studentReportTileVisible && !_quickLinksTileVisible) {
-      return const SizedBox.shrink();
-    }
-    final stacked =
-        width <=
-        theme.breakpoint.medium +
-            theme.layout.inlineControlWidth -
-            theme.spacing.xl2;
-    final children = <Widget>[
-      if (_studentReportTileVisible) _buildSecondClassroomCard(theme),
-      if (_quickLinksTileVisible) _buildQuickLinksCard(theme),
-    ];
-    final dockHeight =
-        theme.control.regular * 3 + theme.spacing.s + theme.layout.divider * 2;
-    final content = stacked || children.length == 1
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var index = 0; index < children.length; index++) ...[
-                children[index],
-                if (index < children.length - 1)
-                  SizedBox(height: theme.spacing.m),
-              ],
-            ],
-          )
-        : Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: theme.responsive.homeSecondaryFlex,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: dockHeight),
-                  child: children.first,
-                ),
-              ),
-              SizedBox(width: theme.spacing.m),
-              Expanded(
-                flex: theme.responsive.homePrimaryFlex,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: dockHeight),
-                  child: children.last,
-                ),
-              ),
-            ],
-          );
-    return Padding(
-      key: const Key('home-utility-dock'),
-      padding: EdgeInsets.only(top: theme.spacing.m),
-      child: content,
-    );
-  }
-
-  Widget _buildSecondClassroomCard(YhTheme theme) {
-    final result = _studentReportResult;
-    final hasCredentials =
-        widget.studentReportResultOverride != null ||
-        (_credentialsStatus.oaAccount.trim().isNotEmpty &&
-            _credentialsStatus.hasOaPassword);
-    if (!hasCredentials) {
-      return _HomeOverviewCard(
-        key: const Key('home-second-classroom-tile'),
-        icon: YhIcons.academic,
-        color: theme.color.serviceSecondClass,
-        title: '第二课堂',
-        detail: '需要先保存 OA 账号密码',
-        value: '未配置',
-        onTap: widget.onOpenSettings,
-      );
-    }
-    if (result != null && !result.isSuccess) {
-      return _HomeOverviewCard(
-        key: const Key('home-second-classroom-tile'),
-        icon: YhIcons.academic,
-        color: theme.color.serviceSecondClass,
-        title: '第二课堂暂不可用',
-        detail: firstNonEmptyText(
-          result.detail,
-          result.message,
-          fallback: '请检查 OA 登录与校园网络',
-        ),
-        value: '未更新',
-        onTap: widget.onOpenSettings,
-      );
-    }
-    final totals = result?.summary?.totals;
-    final earned = totals?.totalEarnedCredit;
-    final required = totals?.totalRequiredCredit;
-    final percent = earned == null || required == null || required <= 0
-        ? null
-        : ((earned / required) * 100).round();
-    final detail = earned == null || required == null
-        ? '第二课堂学分尚未读取'
-        : '已获 ${_compactNumber(earned)} / 必修 ${_compactNumber(required)} 学分';
-    return _HomeOverviewCard(
-      key: const Key('home-second-classroom-tile'),
-      icon: YhIcons.academic,
-      color: theme.color.serviceSecondClass,
-      title: '第二课堂',
-      detail: detail,
-      value: percent == null ? '未读取' : '$percent%',
-    );
-  }
-
-  Widget _buildQuickLinksCard(YhTheme theme) {
-    final favorites = _quickLinkFavorites.take(3).toList(growable: false);
-    return YhCard(
-      key: const Key('home-quick-links-tile'),
-      semanticLabel: '常用入口',
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < theme.layout.formFieldWidth;
-          final heading = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '常用入口',
-                style: theme.typography.caption.copyWith(
-                  color: theme.color.brandInk,
-                  fontWeight: theme.typography.semibold,
-                ),
-              ),
-              SizedBox(height: theme.spacing.xs),
-              Text('从今天直接出发', style: theme.typography.h3),
-            ],
-          );
-          final actions = favorites.isEmpty
-              ? Text(
-                  '还没有可用入口，可在“跳转”中收藏常用校园服务。',
-                  style: theme.typography.small.copyWith(
-                    color: theme.color.muted,
-                  ),
-                )
-              : Wrap(
-                  spacing: theme.spacing.s,
-                  runSpacing: theme.spacing.s,
-                  alignment: WrapAlignment.end,
-                  children: [
-                    for (final item in favorites)
-                      YhQuickLink(
-                        label: item.name,
-                        icon: _quickLinkIcon(item),
-                        color: theme.color.serviceQuickLink,
-                        variant: YhQuickLinkVariant.compact,
-                        onTap: () => unawaited(_openQuickLink(item)),
-                      ),
-                  ],
-                );
-          if (compact) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                heading,
-                SizedBox(height: theme.spacing.m),
-                actions,
-              ],
-            );
-          }
-          return Row(
-            children: [
-              heading,
-              SizedBox(width: theme.spacing.l),
-              Expanded(
-                child: Align(alignment: Alignment.centerRight, child: actions),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  IconData _quickLinkIcon(QuickLinkItemConfig item) {
-    return switch (item.icon?.trim()) {
-      'security' => YhIcons.lock,
-      'library' => YhIcons.library,
-      'education' => YhIcons.academic,
-      'mail' => YhIcons.mail,
-      'finance' => YhIcons.finance,
-      'globe' => YhIcons.globe,
-      _ when item.name.contains('认证') => YhIcons.lock,
-      _ when item.name.contains('图书') => YhIcons.library,
-      _ => YhIcons.globe,
-    };
-  }
-
-  Future<void> _openQuickLink(QuickLinkItemConfig item) async {
-    final uri = Uri.tryParse(item.url);
-    if (uri == null || uri.host.isEmpty) return;
-    final authenticationRequired = _quickLinkRequiresOaAuthentication(item);
-    final authenticationReady =
-        !authenticationRequired ||
-        await AcademicCredentialsService.instance.readOaLoginSession() != null;
-    if (!mounted) return;
-    final confirmed = await Navigator.of(context).push<bool>(
-      YhPageRoute<bool>(
-        builder: (_) => ExternalLinkConfirmationPage(
-          displayName: item.name,
-          uri: uri,
-          authenticationRequired: authenticationRequired,
-          authenticationReady: authenticationReady,
-        ),
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
-
-  bool _quickLinkRequiresOaAuthentication(QuickLinkItemConfig item) {
-    final host = Uri.tryParse(item.url)?.host.toLowerCase() ?? '';
-    return host == 'oa.sspu.edu.cn' ||
-        item.name.contains('（OA）') ||
-        item.name.contains('统一身份认证');
-  }
-
-  Widget _buildProgramOverviewCard(YhTheme theme) {
-    final completion = _academicOverviewResult?.snapshot?.programCompletion;
-    final completed = completion?.completedCredits;
-    final total = completion == null
-        ? null
-        : completion.completedCredits + completion.pendingCredits;
-    final percent = completed == null || total == null || total <= 0
-        ? null
-        : ((completed / total) * 100).round();
-    return _HomeOverviewCard(
-      key: const Key('home-training-plan-card'),
-      icon: YhIcons.academic,
-      color: theme.color.serviceAcademic,
-      title: '培养方案',
-      detail: completed == null || total == null
-          ? '培养进度尚未读取'
-          : '已修 ${_compactNumber(completed)} / '
-                '${_compactNumber(total)} 学分',
-      value: percent == null ? '未读取' : '$percent%',
-    );
-  }
-
-  Widget _buildEmailOverviewCard(YhTheme theme) {
-    final count = _emailResult?.snapshot?.messages.length;
-    return _HomeOverviewCard(
-      key: const Key('home-email-tile'),
-      icon: YhIcons.mail,
-      color: theme.color.serviceMail,
-      title: '学校邮箱',
-      detail: count == null ? '邮箱缓存尚未读取' : '$count 封未读邮件',
-      value: count?.toString() ?? '未读取',
-    );
-  }
-
-  Widget _buildSportsOverviewCard(YhTheme theme) {
-    final count = _sportsAttendanceResult?.summary?.totalCount;
-    return _HomeOverviewCard(
-      key: const Key('home-sports-attendance-tile'),
-      icon: YhIcons.sports,
-      color: theme.color.serviceSports,
-      title: '体育考勤',
-      detail: count == null ? '体育考勤尚未读取' : '本学期出勤正常',
-      value: count == null ? '未读取' : '$count / $count',
-    );
-  }
-
-  List<_HomeTimelineEntry> get _homeTimelineEntries {
-    final now = widget.nowOverride ?? DateTime.now();
-    final entries = <_HomeTimelineEntry>[
-      if (_todayCoursesTileVisible)
-        for (final course in _todayCourseEntries)
-          _HomeTimelineEntry.course(
-            course,
-            now,
-            timeOverride: widget.homeCourseTimeOverrides?[course.courseName],
-          ),
-      if (_messagesTileVisible)
-        for (final message in _latestMessages.take(1))
-          _HomeTimelineEntry.message(message, now),
-    ]..sort((a, b) => a.minuteOfDay.compareTo(b.minuteOfDay));
-    return entries.take(3).toList(growable: false);
-  }
-
-  DateTime? get _latestHomeUpdate {
-    if (widget.homeUpdatedAtOverride != null) {
-      return widget.homeUpdatedAtOverride;
-    }
-    final values = <DateTime?>[
-      _campusCardResult?.checkedAt,
-      _courseTableResult?.checkedAt,
-      _academicOverviewResult?.checkedAt,
-      _sportsAttendanceResult?.checkedAt,
-      _emailResult?.checkedAt,
-      _studentReportResult?.checkedAt,
-    ].whereType<DateTime>().toList(growable: false);
-    if (values.isEmpty) return null;
-    values.sort();
-    return values.last;
-  }
-
-  Future<void> _refreshHome() async {
-    final tasks = <Future<void>>[
-      _loadCampusCard(),
-      _loadDashboardCaches(),
-      if (widget.messagesOverride == null) _loadLatestMessages(),
-    ];
-    await Future.wait<void>(tasks);
-  }
-
-  String _greeting(DateTime now) {
-    if (now.hour < 11) return '早上好，先看清今天。';
-    if (now.hour < 18) return '下午好，继续看清今天。';
-    return '晚上好，收好今天的线索。';
-  }
-
-  String _weekdayLabel(int weekday) => switch (weekday) {
-    DateTime.monday => '星期一',
-    DateTime.tuesday => '星期二',
-    DateTime.wednesday => '星期三',
-    DateTime.thursday => '星期四',
-    DateTime.friday => '星期五',
-    DateTime.saturday => '星期六',
-    DateTime.sunday => '星期日',
-    _ => '',
-  };
-
-  String _formatHomeTime(DateTime value) {
-    return '${value.hour.toString().padLeft(2, '0')}:'
-        '${value.minute.toString().padLeft(2, '0')}';
-  }
-
-  String _compactNumber(double value) {
-    return value == value.roundToDouble()
-        ? value.toInt().toString()
-        : value.toStringAsFixed(1);
-  }
-}
-
-class _HomeOverviewCard extends StatelessWidget {
-  const _HomeOverviewCard({
-    super.key,
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.detail,
-    required this.value,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String detail;
-  final String value;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return YhCard(
-      semanticLabel: '$title，$detail，$value',
-      onTap: onTap,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: theme.control.regular),
-        child: Row(
-          children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: Color.alphaBlend(
-                  color.withValues(alpha: theme.opacity.domainTint),
-                  theme.color.surface,
-                ),
-                borderRadius: BorderRadius.circular(theme.radius.input),
-              ),
-              child: SizedBox.square(
-                dimension: theme.control.regular - theme.spacing.xs,
-                child: Icon(
-                  icon,
-                  size: theme.spacing.l,
-                  color: theme.color.muted,
-                ),
-              ),
-            ),
-            SizedBox(width: theme.spacing.m),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: theme.typography.body.copyWith(
-                      fontWeight: theme.typography.semibold,
-                    ),
-                  ),
-                  SizedBox(height: theme.spacing.xs),
-                  Text(
-                    detail,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.typography.caption.copyWith(
-                      color: theme.color.muted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: theme.spacing.m),
-            Text(
-              value,
-              style: theme.typography.body.copyWith(
-                fontFamily: YhTypographyTokens.fontFamilyMono,
-                fontWeight: theme.typography.semibold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HomeTimelineEntry {
-  const _HomeTimelineEntry({
-    required this.time,
-    required this.title,
-    required this.detail,
-    required this.minuteOfDay,
-    required this.minutesUntil,
-  });
-
-  factory _HomeTimelineEntry.course(
-    AcademicCourseTableEntry course,
-    DateTime now, {
-    String? timeOverride,
-  }) {
-    final period = CoursePeriodTable.standard.periodOf(course.startUnit);
-    final time = timeOverride ?? period?.startTime ?? course.timeText;
-    final minuteOfDay = _parseMinuteOfDay(time);
-    return _HomeTimelineEntry(
-      time: time,
-      title: course.courseName,
-      detail: course.location?.trim().isNotEmpty == true
-          ? course.location!.trim()
-          : course.teacher?.trim().isNotEmpty == true
-          ? course.teacher!.trim()
-          : course.timeText,
-      minuteOfDay: minuteOfDay,
-      minutesUntil: minuteOfDay - now.hour * 60 - now.minute,
-    );
-  }
-
-  factory _HomeTimelineEntry.message(MessageItem message, DateTime now) {
-    final fallback = DateTime(now.year, now.month, now.day, 16);
-    final dateTime = DateTime.fromMillisecondsSinceEpoch(
-      message.timestamp ?? fallback.millisecondsSinceEpoch,
-    );
-    final minuteOfDay = dateTime.hour * 60 + dateTime.minute;
-    final time =
-        '${dateTime.hour.toString().padLeft(2, '0')}:'
-        '${dateTime.minute.toString().padLeft(2, '0')}';
-    return _HomeTimelineEntry(
-      time: time,
-      title: message.title,
-      detail: message.title.contains('作业') ? '在教务系统提交' : '在信息中心查看',
-      minuteOfDay: minuteOfDay,
-      minutesUntil: minuteOfDay - now.hour * 60 - now.minute,
-    );
-  }
-
-  final String time;
-  final String title;
-  final String detail;
-  final int minuteOfDay;
-  final int minutesUntil;
-
-  bool get isUpcoming => minutesUntil >= 0;
-
-  static int _parseMinuteOfDay(String value) {
-    final match = RegExp(r'^(\d{1,2}):(\d{2})').firstMatch(value);
-    if (match == null) return 0;
-    return int.parse(match.group(1)!) * 60 + int.parse(match.group(2)!);
-  }
-}
-
-class _HomeTimelineBackdropPainter extends CustomPainter {
-  const _HomeTimelineBackdropPainter(this.theme);
-
-  final YhTheme theme;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(
-      size.width - theme.spacing.xl2,
-      size.height - theme.spacing.xl2,
-    );
-    final radius = theme.layout.statusProgressWidth / 2;
-    final midSpread = theme.spacing.xl + theme.spacing.xs;
-    final outerSpread = theme.spacing.xl2 + theme.spacing.l;
-    canvas.drawCircle(
-      center,
-      radius + outerSpread,
-      Paint()
-        ..color = theme.color.onStructural.withValues(
-          alpha: theme.opacity.timelineOrbitOuter,
-        ),
-    );
-    canvas.drawCircle(
-      center,
-      radius + midSpread,
-      Paint()
-        ..color = theme.color.onStructural.withValues(
-          alpha: theme.opacity.timelineOrbitMid,
-        ),
-    );
-    canvas.drawCircle(center, radius, Paint()..color = theme.color.structural);
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = theme.layout.divider
-        ..color = theme.color.onStructural.withValues(
-          alpha: theme.opacity.timelineOrbit,
-        ),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _HomeTimelineBackdropPainter oldDelegate) {
-    return theme != oldDelegate.theme;
-  }
-}
-
-class _HomeTimelineRow extends StatelessWidget {
-  const _HomeTimelineRow({
-    required this.entry,
-    required this.current,
-    required this.last,
-  });
-
-  final _HomeTimelineEntry entry;
-  final bool current;
-  final bool last;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    final trackWidth = theme.spacing.m + theme.layout.divider * 2;
-    final timeWidth =
-        theme.control.regular + theme.spacing.s + theme.spacing.xs;
-    final rowHeight =
-        theme.control.regular + theme.spacing.xl + theme.layout.divider * 2;
-    return SizedBox(
-      height: rowHeight,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: timeWidth,
-            child: Text(
-              entry.time,
-              style: theme.typography.small.copyWith(
-                color: theme.color.onStructural,
-                fontFamily: YhTypographyTokens.fontFamilyMono,
-                fontWeight: theme.typography.semibold,
-              ),
-            ),
-          ),
-          SizedBox(width: theme.spacing.s),
-          SizedBox(
-            width: trackWidth,
-            height: rowHeight,
-            child: CustomPaint(
-              painter: _HomeTimelineTrackPainter(
-                current: current,
-                last: last,
-                theme: theme,
-              ),
-            ),
-          ),
-          SizedBox(width: theme.spacing.s),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  entry.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.typography.body.copyWith(
-                    color: theme.color.onStructural,
-                    fontWeight: theme.typography.semibold,
-                  ),
-                ),
-                SizedBox(height: theme.spacing.xs),
-                Text(
-                  current ? '${entry.detail} · 当前' : entry.detail,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.typography.caption.copyWith(
-                    color: theme.color.onStructural.withValues(
-                      alpha: theme.opacity.timelineDetail,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HomeTimelineTrackPainter extends CustomPainter {
-  const _HomeTimelineTrackPainter({
-    required this.current,
-    required this.last,
-    required this.theme,
-  });
-
-  final bool current;
-  final bool last;
-  final YhTheme theme;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, theme.spacing.s);
-    if (!last) {
-      canvas.drawLine(
-        Offset(center.dx, center.dy + theme.spacing.xs),
-        Offset(center.dx, size.height),
-        Paint()
-          ..color = theme.color.onStructural.withValues(
-            alpha: theme.opacity.timelineTrack,
-          )
-          ..strokeWidth = theme.layout.divider,
-      );
-    }
-    if (current) {
-      canvas.drawCircle(
-        center,
-        theme.spacing.s,
-        Paint()
-          ..color = theme.color.brandTint.withValues(
-            alpha: theme.opacity.timelineCurrentRing,
-          ),
-      );
-    }
-    final dotRadius = theme.spacing.s - theme.spacing.xs / 2;
-    canvas.drawCircle(
-      center,
-      dotRadius,
-      Paint()
-        ..color = current
-            ? theme.color.brandTint
-            : theme.color.onStructural.withValues(
-                alpha: theme.opacity.timelineDot,
-              ),
-    );
-    canvas.drawCircle(
-      center,
-      dotRadius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = theme.focus.ringWidth
-        ..color = theme.color.structural,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _HomeTimelineTrackPainter oldDelegate) {
-    return current != oldDelegate.current ||
-        last != oldDelegate.last ||
-        theme != oldDelegate.theme;
   }
 }

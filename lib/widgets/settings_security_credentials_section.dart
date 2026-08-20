@@ -12,6 +12,7 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
   /// 构建教务系统账号与密码保存区域。
   Widget _buildAcademicCredentialsSection(BuildContext context) {
     final theme = context.yhTheme;
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.compact;
     if (_isCredentialsLoading) {
       return Center(
         child: SizedBox(
@@ -24,8 +25,23 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (_credentialsLoadFailed) ...[
+          YhBanner(
+            text: '无法读取本机凭据状态；已保留当前输入和原连接。',
+            kind: YhBannerKind.danger,
+            action: YhButton(
+              label: _isCredentialsReloading ? '重试中' : '重试',
+              onTap: _isCredentialsReloading
+                  ? null
+                  : () => _loadAcademicCredentials(isRetry: true),
+              disabled: _isCredentialsReloading,
+              variant: YhButtonVariant.text,
+            ),
+          ),
+          SizedBox(height: theme.spacing.l),
+        ],
         _buildAcademicCredentialsHeader(context),
-        SizedBox(height: theme.spacing.l),
+        SizedBox(height: compact ? theme.spacing.m : theme.spacing.l),
         ConstrainedBox(
           constraints: BoxConstraints(maxWidth: theme.layout.formContentWidth),
           child: Column(
@@ -35,6 +51,7 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
                 label: '学工号（OA账号）',
                 controller: _oaAccountController,
                 hint: '请输入学工号',
+                enabled: !_isCredentialOperationBusy,
               ),
               SizedBox(height: theme.spacing.xs),
               Text(
@@ -78,7 +95,7 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
         Text('教务凭据', style: theme.typography.h3),
         SizedBox(height: theme.spacing.xs),
         Text(
-          '数据均加密存储在本地，不会上传至云端；密码框留空时不修改已保存密码。',
+          '数据均加密存储在本机，不会上传至云端；密码框留空时不修改已保存密码。',
           style: theme.typography.small.copyWith(color: theme.color.muted),
         ),
       ],
@@ -89,17 +106,13 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
       children: [
         YhButton(
           label: _isSavingCredentials ? '保存中' : '保存教务凭据',
-          onTap: _isSavingCredentials ? null : _saveAcademicCredentials,
-          disabled: _isSavingCredentials,
-          leadingIcon: _isSavingCredentials ? null : YhIcons.save,
+          onTap: _isCredentialOperationBusy ? null : _saveAcademicCredentials,
+          disabled: _isCredentialOperationBusy,
         ),
         YhButton(
           label: _isValidatingAcademicLogin ? '验证中' : '验证登录',
-          onTap: _isSavingCredentials || _isValidatingAcademicLogin
-              ? null
-              : _validateAcademicLogin,
-          disabled: _isSavingCredentials || _isValidatingAcademicLogin,
-          leadingIcon: _isValidatingAcademicLogin ? null : YhIcons.connect,
+          onTap: _isCredentialOperationBusy ? null : _validateAcademicLogin,
+          disabled: _isCredentialOperationBusy,
           variant: YhButtonVariant.secondary,
         ),
       ],
@@ -149,7 +162,7 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
           controller: controller,
           hint: '留空则不修改已保存密码',
           obscure: true,
-          prefixIcon: YhIcons.lock,
+          enabled: !_isCredentialOperationBusy,
         ),
         SizedBox(height: context.yhTheme.spacing.xs),
         Wrap(
@@ -161,10 +174,10 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
             if (hasSecret)
               YhButton(
                 label: '清除',
-                onTap: _isSavingCredentials
+                onTap: _isCredentialOperationBusy
                     ? null
                     : () => _clearAcademicSecret(secret),
-                disabled: _isSavingCredentials,
+                disabled: _isCredentialOperationBusy,
                 leadingIcon: YhIcons.delete,
                 variant: YhButtonVariant.secondary,
               ),
@@ -196,7 +209,13 @@ extension _SettingsSecurityCredentialsSection on _SettingsSecuritySectionState {
 
   /// 构建已填写/未填写状态提示。
   Widget _buildSecretStatus(bool hasSecret) {
-    return YhChip(label: hasSecret ? '已填写' : '未填写', selected: hasSecret);
+    final theme = context.yhTheme;
+    return Text(
+      hasSecret ? '已填写' : '未填写',
+      style: theme.typography.caption.copyWith(
+        color: hasSecret ? theme.color.brandStrong : theme.color.muted,
+      ),
+    );
   }
 }
 

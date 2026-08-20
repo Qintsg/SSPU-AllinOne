@@ -317,7 +317,7 @@ void main() {
     expect(tester.getTopLeft(second).dx, lessThan(tester.getTopLeft(third).dx));
   });
 
-  testWidgets('清源快速跳转状态卡总高度遵循 popover 契约', (tester) async {
+  testWidgets('清源快速跳转空状态按内容收束而非填满窗口', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
@@ -332,10 +332,34 @@ void main() {
 
     final card = find.byType(YhCard);
     final theme = tester.element(card).yhTheme;
+    expect(tester.getSize(card).height, lessThan(theme.layout.popoverWidth));
     expect(
       tester.getSize(card).height,
-      closeTo(theme.layout.popoverWidth + theme.spacing.xl, 0.1),
+      greaterThan(theme.control.minimumTarget),
     );
+    final stateRegion = find.ancestor(of: card, matching: find.byType(Align));
+    expect(
+      tester.getSize(card).width,
+      closeTo(tester.getSize(stateRegion.first).width, 0.1),
+    );
+  });
+
+  testWidgets('清源快速跳转宽屏状态卡收束到表单内容宽度', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      YhApp(
+        home: QuickLinksPage(
+          groupsLoader: () async => const [],
+          onOpenUrl: (_) async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final card = find.byType(YhCard);
+    final theme = tester.element(card).yhTheme;
+    expect(tester.getSize(card).width, theme.layout.formContentWidth);
   });
 
   testWidgets('清源快速跳转加载态使用紧凑环形活动指示器', (tester) async {

@@ -155,12 +155,19 @@
   /* 响应式与交互契约 */
   --breakpoint-compact: 600px;
   --breakpoint-medium: 768px;
+  --breakpoint-settings-navigation-compact: 900px;
   --breakpoint-expanded: 1200px;
   --breakpoint-large: 1600px;
   --responsive-panel-padding-viewport-percent: 4vw;
   --responsive-hero-viewport-percent: 5vw;
-  --responsive-home-primary-flex: 33fr;
-  --responsive-home-secondary-flex: 16fr;
+  --responsive-home-hero-viewport-percent: 2.35vw;
+  --responsive-home-content-height-viewport-percent: 42vh;
+  --responsive-home-primary-flex: 3fr;
+  --responsive-home-secondary-flex: 2fr;
+  --responsive-home-utility-primary-flex: 30fr;
+  --responsive-home-utility-secondary-flex: 29fr;
+  --responsive-home-utility-medium-summary-flex: 1fr;
+  --responsive-home-utility-medium-actions-flex: 2fr;
   --control-compact: 40px;
   --control-regular: 48px;
   --control-touch: 48px;
@@ -179,6 +186,8 @@
   --layout-form-field-width: 340px;
   --layout-dialog-width: 480px;
   --layout-form-content-width: 560px;
+  --layout-home-content-min-height: 372px;
+  --layout-home-content-max-height: 420px;
   --layout-page-content-width: 1180px;
   --focus-ring-width: 2px;
   --focus-ring-gap: 2px;

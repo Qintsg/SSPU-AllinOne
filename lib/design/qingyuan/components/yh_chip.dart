@@ -1,4 +1,10 @@
-/* 清源筹码 — 筛选与已输入标签。 */
+/*
+ * 清源筹码 — 筛选与已输入标签
+ * @Project : SSPU-AllinOne
+ * @File : yh_chip.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
 
 import 'package:flutter/widgets.dart';
 
@@ -70,11 +76,17 @@ class _ChipSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final duration = theme.motion.effective(
+      theme.motion.fast,
+      disableAnimations: disableAnimations,
+    );
     final foreground = selected ? theme.color.brandInk : theme.color.muted;
     return Opacity(
       opacity: disabled ? 0.4 : 1,
       child: AnimatedContainer(
-        duration: theme.motion.fast,
+        duration: duration,
         curve: theme.motion.curve,
         constraints: BoxConstraints(minHeight: theme.spacing.xl),
         padding: EdgeInsetsDirectional.only(

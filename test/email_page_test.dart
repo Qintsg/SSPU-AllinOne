@@ -226,7 +226,8 @@ void main() {
     await tester.tap(find.byKey(const Key('email-compose-open')));
     await tester.pumpAndSettle();
 
-    expect(find.text('撰写邮件'), findsNWidgets(2));
+    expect(find.text('撰写邮件'), findsOneWidget);
+    expect(find.byKey(const Key('email-compose-action-dock')), findsOneWidget);
     final detail = tester.widget<Text>(
       find.text('仅在点击发送后提交普通文本；不保存草稿，不在后台重试。'),
     );
@@ -237,6 +238,80 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 120));
+  });
+
+  testWidgets('邮箱紧凑撰写将取消和发送固定在表单滚动区之外', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final service = _FakeEmailClient();
+    await pumpEmailPage(
+      tester,
+      emailService: service,
+      emailAutoRefreshEnabledOverride: false,
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.byKey(const Key('email-compose-open')));
+    await tester.pumpAndSettle();
+    final dock = find.byKey(const Key('email-compose-action-dock'));
+    expect(dock, findsOneWidget);
+    expect(find.text('取消'), findsOneWidget);
+    expect(find.text('发送邮件'), findsOneWidget);
+
+    await tester.drag(
+      find.byType(SingleChildScrollView).first,
+      const Offset(0, -360),
+    );
+    await tester.pumpAndSettle();
+    expect(dock, findsOneWidget);
+    expect(tester.getBottomRight(dock).dy, lessThanOrEqualTo(800));
+
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('email-compose-panel')), findsNothing);
+    expect(service.sendCount, 0);
+  });
+
+  testWidgets('邮箱紧凑提交坞在发送中锁定取消、发送与表单', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final service = _FakeEmailClient(deferSend: true);
+    await pumpEmailPage(
+      tester,
+      emailService: service,
+      emailAutoRefreshEnabledOverride: false,
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.byKey(const Key('email-compose-open')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('发送邮件'));
+    await tester.pump();
+
+    expect(service.sendCount, 1);
+    expect(find.text('正在发送'), findsOneWidget);
+    final dockButtons = tester.widgetList<YhButton>(
+      find.descendant(
+        of: find.byKey(const Key('email-compose-action-dock')),
+        matching: find.byType(YhButton),
+      ),
+    );
+    expect(dockButtons, hasLength(2));
+    expect(dockButtons.every((button) => button.onTap == null), isTrue);
+    final fields = tester.widgetList<YhTextField>(find.byType(YhTextField));
+    expect(fields.every((field) => !field.enabled), isTrue);
+
+    service.completeSend();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('email-compose-panel')), findsNothing);
   });
 
   testWidgets('邮箱发送中字段保持可读外观与禁用语义', (tester) async {
@@ -297,6 +372,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('email-compose-panel')), findsOneWidget);
+    expect(find.byKey(const Key('email-compose-action-dock')), findsNothing);
+    expect(find.text('撰写邮件'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 120));
@@ -388,7 +465,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 120));
   });
 
-  testWidgets('邮箱紧凑状态卡遵循清源品牌图标与高度契约', (tester) async {
+  testWidgets('邮箱紧凑状态卡按内容收束并保留清源品牌图标', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await pumpEmailPage(
@@ -406,8 +483,9 @@ void main() {
     expect(tester.getSize(icon), Size.square(theme.control.regular));
     expect(
       tester.getSize(card).height,
-      greaterThanOrEqualTo(theme.layout.popoverWidth + theme.spacing.xl),
+      lessThan(theme.layout.popoverWidth + theme.spacing.xl),
     );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('邮箱读取中使用紧凑环形活动指示器与说明', (tester) async {
@@ -518,12 +596,15 @@ class _FakeEmailClient implements EmailMailboxClient {
     this.cachedResult,
     this.deferValidation = false,
     this.deferFetch = false,
+    this.deferSend = false,
   });
 
   final EmailMailboxQueryResult? cachedResult;
   final bool deferValidation;
   final bool deferFetch;
+  final bool deferSend;
   Completer<void>? _validationCompleter;
+  Completer<void>? _sendCompleter;
   int fetchCount = 0;
   int validateCount = 0;
   int sendCount = 0;
@@ -589,6 +670,10 @@ class _FakeEmailClient implements EmailMailboxClient {
   Future<EmailSendResult> sendMessage(EmailComposeRequest request) async {
     sendCount++;
     lastComposeRequest = request;
+    if (deferSend) {
+      _sendCompleter = Completer<void>();
+      await _sendCompleter!.future;
+    }
     return EmailSendResult(
       status: EmailQueryStatus.success,
       message: '邮件已提交发送',
@@ -601,6 +686,13 @@ class _FakeEmailClient implements EmailMailboxClient {
 
   void completeValidation() {
     final completer = _validationCompleter;
+    if (completer == null || completer.isCompleted) return;
+    completer.complete();
+  }
+
+  /// 完成被延迟的 SMTP 发送，用于验证提交中的单飞锁。
+  void completeSend() {
+    final completer = _sendCompleter;
     if (completer == null || completer.isCompleted) return;
     completer.complete();
   }

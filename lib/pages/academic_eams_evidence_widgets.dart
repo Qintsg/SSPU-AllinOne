@@ -17,11 +17,11 @@ class _AcademicEamsFilterPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    final compact = MediaQuery.sizeOf(context).width <= theme.breakpoint.medium;
-    return YhCard(
+    final narrow = MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
+    final filterLedger = YhCard(
       padding: EdgeInsets.symmetric(
         horizontal: theme.spacing.m,
-        vertical: theme.spacing.m + (compact ? theme.layout.controlBorder : 0),
+        vertical: theme.spacing.m + (narrow ? theme.layout.controlBorder : 0),
       ),
       child: Wrap(
         spacing: theme.spacing.s,
@@ -30,6 +30,14 @@ class _AcademicEamsFilterPanel extends StatelessWidget {
         children: children,
       ),
     );
+    if (narrow) return SizedBox(width: double.infinity, child: filterLedger);
+    if (children.length == 1) {
+      return Align(
+        alignment: AlignmentDirectional.topStart,
+        child: children.single,
+      );
+    }
+    return Align(alignment: AlignmentDirectional.topStart, child: filterLedger);
   }
 }
 

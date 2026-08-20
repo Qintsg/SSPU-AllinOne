@@ -6,10 +6,16 @@
  * @Date : 2026-06-11
  */
 
+import 'dart:async';
+
 import '../design/qingyuan/qingyuan_ui.dart';
 import '../services/wxmp_config_service.dart';
 
 /// 显示公众号平台字段式配置编辑器。
+///
+/// :param context: 微信认证设置页上下文。
+/// :param initialConfig: 打开模态时的配置快照。
+/// :returns: 已校验的新配置；取消时返回 null。
 Future<WxmpConfig?> showSettingsWechatConfigDialog({
   required BuildContext context,
   required WxmpConfig initialConfig,
@@ -34,6 +40,8 @@ class _SettingsWechatConfigDialog extends StatefulWidget {
 
 class _SettingsWechatConfigDialogState
     extends State<_SettingsWechatConfigDialog> {
+  final _perRequestCountFieldKey = GlobalKey();
+  final _requestDelayFieldKey = GlobalKey();
   late final TextEditingController _cookieController;
   late final TextEditingController _tokenController;
   late final TextEditingController _appIdController;
@@ -86,6 +94,7 @@ class _SettingsWechatConfigDialogState
 
     return YhDialog(
       constraints: BoxConstraints(maxWidth: maxDialogWidth),
+      eyebrow: '高级认证配置',
       title: '编辑公众号平台配置',
       content: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: contentHeight),
@@ -107,32 +116,34 @@ class _SettingsWechatConfigDialogState
                   compact: compact,
                   children: [
                     _ConfigTextField(
-                      label: 'cookie',
+                      label: 'Cookie',
                       controller: _cookieController,
-                      maxLines: compact ? 5 : 6,
+                      maxLines: 1,
+                      autofocus: !compact,
                     ),
                     _ConfigTextField(
-                      label: 'token',
+                      label: 'Token',
                       controller: _tokenController,
                     ),
                     _ConfigTextField(
-                      label: 'app_id',
+                      label: 'App ID',
                       controller: _appIdController,
                     ),
                     _ConfigTextField(
-                      label: 'user_agent',
+                      label: 'User-Agent',
                       controller: _userAgentController,
-                      maxLines: 2,
                     ),
                     _ConfigTextField(
-                      label: 'per_request_article_count',
+                      key: _perRequestCountFieldKey,
+                      label: '单次抓取数量',
                       controller: _perRequestCountController,
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       errorText: _perRequestCountError,
                     ),
                     _ConfigTextField(
-                      label: 'request_delay_ms',
+                      key: _requestDelayFieldKey,
+                      label: '请求间隔（毫秒）',
                       controller: _requestDelayController,
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -151,7 +162,7 @@ class _SettingsWechatConfigDialogState
           onTap: _cancel,
           variant: YhButtonVariant.secondary,
         ),
-        YhButton(label: '保存', onTap: _submit),
+        YhButton(label: '保存配置', onTap: _submit),
       ],
     );
   }
@@ -180,6 +191,21 @@ class _SettingsWechatConfigDialogState
 
     if (perRequestCount == null || requestDelay == null) {
       setState(() {});
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final targetContext = perRequestCount == null
+            ? _perRequestCountFieldKey.currentContext
+            : _requestDelayFieldKey.currentContext;
+        if (targetContext == null) return;
+        unawaited(
+          Scrollable.ensureVisible(
+            targetContext,
+            duration: context.yhTheme.motion.base,
+            curve: context.yhTheme.motion.curve,
+            alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+          ),
+        );
+      });
       return;
     }
 
@@ -232,28 +258,54 @@ class _ConfigFieldsLayout extends StatelessWidget {
     final theme = context.yhTheme;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns =
-            compact || constraints.maxWidth < theme.breakpoint.compact ? 1 : 2;
+        final singleColumn =
+            compact || constraints.maxWidth < theme.breakpoint.compact;
+        final columns = singleColumn ? 1 : 2;
+        if (columns == 1 && children.length >= 6) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _ConfigFieldColumn(
+                spacing: theme.spacing.s,
+                children: children.take(4).toList(growable: false),
+              ),
+              SizedBox(height: theme.spacing.s),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: children[4]),
+                  SizedBox(width: theme.spacing.s),
+                  Expanded(child: children[5]),
+                ],
+              ),
+            ],
+          );
+        }
         if (columns == 1) {
-          return _ConfigFieldColumn(children: children);
+          return _ConfigFieldColumn(
+            spacing: theme.spacing.s,
+            children: children,
+          );
         }
 
-        final leftColumn = <Widget>[];
-        final rightColumn = <Widget>[];
-        for (var i = 0; i < children.length; i++) {
-          if (i.isEven) {
-            leftColumn.add(children[i]);
-          } else {
-            rightColumn.add(children[i]);
-          }
-        }
-
-        return Row(
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: _ConfigFieldColumn(children: leftColumn)),
-            SizedBox(width: theme.spacing.l),
-            Expanded(child: _ConfigFieldColumn(children: rightColumn)),
+            for (var index = 0; index < children.length; index += 2) ...[
+              if (index > 0) SizedBox(height: theme.spacing.m),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: children[index]),
+                  SizedBox(width: theme.spacing.l),
+                  Expanded(
+                    child: index + 1 < children.length
+                        ? children[index + 1]
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            ],
           ],
         );
       },
@@ -262,19 +314,21 @@ class _ConfigFieldsLayout extends StatelessWidget {
 }
 
 class _ConfigFieldColumn extends StatelessWidget {
-  const _ConfigFieldColumn({required this.children});
+  const _ConfigFieldColumn({required this.children, required this.spacing});
 
   /// 字段列表。
   final List<Widget> children;
 
+  /// 字段之间的响应式纵向间距。
+  final double spacing;
+
   @override
   Widget build(BuildContext context) {
-    final spacing = context.yhTheme.spacing;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (var i = 0; i < children.length; i++) ...[
-          if (i > 0) SizedBox(height: spacing.m),
+          if (i > 0) SizedBox(height: spacing),
           children[i],
         ],
       ],
@@ -284,12 +338,14 @@ class _ConfigFieldColumn extends StatelessWidget {
 
 class _ConfigTextField extends StatelessWidget {
   const _ConfigTextField({
+    super.key,
     required this.label,
     required this.controller,
     this.keyboardType,
     this.inputFormatters,
     this.errorText,
     this.maxLines = 1,
+    this.autofocus = false,
   });
 
   /// 配置键名。
@@ -310,6 +366,9 @@ class _ConfigTextField extends StatelessWidget {
   /// 最大行数。
   final int maxLines;
 
+  /// 是否在模态打开后获取初始焦点。
+  final bool autofocus;
+
   @override
   Widget build(BuildContext context) {
     return YhTextField(
@@ -319,6 +378,7 @@ class _ConfigTextField extends StatelessWidget {
       inputFormatters: inputFormatters,
       errorText: errorText,
       maxLines: maxLines,
+      autofocus: autofocus,
     );
   }
 }

@@ -177,12 +177,15 @@ class _DataPrivacyStatusBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(theme.radius.s),
         ),
         child: Padding(
-          padding: EdgeInsets.all(theme.spacing.m),
+          padding: EdgeInsets.symmetric(
+            horizontal: theme.spacing.s + theme.spacing.xs,
+            vertical: theme.spacing.s + theme.spacing.xs,
+          ),
           child: Text(
             text,
-            style: theme.typography.body.copyWith(
+            style: theme.typography.small.copyWith(
               color: foreground,
-              fontWeight: theme.typography.h3.fontWeight,
+              fontWeight: theme.typography.body.fontWeight,
             ),
           ),
         ),
@@ -225,6 +228,7 @@ class _DataPrivacyTaskRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.compact;
     final error = state == SettingsDataPrivacyState.error && operationError;
     final title = error && task.isOperation
         ? '${completed ? '已完成' : '未完成'}：${task.label}'
@@ -278,7 +282,7 @@ class _DataPrivacyTaskRow extends StatelessWidget {
                     Text(
                       title,
                       style: theme.typography.body.copyWith(
-                        fontWeight: theme.typography.h3.fontWeight,
+                        fontWeight: theme.typography.h1.fontWeight,
                       ),
                     ),
                     SizedBox(height: theme.spacing.xs),
@@ -291,7 +295,7 @@ class _DataPrivacyTaskRow extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(width: theme.spacing.m),
+              SizedBox(width: compact ? theme.spacing.s : theme.spacing.m),
               _DataPrivacyTaskAction(
                 label: actionLabel,
                 semanticLabel: '$actionLabel：${task.label}',
@@ -324,12 +328,16 @@ class _DataPrivacyTaskAction extends StatelessWidget {
       onPressed: onPressed,
       builder: (context, state, child) => DecoratedBox(
         decoration: BoxDecoration(
-          color: state.hovered ? theme.color.brandTint : theme.color.sunken,
+          color: state.hovered ? theme.color.brandTint : theme.color.surface,
           border: Border.all(
-            color: state.focused ? theme.color.brandStrong : theme.color.border,
+            color: state.focused
+                ? theme.color.brandStrong
+                : onPressed == null
+                ? theme.color.border
+                : theme.color.brand,
             width: theme.layout.controlBorder,
           ),
-          borderRadius: BorderRadius.circular(theme.radius.full),
+          borderRadius: BorderRadius.circular(theme.radius.m),
         ),
         child: child,
       ),
@@ -344,7 +352,7 @@ class _DataPrivacyTaskAction extends StatelessWidget {
             style: theme.typography.body.copyWith(
               color: onPressed == null
                   ? theme.color.muted
-                  : theme.color.foreground,
+                  : theme.color.brandStrong,
             ),
           ),
         ),

@@ -176,6 +176,7 @@ class YhMetricCard extends StatelessWidget {
     this.caption,
     this.icon,
     this.onTap,
+    this.padding,
   });
 
   final String label;
@@ -183,6 +184,7 @@ class YhMetricCard extends StatelessWidget {
   final String? caption;
   final IconData? icon;
   final VoidCallback? onTap;
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
@@ -190,6 +192,8 @@ class YhMetricCard extends StatelessWidget {
     return YhCard(
       semanticLabel: label,
       onTap: onTap,
+      padding: padding ?? EdgeInsets.all(theme.spacing.m),
+      radius: theme.radius.m,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

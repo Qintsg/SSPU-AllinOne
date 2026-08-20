@@ -10,6 +10,7 @@
 
 import '../design/qingyuan/qingyuan_ui.dart';
 
+import '../models/academic_credentials.dart';
 import '../models/channel_config.dart';
 import '../services/academic_eams_service.dart';
 import '../services/app_display_name_service.dart';
@@ -27,11 +28,11 @@ import '../services/student_report_service.dart';
 import '../services/system_auth_service.dart';
 import '../services/wxmp_auth_service.dart';
 import '../widgets/channel_list_section.dart';
-import '../widgets/app_feedback.dart';
 import '../widgets/password_dialogs.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/settings_academic_term_section.dart';
 import '../widgets/settings_auto_refresh_section.dart';
+import '../widgets/settings_data_privacy_confirmation_dialogs.dart';
 import '../widgets/settings_general_section.dart';
 import '../widgets/settings_security_section.dart';
 import '../widgets/settings_wechat_section.dart';
@@ -44,6 +45,7 @@ import 'settings_about_page.dart';
 import 'settings_update_page.dart';
 
 part 'settings_page_actions.dart';
+part 'settings_page_security_privacy_actions.dart';
 part 'settings_page_layout.dart';
 
 /// 设置页面。
@@ -62,6 +64,16 @@ class SettingsPage extends StatefulWidget {
   final YhThemeMode themeMode;
   final ValueChanged<YhThemeMode>? onThemeModeChanged;
 
+  /// 测试专用：跳过平台插件和持久化读取，直接使用确定性默认设置。
+  final bool initializedForTesting;
+
+  /// 测试专用：使用已开启的密码保护与系统快速验证状态。
+  final bool securityControlsEnabledForTesting;
+
+  /// 测试专用：覆盖安全分区的凭据状态读取。
+  final Future<AcademicCredentialsStatus> Function()?
+  credentialsStatusLoaderForTesting;
+
   const SettingsPage({
     super.key,
     this.onLock,
@@ -69,6 +81,9 @@ class SettingsPage extends StatefulWidget {
     this.landingRequest,
     this.themeMode = YhThemeMode.system,
     this.onThemeModeChanged,
+    this.initializedForTesting = false,
+    this.securityControlsEnabledForTesting = false,
+    this.credentialsStatusLoaderForTesting,
   });
 
   @override
@@ -76,7 +91,10 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage>
-    with _SettingsPageActions, _SettingsPageLayout {
+    with
+        _SettingsPageActions,
+        _SettingsPageSecurityPrivacyActions,
+        _SettingsPageLayout {
   /// 是否已设置密码保护。
   @override
   bool _isPasswordEnabled = false;
@@ -216,7 +234,16 @@ class _SettingsPageState extends State<SettingsPage>
   void initState() {
     super.initState();
     _selectedTab = _tabIndexForLanding(widget.landingRequest?.section);
-    _loadSettings();
+    if (widget.initializedForTesting) {
+      _isLoading = false;
+      if (widget.securityControlsEnabledForTesting) {
+        _isPasswordEnabled = true;
+        _isQuickAuthEnabled = true;
+        _isQuickAuthAvailable = true;
+      }
+    } else {
+      _loadSettings();
+    }
   }
 
   @override
@@ -227,6 +254,12 @@ class _SettingsPageState extends State<SettingsPage>
       return;
     }
     setState(() => _selectedTab = _tabIndexForLanding(request.section));
+  }
+
+  @override
+  void dispose() {
+    disposeSettingsNavigation();
+    super.dispose();
   }
 
   @override
@@ -246,9 +279,15 @@ class _SettingsPageState extends State<SettingsPage>
       appBar: const YhAppBar(title: '设置'),
       body: ResponsiveBuilder(
         builder: (context, _, constraints) {
-          return constraints.maxWidth < context.yhTheme.breakpoint.compact
-              ? _buildNarrowSettingsLayout(context)
-              : _buildWideSettingsLayout(context);
+          final viewportWidth = MediaQuery.sizeOf(context).width;
+          if (viewportWidth <
+              context.yhTheme.breakpoint.settingsNavigationCompact) {
+            return _buildNarrowSettingsLayout(context);
+          }
+          if (viewportWidth < context.yhTheme.breakpoint.expanded) {
+            return _buildMediumSettingsLayout(context);
+          }
+          return _buildWideSettingsLayout(context);
         },
       ),
     );

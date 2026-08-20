@@ -423,63 +423,6 @@ class _StudentReportEvidenceRow extends StatelessWidget {
   }
 }
 
-/// 第二课堂规则矩阵独立页面。
-class StudentReportRulesPage extends StatelessWidget {
-  const StudentReportRulesPage({super.key, required this.summary});
-
-  final SecondClassroomCreditSummary summary;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    if (summary.rules.isEmpty) {
-      return YhPageScaffold(
-        appBar: YhAppBar(
-          title: '第二课堂规则',
-          leading: YhIconButton(
-            icon: YhIcons.back,
-            semanticLabel: '返回',
-            variant: YhIconButtonVariant.ghost,
-            onTap: () => Navigator.of(context).maybePop(),
-          ),
-        ),
-        body: YhEmptyState(
-          icon: YhIcons.library,
-          title: '暂无规则矩阵',
-          message: '返回教务中心刷新第二课堂学分，规则数据补全后可再次查看。',
-          action: YhButton(
-            label: '返回教务中心刷新',
-            leadingIcon: YhIcons.back,
-            variant: YhButtonVariant.secondary,
-            onTap: () => Navigator.of(context).maybePop(),
-          ),
-        ),
-      );
-    }
-    return YhPageScaffold(
-      appBar: YhAppBar(
-        title: '第二课堂规则',
-        leading: YhIconButton(
-          icon: YhIcons.back,
-          semanticLabel: '返回',
-          variant: YhIconButtonVariant.ghost,
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(theme.spacing.m),
-        child: Align(
-          alignment: AlignmentDirectional.topCenter,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: theme.breakpoint.expanded),
-            child: _SecondClassroomRuleMatrix(summary: summary),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _SecondClassroomTotalsPanel extends StatelessWidget {
   const _SecondClassroomTotalsPanel({required this.summary});
 
@@ -515,37 +458,6 @@ class _SecondClassroomTotalsPanel extends StatelessWidget {
   }
 }
 
-class _ReportRecordField extends StatelessWidget {
-  const _ReportRecordField({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        minWidth: theme.spacing.xl2 * 2,
-        maxWidth:
-            theme.breakpoint.compact / 3 + theme.spacing.m + theme.spacing.xs,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: theme.typography.caption.copyWith(color: theme.color.muted),
-          ),
-          SizedBox(height: theme.spacing.xs),
-          Text(_emptyAsDash(value), style: theme.typography.body),
-        ],
-      ),
-    );
-  }
-}
-
 String? _academicDetailTimestamp(DateTime? value) {
   if (value == null) return null;
   String twoDigits(int part) => part.toString().padLeft(2, '0');
@@ -557,29 +469,4 @@ String _academicTaskAppBarTitle(String source, DateTime? value) {
   if (value == null) return '$source · 本地快照';
   String twoDigits(int part) => part.toString().padLeft(2, '0');
   return '$source · ${twoDigits(value.hour)}:${twoDigits(value.minute)}';
-}
-
-class _EmptyPanel extends StatelessWidget {
-  const _EmptyPanel({required this.title, required this.message});
-
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return YhCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: theme.typography.h3),
-          SizedBox(height: theme.spacing.s),
-          Text(
-            message,
-            style: theme.typography.caption.copyWith(color: theme.color.muted),
-          ),
-        ],
-      ),
-    );
-  }
 }

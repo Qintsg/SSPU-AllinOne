@@ -14,19 +14,25 @@ class YhPagination extends StatelessWidget {
     required this.pageCount,
     required this.onChanged,
     this.simple = false,
+    this.showBoundaryPages = true,
   });
 
   final int page;
   final int pageCount;
   final ValueChanged<int>? onChanged;
   final bool simple;
+  final bool showBoundaryPages;
 
   @override
   Widget build(BuildContext context) {
     final normalizedCount = pageCount < 1 ? 1 : pageCount;
     final normalizedPage = page.clamp(1, normalizedCount);
     final theme = context.yhTheme;
-    final pageItems = _pageItems(normalizedPage, normalizedCount);
+    final pageItems = _pageItems(
+      normalizedPage,
+      normalizedCount,
+      showBoundaryPages: showBoundaryPages,
+    );
     final fullWidth =
         theme.control.minimumTarget * 2 +
         pageItems.fold<double>(
@@ -102,10 +108,14 @@ class YhPagination extends StatelessWidget {
     );
   }
 
-  List<int?> _pageItems(int current, int count) {
+  List<int?> _pageItems(
+    int current,
+    int count, {
+    required bool showBoundaryPages,
+  }) {
     final pages = <int>{
-      1,
-      count,
+      if (showBoundaryPages) 1,
+      if (showBoundaryPages) count,
       current - 1,
       current,
       current + 1,

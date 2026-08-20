@@ -1,4 +1,10 @@
-/* 清源语义图标门面 — 页面不直接依赖具体图标包。 */
+/*
+ * 清源语义图标门面 — 页面不直接依赖具体图标包
+ * @Project : SSPU-AllinOne
+ * @File : yh_icons.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
 
 import 'package:flutter/widgets.dart' show IconData;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as system;
@@ -11,6 +17,8 @@ class YhIcons {
   static const IconData home = system.FluentIcons.home_24_regular;
   static const IconData academic = system.FluentIcons.hat_graduation_24_regular;
   static const IconData calendar = system.FluentIcons.calendar_month_24_regular;
+  static const IconData schedule = system.FluentIcons.calendar_24_regular;
+  static const IconData attendance = system.FluentIcons.calendar_24_regular;
   static const IconData info = system.FluentIcons.info_24_regular;
   static const IconData mail = system.FluentIcons.mail_24_regular;
   static const IconData send = system.FluentIcons.send_24_regular;
@@ -21,6 +29,8 @@ class YhIcons {
   static const IconData back = system.FluentIcons.arrow_left_24_regular;
   static const IconData chevronRight =
       system.FluentIcons.chevron_right_24_regular;
+  static const IconData chevronDown =
+      system.FluentIcons.chevron_down_24_regular;
   static const IconData refresh = system.FluentIcons.arrow_clockwise_24_regular;
   static const IconData sports = system.FluentIcons.sport_24_regular;
   static const IconData finance = system.FluentIcons.payment_24_regular;

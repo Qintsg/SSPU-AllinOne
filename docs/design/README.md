@@ -9,14 +9,17 @@
 3. [`foundations/`](./foundations/README.md)：颜色、字体、间距、阴影与动效语义。
 4. [`components/`](./components/README.md)：44 个组件契约与交互样例。
 5. [`patterns/`](./patterns/README.md)：组件如何组成页面和跨端壳层。
+   首页可配置密度参考：[`home-dashboard-density-v05.md`](./patterns/home-dashboard-density-v05.md)。
+   教务总览紧凑指标参考：[`academic-overview-density-v02.md`](./patterns/academic-overview-density-v02.md)。
 6. [`domain/`](./domain/README.md)：校园领域信息如何映射到组件。
-7. [`visual-testing.md`](./visual-testing.md)：五平台截图命名、外部区域标注、SSIM 门禁与失败产物。
+7. [`visual-testing.md`](./visual-testing.md)：五平台截图矩阵、外部区域标注、完整性门禁与人工视觉评审。
 
 ## 当前阶段
 
-- v0.4.0 冻结全量页面状态、严格视口尺寸与 0.90 逐图阈值，并建立 JSON、CSS、Flutter、文档与页面原型的一致性校验。
+- v0.4.0 冻结全量页面状态与严格视口尺寸，并建立 JSON、CSS、Flutter、文档与页面原型的一致性校验；后续视觉候选采用自动完整性门禁与人工逐屏评审，不再计算 SSIM。
 - 七个主目的地、详情边界和关键状态均已进入页面设计范围；[`patterns/samples/app-shell.html`](./patterns/samples/app-shell.html) 是统一视觉核验入口。
-- Flutter 运行时已切换为纯清源组件；当前候选截图仅用于对齐参考稿，未确认前不得录入视觉基线。
+- Flutter 运行时已切换为纯清源组件；当前候选截图仅用于逐屏评审，未确认前不得反向覆盖已冻结参考。
+- Flutter 页面与业务组件统一从 `lib/design/qingyuan/qingyuan_ui.dart` 访问宿主、主题、路由、弹层、反馈、图标与 `Yh*` 组件；业务代码不得直接导入清源内部实现文件。
 - 完成一条切片的视觉、无障碍、响应式与回归验证后，才迁移下一批页面。
 
 ## 变更流程

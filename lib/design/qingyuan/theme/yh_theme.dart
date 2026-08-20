@@ -316,10 +316,11 @@ class YhBreakpointTokens {
   const YhBreakpointTokens({
     this.compact = 600,
     this.medium = 768,
+    this.settingsNavigationCompact = 900,
     this.expanded = 1200,
     this.large = 1600,
   });
-  final double compact, medium, expanded, large;
+  final double compact, medium, settingsNavigationCompact, expanded, large;
 }
 
 @immutable
@@ -338,14 +339,26 @@ class YhResponsiveTokens {
   const YhResponsiveTokens({
     this.panelPaddingViewportPercent = 4,
     this.heroViewportPercent = 5,
-    this.homePrimaryFlex = 33,
-    this.homeSecondaryFlex = 16,
+    this.homeHeroViewportPercent = 2.35,
+    this.homeContentHeightViewportPercent = 42,
+    this.homePrimaryFlex = 3,
+    this.homeSecondaryFlex = 2,
+    this.homeUtilityPrimaryFlex = 30,
+    this.homeUtilitySecondaryFlex = 29,
+    this.homeUtilityMediumSummaryFlex = 1,
+    this.homeUtilityMediumActionsFlex = 2,
   });
 
   final double panelPaddingViewportPercent;
   final double heroViewportPercent;
+  final double homeHeroViewportPercent;
+  final double homeContentHeightViewportPercent;
   final int homePrimaryFlex;
   final int homeSecondaryFlex;
+  final int homeUtilityPrimaryFlex;
+  final int homeUtilitySecondaryFlex;
+  final int homeUtilityMediumSummaryFlex;
+  final int homeUtilityMediumActionsFlex;
 }
 
 @immutable
@@ -365,6 +378,8 @@ class YhLayoutTokens {
     this.formFieldWidth = 340,
     this.dialogWidth = 480,
     this.formContentWidth = 560,
+    this.homeContentMinHeight = 372,
+    this.homeContentMaxHeight = 420,
     this.pageContentWidth = 1180,
   });
 
@@ -382,6 +397,8 @@ class YhLayoutTokens {
   final double formFieldWidth;
   final double dialogWidth;
   final double formContentWidth;
+  final double homeContentMinHeight;
+  final double homeContentMaxHeight;
   final double pageContentWidth;
 }
 

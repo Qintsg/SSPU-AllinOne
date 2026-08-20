@@ -11,8 +11,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'dart:async';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart' as qingyuan;
+import 'package:sspu_allinone/pages/wxmp_login_cookie_reader.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/pages/wxmp_login_page.dart';
+import 'package:sspu_allinone/pages/wxmp_login_test_hooks.dart';
+import 'package:sspu_allinone/services/wxmp_article_service.dart';
+import 'package:sspu_allinone/services/wxmp_auth_service.dart';
+
+part 'webview_page_test_platform.dart';
 
 void main() {
   late InAppWebViewPlatform? previousPlatform;
@@ -487,6 +493,120 @@ void main() {
     }
   });
 
+  testWidgets('公众号登录加载期间显示进度并锁定刷新和外部打开', (tester) async {
+    testPlatform.dispatchCallbacks = false;
+    await tester.pumpWidget(const qingyuan.YhApp(home: WxmpLoginPage()));
+    await tester.pump();
+
+    expect(find.text('正在打开微信登录页'), findsOneWidget);
+    final toolbar = find.byKey(const Key('webview-compact-toolbar'));
+    final buttons = find.descendant(
+      of: toolbar,
+      matching: find.byType(qingyuan.YhIconButton),
+    );
+    expect(tester.widget<qingyuan.YhIconButton>(buttons.at(1)).onTap, isNull);
+    expect(tester.widget<qingyuan.YhIconButton>(buttons.at(2)).onTap, isNull);
+  });
+
+  testWidgets('公众号登录 WebView 就绪后显示认证接力条与保存边界', (tester) async {
+    await tester.pumpWidget(const qingyuan.YhApp(home: WxmpLoginPage()));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.textContaining('请使用拥有公众号的微信账号扫码登录'), findsOneWidget);
+    expect(find.textContaining('连接信息只在校验通过后保存到本机'), findsOneWidget);
+  });
+
+  testWidgets('刷新后旧 WebView token 回调不会越过当前页面闸门', (tester) async {
+    var detectedTokens = 0;
+    await tester.pumpWidget(
+      qingyuan.YhApp(
+        home: WxmpLoginPage(
+          onTokenDetectedForTesting: (_) => detectedTokens += 1,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    final oldLoadStop = testPlatform.controller.onLoadStop;
+    expect(oldLoadStop, isNotNull);
+    await tester.tap(find.bySemanticsLabel('刷新微信登录页'));
+    await tester.pump();
+    oldLoadStop?.call(
+      testPlatform.controller.appController!,
+      WebUri('https://mp.weixin.qq.com/cgi-bin/home?token=123'),
+    );
+    await tester.pump();
+
+    expect(detectedTokens, 0);
+  });
+
+  testWidgets('候选 Cookie 写入后后续空读取会先恢复原连接', (tester) async {
+    var readCount = 0;
+    var saveCount = 0;
+    var restoreCount = 0;
+    await tester.pumpWidget(
+      qingyuan.YhApp(
+        home: WxmpLoginPage(
+          testOverrides: WxmpLoginTestOverrides(
+            captureAuth: () async => const WxmpAuthSnapshot(
+              cookie: 'old-cookie',
+              token: '123456',
+              lastUpdate: null,
+            ),
+            readCookies:
+                ({
+                  required successUrl,
+                  required controller,
+                  webViewEnvironment,
+                }) async {
+                  readCount++;
+                  if (readCount == 1) {
+                    return const WxmpCookieReadResult(
+                      cookieMap: {'candidate': 'cookie'},
+                      cookieNames: {'candidate'},
+                    );
+                  }
+                  return const WxmpCookieReadResult(
+                    cookieMap: {},
+                    cookieNames: {},
+                  );
+                },
+            saveAuth: (cookie, token) async {
+              saveCount++;
+            },
+            validateAuth: () async => const WxmpAuthValidationResult(
+              isValid: false,
+              message: '候选认证无效',
+            ),
+            restoreAuth: (snapshot) async {
+              restoreCount++;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    final onLoadStop = testPlatform.controller.onLoadStop;
+    final controller = testPlatform.controller.appController;
+    expect(onLoadStop, isNotNull);
+    expect(controller, isNotNull);
+    onLoadStop!(
+      controller!,
+      WebUri('https://mp.weixin.qq.com/cgi-bin/home?token=123456'),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pump();
+
+    expect(saveCount, 1);
+    expect(restoreCount, 1);
+    expect(find.textContaining('未再次获取到 Cookie；已恢复原连接'), findsOneWidget);
+  });
+
   testWidgets('公众号登录主页面加载失败时提供明确重试入口', (tester) async {
     testPlatform.controller.mainFrameErrorDescription = 'network unavailable';
     await tester.pumpWidget(const qingyuan.YhApp(home: WxmpLoginPage()));
@@ -540,160 +660,4 @@ Future<void> _resetMobileView(WidgetTester tester) async {
   tester.view.resetPhysicalSize();
   tester.view.resetDevicePixelRatio();
   await tester.binding.setSurfaceSize(null);
-}
-
-class _TestInAppWebViewPlatform extends InAppWebViewPlatform {
-  final _TestPlatformInAppWebViewController controller =
-      _TestPlatformInAppWebViewController();
-  bool dispatchCallbacks = true;
-  int widgetCreationCount = 0;
-  final List<String?> createdUrls = [];
-
-  @override
-  PlatformInAppWebViewController createPlatformInAppWebViewController(
-    PlatformInAppWebViewControllerCreationParams params,
-  ) {
-    return controller;
-  }
-
-  @override
-  PlatformInAppWebViewWidget createPlatformInAppWebViewWidget(
-    PlatformInAppWebViewWidgetCreationParams params,
-  ) {
-    widgetCreationCount++;
-    createdUrls.add(params.initialUrlRequest?.url.toString());
-    return _TestPlatformInAppWebViewWidget(
-      params,
-      controller,
-      dispatchCallbacks: dispatchCallbacks,
-    );
-  }
-}
-
-class _TestPlatformInAppWebViewWidget extends PlatformInAppWebViewWidget {
-  _TestPlatformInAppWebViewWidget(
-    super.params,
-    this.controller, {
-    required this.dispatchCallbacks,
-  }) : super.implementation();
-
-  final _TestPlatformInAppWebViewController controller;
-  final bool dispatchCallbacks;
-
-  @override
-  Widget build(BuildContext context) {
-    final appController = params.controllerFromPlatform?.call(controller);
-    if (appController is InAppWebViewController) {
-      controller.appController = appController;
-      controller.onUpdateVisitedHistory = params.onUpdateVisitedHistory;
-      controller.onReceivedError = params.onReceivedError;
-    }
-    if (dispatchCallbacks &&
-        appController is InAppWebViewController &&
-        !controller.callbacksDispatched) {
-      controller.callbacksDispatched = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        params.onWebViewCreated?.call(appController);
-        params.onTitleChanged?.call(appController, '网页标题');
-        params.onLoadStop?.call(appController, WebUri('https://example.com'));
-        final errorDescription = controller.mainFrameErrorDescription;
-        if (errorDescription != null) {
-          params.onReceivedError?.call(
-            appController,
-            WebResourceRequest(
-              url: WebUri('https://mp.weixin.qq.com/'),
-              isForMainFrame: true,
-            ),
-            WebResourceError(
-              description: errorDescription,
-              type: WebResourceErrorType.UNKNOWN,
-            ),
-          );
-        }
-      });
-    }
-    return const ColoredBox(
-      key: Key('fake-in-app-webview'),
-      color: Color(0xFFEFEFEF),
-      child: SizedBox.expand(),
-    );
-  }
-
-  @override
-  T controllerFromPlatform<T>(PlatformInAppWebViewController controller) {
-    return params.controllerFromPlatform!.call(controller) as T;
-  }
-
-  @override
-  void dispose() {}
-}
-
-class _TestPlatformInAppWebViewController
-    extends PlatformInAppWebViewController {
-  _TestPlatformInAppWebViewController()
-    : super.implementation(
-        const PlatformInAppWebViewControllerCreationParams(id: 'test-webview'),
-      );
-
-  bool canGoBackValue = false;
-  bool canGoForwardValue = false;
-  int goBackCount = 0;
-  int goForwardCount = 0;
-  int reloadCount = 0;
-  bool callbacksDispatched = false;
-  String? mainFrameErrorDescription;
-  Object? canGoBackError;
-  Completer<void>? goBackCompletion;
-  InAppWebViewController? appController;
-  void Function(InAppWebViewController, WebUri?, bool?)? onUpdateVisitedHistory;
-  void Function(InAppWebViewController, WebResourceRequest, WebResourceError)?
-  onReceivedError;
-
-  @override
-  Future<bool> canGoBack() async {
-    final error = canGoBackError;
-    if (error != null) throw error;
-    return canGoBackValue;
-  }
-
-  @override
-  Future<void> goBack() async {
-    goBackCount++;
-    await goBackCompletion?.future;
-  }
-
-  @override
-  Future<bool> canGoForward() async => canGoForwardValue;
-
-  @override
-  Future<void> goForward() async {
-    goForwardCount++;
-  }
-
-  @override
-  Future<void> reload() async {
-    reloadCount++;
-  }
-
-  Future<void> visit(String url) async {
-    final controller = appController;
-    if (controller == null) throw StateError('WebView controller not ready');
-    onUpdateVisitedHistory?.call(controller, WebUri(url), false);
-  }
-
-  Future<void> failMainFrame(String url, String description) async {
-    final controller = appController;
-    if (controller == null) throw StateError('WebView controller not ready');
-    onReceivedError?.call(
-      controller,
-      WebResourceRequest(url: WebUri(url), isForMainFrame: true),
-      WebResourceError(
-        description: description,
-        type: WebResourceErrorType.UNKNOWN,
-      ),
-    );
-  }
-
-  @override
-  Future<WebUri?> getUrl() async => WebUri('https://example.com');
 }

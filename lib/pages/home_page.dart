@@ -37,7 +37,13 @@ import '../widgets/refresh_feedback_action.dart';
 import 'external_link_confirmation_page.dart';
 part 'home_campus_card_balance_card.dart';
 part 'home_campus_card_detail_page.dart';
+part 'home_campus_card_detail_layout.dart';
+part 'home_campus_card_detail_transactions.dart';
+part 'home_dashboard_content.dart';
+part 'home_dashboard_primary_layout.dart';
+part 'home_dashboard_greeting.dart';
 part 'home_dashboard_view.dart';
+part 'home_dashboard_widgets.dart';
 
 /// 首页校园卡概览的确定性展示状态，仅用于视觉 fixture 与状态回归测试。
 enum HomeCampusCardDisplayState {
@@ -50,7 +56,16 @@ enum HomeCampusCardDisplayState {
 }
 
 /// 首页整体的确定性展示状态，用于缓存生命周期与视觉回归。
-enum HomeDashboardDisplayState { initial, loading, content, stale, error }
+enum HomeDashboardDisplayState {
+  initial,
+  loading,
+  content,
+  stale,
+  error,
+  partialError,
+  credentialsPartial,
+  operationLocked,
+}
 
 /// 主页
 /// 展示欢迎信息与最新消息列表

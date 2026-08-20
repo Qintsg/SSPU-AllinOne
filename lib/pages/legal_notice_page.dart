@@ -131,7 +131,7 @@ class _LegalNoticePageState extends State<LegalNoticePage> {
         ],
       ),
       body: LayoutBuilder(
-        builder: (context, constraints) {
+        builder: (context, _) {
           final theme = context.yhTheme;
           final compact =
               MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
@@ -141,12 +141,7 @@ class _LegalNoticePageState extends State<LegalNoticePage> {
                         theme.responsive.panelPaddingViewportPercent /
                         100)
                     .clamp(theme.spacing.l, theme.spacing.xl2);
-          final content = _buildPageContent(
-            context,
-            compact: compact,
-            bodyHeight: constraints.maxHeight,
-            pagePadding: horizontalPadding,
-          );
+          final content = _buildPageContent(context, compact: compact);
           return SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
               horizontalPadding,
@@ -154,12 +149,7 @@ class _LegalNoticePageState extends State<LegalNoticePage> {
               horizontalPadding,
               horizontalPadding,
             ),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight - horizontalPadding * 2,
-              ),
-              child: content,
-            ),
+            child: content,
           );
         },
       ),
@@ -205,12 +195,7 @@ class _LegalNoticePageState extends State<LegalNoticePage> {
     );
   }
 
-  Widget _buildPageContent(
-    BuildContext context, {
-    required bool compact,
-    required double bodyHeight,
-    required double pagePadding,
-  }) {
+  Widget _buildPageContent(BuildContext context, {required bool compact}) {
     final theme = context.yhTheme;
     final actionLabel = widget.primaryActionLabel;
     return Column(
@@ -230,34 +215,15 @@ class _LegalNoticePageState extends State<LegalNoticePage> {
           timestamp: widget.sourceTimestamp,
         ),
         SizedBox(height: compact ? theme.spacing.m : theme.spacing.l),
-        _buildDocumentState(
-          context,
-          compact: compact,
-          bodyHeight: bodyHeight,
-          pagePadding: pagePadding,
-        ),
+        _buildDocumentState(context),
       ],
     );
   }
 
-  Widget _buildDocumentState(
-    BuildContext context, {
-    required bool compact,
-    required double bodyHeight,
-    required double pagePadding,
-  }) {
-    final minimumHeight = _minimumCardContentHeight(
-      context,
-      compact: compact,
-      bodyHeight: bodyHeight,
-      pagePadding: pagePadding,
-    );
+  Widget _buildDocumentState(BuildContext context) {
     final providedSections = widget.sections;
     if (providedSections != null) {
-      return _LegalSectionsCard(
-        sections: providedSections,
-        minimumHeight: minimumHeight,
-      );
+      return _LegalSectionsCard(sections: providedSections);
     }
 
     return FutureBuilder<String>(
@@ -280,39 +246,8 @@ class _LegalNoticePageState extends State<LegalNoticePage> {
           );
         }
 
-        return _LegalSectionsCard(
-          sections: _parseLegalNotice(snapshot.data!),
-          minimumHeight: minimumHeight,
-        );
+        return _LegalSectionsCard(sections: _parseLegalNotice(snapshot.data!));
       },
-    );
-  }
-
-  double _minimumCardContentHeight(
-    BuildContext context, {
-    required bool compact,
-    required double bodyHeight,
-    required double pagePadding,
-  }) {
-    final theme = context.yhTheme;
-    if (compact) return theme.control.regular * 9;
-    final small = theme.typography.small;
-    final display = theme.typography.display;
-    final body = theme.typography.body;
-    final headingHeight =
-        small.fontSize! * small.height! +
-        display.fontSize! * display.height! +
-        body.fontSize! * body.height! +
-        theme.spacing.s * 2;
-    final fixedHeight =
-        pagePadding * 2 +
-        headingHeight +
-        theme.spacing.l * 2 +
-        theme.control.minimumTarget +
-        theme.spacing.l * 2;
-    return (bodyHeight - fixedHeight).clamp(
-      theme.control.regular * 7,
-      double.infinity,
     );
   }
 }
@@ -461,32 +396,34 @@ class _LegalSourceStrip extends StatelessWidget {
 }
 
 class _LegalSectionsCard extends StatelessWidget {
-  const _LegalSectionsCard({
-    required this.sections,
-    required this.minimumHeight,
-  });
+  const _LegalSectionsCard({required this.sections});
 
   final List<LegalNoticeSection> sections;
-  final double minimumHeight;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.color.surface,
-        border: Border.all(
-          color: theme.color.border,
-          width: theme.layout.controlBorder,
+    return Align(
+      alignment: AlignmentDirectional.topStart,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth:
+              theme.control.regular * 17 +
+              theme.spacing.l * 2 +
+              theme.layout.controlBorder * 2,
         ),
-        borderRadius: BorderRadius.circular(theme.radius.m),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(theme.spacing.l),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: minimumHeight),
-          child: Align(
-            alignment: Alignment.topLeft,
+        child: DecoratedBox(
+          key: const Key('legal-sections-card'),
+          decoration: BoxDecoration(
+            color: theme.color.surface,
+            border: Border.all(
+              color: theme.color.border,
+              width: theme.layout.controlBorder,
+            ),
+            borderRadius: BorderRadius.circular(theme.radius.m),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(theme.spacing.l),
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: theme.control.regular * 17),
               child: Column(
@@ -567,30 +504,38 @@ class _LegalLoadState extends StatelessWidget {
     final theme = context.yhTheme;
     return Semantics(
       liveRegion: true,
-      child: YhCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: theme.typography.h3.copyWith(
-                color: danger ? theme.color.danger : theme.color.foreground,
-              ),
+      child: Align(
+        alignment: AlignmentDirectional.topStart,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: theme.layout.formContentWidth),
+          child: YhCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.typography.h3.copyWith(
+                    color: danger ? theme.color.danger : theme.color.foreground,
+                  ),
+                ),
+                SizedBox(height: theme.spacing.s),
+                Text(
+                  message,
+                  style: theme.typography.body.copyWith(
+                    color: theme.color.muted,
+                  ),
+                ),
+                if (actionLabel != null) ...[
+                  SizedBox(height: theme.spacing.l),
+                  YhButton(
+                    label: actionLabel!,
+                    onTap: onAction,
+                    variant: YhButtonVariant.secondary,
+                  ),
+                ],
+              ],
             ),
-            SizedBox(height: theme.spacing.s),
-            Text(
-              message,
-              style: theme.typography.body.copyWith(color: theme.color.muted),
-            ),
-            if (actionLabel != null) ...[
-              SizedBox(height: theme.spacing.l),
-              YhButton(
-                label: actionLabel!,
-                onTap: onAction,
-                variant: YhButtonVariant.secondary,
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );

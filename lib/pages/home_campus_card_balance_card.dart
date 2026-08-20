@@ -9,7 +9,10 @@
 part of 'home_page.dart';
 
 extension _HomeCampusCardBalanceCard on _HomePageState {
-  Widget _buildCampusCardBalanceCard(BuildContext context) {
+  Widget _buildCampusCardBalanceCard(
+    BuildContext context, {
+    required bool compact,
+  }) {
     final theme = context.yhTheme;
     final result = _campusCardResult;
     final snapshot = result?.snapshot;
@@ -21,77 +24,18 @@ extension _HomeCampusCardBalanceCard on _HomePageState {
             state == HomeCampusCardDisplayState.operationLocked) &&
         snapshot != null;
 
-    return YhCard(
+    return _HomeOverviewCard(
       key: const Key('home-campus-card-balance-card'),
-      semanticLabel: content.semanticLabel,
+      icon: YhIcons.finance,
+      color: theme.color.serviceFinance,
+      title: content.title,
+      detail: content.caption,
+      value: content.value,
+      compact: compact,
       onTap: canOpenDetails ? () => _openCampusCardDetail(snapshot) : null,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          minHeight: theme.control.regular - theme.spacing.xs,
-        ),
-        child: Row(
-          children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: Color.alphaBlend(
-                  theme.color.serviceFinance.withValues(
-                    alpha: theme.opacity.domainTint,
-                  ),
-                  theme.color.surface,
-                ),
-                borderRadius: BorderRadius.circular(theme.radius.input),
-              ),
-              child: SizedBox.square(
-                dimension: theme.control.regular - theme.spacing.xs,
-                child: Icon(
-                  YhIcons.finance,
-                  color: theme.color.serviceFinance,
-                  size: theme.spacing.l,
-                ),
-              ),
-            ),
-            SizedBox(width: theme.spacing.m),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    content.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.typography.body.copyWith(
-                      fontWeight: theme.typography.semibold,
-                    ),
-                  ),
-                  SizedBox(height: theme.spacing.xs),
-                  Text(
-                    content.caption,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.typography.caption.copyWith(
-                      color: theme.color.muted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: theme.spacing.m),
-            Text(
-              content.value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.typography.body.copyWith(
-                fontFamily: YhTypographyTokens.fontFamilyMono,
-                fontWeight: theme.typography.semibold,
-                color: state == HomeCampusCardDisplayState.error
-                    ? theme.color.danger
-                    : theme.color.foreground,
-              ),
-            ),
-          ],
-        ),
-      ),
+      valueColor: state == HomeCampusCardDisplayState.error
+          ? theme.color.danger
+          : theme.color.foreground,
     );
   }
 

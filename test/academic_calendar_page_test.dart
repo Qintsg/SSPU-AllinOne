@@ -39,6 +39,14 @@ void main() {
     expect(find.text('5 个教学周'), findsOneWidget);
     expect(find.textContaining('校运会'), findsOneWidget);
     expect(find.textContaining('另行通知'), findsOneWidget);
+    final evidence = find.byKey(const Key('academic-calendar-evidence-card'));
+    final document = find.byKey(const Key('academic-calendar-document-panel'));
+    expect(evidence, findsOneWidget);
+    expect(document, findsOneWidget);
+    expect(
+      tester.getSize(evidence).height,
+      lessThan(tester.getSize(document).height),
+    );
     expect(service.viewerEnsureCount, 1);
     expect(tester.takeException(), isNull);
     await _resetView(tester);

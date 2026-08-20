@@ -102,4 +102,4 @@ Scope: repo
 
 - 遵循 `flutter_lints` 推荐规则。
 - Bugfix 保持最小变更，不夹带无关重构。
-- 前端 UI 使用外部 `fluent_ui` / `fluentui_system_icons` 承载可见 Fluent 控件与图标，并保留项目兼容 token 和响应式断点；不要新增 Material 命名的可见控件或直接引用 Material 图标。
+- 前端 UI 统一经 `design/qingyuan/qingyuan_ui.dart` 使用清源主题、语义图标、宿主、导航、弹层与 `Yh*` 组件；`fluentui_system_icons` 仅可作为 `YhIcons` 的不可见字形实现，禁止可见 Fluent/Material/Cupertino 成品控件或直接引用 `Icons.*`。

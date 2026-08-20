@@ -10,15 +10,23 @@
 import '../design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import '../services/wxmp_article_service.dart';
 import '../services/wxmp_auth_service.dart';
 import '../widgets/webview_compact_toolbar.dart';
+import 'wxmp_login_cookie_reader.dart';
+import 'wxmp_login_preview.dart';
+import 'wxmp_login_test_hooks.dart';
+export 'wxmp_login_preview.dart' show WxmpLoginPreviewState;
+
+part 'wxmp_login_auth_transaction.dart';
 
 /// 公众号平台登录 URL
 const String _wxmpLoginUrl = 'https://mp.weixin.qq.com/';
 
 /// 测试入口：创建与登录 WebView 绑定到同一存储环境的 CookieManager。
+///
+/// :param webViewEnvironment: Windows 自定义 WebView2 环境；其它平台可为空。
+/// :returns: 与登录 WebView 共享环境的 CookieManager。
 @visibleForTesting
 CookieManager debugCreateWxmpCookieManager(
   WebViewEnvironment? webViewEnvironment,
@@ -27,6 +35,9 @@ CookieManager debugCreateWxmpCookieManager(
 }
 
 /// Windows 自定义 WebView2 用户数据目录时，CookieManager 也必须使用同一环境。
+///
+/// :param webViewEnvironment: Windows 自定义 WebView2 环境；其它平台可为空。
+/// :returns: 绑定指定环境的 CookieManager。
 CookieManager _createWxmpCookieManager(WebViewEnvironment? webViewEnvironment) {
   return CookieManager.instance(webViewEnvironment: webViewEnvironment);
 }
@@ -34,14 +45,37 @@ CookieManager _createWxmpCookieManager(WebViewEnvironment? webViewEnvironment) {
 /// 微信公众号平台扫码登录页
 /// 加载 mp.weixin.qq.com，用户扫码后从 URL 提取 token，从 CookieManager 提取 Cookie
 class WxmpLoginPage extends StatefulWidget {
-  /// Windows 平台需要的 WebViewEnvironment（由外部传入）
+  /// Windows 平台需要的 WebViewEnvironment（由外部传入）。
   final WebViewEnvironment? webViewEnvironment;
+
+  /// 打开系统浏览器的可替换入口；为空时使用平台默认实现。
   final Future<bool> Function(Uri uri)? launchUrlOverride;
 
+  /// 视觉 fixture 使用的确定性状态；生产调用保持 null。
+  final WxmpLoginPreviewState? previewState;
+
+  /// 测试用 token 闸门观察器；生产调用保持 null，不改变认证服务。
+  @visibleForTesting
+  final void Function(String token)? onTokenDetectedForTesting;
+
+  /// 测试用登录事务替换器；生产调用保持 null。
+  @visibleForTesting
+  final WxmpLoginTestOverrides? testOverrides;
+
+  /// 创建公众号平台扫码登录页。
+  /// :param key: 页面状态键。
+  /// :param webViewEnvironment: Windows 自定义 WebView2 环境。
+  /// :param launchUrlOverride: 测试或平台适配使用的外部打开入口。
+  /// :param previewState: 视觉 fixture 使用的确定性状态。
+  /// :param onTokenDetectedForTesting: 测试用 token 观察器。
+  /// :param testOverrides: 测试用 Cookie、认证事务和校验替换器。
   const WxmpLoginPage({
     super.key,
     this.webViewEnvironment,
     this.launchUrlOverride,
+    this.previewState,
+    this.onTokenDetectedForTesting,
+    this.testOverrides,
   });
 
   @override
@@ -60,37 +94,158 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
   bool _refreshing = false;
   int _pageGeneration = 0;
   _LoginResult? _result;
+  _LoginFailureKind? _failureKind;
+
+  /// 将内部认证结果映射为冻结设计使用的展示状态。
+  ///
+  /// :returns: 当前生产或 fixture 的可见状态。
+  WxmpLoginPreviewState get _displayState {
+    final preview = widget.previewState;
+    if (preview != null) return preview;
+    if (_initFailed) return WxmpLoginPreviewState.error;
+    if (_extracting) return WxmpLoginPreviewState.operationLocked;
+    if (!_isReady) return WxmpLoginPreviewState.loading;
+    if (_result?.success == true) return WxmpLoginPreviewState.content;
+    if (_result != null) {
+      return _failureKind == _LoginFailureKind.externalOpen
+          ? WxmpLoginPreviewState.externalError
+          : WxmpLoginPreviewState.partialError;
+    }
+    return WxmpLoginPreviewState.initial;
+  }
+
+  /// 判断顶部重复行动是否因加载、失败、锁定或完成而不可用。
+  ///
+  /// :returns: 刷新与外部打开是否必须锁定。
+  bool get _toolbarActionsLocked =>
+      !_isReady ||
+      _initFailed ||
+      _extracting ||
+      _openingExternal ||
+      _refreshing ||
+      _result?.success == true;
+
+  /// 解析工具栏标题，成功态不再继续显示网页标题。
+  ///
+  /// :returns: 当前工具栏可见标题。
+  String get _toolbarTitle => _result?.success == true ? '登录已完成' : _title;
+
+  /// 将视觉 fixture 状态映射为生产页面已有的展示字段。
+  ///
+  /// :returns: 无返回值；字段更新后由当前 build 读取。
+  void _configurePreviewState() {
+    final state = widget.previewState;
+    if (state == null) return;
+    _isReady = state != WxmpLoginPreviewState.loading;
+    switch (state) {
+      case WxmpLoginPreviewState.loading:
+      case WxmpLoginPreviewState.initial:
+      case WxmpLoginPreviewState.externalConfirmation:
+        break;
+      case WxmpLoginPreviewState.content:
+        _result = _LoginResult(
+          success: true,
+          message: '登录成功，连接信息已保存在本机；返回后将刷新公众号内容。',
+        );
+      case WxmpLoginPreviewState.error:
+        _initFailed = true;
+        _initError = '请检查网络连接和 WebView 运行时后重试；当前没有写入新的认证信息。';
+      case WxmpLoginPreviewState.partialError:
+        _failureKind = _LoginFailureKind.candidateValidation;
+        _result = _LoginResult(
+          success: false,
+          message: '候选认证校验失败，已恢复原连接；可刷新二维码后重新扫码。',
+        );
+      case WxmpLoginPreviewState.operationLocked:
+        _extracting = true;
+      case WxmpLoginPreviewState.externalError:
+        _failureKind = _LoginFailureKind.externalOpen;
+        _result = _LoginResult(
+          success: false,
+          message: '系统浏览器未能打开微信登录页；应用内扫码页和当前位置均已保留。',
+        );
+    }
+  }
+
+  /// 初始化页面状态与确定性视觉 fixture 字段。
+  ///
+  /// :returns: 无返回值。
+  @override
+  void initState() {
+    super.initState();
+    _configurePreviewState();
+  }
+
+  /// 在视觉矩阵切换状态时重置并重新应用确定性页面字段。
+  ///
+  /// :param oldWidget: 上一帧的页面配置。
+  /// :returns: 无返回值。
+  @override
+  void didUpdateWidget(covariant WxmpLoginPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.previewState == widget.previewState) return;
+    _isReady = false;
+    _initFailed = false;
+    _extracting = false;
+    _result = null;
+    _failureKind = null;
+    _configurePreviewState();
+  }
+
+  /// 在页面仍挂载时提交认证事务发起的展示状态。
+  ///
+  /// :param update: 需要在同一帧中提交的状态变更。
+  void _setLoginState(VoidCallback update) {
+    if (!mounted) return;
+    setState(update);
+  }
 
   /// 监听 URL 变化，检测登录成功
   /// 登录成功后 URL 形如:
   /// https://mp.weixin.qq.com/cgi-bin/home?t=home/index&token=123456789&lang=zh_CN
-  void _checkLoginSuccess(String url) {
+  void _checkLoginSuccess(String url, int generation) {
+    final controller = _controller;
+    if (!_isCurrentDocument(generation, controller)) return;
     if (_extracting || _result != null) return;
 
     if (!url.contains('mp.weixin.qq.com')) return;
     final urlToken = _extractTokenFromText(url);
     if (urlToken != null) {
-      _extractCookieAndSave(urlToken, url);
+      widget.onTokenDetectedForTesting?.call(urlToken);
+      _extractCookieAndSave(
+        urlToken,
+        url,
+        generation: generation,
+        controller: controller!,
+      );
       return;
     }
 
-    _schedulePageTokenCheck(url);
+    _schedulePageTokenCheck(url, generation, controller!);
   }
 
   /// URL 不含 token 时，从页面脚本变量和当前地址中补充识别登录态。
-  void _schedulePageTokenCheck(String pageUrl) {
+  void _schedulePageTokenCheck(
+    String pageUrl,
+    int generation,
+    InAppWebViewController controller,
+  ) {
     if (_pageTokenCheckScheduled) return;
     _pageTokenCheckScheduled = true;
-    final generation = _pageGeneration;
     Future<void>(() async {
       await Future.delayed(const Duration(milliseconds: 500));
-      if (generation != _pageGeneration) return;
+      if (!_isCurrentDocument(generation, controller)) return;
       _pageTokenCheckScheduled = false;
       if (!mounted || _extracting || _result != null) return;
 
-      final pageToken = await _readTokenFromPage();
-      if (pageToken != null) {
-        _extractCookieAndSave(pageToken, pageUrl);
+      final pageToken = await _readTokenFromPage(controller);
+      if (pageToken != null && _isCurrentDocument(generation, controller)) {
+        _extractCookieAndSave(
+          pageToken,
+          pageUrl,
+          generation: generation,
+          controller: controller,
+        );
       }
     });
   }
@@ -102,9 +257,7 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
     return tokenMatch?.group(1);
   }
 
-  Future<String?> _readTokenFromPage() async {
-    final controller = _controller;
-    if (controller == null) return null;
+  Future<String?> _readTokenFromPage(InAppWebViewController controller) async {
     try {
       final tokenText = await controller.evaluateJavascript(
         source: '''
@@ -118,6 +271,7 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
     const match = String(candidate).match(/(?:[?&]token=|["']token["']\\s*:\\s*["']?)(\\d+)/);
     if (match) return match[1];
   }
+
   return '';
 })()
 ''',
@@ -130,177 +284,16 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
     }
   }
 
-  /// 提取 Cookie 并与 Token 一起保存
-  Future<void> _extractCookieAndSave(String token, String successUrl) async {
-    if (_extracting) return;
-    setState(() => _extracting = true);
-
-    final authService = WxmpAuthService.instance;
-    WxmpAuthSnapshot? previousAuth;
-    var candidateWriteStarted = false;
-    try {
-      previousAuth = await authService.captureAuth();
-      _CookieReadResult? lastCookieReadResult;
-      WxmpAuthValidationResult? lastValidation;
-
-      for (var attempt = 0; attempt < 4; attempt++) {
-        await Future.delayed(Duration(milliseconds: 500 + attempt * 500));
-        lastCookieReadResult = await _readWxmpCookies(successUrl);
-        if (lastCookieReadResult.cookieMap.isEmpty) continue;
-
-        final cookieStr = lastCookieReadResult.cookieMap.entries
-            .map((entry) => '${entry.key}=${entry.value}')
-            .join('; ');
-
-        candidateWriteStarted = true;
-        await authService.saveAuth(cookieStr, token);
-        lastValidation = await WxmpArticleService.instance.validateAuth();
-        if (lastValidation.isValid) {
-          debugPrint(
-            '[WxmpLogin] 认证保存成功, Cookie 数量: '
-            '${lastCookieReadResult.cookieMap.length}, Cookie 键名: '
-            '${lastCookieReadResult.cookieNames.toList()..sort()}',
-          );
-
-          if (mounted) {
-            setState(() {
-              _extracting = false;
-              _initFailed = false;
-              _result = _LoginResult(
-                success: true,
-                message: '登录成功，Token 和 Cookie 已保存',
-              );
-            });
-          }
-          return;
-        }
-      }
-
-      final cookieCount = lastCookieReadResult?.cookieMap.length ?? 0;
-      final cookieNames = lastCookieReadResult?.cookieNames ?? <String>{};
-      if (cookieCount == 0) {
-        if (mounted) {
-          setState(() {
-            _extracting = false;
-            _result = _LoginResult(
-              success: false,
-              message: '未获取到 Cookie，请确认已完成扫码',
-            );
-          });
-        }
-        return;
-      }
-
-      debugPrint(
-        '[WxmpLogin] 认证保存后校验失败: ${lastValidation?.message}, Cookie 数量: $cookieCount, Cookie 键名: '
-        '${cookieNames.toList()..sort()}',
-      );
-      final restoreMessage = await _restorePreviousAuth(
-        authService,
-        previousAuth,
-        candidateWriteStarted: candidateWriteStarted,
-      );
-      if (mounted) {
-        setState(() {
-          _extracting = false;
-          _result = _LoginResult(
-            success: false,
-            message:
-                '认证校验失败：${lastValidation?.message ?? 'Cookie 不完整'}；$restoreMessage',
-          );
-        });
-      }
-    } catch (error) {
-      final restoreMessage = await _restorePreviousAuth(
-        authService,
-        previousAuth,
-        candidateWriteStarted: candidateWriteStarted,
-      );
-      if (mounted) {
-        setState(() {
-          _extracting = false;
-          _result = _LoginResult(
-            success: false,
-            message: '提取失败：$error；$restoreMessage',
-          );
-        });
-      }
-    }
-  }
-
-  Future<String> _restorePreviousAuth(
-    WxmpAuthService authService,
-    WxmpAuthSnapshot? snapshot, {
-    required bool candidateWriteStarted,
-  }) async {
-    if (!candidateWriteStarted) return '没有写入新的认证信息';
-    if (snapshot == null) return '无法确认原连接状态';
-    try {
-      await authService.restoreAuth(snapshot);
-      final hadPreviousAuth =
-          (snapshot.cookie?.trim().isNotEmpty ?? false) &&
-          (snapshot.token?.trim().isNotEmpty ?? false);
-      return hadPreviousAuth ? '已恢复原连接' : '未保留无效候选凭据';
-    } catch (error) {
-      debugPrint('[WxmpLogin] 原认证恢复失败: $error');
-      return '原连接恢复失败，请返回认证设置检查状态';
-    }
-  }
-
-  Future<_CookieReadResult> _readWxmpCookies(String successUrl) async {
-    final cookieManager = _createWxmpCookieManager(widget.webViewEnvironment);
-    final cookieMap = <String, String>{};
-    final cookieNames = <String>{};
-    final currentUrl = await _controller?.getUrl();
-    final cookieUrls = <String>{
-      'https://mp.weixin.qq.com/',
-      'https://mp.weixin.qq.com/cgi-bin/home',
-      'https://mp.weixin.qq.com/cgi-bin/searchbiz',
-      'https://mp.weixin.qq.com/cgi-bin/appmsg',
-      'https://mp.weixin.qq.com/cgi-bin/appmsgpublish',
-      if (currentUrl != null) currentUrl.toString(),
-      successUrl,
-    };
-
-    for (final cookieUrl in cookieUrls) {
-      final cookies = await cookieManager.getCookies(
-        url: WebUri(cookieUrl),
-        webViewController: _controller,
-      );
-      for (final cookie in cookies) {
-        final cookieValue = cookie.value?.toString() ?? '';
-        if (cookie.name.isEmpty || cookieValue.isEmpty) continue;
-        cookieMap[cookie.name] = cookieValue;
-        cookieNames.add(cookie.name);
-      }
-    }
-
-    final documentCookie = await _readDocumentCookie();
-    for (final cookiePart in documentCookie.split(';')) {
-      final separatorIndex = cookiePart.indexOf('=');
-      if (separatorIndex <= 0) continue;
-      final cookieName = cookiePart.substring(0, separatorIndex).trim();
-      final cookieValue = cookiePart.substring(separatorIndex + 1).trim();
-      if (cookieName.isEmpty || cookieValue.isEmpty) continue;
-      cookieMap[cookieName] = cookieValue;
-      cookieNames.add(cookieName);
-    }
-
-    return _CookieReadResult(cookieMap: cookieMap, cookieNames: cookieNames);
-  }
-
-  Future<String> _readDocumentCookie() async {
-    final controller = _controller;
-    if (controller == null) return '';
-    try {
-      final cookieText = await controller.evaluateJavascript(
-        source: 'document.cookie',
-      );
-      return cookieText?.toString() ?? '';
-    } catch (error) {
-      debugPrint('[WxmpLogin] document.cookie 读取失败: $error');
-      return '';
-    }
+  /// 判断 WebView 回调是否仍属于当前页面换代。
+  ///
+  /// :param generation: 回调创建时捕获的页面换代号。
+  /// :param controller: 回调所属的 WebView 控制器。
+  /// :returns: 仍可安全写入当前页面状态时返回 true。
+  bool _isCurrentDocument(int generation, InAppWebViewController? controller) {
+    return mounted &&
+        generation == _pageGeneration &&
+        controller != null &&
+        identical(controller, _controller);
   }
 
   @override
@@ -312,7 +305,7 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
         body: Column(
           children: [
             WebViewCompactToolbar(
-              title: _title,
+              title: _toolbarTitle,
               backSemanticLabel: _extracting
                   ? '正在保存认证，暂不能返回'
                   : _result?.success == true
@@ -326,25 +319,13 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
                   icon: YhIcons.refresh,
                   semanticLabel: '刷新微信登录页',
                   variant: YhIconButtonVariant.ghost,
-                  onTap:
-                      _extracting ||
-                          _openingExternal ||
-                          _refreshing ||
-                          _result?.success == true
-                      ? null
-                      : _refreshLoginPage,
+                  onTap: _toolbarActionsLocked ? null : _refreshLoginPage,
                 ),
                 YhIconButton(
                   icon: YhIcons.open,
                   semanticLabel: '在系统浏览器打开微信登录页',
                   variant: YhIconButtonVariant.ghost,
-                  onTap:
-                      _extracting ||
-                          _openingExternal ||
-                          _refreshing ||
-                          _result?.success == true
-                      ? null
-                      : _openLoginInBrowser,
+                  onTap: _toolbarActionsLocked ? null : _openLoginInBrowser,
                 ),
                 if (_extracting)
                   SizedBox.square(
@@ -382,93 +363,75 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
     );
   }
 
-  Widget _buildContent(BuildContext context) {
-    final theme = context.yhTheme;
+  /// 构建应用自绘状态框架，并在唯一正文 seam 注入真实 WebView 或 fixture。
+  ///
+  /// :param context: 当前清源主题上下文。
+  /// :returns: 共用认证接力条、恢复区与平台正文组成的页面主体。
+  Widget _buildContent(BuildContext context) => WxmpLoginContentFrame(
+    state: _displayState,
+    errorMessage: _initError,
+    resultMessage: _result?.message,
+    onRetry: _refreshLoginPage,
+    documentBuilder: _buildLoginDocument,
+  );
 
-    if (_initFailed) {
-      return YhEmptyState(
-        icon: YhIcons.warning,
-        title: '无法打开微信登录页',
-        message: _initError,
-        action: YhButton(label: '重新打开登录页', onTap: _refreshLoginPage),
+  /// 构建唯一会随平台而变化的网页正文 seam。
+  ///
+  /// :param context: 当前清源主题上下文。
+  /// :returns: 真实 InAppWebView 或确定性外部正文。
+  Widget _buildLoginDocument(BuildContext context) {
+    if (widget.previewState != null) {
+      return const WxmpLoginPreviewDocument(
+        key: Key('visual-wechat-login-document'),
       );
     }
-
-    return Column(
-      children: [
-        if (_result != null) _WxmpLoginInlineStatus(result: _result!),
-        if (_extracting && _result == null)
-          Padding(
-            padding: EdgeInsetsDirectional.fromSTEB(
-              theme.spacing.l,
-              theme.spacing.s,
-              theme.spacing.l,
-              theme.spacing.xs,
-            ),
-            child: const YhBanner(
-              text: '正在保存并校验认证信息；完成前暂不能返回或再次开始登录。',
-              kind: YhBannerKind.warn,
-            ),
-          ),
-        if (!_isReady && _result == null)
-          Padding(
-            padding: EdgeInsetsDirectional.fromSTEB(
-              theme.spacing.l,
-              theme.spacing.s,
-              theme.spacing.l,
-              theme.spacing.xs,
-            ),
-            child: const YhBanner(
-              text: '请使用拥有公众号的微信账号扫码登录。个人订阅号即可（mp.weixin.qq.com 免费注册）。',
-            ),
-          ),
-        Expanded(
-          child: InAppWebView(
-            webViewEnvironment: widget.webViewEnvironment,
-            initialUrlRequest: URLRequest(url: WebUri(_wxmpLoginUrl)),
-            initialSettings: InAppWebViewSettings(
-              javaScriptEnabled: true,
-              isInspectable: kDebugMode,
-              // UA-POLICY-ALLOW: 微信公众号扫码登录页依赖浏览器 UA 展示桌面登录流程，不能使用 OA/CAS 应用 UA。
-              userAgent:
-                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-                  '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            ),
-            onWebViewCreated: (controller) {
-              _controller = controller;
-              if (mounted) setState(() => _isReady = true);
-            },
-            onTitleChanged: (controller, title) {
-              if (mounted && title != null && title.isNotEmpty) {
-                setState(() => _title = title);
-              }
-            },
-            onUpdateVisitedHistory: (controller, url, isReload) {
-              if (url != null && mounted) {
-                _checkLoginSuccess(url.toString());
-              }
-            },
-            onLoadStop: (controller, url) {
-              if (url != null && mounted) {
-                _checkLoginSuccess(url.toString());
-              }
-            },
-            onReceivedError: (controller, request, error) {
-              debugPrint('[WxmpLogin] WebView 错误: ${error.description}');
-              if (request.isForMainFrame == true &&
-                  mounted &&
-                  !_extracting &&
-                  _result == null) {
-                setState(() {
-                  _initFailed = true;
-                  _initError =
-                      '微信登录页加载失败：${error.description}。请检查网络连接后重试；桌面端还需确认 WebView 运行时可用。';
-                });
-              }
-            },
-          ),
+    final generation = _pageGeneration;
+    return KeyedSubtree(
+      key: ValueKey('wxmp-login-webview-$generation'),
+      child: InAppWebView(
+        webViewEnvironment: widget.webViewEnvironment,
+        initialUrlRequest: URLRequest(url: WebUri(_wxmpLoginUrl)),
+        initialSettings: InAppWebViewSettings(
+          javaScriptEnabled: true,
+          isInspectable: kDebugMode,
+          // UA-POLICY-ALLOW: 微信公众号扫码登录页依赖浏览器 UA 展示桌面登录流程，不能使用 OA/CAS 应用 UA。
+          userAgent:
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+              '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         ),
-      ],
+        onWebViewCreated: (controller) {
+          if (!mounted || generation != _pageGeneration) return;
+          _controller = controller;
+          setState(() => _isReady = true);
+        },
+        onTitleChanged: (controller, title) {
+          if (_isCurrentDocument(generation, controller) &&
+              title != null &&
+              title.isNotEmpty &&
+              _result?.success != true) {
+            setState(() => _title = title);
+          }
+        },
+        onUpdateVisitedHistory: (controller, url, isReload) {
+          if (url != null) _checkLoginSuccess(url.toString(), generation);
+        },
+        onLoadStop: (controller, url) {
+          if (url != null) _checkLoginSuccess(url.toString(), generation);
+        },
+        onReceivedError: (controller, request, error) {
+          debugPrint('[WxmpLogin] WebView 错误: ${error.description}');
+          if (request.isForMainFrame == true &&
+              _isCurrentDocument(generation, controller) &&
+              !_extracting &&
+              _result == null) {
+            setState(() {
+              _initFailed = true;
+              _initError =
+                  '微信登录页加载失败：${error.description}。请检查网络连接后重试；桌面端还需确认 WebView 运行时可用。';
+            });
+          }
+        },
+      ),
     );
   }
 
@@ -479,16 +442,21 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
         _result?.success == true) {
       return;
     }
+    final controller = _controller;
     setState(() {
       _refreshing = true;
       _pageGeneration += 1;
+      _controller = null;
+      _isReady = false;
       _result = null;
       _initFailed = false;
+      _failureKind = null;
+      _title = '公众号平台登录';
       _initError = '请检查网络连接和 WebView 运行时后重试。';
       _pageTokenCheckScheduled = false;
     });
     try {
-      await _controller?.reload();
+      await controller?.reload();
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -522,6 +490,7 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
       final opened = await (widget.launchUrlOverride ?? _launchExternal)(uri);
       if (!opened && mounted) {
         setState(() {
+          _failureKind = _LoginFailureKind.externalOpen;
           _result = _LoginResult(
             success: false,
             message: '系统浏览器未能打开微信登录页，请检查默认浏览器设置后重试。',
@@ -531,6 +500,7 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
     } catch (_) {
       if (mounted) {
         setState(() {
+          _failureKind = _LoginFailureKind.externalOpen;
           _result = _LoginResult(
             success: false,
             message: '系统浏览器未能打开微信登录页，请检查默认浏览器设置后重试。',
@@ -547,46 +517,17 @@ class _WxmpLoginPageState extends State<WxmpLoginPage> {
   }
 }
 
-/// 公众号平台登录结果的内联短状态。
-class _WxmpLoginInlineStatus extends StatelessWidget {
-  const _WxmpLoginInlineStatus({required this.result});
-
-  /// 登录结果。
-  final _LoginResult result;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return Semantics(
-      liveRegion: true,
-      container: true,
-      child: Padding(
-        key: const Key('wxmp-login-inline-status'),
-        padding: EdgeInsetsDirectional.fromSTEB(
-          theme.spacing.l,
-          theme.spacing.s,
-          theme.spacing.l,
-          theme.spacing.xs,
-        ),
-        child: YhBanner(
-          text: result.message,
-          kind: result.success ? YhBannerKind.success : YhBannerKind.danger,
-        ),
-      ),
-    );
-  }
-}
+enum _LoginFailureKind { candidateValidation, externalOpen }
 
 /// 登录结果
 class _LoginResult {
+  /// 创建成功或失败的登录结果。
+  ///
+  /// :param success: 是否已完成认证。
+  /// :param message: 面向用户的结果说明。
   final bool success;
   final String message;
+
+  /// 创建成功或失败的登录结果值。
   _LoginResult({required this.success, required this.message});
-}
-
-class _CookieReadResult {
-  final Map<String, String> cookieMap;
-  final Set<String> cookieNames;
-
-  _CookieReadResult({required this.cookieMap, required this.cookieNames});
 }

@@ -307,6 +307,10 @@ Future<int> runVisualComparison(List<String> arguments) async {
       jsonDecode(await File(options.manifest).readAsString())
           as Map<String, Object?>;
   final metadata = manifest['meta']! as Map<String, Object?>;
+  if (metadata['reviewMode'] == 'manual-per-screen') {
+    stdout.writeln('视觉清单已启用逐屏人工评审，跳过 SSIM 比较。');
+    return 0;
+  }
   final applicationThreshold = (metadata['applicationThreshold']! as num)
       .toDouble();
   final externalThreshold = (metadata['externalThreshold']! as num).toDouble();

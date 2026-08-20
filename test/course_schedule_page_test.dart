@@ -379,6 +379,65 @@ void main() {
     await disposeCourseSchedulePage(tester);
   });
 
+  testWidgets('课程表紧凑端日期带完整展示七天并保留完整语义', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _successResult),
+      initialResult: _successResult,
+      nowOverride: DateTime(2026, 5, 9),
+    );
+    await pumpUntilFound(tester, find.text('高等数学'));
+
+    for (final label in const ['周一', '周二', '周三', '周四', '周五', '今天', '周日']) {
+      expect(find.text(label), findsOneWidget);
+    }
+    expect(
+      find.descendant(
+        of: find.byType(YhTabs<int>),
+        matching: find.byType(SingleChildScrollView),
+      ),
+      findsNothing,
+    );
+    for (final semanticLabel in const [
+      '周一',
+      '周二',
+      '周三',
+      '周四',
+      '周五',
+      '周六，今天',
+      '周日',
+    ]) {
+      final target = find.byWidgetPredicate(
+        (widget) =>
+            widget is YhPressable && widget.semanticLabel == semanticLabel,
+      );
+      expect(target, findsOneWidget);
+      expect(tester.getSize(target).width, greaterThanOrEqualTo(48));
+      expect(tester.getSize(target).height, greaterThanOrEqualTo(48));
+    }
+
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) => widget is YhPressable && widget.semanticLabel == '周日',
+      ),
+    );
+    await tester.pump();
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is YhTabs<int> && widget.value == 7,
+      ),
+      findsOneWidget,
+    );
+    await disposeCourseSchedulePage(tester);
+  });
+
   testWidgets('课程表在成功返回空记录时展示明确空态', (tester) async {
     await pumpCourseSchedulePage(
       tester,

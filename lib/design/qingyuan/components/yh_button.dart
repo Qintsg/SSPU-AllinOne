@@ -1,4 +1,10 @@
-/* 清源按钮 — 四种语义层级共享统一交互基座。 */
+/*
+ * 清源按钮 — 四种语义层级共享统一交互基座
+ * @Project : SSPU-AllinOne
+ * @File : yh_button.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
 
 import 'package:flutter/widgets.dart';
 
@@ -36,7 +42,14 @@ class YhButton extends StatelessWidget {
     final theme = context.yhTheme;
     final effectiveHeight = height ?? theme.control.regular;
     final contentHeight = effectiveHeight;
-    final effectiveMinWidth = minWidth ?? theme.control.minimumTarget * 2;
+    final effectiveMinWidth =
+        minWidth ??
+        (variant == YhButtonVariant.text
+            ? theme.control.minimumTarget
+            : theme.control.minimumTarget * 2);
+    final horizontalPadding = variant == YhButtonVariant.text
+        ? theme.spacing.s + theme.spacing.xs
+        : theme.spacing.m;
     final enabled = !disabled && onTap != null;
 
     return YhPressable(
@@ -66,7 +79,7 @@ class YhButton extends StatelessWidget {
                 maxHeight: contentHeight,
               ),
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: theme.spacing.m),
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                 child: DefaultTextStyle(
                   style: theme.typography.body.copyWith(
                     color: colors.foreground,

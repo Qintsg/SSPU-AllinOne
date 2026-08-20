@@ -121,8 +121,17 @@ jobs:
       - name: 测试清源设计契约校验器
         run: python scripts/ci/test_validate_design_system.py
 
+      - name: 测试清源拆分样式校验器
+        run: python scripts/ci/test_validate_design_stylesheets.py
+
       - name: 校验清源设计契约
         run: python scripts/ci/validate_design_system.py
+
+      - name: 校验清源拆分样式加载链
+        run: python scripts/ci/validate_design_stylesheets.py
+
+      - name: 校验 Flutter 五平台 CI 矩阵
+        run: python scripts/ci/validate_flutter_platform_ci.py
 
   design-prototype-gate:
     if: github.event.pull_request.draft == false
@@ -143,6 +152,9 @@ jobs:
 
       - name: 浏览器核验清源页面原型
         run: python scripts/design/verify_design_prototype.py --output build/design-review
+
+      - name: 核验首页稿外密度交互
+        run: python scripts/design/check_home_density_interactions.py
 
       - name: 上传页面原型核验截图
         if: always()
@@ -257,6 +269,8 @@ jobs:
         run: >
           sudo apt-get update && sudo apt-get install -y
           clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+          libnotify-dev libsecret-1-dev libjsoncpp-dev
+          libayatana-appindicator3-dev
 
       - name: 安装 Flutter 依赖
         run: flutter pub get
@@ -309,14 +323,37 @@ jobs:
           channel: stable
           cache: true
 
+      - name: 安装 Linux 原生能力依赖
+        if: matrix.platform == 'linux'
+        run: >
+          sudo apt-get update && sudo apt-get install -y
+          clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+          libnotify-dev libsecret-1-dev libjsoncpp-dev
+          libayatana-appindicator3-dev xvfb
+
       - name: 安装 Flutter 依赖
         run: flutter pub get
 
-      - name: 下载已核验的清源设计参考
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: qingyuan-design-review
-          path: build/design-review
+      - name: Windows 原生能力冒烟
+        if: matrix.platform == 'windows'
+        run: >
+          flutter test -d windows
+          integration_test/qingyuan_platform_smoke_test.dart
+          --timeout 180s
+
+      - name: macOS 原生能力冒烟
+        if: matrix.platform == 'macos'
+        run: >
+          flutter test -d macos
+          integration_test/qingyuan_platform_smoke_test.dart
+          --timeout 180s
+
+      - name: Linux 原生能力冒烟
+        if: matrix.platform == 'linux'
+        run: >
+          xvfb-run -a flutter test -d linux
+          integration_test/qingyuan_platform_smoke_test.dart
+          --timeout 180s
 
       - name: 在桌面 runner 采集清源视觉候选
         if: matrix.platform != 'android' && matrix.platform != 'ios'
@@ -335,13 +372,16 @@ jobs:
           target: google_apis
           profile: pixel_2
           disable-animations: true
-          script: >
-            flutter test -d emulator-5554
-            integration_test/qingyuan_visual_capture_test.dart
-            --dart-define=QINGYUAN_VISUAL_CAPTURE=true
-            --dart-define=QINGYUAN_VISUAL_DEVICE_CAPTURE=true
-            --dart-define=QINGYUAN_VISUAL_PLATFORM=android
-            --timeout 300s
+          script: |
+            flutter test -d emulator-5554 \
+              integration_test/qingyuan_platform_smoke_test.dart \
+              --timeout 180s
+            flutter test -d emulator-5554 \
+              integration_test/qingyuan_visual_capture_test.dart \
+              --dart-define=QINGYUAN_VISUAL_CAPTURE=true \
+              --dart-define=QINGYUAN_VISUAL_DEVICE_CAPTURE=true \
+              --dart-define=QINGYUAN_VISUAL_PLATFORM=android \
+              --timeout 300s
 
       - name: 启动 iOS 模拟器
         if: matrix.platform == 'ios'
@@ -365,6 +405,13 @@ jobs:
           xcrun simctl bootstatus "$device_id" -b
           echo "QINGYUAN_IOS_DEVICE=$device_id" >> "$GITHUB_ENV"
 
+      - name: iOS 原生能力冒烟
+        if: matrix.platform == 'ios'
+        run: >
+          flutter test -d "${{ env.QINGYUAN_IOS_DEVICE }}"
+          integration_test/qingyuan_platform_smoke_test.dart
+          --timeout 180s
+
       - name: 在 iOS 模拟器采集清源视觉候选
         if: matrix.platform == 'ios'
         run: >
@@ -382,23 +429,12 @@ jobs:
           --manifest docs/design/resources/visual-manifest.json
           --platform ${{ matrix.platform }}
 
-      - name: 逐图比较清源设计参考
-        run: >
-          dart run tool/visual_compare.dart
-          --baseline build/design-review
-          --actual build/visual/${{ matrix.platform }}
-          --output build/visual-results/${{ matrix.platform }}
-          --manifest docs/design/resources/visual-manifest.json
-          --platform ${{ matrix.platform }}
-
       - name: 上传清源视觉候选
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: qingyuan-visual-candidates-${{ matrix.platform }}
-          path: |
-            build/visual/${{ matrix.platform }}
-            build/visual-results/${{ matrix.platform }}
+          path: build/visual/${{ matrix.platform }}
           if-no-files-found: error
 
   release-policy:

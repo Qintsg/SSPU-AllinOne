@@ -1,4 +1,10 @@
-/* 清源数据与隐私任务页测试。 */
+/*
+ * 清源数据与隐私任务页测试
+ * @Project : SSPU-AllinOne
+ * @File : settings_data_privacy_page_test.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
 
 import 'dart:async';
 import 'dart:ui' show Tristate;
@@ -101,10 +107,12 @@ void main() {
       ),
     );
 
+    final sectionSize = tester.getSize(find.byType(SettingsDataPrivacySection));
     expect(
-      tester.getSize(find.byType(SettingsDataPrivacySection)).width,
+      sectionSize.width,
       greaterThan(YhTheme.light.layout.pageContentWidth),
     );
+    expect(sectionSize.height, lessThan(360));
   });
 
   testWidgets('本地数据操作执行中禁用全部入口并在完成后恢复', (tester) async {
@@ -348,5 +356,54 @@ void main() {
     expect(find.textContaining('操作已完成，但未能刷新'), findsOneWidget);
     expect(find.bySemanticsLabel('查看：清除校园缓存'), findsOneWidget);
     expect(find.bySemanticsLabel('重试：清除校园缓存'), findsNothing);
+  });
+
+  testWidgets('状态加载器换代后采用新快照且旧结果不得回写', (tester) async {
+    final oldSnapshot = Completer<SettingsDataPrivacySnapshot>();
+    Future<bool> stableClear() async => true;
+    Future<bool> stableDisconnect() async => true;
+    void stableOpenPrivacy() {}
+
+    await tester.pumpWidget(
+      YhApp(
+        home: SettingsDataPrivacyPage(
+          loadSnapshot: () => oldSnapshot.future,
+          onClearCampusCache: stableClear,
+          onDisconnectAccounts: stableDisconnect,
+          onOpenPrivacy: stableOpenPrivacy,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.pumpWidget(
+      YhApp(
+        home: SettingsDataPrivacyPage(
+          loadSnapshot: () async => const SettingsDataPrivacySnapshot(
+            cacheStatus: '新快照缓存',
+            accountStatus: '新快照账户',
+            privacyStatus: '新快照隐私说明',
+          ),
+          onClearCampusCache: stableClear,
+          onDisconnectAccounts: stableDisconnect,
+          onOpenPrivacy: stableOpenPrivacy,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('新快照缓存'), findsOneWidget);
+
+    oldSnapshot.complete(
+      const SettingsDataPrivacySnapshot(
+        cacheStatus: '旧快照缓存',
+        accountStatus: '旧快照账户',
+        privacyStatus: '旧快照隐私说明',
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('新快照缓存'), findsOneWidget);
+    expect(find.text('旧快照缓存'), findsNothing);
   });
 }

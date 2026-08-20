@@ -204,7 +204,6 @@ class _AcademicEamsGradeDetailPageState
         child: _AcademicDetailLoadingState(
           title: '正在读取课程成绩',
           source: '教务成绩 · 本地快照',
-          alignEvidenceLedger: true,
         ),
       );
     } else if (_result == null || !_result!.isSuccess || snapshot == null) {

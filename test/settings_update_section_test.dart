@@ -404,6 +404,40 @@ void main() {
     expect(find.textContaining('无法从 GitHub Releases 完成本次检查'), findsNothing);
     expect(find.text('打开 Release'), findsOneWidget);
   });
+
+  testWidgets('仅替换外链启动器时保留版本结果并隔离旧打开结果', (tester) async {
+    final oldLaunch = Completer<bool>();
+    final service = _FakeAppUpdateService(checkResult: _availableResult());
+    await pumpUpdateSection(
+      tester,
+      service: service,
+      taskPage: true,
+      launchUrlOverride: (_) => oldLaunch.future,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('检查更新'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('打开 Release'));
+    await tester.tap(find.text('打开 Release'));
+    await tester.pump();
+
+    await pumpUpdateSection(
+      tester,
+      service: service,
+      taskPage: true,
+      launchUrlOverride: (_) async => true,
+    );
+    await tester.pump();
+
+    expect(find.text('当前版本 1.0.0'), findsOneWidget);
+    expect(find.textContaining('发现新版本 1.2.0'), findsOneWidget);
+    expect(find.text('打开中'), findsNothing);
+
+    oldLaunch.complete(false);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('系统未能打开 Release'), findsNothing);
+    expect(find.text('当前版本 1.0.0'), findsOneWidget);
+  });
 }
 
 /// 点击最后一个匹配文本，避开设置项标题与按钮标签重名。

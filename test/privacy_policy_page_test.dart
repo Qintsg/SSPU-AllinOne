@@ -144,6 +144,32 @@ void main() {
     expect(actionInvoked, isTrue);
   });
 
+  testWidgets('宽屏短法律正文收束为左锚定阅读列', (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(1600, 1000));
+    addTearDown(() => resetView(tester));
+
+    await tester.pumpWidget(
+      zhYhApp(
+        home: const LegalNoticePage(
+          sections: [
+            LegalNoticeSection(title: '账户凭据', body: '仅用于已明确发起的校园服务请求。'),
+            LegalNoticeSection(title: '校园数据缓存', body: '可在设置中查看并按需清除。'),
+            LegalNoticeSection(title: '诊断信息', body: '仅用于解释应用当前状态。'),
+          ],
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final pageSize = tester.getSize(find.byType(qingyuan.YhPageScaffold));
+    final card = find.byKey(const Key('legal-sections-card'));
+    expect(card, findsOneWidget);
+    expect(tester.getSize(card).width, lessThan(pageSize.width * 0.7));
+    expect(tester.getSize(card).height, lessThan(pageSize.height * 0.5));
+  });
+
   testWidgets('隐私说明主要行动进入本地数据管理', (tester) async {
     await tester.pumpWidget(zhYhApp(home: const PrivacyPolicyPage()));
     await pumpUntilSelectableText(tester, containsText: '免责声明');

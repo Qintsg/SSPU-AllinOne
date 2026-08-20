@@ -22,6 +22,7 @@ class EmailComposePanel extends StatelessWidget {
     required this.onSend,
     this.result,
     this.onCancel,
+    this.showActions = true,
   });
 
   /// To 收件人输入控制器。
@@ -54,6 +55,9 @@ class EmailComposePanel extends StatelessWidget {
   /// 点击取消或关闭撰写面板。
   final VoidCallback? onCancel;
 
+  /// 是否在表单末尾显示行动区；紧凑端由页面固定提交坞承载。
+  final bool showActions;
+
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
@@ -62,44 +66,19 @@ class EmailComposePanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'SMTP 主动发信',
-                      style: theme.typography.caption.copyWith(
-                        color: theme.color.brandInk,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: theme.spacing.xs),
-                    Text('撰写邮件', style: theme.typography.h3),
-                    SizedBox(height: theme.spacing.xs),
-                    Text(
-                      '仅在点击发送后提交普通文本；不保存草稿，不在后台重试。',
-                      style: theme.typography.small.copyWith(
-                        color: theme.color.muted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (onCancel != null) ...[
-                SizedBox(width: theme.spacing.s),
-                YhIconButton(
-                  icon: YhIcons.close,
-                  semanticLabel: '关闭撰写邮件',
-                  variant: YhIconButtonVariant.ghost,
-                  onTap: isSending ? null : onCancel,
-                ),
-              ],
-            ],
+          Text(
+            'SMTP 主动发信',
+            style: theme.typography.caption.copyWith(
+              color: theme.color.brandInk,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          SizedBox(height: theme.spacing.l),
+          SizedBox(height: theme.spacing.xs),
+          Text(
+            '仅在点击发送后提交普通文本；不保存草稿，不在后台重试。',
+            style: theme.typography.small.copyWith(color: theme.color.muted),
+          ),
+          SizedBox(height: theme.spacing.m),
           LayoutBuilder(
             builder: (context, constraints) {
               final twoColumns =
@@ -185,28 +164,17 @@ class EmailComposePanel extends StatelessWidget {
             SizedBox(height: theme.spacing.s),
             YhBanner(text: result!.detail, kind: severityOf(result!.status)),
           ],
-          SizedBox(height: theme.spacing.m),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Wrap(
-              spacing: theme.spacing.s,
-              runSpacing: theme.spacing.xs,
-              alignment: WrapAlignment.end,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                if (onCancel != null)
-                  YhButton(
-                    label: '取消',
-                    variant: YhButtonVariant.secondary,
-                    onTap: isSending ? null : onCancel,
-                  ),
-                YhButton(
-                  label: isSending ? '正在发送' : '发送邮件',
-                  onTap: isSending ? null : onSend,
-                ),
-              ],
+          if (showActions) ...[
+            SizedBox(height: theme.spacing.m),
+            Align(
+              alignment: Alignment.centerRight,
+              child: EmailComposeActions(
+                isSending: isSending,
+                onCancel: onCancel,
+                onSend: onSend,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -224,6 +192,98 @@ class EmailComposePanel extends StatelessWidget {
       enabled: !isSending,
       showDisabledAppearance: false,
       textInputAction: TextInputAction.next,
+    );
+  }
+}
+
+/// 邮件撰写的取消与提交动作组。
+class EmailComposeActions extends StatelessWidget {
+  const EmailComposeActions({
+    super.key,
+    required this.isSending,
+    required this.onSend,
+    this.onCancel,
+  });
+
+  /// 是否正在提交 SMTP 请求。
+  final bool isSending;
+
+  /// 点击取消。
+  final VoidCallback? onCancel;
+
+  /// 点击发送。
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return Wrap(
+      spacing: theme.spacing.s,
+      runSpacing: theme.spacing.xs,
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        if (onCancel != null)
+          YhButton(
+            label: '取消',
+            variant: YhButtonVariant.secondary,
+            onTap: isSending ? null : onCancel,
+          ),
+        YhButton(
+          label: isSending ? '正在发送' : '发送邮件',
+          onTap: isSending ? null : onSend,
+        ),
+      ],
+    );
+  }
+}
+
+/// 紧凑端位于页面滚动区之外的邮件撰写提交坞。
+class EmailComposeActionDock extends StatelessWidget {
+  const EmailComposeActionDock({
+    super.key,
+    required this.isSending,
+    required this.onSend,
+    this.onCancel,
+  });
+
+  /// 是否正在提交 SMTP 请求。
+  final bool isSending;
+
+  /// 点击取消。
+  final VoidCallback? onCancel;
+
+  /// 点击发送。
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return DecoratedBox(
+      key: const Key('email-compose-action-dock'),
+      decoration: BoxDecoration(
+        color: theme.color.surface,
+        border: Border(top: BorderSide(color: theme.color.border)),
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: theme.spacing.m,
+          vertical: theme.spacing.s,
+        ),
+        child: Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: theme.layout.formContentWidth,
+            ),
+            child: EmailComposeActions(
+              isSending: isSending,
+              onCancel: onCancel,
+              onSend: onSend,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

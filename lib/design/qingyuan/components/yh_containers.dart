@@ -173,9 +173,8 @@ class YhToast extends StatelessWidget {
             vertical: theme.spacing.s,
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Flexible(
+              Expanded(
                 child: Text(
                   message,
                   style: theme.typography.body.copyWith(
@@ -191,7 +190,7 @@ class YhToast extends StatelessWidget {
                   child: Text(
                     actionLabel!,
                     style: theme.typography.body.copyWith(
-                      color: theme.color.brand,
+                      color: theme.color.onStructural,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

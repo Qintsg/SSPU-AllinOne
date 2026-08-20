@@ -1,3 +1,10 @@
+/*
+ * 清源全状态参考渲染器 — 按视觉清单生成确定性页面状态。
+ * @Project : SSPU-AllinOne
+ * @File : _state-reference.js
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
 (() => {
   const groupMeta = {
     components: ['组件', '◫', 'var(--brand-strong)'],
@@ -12,7 +19,6 @@
     legal: ['法律', '§', 'var(--structural)'],
     external: ['外部内容', '外', 'var(--service-quicklink)'],
   };
-
   const navigation = [
     ['home', '⌂', '主页'],
     ['academic', '学', '教务'],
@@ -22,7 +28,6 @@
     ['links', '↗', '入口'],
     ['settings', '设', '设置'],
   ];
-
   const qingyuanDestinations = [
     ['⌂', '主页'],
     ['学', '教务'],
@@ -32,7 +37,6 @@
     ['↗', '跳转'],
     ['⚙', '设置'],
   ];
-
   const stateCopy = {
     initial: ['准备好后再开始', '当前还没有读取校园数据。先说明将要访问的来源，再由你决定是否继续。', '开始读取'],
     loading: ['正在读取本地快照', '先恢复已经保存在设备上的数据；只有主动刷新时才连接校园服务。', '读取中'],
@@ -42,6 +46,23 @@
     error: ['暂时无法完成', '已有有效内容不会被清空。检查账户或网络后，可以从这里安全重试。', '需要处理'],
   };
 
+  const scenarioCopy = {
+    'partial-error': ['部分内容未更新', '部分来源未完成本次读取；已有有效内容和操作位置均已保留，可在原位置重试。', '部分完成'],
+    'operation-locked': ['正在处理', '当前操作尚未完成；已锁定重复操作，现有内容与返回路径保持可用。', '处理中'],
+    'credentials-required': ['需要账户信息', '当前功能需要先在设置中保存对应账户信息；已有本地内容仍可查看。', '需要配置'],
+    'credentials-partial': ['部分账户尚未连接', '部分来源缺少凭据；已连接内容仍可使用，可稍后在设置中补齐。', '部分连接'],
+    'validation-error': ['需要检查输入', '当前输入未通过校验；已保留上一次有效结果，可修正后重试。', '需要检查'],
+    'external-confirmation': ['确认打开外部内容', '即将离开应用打开外部来源；当前页面和返回路径会保留。', '等待确认'],
+    'external-cancelled': ['已取消外部打开', '没有离开应用；当前页面和操作位置已保留，可再次尝试。', '已取消'],
+    'external-error': ['外部打开失败', '系统未能打开外部来源；仍停留在应用内，可检查系统设置后重试。', '需要处理'],
+  };
+
+  /**
+   * 为基础状态和场景状态提供可渲染文案。
+   * :param entry: 当前视觉清单条目。
+   * :param state: 要渲染的状态标识。
+   * :returns: 标题、说明和状态标签。
+   */
   function copyFor(entry, state) {
     if (state === 'loading') {
       return [`正在读取${entry.title}`, entry.stateMessages?.loading || `正在从${entry.source}恢复数据；已有页面框架与输入保持可用。`, '读取中'];
@@ -55,9 +76,12 @@
     if (state === 'initial') {
       return [`尚未读取${entry.title}`, `先确认${entry.source}的访问范围，再由你决定是否开始。`, '尚未开始'];
     }
-    return stateCopy[state];
+    return stateCopy[state] || scenarioCopy[state] || [
+      `${entry.title}状态`,
+      `当前处于${state}状态；现有内容与恢复路径保持可用。`,
+      '需要处理',
+    ];
   }
-
   function navMarkup(active, compact = false) {
     const visible = compact ? navigation.slice(0, 3).concat([['more', '•••', '更多']]) : navigation;
     return visible.map(([id, icon, label]) => {
@@ -95,46 +119,6 @@
     pdfrx_engine: ['PDF 文本抽取与底层 PDFium 封装', 'MIT'],
     MiSans: ['小米系统字体，数字等宽', 'MiSans EULA'],
   };
-
-  let modalReturnFocus = null;
-
-  function closeReferenceModal() {
-    const scrim = document.querySelector('.reference-modal-scrim');
-    if (!scrim || scrim.hidden) return;
-    scrim.hidden = true;
-    if (modalReturnFocus?.isConnected) modalReturnFocus.focus();
-  }
-
-  function prepareReferenceModal(returnFocus) {
-    const modal = document.querySelector('[data-reference-modal]');
-    if (!modal) return;
-    modalReturnFocus = returnFocus;
-    const cancel = modal.querySelector('[data-reference-modal-cancel]');
-    cancel?.addEventListener('click', closeReferenceModal);
-    cancel?.focus();
-  }
-
-  document.addEventListener('keydown', event => {
-    const modal = document.querySelector('[data-reference-modal]');
-    if (!modal || modal.closest('.reference-modal-scrim')?.hidden) return;
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      closeReferenceModal();
-      return;
-    }
-    if (event.key !== 'Tab') return;
-    const targets = [...modal.querySelectorAll('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])')];
-    if (!targets.length) return;
-    const first = targets[0];
-    const last = targets[targets.length - 1];
-    if (event.shiftKey && (document.activeElement === first || !modal.contains(document.activeElement))) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && (document.activeElement === last || !modal.contains(document.activeElement))) {
-      event.preventDefault();
-      first.focus();
-    }
-  });
 
   function licenseDescription(license) {
     if (license === 'MIT') return '宽松许可；允许使用、复制、修改与分发，需保留版权和许可声明。';
@@ -194,7 +178,7 @@
     const body = loading
       ? '<main class="reference-webview-document is-external"><span class="reference-spinner" aria-hidden="true"></span><strong>网页正在加载</strong><p>平台 WebView runner 将在此处加载真实网页。</p></main>'
       : retainedContent
-      ? `<main class="reference-webview-document is-external"${scoredExternalContent ? ' data-external-region="document"' : ''}><span class="reference-webview-symbol" aria-hidden="true">↗</span><strong>上海第二工业大学校园门户</strong><p>网页正文属于外部区域，按 SSIM 0.90 独立验收。</p></main>`
+      ? `<main class="reference-webview-document is-external"${scoredExternalContent ? ' data-external-region="document"' : ''}><span class="reference-webview-symbol" aria-hidden="true">↗</span><strong>上海第二工业大学校园门户</strong><p>网页正文属于外部区域，由 sidecar 标注责任边界。</p></main>`
       : `<main class="reference-webview-document"><svg class="reference-webview-warning" aria-hidden="true" viewBox="0 0 48 48"><path d="M24 6 43 40H5Z"/><path d="M24 17v12"/><circle cx="24" cy="35" r="1"/></svg><strong>${heading}</strong><p>${description}</p><div class="reference-webview-actions"><button class="reference-demo-primary" type="button"${busy ? ' disabled' : ''}>重新加载</button><button type="button"${busy ? ' disabled' : ''}>${busy ? '正在外部打开…' : '在浏览器中打开'}</button></div></main>`;
     const progress = loading ? '<div class="reference-webview-progress" aria-hidden="true"><i></i></div>' : '';
     const confirmation = externalConfirmation
@@ -263,7 +247,7 @@
     const toolbar = `<div class="reference-pdf-toolbar"><span>${retained ? '第 1 / 4 页' : '页码加载中'}</span><button type="button" aria-label="缩小 PDF"${!retained || busy ? ' disabled' : ''}>−</button><button type="button" aria-label="放大 PDF"${!retained || busy ? ' disabled' : ''}>＋</button></div>`;
     let document;
     if (retained) {
-      document = `<main class="reference-pdf-document is-external"${scoredDocument ? ' data-external-region="document"' : ''}><span aria-hidden="true">▤</span><strong>2025–2026 学年校历正文</strong><p>PDF 正文属于外部区域，按 SSIM 0.90 独立验收。</p></main>`;
+      document = `<main class="reference-pdf-document is-external"${scoredDocument ? ' data-external-region="document"' : ''}><span aria-hidden="true">▤</span><strong>2025–2026 学年校历正文</strong><p>PDF 正文属于外部区域，由 sidecar 标注责任边界。</p></main>`;
     } else {
       const symbol = loading ? '<span class="reference-spinner" aria-hidden="true"></span>' : `<span class="reference-calendar-state-symbol" aria-hidden="true">${error ? '△' : '▤'}</span>`;
       const title = loading ? '正在加载校历 PDF' : error ? 'PDF 加载失败' : '暂无可查看的 PDF';
@@ -527,7 +511,30 @@
   }
 
   function specialSurfaceMarkup(entry, state) {
+    const componentSurface = window.qingyuanComponentReference?.render(entry);
+    if (componentSurface) return componentSurface;
+    const wechatLogin = window.qingyuanWechatLoginReference?.render(entry, state);
+    if (wechatLogin) return wechatLogin;
+    const settingsTask = window.qingyuanSettingsDialogReference.renderSettingsTask(
+      entry,
+      state,
+      copyFor,
+    );
+    if (settingsTask) return settingsTask;
+    const taskDialog = window.qingyuanSettingsDialogReference.renderTask(
+      entry,
+      state,
+      qingyuanShellMarkup,
+    );
+    if (taskDialog) return taskDialog;
+    const dataConfirmation = window.qingyuanSettingsDialogReference.renderDataConfirmation(
+      entry,
+      state,
+      qingyuanShellMarkup,
+    );
+    if (dataConfirmation) return dataConfirmation;
     if (entry.id === 'shell.startup') return startupSurfaceMarkup(state);
+    if (entry.id === 'shell.navigation') return qingyuanShellMarkup('主页');
     if (entry.id === 'shell.more-drawer') return moreDrawerMarkup();
     if (entry.id === 'shell.close-confirmation') return closeConfirmationMarkup(state);
     if (entry.id === 'consent.first-run') return consentSurfaceMarkup(state);
@@ -539,6 +546,7 @@
     if (entry.id === 'schedule.calendar') return scheduleSurfaceMarkup(entry, state);
     if (['academic.grade-detail', 'academic.exam-detail', 'academic.grade-process'].includes(entry.id)) return academicEamsSurfaceMarkup(entry, state);
     if (entry.id === 'academic.student-report') return academicDetailStateMarkup(entry, state, 'var(--service-secondclass)');
+    if (entry.id === 'academic.student-report-rules') return window.qingyuanStudentReportRulesReference.render(entry, state);
     if (entry.id === 'academic.sports-attendance') return academicDetailStateMarkup(entry, state, 'var(--service-sports)');
     return null;
   }
@@ -557,7 +565,7 @@
       }
       if (id.startsWith('settings.')) {
         const rows = entry.stateRows?.loading;
-        return `<section class="reference-card reference-settings-list"><div class="reference-banner">${description}</div>${entry.items.map((item, index) => `<div class="reference-setting-row"><span><strong>${rows?.[index]?.label ?? item}</strong><small>保留当前设置</small></span><button type="button" disabled>处理中</button></div>`).join('')}</section>`;
+        return `<section class="reference-card reference-settings-list"><div class="reference-banner is-warn reference-settings-status">${description}</div>${entry.items.map((item, index) => `<div class="reference-setting-row"><span><strong>${rows?.[index]?.label ?? item}</strong><small>保留当前设置</small></span><button type="button" disabled>处理中</button></div>`).join('')}</section>`;
       }
       if (id.startsWith('mail.')) {
         return `<section class="reference-mail"><aside class="reference-card"><h2>收件箱</h2><div class="reference-items">${entry.items.map(item => `<div class="reference-item"><span>${item}</span></div>`).join('')}</div></aside><article class="reference-card reference-loading"><div><span class="reference-spinner" aria-hidden="true"></span><h2>${heading}</h2><p>${description}</p></div></article></section>`;
@@ -570,13 +578,14 @@
       }
       if (state === 'error' && id.startsWith('settings.')) {
         const rows = entry.stateRows?.error;
-        return `<section class="reference-card reference-settings-list"><div class="reference-banner is-error">${description}</div>${entry.items.map((item, index) => {
+        return `<section class="reference-card reference-settings-list"><div class="reference-banner is-error reference-settings-status">${description}</div>${entry.items.map((item, index) => {
           const row = rows?.[index];
           return `<div class="reference-setting-row"><span><strong>${row?.prefix ?? (index === 0 ? '已完成：' : '未完成：')}${row?.label ?? item}</strong><small>${row?.status ?? (index === 0 ? '结果已保留' : '可安全重试')}</small></span><button type="button">${row?.action ?? (index === 0 ? '查看' : '重试')}</button></div>`;
         }).join('')}</section>`;
       }
       const symbol = state === 'error' ? '!' : state === 'empty' ? '○' : '→';
-      return `<section class="reference-card reference-empty"><div><span class="reference-symbol" aria-hidden="true">${symbol}</span><span class="reference-state-label">${status}</span><h2>${heading}</h2><p>${description}</p><div class="reference-state-context">${entry.items.map(item => `<span>${item}</span>`).join('')}</div><button type="button">${state === 'error' ? '检查后重试' : state === 'empty' ? '调整范围' : entry.primaryAction}</button></div></section>`;
+      const settingsStateClass = id.startsWith('settings.') ? ' reference-settings-empty' : '';
+      return `<section class="reference-card reference-empty${settingsStateClass}"><div><span class="reference-symbol" aria-hidden="true">${symbol}</span><span class="reference-state-label">${status}</span><h2>${heading}</h2><p>${description}</p><div class="reference-state-context">${entry.items.map(item => `<span>${item}</span>`).join('')}</div><button type="button">${state === 'error' ? '检查后重试' : state === 'empty' ? '调整范围' : entry.primaryAction}</button></div></section>`;
     }
     const banner = state === 'stale' ? `<div class="reference-banner">当前显示 09:30 的本地缓存；刷新失败不会删除这些内容。</div>` : '';
     const items = entry.items.map((item, index) => `<div class="reference-item"><span class="reference-item-mark" aria-hidden="true"></span><span>${item}</span><span>${index === 0 ? '当前' : index === 1 ? '随后' : '详情'}</span></div>`).join('');
@@ -649,21 +658,28 @@
       document.querySelector('[data-reference-title]').textContent = entry.title;
       document.querySelector('[data-reference-summary]').textContent = entry.summary;
       const headingAction = document.querySelector('[data-reference-action]');
-      headingAction.textContent = entry.primaryAction;
+      const checkingUpdate = entry.id === 'settings.update' && state === 'loading';
+      headingAction.textContent = checkingUpdate ? '检查中' : entry.primaryAction;
       headingAction.hidden = entry.id.startsWith('components.') || entry.id === 'mail.compose';
-      headingAction.disabled = state === 'operation-locked';
+      headingAction.disabled = state === 'operation-locked' || checkingUpdate;
       document.querySelector('[data-reference-source-detail]').textContent = `${entry.sourceSymbol || groupIcon}  ${entry.source}`;
       document.querySelector('.reference-source-strip time').hidden = entry.sourceTimestamp === false;
       const stateHost = document.querySelector('[data-reference-state]');
       stateHost.innerHTML = contentMarkup(entry, state);
+      window.qingyuanStudentReportRulesReference?.bind(stateHost);
       const externalReturnFocus = entry.id === 'settings.licenses'
         ? stateHost.querySelector('.reference-license-link')
         : stateHost.querySelector('[data-reference-external-trigger]') ?? document.querySelector('[data-reference-more]');
       if (state === 'external-confirmation') {
         externalReturnFocus?.focus();
-        prepareReferenceModal(externalReturnFocus);
+        window.qingyuanReferenceModal.prepare(externalReturnFocus);
       } else if (state === 'external-cancelled' && entry.id === 'settings.about') {
         externalReturnFocus?.focus();
+      } else if (entry.id.startsWith('settings.confirm-')) {
+        const dataReturnFocus = [...stateHost.querySelectorAll('.reference-shell-destination.is-active')]
+          .find(target => target.offsetParent !== null);
+        dataReturnFocus?.focus();
+        window.qingyuanReferenceModal.prepare(dataReturnFocus);
       }
       document.body.dataset.surface = entry.id;
       document.body.dataset.state = state;

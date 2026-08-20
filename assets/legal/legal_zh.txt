@@ -100,7 +100,7 @@
 如您分发本软件的修改版本，应按照 Artistic License 2.0 的要求保留版权声明和免责声明，清楚说明修改内容，并确保接收方可以获得相应许可证文本和源码获取方式。不得以误导方式暗示修改版本由原作者、学校或第三方服务提供方官方发布、认证或背书。
 
 4. 第三方开源组件
-本软件使用 Flutter、Dart 及若干第三方开源依赖，包括但不限于 fluent_ui、fluentui_system_icons、shared_preferences、path_provider、crypto、flutter_secure_storage、local_auth、url_launcher、window_manager、tray_manager、dio、local_notifier、html、gbk_codec、flutter_animate、flutter_inappwebview、package_info_plus、enough_mail 等。第三方组件的版权和许可证归其各自作者或权利人所有，具体以 pubspec.yaml、pubspec.lock、组件官网、源码仓库和许可证文件为准。
+本软件使用 Flutter、Dart 及若干第三方开源依赖，包括但不限于 fluentui_system_icons、shared_preferences、path_provider、crypto、flutter_secure_storage、local_auth、url_launcher、window_manager、tray_manager、dio、local_notifier、html、gbk_codec、flutter_animate、flutter_inappwebview、package_info_plus、enough_mail 等。第三方组件的版权和许可证归其各自作者或权利人所有，具体以 pubspec.yaml、pubspec.lock、组件官网、源码仓库和许可证文件为准。
 
 5. 第三方服务
 本软件可能访问或展示来自上海第二工业大学相关网站、OA/CAS、教务、校园卡、体育部查询系统、学工报表系统、学校邮箱、微信公众平台、微信公众号文章、系统浏览器、Edge WebView2、操作系统安全存储和系统通知能力的内容或功能。上述服务由其各自提供方运营，用户同时受对应服务条款、隐私政策、账号规则和平台规则约束。

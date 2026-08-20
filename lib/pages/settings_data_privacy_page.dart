@@ -1,4 +1,10 @@
-/* 清源数据与隐私任务页。 */
+/*
+ * 清源数据与隐私任务页
+ * @Project : SSPU-AllinOne
+ * @File : settings_data_privacy_page.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
 
 import 'dart:async';
 
@@ -63,6 +69,7 @@ class _SettingsDataPrivacyPageState extends State<SettingsDataPrivacyPage> {
   String? _errorMessage;
   bool _isExecuting = false;
   bool _operationError = false;
+  int _sourceGeneration = 0;
 
   @override
   void initState() {
@@ -82,10 +89,24 @@ class _SettingsDataPrivacyPageState extends State<SettingsDataPrivacyPage> {
   @override
   void didUpdateWidget(SettingsDataPrivacyPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.loadSnapshot != widget.loadSnapshot) {
+    final sourceChanged =
+        !identical(oldWidget.loadSnapshot, widget.loadSnapshot) ||
+        !identical(oldWidget.onClearCampusCache, widget.onClearCampusCache) ||
+        !identical(
+          oldWidget.onDisconnectAccounts,
+          widget.onDisconnectAccounts,
+        ) ||
+        !identical(oldWidget.onClearAllData, widget.onClearAllData);
+    if (sourceChanged) {
+      _sourceGeneration++;
       _snapshot = widget.snapshot;
       _completedItems = <String>[];
       _operationError = false;
+      _isExecuting = false;
+      _state = widget.loadSnapshot == null
+          ? widget.state
+          : SettingsDataPrivacyState.loading;
+      _errorMessage = widget.errorMessage;
       if (widget.loadSnapshot != null) unawaited(_reloadSnapshot());
     } else if (oldWidget.state != widget.state ||
         oldWidget.errorMessage != widget.errorMessage) {
@@ -99,6 +120,12 @@ class _SettingsDataPrivacyPageState extends State<SettingsDataPrivacyPage> {
   }
 
   @override
+  void dispose() {
+    _sourceGeneration++;
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return YhTaskPage(
       title: '数据与隐私',
@@ -108,6 +135,7 @@ class _SettingsDataPrivacyPageState extends State<SettingsDataPrivacyPage> {
       sourceSymbol: '设',
       sourceTimestamp: widget.sourceTimestamp,
       width: YhTaskPageWidth.fluid,
+      bodyFit: YhTaskPageBodyFit.content,
       primaryActionLabel: '管理本地数据',
       onPrimaryAction: () => _showActions(context),
       body: SettingsDataPrivacySection(
@@ -245,9 +273,10 @@ class _SettingsDataPrivacyPageState extends State<SettingsDataPrivacyPage> {
       _isExecuting = true;
       _operationError = false;
     });
+    final generation = _sourceGeneration;
     try {
       final completed = await action();
-      if (!mounted) return;
+      if (!mounted || generation != _sourceGeneration) return;
       if (!completed) {
         setState(() {
           _state = SettingsDataPrivacyState.content;
@@ -257,11 +286,12 @@ class _SettingsDataPrivacyPageState extends State<SettingsDataPrivacyPage> {
       }
       if (!_completedItems.contains(label)) _completedItems.add(label);
       var snapshot = _snapshot;
-      if (widget.loadSnapshot != null) {
+      final loader = widget.loadSnapshot;
+      if (loader != null) {
         try {
-          snapshot = await widget.loadSnapshot!();
+          snapshot = await loader();
         } catch (_) {
-          if (!mounted) return;
+          if (!mounted || generation != _sourceGeneration) return;
           setState(() {
             _state = SettingsDataPrivacyState.error;
             _isExecuting = false;
@@ -270,7 +300,7 @@ class _SettingsDataPrivacyPageState extends State<SettingsDataPrivacyPage> {
           });
           return;
         }
-        if (!mounted) return;
+        if (!mounted || generation != _sourceGeneration) return;
       }
       setState(() {
         _snapshot = snapshot;
@@ -278,7 +308,7 @@ class _SettingsDataPrivacyPageState extends State<SettingsDataPrivacyPage> {
         _isExecuting = false;
       });
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted || generation != _sourceGeneration) return;
       setState(() {
         _state = SettingsDataPrivacyState.error;
         _isExecuting = false;
@@ -300,6 +330,7 @@ class _SettingsDataPrivacyPageState extends State<SettingsDataPrivacyPage> {
   Future<void> _reloadSnapshot() async {
     final loader = widget.loadSnapshot;
     if (loader == null) return;
+    final generation = _sourceGeneration;
     if (mounted) {
       setState(() {
         _state = SettingsDataPrivacyState.loading;
@@ -310,13 +341,13 @@ class _SettingsDataPrivacyPageState extends State<SettingsDataPrivacyPage> {
     }
     try {
       final snapshot = await loader();
-      if (!mounted) return;
+      if (!mounted || generation != _sourceGeneration) return;
       setState(() {
         _snapshot = snapshot;
         _state = SettingsDataPrivacyState.content;
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || generation != _sourceGeneration) return;
       setState(() {
         _state = SettingsDataPrivacyState.error;
         _operationError = false;

@@ -14,7 +14,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../widgets/app_feedback.dart';
 import '../widgets/empty_state_view.dart';
 import 'academic_calendar_pdf_file.dart';
 
@@ -405,7 +404,7 @@ class _AcademicCalendarPdfPageState extends State<AcademicCalendarPdfPage> {
     final source = _source;
     if (source == null || source.isEmpty) {
       if (mounted) {
-        showAppFeedback(
+        showYhFeedback(
           context,
           message: '当前没有可下载的 PDF 文件',
           severity: AppFeedbackSeverity.error,
@@ -425,7 +424,7 @@ class _AcademicCalendarPdfPageState extends State<AcademicCalendarPdfPage> {
         await _downloadToPlatform(source, widget.title);
       }
       if (mounted && _isCurrentSource(generation, source)) {
-        showAppFeedback(context, message: '校历 PDF 已保存到下载目录');
+        showYhFeedback(context, message: '校历 PDF 已保存到下载目录');
       }
     } on Object {
       if (mounted && _isCurrentSource(generation, source)) {
@@ -433,7 +432,7 @@ class _AcademicCalendarPdfPageState extends State<AcademicCalendarPdfPage> {
           _operationError =
               '校历 PDF 未能保存到下载目录；正文和 $_pagePosition位置已保留，可检查权限后重试。';
         });
-        showAppFeedback(
+        showYhFeedback(
           context,
           message: _operationError!,
           severity: AppFeedbackSeverity.error,

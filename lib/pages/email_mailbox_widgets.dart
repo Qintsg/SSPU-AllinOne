@@ -16,7 +16,6 @@ class _EmailMailboxListPanel extends StatelessWidget {
     required this.refreshing,
     this.showHeader = true,
     this.showSenderAnchor = true,
-    this.minHeight,
     required this.senderLabel,
     required this.formatDateTime,
     required this.onMessageFocused,
@@ -29,7 +28,6 @@ class _EmailMailboxListPanel extends StatelessWidget {
   final bool refreshing;
   final bool showHeader;
   final bool showSenderAnchor;
-  final double? minHeight;
   final String Function(EmailMessageSnapshot message) senderLabel;
   final String Function(DateTime? dateTime) formatDateTime;
   final ValueChanged<EmailMessageSnapshot> onMessageFocused;
@@ -54,92 +52,89 @@ class _EmailMailboxListPanel extends StatelessWidget {
           borderRadius: BorderRadius.circular(
             theme.radius.l - theme.layout.divider,
           ),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: minHeight ?? 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (showHeader) ...[
-                  Padding(
-                    padding: EdgeInsets.all(theme.spacing.l),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text('收件箱', style: theme.typography.h3),
-                            ),
-                            if (refreshing)
-                              const YhChip(label: '同步中', selected: true),
-                          ],
-                        ),
-                        SizedBox(height: theme.spacing.xs),
-                        Wrap(
-                          spacing: theme.spacing.s,
-                          runSpacing: theme.spacing.xs,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text(
-                              '${snapshot.protocol.label} 最近邮件：${messages.length} 封',
-                              style: theme.typography.caption.copyWith(
-                                color: theme.color.muted,
-                              ),
-                            ),
-                            Text(
-                              '上次刷新：${formatDateTime(snapshot.fetchedAt)}',
-                              style: theme.typography.caption.copyWith(
-                                color: theme.color.muted,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    height: theme.layout.divider,
-                    color: theme.color.border,
-                  ),
-                ],
-                if (messages.isEmpty)
-                  Padding(
-                    padding: EdgeInsets.all(theme.spacing.l),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('暂无可展示邮件', style: theme.typography.h3),
-                        SizedBox(height: theme.spacing.s),
-                        const YhBanner(text: '邮箱协议登录成功，但最近邮件列表为空。'),
-                      ],
-                    ),
-                  )
-                else
-                  for (var index = 0; index < messages.length; index++) ...[
-                    Focus(
-                      canRequestFocus: false,
-                      skipTraversal: true,
-                      onFocusChange: (focused) {
-                        if (focused) onMessageFocused(messages[index]);
-                      },
-                      child: _EmailListRow(
-                        message: messages[index],
-                        selected: messages[index].id == selectedMessageId,
-                        showSenderAnchor: showSenderAnchor,
-                        senderLabel: senderLabel,
-                        formatDateTime: formatDateTime,
-                        onPressed: () => onMessagePressed(messages[index]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (showHeader) ...[
+                Padding(
+                  padding: EdgeInsets.all(theme.spacing.l),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text('收件箱', style: theme.typography.h3),
+                          ),
+                          if (refreshing)
+                            const YhChip(label: '同步中', selected: true),
+                        ],
                       ),
-                    ),
-                    if (index != messages.length - 1)
-                      Container(
-                        height: theme.layout.divider,
-                        color: theme.color.border,
+                      SizedBox(height: theme.spacing.xs),
+                      Wrap(
+                        spacing: theme.spacing.s,
+                        runSpacing: theme.spacing.xs,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            '${snapshot.protocol.label} 最近邮件：${messages.length} 封',
+                            style: theme.typography.caption.copyWith(
+                              color: theme.color.muted,
+                            ),
+                          ),
+                          Text(
+                            '上次刷新：${formatDateTime(snapshot.fetchedAt)}',
+                            style: theme.typography.caption.copyWith(
+                              color: theme.color.muted,
+                            ),
+                          ),
+                        ],
                       ),
-                  ],
+                    ],
+                  ),
+                ),
+                Container(
+                  height: theme.layout.divider,
+                  color: theme.color.border,
+                ),
               ],
-            ),
+              if (messages.isEmpty)
+                Padding(
+                  padding: EdgeInsets.all(theme.spacing.l),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('暂无可展示邮件', style: theme.typography.h3),
+                      SizedBox(height: theme.spacing.s),
+                      const YhBanner(text: '邮箱协议登录成功，但最近邮件列表为空。'),
+                    ],
+                  ),
+                )
+              else
+                for (var index = 0; index < messages.length; index++) ...[
+                  Focus(
+                    canRequestFocus: false,
+                    skipTraversal: true,
+                    onFocusChange: (focused) {
+                      if (focused) onMessageFocused(messages[index]);
+                    },
+                    child: _EmailListRow(
+                      message: messages[index],
+                      selected: messages[index].id == selectedMessageId,
+                      showSenderAnchor: showSenderAnchor,
+                      senderLabel: senderLabel,
+                      formatDateTime: formatDateTime,
+                      onPressed: () => onMessagePressed(messages[index]),
+                    ),
+                  ),
+                  if (index != messages.length - 1)
+                    Container(
+                      height: theme.layout.divider,
+                      color: theme.color.border,
+                    ),
+                ],
+            ],
           ),
         ),
       ),
@@ -323,56 +318,45 @@ class _EmailInlineDetailPanel extends StatelessWidget {
     return Semantics(
       label: '$protocolLabel 只读快照，$fetchedAtLabel 同步',
       child: YhCard(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight:
-                theme.layout.popoverWidth + theme.spacing.xl2 + theme.spacing.s,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      current.senderName.isEmpty
-                          ? current.senderAddress
-                          : current.senderName,
-                      style: theme.typography.caption.copyWith(
-                        color: theme.color.muted,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: theme.spacing.m),
-                  Text(
-                    formatDateTime(current.receivedAt),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    current.senderName.isEmpty
+                        ? current.senderAddress
+                        : current.senderName,
                     style: theme.typography.caption.copyWith(
                       color: theme.color.muted,
                     ),
                   ),
-                ],
-              ),
-              SizedBox(height: theme.spacing.s),
-              Text(current.subject, style: theme.typography.h2),
-              SizedBox(height: theme.spacing.s),
-              Text(
-                '发送至 $accountLabel',
-                style: theme.typography.small.copyWith(
-                  color: theme.color.muted,
                 ),
-              ),
-              SizedBox(height: theme.spacing.m),
-              Container(
-                height: theme.layout.divider,
-                color: theme.color.border,
-              ),
-              SizedBox(height: theme.spacing.m),
-              YhSelectableText(
-                current.body.isEmpty ? '无可展示正文。' : current.body,
-                semanticLabel: '邮件正文快照',
-              ),
-            ],
-          ),
+                SizedBox(width: theme.spacing.m),
+                Text(
+                  formatDateTime(current.receivedAt),
+                  style: theme.typography.caption.copyWith(
+                    color: theme.color.muted,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: theme.spacing.s),
+            Text(current.subject, style: theme.typography.h2),
+            SizedBox(height: theme.spacing.s),
+            Text(
+              '发送至 $accountLabel',
+              style: theme.typography.small.copyWith(color: theme.color.muted),
+            ),
+            SizedBox(height: theme.spacing.m),
+            Container(height: theme.layout.divider, color: theme.color.border),
+            SizedBox(height: theme.spacing.m),
+            YhSelectableText(
+              current.body.isEmpty ? '无可展示正文。' : current.body,
+              semanticLabel: '邮件正文快照',
+            ),
+          ],
         ),
       ),
     );

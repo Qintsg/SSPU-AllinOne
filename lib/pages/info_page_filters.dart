@@ -1,3 +1,11 @@
+/*
+ * 资讯页面筛选规则与筛选状态计算
+ * @Project : SSPU-AllinOne
+ * @File : info_page_filters.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
+
 part of 'info_page.dart';
 
 enum _InfoPrimarySource { all, schoolWebsite, academicOffice, wechat }

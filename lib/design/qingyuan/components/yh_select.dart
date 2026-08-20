@@ -1,4 +1,10 @@
-/* 清源下拉选择 — 自绘触发器与 Overlay 菜单。 */
+/*
+ * 清源下拉选择 — 自绘触发器与 Overlay 菜单
+ * @Project : SSPU-AllinOne
+ * @File : yh_select.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -219,6 +225,12 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final duration = theme.motion.effective(
+      theme.motion.base,
+      disableAnimations: disableAnimations,
+    );
     final selected = _selected;
     final horizontalPadding = widget.compact
         ? theme.spacing.s
@@ -282,7 +294,7 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
                       ),
                       SizedBox(width: indicatorGap),
                       AnimatedRotation(
-                        duration: theme.motion.base,
+                        duration: duration,
                         curve: theme.motion.curve,
                         turns: _open ? 0.25 : 0,
                         child: Icon(

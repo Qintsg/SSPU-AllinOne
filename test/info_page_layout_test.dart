@@ -214,6 +214,69 @@ void main() {
     }
   });
 
+  testWidgets('资讯空错态按视口压缩并在宽屏把恢复行动放到说明右侧', (tester) async {
+    try {
+      await pumpInfoFixture(
+        tester,
+        size: const Size(360, 800),
+        displayState: InfoPageDisplayState.initial,
+      );
+      final compactPanel = find.byKey(const Key('info-state-initial'));
+      final compactTheme = tester.element(compactPanel).yhTheme;
+      expect(
+        tester.getSize(compactPanel).height,
+        compactTheme.control.regular * 5,
+      );
+      expect(
+        tester.getTopLeft(find.text('读取校园资讯')).dy,
+        greaterThan(tester.getBottomLeft(find.text('尚未读取校园资讯')).dy),
+      );
+
+      await pumpInfoFixture(
+        tester,
+        size: const Size(1200, 900),
+        displayState: InfoPageDisplayState.error,
+      );
+      final widePanel = find.byKey(const Key('info-state-error'));
+      final wideTheme = tester.element(widePanel).yhTheme;
+      expect(tester.getSize(widePanel).height, wideTheme.control.regular * 4);
+      expect(
+        tester.getTopLeft(find.text('重试')).dx,
+        greaterThan(tester.getTopRight(find.text('无法刷新校园资讯')).dx),
+      );
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await resetView(tester);
+    }
+  });
+
+  testWidgets('资讯宽屏错误状态收束为左锚定恢复列', (tester) async {
+    try {
+      await pumpInfoFixture(
+        tester,
+        size: const Size(1200, 900),
+        displayState: InfoPageDisplayState.error,
+      );
+
+      final panel = find.byKey(const Key('info-state-error'));
+      final title = find.text('校园资讯');
+      expect(panel, findsOneWidget);
+      expect(title, findsOneWidget);
+      expect(tester.getSize(panel).width, lessThanOrEqualTo(560));
+      expect(
+        (tester.getTopLeft(panel).dx - tester.getTopLeft(title).dx).abs(),
+        lessThan(1),
+      );
+      expect(find.text('重试'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await resetView(tester);
+    }
+  });
+
   testWidgets('资讯未认证空态打开来源设置而非误触刷新', (tester) async {
     var openedSettings = false;
     try {
@@ -253,10 +316,16 @@ void main() {
       final controls = find.byKey(const Key('info-mobile-controls'));
       final list = find.byKey(const Key('info-message-list'));
       final pagination = find.byKey(const Key('info-mobile-pagination'));
+      final sourceStrip = find.byKey(const Key('info-compact-source-strip'));
+      final filterButton = find.byKey(const Key('info-mobile-filter-button'));
 
       expect(controls, findsOneWidget);
       expect(list, findsOneWidget);
       expect(pagination, findsOneWidget);
+      expect(sourceStrip, findsOneWidget);
+      expect(filterButton, findsOneWidget);
+      expect(find.text('筛选'), findsOneWidget);
+      expect(find.text('更多筛选'), findsNothing);
       expect(find.text('消息操作'), findsNothing);
       expect(
         tester.widget<Row>(controls).crossAxisAlignment,
@@ -266,6 +335,11 @@ void main() {
       expect(tester.getSize(controls).height, lessThanOrEqualTo(160));
       expect(tester.getSize(pagination).height, 48);
       expect(tester.getSize(list).height, greaterThanOrEqualTo(280));
+      expect(tester.getSize(filterButton).height, greaterThanOrEqualTo(48));
+      expect(
+        tester.getTopRight(sourceStrip).dx,
+        lessThanOrEqualTo(tester.getTopLeft(filterButton).dx),
+      );
       expect(find.byType(MessageTile), findsAtLeastNWidgets(2));
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());

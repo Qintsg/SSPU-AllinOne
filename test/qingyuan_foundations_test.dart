@@ -91,8 +91,16 @@ void main() {
     expect(YhTheme.light.typography.hero.fontSize, 48);
     expect(YhTheme.light.responsive.panelPaddingViewportPercent, 4);
     expect(YhTheme.light.responsive.heroViewportPercent, 5);
-    expect(YhTheme.light.responsive.homePrimaryFlex, 33);
-    expect(YhTheme.light.responsive.homeSecondaryFlex, 16);
+    expect(YhTheme.light.responsive.homeHeroViewportPercent, 2.35);
+    expect(YhTheme.light.responsive.homeContentHeightViewportPercent, 42);
+    expect(YhTheme.light.responsive.homePrimaryFlex, 3);
+    expect(YhTheme.light.responsive.homeSecondaryFlex, 2);
+    expect(YhTheme.light.responsive.homeUtilityPrimaryFlex, 30);
+    expect(YhTheme.light.responsive.homeUtilitySecondaryFlex, 29);
+    expect(YhTheme.light.responsive.homeUtilityMediumSummaryFlex, 1);
+    expect(YhTheme.light.responsive.homeUtilityMediumActionsFlex, 2);
+    expect(YhTheme.light.layout.homeContentMinHeight, 372);
+    expect(YhTheme.light.layout.homeContentMaxHeight, 420);
     expect(YhTheme.light.motion.slow, const Duration(milliseconds: 320));
     expect(YhTheme.light.progress.activitySweep, 0.25);
     expect(YhTheme.light.motion.pressedScale, 0.98);
@@ -104,6 +112,7 @@ void main() {
       Duration.zero,
     );
     expect(YhTheme.light.breakpoint.medium, 768);
+    expect(YhTheme.light.breakpoint.settingsNavigationCompact, 900);
     expect(YhTheme.light.control.minimumTarget, 48);
     expect(YhTheme.light.focus.ringWidth, 2);
     expect(YhTheme.dark.elevation.e3.single.blurRadius, 28);
@@ -200,6 +209,30 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('文字按钮保留触控目标但不继承实体按钮的过大最小宽度', (tester) async {
+    await tester.pumpWidget(
+      YhApp(
+        home: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            YhButton(label: '重试', variant: YhButtonVariant.text, onTap: () {}),
+            YhButton(label: '保存', onTap: () {}),
+          ],
+        ),
+      ),
+    );
+
+    final textButtonSize = tester.getSize(find.byType(YhButton).first);
+    final primaryButtonSize = tester.getSize(find.byType(YhButton).last);
+    expect(textButtonSize.height, YhTheme.light.control.minimumTarget);
+    expect(
+      textButtonSize.width,
+      greaterThanOrEqualTo(YhTheme.light.control.minimumTarget),
+    );
+    expect(textButtonSize.width, lessThan(primaryButtonSize.width));
+    expect(primaryButtonSize.width, YhTheme.light.control.minimumTarget * 2);
+  });
+
   testWidgets('清源路由与确认对话框返回明确结果', (tester) async {
     bool? result;
 
@@ -259,6 +292,54 @@ void main() {
 
     expect(find.text('确认清除'), findsNothing);
     expect(result, isFalse);
+  });
+
+  testWidgets('减少动态会关闭清源基础控件的补间时长', (tester) async {
+    await tester.pumpWidget(
+      YhApp(
+        home: MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const YhCard(child: Text('卡片')),
+                YhSwitch(value: true, onChanged: (_) {}),
+                YhChip(label: '筛选', selected: true, onTap: () {}),
+                YhCourseBlock(name: '数据结构', time: '10:00', onTap: () {}),
+                YhSelect<int>(
+                  label: '学期',
+                  value: 1,
+                  options: const [YhSelectOption(value: 1, label: '秋季学期')],
+                  onChanged: (_) {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    for (final widget in tester.widgetList<AnimatedContainer>(
+      find.byType(AnimatedContainer),
+    )) {
+      expect(widget.duration, Duration.zero);
+    }
+    for (final widget in tester.widgetList<AnimatedAlign>(
+      find.byType(AnimatedAlign),
+    )) {
+      expect(widget.duration, Duration.zero);
+    }
+    for (final widget in tester.widgetList<AnimatedScale>(
+      find.byType(AnimatedScale),
+    )) {
+      expect(widget.duration, Duration.zero);
+    }
+    for (final widget in tester.widgetList<AnimatedRotation>(
+      find.byType(AnimatedRotation),
+    )) {
+      expect(widget.duration, Duration.zero);
+    }
   });
 
   testWidgets('清源工具提示在鼠标悬停后通过 Overlay 展示', (tester) async {

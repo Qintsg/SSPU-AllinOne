@@ -8,6 +8,31 @@ import 'package:sspu_allinone/pages/about_page.dart';
 import 'package:sspu_allinone/pages/settings_about_page.dart';
 
 void main() {
+  testWidgets('宽屏构建账本按内容收束并保持操作行', (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(1600, 1000));
+    addTearDown(() async {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    await tester.pumpWidget(
+      const YhApp(
+        home: SettingsAboutPage(previewState: SettingsAboutState.content),
+      ),
+    );
+
+    final ledger = find.byType(YhCard);
+    expect(ledger, findsOneWidget);
+    expect(tester.getSize(ledger).width, lessThanOrEqualTo(560));
+    expect(tester.getSize(ledger).height, lessThan(320));
+    expect(find.text('版本详情'), findsOneWidget);
+    expect(find.text('设计说明'), findsOneWidget);
+    expect(find.text('许可清单'), findsOneWidget);
+  });
+
   testWidgets('真实关于任务页先显示加载再呈现三项构建信息', (tester) async {
     final pending = Completer<SettingsAboutSnapshot>();
     await tester.pumpWidget(
@@ -233,6 +258,25 @@ void main() {
     expect(find.text('GitHub 仓库'), findsNothing);
     expect(find.byType(Table), findsNothing);
     expect(find.bySemanticsLabel('打开 Flutter'), findsOneWidget);
+  });
+
+  testWidgets('许可矩阵在宽屏按四列内容宽度收束', (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(1600, 1000));
+    addTearDown(() async {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    await tester.pumpWidget(const YhApp(home: OpenSourceLicensesPage()));
+
+    final page = tester.getSize(find.byType(YhPageScaffold));
+    final matrix = find.byType(YhCard);
+    expect(find.byType(Table), findsOneWidget);
+    expect(matrix, findsOneWidget);
+    expect(tester.getSize(matrix).width, lessThan(page.width * 0.7));
   });
 
   testWidgets('许可外链取消后保留页面与阅读位置', (tester) async {

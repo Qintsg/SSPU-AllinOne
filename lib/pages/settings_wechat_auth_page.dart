@@ -1,4 +1,10 @@
-/* 清源微信公众号认证任务页。 */
+/*
+ * 清源微信公众号认证任务页
+ * @Project : SSPU-AllinOne
+ * @File : settings_wechat_auth_page.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
 
 import 'dart:async';
 
@@ -6,7 +12,6 @@ import '../controllers/settings_wechat_controller.dart';
 import '../design/qingyuan/qingyuan_ui.dart';
 import '../services/wxmp_config_service.dart';
 import '../utils/webview_env.dart';
-import '../widgets/app_feedback.dart';
 import '../widgets/settings_wechat_auth_status_card.dart';
 import '../widgets/settings_wechat_config_dialog.dart';
 import 'wxmp_login_page.dart';
@@ -52,12 +57,14 @@ class SettingsWechatAuthPage extends StatefulWidget {
 enum _WechatAuthOperation { login, edit, validate, clear }
 
 class _SettingsWechatAuthPageState extends State<SettingsWechatAuthPage> {
-  late final SettingsWechatController _controller;
+  late SettingsWechatController _controller;
+  late bool _ownsController;
   _WechatAuthOperation? _operation;
   String? _noticeMessage;
   String? _errorMessage;
   bool _loadFailed = false;
   int _errorCompletedStepCount = 0;
+  int _sourceGeneration = 0;
 
   bool get _preview => widget.previewState != null;
   bool get _busy => _operation != null;
@@ -65,8 +72,48 @@ class _SettingsWechatAuthPageState extends State<SettingsWechatAuthPage> {
   @override
   void initState() {
     super.initState();
+    _ownsController = widget.controller == null;
     _controller = widget.controller ?? SettingsWechatController();
     if (!_preview) unawaited(_load());
+  }
+
+  @override
+  void didUpdateWidget(SettingsWechatAuthPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final controllerChanged = !identical(
+      oldWidget.controller,
+      widget.controller,
+    );
+    final operationSourceChanged =
+        controllerChanged ||
+        !identical(oldWidget.loginFlow, widget.loginFlow) ||
+        !identical(oldWidget.configEditor, widget.configEditor) ||
+        !identical(oldWidget.clearConfirmation, widget.clearConfirmation) ||
+        oldWidget.previewState != widget.previewState;
+    if (!operationSourceChanged) return;
+
+    _sourceGeneration++;
+    _operation = null;
+    _noticeMessage = null;
+    _errorMessage = null;
+    _loadFailed = false;
+    _errorCompletedStepCount = 0;
+    if (controllerChanged) {
+      if (_ownsController) _controller.dispose();
+      _ownsController = widget.controller == null;
+      _controller = widget.controller ?? SettingsWechatController();
+    }
+    if (!_preview &&
+        (controllerChanged || oldWidget.previewState != widget.previewState)) {
+      unawaited(_load());
+    }
+  }
+
+  @override
+  void dispose() {
+    _sourceGeneration++;
+    if (_ownsController) _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -89,6 +136,7 @@ class _SettingsWechatAuthPageState extends State<SettingsWechatAuthPage> {
       sourceSymbol: '设',
       sourceTimestamp: widget.sourceTimestamp,
       width: YhTaskPageWidth.fluid,
+      bodyFit: YhTaskPageBodyFit.content,
       primaryActionLabel: '开始认证',
       onPrimaryAction: _busy ? null : _startLogin,
       moreActions: [
@@ -155,12 +203,14 @@ class _SettingsWechatAuthPageState extends State<SettingsWechatAuthPage> {
   }
 
   Future<void> _load() async {
+    final generation = _sourceGeneration;
+    final controller = _controller;
     try {
-      await _controller.load();
-      if (!mounted) return;
+      await controller.load();
+      if (!_isCurrent(generation)) return;
       setState(() => _loadFailed = false);
     } catch (_) {
-      if (!mounted) return;
+      if (!_isCurrent(generation)) return;
       setState(() {
         _loadFailed = true;
         _errorCompletedStepCount = 0;
@@ -171,10 +221,12 @@ class _SettingsWechatAuthPageState extends State<SettingsWechatAuthPage> {
 
   Future<void> _startLogin() async {
     if (_busy || _preview) return;
-    await _runOperation(_WechatAuthOperation.login, () async {
-      final wasAuthenticated = _controller.wxmpAuthenticated;
-      final result = await (widget.loginFlow ?? _defaultLoginFlow)(context);
-      if (!mounted) return;
+    await _runOperation(_WechatAuthOperation.login, (generation) async {
+      final controller = _controller;
+      final loginFlow = widget.loginFlow ?? _defaultLoginFlow;
+      final wasAuthenticated = controller.wxmpAuthenticated;
+      final result = await loginFlow(context);
+      if (!_isCurrent(generation)) return;
       if (result != true) {
         _noticeMessage = wasAuthenticated
             ? '已取消重新认证，原有连接保持不变。'
@@ -182,11 +234,12 @@ class _SettingsWechatAuthPageState extends State<SettingsWechatAuthPage> {
         return;
       }
       _errorCompletedStepCount = 2;
-      final feedback = await _controller.handleLoginSuccess();
-      if (!_controller.wxmpAuthenticated) {
+      final feedback = await controller.handleLoginSuccess();
+      if (!_isCurrent(generation)) return;
+      if (!controller.wxmpAuthenticated) {
         throw StateError('登录结果未包含可用的 Cookie 与 Token');
       }
-      _showFeedback(feedback);
+      _showFeedback(feedback, generation: generation);
       _noticeMessage = feedback.severity == AppFeedbackSeverity.success
           ? wasAuthenticated
                 ? '新认证已通过校验并替换原连接。'
@@ -207,19 +260,20 @@ class _SettingsWechatAuthPageState extends State<SettingsWechatAuthPage> {
 
   Future<void> _editConfig() async {
     if (_busy || _preview) return;
-    await _runOperation(_WechatAuthOperation.edit, () async {
-      final initialConfig = await _controller.loadConfig();
-      if (!mounted) return;
-      final saved = await (widget.configEditor ?? _defaultConfigEditor)(
-        context,
-        initialConfig,
-      );
+    await _runOperation(_WechatAuthOperation.edit, (generation) async {
+      final controller = _controller;
+      final configEditor = widget.configEditor ?? _defaultConfigEditor;
+      final initialConfig = await controller.loadConfig();
+      if (!_isCurrent(generation) || !mounted) return;
+      final saved = await configEditor(context, initialConfig);
+      if (!_isCurrent(generation)) return;
       if (saved == null) {
         _noticeMessage = '已取消编辑，认证配置没有变化。';
         return;
       }
-      final feedback = await _controller.saveConfig(saved);
-      _showFeedback(feedback);
+      final feedback = await controller.saveConfig(saved);
+      if (!_isCurrent(generation)) return;
+      _showFeedback(feedback, generation: generation);
       _noticeMessage = feedback.title;
     }, failureMessage: '无法读取或保存认证配置；原配置保持不变，可检查文件权限后重试。');
   }
@@ -236,12 +290,14 @@ class _SettingsWechatAuthPageState extends State<SettingsWechatAuthPage> {
 
   Future<void> _validate() async {
     if (_busy || _preview) return;
-    await _runOperation(_WechatAuthOperation.validate, () async {
-      final feedback = await _controller.reloadConfigFile();
-      _showFeedback(feedback);
+    await _runOperation(_WechatAuthOperation.validate, (generation) async {
+      final controller = _controller;
+      final feedback = await controller.reloadConfigFile();
+      if (!_isCurrent(generation)) return;
+      _showFeedback(feedback, generation: generation);
       if (feedback.severity != AppFeedbackSeverity.success ||
-          !_controller.wxmpAuthenticated) {
-        _errorCompletedStepCount = _controller.wxmpAuthenticated ? 3 : 2;
+          !controller.wxmpAuthenticated) {
+        _errorCompletedStepCount = controller.wxmpAuthenticated ? 3 : 2;
         _errorMessage = feedback.content ?? feedback.title;
         return;
       }
@@ -251,18 +307,21 @@ class _SettingsWechatAuthPageState extends State<SettingsWechatAuthPage> {
 
   Future<void> _confirmAndClear() async {
     if (_busy || _preview || !_controller.wxmpAuthenticated) return;
-    final confirmed =
-        await (widget.clearConfirmation ?? _defaultClearConfirmation)(context);
-    if (!mounted) return;
+    final generation = _sourceGeneration;
+    final confirmation = widget.clearConfirmation ?? _defaultClearConfirmation;
+    final confirmed = await confirmation(context);
+    if (!_isCurrent(generation)) return;
     if (!confirmed) {
       setState(() => _noticeMessage = '已取消清除，公众号连接保持不变。');
       return;
     }
     await _runOperation(
       _WechatAuthOperation.clear,
-      () async {
-        final feedback = await _controller.clearAuth();
-        _showFeedback(feedback);
+      (operationGeneration) async {
+        final controller = _controller;
+        final feedback = await controller.clearAuth();
+        if (!_isCurrent(operationGeneration)) return;
+        _showFeedback(feedback, generation: operationGeneration);
         _noticeMessage = '本机 Cookie 与 Token 已清除；公众号平台账号未受影响。';
       },
       failureMessage: '未能完整清除本机认证；连接状态保持可见，请检查本机存储后重试。',
@@ -284,7 +343,7 @@ class _SettingsWechatAuthPageState extends State<SettingsWechatAuthPage> {
 
   Future<void> _runOperation(
     _WechatAuthOperation operation,
-    Future<void> Function() action, {
+    Future<void> Function(int generation) action, {
     required String failureMessage,
   }) async {
     if (_busy) return;
@@ -299,20 +358,26 @@ class _SettingsWechatAuthPageState extends State<SettingsWechatAuthPage> {
         _WechatAuthOperation.clear => _controller.wxmpAuthenticated ? 3 : 0,
       };
     });
+    final generation = _sourceGeneration;
     try {
-      await action();
+      await action(generation);
     } catch (_) {
-      if (mounted) _errorMessage = failureMessage;
+      if (_isCurrent(generation)) _errorMessage = failureMessage;
     } finally {
-      if (mounted) {
+      if (_isCurrent(generation)) {
         setState(() => _operation = null);
       }
     }
   }
 
-  void _showFeedback(SettingsWechatFeedback feedback) {
-    if (!mounted) return;
-    showAppFeedback(
+  bool _isCurrent(int generation) => mounted && generation == _sourceGeneration;
+
+  void _showFeedback(
+    SettingsWechatFeedback feedback, {
+    required int generation,
+  }) {
+    if (!_isCurrent(generation)) return;
+    showYhFeedback(
       context,
       message: feedback.title,
       details: feedback.content,

@@ -6,7 +6,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../design/qingyuan/qingyuan_ui.dart';
 import '../services/app_info_service.dart';
-import '../widgets/app_feedback.dart';
 import 'about_page.dart';
 import 'legal_notice_page.dart';
 import 'settings_update_page.dart';
@@ -146,6 +145,7 @@ class _SettingsAboutPageState extends State<SettingsAboutPage> {
       sourceSymbol: '设',
       sourceTimestamp: widget.sourceTimestamp,
       width: YhTaskPageWidth.fluid,
+      bodyFit: YhTaskPageBodyFit.content,
       canPop: !_openingExternal,
       primaryActionLabel: '检查更新',
       onPrimaryAction: _openingExternal ? null : _openUpdate,
@@ -163,16 +163,26 @@ class _SettingsAboutPageState extends State<SettingsAboutPage> {
           onTap: _openingExternal ? null : _openGithub,
         ),
       ],
-      body: _AboutBuildLedger(
-        state: _state,
-        snapshot: _snapshot,
-        errorMessage: _errorMessage,
-        noticeMessage: _noticeMessage,
-        onVersion: _openingExternal
-            ? null
-            : (_state == SettingsAboutState.error ? _load : _showVersion),
-        onDesign: _openingExternal ? null : _showDesign,
-        onFlutter: _openingExternal ? null : _openLicenses,
+      body: Builder(
+        builder: (bodyContext) => Align(
+          alignment: AlignmentDirectional.topStart,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: bodyContext.yhTheme.layout.formContentWidth,
+            ),
+            child: _AboutBuildLedger(
+              state: _state,
+              snapshot: _snapshot,
+              errorMessage: _errorMessage,
+              noticeMessage: _noticeMessage,
+              onVersion: _openingExternal
+                  ? null
+                  : (_state == SettingsAboutState.error ? _load : _showVersion),
+              onDesign: _openingExternal ? null : _showDesign,
+              onFlutter: _openingExternal ? null : _openLicenses,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -289,7 +299,7 @@ class _SettingsAboutPageState extends State<SettingsAboutPage> {
     );
     if (!confirmed || !mounted) {
       if (mounted) {
-        showAppFeedback(context, message: '已取消打开 GitHub', details: '仍停留在关于页面。');
+        showYhFeedback(context, message: '已取消打开 GitHub', details: '仍停留在关于页面。');
       }
       return;
     }

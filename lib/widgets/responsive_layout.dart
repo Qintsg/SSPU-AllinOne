@@ -6,9 +6,7 @@
  * @Date : 2026-04-19
  */
 
-import 'package:flutter/widgets.dart';
-
-import '../design/qingyuan/theme/yh_theme.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 enum DeviceType { phone, tablet, desktop }
 

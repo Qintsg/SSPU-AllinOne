@@ -6,7 +6,8 @@
 
 - **用途**：非阻断的瞬时操作反馈。
 - **变体**：dark（中性深色，默认）/ brand（青雾）/ success（成功）。
-- **关键状态**：enter（滑入）/ visible（~2s）/ exit（淡出）。
+- **关键状态**：enter（滑入）/ visible（简单反馈约 2s，详细反馈 3s）/ exit（淡出）。
+- **全局反馈门面**：`showYhFeedback` 使用右上角详细变体，可带补充说明、关闭动作和 info / success / warning / error 语义；连续反馈替换上一条。
 
 ---
 
@@ -38,8 +39,10 @@
 | 阶段 | 行为 |
 |---|---|
 | **enter** | 从边缘滑入 + 淡入（~200ms） |
-| **visible** | 停留 ~2s（带撤销可延长） |
+| **visible** | 简单反馈约 2s；带说明或关闭动作的全局反馈停留 3s |
 | **exit** | 淡出移除 |
+
+进入与退出使用 `motion.base`；启用系统“减少动态”时过渡时长归零，不延迟反馈播报或移除。
 
 > 与 Banner 区别：**Toast 瞬时自动消失、不可常驻**；持续提示用 Banner。
 
@@ -59,8 +62,12 @@
 ## Flutter API
 
 ```dart
-YhToast.show(context, '已签到成功', kind: YhToastKind.success, duration: const Duration(seconds: 2));
-YhToast.show(context, '链接已复制');
+const YhToast(message: '链接已复制');
+showYhFeedback(
+  context,
+  message: '教务凭据已保存',
+  severity: AppFeedbackSeverity.success,
+);
 ```
 
 ---

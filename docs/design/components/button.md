@@ -22,7 +22,7 @@
 ```
 
 **必需元素**：容器（高 48dp 移动 / 40dp 桌面，圆角 16px）、文本标签（MiSans w500 15px，letter-spacing 0.01em）。
-**可选元素**：前置 / 尾随图标（20×20）。**最小宽度** 96px。
+**可选元素**：前置 / 尾随图标（20×20）。Primary、Secondary、Danger 默认最小宽度 96px；Text 只保留 48dp 命中区，不得用 96px 空框包裹短标签。
 
 ---
 
@@ -77,7 +77,7 @@ class YhButton extends StatefulWidget {
     this.leadingIcon,
     this.trailingIcon,
     this.disabled = false,
-    this.minWidth = 96.0,
+    this.minWidth,
     this.height = 48.0,
   });
 

@@ -10,7 +10,6 @@ import '../design/qingyuan/qingyuan_ui.dart';
 
 import '../controllers/settings_wechat_controller.dart';
 import '../pages/settings_wechat_auth_page.dart';
-import 'app_feedback.dart';
 import 'settings_wechat_matrix_card.dart';
 import 'settings_wechat_refresh_card.dart';
 import 'settings_wechat_auth_status_card.dart';
@@ -39,7 +38,7 @@ class _SettingsWechatSectionState extends State<SettingsWechatSection> {
 
   Future<void> _showFeedback(SettingsWechatFeedback feedback) async {
     if (!mounted) return;
-    showAppFeedback(
+    showYhFeedback(
       context,
       message: feedback.title,
       details: feedback.content,

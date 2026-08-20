@@ -31,6 +31,8 @@ import 'package:sspu_allinone/services/sports_attendance_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/services/student_report_service.dart';
 
+import 'support/qingyuan_visual_fixtures.dart';
+
 /// 等待目标组件出现，避免页面异步加载尚未完成时提前断言。
 Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
   for (var attempt = 0; attempt < 40; attempt++) {
@@ -125,14 +127,55 @@ void main() {
       tester.getTopLeft(find.byKey(const Key('home-page-heading'))),
       const Offset(268, 32),
     );
-    expect(
-      tester.getSize(find.byKey(const Key('home-today-courses-tile'))).width,
-      closeTo(584.6, 0.2),
+    final timelineWidth = tester
+        .getSize(find.byKey(const Key('home-today-courses-tile')))
+        .width;
+    final overviewWidth = tester
+        .getSize(find.byKey(const Key('home-overview-stack')))
+        .width;
+    expect(timelineWidth / overviewWidth, closeTo(1.5, 0.02));
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('暗色时间轨当前事项保持结构面高对比色', (tester) async {
+    await tester.pumpWidget(
+      YhApp(
+        themeMode: YhThemeMode.dark,
+        home: HomePage(
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          nowOverride: qingyuanVisualNow,
+          dashboardDisplayStateOverride: HomeDashboardDisplayState.content,
+          courseTableResultOverride: qingyuanHomeAcademicResult,
+          messagesOverride: qingyuanHomeMessages,
+          homeCountdownMinutesOverride: 42,
+          homeCourseTimeOverrides: const {'数据结构': '10:00'},
+        ),
+      ),
     );
-    expect(
-      tester.getSize(find.byKey(const Key('home-overview-stack'))).width,
-      closeTo(283.4, 0.2),
-    );
+    await tester.pump();
+
+    final richText = tester
+        .widgetList<RichText>(find.byType(RichText))
+        .firstWhere(
+          (widget) => widget.text.toPlainText().contains('下一项是 数据结构'),
+        );
+    TextSpan? findTextSpan(InlineSpan span, String text) {
+      if (span case final TextSpan candidate) {
+        if (candidate.text == text) return candidate;
+        for (final child in candidate.children ?? const <InlineSpan>[]) {
+          final match = findTextSpan(child, text);
+          if (match != null) return match;
+        }
+      }
+      return null;
+    }
+
+    final emphasized = findTextSpan(richText.text, '数据结构');
+    final theme = tester.element(find.byType(HomePage)).yhTheme;
+    expect(emphasized, isNotNull);
+    expect(emphasized!.style?.color, theme.color.onStructural);
 
     await disposeHomePage(tester);
   });
@@ -157,7 +200,7 @@ void main() {
     await disposeHomePage(tester);
   });
 
-  testWidgets('首页紧凑加载态使用小号说明并限制状态文案宽度', (tester) async {
+  testWidgets('首页紧凑加载态隐藏次要标题说明并限制状态文案宽度', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(360, 800);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -174,13 +217,9 @@ void main() {
     );
     await tester.pump();
 
-    final description = find.byKey(const Key('home-heading-description'));
     final loadingCopy = find.byKey(const Key('home-loading-copy'));
-    final theme = tester.element(description).yhTheme;
-    expect(
-      tester.widget<Text>(description).style?.fontSize,
-      theme.typography.small.fontSize,
-    );
+    final theme = tester.element(loadingCopy).yhTheme;
+    expect(find.byKey(const Key('home-heading-description')), findsNothing);
     expect(
       tester.getSize(loadingCopy).width,
       lessThanOrEqualTo(theme.layout.statusProgressWidth),
@@ -205,6 +244,32 @@ void main() {
     expect(find.text('尚未整理今天'), findsOneWidget);
     expect(find.text('读取首页数据'), findsOneWidget);
     expect(find.byKey(const Key('home-today-courses-tile')), findsNothing);
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('首页初始恢复面板按内容收敛而不是填充大卡', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(360, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await tester.pumpWidget(
+      YhApp(
+        home: HomePage(
+          campusNetworkStatusService: _buildCampusNetworkStatusService(),
+          campusCardAutoRefreshEnabledOverride: false,
+          dashboardDisplayStateOverride: HomeDashboardDisplayState.initial,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final panel = tester.getRect(
+      find.byKey(const Key('home-dashboard-state-initial')),
+    );
+    final theme = tester.element(find.text('尚未整理今天')).yhTheme;
+    expect(panel.height, lessThan(theme.layout.popoverWidth));
+    expect(panel.width, lessThanOrEqualTo(theme.layout.formContentWidth));
 
     await disposeHomePage(tester);
   });
@@ -234,6 +299,41 @@ void main() {
     await disposeHomePage(tester);
   });
 
+  testWidgets('首页协同异常状态保留有效内容并在刷新锁定时拒绝重复操作', (tester) async {
+    for (final state in [
+      HomeDashboardDisplayState.partialError,
+      HomeDashboardDisplayState.credentialsPartial,
+      HomeDashboardDisplayState.operationLocked,
+    ]) {
+      final service = _FakeCampusCardClient(
+        result: _successResult,
+        cachedResult: _freshCachedResult,
+      );
+      await pumpHomePage(
+        tester,
+        campusCardService: service,
+        campusNetworkStatusService: _buildCampusNetworkStatusService(),
+        campusCardAutoRefreshEnabledOverride: false,
+        dashboardDisplayStateOverride: state,
+      );
+      await tester.pump();
+
+      expect(find.byKey(const Key('home-today-courses-tile')), findsOneWidget);
+      expect(find.byKey(const Key('home-overview-stack')), findsOneWidget);
+      expect(
+        find.byKey(Key('home-dashboard-${state.name}-banner')),
+        findsOneWidget,
+      );
+      if (state == HomeDashboardDisplayState.operationLocked) {
+        await tester.tap(find.byKey(const Key('home-campus-card-refresh')));
+        await tester.pump();
+        expect(service.fetchCount, 0);
+      }
+
+      await disposeHomePage(tester);
+    }
+  });
+
   testWidgets('首页缓存读取失败时说明保留旧缓存并提供重试', (tester) async {
     await tester.pumpWidget(
       YhApp(
@@ -261,7 +361,7 @@ void main() {
     await disposeHomePage(tester);
   });
 
-  testWidgets('首页辅助坞保留第二课堂和常用入口既有展示行为', (tester) async {
+  testWidgets('首页辅助坞合并第二课堂和常用入口且去除重复标题', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
@@ -296,7 +396,7 @@ void main() {
     expect(find.byKey(const Key('home-utility-dock')), findsOneWidget);
     expect(find.text('已获 8.5 / 必修 10 学分'), findsOneWidget);
     expect(find.text('85%'), findsOneWidget);
-    expect(find.text('从今天直接出发'), findsOneWidget);
+    expect(find.text('从今天直接出发'), findsNothing);
     for (final label in ['统一身份认证', '图书馆', '学校官网']) {
       expect(find.text(label), findsOneWidget);
       expect(find.bySemanticsLabel('$label，外部链接，将打开外部应用'), findsOneWidget);
@@ -309,7 +409,7 @@ void main() {
     await disposeHomePage(tester);
   });
 
-  testWidgets('桌面壳内常用入口标题与操作保持并排', (tester) async {
+  testWidgets('桌面壳内常用入口保持同排且不重复展示标题', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
@@ -353,14 +453,17 @@ void main() {
     );
     await tester.pump();
 
-    final headingY = tester.getTopLeft(find.text('常用入口')).dy;
-    final actionY = tester.getTopLeft(find.text('统一身份认证')).dy;
-    expect((headingY - actionY).abs(), lessThan(YhTheme.light.spacing.xl2));
+    expect(find.text('常用入口'), findsNothing);
+    expect(find.text('从今天直接出发'), findsNothing);
+    final actionY = [
+      '统一身份认证',
+      '图书馆',
+      '学校官网',
+    ].map((label) => tester.getTopLeft(find.text(label)).dy).toSet();
+    expect(actionY, hasLength(1));
     expect(
-      tester
-          .getSize(find.byKey(const Key('home-second-classroom-tile')))
-          .height,
-      tester.getSize(find.byKey(const Key('home-quick-links-tile'))).height,
+      tester.widget(find.byKey(const Key('home-utility-dock'))),
+      isA<YhCard>(),
     );
 
     await disposeHomePage(tester);
@@ -748,7 +851,7 @@ void main() {
 
     final card = find.byKey(const Key('home-campus-card-balance-card'));
     final cardRect = tester.getRect(card);
-    for (final text in ['校园卡暂不可用', '请检查 OA 登录与校园网络', '重试']) {
+    for (final text in ['校园卡暂不可用', '重试']) {
       final textRect = tester.getRect(
         find.descendant(of: card, matching: find.text(text)),
       );
@@ -757,6 +860,8 @@ void main() {
       expect(textRect.top, greaterThanOrEqualTo(cardRect.top));
       expect(textRect.bottom, lessThanOrEqualTo(cardRect.bottom));
     }
+    expect(find.text('请检查 OA 登录与校园网络'), findsNothing);
+    expect(tester.getSemantics(card).label, contains('请检查 OA 登录与校园网络'));
     expect(tester.takeException(), isNull);
     await disposeHomePage(tester);
   });
@@ -827,8 +932,97 @@ void main() {
     await disposeHomePage(tester);
   });
 
-  testWidgets('首页中屏将服务概览堆叠到时间轨下方', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(900, 900));
+  testWidgets('360x800 默认文字比例的完整主页无需滚动且行动坞不被导航遮挡', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      YhApp(
+        home: MediaQuery(
+          data: const MediaQueryData(
+            size: Size(360, 800),
+            devicePixelRatio: 1,
+            disableAnimations: true,
+          ),
+          child: AppShell(
+            destinationOverrides: {
+              '主页': HomePage(
+                campusNetworkStatusService: _buildCampusNetworkStatusService(),
+                campusCardAutoRefreshEnabledOverride: false,
+                nowOverride: DateTime(2026, 7, 18, 9, 18),
+                dashboardDisplayStateOverride:
+                    HomeDashboardDisplayState.content,
+                studentReportResultOverride: _studentReportResult,
+                quickLinkFavoritesOverride: const [
+                  QuickLinkItemConfig(
+                    name: '统一身份认证',
+                    url: 'https://oa.example.invalid/',
+                    icon: 'security',
+                  ),
+                  QuickLinkItemConfig(
+                    name: '图书馆',
+                    url: 'https://library.example.invalid/',
+                    icon: 'library',
+                  ),
+                  QuickLinkItemConfig(
+                    name: '学校官网',
+                    url: 'https://www.example.invalid/',
+                    icon: 'globe',
+                  ),
+                ],
+              ),
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.descendant(
+        of: find.byType(HomePage),
+        matching: find.byType(SingleChildScrollView),
+      ),
+      findsNothing,
+    );
+    final dock = tester.getRect(find.byKey(const Key('home-utility-dock')));
+    final bottomNavigation = tester.getRect(find.byType(YhBottomNav));
+    final greetingPhrases = find.byKey(const Key('home-greeting-phrases'));
+    final greetingPrefix = find.text('早上好，');
+    final greetingFocus = find.text('先看清今天。');
+    expect(greetingPhrases, findsOneWidget);
+    expect(greetingPrefix, findsOneWidget);
+    expect(greetingFocus, findsOneWidget);
+    final prefixRect = tester.getRect(greetingPrefix);
+    final focusRect = tester.getRect(greetingFocus);
+    final compactGreeting = tester.getRect(greetingPhrases);
+    final theme = tester.element(greetingPhrases).yhTheme;
+    expect(
+      focusRect.top,
+      greaterThanOrEqualTo(prefixRect.bottom - theme.layout.divider),
+    );
+    expect(find.bySemanticsLabel('早上好，先看清今天。'), findsOneWidget);
+    expect(
+      compactGreeting.height,
+      lessThanOrEqualTo(
+        theme.typography.h1.fontSize! * theme.typography.h1.height! * 2 +
+            theme.layout.divider,
+      ),
+    );
+    expect(dock.bottom, lessThanOrEqualTo(bottomNavigation.top));
+    final secondClassroomTitle = find.descendant(
+      of: find.byKey(const Key('home-second-classroom-tile')),
+      matching: find.text('第二课堂'),
+    );
+    expect(secondClassroomTitle, findsOneWidget);
+    expect(tester.widget<Text>(secondClassroomTitle).maxLines, 1);
+    expect(tester.takeException(), isNull);
+
+    await disposeHomePage(tester);
+  });
+
+  testWidgets('768x900 中屏保持时间轨与统一概览双栏', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(768, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await AcademicCredentialsService.instance.saveCredentials(
       oaAccount: '20260001',
@@ -859,8 +1053,9 @@ void main() {
     final overview = tester.getRect(
       find.byKey(const Key('home-overview-stack')),
     );
-    expect(timeline.left, overview.left);
-    expect(timeline.bottom, lessThan(overview.top));
+    expect(timeline.top, overview.top);
+    expect(timeline.left, lessThan(overview.left));
+    expect(timeline.width, greaterThan(overview.width));
     expect(tester.takeException(), isNull);
     await disposeHomePage(tester);
   });
@@ -907,7 +1102,7 @@ void main() {
         .yhTheme;
     expect(
       tester.getTopLeft(find.byKey(const Key('home-campus-card-refresh'))).dy,
-      theme.spacing.l + theme.layout.divider * 2,
+      theme.spacing.m,
     );
     expect(find.byKey(const Key('home-customize')), findsNothing);
     expect(tester.takeException(), isNull);

@@ -1,4 +1,10 @@
-/* 清源开关 — 即时生效的二元状态控件。 */
+/*
+ * 清源开关 — 即时生效的二元状态控件
+ * @Project : SSPU-AllinOne
+ * @File : yh_switch.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
 
 import 'package:flutter/widgets.dart';
 
@@ -22,6 +28,12 @@ class YhSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final duration = theme.motion.effective(
+      theme.motion.base,
+      disableAnimations: disableAnimations,
+    );
     final enabled = !disabled && onChanged != null;
     final trackWidth = theme.control.regular - theme.spacing.xs;
     final trackHeight = theme.spacing.l + theme.spacing.xs / 2;
@@ -37,7 +49,7 @@ class YhSwitch extends StatelessWidget {
         height: theme.control.minimumTarget,
         child: Center(
           child: AnimatedContainer(
-            duration: theme.motion.base,
+            duration: duration,
             curve: theme.motion.curve,
             width: trackWidth,
             height: trackHeight,
@@ -47,7 +59,7 @@ class YhSwitch extends StatelessWidget {
               borderRadius: BorderRadius.circular(theme.radius.full),
             ),
             child: AnimatedAlign(
-              duration: theme.motion.base,
+              duration: duration,
               curve: theme.motion.curve,
               alignment: value
                   ? AlignmentDirectional.centerEnd

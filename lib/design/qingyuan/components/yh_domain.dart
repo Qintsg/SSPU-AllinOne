@@ -1,4 +1,10 @@
-/* 清源校园域组件。 */
+/*
+ * 清源校园域组件
+ * @Project : SSPU-AllinOne
+ * @File : yh_domain.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
 
 import 'package:flutter/widgets.dart';
 
@@ -24,19 +30,34 @@ class YhTodayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     return YhCard(
-      elevated: true,
+      padding: EdgeInsets.all(theme.spacing.m),
+      radius: theme.radius.m,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            title,
-            style: theme.typography.h2.copyWith(color: theme.color.foreground),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.typography.body.copyWith(
+                    color: theme.color.foreground,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              SizedBox(width: theme.spacing.s),
+              Text(
+                subtitle,
+                style: theme.typography.small.copyWith(
+                  color: theme.color.muted,
+                ),
+              ),
+            ],
           ),
-          Text(
-            subtitle,
-            style: theme.typography.small.copyWith(color: theme.color.muted),
-          ),
-          SizedBox(height: theme.spacing.m),
+          SizedBox(height: theme.spacing.s),
           child,
         ],
       ),
@@ -67,6 +88,12 @@ class YhCourseBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final duration = theme.motion.effective(
+      theme.motion.fast,
+      disableAnimations: disableAnimations,
+    );
     final accent = color ?? theme.color.serviceSchedule;
     final base = conflict ? theme.color.danger : accent;
     final background = conflict
@@ -82,7 +109,7 @@ class YhCourseBlock extends StatelessWidget {
     ].join('，');
 
     Widget surface({bool hovered = false}) => AnimatedContainer(
-      duration: theme.motion.fast,
+      duration: duration,
       padding: EdgeInsets.symmetric(
         horizontal: theme.spacing.m - theme.spacing.xs,
         vertical: theme.spacing.s + theme.spacing.xs / 2,
@@ -169,8 +196,7 @@ class YhAiMessage extends StatelessWidget {
             : AlignmentDirectional.centerStart,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: user ? theme.color.brandStrong : theme.color.surface,
-            border: user ? null : Border.all(color: theme.color.border),
+            color: user ? theme.color.brandStrong : theme.color.brandTint,
             borderRadius: BorderRadius.circular(theme.radius.m),
           ),
           child: Padding(
@@ -180,9 +206,7 @@ class YhAiMessage extends StatelessWidget {
                 : Text(
                     message,
                     style: theme.typography.body.copyWith(
-                      color: user
-                          ? theme.color.onBrand
-                          : theme.color.foreground,
+                      color: user ? theme.color.onBrand : theme.color.brandInk,
                     ),
                   ),
           ),
@@ -233,6 +257,8 @@ class YhAttendanceItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     return YhCard(
+      padding: EdgeInsets.all(theme.spacing.m),
+      radius: theme.radius.m,
       child: Row(
         children: [
           Expanded(

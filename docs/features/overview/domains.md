@@ -7,7 +7,7 @@
 - **数据全本地**：统一存放于各平台**系统默认应用数据目录**（由 `path_provider` 提供，如 Windows `%APPDATA%`、macOS 沙盒容器、Linux `$XDG_DATA_HOME`、移动端应用数据目录）；不再使用 `~/.sspu-aio`；不上云。
 - **只读查询**：仅查询展示，不做选课、缴费、充值等写操作。
 - **凭据安全**：教务等账号凭据进系统安全存储（`flutter_secure_storage`），不落 `app_state.json`。
-- **统一设计系统**：UI 经 `design/fluent_ui.dart` 门面，禁裸值（详见 [`DESIGN.md`](../../../DESIGN.md)）。
+- **统一设计系统**：UI 经 `design/qingyuan/qingyuan_ui.dart` 门面，禁裸值（详见 [`DESIGN.md`](../../../DESIGN.md)）。
 
 这些基座由 **平台基础** 模块承载，被其余所有模块依赖。
 

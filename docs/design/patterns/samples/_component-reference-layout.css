@@ -1,0 +1,126 @@
+/*
+ * 清源组件工作台布局参考样式
+ * @Project : SSPU-AllinOne
+ * @File : _component-reference-layout.css
+ * @Author : Qintsg
+ * @Date : 2026-08-17
+ */
+
+.reference-component-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg);
+  color: var(--fg);
+  display: flex;
+  flex-direction: column;
+}
+
+.reference-component-appbar {
+  height: var(--layout-app-bar-height);
+  flex: 0 0 var(--layout-app-bar-height);
+  padding-inline: var(--space-m);
+  border-bottom: var(--layout-divider) solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+}
+
+.reference-component-appbar span {
+  color: var(--muted);
+  font-size: var(--type-caption);
+}
+
+.reference-component-appbar strong {
+  font-size: var(--type-h3);
+  font-weight: var(--weight-h3);
+}
+
+.reference-component-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.reference-component-main {
+  width: min(calc(var(--control-regular) * 24), 100%);
+  margin-inline: auto;
+  padding: clamp(var(--space-m), 2vw, var(--space-xl));
+}
+
+.reference-component-intro {
+  margin-bottom: var(--space-l);
+}
+
+.reference-component-intro small {
+  color: var(--brand-strong);
+  font-size: var(--type-caption);
+  font-weight: var(--weight-h3);
+  letter-spacing: var(--letter-spacing-caption);
+}
+
+.reference-component-intro h1 {
+  margin: var(--space-xs) 0 0;
+  font-size: var(--type-h1);
+  line-height: var(--line-height-h1);
+  letter-spacing: var(--letter-spacing-h1);
+}
+
+.reference-component-intro p {
+  max-width: calc(var(--control-regular) * 14);
+  margin: var(--space-s) 0 0;
+  color: var(--muted);
+  line-height: var(--line-height-body);
+}
+
+.reference-component-workbench-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--space-m);
+}
+
+.reference-component-card {
+  min-width: 0;
+  padding: var(--space-l);
+  border: var(--layout-control-border) solid var(--border);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  display: grid;
+  gap: var(--space-m);
+}
+
+.reference-component-card.is-wide { grid-column: span 2; }
+
+.reference-component-card > header {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-s);
+  align-items: start;
+}
+
+.reference-component-card > header > span {
+  color: var(--brand-strong);
+  font-size: var(--type-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.reference-component-card > header strong,
+.reference-component-card > header small {
+  display: block;
+}
+
+.reference-component-card > header strong {
+  font-size: var(--type-body);
+  font-weight: var(--weight-h1);
+}
+
+.reference-component-card > header small {
+  margin-top: var(--space-xs);
+  color: var(--muted);
+  font-size: var(--type-small);
+  line-height: var(--line-height-small);
+}

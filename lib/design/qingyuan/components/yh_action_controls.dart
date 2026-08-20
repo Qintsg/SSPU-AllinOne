@@ -37,12 +37,15 @@ class YhFab extends StatelessWidget {
             borderRadius: BorderRadius.circular(theme.radius.full),
             boxShadow: theme.elevation.e2,
           ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: label == null ? theme.spacing.m : theme.spacing.l,
-              vertical: theme.spacing.m,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: theme.control.regular),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: label == null ? theme.spacing.m : theme.spacing.l,
+                vertical: theme.spacing.s,
+              ),
+              child: child,
             ),
-            child: child,
           ),
         ),
       ),

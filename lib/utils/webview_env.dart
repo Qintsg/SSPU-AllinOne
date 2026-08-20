@@ -13,6 +13,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter/services.dart';
 
 import '../services/app_data_directory_service.dart';
 
@@ -65,7 +66,12 @@ Future<void> disposeGlobalWebViewEnvironment() async {
     environment = await pendingEnvironment;
   }
 
-  await environment?.dispose();
+  try {
+    await environment?.dispose();
+  } on MissingPluginException {
+    // Windows 会在最后一个 WebView 先销毁时移除环境实例通道；此时原生资源
+    // 已完成释放，退出阶段再次 dispose 应视为幂等成功。
+  }
 }
 
 /// 创建带统一用户数据目录的 Windows WebView2 环境。

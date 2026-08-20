@@ -8,9 +8,28 @@
 
 part of 'settings_page.dart';
 
-mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
+mixin _SettingsPageLayout
+    on
+        State<SettingsPage>,
+        _SettingsPageActions,
+        _SettingsPageSecurityPrivacyActions {
   int get _selectedTab;
   set _selectedTab(int value);
+
+  final FocusNode _settingsSectionTriggerFocusNode = FocusNode(
+    debugLabel: 'Settings section trigger',
+  );
+
+  static const _settingsSections = <({String label, IconData icon})>[
+    (label: '常规', icon: YhIcons.settings),
+    (label: '学期', icon: YhIcons.calendar),
+    (label: '自动刷新', icon: YhIcons.sync),
+    (label: '安全', icon: YhIcons.lock),
+    (label: '职能部门', icon: YhIcons.education),
+    (label: '教学单位', icon: YhIcons.library),
+    (label: '微信推文', icon: YhIcons.chat),
+    (label: '关于', icon: YhIcons.info),
+  ];
 
   /// 宽屏布局。
   Widget _buildWideSettingsLayout(BuildContext context) {
@@ -36,10 +55,16 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           ),
         ),
         Expanded(
-          child: _buildScrollableContent(
-            EdgeInsets.symmetric(
-              horizontal: theme.spacing.l,
-              vertical: theme.spacing.s,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: theme.breakpoint.medium),
+              child: _buildScrollableContent(
+                EdgeInsets.symmetric(
+                  horizontal: theme.spacing.l,
+                  vertical: theme.spacing.s,
+                ),
+              ),
             ),
           ),
         ),
@@ -71,6 +96,36 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           child: _buildScrollableContent(
             EdgeInsets.symmetric(
               horizontal: theme.spacing.m,
+              vertical: theme.spacing.s,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 中屏使用顶部页签，避免左侧导航挤压内容。
+  Widget _buildMediumSettingsLayout(BuildContext context) {
+    final theme = context.yhTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: theme.spacing.l),
+          child: YhTabs<int>(
+            key: const Key('settings-medium-tabs'),
+            value: _selectedTab,
+            tabs: [
+              for (var index = 0; index < _settingsSections.length; index++)
+                YhTab<int>(value: index, label: _settingsSections[index].label),
+            ],
+            onChanged: (value) => setState(() => _selectedTab = value),
+          ),
+        ),
+        Expanded(
+          child: _buildScrollableContent(
+            EdgeInsets.symmetric(
+              horizontal: theme.spacing.l,
               vertical: theme.spacing.s,
             ),
           ),
@@ -200,33 +255,83 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
   /// 窄屏顶部下拉。
   Widget _buildSettingsTabCombo(BuildContext context) {
     final theme = context.yhTheme;
-    return Row(
-      children: [
-        Icon(YhIcons.menu, size: theme.spacing.l, color: theme.color.muted),
-        SizedBox(width: theme.spacing.s),
-        Expanded(
-          child: YhSelect<int>(
-            key: const Key('settings-narrow-tab-combo'),
-            label: '设置分区',
-            showLabel: false,
-            value: _selectedTab,
-            options: const [
-              YhSelectOption(value: 0, label: '常规'),
-              YhSelectOption(value: 1, label: '学期'),
-              YhSelectOption(value: 2, label: '自动刷新'),
-              YhSelectOption(value: 3, label: '安全'),
-              YhSelectOption(value: 4, label: '职能部门'),
-              YhSelectOption(value: 5, label: '教学单位'),
-              YhSelectOption(value: 6, label: '微信推文'),
-              YhSelectOption(value: 7, label: '关于'),
+    final current = _settingsSections[_selectedTab];
+    return YhPressable(
+      key: const Key('settings-narrow-section-trigger'),
+      semanticLabel: '当前设置分区：${current.label}，打开设置分区',
+      focusNode: _settingsSectionTriggerFocusNode,
+      onPressed: () => _showSettingsSectionDrawer(context),
+      builder: (context, state, child) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: state.hovered ? theme.color.brandTint : theme.color.surface,
+          border: Border.all(
+            color: state.focused ? theme.color.brandStrong : theme.color.border,
+            width: theme.layout.controlBorder,
+          ),
+          borderRadius: BorderRadius.circular(theme.radius.s),
+        ),
+        child: child,
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: theme.control.minimumTarget),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: theme.spacing.m),
+          child: Row(
+            children: [
+              Icon(current.icon, size: theme.spacing.l),
+              SizedBox(width: theme.spacing.s),
+              Expanded(
+                child: Text(
+                  current.label,
+                  style: theme.typography.body.copyWith(
+                    fontWeight: theme.typography.semibold,
+                  ),
+                ),
+              ),
+              Icon(
+                YhIcons.chevronDown,
+                size: theme.spacing.l,
+                color: theme.color.muted,
+              ),
             ],
-            onChanged: (value) {
-              if (value != null) setState(() => _selectedTab = value);
-            },
           ),
         ),
-      ],
+      ),
     );
+  }
+
+  /// 打开紧凑端设置分区抽屉并在关闭后归还焦点。
+  Future<void> _showSettingsSectionDrawer(BuildContext context) async {
+    await YhBottomDrawer.show<void>(
+      context,
+      title: '设置分区',
+      builder: (drawerContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var index = 0; index < _settingsSections.length; index++) ...[
+            buildSettingsNavItem(
+              context: drawerContext,
+              index: index,
+              selectedIndex: _selectedTab,
+              icon: _settingsSections[index].icon,
+              label: _settingsSections[index].label,
+              autofocus: index == _selectedTab,
+              onTap: () {
+                Navigator.of(drawerContext).pop();
+                if (mounted) setState(() => _selectedTab = index);
+              },
+            ),
+            if (index < _settingsSections.length - 1)
+              SizedBox(height: drawerContext.yhTheme.spacing.xs),
+          ],
+        ],
+      ),
+    );
+    if (mounted) _settingsSectionTriggerFocusNode.requestFocus();
+  }
+
+  void disposeSettingsNavigation() {
+    _settingsSectionTriggerFocusNode.dispose();
   }
 
   /// 带动画的滚动内容区。
@@ -365,6 +470,7 @@ mixin _SettingsPageLayout on State<SettingsPage>, _SettingsPageActions {
           onQuickAuthChanged: _onQuickAuthChanged,
           onLock: widget.onLock,
           onOpenDataPrivacy: _openDataPrivacySettings,
+          credentialsStatusLoader: widget.credentialsStatusLoaderForTesting,
         );
       case 4:
         return ChannelListSection(

@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""清源设计契约校验器的行为测试。"""
+# -*- coding: UTF-8 -*-
+"""
+清源设计契约校验器的行为测试。
+@Project : SSPU-AllinOne
+@File : test_validate_design_system.py
+@Author : Qintsg
+@Date : 2026-08-18
+"""
 
 from __future__ import annotations
 
@@ -433,17 +440,18 @@ class DesignSystemValidatorTest(unittest.TestCase):
             with self.assertRaisesRegex(DesignSystemValidationError, r"视觉清单必须锁定"):
                 validate_design_system(root)
 
-    def test_visual_manifest_requires_per_image_090_threshold(self) -> None:
+    def test_visual_manifest_rejects_legacy_ssim_thresholds(self) -> None:
+        """视觉清单不得重新引入已停用的 SSIM 阈值。"""
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
             shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
             manifest = root / "docs" / "design" / "resources" / "visual-manifest.json"
             payload = json.loads(manifest.read_text(encoding="utf-8"))
-            payload["meta"]["applicationThreshold"] = 0.89
+            payload["meta"]["applicationThreshold"] = 0.90
             manifest.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
-            with self.assertRaisesRegex(DesignSystemValidationError, r"应用自绘阈值必须为 0.90"):
+            with self.assertRaisesRegex(DesignSystemValidationError, r"不得保留 SSIM 阈值"):
                 validate_design_system(root)
 
     def test_visual_manifest_requires_interaction_acceptance_checks(self) -> None:
@@ -517,6 +525,35 @@ class DesignSystemValidatorTest(unittest.TestCase):
             with self.assertRaisesRegex(DesignSystemValidationError, r"mail.inbox.*状态不一致"):
                 validate_design_system(root)
 
+    def test_reference_catalog_requires_split_script_load_chain(self) -> None:
+        """拆分的设置模态渲染器必须先于主渲染器进入页面加载链。"""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            reference = (
+                root
+                / "docs"
+                / "design"
+                / "patterns"
+                / "samples"
+                / "state-reference.html"
+            )
+            source = reference.read_text(encoding="utf-8")
+            reference.write_text(
+                source.replace(
+                    '  <script src="_settings-dialog-reference.js"></script>\n',
+                    "",
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                DesignSystemValidationError,
+                r"脚本未进入加载链.*_settings-dialog-reference\.js",
+            ):
+                validate_design_system(root)
+
     def test_component_manifest_requires_all_44_flutter_components(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -576,6 +613,27 @@ class DesignSystemValidatorTest(unittest.TestCase):
             )
 
             with self.assertRaisesRegex(DesignSystemValidationError, r"yh_button\.dart.*YhIcons"):
+                validate_design_system(root)
+
+    def test_qingyuan_runtime_rejects_business_internal_imports(self) -> None:
+        """业务代码只能通过清源公共门面访问 UI 实现。"""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(PROJECT_ROOT / "docs" / "design", root / "docs" / "design")
+            shutil.copy2(PROJECT_ROOT / "DESIGN.md", root / "DESIGN.md")
+            runtime = root / "lib" / "design" / "qingyuan"
+            shutil.copytree(PROJECT_ROOT / "lib" / "design" / "qingyuan", runtime)
+            target = root / "lib" / "pages" / "bypass.dart"
+            target.parent.mkdir(parents=True)
+            target.write_text(
+                "import '../design/qingyuan/theme/yh_theme.dart';\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                DesignSystemValidationError,
+                r"bypass\.dart.*qingyuan_ui\.dart",
+            ):
                 validate_design_system(root)
 
     def test_qingyuan_runtime_rejects_naked_visual_dimensions(self) -> None:

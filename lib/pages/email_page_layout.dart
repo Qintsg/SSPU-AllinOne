@@ -63,7 +63,6 @@ extension _EmailPageLayout on _EmailPageState {
     if (result == null) {
       return _buildMailboxStateCard(
         context,
-        expandForStackedActions: true,
         child: _EmailMailboxStateMessage(
           icon: YhIcons.mail,
           title: '尚未读取邮箱',
@@ -202,7 +201,6 @@ extension _EmailPageLayout on _EmailPageState {
             refreshing: _isFetchingMessages,
             showHeader: false,
             showSenderAnchor: false,
-            minHeight: theme.layout.popoverWidth + theme.spacing.xl2 * 2,
             senderLabel: _senderDisplayName,
             formatDateTime: _formatOptionalDateTime,
             onMessageFocused: _focusMessage,
@@ -224,25 +222,17 @@ extension _EmailPageLayout on _EmailPageState {
     );
   }
 
-  Widget _buildMailboxStateCard(
-    BuildContext context, {
-    required Widget child,
-    bool expandForStackedActions = false,
-  }) {
+  Widget _buildMailboxStateCard(BuildContext context, {required Widget child}) {
     final theme = context.yhTheme;
-    final stackedActionAdjustment = expandForStackedActions
-        // 两个 48dp 动作在 compact 宽度换行；该补偿保持冻结卡片底边。
-        ? theme.spacing.m - theme.spacing.xs + theme.layout.divider
-        : 0.0;
-    return ConstrainedBox(
-      key: const Key('email-mailbox-state-card'),
-      constraints: BoxConstraints(
-        minHeight:
-            theme.layout.popoverWidth +
-            theme.spacing.xl +
-            stackedActionAdjustment,
+    return Align(
+      alignment: AlignmentDirectional.topCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: theme.layout.formContentWidth),
+        child: YhCard(
+          key: const Key('email-mailbox-state-card'),
+          child: Center(child: child),
+        ),
       ),
-      child: YhCard(child: Center(child: child)),
     );
   }
 
@@ -297,6 +287,8 @@ extension _EmailPageLayout on _EmailPageState {
       severityOf: _severityOf,
       onSend: _sendEmail,
       onCancel: _closeCompose,
+      showActions:
+          MediaQuery.sizeOf(context).width >= context.yhTheme.breakpoint.medium,
     );
   }
 

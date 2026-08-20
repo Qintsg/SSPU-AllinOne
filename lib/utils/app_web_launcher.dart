@@ -10,7 +10,6 @@ import '../design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../pages/webview_page.dart';
-import '../widgets/app_feedback.dart';
 import 'webview_env.dart';
 
 /// 应用内普通网页入口。
@@ -48,7 +47,7 @@ Future<void> openAppWebUrl(
       debugPrint('[AppWebLauncher] Safari View Controller 打开失败: $error');
     }
     if (!context.mounted) return;
-    showAppFeedback(
+    showYhFeedback(
       context,
       message: '无法打开链接',
       severity: AppFeedbackSeverity.warning,
@@ -58,7 +57,7 @@ Future<void> openAppWebUrl(
 
   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
     if (!context.mounted) return;
-    showAppFeedback(
+    showYhFeedback(
       context,
       message: '链接无效，无法打开',
       severity: AppFeedbackSeverity.warning,

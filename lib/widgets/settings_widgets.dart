@@ -75,11 +75,13 @@ Widget buildSettingsNavItem({
   required IconData icon,
   required String label,
   required VoidCallback onTap,
+  bool autofocus = false,
 }) => _SettingsNavItem(
   isSelected: index == selectedIndex,
   icon: icon,
   label: label,
   onTap: onTap,
+  autofocus: autofocus,
 );
 
 class _SettingsNavItem extends StatelessWidget {
@@ -88,19 +90,28 @@ class _SettingsNavItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.autofocus = false,
   });
 
   final bool isSelected;
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final duration = theme.motion.effective(
+      theme.motion.fast,
+      disableAnimations: disableAnimations,
+    );
     return YhPressable(
       semanticLabel: label,
       selected: isSelected,
+      autofocus: autofocus,
       onPressed: onTap,
       builder: (context, state, child) {
         final selectedBackground = state.hovered
@@ -117,7 +128,7 @@ class _SettingsNavItem extends StatelessWidget {
         return SizedBox(
           width: double.infinity,
           child: AnimatedContainer(
-            duration: theme.motion.fast,
+            duration: duration,
             curve: theme.motion.curve,
             padding: EdgeInsetsDirectional.symmetric(
               horizontal: theme.spacing.m,
@@ -130,7 +141,7 @@ class _SettingsNavItem extends StatelessWidget {
             child: Row(
               children: [
                 AnimatedContainer(
-                  duration: theme.motion.fast,
+                  duration: duration,
                   width: theme.spacing.xs,
                   height: theme.spacing.l,
                   margin: EdgeInsetsDirectional.only(end: theme.spacing.s),
@@ -240,16 +251,22 @@ Widget buildResponsiveSettingsRow({
   required Widget subtitle,
   required Widget trailing,
   Color? iconColor,
+  bool stackTrailing = true,
+  bool hideIconOnCompact = false,
 }) {
   final theme = context.yhTheme;
   return LayoutBuilder(
     builder: (context, constraints) {
       final shouldStack = shouldStackSettingsControls(constraints);
+      final hideIcon =
+          hideIconOnCompact && constraints.maxWidth < theme.breakpoint.compact;
       final leading = Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: iconColor ?? theme.color.brandStrong),
-          SizedBox(width: theme.spacing.m),
+          if (!hideIcon) ...[
+            Icon(icon, color: iconColor ?? theme.color.brandStrong),
+            SizedBox(width: theme.spacing.m),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,7 +280,7 @@ Widget buildResponsiveSettingsRow({
         ],
       );
 
-      if (shouldStack) {
+      if (shouldStack && stackTrailing) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

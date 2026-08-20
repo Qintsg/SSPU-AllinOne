@@ -38,48 +38,20 @@ class _SettingsAppearancePageState extends State<SettingsAppearancePage> {
       summary: '跟随系统、亮色和暗色即时生效，并保持相同信息层级。',
       source: '本机外观设置',
       sourceSymbol: '设',
+      bodyFit: YhTaskPageBodyFit.content,
       primaryActionLabel: '应用主题',
       onPrimaryAction: widget.onApply,
-      body: _AppearanceTaskCard(
-        themeMode: _themeMode,
-        onChanged: widget.onChanged == null ? null : _changeThemeMode,
-      ),
-    );
-  }
-
-  void _changeThemeMode(YhThemeMode value) {
-    setState(() => _themeMode = value);
-    widget.onChanged?.call(value);
-  }
-}
-
-class _AppearanceTaskCard extends StatelessWidget {
-  const _AppearanceTaskCard({required this.themeMode, required this.onChanged});
-
-  final YhThemeMode themeMode;
-  final ValueChanged<YhThemeMode>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.color.surface,
-        border: Border.all(
-          color: theme.color.border,
-          width: theme.layout.controlBorder,
-        ),
-        borderRadius: BorderRadius.circular(theme.radius.m),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(theme.spacing.l),
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+      body: Builder(
+        builder: (bodyContext) => Align(
+          alignment: AlignmentDirectional.topStart,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: bodyContext.yhTheme.layout.formContentWidth,
+            ),
             child: YhSegmented<YhThemeMode>(
-              value: themeMode,
-              onChanged: onChanged,
+              key: const Key('appearance-theme-choice'),
+              value: _themeMode,
+              onChanged: widget.onChanged == null ? null : _changeThemeMode,
               options: const [
                 YhSegmentedOption(value: YhThemeMode.system, label: '跟随系统'),
                 YhSegmentedOption(value: YhThemeMode.light, label: '亮色'),
@@ -90,5 +62,10 @@ class _AppearanceTaskCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _changeThemeMode(YhThemeMode value) {
+    setState(() => _themeMode = value);
+    widget.onChanged?.call(value);
   }
 }

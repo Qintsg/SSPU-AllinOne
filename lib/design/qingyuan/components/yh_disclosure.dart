@@ -99,7 +99,10 @@ class _YhDisclosureState extends State<YhDisclosure> {
                       ),
                     ),
                     child: Padding(
-                      padding: EdgeInsets.all(theme.spacing.l),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: theme.spacing.m,
+                        vertical: theme.spacing.s,
+                      ),
                       child: widget.content,
                     ),
                   )

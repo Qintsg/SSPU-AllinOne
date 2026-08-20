@@ -167,7 +167,6 @@ class _AcademicEamsGradeProcessPageState
         child: _AcademicDetailLoadingState(
           title: '正在读取过程化成绩',
           source: '过程化成绩 · 本地快照',
-          alignEvidenceLedger: true,
         ),
       );
     } else if (_result == null || !_result!.isSuccess || snapshot == null) {

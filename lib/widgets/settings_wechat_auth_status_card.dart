@@ -1,4 +1,10 @@
-/* 清源微信公众号认证摘要与任务账本。 */
+/*
+ * 清源微信公众号认证摘要与任务账本
+ * @Project : SSPU-AllinOne
+ * @File : settings_wechat_auth_status_card.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
 
 import '../design/qingyuan/qingyuan_ui.dart';
 
@@ -271,12 +277,15 @@ class _WechatAuthStateBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(theme.radius.s),
         ),
         child: Padding(
-          padding: EdgeInsets.all(theme.spacing.m),
+          padding: EdgeInsets.symmetric(
+            horizontal: theme.spacing.s + theme.spacing.xs,
+            vertical: theme.spacing.s + theme.spacing.xs,
+          ),
           child: Text(
             text,
-            style: theme.typography.body.copyWith(
+            style: theme.typography.small.copyWith(
               color: danger ? theme.color.danger : theme.color.warning,
-              fontWeight: theme.typography.h3.fontWeight,
+              fontWeight: theme.typography.body.fontWeight,
             ),
           ),
         ),
@@ -301,6 +310,7 @@ class _WechatAuthTaskRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.compact;
     return DecoratedBox(
       decoration: BoxDecoration(
         border: Border(
@@ -325,7 +335,7 @@ class _WechatAuthTaskRow extends StatelessWidget {
                     Text(
                       title,
                       style: theme.typography.body.copyWith(
-                        fontWeight: theme.typography.h3.fontWeight,
+                        fontWeight: theme.typography.h1.fontWeight,
                       ),
                     ),
                     SizedBox(height: theme.spacing.xs),
@@ -338,7 +348,7 @@ class _WechatAuthTaskRow extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(width: theme.spacing.m),
+              SizedBox(width: compact ? theme.spacing.s : theme.spacing.m),
               YhButton(
                 label: actionLabel,
                 variant: YhButtonVariant.secondary,

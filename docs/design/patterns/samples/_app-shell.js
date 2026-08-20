@@ -1,7 +1,16 @@
+/*
+ * 清源全应用页面原型交互
+ * @Project : SSPU-AllinOne
+ * @File : _app-shell.js
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
+
 (function () {
   var main = document.querySelector('.prototype-main');
   var moreButton = document.querySelector('[data-more]');
   var moreSheet = document.querySelector('.more-sheet');
+  var settingsSheetScrim = document.querySelector('[data-settings-sheet-dismiss]');
   var moreTrigger = null;
   var scheduleDays = [
     [{ time: '08:00 · 1–2 节', title: '数据结构', place: '计算机楼 301', domain: 'schedule' }],
@@ -18,11 +27,24 @@
     { sender: '信息化办公室', time: '7 月 16 日', title: '校园网络维护公告', body: '周日凌晨将进行短时网络维护。' }
   ];
   var settingsHeadings = {
-    account: ['数据与连接', '先说明数据存在哪里、连接是否有效，再提供修改操作；高风险动作保持隔离。'],
-    home: ['首页与通知', '决定首页先出现什么，以及哪些校园事项可以在本机提醒你。'],
-    appearance: ['外观', '主题、密度与动态响应系统设置，内容层级保持不变。'],
-    privacy: ['数据与隐私', '查看本机保存了什么，并逐项管理缓存、登录状态和个性化设置。'],
-    about: ['关于工大聚合', '查看当前版本、开源许可、隐私政策与反馈入口。']
+    general: ['设置', '调整首页、通知和应用体验；每项首页内容保持独立控制。'],
+    term: ['设置', '统一选择课表、成绩与校历使用的学期。'],
+    refresh: ['设置', '按业务来源独立控制联网频率和失败恢复。'],
+    security: ['设置', '管理本地密码、快捷认证、账户连接与数据清除。'],
+    departments: ['设置', '选择需要关注的学校职能部门消息来源。'],
+    teaching: ['设置', '选择需要关注的学院与教学单位消息来源。'],
+    wechat: ['设置', '控制推文来源，并在认证失效时提供明确恢复入口。'],
+    about: ['设置', '查看应用版本、开源许可、法律说明与清源设计语言信息。']
+  };
+  var settingsIcons = {
+    general: '#i-settings',
+    term: '#i-calendar',
+    refresh: '#i-refresh',
+    security: '#i-lock',
+    departments: '#i-academic',
+    teaching: '#i-academic',
+    wechat: '#i-mail',
+    about: '#i-info'
   };
   var toastTimer = null;
 
@@ -133,16 +155,70 @@
   function setHomeState(state) {
     var homePage = document.querySelector('[data-screen="home"]');
     if (!homePage) return;
-    var showContent = state === 'content' || state === 'stale';
+    var retainedStates = ['content', 'stale', 'partial-error', 'credentials-partial', 'operation-locked'];
+    var showContent = retainedStates.indexOf(state) >= 0;
     homePage.dataset.homeState = state;
     homePage.querySelectorAll('[data-home-content]').forEach(function (item) {
       item.hidden = !showContent;
     });
-    var staleBanner = homePage.querySelector('.home-stale-banner');
-    if (staleBanner) staleBanner.hidden = state !== 'stale';
+    var status = homePage.querySelector('[data-home-status]');
+    if (status) status.hidden = state !== 'content';
+    [
+      ['.home-stale-banner', 'stale'],
+      ['.home-partial-banner', 'partial-error'],
+      ['.home-credentials-banner', 'credentials-partial'],
+      ['.home-locked-banner', 'operation-locked']
+    ].forEach(function (entry) {
+      var banner = homePage.querySelector(entry[0]);
+      if (banner) banner.hidden = state !== entry[1];
+    });
+    var refresh = homePage.querySelector('[data-home-refresh]');
+    if (refresh) refresh.disabled = state === 'operation-locked';
     homePage.querySelectorAll('[data-home-state-panel]').forEach(function (panel) {
       panel.hidden = panel.dataset.homeStatePanel !== state;
     });
+  }
+
+  /**
+   * 按用户开启的首页服务数量收束概览区域。
+   * :param visible: 要保留的概览项标识列表；传空数组表示全部关闭。
+   * :returns: 无。
+   */
+  function setHomeOverviewVisibility(visible) {
+    var homePage = document.querySelector('[data-screen="home"]');
+    if (!homePage) return;
+    var requested = Array.isArray(visible) ? visible : ['program', 'campus', 'mail', 'sports'];
+    var cards = Array.from(homePage.querySelectorAll('[data-home-overview-item]'));
+    cards.forEach(function (card) {
+      card.hidden = requested.indexOf(card.dataset.homeOverviewItem) < 0;
+    });
+    var count = cards.filter(function (card) { return !card.hidden; }).length;
+    var stack = homePage.querySelector('.overview-stack');
+    var layout = homePage.querySelector('.home-layout');
+    if (stack) {
+      stack.classList.toggle('is-sparse', count > 0 && count <= 2);
+      stack.classList.toggle('is-empty', count === 0);
+      stack.style.setProperty('--home-overview-count', String(count));
+    }
+    if (layout) {
+      layout.classList.toggle('is-no-overview', count === 0);
+      layout.classList.toggle('is-one-overview', count === 1);
+      layout.classList.toggle('is-two-overview', count === 2);
+      layout.classList.toggle('is-many-overview', count >= 3);
+    }
+  }
+
+  /**
+   * 切换安全与账户状态，错误态保留现有任务内容。
+   * :param state: content 或 error。
+   * :returns: 无。
+   */
+  function setSettingsAccountState(state) {
+    var securityPanel = document.querySelector('[data-settings-panel="security"]');
+    if (!securityPanel) return;
+    securityPanel.dataset.settingsAccountState = state;
+    var errorBanner = securityPanel.querySelector('[data-settings-account-error]');
+    if (errorBanner) errorBanner.hidden = state !== 'error';
   }
 
   function setCampusCardHomeState(state) {
@@ -287,6 +363,46 @@
     moreSheet.querySelector('.more-item').focus();
   }
 
+  /**
+   * 关闭设置分区抽屉并按需归还焦点。
+   * :param settingsNav: 设置导航节点。
+   * :param restoreFocus: 是否归还触发器焦点。
+   * :returns: 无。
+   */
+  function closeSettingsSheet(settingsNav, restoreFocus) {
+    if (!settingsNav) return;
+    var trigger = settingsNav.querySelector('.settings-compact-trigger');
+    var list = settingsNav.querySelector('.filter-list');
+    var wasOpen = settingsNav.classList.contains('is-open');
+    settingsNav.classList.remove('is-open');
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    if (list) {
+      list.setAttribute('role', 'tablist');
+      list.removeAttribute('aria-modal');
+    }
+    if (settingsSheetScrim) settingsSheetScrim.hidden = true;
+    if (restoreFocus && wasOpen && trigger) trigger.focus();
+  }
+
+  /**
+   * 打开设置分区抽屉并聚焦当前分区。
+   * :param settingsNav: 设置导航节点。
+   * :returns: 无。
+   */
+  function openSettingsSheet(settingsNav) {
+    if (!settingsNav) return;
+    var trigger = settingsNav.querySelector('.settings-compact-trigger');
+    var list = settingsNav.querySelector('.filter-list');
+    settingsNav.classList.add('is-open');
+    if (trigger) trigger.setAttribute('aria-expanded', 'true');
+    if (list) {
+      list.setAttribute('role', 'dialog');
+      list.setAttribute('aria-modal', 'true');
+    }
+    if (settingsSheetScrim) settingsSheetScrim.hidden = false;
+    settingsNav.querySelector('[role="tab"][aria-selected="true"]')?.focus();
+  }
+
   function showPage(name, updateHash) {
     var target = document.querySelector('[data-screen="' + name + '"]');
     if (!target) return;
@@ -306,6 +422,7 @@
       else moreButton.removeAttribute('aria-current');
     }
     closeMore(true);
+    closeSettingsSheet(document.querySelector('.settings-nav'), false);
     var toast = document.querySelector('.prototype-toast');
     if (toast) toast.hidden = true;
     window.clearTimeout(toastTimer);
@@ -316,6 +433,11 @@
   }
 
   document.addEventListener('click', function (event) {
+    var settingsDismiss = event.target.closest('[data-settings-sheet-dismiss]');
+    if (settingsDismiss) {
+      closeSettingsSheet(document.querySelector('.settings-nav'), true);
+      return;
+    }
     var confirmationBack = event.target.closest('[data-link-confirmation-back]');
     if (confirmationBack) {
       showPage('links', true);
@@ -424,6 +546,14 @@
       return;
     }
 
+    var settingsAccountRetry = event.target.closest('[data-settings-account-retry]');
+    if (settingsAccountRetry) {
+      setSettingsAccountState('content');
+      showFeedback('已重新读取本机凭据状态；当前输入保持不变。');
+      settingsAccountRetry.focus();
+      return;
+    }
+
     var settingsButton = event.target.closest('.settings-nav .filter-list button');
     if (settingsButton) {
       selectOne(Array.from(settingsButton.parentElement.querySelectorAll('button')), settingsButton, 'aria-selected');
@@ -433,7 +563,26 @@
       });
       var heading = settingsHeadings[section];
       document.querySelector('#settings-title').textContent = heading[0];
-      document.querySelector('[data-screen="settings"] .page-heading p:not(.page-kicker)').textContent = heading[1];
+      document.querySelector('[data-screen="settings"] [data-settings-summary]').textContent = heading[1];
+      var settingsNav = settingsButton.closest('.settings-nav');
+      var compactTrigger = settingsNav && settingsNav.querySelector('.settings-compact-trigger');
+      if (compactTrigger) {
+        compactTrigger.querySelector('span').textContent = settingsButton.textContent.trim();
+        var compactIcon = compactTrigger.querySelector('use');
+        if (compactIcon) compactIcon.setAttribute('href', settingsIcons[section]);
+        if (window.matchMedia('(max-width: 899px)').matches) {
+          closeSettingsSheet(settingsNav, true);
+        }
+      }
+      return;
+    }
+
+    var settingsCompactTrigger = event.target.closest('.settings-compact-trigger');
+    if (settingsCompactTrigger) {
+      var settingsNav = settingsCompactTrigger.closest('.settings-nav');
+      var open = !settingsNav.classList.contains('is-open');
+      if (open) openSettingsSheet(settingsNav);
+      else closeSettingsSheet(settingsNav, true);
       return;
     }
 
@@ -490,6 +639,28 @@
   });
 
   document.addEventListener('keydown', function (event) {
+    var openSettingsNav = document.querySelector('.settings-nav.is-open');
+    if (openSettingsNav) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeSettingsSheet(openSettingsNav, true);
+        return;
+      }
+      if (event.key === 'Tab') {
+        var settingsItems = Array.from(openSettingsNav.querySelectorAll('[data-settings-section]'));
+        var settingsFirst = settingsItems[0];
+        var settingsLast = settingsItems[settingsItems.length - 1];
+        if (event.shiftKey && document.activeElement === settingsFirst) {
+          event.preventDefault();
+          settingsLast.focus();
+        } else if (!event.shiftKey && document.activeElement === settingsLast) {
+          event.preventDefault();
+          settingsFirst.focus();
+        }
+        return;
+      }
+    }
+
     if (moreSheet && moreSheet.classList.contains('is-open')) {
       if (event.key === 'Escape') {
         event.preventDefault();
@@ -549,7 +720,10 @@
     setMailState: setMailState,
     setMailComposeState: setMailComposeState,
     setLinksState: setLinksState,
-    setLinkConfirmationState: setLinkConfirmationState
+    setLinkConfirmationState: setLinkConfirmationState,
+    setSettingsAccountState: setSettingsAccountState,
+    setHomeOverviewVisibility: setHomeOverviewVisibility
   };
+  setHomeOverviewVisibility();
   showPage(initial || 'home', false);
 })();

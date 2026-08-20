@@ -45,6 +45,17 @@ void main() {
     await tester.pump();
     expect(applied, isTrue);
 
+    await tester.tap(find.text('跟随系统'));
+    await tester.pump();
+    final systemSegment = find.byWidgetPredicate(
+      (widget) => widget is YhPressable && widget.semanticLabel == '跟随系统',
+    );
+    tester.widget<YhPressable>(systemSegment).focusNode!.requestFocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(changedMode, YhThemeMode.light);
+
     await tester.tap(find.bySemanticsLabel('更多操作'));
     await tester.pumpAndSettle();
     expect(find.text('来源信息'), findsOneWidget);
@@ -95,6 +106,33 @@ void main() {
       tester.getSize(find.byKey(bodyKey)).width,
       lessThanOrEqualTo(YhTheme.light.layout.pageContentWidth),
     );
+  });
+
+  testWidgets('宽屏外观选择线按内容收束且没有冗余卡片', (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(1600, 1000));
+    addTearDown(() async {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    await tester.pumpWidget(
+      YhApp(
+        home: SettingsAppearancePage(
+          themeMode: YhThemeMode.system,
+          onChanged: (_) {},
+          onApply: () {},
+        ),
+      ),
+    );
+
+    final choice = find.byKey(const Key('appearance-theme-choice'));
+    expect(choice, findsOneWidget);
+    expect(tester.getSize(choice).width, lessThan(300));
+    expect(tester.getSize(choice).height, greaterThanOrEqualTo(48));
+    expect(find.byType(YhCard), findsNothing);
   });
 
   testWidgets('设置目的地本地导航栈接收根宿主的最新主题', (tester) async {

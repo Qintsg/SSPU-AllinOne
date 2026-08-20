@@ -8,7 +8,7 @@ import '../theme/yh_theme.dart';
 import 'yh_card.dart';
 import 'yh_icon_button.dart';
 
-enum YhQuickLinkVariant { tile, compact }
+enum YhQuickLinkVariant { tile, compact, row }
 
 class YhQuickLink extends StatelessWidget {
   const YhQuickLink({
@@ -37,6 +37,61 @@ class YhQuickLink extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    if (variant == YhQuickLinkVariant.row) {
+      return SizedBox(
+        width: width,
+        child: YhPressable(
+          semanticLabel: '$label，外部链接，将打开外部应用',
+          onPressed: onTap,
+          builder: (context, state, child) => DecoratedBox(
+            decoration: BoxDecoration(
+              color: state.hovered
+                  ? theme.color.brandTint
+                  : theme.color.brandTint.withValues(
+                      alpha: theme.opacity.contentMuted,
+                    ),
+              borderRadius: BorderRadius.circular(theme.radius.input),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: theme.spacing.s),
+              child: child,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: theme.spacing.l, color: color),
+              SizedBox(width: theme.spacing.s),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.typography.body.copyWith(
+                        color: theme.color.brandInk,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (subtitle != null)
+                      Text(
+                        subtitle!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.typography.caption.copyWith(
+                          color: theme.color.muted,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     if (variant == YhQuickLinkVariant.compact) {
       return SizedBox(
         width: width,

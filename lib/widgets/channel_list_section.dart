@@ -12,7 +12,6 @@ import '../models/channel_config.dart';
 import '../models/message_item.dart';
 import '../services/auto_refresh_service.dart';
 import '../services/message_state_service.dart';
-import 'app_feedback.dart';
 import 'channel_list_panels.dart';
 import 'responsive_layout.dart';
 
@@ -228,7 +227,7 @@ class _ChannelListSectionState extends State<ChannelListSection> {
     final message = enabled
         ? '已启用「${channel.name}」，请到信息中心刷新获取该渠道消息'
         : '已关闭「${channel.name}」，该渠道消息将不再显示';
-    showAppFeedback(
+    showYhFeedback(
       context,
       message: message,
       severity: enabled
@@ -261,7 +260,7 @@ class _ChannelListSectionState extends State<ChannelListSection> {
 
     if (!mounted) return;
     setState(() {});
-    showAppFeedback(
+    showYhFeedback(
       context,
       message: enabled ? '已启用当前分区全部渠道' : '已关闭当前分区全部渠道',
       severity: enabled

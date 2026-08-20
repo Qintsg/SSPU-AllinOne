@@ -1,4 +1,10 @@
-/* 清源次级任务页 — 统一标题、来源、主要行动与响应式正文。 */
+/*
+ * 清源次级任务页 — 统一标题、来源、主要行动与响应式正文
+ * @Project : SSPU-AllinOne
+ * @File : yh_task_page.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
 
 import 'package:flutter/widgets.dart';
 
@@ -15,6 +21,8 @@ enum YhTaskAccent { brand, structural }
 enum YhTaskPageWidth { constrained, reading, fluid }
 
 enum YhTaskPageRhythm { standard, relaxedCompact }
+
+enum YhTaskPageBodyFit { fill, content }
 
 class YhTaskPageAction {
   const YhTaskPageAction({
@@ -44,6 +52,7 @@ class YhTaskPage extends StatefulWidget {
     this.accent = YhTaskAccent.brand,
     this.width = YhTaskPageWidth.constrained,
     this.rhythm = YhTaskPageRhythm.standard,
+    this.bodyFit = YhTaskPageBodyFit.fill,
     this.onBack,
     this.canPop = true,
     this.appBarEyebrow,
@@ -64,6 +73,7 @@ class YhTaskPage extends StatefulWidget {
   final YhTaskAccent accent;
   final YhTaskPageWidth width;
   final YhTaskPageRhythm rhythm;
+  final YhTaskPageBodyFit bodyFit;
   final VoidCallback? onBack;
   final bool canPop;
   final String? appBarEyebrow;
@@ -189,12 +199,15 @@ class _YhTaskPageState extends State<YhTaskPage> {
                       SizedBox(
                         height: compact ? theme.spacing.m : theme.spacing.l,
                       ),
-                      ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: minimumBodyHeight,
-                        ),
-                        child: widget.body,
-                      ),
+                      if (widget.bodyFit == YhTaskPageBodyFit.fill)
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: minimumBodyHeight,
+                          ),
+                          child: widget.body,
+                        )
+                      else
+                        widget.body,
                     ],
                   ),
                 ),

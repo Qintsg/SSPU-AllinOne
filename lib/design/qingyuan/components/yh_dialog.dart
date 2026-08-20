@@ -1,4 +1,10 @@
-/* 清源对话框 — 统一模态决策与焦点归还。 */
+/*
+ * 清源对话框 — 统一模态决策、视口安全边距与焦点归还
+ * @Project : SSPU-AllinOne
+ * @File : yh_dialog.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-17
+ */
 
 import 'package:flutter/widgets.dart';
 
@@ -99,91 +105,97 @@ class YhDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    return Center(
-      child: Semantics(
-        scopesRoute: true,
-        namesRoute: true,
-        explicitChildNodes: true,
-        label: title,
-        child: FocusTraversalGroup(
-          policy: ReadingOrderTraversalPolicy(),
-          child: ConstrainedBox(
-            constraints:
-                constraints ??
-                BoxConstraints(maxWidth: theme.layout.dialogWidth),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: theme.color.surface,
-                borderRadius: BorderRadius.circular(theme.radius.l),
-                boxShadow: theme.elevation.e3,
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(theme.spacing.l),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (headerInset > 0) SizedBox(height: headerInset),
-                    if (eyebrow != null) ...[
-                      Text(
-                        eyebrow!,
-                        style: theme.typography.caption.copyWith(
-                          color: theme.color.brandStrong,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: theme.spacing.xs),
-                    ],
-                    Semantics(
-                      header: true,
-                      child: Text(
-                        title,
-                        style:
-                            titleStyle?.copyWith(
-                              color: theme.color.foreground,
-                            ) ??
-                            theme.typography.h3.copyWith(
-                              color: theme.color.foreground,
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.all(theme.spacing.m),
+        child: Center(
+          child: Semantics(
+            scopesRoute: true,
+            namesRoute: true,
+            explicitChildNodes: true,
+            label: title,
+            child: FocusTraversalGroup(
+              policy: ReadingOrderTraversalPolicy(),
+              child: ConstrainedBox(
+                constraints:
+                    constraints ??
+                    BoxConstraints(maxWidth: theme.layout.dialogWidth),
+                child: DecoratedBox(
+                  key: const Key('yh-dialog-surface'),
+                  decoration: BoxDecoration(
+                    color: theme.color.surface,
+                    borderRadius: BorderRadius.circular(theme.radius.l),
+                    boxShadow: theme.elevation.e3,
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.all(theme.spacing.l),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (headerInset > 0) SizedBox(height: headerInset),
+                        if (eyebrow != null) ...[
+                          Text(
+                            eyebrow!,
+                            style: theme.typography.caption.copyWith(
+                              color: theme.color.brandStrong,
+                              fontWeight: FontWeight.w600,
                             ),
-                      ),
-                    ),
-                    SizedBox(height: theme.spacing.m),
-                    DefaultTextStyle(
-                      style: theme.typography.body.copyWith(
-                        color: theme.color.muted,
-                      ),
-                      child: content,
-                    ),
-                    SizedBox(height: theme.spacing.l),
-                    if (stackActionsOnCompact &&
-                        MediaQuery.sizeOf(context).width <
-                            theme.breakpoint.compact)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          for (
-                            var index = 0;
-                            index < actions.length;
-                            index++
-                          ) ...[
-                            actions[index],
-                            if (index < actions.length - 1)
-                              SizedBox(height: theme.spacing.s),
-                          ],
+                          ),
+                          SizedBox(height: theme.spacing.xs),
                         ],
-                      )
-                    else
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Wrap(
-                          spacing: theme.spacing.s,
-                          runSpacing: theme.spacing.s,
-                          alignment: WrapAlignment.end,
-                          runAlignment: WrapAlignment.end,
-                          children: actions,
+                        Semantics(
+                          header: true,
+                          child: Text(
+                            title,
+                            style:
+                                titleStyle?.copyWith(
+                                  color: theme.color.foreground,
+                                ) ??
+                                theme.typography.h3.copyWith(
+                                  color: theme.color.foreground,
+                                ),
+                          ),
                         ),
-                      ),
-                  ],
+                        SizedBox(height: theme.spacing.m),
+                        DefaultTextStyle(
+                          style: theme.typography.body.copyWith(
+                            color: theme.color.muted,
+                          ),
+                          child: content,
+                        ),
+                        SizedBox(height: theme.spacing.l),
+                        if (stackActionsOnCompact &&
+                            MediaQuery.sizeOf(context).width <
+                                theme.breakpoint.compact)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (
+                                var index = 0;
+                                index < actions.length;
+                                index++
+                              ) ...[
+                                actions[index],
+                                if (index < actions.length - 1)
+                                  SizedBox(height: theme.spacing.s),
+                              ],
+                            ],
+                          )
+                        else
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Wrap(
+                              spacing: theme.spacing.s,
+                              runSpacing: theme.spacing.s,
+                              alignment: WrapAlignment.end,
+                              runAlignment: WrapAlignment.end,
+                              children: actions,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),

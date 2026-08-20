@@ -1,4 +1,10 @@
-/* 清源 UI 门面 — 页面与组件的统一入口。 */
+/*
+ * 清源 UI 门面 — 页面与组件的统一入口
+ * @Project : SSPU-AllinOne
+ * @File : qingyuan_ui.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-17
+ */
 
 export 'package:flutter/foundation.dart';
 export 'package:flutter/services.dart';
@@ -18,6 +24,7 @@ export 'components/yh_dashboard_tile.dart';
 export 'components/yh_disclosure.dart';
 export 'components/yh_domain.dart';
 export 'components/yh_empty_state.dart';
+export 'components/yh_feedback.dart';
 export 'components/yh_icon_button.dart';
 export 'components/yh_input_fields.dart';
 export 'components/yh_masonry_grid.dart';

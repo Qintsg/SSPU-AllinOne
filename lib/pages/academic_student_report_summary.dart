@@ -513,6 +513,70 @@ bool _isPassStatus(String? status) {
       normalized == '已完成';
 }
 
+class _RuleItemGroup {
+  const _RuleItemGroup({required this.item, required this.rules});
+
+  final String item;
+  final List<SecondClassroomCreditRuleRow> rules;
+
+  /// 将同一类别中的来源规则按项目归并。
+  ///
+  /// :param rules: 同一类别的来源规则行。
+  /// :returns: 保持项目首次出现顺序的规则分组。
+  static List<_RuleItemGroup> fromRules(
+    List<SecondClassroomCreditRuleRow> rules,
+  ) {
+    final items = <String, List<SecondClassroomCreditRuleRow>>{};
+    for (final rule in rules) {
+      items.putIfAbsent(rule.item, () => []).add(rule);
+    }
+    return [
+      for (final entry in items.entries)
+        _RuleItemGroup(item: entry.key, rules: entry.value),
+    ];
+  }
+}
+
+class _RuleCategoryGroup {
+  const _RuleCategoryGroup({
+    required this.category,
+    required this.requiredCredit,
+    required this.passStatus,
+    required this.items,
+  });
+
+  final String category;
+  final double? requiredCredit;
+  final String passStatus;
+  final List<_RuleItemGroup> items;
+
+  /// 将来源规则按首次出现的类别归并。
+  ///
+  /// :param rules: 第二课堂来源规则行。
+  /// :returns: 保持类别首次出现顺序的规则分组。
+  static List<_RuleCategoryGroup> fromRules(
+    List<SecondClassroomCreditRuleRow> rules,
+  ) {
+    final categories = <String, List<SecondClassroomCreditRuleRow>>{};
+    for (final rule in rules) {
+      categories.putIfAbsent(rule.category, () => []).add(rule);
+    }
+    return [
+      for (final entry in categories.entries)
+        _RuleCategoryGroup(
+          category: entry.key,
+          requiredCredit: _representativeNumber(
+            entry.value.map((rule) => rule.requiredCredit),
+          ),
+          passStatus: _representativeRuleStatus(
+            entry.value.map((rule) => rule.passStatus),
+          ),
+          items: _RuleItemGroup.fromRules(entry.value),
+        ),
+    ];
+  }
+}
+
 bool _isFailStatus(String? status) {
   final normalized = _normalizeStatusText(status);
   return normalized == '未通过' ||

@@ -1,16 +1,26 @@
-/* 密码相关对话框 — 设置、移除、确认与修改密码。 */
+/*
+ * 密码相关对话框 — 设置、移除、确认与修改本地密码
+ * @Project : SSPU-AllinOne
+ * @File : password_dialogs.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-17
+ */
 
 import 'dart:async';
 
 import '../design/qingyuan/qingyuan_ui.dart';
 import '../services/password_service.dart';
 
+/// 显示设置本地密码对话框。
+///
+/// :param context: 设置页上下文。
+/// :returns: 密码是否成功保存。
 Future<bool> showSetPasswordDialog(BuildContext context) {
   final password = TextEditingController();
   final confirm = TextEditingController();
   return _showPasswordFormDialog(
     context,
-    title: '设置密码',
+    title: '设置本地密码',
     message: '设置密码后，每次重新打开应用时需要输入密码才能进入。',
     fields: [
       _PasswordFieldSpec(password, '输入密码', '请输入密码'),
@@ -26,6 +36,10 @@ Future<bool> showSetPasswordDialog(BuildContext context) {
   );
 }
 
+/// 显示移除本地密码的危险确认对话框。
+///
+/// :param context: 设置页上下文。
+/// :returns: 密码保护是否成功移除。
 Future<bool> showRemovePasswordDialog(BuildContext context) {
   final password = TextEditingController();
   return _showPasswordFormDialog(
@@ -41,6 +55,13 @@ Future<bool> showRemovePasswordDialog(BuildContext context) {
   );
 }
 
+/// 验证当前本地密码后允许调用方继续敏感操作。
+///
+/// :param context: 当前页面上下文。
+/// :param title: 对话框标题。
+/// :param message: 验证原因。
+/// :param confirmLabel: 主行动文案。
+/// :returns: 当前密码是否验证通过。
 Future<bool> showConfirmCurrentPasswordDialog(
   BuildContext context, {
   String title = '确认当前密码',
@@ -59,6 +80,10 @@ Future<bool> showConfirmCurrentPasswordDialog(
   );
 }
 
+/// 显示修改本地密码对话框。
+///
+/// :param context: 设置页上下文。
+/// :returns: 新密码是否成功保存。
 Future<bool> showChangePasswordDialog(BuildContext context) {
   final oldPassword = TextEditingController();
   final newPassword = TextEditingController();
@@ -93,6 +118,17 @@ class _PasswordFieldSpec {
   final String hint;
 }
 
+/// 执行共享密码表单、异步校验和可选保存操作。
+///
+/// :param context: 当前页面上下文。
+/// :param title: 模态标题。
+/// :param message: 操作边界说明。
+/// :param fields: 需要按顺序填写的密码字段。
+/// :param confirmLabel: 主行动文案。
+/// :param validate: 表单与当前密码校验器。
+/// :param onAccepted: 校验通过后的保存操作。
+/// :param danger: 是否禁止点击遮罩取消。
+/// :returns: 操作是否完成。
 Future<bool> _showPasswordFormDialog(
   BuildContext context, {
   required String title,
@@ -112,6 +148,7 @@ Future<bool> _showPasswordFormDialog(
         var busy = false;
         return StatefulBuilder(
           builder: (context, setDialogState) => YhDialog(
+            eyebrow: '本机安全',
             title: title,
             content: ConstrainedBox(
               constraints: BoxConstraints(
@@ -132,6 +169,7 @@ Future<bool> _showPasswordFormDialog(
                         prefixIcon: YhIcons.lock,
                         obscure: true,
                         enabled: !busy,
+                        autofocus: index == 0,
                         textInputAction: index == fields.length - 1
                             ? TextInputAction.done
                             : TextInputAction.next,

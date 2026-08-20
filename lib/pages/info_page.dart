@@ -15,13 +15,16 @@ import '../models/message_item.dart';
 import '../models/channel_config.dart';
 import '../services/info_refresh_service.dart';
 import '../services/wechat_article_service.dart';
-import '../widgets/app_feedback.dart';
 import '../widgets/message_tile.dart';
 import '../services/message_state_service.dart';
 import '../utils/app_web_launcher.dart';
 
 part 'info_page_filters.dart';
+part 'info_page_filter_view.dart';
 part 'info_page_view.dart';
+part 'info_page_header.dart';
+part 'info_page_source_controls.dart';
+part 'info_page_state_panel.dart';
 
 /// 资讯页的确定性展示状态，仅用于视觉 fixture 与页面状态回归测试。
 enum InfoPageDisplayState { initial, loading, content, empty, stale, error }
@@ -226,7 +229,7 @@ class _InfoPageState extends State<InfoPage> {
   Future<void> _refreshSchoolWebsite() async {
     final started = await _refreshService.startSchoolWebsiteRefresh();
     if (!started && mounted) {
-      showAppFeedback(context, message: '已有刷新任务正在进行');
+      showYhFeedback(context, message: '已有刷新任务正在进行');
     }
   }
 
@@ -237,7 +240,7 @@ class _InfoPageState extends State<InfoPage> {
     if (!isConfigured) {
       _wechatSourceConfigured = false;
       if (mounted) {
-        showAppFeedback(
+        showYhFeedback(
           context,
           message: '未获取到微信公众号文章',
           details: '请先在设置中完成公众号平台认证并关注目标公众号',
@@ -251,7 +254,7 @@ class _InfoPageState extends State<InfoPage> {
     _wechatSourceConfigured = true;
     final started = await _refreshService.startWechatRefresh();
     if (!started && mounted) {
-      showAppFeedback(context, message: '已有刷新任务正在进行');
+      showYhFeedback(context, message: '已有刷新任务正在进行');
     }
   }
 

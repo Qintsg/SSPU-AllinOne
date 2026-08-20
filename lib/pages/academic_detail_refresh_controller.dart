@@ -17,14 +17,24 @@ class _AcademicDetailStateCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
-    return YhCard(
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
+    final stateCard = YhCard(
+      padding: EdgeInsets.all(compact ? theme.spacing.s : theme.spacing.m),
+      child: child,
+    );
+    return Align(
+      alignment: AlignmentDirectional.topStart,
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          // YhCard 已提供 24dp 上下内边距；这里约束内容区，使整卡
-          // 分别达到紧凑端 7×48dp、宽屏 9×48dp 的设计高度。
-          minHeight: theme.control.regular * (compact ? 6 : 8),
+          maxWidth: compact ? double.infinity : theme.layout.formContentWidth,
         ),
-        child: Center(child: child),
+        child: disableAnimations
+            ? stateCard
+            : AnimatedSize(
+                duration: theme.motion.base,
+                curve: theme.motion.curve,
+                child: stateCard,
+              ),
       ),
     );
   }
@@ -34,53 +44,46 @@ class _AcademicDetailLoadingState extends StatelessWidget {
   const _AcademicDetailLoadingState({
     required this.title,
     required this.source,
-    this.alignEvidenceLedger = false,
   });
 
   final String title;
   final String source;
-  final bool alignEvidenceLedger;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.compact;
-    return Transform.translate(
-      offset: Offset(
-        0,
-        compact && alignEvidenceLedger
-            ? -(theme.spacing.s + theme.layout.controlBorder * 2)
-            : 0,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Semantics(
-            label: title,
-            value: '加载中',
-            child: SizedBox.square(
-              dimension: theme.control.minimumTarget,
-              child: CustomPaint(
-                painter: _AcademicDetailSpinnerPainter(
-                  trackColor: theme.color.border,
-                  activeColor: theme.color.brandStrong,
-                ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          label: title,
+          value: '加载中',
+          child: SizedBox.square(
+            dimension: theme.control.minimumTarget,
+            child: CustomPaint(
+              painter: _AcademicDetailSpinnerPainter(
+                trackColor: theme.color.border,
+                activeColor: theme.color.brandStrong,
               ),
             ),
           ),
-          SizedBox(height: theme.spacing.l),
-          Text(title, textAlign: TextAlign.center, style: theme.typography.h2),
-          SizedBox(height: theme.spacing.s),
-          ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: theme.control.regular * 11),
-            child: Text(
-              '正在从$source恢复数据；页面来源和返回路径保持可用。',
-              textAlign: TextAlign.center,
-              style: theme.typography.body.copyWith(color: theme.color.muted),
-            ),
+        ),
+        SizedBox(width: theme.spacing.m),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: theme.typography.h2),
+              SizedBox(height: theme.spacing.xs),
+              Text(
+                '正在从$source恢复数据；页面来源和返回路径保持可用。',
+                style: theme.typography.body.copyWith(color: theme.color.muted),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -105,42 +108,66 @@ class _AcademicDetailMessageState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
+    final marker = Container(
+      width: theme.control.minimumTarget,
+      height: theme.control.minimumTarget,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(theme.radius.m),
+      ),
+      child: Text(
+        symbol,
+        style: theme.typography.h2.copyWith(
+          color: accent,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+    final copy = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: theme.typography.h2),
+        SizedBox(height: theme.spacing.xs),
+        Text(
+          message,
+          style: theme.typography.body.copyWith(color: theme.color.muted),
+        ),
+      ],
+    );
+    final action = YhButton(
+      label: actionLabel,
+      variant: YhButtonVariant.secondary,
+      onTap: onAction,
+    );
+    if (!compact) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          marker,
+          SizedBox(width: theme.spacing.m),
+          Expanded(child: copy),
+          SizedBox(width: theme.spacing.m),
+          action,
+        ],
+      );
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: theme.layout.bottomNavigationHeight,
-          height: theme.layout.bottomNavigationHeight,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: accent.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(theme.radius.l),
-          ),
-          child: Text(
-            symbol,
-            style: theme.typography.display.copyWith(
-              color: accent,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            marker,
+            SizedBox(width: theme.spacing.m),
+            Expanded(child: copy),
+          ],
         ),
-        SizedBox(height: theme.spacing.l),
-        Text(title, textAlign: TextAlign.center, style: theme.typography.h2),
         SizedBox(height: theme.spacing.s),
-        ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: theme.control.regular * 11),
-          child: Text(
-            message,
-            textAlign: TextAlign.center,
-            style: theme.typography.body.copyWith(color: theme.color.muted),
-          ),
-        ),
-        SizedBox(height: theme.spacing.l),
-        YhButton(
-          label: actionLabel,
-          variant: YhButtonVariant.secondary,
-          onTap: onAction,
-        ),
+        action,
       ],
     );
   }

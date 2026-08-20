@@ -1,11 +1,16 @@
-/* 清源微信公众号认证任务页行为测试。 */
+/*
+ * 清源微信公众号认证任务页行为测试
+ * @Project : SSPU-AllinOne
+ * @File : settings_wechat_auth_page_test.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
 
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/controllers/settings_wechat_controller.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
-import 'package:sspu_allinone/models/app_feedback_severity.dart';
 import 'package:sspu_allinone/pages/settings_wechat_auth_page.dart';
 import 'package:sspu_allinone/services/wxmp_auth_service.dart';
 import 'package:sspu_allinone/services/wxmp_config_service.dart';
@@ -234,6 +239,45 @@ void main() {
     expect(find.text('开始认证'), findsOneWidget);
     expect(find.text('未完成：生成登录二维码'), findsOneWidget);
     expect(find.text('已完成：生成登录二维码'), findsNothing);
+  });
+
+  testWidgets('认证控制器换代会释放旧操作且旧结果不得回写', (tester) async {
+    final oldValidation = Completer<SettingsWechatFeedback>();
+    final oldController = _WechatAuthController(
+      authenticated: true,
+      validateResult: oldValidation.future,
+    );
+    await tester.pumpWidget(
+      YhApp(home: SettingsWechatAuthPage(controller: oldController)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('更多操作'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('重新校验认证'));
+    await tester.pump();
+    expect(find.textContaining('正在校验 Cookie'), findsOneWidget);
+
+    final currentController = _WechatAuthController(authenticated: false);
+    await tester.pumpWidget(
+      YhApp(home: SettingsWechatAuthPage(controller: currentController)),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.textContaining('正在校验 Cookie'), findsNothing);
+    expect(find.text('尚未读取微信公众号认证'), findsOneWidget);
+
+    oldValidation.complete(
+      const SettingsWechatFeedback(
+        title: '旧控制器认证有效',
+        severity: AppFeedbackSeverity.success,
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('旧控制器认证有效'), findsNothing);
+    expect(find.text('尚未读取微信公众号认证'), findsOneWidget);
   });
 
   testWidgets('主分区摘要只暴露统一管理入口', (tester) async {

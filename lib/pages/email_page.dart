@@ -12,7 +12,6 @@ import '../design/qingyuan/qingyuan_ui.dart';
 import '../models/email_mailbox.dart';
 import '../services/academic_credentials_service.dart';
 import '../services/email_service.dart';
-import '../widgets/app_feedback.dart';
 
 part 'email_compose_panel.dart';
 part 'email_page_layout.dart';
@@ -249,7 +248,7 @@ class _EmailPageState extends State<EmailPage> {
     final result = await _emailService.validateLogin(protocol);
     if (!mounted || generation != _credentialGeneration) return;
     setState(() => _validatingProtocol = null);
-    showAppFeedback(
+    showYhFeedback(
       context,
       message: result.message,
       severity: result.isSuccess
@@ -288,7 +287,7 @@ class _EmailPageState extends State<EmailPage> {
         _showComposePane = false;
       }
     });
-    showAppFeedback(
+    showYhFeedback(
       context,
       message: result.message,
       severity: result.isSuccess
@@ -350,6 +349,8 @@ class _EmailPageState extends State<EmailPage> {
     final verticalPadding = viewportWidth < theme.breakpoint.medium
         ? theme.spacing.l + theme.spacing.s + theme.layout.divider * 3
         : theme.spacing.xl + theme.spacing.s;
+    final compactCompose =
+        _showComposePane && viewportWidth < theme.breakpoint.medium;
     return YhPageScaffold(
       appBar: canPop
           ? YhAppBar(
@@ -360,6 +361,13 @@ class _EmailPageState extends State<EmailPage> {
                 variant: YhIconButtonVariant.ghost,
                 onTap: () => Navigator.of(context).maybePop(),
               ),
+            )
+          : null,
+      bottomBar: compactCompose
+          ? EmailComposeActionDock(
+              isSending: _isSendingMessage,
+              onCancel: _closeCompose,
+              onSend: _sendEmail,
             )
           : null,
       body: SingleChildScrollView(
