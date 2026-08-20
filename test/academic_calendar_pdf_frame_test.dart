@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
+import 'package:sspu_allinone/pages/academic_calendar_pdf_frame.dart';
 import 'package:sspu_allinone/pages/academic_calendar_pdf_page.dart';
 
 void main() {
