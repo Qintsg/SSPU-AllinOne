@@ -64,14 +64,7 @@ extension _AcademicCalendarPageLayout on _AcademicCalendarPageState {
 
   Widget _buildBody(AcademicCalendarCacheEntry? selected) {
     if (_isLoading && _entries.isEmpty) {
-      return Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: context.yhTheme.spacing.xl2 * 4,
-          ),
-          child: const YhProgressBar(value: 0.5, semanticLabel: '正在加载校历'),
-        ),
-      );
+      return const _AcademicCalendarLoadingLedger();
     }
     if (_entries.isEmpty) {
       final failed = _errorMessage != null;
@@ -249,6 +242,48 @@ extension _AcademicCalendarPageLayout on _AcademicCalendarPageState {
     return SizedBox(
       height: theme.control.touch + theme.spacing.s + theme.spacing.xs,
       child: ClipRect(child: banner),
+    );
+  }
+}
+
+/// 校历初始加载账本 — 活动环 + 标题 + 说明，与首页/教务详情的加载模式一致。
+class _AcademicCalendarLoadingLedger extends StatelessWidget {
+  const _AcademicCalendarLoadingLedger();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return Align(
+      alignment: AlignmentDirectional.topStart,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: theme.layout.formContentWidth),
+        child: YhCard(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              YhRing.activity(label: '正在读取校历', size: theme.control.compact),
+              SizedBox(width: theme.spacing.m),
+              Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('正在读取校历', style: theme.typography.h3),
+                    SizedBox(height: theme.spacing.xs),
+                    Text(
+                      '正在读取本机档案并检查公开来源；当前学年与 PDF 将保持可追溯。',
+                      style: theme.typography.body.copyWith(
+                        color: theme.color.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

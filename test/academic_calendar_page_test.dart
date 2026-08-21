@@ -87,6 +87,32 @@ void main() {
     await _resetView(tester);
   });
 
+  testWidgets('初始加载以活动环账本呈现且不提供假操作', (tester) async {
+    final service = _FakeAcademicCalendarClient(
+      entries: const [],
+      refreshedEntries: [_calendarEntry()],
+    );
+    await _pumpCalendarPage(
+      tester,
+      size: const Size(360, 800),
+      service: service,
+    );
+
+    // 立即断言加载账本，不等待异步刷新完成。
+    expect(find.text('正在读取校历'), findsWidgets);
+    expect(find.textContaining('正在读取本机档案并检查公开来源'), findsOneWidget);
+    expect(find.bySemanticsLabel('正在读取校历'), findsWidgets);
+    expect(find.text('重新读取公开校历'), findsNothing);
+    expect(find.text('刷新公开校历'), findsNothing);
+    expect(find.bySemanticsLabel('刷新校历'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // 窄屏下加载账本不横向溢出。
+    await _pumpUntilFound(tester, find.text('2025–2026 学年'));
+    expect(tester.takeException(), isNull);
+    await _resetView(tester);
+  });
+
   testWidgets('手动刷新校历后更新页面条目', (tester) async {
     final service = _FakeAcademicCalendarClient(
       entries: [_calendarEntry()],
