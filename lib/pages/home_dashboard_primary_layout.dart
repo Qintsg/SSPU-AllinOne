@@ -65,6 +65,8 @@ extension _HomeDashboardPrimaryLayout on _HomePageState {
         ],
       );
     }
+    // 桌面端：卡片封顶并垂直居中，剩余高度化为上下均等边距。
+    final overviewMaxHeight = theme.layout.homeContentMaxHeight;
     final overviewSlot = overviewCount <= 2
         ? Align(
             alignment: AlignmentDirectional.topCenter,
@@ -74,9 +76,28 @@ extension _HomeDashboardPrimaryLayout on _HomePageState {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(flex: theme.responsive.homePrimaryFlex, child: timeline),
+        Expanded(
+          flex: theme.responsive.homePrimaryFlex,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight:
+                    theme.layout.homeContentMaxHeight + theme.spacing.xl2,
+              ),
+              child: SizedBox(width: double.infinity, child: timeline),
+            ),
+          ),
+        ),
         SizedBox(width: theme.spacing.m),
-        Expanded(flex: theme.responsive.homeSecondaryFlex, child: overviewSlot),
+        Expanded(
+          flex: theme.responsive.homeSecondaryFlex,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: overviewMaxHeight),
+              child: SizedBox(width: double.infinity, child: overviewSlot),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -163,12 +184,13 @@ extension _HomeDashboardPrimaryLayout on _HomePageState {
                           ),
                         ],
                       ),
-                      SizedBox(
-                        height: tightCompact
+                      _TimelineFlexibleGap(
+                        minHeight: tightCompact
                             ? theme.spacing.s
                             : dense
                             ? theme.spacing.l + theme.layout.divider * 2
                             : theme.spacing.xl,
+                        maxHeight: theme.spacing.xl2,
                       ),
                       if (next == null)
                         Text(
@@ -199,12 +221,13 @@ extension _HomeDashboardPrimaryLayout on _HomePageState {
                             color: theme.color.onStructural,
                           ),
                         ),
-                      SizedBox(
-                        height: tightCompact
+                      _TimelineFlexibleGap(
+                        minHeight: tightCompact
                             ? theme.spacing.m + theme.spacing.xs
                             : dense
                             ? theme.spacing.xl + theme.layout.divider * 2
                             : theme.spacing.xl,
+                        maxHeight: theme.spacing.xl2,
                       ),
                       if (entries.isEmpty)
                         Text(
@@ -221,6 +244,10 @@ extension _HomeDashboardPrimaryLayout on _HomePageState {
                             last: index == entries.length - 1,
                             dense: dense,
                           ),
+                      _TimelineFlexibleGap(
+                        minHeight: theme.spacing.m,
+                        maxHeight: theme.spacing.xl2,
+                      ),
                       if (!dense) SizedBox(height: theme.focus.ringWidth),
                     ],
                   ),

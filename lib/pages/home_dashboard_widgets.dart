@@ -478,3 +478,41 @@ class _HomeTimelineTrackPainter extends CustomPainter {
         theme != oldDelegate.theme;
   }
 }
+
+/// 时间轨弹性间隔 — 在卡片被拉伸时把多余高度吸收为节奏留白，超过上限收束。
+class _TimelineFlexibleGap extends StatelessWidget {
+  const _TimelineFlexibleGap({required this.minHeight, this.maxHeight});
+
+  final double minHeight;
+  final double? maxHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: minHeight,
+          maxHeight: maxHeight ?? double.infinity,
+        ),
+        child: const SizedBox.shrink(),
+      ),
+    );
+  }
+}
+
+/// 概览列均布间隔 — 吸收剩余高度，超过上限后收束为上限值。
+class _OverviewDistributedGap extends StatelessWidget {
+  const _OverviewDistributedGap({required this.maxGap});
+
+  final double maxGap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxGap),
+        child: const SizedBox.shrink(),
+      ),
+    );
+  }
+}

@@ -109,7 +109,7 @@ void main() {
     StorageService.debugUseSharedPreferencesStorageForTesting(null);
   });
 
-  testWidgets('1600x1000 主区按内容封顶且行动坞紧随主区', (tester) async {
+  testWidgets('1600x1000 主区弹性填充视口且行动坞贴底', (tester) async {
     await _pumpHome(tester, const Size(1600, 1000));
 
     final timeline = tester.getRect(
@@ -120,8 +120,10 @@ void main() {
         .element(find.byKey(const Key('home-today-courses-tile')))
         .yhTheme;
 
-    expect(timeline.height, lessThanOrEqualTo(420));
-    expect(dock.top - timeline.bottom, theme.spacing.m);
+    // 时间轨封顶并垂直居中，剩余高度化为上下均等边距。
+    expect(timeline.height, lessThanOrEqualTo(468.5));
+    // 行动坞贴近内容列底部，不堆积页面空白。
+    expect(dock.bottom, greaterThanOrEqualTo(1000 - theme.spacing.xl - 0.5));
     expect(dock.height, lessThanOrEqualTo(88));
     expect(tester.takeException(), isNull);
   });

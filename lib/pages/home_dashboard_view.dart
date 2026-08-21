@@ -105,15 +105,7 @@ extension _HomeDashboardView on _HomePageState {
             child: _buildHomePrimaryLayout(theme, width, compact: compact),
           )
         else
-          SizedBox(
-            height:
-                (MediaQuery.sizeOf(context).height *
-                        theme.responsive.homeContentHeightViewportPercent /
-                        100)
-                    .clamp(
-                      theme.layout.homeContentMinHeight,
-                      theme.layout.homeContentMaxHeight,
-                    ),
+          Expanded(
             child: _buildHomePrimaryLayout(theme, width, compact: compact),
           ),
         _buildHomeUtilityDock(theme, compact: compact),

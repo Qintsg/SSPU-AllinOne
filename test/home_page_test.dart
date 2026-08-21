@@ -925,7 +925,9 @@ void main() {
     final overview = tester.getRect(
       find.byKey(const Key('home-overview-stack')),
     );
-    expect(timeline.top, overview.top);
+    // 概览列垂直居中于主区槽位，顶边不低于时间轨、底边不超出时间轨。
+    expect(overview.top, greaterThanOrEqualTo(timeline.top - 0.5));
+    expect(overview.bottom, lessThanOrEqualTo(timeline.bottom + 0.5));
     expect(timeline.left, lessThan(overview.left));
     expect(timeline.width, greaterThan(overview.width));
     expect(tester.takeException(), isNull);
@@ -1053,7 +1055,9 @@ void main() {
     final overview = tester.getRect(
       find.byKey(const Key('home-overview-stack')),
     );
-    expect(timeline.top, overview.top);
+    // 概览列垂直居中于主区槽位，顶边不低于时间轨、底边不超出时间轨。
+    expect(overview.top, greaterThanOrEqualTo(timeline.top - 0.5));
+    expect(overview.bottom, lessThanOrEqualTo(timeline.bottom + 0.5));
     expect(timeline.left, lessThan(overview.left));
     expect(timeline.width, greaterThan(overview.width));
     expect(tester.takeException(), isNull);

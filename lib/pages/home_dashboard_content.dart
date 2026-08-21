@@ -31,12 +31,19 @@ extension _HomeDashboardContent on _HomePageState {
     Widget separatedColumn(List<Widget> items) => Column(
       children: [
         for (var index = 0; index < items.length; index++) ...[
-          Expanded(child: items[index]),
-          if (index < items.length - 1)
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: theme.control.regular + theme.spacing.xs,
+            ),
+            child: items[index],
+          ),
+          if (index < items.length - 1) ...[
             SizedBox(
               height: theme.layout.divider,
               child: ColoredBox(color: theme.color.border),
             ),
+            _OverviewDistributedGap(maxGap: theme.spacing.xl2),
+          ],
         ],
       ],
     );
