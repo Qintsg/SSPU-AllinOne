@@ -1,5 +1,5 @@
 /*
- * 应用入口 — 初始化 FluentApp 并处理协议确认、密码保护、窗口关闭与托盘逻辑
+ * 应用入口 — 初始化清源宿主并处理协议确认、密码保护、窗口关闭与托盘逻辑
  * @Project : SSPU-AllinOne
  * @File : main.dart
  * @Author : Qintsg
@@ -8,7 +8,8 @@
 
 import 'dart:async';
 import 'dart:io';
-import 'design/fluent_ui.dart';
+
+import 'design/qingyuan/qingyuan_ui.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'app.dart';
@@ -25,12 +26,11 @@ import 'services/auto_refresh_service.dart';
 import 'services/academic_oa_session_prewarm_service.dart';
 import 'widgets/desktop_window_frame.dart';
 import 'widgets/legal_consent_dialog.dart';
+import 'widgets/app_startup_status.dart';
+import 'widgets/app_close_confirmation_dialog.dart';
 
-import 'theme/app_spacing.dart';
-import 'theme/app_theme.dart';
-
-/// 字体族常量（已迁移至 AppTheme.fontFamily，保留兼容引用）
-const String kFontFamily = AppTheme.fontFamily;
+/// 字体族常量（保留历史公开引用，实际由清源排版 token 管理）。
+const String kFontFamily = YhTypographyTokens.fontFamilyBody;
 
 /// 桌面窗口插件仅在 Flutter 桌面平台注册。
 bool get _supportsDesktopShell =>
@@ -55,7 +55,7 @@ void main() async {
 /// 配置桌面端标题栏。
 ///
 /// macOS 保留系统红绿灯窗口控制按钮，Windows / Linux 继续隐藏原生按钮并使用
-/// Flutter 自绘 Fluent 标题栏按钮。
+/// Flutter 自绘清源标题栏按钮。
 Future<void> _configureDesktopTitleBar() async {
   await windowManager.setTitleBarStyle(
     TitleBarStyle.hidden,
@@ -64,7 +64,7 @@ Future<void> _configureDesktopTitleBar() async {
 }
 
 /// 应用根 Widget
-/// 配置 Fluent 主题、暗色模式支持、国际化代理
+/// 配置清源主题、暗色模式支持、国际化代理
 /// 同时监听窗口关闭事件和系统托盘交互
 class SSPUApp extends StatefulWidget {
   const SSPUApp({super.key});
@@ -92,7 +92,13 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 启动初始化失败时显示明确错误，避免长期停留在加载状态。
   String? _startupErrorMessage;
 
-  /// FluentApp 内部导航器 key，用于在 WindowListener 回调中弹出对话框
+  /// 启动初始化同一时间只允许一个代次写回，避免快速重试触发旧请求覆盖。
+  bool _initializationInFlight = false;
+  int _initializationGeneration = 0;
+
+  YhThemeMode _themeMode = YhThemeMode.system;
+
+  /// 清源应用内部导航器 key，用于在 WindowListener 回调中弹出对话框。
   final _navigatorKey = GlobalKey<NavigatorState>();
 
   /// 主界面共享的校园网 / VPN 状态检测服务。
@@ -106,7 +112,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       windowManager.addListener(this);
       trayManager.addListener(this);
     }
-    _initApp();
+    _startInitialization();
   }
 
   @override
@@ -119,25 +125,62 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   }
 
   /// 初始化应用状态：先检查协议确认状态，再检查密码。
-  Future<void> _initApp() async {
+  void _startInitialization() {
+    if (_initializationInFlight) return;
+    _initializationInFlight = true;
+    final generation = ++_initializationGeneration;
+    unawaited(_runInitialization(generation));
+  }
+
+  Future<void> _runInitialization(int generation) async {
     try {
       await StorageService.init();
       final agreementsOk = await StorageService.areCurrentAgreementsAccepted();
       final hasPassword = await PasswordService.isPasswordSet();
-      if (!mounted) return;
+      final themeMode = await StorageService.getThemeMode();
+      if (!mounted || generation != _initializationGeneration) return;
       setState(() {
         _agreementsAccepted = agreementsOk;
         _isUnlocked = !hasPassword;
         _isInitialized = true;
+        _themeMode = switch (themeMode) {
+          'light' => YhThemeMode.light,
+          'dark' => YhThemeMode.dark,
+          _ => YhThemeMode.system,
+        };
       });
       unawaited(_initBackgroundServices());
-    } catch (error) {
-      if (!mounted) return;
+    } catch (_) {
+      if (!mounted || generation != _initializationGeneration) return;
       setState(() {
-        _startupErrorMessage = '启动初始化失败：$error';
+        _startupErrorMessage = '启动初始化失败：无法读取本地设置。';
         _isInitialized = true;
       });
+    } finally {
+      if (generation == _initializationGeneration) {
+        _initializationInFlight = false;
+      }
     }
+  }
+
+  void _retryInitialization() {
+    if (_initializationInFlight) return;
+    setState(() {
+      _startupErrorMessage = null;
+      _isInitialized = false;
+    });
+    _startInitialization();
+  }
+
+  void _setThemeMode(YhThemeMode mode) {
+    setState(() => _themeMode = mode);
+    unawaited(
+      StorageService.setThemeMode(switch (mode) {
+        YhThemeMode.light => 'light',
+        YhThemeMode.dark => 'dark',
+        YhThemeMode.system => 'system',
+      }),
+    );
   }
 
   /// 初始化后台能力，不阻塞首屏渲染和用户进入主页。
@@ -201,64 +244,27 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     }
 
     _closeDialogShowing = true;
-    bool rememberChoice = false;
-
-    showFluentDialog<void>(
-      context: ctx,
-      barrierDismissible: true,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (_, setDialogState) {
-            return FluentDialog(
-              title: const Text('关闭应用'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const FluentDialogMessage(
-                    icon: FluentIcons.clear,
-                    message: '请选择点击窗口关闭按钮时的处理方式。',
-                    details: '也可以点击弹窗外的空白区域取消本次操作，应用会继续保持打开。',
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Checkbox(
-                    checked: rememberChoice,
-                    semanticLabel: '以后都使用此选项',
-                    content: const Text('以后都使用此选项'),
-                    onChanged: (value) {
-                      setDialogState(() => rememberChoice = value ?? false);
-                    },
-                  ),
-                ],
-              ),
-              actions: [
-                FluentButton.outlineIcon(
-                  icon: const Icon(FluentIcons.blocked),
-                  label: const Text('最小化到托盘'),
-                  onPressed: () async {
-                    Navigator.pop(dialogContext);
-                    if (rememberChoice) {
-                      await StorageService.setCloseBehavior('minimize');
-                    }
-                    await windowManager.hide();
-                  },
-                ),
-                FluentButton.primaryIcon(
-                  icon: const Icon(FluentIcons.power),
-                  label: const Text('退出应用'),
-                  onPressed: () async {
-                    Navigator.pop(dialogContext);
-                    if (rememberChoice) {
-                      await StorageService.setCloseBehavior('exit');
-                    }
-                    await AppExitService.instance.exit();
-                  },
-                ),
-              ],
-            );
-          },
-        );
-      },
+    YhDialog.show<void>(
+      ctx,
+      barrierDismissible: false,
+      canPop: false,
+      builder: (dialogContext) => AppCloseConfirmationDialog(
+        onCancel: () => Navigator.pop(dialogContext),
+        onMinimize: (rememberChoice) async {
+          if (rememberChoice) {
+            await StorageService.setCloseBehavior('minimize');
+          }
+          await windowManager.hide();
+          if (dialogContext.mounted) Navigator.pop(dialogContext);
+        },
+        onExit: (rememberChoice) async {
+          if (rememberChoice) {
+            await StorageService.setCloseBehavior('exit');
+          }
+          await AppExitService.instance.exit();
+          if (dialogContext.mounted) Navigator.pop(dialogContext);
+        },
+      ),
     ).whenComplete(() {
       _closeDialogShowing = false;
     });
@@ -307,10 +313,12 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     _agreementDialogShowing = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      showLegalConsentDialog(context: context).then((accepted) async {
+      showLegalConsentDialog(
+        context: context,
+        onAccept: StorageService.acceptCurrentAgreements,
+      ).then((accepted) async {
         _agreementDialogShowing = false;
         if (accepted == true) {
-          await StorageService.acceptCurrentAgreements();
           if (mounted) {
             setState(() => _agreementsAccepted = true);
           }
@@ -331,13 +339,13 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
 
   @override
   Widget build(BuildContext context) {
-    return FluentApp(
+    return YhApp(
       navigatorKey: _navigatorKey,
       title: AppDisplayName.english,
       onGenerateTitle: AppDisplayName.of,
-      theme: AppTheme.build(Brightness.light),
-      darkTheme: AppTheme.build(Brightness.dark),
-      themeMode: ThemeMode.system,
+      theme: YhTheme.light,
+      darkTheme: YhTheme.dark,
+      themeMode: _themeMode,
       debugShowCheckedModeBanner: false,
       home: _buildHome(),
       builder: (context, child) {
@@ -365,17 +373,13 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   /// 根据初始化、协议确认和密码验证状态构建首屏
   Widget _buildHome() {
     if (!_isInitialized) {
-      return const ScaffoldPage(content: Center(child: FluentProgressRing()));
+      return const AppStartupStatus(progressLabel: '读取本地设置');
     }
 
     if (_startupErrorMessage != null) {
-      return ScaffoldPage(
-        content: Center(
-          child: Padding(
-            padding: AppSpacing.regularPagePadding,
-            child: Text(_startupErrorMessage!),
-          ),
-        ),
+      return AppStartupStatus(
+        errorMessage: _startupErrorMessage!,
+        onRetry: _retryInitialization,
       );
     }
 
@@ -384,9 +388,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       return Builder(
         builder: (context) {
           _showAgreementDialog(context);
-          return const ScaffoldPage(
-            content: Center(child: FluentProgressRing()),
-          );
+          return const AppStartupStatus(progressLabel: '正在准备法律与隐私说明');
         },
       );
     }
@@ -404,6 +406,8 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     return AppShell(
       onLock: _lockApp,
       campusNetworkStatusService: _campusNetworkStatusService,
+      themeMode: _themeMode,
+      onThemeModeChanged: _setThemeMode,
     );
   }
 }

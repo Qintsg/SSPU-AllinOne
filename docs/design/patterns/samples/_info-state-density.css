@@ -1,0 +1,74 @@
+/*
+ * 清源校园资讯空错状态密度参考样式
+ * @Project : SSPU-AllinOne
+ * @File : _info-state-density.css
+ * @Author : Qintsg
+ * @Date : 2026-08-17
+ */
+
+.prototype-page[data-screen="info"] .info-state-panel {
+  width: min(100%, var(--layout-form-content-width));
+  min-height: calc(var(--control-regular) * 4);
+  padding: var(--space-l);
+  place-items: stretch;
+  justify-self: start;
+}
+
+.prototype-page[data-screen="info"] .info-state-panel .yh-empty {
+  width: 100%;
+  padding: 0;
+  display: grid;
+  grid-template-columns: var(--control-regular) minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: var(--space-m);
+  row-gap: var(--space-xs);
+  align-content: center;
+  align-items: center;
+  text-align: left;
+}
+
+.prototype-page[data-screen="info"] .info-state-panel .yh-empty > svg {
+  grid-column: 1;
+  grid-row: 1 / 3;
+}
+
+.prototype-page[data-screen="info"] .info-state-panel .yh-empty > h2 {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.prototype-page[data-screen="info"] .info-state-panel .yh-empty > p {
+  max-width: calc(var(--control-regular) * 10);
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.prototype-page[data-screen="info"] .info-state-panel .yh-empty > button {
+  grid-column: 3;
+  grid-row: 1 / 3;
+}
+
+.prototype-page[data-screen="info"] .info-state-panel .mail-state-progress {
+  width: 100%;
+  align-self: center;
+}
+
+@media (max-width: 767px) {
+  .prototype-page[data-screen="info"] .info-state-panel {
+    width: 100%;
+    min-height: calc(var(--control-regular) * 5);
+    padding: var(--space-l);
+    place-items: center;
+  }
+
+  .prototype-page[data-screen="info"] .info-state-panel .yh-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .prototype-page[data-screen="info"] .info-state-panel .yh-empty > p {
+    max-width: calc(var(--control-regular) * 6);
+  }
+}

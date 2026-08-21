@@ -30,6 +30,8 @@ part 'student_report_detail_json_parser.dart';
 part 'student_report_detail_uri_extractor.dart';
 part 'student_report_page_navigator.dart';
 part 'student_report_page_parser.dart';
+part 'student_report_page_parser_uri.dart';
+part 'student_report_page_parser_table.dart';
 
 /// 教务页依赖的学工报表接口，便于 widget 测试替换。
 abstract class StudentReportClient {

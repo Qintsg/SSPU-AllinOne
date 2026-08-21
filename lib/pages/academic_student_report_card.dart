@@ -25,6 +25,9 @@ class AcademicStudentReportCard extends StatelessWidget {
   /// 手动刷新回调。
   final VoidCallback onRefresh;
 
+  /// 详情页原地刷新 adapter。
+  final AcademicDetailRefreshTask<StudentReportQueryResult>? onDetailRefresh;
+
   const AcademicStudentReportCard({
     super.key,
     required this.result,
@@ -32,49 +35,54 @@ class AcademicStudentReportCard extends StatelessWidget {
     required this.autoRefreshEnabled,
     required this.refreshFeedback,
     required this.onRefresh,
+    this.onDetailRefresh,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     final summary = result?.summary;
-    final accent = context.fluentAccents.secondClassroom;
 
-    return FluentSurface(
+    return YhCard(
       key: const Key('academic-student-report-card'),
-      accentColor: accent,
-      child: FluentStretchCardBody(
-        header: _SecondClassroomCardHeader(
-          summary: summary,
-          canOpenDetail: result?.isSuccess == true && summary != null,
-          lastRefreshLabel: _studentReportLastRefreshLabel(result),
-          isLoading: isLoading,
-          refreshFeedback: refreshFeedback,
-          onRefresh: onRefresh,
-        ),
-        body: _SecondClassroomCardContent(
-          result: result,
-          summary: summary,
-          isLoading: isLoading,
-          autoRefreshEnabled: autoRefreshEnabled,
-          severityForStatus: _studentReportSeverity,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SecondClassroomCardHeader(
+            result: result,
+            summary: summary,
+            canOpenDetail: result?.isSuccess == true && summary != null,
+            lastRefreshLabel: _studentReportLastRefreshLabel(result),
+            isLoading: isLoading,
+            refreshFeedback: refreshFeedback,
+            onRefresh: onRefresh,
+            onDetailRefresh: onDetailRefresh,
+          ),
+          SizedBox(height: theme.spacing.m),
+          _SecondClassroomCardContent(
+            result: result,
+            summary: summary,
+            isLoading: isLoading,
+            autoRefreshEnabled: autoRefreshEnabled,
+            kindForStatus: _studentReportBannerKind,
+          ),
+        ],
       ),
     );
   }
 
-  FluentInfoSeverity _studentReportSeverity(StudentReportQueryStatus status) {
+  YhBannerKind _studentReportBannerKind(StudentReportQueryStatus status) {
     return switch (status) {
-      StudentReportQueryStatus.success => FluentInfoSeverity.success,
+      StudentReportQueryStatus.success => YhBannerKind.success,
       StudentReportQueryStatus.missingOaAccount ||
       StudentReportQueryStatus.missingOaPassword ||
-      StudentReportQueryStatus.campusNetworkUnavailable =>
-        FluentInfoSeverity.warning,
+      StudentReportQueryStatus.campusNetworkUnavailable => YhBannerKind.warn,
       StudentReportQueryStatus.oaLoginRequired ||
       StudentReportQueryStatus.reportSystemUnavailable ||
       StudentReportQueryStatus.secondClassroomEntryUnavailable ||
       StudentReportQueryStatus.parseFailed ||
       StudentReportQueryStatus.networkError ||
-      StudentReportQueryStatus.unexpectedError => FluentInfoSeverity.error,
+      StudentReportQueryStatus.unexpectedError => YhBannerKind.danger,
     };
   }
 
@@ -95,32 +103,34 @@ class _SecondClassroomCardContent extends StatelessWidget {
     required this.summary,
     required this.isLoading,
     required this.autoRefreshEnabled,
-    required this.severityForStatus,
+    required this.kindForStatus,
   });
 
   final StudentReportQueryResult? result;
   final SecondClassroomCreditSummary? summary;
   final bool isLoading;
   final bool autoRefreshEnabled;
-  final FluentInfoSeverity Function(StudentReportQueryStatus status)
-  severityForStatus;
+  final YhBannerKind Function(StudentReportQueryStatus status) kindForStatus;
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     if (result?.isSuccess == true && summary != null) {
       return _SecondClassroomSummaryView(summary: summary!);
     }
 
     if (isLoading) {
-      return const Row(
+      return Row(
         children: [
           SizedBox(
-            width: 18,
-            height: 18,
-            child: FluentProgressRing(strokeWidth: 2),
+            width: theme.spacing.xl2 * 2,
+            child: const YhProgress(
+              showPercent: false,
+              semanticLabel: '正在读取第二课堂学分',
+            ),
           ),
-          SizedBox(width: FluentSpacing.s),
-          Text('正在读取第二课堂学分...'),
+          SizedBox(width: theme.spacing.s),
+          const Expanded(child: Text('正在读取第二课堂学分...')),
         ],
       );
     }
@@ -130,94 +140,106 @@ class _SecondClassroomCardContent extends StatelessWidget {
         autoRefreshEnabled
             ? '自动刷新已开启，等待下一次读取；也可点击右上角刷新。'
             : '自动刷新未开启。点击右上角刷新图标可手动读取；学工报表需要校园网或学校 VPN。',
+        style: theme.typography.body.copyWith(color: theme.color.muted),
       );
     }
 
-    return FluentInfoBar(
-      title: Text(result!.message),
-      content: Text(result!.detail),
-      severity: severityForStatus(result!.status),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          result!.message,
+          style: theme.typography.body.copyWith(
+            color: theme.color.foreground,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: theme.spacing.s),
+        YhBanner(text: result!.detail, kind: kindForStatus(result!.status)),
+      ],
     );
   }
 }
 
 class _SecondClassroomCardHeader extends StatelessWidget {
   const _SecondClassroomCardHeader({
+    required this.result,
     required this.summary,
     required this.canOpenDetail,
     required this.lastRefreshLabel,
     required this.isLoading,
     required this.refreshFeedback,
     required this.onRefresh,
+    required this.onDetailRefresh,
   });
 
+  final StudentReportQueryResult? result;
   final SecondClassroomCreditSummary? summary;
   final bool canOpenDetail;
   final String lastRefreshLabel;
   final bool isLoading;
   final RefreshActionFeedback? refreshFeedback;
   final VoidCallback onRefresh;
+  final AcademicDetailRefreshTask<StudentReportQueryResult>? onDetailRefresh;
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final accent = context.fluentAccents.secondClassroom;
-    final detailAction = _buildDetailAction(context);
+    final theme = context.yhTheme;
+    final accent = theme.color.serviceSecondClass;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FluentSurfaceIcon(icon: FluentIcons.education, color: accent),
-        const SizedBox(width: FluentSpacing.m),
+        SizedBox.square(
+          dimension: theme.spacing.l,
+          child: Icon(YhIcons.education, color: accent),
+        ),
+        SizedBox(width: theme.spacing.s),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '第二课堂学分',
-                style: theme.typography.subtitle?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+              Semantics(
+                header: true,
+                child: Text('第二课堂学分', style: theme.typography.h3),
               ),
-              const SizedBox(height: FluentSpacing.xxs),
+              SizedBox(height: theme.spacing.xs),
               _buildRefreshLine(context),
             ],
           ),
         ),
-        const SizedBox(width: FluentSpacing.s),
-        detailAction,
+        SizedBox(width: theme.spacing.s),
+        YhTooltip(
+          message: '查看第二课堂学分详情',
+          child: YhIconButton(
+            key: const Key('academic-student-report-detail'),
+            icon: YhIcons.chevronRight,
+            semanticLabel: '查看第二课堂学分详情',
+            variant: YhIconButtonVariant.ghost,
+            onTap: canOpenDetail && summary != null
+                ? () => Navigator.of(context).push(
+                    YhPageRoute(
+                      builder: (_) => StudentReportDetailPage(
+                        result: result,
+                        onRefresh: onDetailRefresh,
+                      ),
+                    ),
+                  )
+                : null,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildDetailAction(BuildContext context) {
-    return Button(
-      key: const Key('academic-student-report-detail'),
-      onPressed: canOpenDetail && summary != null
-          ? () => Navigator.of(context).push(
-              FluentPageRoute(
-                builder: (_) => StudentReportDetailPage(summary: summary!),
-              ),
-            )
-          : null,
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('详情'),
-          SizedBox(width: 4),
-          Icon(FluentIcons.chevronRight, size: 14),
-        ],
-      ),
-    );
-  }
-
   Widget _buildRefreshLine(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     return RefreshStatusLine(
       label: lastRefreshLabel,
-      labelStyle: theme.typography.caption?.copyWith(
-        color: theme.resources.textFillColorSecondary,
-      ),
-      actionReservedWidth: refreshFeedback == null ? 32 : 180,
+      labelStyle: theme.typography.caption.copyWith(color: theme.color.muted),
+      minLineHeight: theme.control.minimumTarget,
+      actionReservedWidth: refreshFeedback == null
+          ? theme.control.minimumTarget
+          : theme.breakpoint.compact / 3,
       action: RefreshFeedbackAction(
         key: const Key('academic-student-report-refresh'),
         tooltip: '手动刷新第二课堂学分',
@@ -225,10 +247,8 @@ class _SecondClassroomCardHeader extends StatelessWidget {
         isLoading: isLoading,
         feedback: refreshFeedback,
         onPressed: onRefresh,
-        minTouchSize: 32,
-        size: 28,
-        iconSize: 15,
-        maxFeedbackWidth: 180,
+        minTouchSize: theme.control.minimumTarget,
+        maxFeedbackWidth: theme.breakpoint.compact / 3,
       ),
     );
   }

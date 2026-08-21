@@ -7,12 +7,13 @@
  * @Date : 2026-04-19
  */
 
-import '../design/fluent_ui.dart';
+import 'dart:async';
+
+import '../design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../widgets/empty_state_view.dart';
-import '../widgets/webview_compact_toolbar.dart';
+import 'webview_page_frame.dart';
 
 /// 内嵌 WebView 页面。
 /// 在应用内打开网页链接，提供导航栏（返回/前进/刷新/外部浏览器）。
@@ -26,11 +27,19 @@ class WebViewPage extends StatefulWidget {
   /// Windows 平台需要的 WebViewEnvironment（可选，由外部传入）。
   final WebViewEnvironment? webViewEnvironment;
 
+  /// 系统浏览器启动 seam；测试可注入确定性 adapter。
+  final Future<bool> Function(Uri uri)? launchUrlOverride;
+
+  /// WebView 运行时创建的最长等待时间；测试可缩短以验证降级路径。
+  final Duration initializationTimeout;
+
   const WebViewPage({
     super.key,
     required this.url,
     this.initialTitle = '加载中…',
     this.webViewEnvironment,
+    this.launchUrlOverride,
+    this.initializationTimeout = const Duration(seconds: 12),
   });
 
   @override
@@ -47,14 +56,22 @@ class _WebViewPageState extends State<WebViewPage> {
   /// 当前加载的 URL。
   String _currentUrl = '';
 
-  /// 是否可前进。
-  bool _canGoForward = false;
-
   /// WebView 是否已创建。
   bool _isReady = false;
 
   /// 初始化是否失败（触发 fallback）。
   bool _initFailed = false;
+
+  /// 主文档加载失败的可恢复原因。
+  String? _loadErrorDescription;
+
+  bool _isOpeningExternal = false;
+  String? _externalOpenError;
+
+  Timer? _initializationTimer;
+  int _documentGeneration = 0;
+  Future<void>? _backOperation;
+  bool _routePopAllowed = false;
 
   /// 加载进度（0.0 ~ 1.0）。
   double _progress = 0;
@@ -64,6 +81,13 @@ class _WebViewPageState extends State<WebViewPage> {
     super.initState();
     _title = widget.initialTitle;
     _currentUrl = widget.url;
+    _startInitializationWatch();
+  }
+
+  @override
+  void dispose() {
+    _initializationTimer?.cancel();
+    super.dispose();
   }
 
   /// 判断链接是否可由内嵌 WebView 安全加载。
@@ -73,163 +97,265 @@ class _WebViewPageState extends State<WebViewPage> {
     return uri.scheme == 'http' || uri.scheme == 'https';
   }
 
-  /// 更新导航按钮状态（前进/后退可用性）。
-  Future<void> _updateNavigationState() async {
-    if (_controller == null) return;
-    final canForward = await _controller!.canGoForward();
-    if (mounted) {
-      setState(() => _canGoForward = canForward);
-    }
-  }
-
   /// 使用系统默认浏览器打开当前 URL（fallback 方案）。
   Future<void> _fallbackToExternalBrowser() async {
-    final uri = Uri.tryParse(_currentUrl);
+    if (_isOpeningExternal) return;
+    final targetUrl = _currentUrl;
+    final documentGeneration = _documentGeneration;
+    final uri = Uri.tryParse(targetUrl);
     if (uri != null &&
         uri.host.isNotEmpty &&
         (uri.scheme == 'http' || uri.scheme == 'https')) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      final confirmed = await confirmWebViewExternalOpen(context, uri);
+      if (!confirmed || !mounted || _isOpeningExternal) return;
+      if (_currentUrl != targetUrl ||
+          _documentGeneration != documentGeneration) {
+        return;
+      }
+      setState(() {
+        _isOpeningExternal = true;
+        _externalOpenError = null;
+      });
+      try {
+        final opened = widget.launchUrlOverride != null
+            ? await widget.launchUrlOverride!(uri)
+            : await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!opened &&
+            mounted &&
+            _currentUrl == targetUrl &&
+            _documentGeneration == documentGeneration) {
+          setState(() {
+            _externalOpenError = '系统浏览器未能打开校园网页；仍停留在应用内，可检查默认浏览器设置后重试。';
+          });
+        }
+      } on Object catch (error) {
+        if (!mounted ||
+            _currentUrl != targetUrl ||
+            _documentGeneration != documentGeneration) {
+          return;
+        }
+        setState(() {
+          _externalOpenError = '系统浏览器未能打开校园网页：$error。仍停留在应用内，可稍后重试。';
+        });
+      } finally {
+        if (mounted) setState(() => _isOpeningExternal = false);
+      }
     }
   }
 
-  /// WebView 返回按钮行为：有网页历史时后退网页，否则退出当前路由。
-  Future<void> _handleBackOrClose() async {
-    final controller = _controller;
-    if (controller != null && await controller.canGoBack()) {
-      await controller.goBack();
-      await _updateNavigationState();
-      return;
+  Widget? _buildExternalStatusBanner() {
+    if (_isOpeningExternal) {
+      return const YhBanner(
+        kind: YhBannerKind.info,
+        text: '正在交给系统浏览器；完成前已锁定重复外部打开，网页和返回路径保持可用。',
+      );
     }
-    if (!mounted) return;
-    await Navigator.of(context).maybePop();
+    final error = _externalOpenError;
+    if (error == null) return null;
+    return YhBanner(kind: YhBannerKind.danger, text: error);
   }
+
+  YhIconButton _buildExternalToolbarAction() => YhIconButton(
+    semanticLabel: '在浏览器中打开',
+    icon: YhIcons.open,
+    onTap: _isOpeningExternal ? null : _fallbackToExternalBrowser,
+  );
+
+  /// 保留当前 URL，在原位置重新加载主文档。
+  void _retryInApp() {
+    if (!mounted) return;
+    _initializationTimer?.cancel();
+    setState(() {
+      _documentGeneration++;
+      _controller = null;
+      _isReady = false;
+      _initFailed = false;
+      _loadErrorDescription = null;
+      _externalOpenError = null;
+      _progress = 0;
+    });
+    _startInitializationWatch();
+  }
+
+  /// WebView 返回按钮行为：有网页历史时后退网页，否则退出当前路由。
+  Future<void> _handleBackOrClose() {
+    final active = _backOperation;
+    if (active != null) return active;
+    final future = _performBackOrClose();
+    _backOperation = future;
+    return future.whenComplete(() {
+      if (identical(_backOperation, future)) _backOperation = null;
+    });
+  }
+
+  Future<void> _performBackOrClose() async {
+    final controller = _controller;
+    if (controller != null) {
+      try {
+        if (await controller.canGoBack()) {
+          await controller.goBack();
+          return;
+        }
+      } on Object {
+        await _requestRouteExit();
+        return;
+      }
+    }
+    await _requestRouteExit();
+  }
+
+  Future<void> _requestRouteExit() async {
+    if (!mounted) return;
+    if (!_routePopAllowed) setState(() => _routePopAllowed = true);
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+    final didPop = await Navigator.of(context).maybePop();
+    if (!didPop && mounted) {
+      setState(() => _routePopAllowed = false);
+    }
+  }
+
+  void _startInitializationWatch() {
+    _initializationTimer?.cancel();
+    if (!_isSupportedWebUrl(_currentUrl)) return;
+    final generation = _documentGeneration;
+    _initializationTimer = Timer(widget.initializationTimeout, () {
+      if (!mounted || generation != _documentGeneration || _isReady) return;
+      setState(() {
+        _initFailed = true;
+        _loadErrorDescription = 'WebView 运行时未响应，请检查平台组件后重试';
+      });
+    });
+  }
+
+  bool _isCurrentDocument(int generation) =>
+      mounted && generation == _documentGeneration && !_initFailed;
+
+  void _recordVisitedUrl(int generation, WebUri? url) {
+    if (url == null || !_isCurrentDocument(generation)) return;
+    final nextUrl = url.toString();
+    setState(() {
+      if (_currentUrl != nextUrl) _externalOpenError = null;
+      _currentUrl = nextUrl;
+    });
+  }
+
+  Widget _coordinateSystemBack(Widget child) => PopScope(
+    canPop: _routePopAllowed,
+    onPopInvokedWithResult: (didPop, result) {
+      if (!didPop) unawaited(_handleBackOrClose());
+    },
+    child: child,
+  );
 
   @override
   Widget build(BuildContext context) {
     if (_initFailed) {
-      return _buildStatePage(
-        context,
-        title: widget.initialTitle,
-        child: EmptyStateView(
-          icon: FluentIcons.warning,
-          title: 'WebView 初始化失败',
-          message: '已在默认浏览器中打开链接',
-          action: FluentButton.primary(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('返回'),
+      final host = Uri.tryParse(_currentUrl)?.host;
+      final target = host == null || host.isEmpty ? _currentUrl : host;
+      return _coordinateSystemBack(
+        _buildStatePage(
+          context,
+          title: widget.initialTitle,
+          child: WebViewFailureDocument(
+            target: target,
+            loadError: _loadErrorDescription ?? '未知错误',
+            externalOpenError: _externalOpenError,
+            openingExternal: _isOpeningExternal,
+            onRetry: _retryInApp,
+            onOpenExternal: _fallbackToExternalBrowser,
           ),
         ),
       );
     }
 
     if (!_isSupportedWebUrl(_currentUrl)) {
-      return _buildStatePage(
-        context,
-        title: widget.initialTitle,
-        child: EmptyStateView(
-          icon: FluentIcons.linkDismiss,
-          title: '链接无效，无法打开',
-          message: _currentUrl,
-          action: FluentButton.primary(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('返回'),
+      return _coordinateSystemBack(
+        _buildStatePage(
+          context,
+          title: widget.initialTitle,
+          child: YhEmptyState(
+            icon: YhIcons.close,
+            title: '链接无效，无法打开',
+            message: _currentUrl,
+            action: YhButton(
+              label: '返回',
+              onTap: () => Navigator.of(context).pop(),
+            ),
           ),
         ),
       );
     }
 
-    return FluentPage(
-      content: Column(
-        children: [
-          WebViewCompactToolbar(
-            title: _title,
-            onBackPressed: _handleBackOrClose,
-            actions: [
-              FluentIconButton(
-                tooltip: '前进',
-                semanticLabel: '前进',
-                icon: const Icon(FluentIcons.forward),
-                onPressed: _canGoForward
-                    ? () => _controller?.goForward()
-                    : null,
-                size: 32,
-              ),
-              FluentIconButton(
-                tooltip: '刷新',
-                semanticLabel: '刷新',
-                icon: const Icon(FluentIcons.refresh),
-                onPressed: _isReady ? () => _controller?.reload() : null,
-                size: 32,
-              ),
-              FluentIconButton(
-                tooltip: '在浏览器中打开',
-                semanticLabel: '在浏览器中打开',
-                icon: const Icon(FluentIcons.openInNewWindow),
-                onPressed: _fallbackToExternalBrowser,
-                size: 32,
-              ),
-            ],
+    final documentGeneration = _documentGeneration;
+    return _coordinateSystemBack(
+      WebViewPageFrame(
+        title: _title,
+        onBackPressed: _handleBackOrClose,
+        actions: [
+          YhIconButton(
+            semanticLabel: '刷新',
+            icon: YhIcons.refresh,
+            onTap: _isReady && !_isOpeningExternal
+                ? () => _controller?.reload()
+                : null,
           ),
-          Expanded(
-            child: Stack(
-              children: [
-                InAppWebView(
-                  webViewEnvironment: widget.webViewEnvironment,
-                  initialUrlRequest: URLRequest(url: WebUri(widget.url)),
-                  initialSettings: InAppWebViewSettings(
-                    javaScriptEnabled: true,
-                    isInspectable: kDebugMode,
-                    // UA-POLICY-ALLOW: 通用内嵌网页用于学校官网/外部文章展示，需要浏览器 UA 兼容页面渲染。
-                    userAgent:
-                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-                        '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                  ),
-                  onWebViewCreated: (controller) {
-                    _controller = controller;
-                    if (mounted) {
-                      setState(() => _isReady = true);
-                    }
-                  },
-                  onTitleChanged: (controller, title) {
-                    if (mounted && title != null && title.isNotEmpty) {
-                      setState(() => _title = title);
-                    }
-                  },
-                  onUpdateVisitedHistory: (controller, url, isReload) {
-                    if (url != null && mounted) {
-                      setState(() => _currentUrl = url.toString());
-                      _updateNavigationState();
-                    }
-                  },
-                  onLoadStop: (controller, url) {
-                    if (url != null && mounted) {
-                      setState(() => _currentUrl = url.toString());
-                      _updateNavigationState();
-                    }
-                  },
-                  onProgressChanged: (controller, progress) {
-                    if (mounted) {
-                      setState(() => _progress = progress / 100.0);
-                    }
-                  },
-                  onReceivedError: (controller, request, error) {
-                    if (request.isForMainFrame == true && mounted) {
-                      setState(() => _initFailed = true);
-                      _fallbackToExternalBrowser();
-                    }
-                  },
-                ),
-                if (_progress > 0 && _progress < 1.0)
-                  PositionedDirectional(
-                    top: 0,
-                    start: 0,
-                    end: 0,
-                    child: FluentProgressBar(value: _progress),
-                  ),
-              ],
-            ),
-          ),
+          _buildExternalToolbarAction(),
         ],
+        statusBanner: _buildExternalStatusBanner(),
+        progress: _progress,
+        document: InAppWebView(
+          key: ValueKey('webview-document-$documentGeneration'),
+          webViewEnvironment: widget.webViewEnvironment,
+          initialUrlRequest: URLRequest(url: WebUri(_currentUrl)),
+          initialSettings: InAppWebViewSettings(
+            javaScriptEnabled: true,
+            isInspectable: kDebugMode,
+            // UA-POLICY-ALLOW: 通用内嵌网页用于学校官网/外部文章展示，需要浏览器 UA 兼容页面渲染。
+            userAgent:
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          ),
+          onWebViewCreated: (controller) {
+            if (!_isCurrentDocument(documentGeneration)) return;
+            _controller = controller;
+            _initializationTimer?.cancel();
+            if (mounted) {
+              setState(() => _isReady = true);
+            }
+          },
+          onTitleChanged: (controller, title) {
+            if (_isCurrentDocument(documentGeneration) &&
+                title != null &&
+                title.isNotEmpty) {
+              setState(() => _title = title);
+            }
+          },
+          onUpdateVisitedHistory: (controller, url, isReload) {
+            _recordVisitedUrl(documentGeneration, url);
+          },
+          onLoadStop: (controller, url) {
+            _recordVisitedUrl(documentGeneration, url);
+          },
+          onProgressChanged: (controller, progress) {
+            if (_isCurrentDocument(documentGeneration)) {
+              setState(() => _progress = progress / 100.0);
+            }
+          },
+          onReceivedError: (controller, request, error) {
+            if (request.isForMainFrame == true &&
+                _isCurrentDocument(documentGeneration)) {
+              _initializationTimer?.cancel();
+              final failedUrl = request.url.toString();
+              setState(() {
+                if (_currentUrl != failedUrl) _externalOpenError = null;
+                _currentUrl = failedUrl;
+                _initFailed = true;
+                _loadErrorDescription = error.description;
+              });
+            }
+          },
+        ),
       ),
     );
   }
@@ -240,16 +366,28 @@ class _WebViewPageState extends State<WebViewPage> {
     required String title,
     required Widget child,
   }) {
-    return FluentPage(
-      content: Column(
-        children: [
-          WebViewCompactToolbar(
-            title: title,
-            onBackPressed: () => Navigator.of(context).maybePop(),
+    return WebViewPageFrame(
+      title: title,
+      onBackPressed: _handleBackOrClose,
+      actions: [
+        YhIconButton(
+          semanticLabel: '刷新',
+          icon: YhIcons.refresh,
+          onTap: _isSupportedWebUrl(_currentUrl) && !_isOpeningExternal
+              ? _retryInApp
+              : null,
+        ),
+        if (_isSupportedWebUrl(_currentUrl))
+          _buildExternalToolbarAction()
+        else
+          YhIconButton(
+            semanticLabel: '在浏览器中打开',
+            icon: YhIcons.open,
+            onTap: null,
           ),
-          Expanded(child: child),
-        ],
-      ),
+      ],
+      statusBanner: _buildExternalStatusBanner(),
+      document: child,
     );
   }
 }

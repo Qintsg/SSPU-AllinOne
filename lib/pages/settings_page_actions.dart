@@ -214,19 +214,19 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
   /// 显示操作成功提示。
   void _showSuccessBar(String message) {
-    showFluentInfoBar(
+    showYhFeedback(
       context,
-      title: Text(message),
-      severity: FluentInfoSeverity.success,
+      message: message,
+      severity: AppFeedbackSeverity.success,
     );
   }
 
   /// 显示操作失败提示。
   void _showErrorBar(String message) {
-    showFluentInfoBar(
+    showYhFeedback(
       context,
-      title: Text(message),
-      severity: FluentInfoSeverity.error,
+      message: message,
+      severity: AppFeedbackSeverity.error,
     );
   }
 
@@ -339,7 +339,7 @@ mixin _SettingsPageActions on State<SettingsPage> {
   void _openAcademicCalendar() {
     Navigator.of(
       context,
-    ).push(FluentPageRoute(builder: (_) => AcademicCalendarPage()));
+    ).push(YhPageRoute<void>(builder: (_) => AcademicCalendarPage()));
   }
 
   /// 修改勿扰开始时间。
@@ -453,166 +453,5 @@ mixin _SettingsPageActions on State<SettingsPage> {
     await AcademicEamsService.instance.setAutoRefreshIntervalMinutes(minutes);
     if (!mounted) return;
     setState(() => _academicEamsAutoRefreshIntervalMinutes = minutes);
-  }
-
-  /// 切换密码保护。
-  Future<void> _onPasswordProtectionChanged(bool enabled) async {
-    if (enabled) {
-      final ok = await showSetPasswordDialog(context);
-      if (ok && mounted) {
-        setState(() {
-          _isPasswordEnabled = true;
-          _isQuickAuthEnabled = false;
-        });
-        _showSuccessBar('密码已设置');
-      }
-      return;
-    }
-
-    final ok = await showRemovePasswordDialog(context);
-    if (ok && mounted) {
-      setState(() {
-        _isPasswordEnabled = false;
-        _isQuickAuthEnabled = false;
-      });
-      _showSuccessBar('密码保护已移除');
-    }
-  }
-
-  /// 修改密码。
-  Future<void> _onChangePassword() async {
-    final ok = await showChangePasswordDialog(context);
-    if (ok && mounted) {
-      setState(() => _isQuickAuthEnabled = false);
-      _showSuccessBar('密码已修改');
-    }
-  }
-
-  /// 修改系统快速验证开关。
-  Future<void> _onQuickAuthChanged(bool enabled) async {
-    if (!_isPasswordEnabled || _isQuickAuthBusy) return;
-
-    if (!enabled) {
-      await PasswordService.setQuickAuthEnabled(false);
-      if (!mounted) return;
-      setState(() => _isQuickAuthEnabled = false);
-      _showSuccessBar('系统快速验证已关闭');
-      return;
-    }
-
-    if (!_isQuickAuthAvailable) {
-      _showErrorBar('当前平台或设备不支持系统快速验证');
-      return;
-    }
-
-    final passwordConfirmed = await showConfirmCurrentPasswordDialog(
-      context,
-      title: '启用系统快速验证',
-      message: '请输入当前密码。通过后将调用系统认证完成启用确认。',
-      confirmLabel: '继续',
-    );
-    if (!passwordConfirmed || !mounted) return;
-
-    setState(() => _isQuickAuthBusy = true);
-    final authResult = await SystemAuthService.instance.authenticate(
-      localizedReason: '验证身份以启用 ${AppDisplayName.of(context)} 系统快速解锁',
-    );
-    if (!mounted) return;
-
-    if (authResult == SystemAuthResult.success) {
-      await PasswordService.setQuickAuthEnabled(true);
-      if (!mounted) return;
-      setState(() {
-        _isQuickAuthEnabled = true;
-        _isQuickAuthBusy = false;
-      });
-      _showSuccessBar('系统快速验证已启用');
-      return;
-    }
-
-    await PasswordService.setQuickAuthEnabled(false);
-    if (!mounted) return;
-    setState(() {
-      _isQuickAuthEnabled = false;
-      _isQuickAuthBusy = false;
-    });
-    _showErrorBar('系统认证未完成，已保留手动密码解锁');
-  }
-
-  /// 清理信息中心缓存。
-  Future<void> _showClearMessageCacheDialog() async {
-    final confirmed = await showFluentDialog<bool>(
-      context: context,
-      builder: (ctx) => FluentDialog(
-        title: const Text('清理信息中心缓存'),
-        content: const FluentDialogMessage(
-          icon: FluentIcons.broom,
-          message: '将清除信息中心缓存的官网消息和微信公众号文章。',
-          details: '登录信息、设置和关注列表不会受到影响。点击弹窗外区域可取消本次操作。',
-        ),
-        actions: [
-          FluentButton.outline(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
-          ),
-          FluentButton.primary(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('确认清理'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await StorageService.remove(MessageChannelKeys.persistedMessages);
-      await StorageService.remove(MessageChannelKeys.readMessageIds);
-      if (!mounted) return;
-      showFluentInfoBar(
-        context,
-        title: const Text('信息中心缓存已清理'),
-        severity: FluentInfoSeverity.success,
-        actionBuilder: (close) => FluentIconButton(
-          icon: const Icon(FluentIcons.clear),
-          onPressed: close,
-        ),
-      );
-    }
-  }
-
-  /// 清除所有本地数据并退出。
-  Future<void> _showClearAllDataDialog() async {
-    final confirmed = await showFluentDialog<bool>(
-      context: context,
-      builder: (ctx) => FluentDialog(
-        title: const Text('确认清除所有数据'),
-        content: const FluentDialogMessage(
-          icon: FluentIcons.delete,
-          tone: FluentDialogMessageTone.danger,
-          message: '将清除所有本地数据，包括登录信息、设置和缓存。',
-          details: '操作完成后应用会退出。点击弹窗外区域可取消本次操作。',
-        ),
-        actions: [
-          FluentButton.outline(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
-          ),
-          FluentButton.primary(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('确认清除并退出'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await AcademicCredentialsService.instance.clearAll();
-        await StorageService.clearAll();
-        await AppExitService.instance.exit();
-      } catch (_) {
-        if (!mounted) return;
-        _showErrorBar('清除失败，请确认系统安全存储可用');
-      }
-    }
   }
 }

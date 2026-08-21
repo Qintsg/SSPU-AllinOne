@@ -1,0 +1,81 @@
+/*
+ * 第二课堂积分规则页设计参考样式。
+ * @Project : SSPU-AllinOne
+ * @File : _student-report-rules-reference.css
+ * @Author : Qintsg
+ * @Date : 2026-08-14
+ */
+
+.reference-student-rules-layout { min-width: 0; display: grid; grid-template-columns: minmax(220px, .72fr) minmax(0, 1.28fr); align-items: start; gap: var(--space-m); }
+.reference-student-rules-summary, .reference-student-rule-category, .reference-student-rules-empty { border: var(--layout-control-border) solid var(--border); border-radius: var(--radius-m); background: var(--surface); }
+.reference-student-rules-summary { min-width: 0; padding: var(--space-l); }
+.reference-student-rules-summary > small, .reference-student-rule-category header small, .reference-student-rules-empty > small { color: var(--service-secondclass); font-size: var(--type-caption); font-weight: var(--weight-h3); }
+.reference-student-rules-total { margin-top: var(--space-s); display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-s); }
+.reference-student-rules-total strong { font-size: var(--type-display); line-height: var(--line-height-display); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.reference-student-rules-total span { color: var(--service-secondclass); font-size: var(--type-small); font-weight: var(--weight-h3); white-space: nowrap; }
+.reference-student-rules-progress, .reference-student-rule-progress { height: var(--space-s); overflow: hidden; border-radius: var(--radius-full); background: var(--sunken); }
+.reference-student-rules-progress { margin-top: var(--space-m); }
+.reference-student-rules-progress i, .reference-student-rule-progress i { height: 100%; border-radius: inherit; background: var(--service-secondclass); display: block; }
+.reference-student-rules-progress i { width: 85%; }
+.reference-student-rule-progress i { width: var(--rule-progress); }
+.reference-student-rules-summary > p { margin: var(--space-s) 0 0; color: var(--muted); font-size: var(--type-small); line-height: var(--line-height-small); }
+.reference-student-rules-nav { margin-top: var(--space-l); border-top: var(--layout-divider) solid var(--border); display: flex; flex-direction: column; }
+.reference-student-rules-nav button { min-height: var(--minimum-target); padding: var(--space-s) 0; border: 0; border-bottom: var(--layout-divider) solid var(--border); border-radius: 0; background: transparent; color: var(--fg); display: flex; align-items: center; gap: var(--space-s); text-align: left; }
+.reference-student-rules-nav button > span { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: var(--space-xs); }
+.reference-student-rules-nav button small { color: var(--muted); font-size: var(--type-caption); }
+.reference-student-rules-nav button b { color: var(--muted); font-size: var(--type-small); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.reference-student-rules-nav button[aria-selected='true'] { color: var(--service-secondclass); }
+.reference-student-rules-nav button[aria-selected='true']::before { width: var(--space-xs); height: calc(var(--minimum-target) - var(--space-m)); border-radius: var(--radius-full); background: var(--service-secondclass); content: ''; }
+.reference-student-rules-nav button[aria-selected='true'] b { color: inherit; }
+.reference-student-rule-category { min-width: 0; padding: var(--space-l); }
+.reference-student-rule-category header { display: flex; align-items: flex-end; gap: var(--space-m); }
+.reference-student-rule-category header > div { min-width: 0; flex: 1; }
+.reference-student-rule-category h2 { margin: var(--space-xs) 0 0; font-size: var(--type-h2); line-height: var(--line-height-h2); }
+.reference-student-rule-category header > span { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-xs); text-align: right; }
+.reference-student-rule-category header > span strong { color: var(--service-secondclass); font-size: var(--type-h3); font-variant-numeric: tabular-nums; }
+.reference-student-rule-category header > span small { color: var(--muted); }
+.reference-student-rule-category.is-success header > span strong { color: var(--success); }
+.reference-student-rule-progress { margin-top: var(--space-m); height: var(--space-xs); }
+.reference-student-rule-category.is-success .reference-student-rule-progress i { background: var(--success); }
+.reference-student-rule-row { min-height: calc(var(--minimum-target) + var(--space-l)); padding: var(--space-m) 0; border-top: var(--layout-divider) solid var(--border); display: flex; align-items: center; gap: var(--space-m); }
+.reference-student-rule-progress + .reference-student-rule-row { margin-top: var(--space-m); }
+.reference-student-rule-row > div { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: var(--space-xs); }
+.reference-student-rule-row small { color: var(--muted); font-size: var(--type-caption); line-height: var(--line-height-caption); }
+.reference-student-rule-row > span { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-xs); text-align: right; white-space: nowrap; }
+.reference-student-rule-row > span strong { color: var(--service-secondclass); font-size: var(--type-h3); font-variant-numeric: tabular-nums; }
+.reference-student-rules-compact { display: none; }
+.reference-student-rules-empty { width: min(100%, var(--layout-form-content-width)); padding: var(--space-l); }
+.reference-student-rules-empty h2 { margin: var(--space-s) 0 0; font-size: var(--type-h2); line-height: var(--line-height-h2); }
+.reference-student-rules-empty p { max-width: calc(var(--control-regular) * 10); margin: var(--space-s) 0 0; color: var(--muted); line-height: var(--line-height-body); }
+.reference-student-rules-empty > div { min-height: var(--minimum-target); margin-top: var(--space-l); padding-top: var(--space-s); border-top: var(--layout-divider) solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: var(--space-m); }
+.reference-student-rules-empty > div span { color: var(--muted); font-size: var(--type-small); }
+
+@media (max-width: 767px) {
+  .reference-student-rules-layout { display: block; }
+  .reference-student-rules-summary { padding: var(--space-m); }
+  .reference-student-rules-total strong { font-size: var(--type-h1); line-height: var(--line-height-h1); }
+  .reference-student-rules-nav, .reference-student-rules-detail { display: none; }
+  .reference-student-rules-compact { margin-top: var(--space-m); border: var(--layout-control-border) solid var(--border); border-radius: var(--radius-m); background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
+  .reference-student-rules-compact .reference-student-rule-category { padding: var(--space-m); border: 0; border-radius: 0; background: transparent; }
+  .reference-student-rules-compact .reference-student-rule-category + .reference-student-rule-category { border-top: var(--layout-divider) solid var(--border); }
+  .reference-student-rule-category header { align-items: center; }
+  .reference-student-rule-row { align-items: flex-start; }
+  .reference-student-rules-empty { padding: var(--space-m); }
+}
+
+@media (min-width: 768px) and (max-width: 899px) {
+  .reference-student-rules-total { align-items: flex-start; flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .reference-student-rules-detail .reference-student-rule-category:not([hidden]) { animation: reference-student-rule-enter var(--duration-base) var(--curve); }
+}
+
+@keyframes reference-student-rule-enter {
+  from { opacity: 0; transform: translateY(var(--space-xs)); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reference-student-rules-detail .reference-student-rule-category { animation-duration: 0s; transform: none; }
+}

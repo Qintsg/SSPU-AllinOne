@@ -6,12 +6,7 @@
  * @Date : 2026-04-17
  */
 
-import 'package:flutter/services.dart';
-
-import '../design/fluent_ui.dart';
-import '../theme/app_motion.dart';
-import '../theme/app_shapes.dart';
-import '../theme/app_spacing.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import 'responsive_layout.dart';
 
 /// 可选的自动刷新间隔（分钟 => 显示文本）。
@@ -33,46 +28,39 @@ Widget buildIntervalSelector({
   required bool enabled,
   required Future<void> Function(int minutes) onChanged,
 }) {
-  final colors = context.fluentColors;
-  final type = context.fluentType;
-  final disabledColor = colors.neutralForegroundDisabled;
+  final theme = context.yhTheme;
+  final foreground = enabled ? theme.color.muted : theme.color.border;
 
   return Padding(
-    padding: const EdgeInsetsDirectional.only(
-      start: AppSpacing.xl,
-      top: AppSpacing.sm,
+    padding: EdgeInsetsDirectional.only(
+      start: theme.spacing.xl,
+      top: theme.spacing.s,
     ),
     child: Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.sm,
+      spacing: theme.spacing.s,
+      runSpacing: theme.spacing.s,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Icon(
-          FluentIcons.sync,
-          size: 20,
-          color: enabled ? colors.neutralForeground2 : disabledColor,
-        ),
-        Text(
-          '自动刷新：',
-          style: type.caption1.copyWith(
-            color: enabled ? colors.neutralForeground2 : disabledColor,
+        Icon(YhIcons.sync, size: 20, color: foreground),
+        SizedBox(
+          width: theme.spacing.xl2 * 3,
+          child: YhSelect<int>(
+            label: '自动刷新',
+            showLabel: false,
+            value: kIntervalOptions.containsKey(currentValue)
+                ? currentValue
+                : 0,
+            options: [
+              for (final entry in kIntervalOptions.entries)
+                YhSelectOption<int>(value: entry.key, label: entry.value),
+            ],
+            enabled: enabled,
+            onChanged: enabled
+                ? (value) {
+                    if (value != null) onChanged(value);
+                  }
+                : null,
           ),
-        ),
-        FluentSelect<int>(
-          value: kIntervalOptions.containsKey(currentValue) ? currentValue : 0,
-          items: kIntervalOptions.entries
-              .map(
-                (entry) => FluentSelectItem<int>(
-                  value: entry.key,
-                  child: Text(entry.value),
-                ),
-              )
-              .toList(),
-          onChanged: enabled
-              ? (value) {
-                  if (value != null) onChanged(value);
-                }
-              : null,
         ),
       ],
     ),
@@ -87,20 +75,14 @@ Widget buildSettingsNavItem({
   required IconData icon,
   required String label,
   required VoidCallback onTap,
-}) {
-  final isSelected = index == selectedIndex;
-  final colors = context.fluentColors;
-  final type = context.fluentType;
-
-  return _SettingsNavItem(
-    isSelected: isSelected,
-    icon: icon,
-    label: label,
-    onTap: onTap,
-    colors: colors,
-    type: type,
-  );
-}
+  bool autofocus = false,
+}) => _SettingsNavItem(
+  isSelected: index == selectedIndex,
+  icon: icon,
+  label: label,
+  onTap: onTap,
+  autofocus: autofocus,
+);
 
 class _SettingsNavItem extends StatelessWidget {
   const _SettingsNavItem({
@@ -108,161 +90,89 @@ class _SettingsNavItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
-    required this.colors,
-    required this.type,
+    this.autofocus = false,
   });
 
   final bool isSelected;
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final FluentColors colors;
-  final FluentTypography type;
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
+    final theme = context.yhTheme;
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final duration = theme.motion.effective(
+      theme.motion.fast,
+      disableAnimations: disableAnimations,
+    );
+    return YhPressable(
+      semanticLabel: label,
       selected: isSelected,
-      child: HoverButton(
-        cursor: SystemMouseCursors.click,
-        onPressed: onTap,
-        semanticLabel: label,
-        shortcuts: const <ShortcutActivator, Intent>{
-          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
-          SingleActivator(LogicalKeyboardKey.numpadEnter): ActivateIntent(),
-          SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
-        },
-        builder: (context, states) {
-          final style = _resolveSettingsNavItemStyle(
-            context: context,
-            colors: colors,
-            type: type,
-            states: states,
-            isSelected: isSelected,
-          );
-
-          return SizedBox(
-            width: double.infinity,
-            child: AnimatedContainer(
-              duration: AppMotion.short,
-              padding: const EdgeInsetsDirectional.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm,
-              ),
-              decoration: BoxDecoration(
-                color: style.background,
-                borderRadius: AppShapes.md,
-                border: Border.all(color: style.border, width: 2),
-              ),
-              child: Row(
-                children: [
-                  AnimatedContainer(
-                    duration: AppMotion.short,
-                    width: 4,
-                    height: 24,
-                    margin: const EdgeInsetsDirectional.only(
-                      end: AppSpacing.sm,
-                    ),
-                    decoration: BoxDecoration(
-                      color: style.indicator,
-                      borderRadius: AppShapes.xs,
+      autofocus: autofocus,
+      onPressed: onTap,
+      builder: (context, state, child) {
+        final selectedBackground = state.hovered
+            ? theme.color.brand.withValues(alpha: 0.20)
+            : theme.color.brandTint;
+        final background = isSelected
+            ? selectedBackground
+            : state.hovered
+            ? theme.color.sunken
+            : theme.color.surface.withValues(alpha: 0);
+        final foreground = isSelected
+            ? theme.color.brandInk
+            : theme.color.muted;
+        return SizedBox(
+          width: double.infinity,
+          child: AnimatedContainer(
+            duration: duration,
+            curve: theme.motion.curve,
+            padding: EdgeInsetsDirectional.symmetric(
+              horizontal: theme.spacing.m,
+              vertical: theme.spacing.s,
+            ),
+            decoration: BoxDecoration(
+              color: background,
+              borderRadius: BorderRadius.circular(theme.radius.s),
+            ),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: duration,
+                  width: theme.spacing.xs,
+                  height: theme.spacing.l,
+                  margin: EdgeInsetsDirectional.only(end: theme.spacing.s),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? theme.color.brandStrong
+                        : theme.color.surface.withValues(alpha: 0),
+                    borderRadius: BorderRadius.circular(theme.radius.full),
+                  ),
+                ),
+                Icon(icon, color: foreground),
+                SizedBox(width: theme.spacing.s),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: theme.typography.body.copyWith(
+                      color: foreground,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                     ),
                   ),
-                  Icon(icon, color: style.foreground),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(child: Text(label, style: style.labelStyle)),
-                ],
-              ),
+                ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
+      child: const SizedBox.shrink(),
     );
   }
-}
-
-class _SettingsNavItemStyle {
-  const _SettingsNavItemStyle({
-    required this.background,
-    required this.border,
-    required this.indicator,
-    required this.foreground,
-    required this.labelStyle,
-  });
-
-  /// 导航项背景色。
-  final Color background;
-
-  /// 导航项焦点描边色。
-  final Color border;
-
-  /// 选中指示条颜色。
-  final Color indicator;
-
-  /// 图标前景色。
-  final Color foreground;
-
-  /// 标签文本样式。
-  final TextStyle labelStyle;
-}
-
-/// 根据 Fluent 交互状态解析设置导航项视觉。
-_SettingsNavItemStyle _resolveSettingsNavItemStyle({
-  required BuildContext context,
-  required FluentColors colors,
-  required FluentTypography type,
-  required Set<WidgetState> states,
-  required bool isSelected,
-}) {
-  final resources = FluentTheme.of(context).resources;
-
-  if (states.isDisabled) {
-    return _SettingsNavItemStyle(
-      background: Colors.transparent,
-      border: Colors.transparent,
-      indicator: Colors.transparent,
-      foreground: colors.neutralForegroundDisabled,
-      labelStyle: type.body1.copyWith(color: colors.neutralForegroundDisabled),
-    );
-  }
-
-  final background = _resolveSettingsNavItemBackground(
-    resources: resources,
-    states: states,
-    isSelected: isSelected,
-  );
-  final foreground = isSelected
-      ? colors.brandForeground1
-      : colors.neutralForeground2;
-
-  return _SettingsNavItemStyle(
-    background: background,
-    border: states.isFocused ? colors.brandStroke1 : Colors.transparent,
-    indicator: isSelected ? colors.brandBackground : Colors.transparent,
-    foreground: foreground,
-    labelStyle: isSelected
-        ? type.body1Strong.copyWith(color: foreground)
-        : type.body1.copyWith(color: foreground),
-  );
-}
-
-/// 对齐 `NavigationPane` 普通导航项的浅色背景状态。
-Color _resolveSettingsNavItemBackground({
-  required ResourceDictionary resources,
-  required Set<WidgetState> states,
-  required bool isSelected,
-}) {
-  if (isSelected) {
-    return states.isHovered || states.isPressed
-        ? resources.subtleFillColorTertiary
-        : resources.subtleFillColorSecondary;
-  }
-
-  if (states.isPressed) return resources.subtleFillColorTertiary;
-  if (states.isHovered) return resources.subtleFillColorSecondary;
-
-  return resources.subtleFillColorTransparent;
 }
 
 /// 构建数值设置框。
@@ -274,18 +184,17 @@ Widget buildCountNumberBox({
   required bool enabled,
   required ValueChanged<int> onChanged,
 }) {
-  final colors = context.fluentColors;
-  final type = context.fluentType;
-  final foreground = enabled
-      ? colors.neutralForeground2
-      : colors.neutralForegroundDisabled;
+  final theme = context.yhTheme;
+  final foreground = enabled ? theme.color.muted : theme.color.border;
 
   Widget numberField() => SizedBox(
-    width: 128,
-    child: FluentNumberBox(
+    width: theme.layout.settingsIndicatorWidth,
+    child: YhNumberField(
+      label: label,
+      showLabel: false,
       value: value,
       enabled: enabled,
-      suffixText: '条',
+      suffix: '条',
       min: 1,
       max: 200,
       onChanged: onChanged,
@@ -298,16 +207,16 @@ Widget buildCountNumberBox({
       final shouldStack = shouldStackSettingsControls(constraints);
       if (shouldStack) {
         return ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 340),
+          constraints: BoxConstraints(maxWidth: theme.layout.formFieldWidth),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 '$label：',
-                style: type.caption1.copyWith(color: foreground),
+                style: theme.typography.small.copyWith(color: foreground),
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              SizedBox(height: theme.spacing.xs),
               numberField(),
             ],
           ),
@@ -315,17 +224,17 @@ Widget buildCountNumberBox({
       }
 
       return ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 340),
+        constraints: BoxConstraints(maxWidth: theme.layout.formFieldWidth),
         child: Row(
           children: [
             Expanded(
               child: Text(
                 '$label：',
-                style: type.caption1.copyWith(color: foreground),
+                style: theme.typography.small.copyWith(color: foreground),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: AppSpacing.sm),
+            SizedBox(width: theme.spacing.s),
             numberField(),
           ],
         ),
@@ -342,22 +251,28 @@ Widget buildResponsiveSettingsRow({
   required Widget subtitle,
   required Widget trailing,
   Color? iconColor,
+  bool stackTrailing = true,
+  bool hideIconOnCompact = false,
 }) {
-  final colors = context.fluentColors;
+  final theme = context.yhTheme;
   return LayoutBuilder(
     builder: (context, constraints) {
       final shouldStack = shouldStackSettingsControls(constraints);
+      final hideIcon =
+          hideIconOnCompact && constraints.maxWidth < theme.breakpoint.compact;
       final leading = Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: iconColor ?? colors.brandForeground1),
-          const SizedBox(width: AppSpacing.md),
+          if (!hideIcon) ...[
+            Icon(icon, color: iconColor ?? theme.color.brandStrong),
+            SizedBox(width: theme.spacing.m),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 title,
-                const SizedBox(height: AppSpacing.xs),
+                SizedBox(height: theme.spacing.xs),
                 subtitle,
               ],
             ),
@@ -365,14 +280,14 @@ Widget buildResponsiveSettingsRow({
         ],
       );
 
-      if (shouldStack) {
+      if (shouldStack && stackTrailing) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             leading,
-            const SizedBox(height: AppSpacing.sm),
+            SizedBox(height: theme.spacing.s),
             Padding(
-              padding: const EdgeInsetsDirectional.only(start: AppSpacing.xxl),
+              padding: EdgeInsetsDirectional.only(start: theme.spacing.xl2),
               child: trailing,
             ),
           ],
@@ -382,7 +297,7 @@ Widget buildResponsiveSettingsRow({
       return Row(
         children: [
           Expanded(child: leading),
-          const SizedBox(width: AppSpacing.md),
+          SizedBox(width: theme.spacing.m),
           trailing,
         ],
       );
@@ -398,39 +313,52 @@ Widget buildTimePicker({
   required int minute,
   required Future<void> Function(int h, int m) onChanged,
 }) {
-  final type = context.fluentType;
+  final theme = context.yhTheme;
 
   return Wrap(
-    spacing: AppSpacing.xs,
-    runSpacing: AppSpacing.xs,
+    spacing: theme.spacing.xs,
+    runSpacing: theme.spacing.xs,
     crossAxisAlignment: WrapCrossAlignment.center,
     children: [
-      Text('$label ', style: type.caption1),
-      FluentSelect<int>(
-        value: hour,
-        items: List.generate(
-          24,
-          (h) => FluentSelectItem<int>(
-            value: h,
-            child: Text(h.toString().padLeft(2, '0')),
+      Text('$label ', style: theme.typography.small),
+      SizedBox(
+        width: theme.spacing.xl2 * 2,
+        child: YhSelect<int>(
+          label: '$label小时',
+          showLabel: false,
+          value: hour,
+          options: List.generate(
+            24,
+            (h) => YhSelectOption<int>(
+              value: h,
+              label: h.toString().padLeft(2, '0'),
+            ),
           ),
+          onChanged: (h) {
+            if (h != null) onChanged(h, minute);
+          },
         ),
-        onChanged: (h) {
-          if (h != null) onChanged(h, minute);
-        },
       ),
-      Text(':', style: type.body1Strong),
-      FluentSelect<int>(
-        value: [0, 15, 30, 45].contains(minute) ? minute : 0,
-        items: const [
-          FluentSelectItem(value: 0, child: Text('00')),
-          FluentSelectItem(value: 15, child: Text('15')),
-          FluentSelectItem(value: 30, child: Text('30')),
-          FluentSelectItem(value: 45, child: Text('45')),
-        ],
-        onChanged: (m) {
-          if (m != null) onChanged(hour, m);
-        },
+      Text(
+        ':',
+        style: theme.typography.body.copyWith(fontWeight: FontWeight.w600),
+      ),
+      SizedBox(
+        width: theme.spacing.xl2 * 2,
+        child: YhSelect<int>(
+          label: '$label分钟',
+          showLabel: false,
+          value: [0, 15, 30, 45].contains(minute) ? minute : 0,
+          options: const [
+            YhSelectOption(value: 0, label: '00'),
+            YhSelectOption(value: 15, label: '15'),
+            YhSelectOption(value: 30, label: '30'),
+            YhSelectOption(value: 45, label: '45'),
+          ],
+          onChanged: (m) {
+            if (m != null) onChanged(hour, m);
+          },
+        ),
       ),
     ],
   );
@@ -445,27 +373,31 @@ Widget buildChannelToggle({
   required bool value,
   required ValueChanged<bool> onChanged,
 }) {
-  final colors = context.fluentColors;
-  final type = context.fluentType;
+  final theme = context.yhTheme;
 
   return Row(
     children: [
-      Icon(icon, color: colors.brandForeground1),
-      const SizedBox(width: AppSpacing.md),
+      Icon(icon, color: theme.color.brandStrong),
+      SizedBox(width: theme.spacing.m),
       Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: type.body1Strong),
-            const SizedBox(height: AppSpacing.xs),
+            Text(
+              title,
+              style: theme.typography.body.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: theme.spacing.xs),
             Text(
               subtitle,
-              style: type.caption1.copyWith(color: colors.neutralForeground2),
+              style: theme.typography.small.copyWith(color: theme.color.muted),
             ),
           ],
         ),
       ),
-      FluentSwitch(value: value, onChanged: onChanged),
+      YhSwitch(value: value, semanticLabel: title, onChanged: onChanged),
     ],
   );
 }
@@ -482,17 +414,13 @@ Widget buildNavTab({
   final isSelected = selectedIndex == index;
 
   return Padding(
-    padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.xs),
-    child: isSelected
-        ? FluentButton.secondaryIcon(
-            onPressed: onTap,
-            icon: Icon(icon),
-            label: Text(label),
-          )
-        : FluentButton.transparentIcon(
-            onPressed: onTap,
-            icon: Icon(icon),
-            label: Text(label),
-          ),
+    padding: EdgeInsetsDirectional.only(bottom: context.yhTheme.spacing.xs),
+    child: YhButton(
+      label: label,
+      onTap: onTap,
+      leadingIcon: icon,
+      variant: isSelected ? YhButtonVariant.secondary : YhButtonVariant.text,
+      minWidth: double.infinity,
+    ),
   );
 }

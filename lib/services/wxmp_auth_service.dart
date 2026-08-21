@@ -53,6 +53,19 @@ class WxmpAuthStatus {
   }
 }
 
+/// 重新认证前的本机凭据快照，用于候选凭据校验失败时恢复原连接。
+class WxmpAuthSnapshot {
+  const WxmpAuthSnapshot({
+    required this.cookie,
+    required this.token,
+    required this.lastUpdate,
+  });
+
+  final String? cookie;
+  final String? token;
+  final DateTime? lastUpdate;
+}
+
 /// 微信公众号平台认证服务（单例）
 /// 负责 Cookie 和 Token 的存储、读取、校验和清除
 class WxmpAuthService {
@@ -74,6 +87,41 @@ class WxmpAuthService {
       _keyLastUpdate,
       DateTime.now().millisecondsSinceEpoch,
     );
+    await _configService.updateAuthCredentials(cookie: cookie, token: token);
+  }
+
+  /// 读取重新认证前的完整本机状态，不向页面暴露具体凭据。
+  Future<WxmpAuthSnapshot> captureAuth() async {
+    return WxmpAuthSnapshot(
+      cookie: await getCookie(),
+      token: await getToken(),
+      lastUpdate: await getLastUpdate(),
+    );
+  }
+
+  /// 恢复候选认证写入前的状态；用于保证二次登录具备事务语义。
+  Future<void> restoreAuth(WxmpAuthSnapshot snapshot) async {
+    final cookie = snapshot.cookie?.trim() ?? '';
+    final token = snapshot.token?.trim() ?? '';
+    if (cookie.isEmpty) {
+      await StorageService.remove(_keyCookie);
+    } else {
+      await StorageService.setString(_keyCookie, cookie);
+    }
+    if (token.isEmpty) {
+      await StorageService.remove(_keyToken);
+    } else {
+      await StorageService.setString(_keyToken, token);
+    }
+    final lastUpdate = snapshot.lastUpdate;
+    if (lastUpdate == null) {
+      await StorageService.remove(_keyLastUpdate);
+    } else {
+      await StorageService.setInt(
+        _keyLastUpdate,
+        lastUpdate.millisecondsSinceEpoch,
+      );
+    }
     await _configService.updateAuthCredentials(cookie: cookie, token: token);
   }
 

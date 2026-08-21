@@ -1,16 +1,14 @@
 /*
- * 响应式布局工具组件 — 根据 Fluent 2 窗口宽度等级切换布局策略
+ * 响应式布局工具组件 — 根据清源窗口宽度等级切换布局策略
  * @Project : SSPU-AllinOne
  * @File : responsive_layout.dart
  * @Author : Qintsg
  * @Date : 2026-04-19
  */
 
-import 'package:flutter/widgets.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
-import '../theme/app_breakpoints.dart';
-import '../theme/app_spacing.dart';
-import '../theme/fluent_tokens.dart' show DeviceType;
+enum DeviceType { phone, tablet, desktop }
 
 /// 响应式布局构建器。
 /// 根据可用宽度自动判断设备类型，回调 [builder] 传入设备类型与约束。
@@ -54,29 +52,26 @@ class ResponsivePadding extends StatelessWidget {
   }
 }
 
-/// 根据宽度返回 Fluent 2 设备类型。
+/// 根据宽度返回清源设备类型。
 DeviceType deviceTypeFromWidth(double width) {
-  return switch (AppBreakpoints.fromWidth(width)) {
-    WindowSizeClass.compact => DeviceType.phone,
-    WindowSizeClass.medium || WindowSizeClass.expanded => DeviceType.tablet,
-    WindowSizeClass.large || WindowSizeClass.extraLarge => DeviceType.desktop,
-  };
+  final breakpoints = YhTheme.light.breakpoint;
+  if (width < breakpoints.compact) return DeviceType.phone;
+  if (width < breakpoints.expanded) return DeviceType.tablet;
+  return DeviceType.desktop;
 }
 
 /// 根据设备类型返回页面内容边距。
 EdgeInsets responsivePagePadding(DeviceType deviceType, {double vertical = 0}) {
   final horizontal = switch (deviceType) {
-    DeviceType.phone => AppSpacing.md,
-    DeviceType.tablet => AppSpacing.lg,
-    DeviceType.desktop => AppSpacing.lg,
+    DeviceType.phone => YhTheme.light.spacing.m,
+    DeviceType.tablet || DeviceType.desktop => YhTheme.light.spacing.l,
   };
   return EdgeInsets.symmetric(horizontal: horizontal, vertical: vertical);
 }
 
 /// 窄屏时是否应将设置行的尾部控件堆叠到下一行。
 bool shouldStackSettingsControls(BoxConstraints constraints) {
-  return AppBreakpoints.fromWidth(constraints.maxWidth) ==
-      WindowSizeClass.compact;
+  return constraints.maxWidth < YhTheme.light.breakpoint.compact;
 }
 
 /// 响应式网格列数 — 根据设备类型返回合适的列数。

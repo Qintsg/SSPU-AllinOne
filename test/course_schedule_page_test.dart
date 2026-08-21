@@ -6,7 +6,10 @@
  * @Date : 2026-05-02
  */
 
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'dart:async';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/models/academic_calendar.dart';
 import 'package:sspu_allinone/models/academic_eams.dart';
@@ -14,6 +17,7 @@ import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/models/course_period.dart';
 import 'package:sspu_allinone/pages/course_schedule_page.dart';
 import 'package:sspu_allinone/services/academic_calendar_service.dart';
+import 'package:sspu_allinone/services/academic_credentials_service.dart';
 import 'package:sspu_allinone/services/academic_eams_service.dart';
 import 'package:sspu_allinone/utils/course_week_parser.dart';
 
@@ -35,15 +39,17 @@ Future<void> pumpCourseSchedulePage(
   AcademicEamsQueryResult? initialResult,
   bool autoRefreshEnabledOverride = false,
   int autoRefreshIntervalOverride = 30,
+  DateTime? nowOverride,
   AcademicCalendarClient? academicCalendarService,
 }) async {
   await tester.pumpWidget(
-    FluentApp(
+    YhApp(
       home: CourseSchedulePage(
         academicEamsService: academicEamsService,
         initialResult: initialResult,
         autoRefreshEnabledOverride: autoRefreshEnabledOverride,
         autoRefreshIntervalOverride: autoRefreshIntervalOverride,
+        nowOverride: nowOverride,
         academicCalendarService: academicCalendarService,
       ),
     ),
@@ -83,12 +89,11 @@ void main() {
 
     expect(find.text('课程表'), findsOneWidget);
     expect(find.text('课程表说明'), findsNothing);
-    expect(find.text('本学期概览'), findsOneWidget);
-    expect(find.text('2025-2026 第2学期'), findsOneWidget);
-    expect(find.textContaining('自动刷新每 1 分钟运行一次'), findsOneWidget);
+    expect(find.text('2025–2026 第2学期'), findsOneWidget);
+    expect(find.text('1 门课程'), findsOneWidget);
     expect(find.text('高等数学'), findsOneWidget);
-    expect(find.text('周一'), findsOneWidget);
-    expect(find.textContaining('08:00-09:35'), findsOneWidget);
+    expect(find.text('周一'), findsWidgets);
+    expect(find.text('08:00'), findsOneWidget);
     expect(find.text('返回'), findsNothing);
     expect(service.courseTableFetchCount, 1);
 
@@ -96,6 +101,141 @@ void main() {
     await tester.pump();
 
     expect(service.courseTableFetchCount, 2);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表原地刷新单飞且失败保留星期选择与当前课程', (tester) async {
+    final completion = Completer<AcademicEamsQueryResult>();
+    final service = _FakeAcademicEamsClient(
+      result: _missingPassword,
+      pendingCourseTable: completion,
+    );
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      initialResult: _successResult,
+      nowOverride: DateTime(2026, 5, 4),
+    );
+    await tester.pump();
+
+    final refresh = find.byKey(const Key('course-schedule-refresh'));
+    await tester.tap(refresh);
+    await tester.pump();
+    await tester.tap(refresh);
+    await tester.pump();
+
+    expect(service.courseTableFetchCount, 1);
+    expect(find.text('高等数学'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is YhTabs<int> && widget.value == 1,
+      ),
+      findsOneWidget,
+    );
+
+    completion.complete(_missingPassword);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('高等数学'), findsOneWidget);
+    expect(find.textContaining('请先保存 OA 账号密码'), findsOneWidget);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表操作锁期间保留内容且重复行动不产生第二个请求', (tester) async {
+    final completion = Completer<AcademicEamsQueryResult>();
+    final service = _FakeAcademicEamsClient(
+      result: _successResult,
+      pendingCourseTable: completion,
+    );
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      initialResult: _successResult,
+      nowOverride: DateTime(2026, 5, 4),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('course-schedule-refresh')));
+    await tester.pump();
+
+    expect(find.text('正在刷新…'), findsOneWidget);
+    expect(find.text('高等数学'), findsOneWidget);
+    expect(find.textContaining('星期选择和校历入口保持可用'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is YhTabs<int> && widget.value == 1,
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('course-schedule-refresh')));
+    await tester.pump();
+    expect(service.courseTableFetchCount, 1);
+
+    completion.complete(_successResult);
+    await tester.pump();
+    await tester.pump();
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表凭据换代立即解除刷新且旧结果不得回写', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final completion = Completer<AcademicEamsQueryResult>();
+    final service = _FakeAcademicEamsClient(
+      result: _successResult,
+      pendingCourseTable: completion,
+    );
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      initialResult: _successResult,
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('course-schedule-refresh')));
+    await tester.pump();
+    expect(find.text('高等数学'), findsOneWidget);
+
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260002',
+      oaPassword: 'new-password',
+      sportsQueryPassword: 'new-sports-password',
+    );
+    await tester.pump();
+    expect(find.text('高等数学'), findsNothing);
+
+    completion.complete(_successResult);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('高等数学'), findsNothing);
+    expect(find.text('准备读取课程表'), findsOneWidget);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表凭据换代后迟到的旧缓存不得重新进入页面', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final cachedCompletion = Completer<AcademicEamsQueryResult?>();
+    final service = _FakeAcademicEamsClient(
+      result: _successResult,
+      pendingCachedCourseTable: cachedCompletion,
+    );
+    await pumpCourseSchedulePage(tester, academicEamsService: service);
+    await tester.pump();
+
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260003',
+      oaPassword: 'replacement-password',
+    );
+    await tester.pump();
+
+    cachedCompletion.complete(_successResult);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('高等数学'), findsNothing);
+    expect(find.text('准备读取课程表'), findsOneWidget);
     await disposeCourseSchedulePage(tester);
   });
 
@@ -136,17 +276,17 @@ void main() {
 
   testWidgets('课程表页面作为二级页面打开时显示返回按钮', (tester) async {
     await tester.pumpWidget(
-      FluentApp(
+      YhApp(
         home: Navigator(
           onGenerateRoute: (_) =>
-              FluentPageRoute(builder: (_) => const SizedBox.shrink()),
+              YhPageRoute(builder: (_) => const SizedBox.shrink()),
         ),
       ),
     );
 
     final context = tester.element(find.byType(SizedBox));
     Navigator.of(context).push(
-      FluentPageRoute(
+      YhPageRoute(
         builder: (_) => CourseSchedulePage(
           academicEamsService: _FakeAcademicEamsClient(result: _successResult),
         ),
@@ -170,16 +310,32 @@ void main() {
     await tester.tap(find.byKey(const Key('open-academic-calendar')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
-    await pumpUntilFound(tester, find.text('2025-2026学年'));
+    await pumpUntilFound(tester, find.text('2025–2026 学年'));
 
     expect(find.text('校历'), findsWidgets);
-    expect(find.text('2025-2026学年'), findsWidgets);
-    expect(find.text('外部打开'), findsOneWidget);
+    expect(find.text('2025–2026 学年'), findsWidgets);
+    expect(find.bySemanticsLabel('外部打开校历 PDF'), findsOneWidget);
     expect(find.text('秋季学期'), findsNothing);
     await disposeCourseSchedulePage(tester);
   });
 
-  testWidgets('课程表概览隐藏无效培养计划并在窄屏自适应', (tester) async {
+  testWidgets('课程表紧凑端仍保留可触达的校历与文字刷新行动', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _successResult),
+      initialResult: _successResult,
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('open-academic-calendar')), findsOneWidget);
+    expect(find.text('刷新课表'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表页头推断缺失学期并在窄屏自适应', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
     await tester.binding.setSurfaceSize(const Size(390, 844));
@@ -197,25 +353,169 @@ void main() {
 
     expect(find.text('课程表说明'), findsNothing);
     expect(find.text('2025-2026 学年春季学期（按校历推断）'), findsOneWidget);
-    expect(find.textContaining('培养计划'), findsNothing);
-    expect(find.textContaining('0.0/0.0'), findsNothing);
+    expect(find.textContaining('周视图在桌面保持七天空间关系'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表可通过固定时钟锁定移动端当日选中态', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _successResult),
+      initialResult: _successResult,
+      nowOverride: DateTime(2026, 5, 4),
+    );
+    await pumpUntilFound(tester, find.text('高等数学'));
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is YhTabs<int> && widget.value == 1,
+      ),
+      findsOneWidget,
+    );
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表紧凑端日期带完整展示七天并保留完整语义', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _successResult),
+      initialResult: _successResult,
+      nowOverride: DateTime(2026, 5, 9),
+    );
+    await pumpUntilFound(tester, find.text('高等数学'));
+
+    for (final label in const ['周一', '周二', '周三', '周四', '周五', '今天', '周日']) {
+      expect(find.text(label), findsOneWidget);
+    }
+    expect(
+      find.descendant(
+        of: find.byType(YhTabs<int>),
+        matching: find.byType(SingleChildScrollView),
+      ),
+      findsNothing,
+    );
+    for (final semanticLabel in const [
+      '周一',
+      '周二',
+      '周三',
+      '周四',
+      '周五',
+      '周六，今天',
+      '周日',
+    ]) {
+      final target = find.byWidgetPredicate(
+        (widget) =>
+            widget is YhPressable && widget.semanticLabel == semanticLabel,
+      );
+      expect(target, findsOneWidget);
+      expect(tester.getSize(target).width, greaterThanOrEqualTo(48));
+      expect(tester.getSize(target).height, greaterThanOrEqualTo(48));
+    }
+
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) => widget is YhPressable && widget.semanticLabel == '周日',
+      ),
+    );
+    await tester.pump();
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is YhTabs<int> && widget.value == 7,
+      ),
+      findsOneWidget,
+    );
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表在成功返回空记录时展示明确空态', (tester) async {
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(
+        result: _successResultWithEmptyCourseTable,
+      ),
+      initialResult: _successResultWithEmptyCourseTable,
+    );
+    await tester.pump();
+
+    expect(find.text('本学期暂无课程'), findsOneWidget);
+    expect(find.textContaining('刚完成选课时'), findsOneWidget);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表空态可在原位置重新读取并恢复课程', (tester) async {
+    final service = _FakeAcademicEamsClient(result: _successResult);
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      initialResult: _successResultWithEmptyCourseTable,
+      nowOverride: DateTime(2026, 5, 4),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('schedule-state-primary')));
+    await tester.pumpAndSettle();
+
+    expect(service.courseTableFetchCount, 1);
+    expect(find.text('高等数学'), findsOneWidget);
+    expect(find.text('本学期暂无课程'), findsNothing);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('课程表页面退出后忽略尚未完成的读取结果', (tester) async {
+    final completion = Completer<AcademicEamsQueryResult>();
+    final service = _FakeAcademicEamsClient(
+      result: _successResult,
+      pendingCourseTable: completion,
+    );
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      initialResult: _successResult,
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('course-schedule-refresh')));
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
+
+    completion.complete(_successResult);
+    await tester.pump();
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
   });
 }
 
 class _FakeAcademicEamsClient implements AcademicEamsClient {
-  _FakeAcademicEamsClient({required this.result, this.cachedResult});
+  _FakeAcademicEamsClient({
+    required this.result,
+    this.cachedResult,
+    this.pendingCourseTable,
+    this.pendingCachedCourseTable,
+  });
 
   final AcademicEamsQueryResult result;
   final AcademicEamsQueryResult? cachedResult;
+  final Completer<AcademicEamsQueryResult>? pendingCourseTable;
+  final Completer<AcademicEamsQueryResult?>? pendingCachedCourseTable;
   int courseTableFetchCount = 0;
   int cachedCourseTableReadCount = 0;
 
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
     cachedCourseTableReadCount++;
-    return cachedResult;
+    return pendingCachedCourseTable?.future ?? cachedResult;
   }
 
   @override
@@ -245,7 +545,7 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
     bool requireCampusNetwork = true,
   }) async {
     courseTableFetchCount++;
-    return result;
+    return pendingCourseTable?.future ?? result;
   }
 
   @override
@@ -481,6 +781,35 @@ final AcademicEamsQueryResult _successResultWithEmptyProgramCompletion =
           completedCredits: 0,
           pendingCredits: 0,
           moduleProgress: [],
+        ),
+      ),
+    );
+
+final AcademicEamsQueryResult _successResultWithEmptyCourseTable =
+    AcademicEamsQueryResult(
+      status: AcademicEamsQueryStatus.success,
+      message: '本专科教务只读查询成功',
+      detail: '当前学期没有课程记录。',
+      checkedAt: DateTime(2026, 5, 2, 10, 0),
+      entranceUri: Uri.parse(
+        'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
+      ),
+      snapshot: AcademicEamsSnapshot(
+        fetchedAt: DateTime(2026, 5, 2, 10, 0),
+        sourceUri: Uri.parse(
+          'https://jx.sspu.edu.cn/eams/courseTableForStd.action',
+        ),
+        warnings: const [],
+        hasCourseOfferingEntry: true,
+        hasFreeClassroomEntry: true,
+        profile: _successResult.snapshot!.profile,
+        courseTable: AcademicCourseTableSnapshot(
+          termName: '2025-2026 第2学期',
+          entries: const [],
+          fetchedAt: DateTime(2026, 5, 2, 10, 0),
+          sourceUri: Uri.parse(
+            'https://jx.sspu.edu.cn/eams/courseTableForStd.action',
+          ),
         ),
       ),
     );

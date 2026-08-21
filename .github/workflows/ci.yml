@@ -118,6 +118,18 @@ jobs:
       - name: 校验 GitHub 治理配置
         run: python scripts/ci/validate_github_governance.py
 
+      - name: 测试清源设计契约校验器
+        run: python scripts/ci/test_validate_design_system.py
+
+      - name: 测试清源拆分样式校验器
+        run: python scripts/ci/test_validate_design_stylesheets.py
+
+      - name: 校验清源设计契约
+        run: python scripts/ci/validate_design_system.py
+
+      - name: 校验清源拆分样式加载链
+        run: python scripts/ci/validate_design_stylesheets.py
+
   lore-gate:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest

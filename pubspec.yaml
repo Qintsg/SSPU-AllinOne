@@ -34,10 +34,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  # 外部 Fluent UI 控件、主题与导航体系
-  fluent_ui: ^4.15.1
-
-  # Microsoft Fluent System Icons 图标库
+  # 清源语义图标门面的内部字形实现，业务页面不得直接导入
   fluentui_system_icons: ^1.1.273
 
   # 本地持久化存储，用于密码保护等设置
@@ -89,6 +86,11 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
+
+  # 视觉回归比较器：解码 PNG、生成差异热图。
+  image: ^4.8.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -102,11 +104,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
-  uses-material-design: true
 
   assets:
     - assets/images/logo.png

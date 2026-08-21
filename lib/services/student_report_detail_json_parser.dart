@@ -128,7 +128,7 @@ class _StudentReportDetailJsonParser {
     for (final key in keys.map(_normalizeKey)) {
       final rawValue = value[key];
       if (rawValue == null) continue;
-      final text = StudentReportPageParser._cleanText(rawValue.toString());
+      final text = _cleanText(rawValue.toString());
       if (text.isNotEmpty) return text;
     }
     return '';
@@ -139,7 +139,7 @@ class _StudentReportDetailJsonParser {
       final rawValue = value[key];
       if (rawValue == null) continue;
       if (rawValue is num) return rawValue.toDouble();
-      final parsed = StudentReportPageParser._parseNumber(rawValue.toString());
+      final parsed = _parseNumber(rawValue.toString());
       if (parsed != null) return parsed;
     }
     return null;

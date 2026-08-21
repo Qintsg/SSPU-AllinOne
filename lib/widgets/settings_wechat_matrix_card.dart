@@ -6,11 +6,9 @@
  * @Date : 2026-04-23
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 import '../models/sspu_wechat_accounts.dart';
-import '../theme/app_breakpoints.dart';
-import '../theme/app_spacing.dart';
 import '../utils/wechat_followed_account_matcher.dart';
 
 /// 微信矩阵卡片。
@@ -62,112 +60,110 @@ class SettingsWechatMatrixCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     final allAccountsFollowed = sspuWechatAccounts.every(
       (account) => findFollowedWechatAccount(account, followedMps) != null,
     );
 
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: AppSpacing.cardPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final shouldStack =
-                    AppBreakpoints.fromWidth(constraints.maxWidth) ==
-                    WindowSizeClass.compact;
-                final intro = _buildIntro(context);
-                final actions = _buildMatrixActions(
-                  context,
-                  showBatchFollow: !allAccountsFollowed,
-                  alignEnd: !shouldStack,
-                );
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final shouldStack =
+                  constraints.maxWidth < theme.breakpoint.compact;
+              final intro = _buildIntro(context);
+              final actions = _buildMatrixActions(
+                context,
+                showBatchFollow: !allAccountsFollowed,
+                alignEnd: !shouldStack,
+              );
 
-                if (shouldStack) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      intro,
-                      const SizedBox(height: AppSpacing.sm),
-                      actions,
-                    ],
-                  );
-                }
-
-                return Row(
+              if (shouldStack) {
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: intro),
-                    const SizedBox(width: AppSpacing.md),
+                    intro,
+                    SizedBox(height: theme.spacing.s),
                     actions,
                   ],
                 );
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final itemWidth = constraints.maxWidth < 420
-                    ? constraints.maxWidth
-                    : null;
-                return Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  children: sspuWechatAccounts.map((account) {
-                    final followed = findFollowedWechatAccount(
-                      account,
-                      followedMps,
-                    );
-                    final fakeid = followed?['fakeid'] ?? '';
-                    final enabled =
-                        fakeid.isNotEmpty &&
-                        (mpNotificationEnabled[fakeid] ?? true);
-                    final following = followingAccountId == account.wxAccount;
-                    final displayId = _resolveWechatAccountDisplayId(
-                      account,
-                      followed,
-                    );
+              }
 
-                    final toggleButton = _WechatAccountToggleButton(
-                      account: account,
-                      displayId: displayId,
-                      authenticated: authenticated,
-                      followed: followed != null,
-                      enabled: enabled,
-                      following: following,
-                      onToggle: (value) => onToggleAccount(account, value),
-                    );
-                    if (itemWidth == null) return toggleButton;
-                    return SizedBox(width: itemWidth, child: toggleButton);
-                  }).toList(),
-                );
-              },
-            ),
-          ],
-        ),
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: intro),
+                  SizedBox(width: theme.spacing.m),
+                  actions,
+                ],
+              );
+            },
+          ),
+          SizedBox(height: theme.spacing.m),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth = constraints.maxWidth < 420
+                  ? constraints.maxWidth
+                  : null;
+              return Wrap(
+                spacing: theme.spacing.s,
+                runSpacing: theme.spacing.s,
+                children: sspuWechatAccounts.map((account) {
+                  final followed = findFollowedWechatAccount(
+                    account,
+                    followedMps,
+                  );
+                  final fakeid = followed?['fakeid'] ?? '';
+                  final enabled =
+                      fakeid.isNotEmpty &&
+                      (mpNotificationEnabled[fakeid] ?? true);
+                  final following = followingAccountId == account.wxAccount;
+                  final displayId = _resolveWechatAccountDisplayId(
+                    account,
+                    followed,
+                  );
+
+                  final toggleButton = _WechatAccountToggleButton(
+                    account: account,
+                    displayId: displayId,
+                    authenticated: authenticated,
+                    followed: followed != null,
+                    enabled: enabled,
+                    following: following,
+                    onToggle: (value) => onToggleAccount(account, value),
+                  );
+                  if (itemWidth == null) return toggleButton;
+                  return SizedBox(width: itemWidth, child: toggleButton);
+                }).toList(),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
 
   /// 构建卡片简介。
   Widget _buildIntro(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
+    final theme = context.yhTheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.xs,
+          spacing: theme.spacing.s,
+          runSpacing: theme.spacing.xs,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Semantics(header: true, child: Text('微信矩阵', style: type.subtitle1)),
+            Semantics(
+              header: true,
+              child: Text('微信矩阵', style: theme.typography.h3),
+            ),
             Text(
               '来源：校园+微信矩阵 · 共 ${sspuWechatAccounts.length} 个',
-              style: type.caption1.copyWith(color: colors.neutralForeground2),
+              style: theme.typography.small.copyWith(color: theme.color.muted),
             ),
           ],
         ),
@@ -180,7 +176,7 @@ class SettingsWechatMatrixCard extends StatelessWidget {
     required bool showBatchFollow,
     required bool alignEnd,
   }) {
-    final type = context.fluentType;
+    final theme = context.yhTheme;
 
     return Column(
       crossAxisAlignment: alignEnd
@@ -188,43 +184,42 @@ class SettingsWechatMatrixCard extends StatelessWidget {
           : CrossAxisAlignment.start,
       children: [
         Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
+          spacing: theme.spacing.s,
+          runSpacing: theme.spacing.s,
           alignment: alignEnd ? WrapAlignment.end : WrapAlignment.start,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             if (showBatchFollow)
-              FluentButton.primaryIcon(
-                onPressed: !authenticated || batchFollowing
-                    ? null
-                    : onBatchFollow,
-                icon: batchFollowing
-                    ? const SizedBox.square(
-                        dimension: 20,
-                        child: FluentProgressRing(strokeWidth: 2),
-                      )
-                    : const Icon(FluentIcons.peopleAdd),
-                label: const Text('一键全部关注'),
+              YhButton(
+                label: batchFollowing ? '关注中' : '一键全部关注',
+                onTap: !authenticated || batchFollowing ? null : onBatchFollow,
+                disabled: !authenticated || batchFollowing,
+                leadingIcon: batchFollowing ? null : YhIcons.add,
               ),
-            FluentButton.primaryIcon(
-              icon: const Icon(FluentIcons.checkMark),
-              label: const Text('全部开启'),
-              onPressed: authenticated ? onEnableAll : null,
+            YhButton(
+              label: '全部开启',
+              leadingIcon: YhIcons.check,
+              onTap: authenticated ? onEnableAll : null,
+              disabled: !authenticated,
             ),
-            FluentButton.outlineIcon(
-              icon: const Icon(FluentIcons.blocked),
-              label: const Text('全部关闭'),
-              onPressed: authenticated ? onDisableAll : null,
+            YhButton(
+              label: '全部关闭',
+              leadingIcon: YhIcons.close,
+              onTap: authenticated ? onDisableAll : null,
+              disabled: !authenticated,
+              variant: YhButtonVariant.secondary,
             ),
           ],
         ),
         if (batchFollowing && batchProgress.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.xs),
+          SizedBox(height: theme.spacing.xs),
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 220),
+            constraints: BoxConstraints(
+              maxWidth: theme.layout.compactContentWidth,
+            ),
             child: Text(
               batchProgress,
-              style: type.caption1,
+              style: theme.typography.small,
               textAlign: alignEnd ? TextAlign.right : TextAlign.left,
               overflow: TextOverflow.ellipsis,
             ),
@@ -256,118 +251,109 @@ class _WechatAccountToggleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final motion = context.fluentMotion;
-    final radii = context.fluentRadii;
-    final stroke = context.fluentStroke;
-    final type = context.fluentType;
+    final theme = context.yhTheme;
     final active = authenticated && enabled;
     final disabled = !authenticated || following;
     final foreground = !authenticated
-        ? colors.neutralForegroundDisabled
+        ? theme.color.border
         : active
-        ? colors.brandForeground1
-        : colors.neutralForeground2;
-    final background = active
-        ? colors.brandStroke2.withValues(alpha: 0.35)
-        : colors.neutralBackground2;
-    final hoverBackground = active
-        ? colors.brandStroke2.withValues(alpha: 0.48)
-        : colors.neutralBackground1Hover;
-    final pressedBackground = active
-        ? colors.brandStroke2.withValues(alpha: 0.58)
-        : colors.neutralBackground1Pressed;
+        ? theme.color.brandInk
+        : theme.color.muted;
+    final background = active ? theme.color.brandTint : theme.color.sunken;
     final borderColor = !authenticated
-        ? colors.neutralStroke2
+        ? theme.color.border
         : active
-        ? colors.brandStroke1
-        : colors.neutralStroke1;
+        ? theme.color.brandStrong
+        : theme.color.border;
     final tooltipMessage = !authenticated
         ? '需先完成公众号平台认证'
         : followed
         ? '切换是否获取该公众号推文'
         : '切换后会自动关注并获取该公众号推文';
 
-    return Tooltip(
+    return YhTooltip(
       message: tooltipMessage,
-      child: Semantics(
-        button: true,
+      child: YhPressable(
+        semanticLabel: account.name,
         selected: active,
-        enabled: !disabled,
-        label: account.name,
-        child: HoverButton(
-          cursor: disabled
-              ? SystemMouseCursors.basic
-              : SystemMouseCursors.click,
-          onPressed: disabled ? null : () => onToggle(!active),
-          builder: (context, states) {
-            final resolvedBackground = states.isPressed
-                ? pressedBackground
-                : states.isHovered || states.isFocused
-                ? hoverBackground
-                : background;
-            return AnimatedContainer(
-              key: Key('wechat-matrix-toggle-${account.wxAccount}'),
-              duration: motion.durationFast,
-              constraints: const BoxConstraints(minHeight: 52, maxWidth: 320),
-              padding: const EdgeInsetsDirectional.only(
-                start: AppSpacing.sm,
-                top: AppSpacing.xs,
-                end: AppSpacing.md,
-                bottom: AppSpacing.xs,
+        onPressed: disabled ? null : () => onToggle(!active),
+        builder: (context, state, child) {
+          final overlayAlpha = state.pressed
+              ? 0.18
+              : state.hovered
+              ? 0.10
+              : 0.0;
+          return AnimatedContainer(
+            key: Key('wechat-matrix-toggle-${account.wxAccount}'),
+            duration: theme.motion.fast,
+            curve: theme.motion.curve,
+            constraints: BoxConstraints(
+              minHeight: theme.control.minimumTarget,
+              maxWidth: theme.layout.popoverWidth,
+            ),
+            padding: EdgeInsetsDirectional.only(
+              start: theme.spacing.s,
+              top: theme.spacing.xs,
+              end: theme.spacing.m,
+              bottom: theme.spacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: Color.alphaBlend(
+                theme.color.foreground.withValues(alpha: overlayAlpha),
+                background,
               ),
-              decoration: BoxDecoration(
-                color: resolvedBackground,
-                borderRadius: BorderRadius.circular(radii.circular),
-                border: Border.all(color: borderColor, width: stroke.thin),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _WechatAccountAvatar(
-                    account: account,
-                    foreground: foreground,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Flexible(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          account.name,
-                          style: type.body1Strong.copyWith(color: foreground),
-                          softWrap: true,
-                          maxLines: 2,
-                          overflow: TextOverflow.visible,
+              borderRadius: BorderRadius.circular(theme.radius.full),
+              border: Border.all(color: borderColor),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _WechatAccountAvatar(account: account, foreground: foreground),
+                SizedBox(width: theme.spacing.s),
+                Flexible(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        account.name,
+                        style: theme.typography.body.copyWith(
+                          color: foreground,
+                          fontWeight: FontWeight.w600,
                         ),
-                        Text(
-                          displayId,
-                          style: type.caption1.copyWith(color: foreground),
-                          softWrap: true,
-                          maxLines: 2,
-                          overflow: TextOverflow.visible,
+                        softWrap: true,
+                        maxLines: 2,
+                        overflow: TextOverflow.visible,
+                      ),
+                      Text(
+                        displayId,
+                        style: theme.typography.caption.copyWith(
+                          color: foreground,
                         ),
-                      ],
-                    ),
+                        softWrap: true,
+                        maxLines: 2,
+                        overflow: TextOverflow.visible,
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: AppSpacing.sm),
-                  if (following)
-                    const SizedBox.square(
-                      dimension: 18,
-                      child: FluentProgressRing(strokeWidth: 2),
-                    )
-                  else
-                    Icon(
-                      active ? FluentIcons.checkMark : FluentIcons.peopleAdd,
-                      size: 16,
-                      color: foreground,
-                    ),
-                ],
-              ),
-            );
-          },
-        ),
+                ),
+                SizedBox(width: theme.spacing.s),
+                if (following)
+                  SizedBox(
+                    width: theme.spacing.xl,
+                    child: const YhProgress(showPercent: false),
+                  )
+                else
+                  Icon(
+                    active ? YhIcons.check : YhIcons.add,
+                    size: theme.spacing.m,
+                    color: foreground,
+                  ),
+              ],
+            ),
+          );
+        },
+        child: const SizedBox.shrink(),
       ),
     );
   }
@@ -397,21 +383,21 @@ class _WechatAccountAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radii = context.fluentRadii;
+    final theme = context.yhTheme;
     final avatar = account.iconUrl.trim().isEmpty
-        ? Icon(FluentIcons.chat, size: 24, color: foreground)
+        ? Icon(YhIcons.chat, size: theme.spacing.l, color: foreground)
         : Image.network(
             account.iconUrl,
-            width: 32,
-            height: 32,
+            width: theme.spacing.xl,
+            height: theme.spacing.xl,
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) =>
-                Icon(FluentIcons.chat, size: 24, color: foreground),
+                Icon(YhIcons.chat, size: theme.spacing.l, color: foreground),
           );
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(radii.circular),
-      child: SizedBox.square(dimension: 32, child: avatar),
+      borderRadius: BorderRadius.circular(theme.radius.full),
+      child: SizedBox.square(dimension: theme.spacing.xl, child: avatar),
     );
   }
 }

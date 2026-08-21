@@ -9,345 +9,171 @@
 part of 'home_page.dart';
 
 extension _HomeCampusCardBalanceCard on _HomePageState {
-  /// 构建校园卡余额卡片。
-  Widget _buildCampusCardBalanceCard(BuildContext context) {
+  Widget _buildCampusCardBalanceCard(
+    BuildContext context, {
+    required bool compact,
+  }) {
+    final theme = context.yhTheme;
     final result = _campusCardResult;
     final snapshot = result?.snapshot;
-    final state = result == null
-        ? FluentDataState.degraded
-        : result.isSuccess
-        ? FluentDataState.ready
-        : FluentDataState.failed;
+    final state = _homeCampusCardState(result, snapshot);
+    final content = _homeCampusCardContent(state, result, snapshot);
+    final canOpenDetails =
+        (state == HomeCampusCardDisplayState.content ||
+            state == HomeCampusCardDisplayState.stale ||
+            state == HomeCampusCardDisplayState.operationLocked) &&
+        snapshot != null;
 
-    return FluentDashboardTile(
+    return _HomeOverviewCard(
       key: const Key('home-campus-card-balance-card'),
-      title: '校园卡余额',
-      icon: FluentIcons.money,
-      state: state,
-      accentColor: context.fluentAccents.finance,
-      actions: [
-        _CampusCardHeaderDetailAction(
-          label: '交易记录查询',
-          tooltip: snapshot == null ? '刷新后查看详情' : '交易记录查询',
-          onPressed: snapshot == null
-              ? null
-              : () => _openCampusCardDetail(snapshot),
-        ),
-      ],
-      footer: RefreshStatusLine(
-        label: _campusCardLastRefreshLabel(result),
-        labelStyle: FluentTheme.of(context).typography.caption?.copyWith(
-          color: FluentTheme.of(context).resources.textFillColorSecondary,
-        ),
-        actionReservedWidth: _campusCardRefreshController.feedback == null
-            ? 32
-            : 112,
-        action: RefreshFeedbackAction(
-          key: const Key('home-campus-card-refresh'),
-          tooltip: '刷新校园卡余额',
-          semanticLabel: '刷新校园卡余额',
-          isLoading: _campusCardRefreshController.isLoading,
-          feedback: _campusCardRefreshController.feedback,
-          onPressed: _loadCampusCard,
-          minTouchSize: 32,
-          size: 28,
-          iconSize: 15,
-          maxFeedbackWidth: 112,
-        ),
-      ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          minHeight: result?.isSuccess == false
-              ? _campusCardFailureBodyMinHeight
-              : _campusCardBodyMinHeight,
-        ),
-        child: _buildCampusCardBody(context, result, snapshot),
-      ),
+      icon: YhIcons.finance,
+      color: theme.color.serviceFinance,
+      title: content.title,
+      detail: content.caption,
+      value: content.value,
+      compact: compact,
+      onTap: canOpenDetails ? () => _openCampusCardDetail(snapshot) : null,
+      valueColor: state == HomeCampusCardDisplayState.error
+          ? theme.color.danger
+          : theme.color.foreground,
     );
   }
 
-  Widget _buildCampusCardBody(
-    BuildContext context,
+  HomeCampusCardDisplayState _homeCampusCardState(
     CampusCardQueryResult? result,
     CampusCardSnapshot? snapshot,
   ) {
-    final theme = FluentTheme.of(context);
-    if (result == null) {
-      return Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          _campusCardRefreshController.autoRefreshEnabled
-              ? '自动刷新已开启，等待下一次读取。'
-              : '自动刷新未开启，可点击刷新图标读取校园卡余额。',
-          style: theme.typography.caption?.copyWith(
-            color: theme.resources.textFillColorSecondary,
-          ),
-        ),
-      );
+    final override = widget.campusCardDisplayStateOverride;
+    if (override != null) return override;
+    if (_campusCardRefreshController.isLoading) {
+      return snapshot == null
+          ? HomeCampusCardDisplayState.loading
+          : HomeCampusCardDisplayState.operationLocked;
     }
-    if (result.isSuccess && snapshot != null) {
-      return _buildCampusCardBalanceSummary(context, snapshot);
+    if (result == null ||
+        (result.isSuccess &&
+            snapshot != null &&
+            snapshot.balance == null &&
+            snapshot.records.isEmpty)) {
+      return HomeCampusCardDisplayState.empty;
     }
-    return _CampusCardFailureSummary(result: result);
+    if (!result.isSuccess || snapshot == null) {
+      return HomeCampusCardDisplayState.error;
+    }
+    final now = widget.nowOverride ?? DateTime.now();
+    if (result.message.contains('缓存') ||
+        now.difference(result.checkedAt) >= const Duration(hours: 1)) {
+      return HomeCampusCardDisplayState.stale;
+    }
+    return HomeCampusCardDisplayState.content;
   }
 
-  static const double _campusCardBodyMinHeight = 64.0;
-  static const double _campusCardFailureBodyMinHeight = 88.0;
-
-  /// 构建校园卡余额和异常状态摘要。
-  Widget _buildCampusCardBalanceSummary(
-    BuildContext context,
-    CampusCardSnapshot snapshot,
+  _HomeCampusCardContent _homeCampusCardContent(
+    HomeCampusCardDisplayState state,
+    CampusCardQueryResult? result,
+    CampusCardSnapshot? snapshot,
   ) {
-    final theme = FluentTheme.of(context);
-    return Wrap(
-      spacing: FluentSpacing.m,
-      runSpacing: FluentSpacing.s,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Text(
-          snapshot.balance == null ? '未读取' : _formatMoney(snapshot.balance!),
-          style: theme.typography.titleLarge,
-        ),
-        if (snapshot.hasAbnormalStatus)
-          _CampusCardStatusPill(status: snapshot.status),
-      ],
-    );
+    final balance = snapshot?.balance == null
+        ? '未读取'
+        : _formatMoney(snapshot!.balance!);
+    return switch (state) {
+      HomeCampusCardDisplayState.loading => const _HomeCampusCardContent(
+        title: '校园卡',
+        caption: '正在读取本地余额',
+        value: '···',
+        semanticLabel: '校园卡正在读取本地余额',
+      ),
+      HomeCampusCardDisplayState.content => _HomeCampusCardContent(
+        title: '校园卡',
+        caption: '今日消费 ${_todayExpense(snapshot)}',
+        value: balance,
+        semanticLabel: '校园卡余额 $balance，今日消费 ${_todayExpense(snapshot)}',
+      ),
+      HomeCampusCardDisplayState.empty => const _HomeCampusCardContent(
+        title: '校园卡',
+        caption: '尚未读取余额',
+        value: '未读取',
+        semanticLabel: '校园卡尚未读取余额',
+      ),
+      HomeCampusCardDisplayState.stale => _HomeCampusCardContent(
+        title: '校园卡 · 本地缓存',
+        caption: _staleRefreshLabel(result?.checkedAt),
+        value: balance,
+        semanticLabel:
+            '校园卡本地缓存余额 $balance，${_staleRefreshLabel(result?.checkedAt)}',
+      ),
+      HomeCampusCardDisplayState.error => const _HomeCampusCardContent(
+        title: '校园卡暂不可用',
+        caption: '请检查 OA 登录与校园网络',
+        value: '重试',
+        semanticLabel: '校园卡暂不可用，请检查 OA 登录与校园网络',
+      ),
+      HomeCampusCardDisplayState.operationLocked => _HomeCampusCardContent(
+        title: '校园卡 · 正在更新',
+        caption: '旧余额仍可查看',
+        value: balance,
+        semanticLabel: '校园卡正在更新，旧余额 $balance 仍可查看，详情入口可用',
+      ),
+    };
   }
 
-  /// 打开校园卡详情页。
+  String _todayExpense(CampusCardSnapshot? snapshot) {
+    if (snapshot == null) return '¥0.00';
+    final now = widget.nowOverride ?? DateTime.now();
+    final prefix =
+        '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+    final total = snapshot.records
+        .where(
+          (record) => record.isExpense && record.occurredAt.startsWith(prefix),
+        )
+        .fold<double>(0, (sum, record) => sum + record.amount.abs());
+    return _formatMoney(total);
+  }
+
+  String _staleRefreshLabel(DateTime? checkedAt) {
+    if (checkedAt == null) return '更新时间未知';
+    final now = widget.nowOverride ?? DateTime.now();
+    final checkedDate = DateTime(
+      checkedAt.year,
+      checkedAt.month,
+      checkedAt.day,
+    );
+    final today = DateTime(now.year, now.month, now.day);
+    final prefix = today.difference(checkedDate).inDays == 1
+        ? '昨天'
+        : '${checkedAt.month.toString().padLeft(2, '0')} 月 '
+              '${checkedAt.day.toString().padLeft(2, '0')} 日';
+    return '$prefix ${checkedAt.hour.toString().padLeft(2, '0')}:'
+        '${checkedAt.minute.toString().padLeft(2, '0')} 更新';
+  }
+
   void _openCampusCardDetail(CampusCardSnapshot snapshot) {
     Navigator.of(context).push(
-      FluentPageRoute(
+      YhPageRoute(
         builder: (_) => CampusCardDetailPage(
           initialSnapshot: snapshot,
           campusCardService: _campusCardService,
+          nowOverride: widget.nowOverride,
         ),
       ),
     );
   }
 
-  String _campusCardLastRefreshLabel(CampusCardQueryResult? result) {
-    final checkedAt = result?.checkedAt;
-    if (checkedAt == null) return '上次刷新时间：未刷新';
-    return '上次刷新时间：${_formatDateTime(checkedAt)}';
-  }
-
-  String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.year.toString().padLeft(4, '0')}-'
-        '${dateTime.month.toString().padLeft(2, '0')}-'
-        '${dateTime.day.toString().padLeft(2, '0')} '
-        '${dateTime.hour.toString().padLeft(2, '0')}:'
-        '${dateTime.minute.toString().padLeft(2, '0')}';
-  }
-
-  String _formatMoney(double value) {
-    return '¥${value.toStringAsFixed(2)}';
-  }
+  String _formatMoney(double value) => '¥${value.toStringAsFixed(2)}';
 }
 
-class _CampusCardHeaderDetailAction extends StatefulWidget {
-  const _CampusCardHeaderDetailAction({
-    required this.label,
-    required this.tooltip,
-    required this.onPressed,
+class _HomeCampusCardContent {
+  const _HomeCampusCardContent({
+    required this.title,
+    required this.caption,
+    required this.value,
+    required this.semanticLabel,
   });
 
-  final String label;
-  final String tooltip;
-  final VoidCallback? onPressed;
-
-  @override
-  State<_CampusCardHeaderDetailAction> createState() =>
-      _CampusCardHeaderDetailActionState();
-}
-
-class _CampusCardHeaderDetailActionState
-    extends State<_CampusCardHeaderDetailAction> {
-  bool _hovered = false;
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    final enabled = widget.onPressed != null;
-    final textColor = enabled
-        ? _pressed
-              ? colors.brandBackgroundPressed
-              : _hovered
-              ? colors.brandForeground2
-              : colors.brandForeground1
-        : colors.neutralForegroundDisabled;
-    final backgroundColor = !enabled
-        ? null
-        : _pressed
-        ? colors.subtleBackgroundPressed
-        : _hovered
-        ? colors.subtleBackgroundHover
-        : null;
-
-    return Tooltip(
-      message: widget.tooltip,
-      child: Semantics(
-        button: true,
-        enabled: enabled,
-        label: widget.label,
-        child: MouseRegion(
-          cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-          onEnter: (_) => _setHovered(true),
-          onExit: (_) {
-            _setHovered(false);
-            _setPressed(false);
-          },
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: widget.onPressed,
-            onTapDown: enabled ? (_) => _setPressed(true) : null,
-            onTapUp: enabled ? (_) => _setPressed(false) : null,
-            onTapCancel: enabled ? () => _setPressed(false) : null,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: FluentSpacing.s,
-                vertical: FluentSpacing.xs,
-              ),
-              decoration: BoxDecoration(
-                color: backgroundColor,
-                borderRadius: context.fluentRadii.mediumBorder,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: Text(
-                      widget.label,
-                      style: type.caption1Strong.copyWith(color: textColor),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: FluentSpacing.xs),
-                  Icon(FluentIcons.chevronRight, size: 14, color: textColor),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _setHovered(bool value) {
-    if (_hovered == value) return;
-    setState(() => _hovered = value);
-  }
-
-  void _setPressed(bool value) {
-    if (_pressed == value) return;
-    setState(() => _pressed = value);
-  }
-}
-
-class _CampusCardFailureSummary extends StatelessWidget {
-  const _CampusCardFailureSummary({required this.result});
-
-  final CampusCardQueryResult result;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final colors = context.fluentColors;
-    final textColor = _failureTextColor(context, result.status);
-
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            _message,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            softWrap: true,
-            style: theme.typography.bodyStrong?.copyWith(color: textColor),
-          ),
-          if (_detail.isNotEmpty) ...[
-            const SizedBox(height: FluentSpacing.xxs),
-            Text(
-              _detail,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-              softWrap: true,
-              style: theme.typography.caption?.copyWith(
-                color: colors.neutralForeground3,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  String get _message {
-    return switch (result.status) {
-      CampusCardQueryStatus.missingOaAccount => '需要先填写 OA 账号',
-      CampusCardQueryStatus.missingOaPassword => '需要先填写 OA 密码',
-      _ => result.message,
-    };
-  }
-
-  String get _detail {
-    return switch (result.status) {
-      CampusCardQueryStatus.missingOaAccount => '前往设置页保存学工号后，再刷新校园卡余额。',
-      CampusCardQueryStatus.missingOaPassword => '前往设置页保存 OA 密码后，再刷新校园卡余额。',
-      _ => result.detail.trim(),
-    };
-  }
-
-  Color _failureTextColor(BuildContext context, CampusCardQueryStatus status) {
-    return switch (status) {
-      CampusCardQueryStatus.success =>
-        context.fluentColors.statusSuccessForeground,
-      CampusCardQueryStatus.missingOaAccount ||
-      CampusCardQueryStatus.missingOaPassword ||
-      CampusCardQueryStatus.campusNetworkUnavailable ||
-      CampusCardQueryStatus.oaLoginRequired =>
-        context.fluentColors.statusWarningForeground,
-      CampusCardQueryStatus.cardSystemUnavailable ||
-      CampusCardQueryStatus.parseFailed ||
-      CampusCardQueryStatus.networkError ||
-      CampusCardQueryStatus.unexpectedError =>
-        context.fluentColors.statusDangerForeground,
-    };
-  }
-}
-
-class _CampusCardStatusPill extends StatelessWidget {
-  const _CampusCardStatusPill({required this.status});
-
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: FluentSpacing.s,
-        vertical: FluentSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: colors.statusWarningBackground,
-        borderRadius: BorderRadius.circular(FluentRadius.medium),
-        border: Border.all(
-          color: colors.statusWarningForeground.withValues(alpha: 0.24),
-        ),
-      ),
-      child: Text(
-        '卡状态：$status',
-        style: type.caption1.copyWith(color: colors.statusWarningForeground),
-      ),
-    );
-  }
+  final String title;
+  final String caption;
+  final String value;
+  final String semanticLabel;
 }

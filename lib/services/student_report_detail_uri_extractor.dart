@@ -19,7 +19,7 @@ class _StudentReportDetailUriExtractor {
         document.querySelector('input[name="xh"]') ??
         document.querySelector('input[name="stuno"]');
     final value = element?.attributes['value'];
-    return StudentReportPageParser._cleanText(value ?? '');
+    return _cleanText(value ?? '');
   }
 
   /// 从已获积分单元格构造同目录 `detail.do` 只读接口地址。
@@ -62,9 +62,6 @@ class _StudentReportDetailUriExtractor {
       final prefix = baseUri.path.substring(0, markerIndex + marker.length);
       return baseUri.replace(path: '${prefix}detail.do', query: '');
     }
-    return StudentReportPageParser._resolveBusinessUri(
-      baseUri,
-      'dc/studentxfform/detail.do',
-    );
+    return _resolveBusinessUri(baseUri, 'dc/studentxfform/detail.do');
   }
 }

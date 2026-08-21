@@ -15,10 +15,18 @@ typedef AcademicExamDetailResultChanged =
       AcademicEamsSemesterOption? selectedSemester,
     );
 
+enum _AcademicExamSortOrder { ascending, descending }
+
 /// 本专科教务考试安排详情页。
 class AcademicEamsExamDetailPage extends StatefulWidget {
   /// 本专科教务只读服务，测试中可替换为 fake。
   final AcademicEamsClient academicEamsService;
+
+  /// 全局学期解析模块；默认沿用生产单例。
+  final AcademicTermService? academicTermService;
+
+  /// 学期解析时钟；为空时使用生产当前时间。
+  final DateTime? academicTermNow;
 
   /// 从教务中心卡片带入的初始考试安排结果。
   final AcademicEamsQueryResult? initialResult;
@@ -35,6 +43,8 @@ class AcademicEamsExamDetailPage extends StatefulWidget {
   const AcademicEamsExamDetailPage({
     super.key,
     required this.academicEamsService,
+    this.academicTermService,
+    this.academicTermNow,
     required this.initialResult,
     required this.initialSelectedTerm,
     required this.initialSelectedSemester,
@@ -48,11 +58,18 @@ class AcademicEamsExamDetailPage extends StatefulWidget {
 
 class _AcademicEamsExamDetailPageState
     extends State<AcademicEamsExamDetailPage> {
-  AcademicEamsQueryResult? _result;
+  late final RetainedRefreshController<AcademicEamsQueryResult>
+  _refreshController;
   AcademicTermChoice? _selectedTerm;
   AcademicEamsSemesterOption? _selectedSemester;
   String _selectedExamType = '1';
-  bool _isLoading = false;
+  _AcademicExamSortOrder _sortOrder = _AcademicExamSortOrder.ascending;
+  bool _isResolvingDefaultTerm = false;
+  int _defaultTermRequest = 0;
+
+  AcademicEamsQueryResult? get _result => _refreshController.result;
+  bool get _isLoading =>
+      _isResolvingDefaultTerm || _refreshController.isRefreshing;
 
   /// 缺省考试类型选项，便于尚未读取时也能切换。
   static const Map<String, String> _fallbackExamTypeOptions = {
@@ -66,15 +83,94 @@ class _AcademicEamsExamDetailPageState
   @override
   void initState() {
     super.initState();
-    _result = widget.initialResult;
+    _refreshController = RetainedRefreshController(
+      initialResult: widget.initialResult,
+      isSuccess: (result) => result.isSuccess,
+      hasUsableContent: (result) => result.snapshot?.exams != null,
+      failureMessage: (result) => '${result.message}：${result.detail}',
+    )..addListener(_handleRefreshChanged);
+    final initialExams = widget.initialResult?.snapshot?.exams;
+    _selectedSemester =
+        widget.initialSelectedSemester ?? initialExams?.selectedSemester;
     _selectedTerm =
-        widget.initialSelectedTerm ?? AcademicTermService.defaultTerm;
-    _selectedSemester = widget.initialSelectedSemester;
+        widget.initialSelectedTerm ??
+        _selectedSemester?.termChoice ??
+        AcademicTermService.defaultTerm;
     _selectedExamType =
         widget.initialResult?.snapshot?.exams?.selectedExamType ?? '1';
-    if (widget.initialSelectedTerm == null) {
-      unawaited(_loadDefaultTerm());
+    if (widget.initialSelectedTerm == null &&
+        _selectedSemester?.termChoice == null) {
+      _startDefaultTermLoad(loadIfEmpty: widget.initialResult == null);
+    } else if (widget.initialResult == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_loadExamSchedule());
+      });
     }
+  }
+
+  @override
+  void didUpdateWidget(covariant AcademicEamsExamDetailPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final serviceChanged = !identical(
+      oldWidget.academicEamsService,
+      widget.academicEamsService,
+    );
+    final resultChanged = !identical(
+      oldWidget.initialResult,
+      widget.initialResult,
+    );
+    final selectionChanged =
+        oldWidget.initialSelectedTerm != widget.initialSelectedTerm ||
+        oldWidget.initialSelectedSemester != widget.initialSelectedSemester;
+    if (serviceChanged || resultChanged || selectionChanged) {
+      _defaultTermRequest += 1;
+      _isResolvingDefaultTerm = false;
+      _refreshController.updateExternalResult(widget.initialResult);
+    }
+    if (serviceChanged || resultChanged || selectionChanged) {
+      final exams = widget.initialResult?.snapshot?.exams;
+      _selectedSemester =
+          widget.initialSelectedSemester ?? exams?.selectedSemester;
+      _selectedTerm =
+          widget.initialSelectedTerm ??
+          _selectedSemester?.termChoice ??
+          AcademicTermService.defaultTerm;
+      final options = exams?.examTypeOptions ?? const <String, String>{};
+      final preferred = exams?.selectedExamType ?? _selectedExamType;
+      _selectedExamType = options.isEmpty || options.containsKey(preferred)
+          ? preferred
+          : options.keys.first;
+      if (widget.initialResult == null) {
+        if (widget.initialSelectedTerm == null) {
+          _startDefaultTermLoad(loadIfEmpty: true);
+        } else {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            unawaited(_loadExamSchedule());
+          });
+        }
+      }
+    }
+  }
+
+  void _handleRefreshChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// 在页面仍挂载时提交来自拆分正文的交互状态。
+  ///
+  /// :param update: 需要在同一渲染帧中提交的页面状态变更。
+  void _setAcademicState(VoidCallback update) {
+    if (!mounted) return;
+    setState(update);
+  }
+
+  @override
+  void dispose() {
+    _refreshController
+      ..removeListener(_handleRefreshChanged)
+      ..dispose();
+    super.dispose();
   }
 
   /// 当前可选考试类型；优先使用网站返回的选项。
@@ -85,8 +181,12 @@ class _AcademicEamsExamDetailPageState
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     final snapshot = _result?.snapshot?.exams;
-    final records = snapshot?.records ?? const <AcademicExamRecord>[];
+    final records = _academicExamChronologicalRecords(
+      snapshot?.records ?? const <AcademicExamRecord>[],
+      order: _sortOrder,
+    );
     final semesterOptions = _academicExamSemesterOptions(
       snapshot,
       selectedSemester: _selectedSemester,
@@ -100,168 +200,63 @@ class _AcademicEamsExamDetailPageState
     );
     final years = _academicExamAvailableYears(semesterOptions, currentTerm);
     final seasons = _academicExamAvailableSeasons(semesterOptions, currentTerm);
-
-    return FluentPage.scrollable(
-      header: FluentPageHeader(
-        title: const Text('考试安排详情'),
-        commandBar: FluentButton.outline(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('返回'),
-        ),
+    return YhTaskPage(
+      title: '考试安排',
+      kicker: '本学期考试',
+      summary: '按时间顺序核对日期、地点与考试类型；待公布和临时说明不会被隐藏。',
+      source: '教务考试 · 本地快照',
+      sourceSymbol: '学',
+      appBarTitle: _academicTaskAppBarTitle('教务考试', _result?.checkedAt),
+      sourceTimestamp: _academicDetailTimestamp(_result?.checkedAt),
+      primaryActionKey: const Key('academic-eams-exam-detail-search'),
+      primaryActionLabel: _isLoading ? '正在刷新…' : '刷新安排',
+      onPrimaryAction: _isLoading ? null : () => unawaited(_loadExamSchedule()),
+      width: YhTaskPageWidth.constrained,
+      rhythm: YhTaskPageRhythm.relaxedCompact,
+      body: _buildEvidenceBody(
+        context,
+        theme,
+        snapshot: snapshot,
+        records: records,
+        semesterOptions: semesterOptions,
+        currentTerm: currentTerm,
+        years: years,
+        seasons: seasons,
       ),
-      children: [
-        _AcademicExamSummaryBanner(
-          scopeLabel: currentTerm?.label ?? '考试安排',
-          examTypeLabel: snapshot?.selectedExamTypeLabel,
-          totalCount: records.length,
-          scheduledCount: records
-              .where((record) => record.hasScheduledExamDate)
-              .length,
-        ),
-        const SizedBox(height: FluentSpacing.m),
-        FluentSurface(
-          padding: const EdgeInsets.all(FluentSpacing.l),
-          child: Wrap(
-            spacing: FluentSpacing.s,
-            runSpacing: FluentSpacing.s,
-            crossAxisAlignment: WrapCrossAlignment.end,
-            children: [
-              _AcademicExamDropdownField<int>(
-                key: const Key('academic-eams-exam-year-select'),
-                label: '学年',
-                width: 190,
-                value: currentTerm?.academicYear,
-                placeholder: '等待全局学期',
-                items: [
-                  for (final year in years)
-                    _AcademicExamDropdownItem<int>(
-                      key: Key('academic-eams-exam-year-option-$year'),
-                      value: year,
-                      label: _academicExamYearLabel(year),
-                    ),
-                ],
-                onChanged: _isLoading || currentTerm == null || years.isEmpty
-                    ? null
-                    : (year) => _handleYearChanged(
-                        year,
-                        semesterOptions,
-                        currentTerm,
-                      ),
-              ),
-              _AcademicExamDropdownField<AcademicTermSeason>(
-                key: const Key('academic-eams-exam-season-select'),
-                label: '学期',
-                width: 180,
-                value: currentTerm?.season,
-                placeholder: '等待全局学期',
-                items: [
-                  for (final season in seasons)
-                    _AcademicExamDropdownItem<AcademicTermSeason>(
-                      key: Key(
-                        'academic-eams-exam-season-option-${season.name}',
-                      ),
-                      value: season,
-                      label: season.label,
-                    ),
-                ],
-                onChanged: _isLoading || currentTerm == null
-                    ? null
-                    : (season) => _handleTermChanged(
-                        currentTerm.copyWith(season: season),
-                      ),
-              ),
-              _AcademicExamDropdownField<String>(
-                key: const Key('academic-eams-exam-type-select'),
-                label: '考试类型',
-                width: 180,
-                value: _examTypeOptions.containsKey(_selectedExamType)
-                    ? _selectedExamType
-                    : _examTypeOptions.keys.first,
-                placeholder: '考试类型',
-                items: [
-                  for (final entry in _examTypeOptions.entries)
-                    _AcademicExamDropdownItem<String>(
-                      key: Key('academic-eams-exam-type-option-${entry.key}'),
-                      value: entry.key,
-                      label: entry.value,
-                    ),
-                ],
-                onChanged: _isLoading
-                    ? null
-                    : (type) => setState(() => _selectedExamType = type),
-              ),
-              SizedBox(
-                height: 48,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: FluentButton.primaryIcon(
-                    key: const Key('academic-eams-exam-detail-search'),
-                    onPressed: _isLoading ? null : _loadExamSchedule,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: FluentProgressRing(strokeWidth: 2),
-                          )
-                        : const Icon(FluentIcons.search, size: 14),
-                    label: const Text('搜索'),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: FluentSpacing.m),
-        if (_isLoading && _result == null)
-          const FluentSurface(
-            padding: EdgeInsets.all(FluentSpacing.xl),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: FluentProgressRing(strokeWidth: 2),
-                ),
-                SizedBox(width: FluentSpacing.s),
-                Text('正在读取考试安排...'),
-              ],
-            ),
-          )
-        else if (_result == null)
-          const FluentInfoBar(
-            title: Text('尚未读取考试安排'),
-            content: Text('选择学年和学期后点击“搜索”即可只读获取考试安排。'),
-            severity: FluentInfoSeverity.info,
-          )
-        else if (!_result!.isSuccess || snapshot == null)
-          FluentInfoBar(
-            title: Text(_result!.message),
-            content: Text(_result!.detail),
-            severity: _examSeverity(_result!.status),
-          )
-        else
-          FluentSurface(
-            padding: const EdgeInsets.all(FluentSpacing.l),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '完整内容',
-                  style: FluentTheme.of(context).typography.bodyStrong,
-                ),
-                const SizedBox(height: FluentSpacing.m),
-                _AcademicExamTable(records: records),
-              ],
-            ),
-          ),
-      ],
     );
   }
 
-  Future<void> _loadDefaultTerm() async {
-    final context = await AcademicTermService.instance.getEffectiveContext();
-    if (!mounted || widget.initialSelectedTerm != null) return;
-    setState(() => _selectedTerm = context.effectiveQueryTerm);
+  void _startDefaultTermLoad({required bool loadIfEmpty}) {
+    final request = ++_defaultTermRequest;
+    _isResolvingDefaultTerm = true;
+    unawaited(_loadDefaultTerm(request: request, loadIfEmpty: loadIfEmpty));
+  }
+
+  Future<void> _loadDefaultTerm({
+    required int request,
+    required bool loadIfEmpty,
+  }) async {
+    final generation = _refreshController.captureGeneration();
+    var term = _selectedTerm ?? AcademicTermService.defaultTerm;
+    try {
+      final context =
+          await (widget.academicTermService ?? AcademicTermService.instance)
+              .getEffectiveContext(now: widget.academicTermNow);
+      term = context.effectiveQueryTerm;
+    } catch (_) {
+      // 学期服务异常时沿用安全默认值，首次读取仍可展示真实教务结果。
+    }
+    if (!mounted ||
+        request != _defaultTermRequest ||
+        !_refreshController.isGenerationCurrent(generation) ||
+        widget.initialSelectedTerm != null) {
+      return;
+    }
+    setState(() {
+      _isResolvingDefaultTerm = false;
+      _selectedTerm = term;
+    });
+    if (loadIfEmpty && _result == null) await _loadExamSchedule();
   }
 
   void _handleYearChanged(
@@ -295,28 +290,39 @@ class _AcademicEamsExamDetailPageState
   }
 
   Future<void> _loadExamSchedule() async {
-    if (_isLoading) return;
-    setState(() => _isLoading = true);
-    final result = await widget.academicEamsService.fetchExamSchedule(
-      term: _selectedTerm,
-      // 传入用户下拉解析出的真实 semester.id；学期列表接口失败时不必再推断。
-      semester: _selectedSemester,
-      examTypeId: _selectedExamType,
-      requireCampusNetwork: false,
-    );
-    if (!mounted) return;
-    final exams = result.snapshot?.exams;
+    final generation = _refreshController.captureGeneration();
+    AcademicEamsQueryResult? fetched;
+    await _refreshController.refresh(() async {
+      fetched = await widget.academicEamsService.fetchExamSchedule(
+        term: _selectedTerm,
+        // 传入用户下拉解析出的真实 semester.id；学期列表接口失败时不必再推断。
+        semester: _selectedSemester,
+        examTypeId: _selectedExamType,
+        requireCampusNetwork: false,
+      );
+      return fetched;
+    });
+    if (!mounted ||
+        !_refreshController.isGenerationCurrent(generation) ||
+        fetched == null ||
+        !identical(_result, fetched)) {
+      return;
+    }
+    final exams = fetched!.snapshot?.exams;
     final selectedSemester = exams?.selectedSemester;
+    final typeOptions = exams?.examTypeOptions ?? const <String, String>{};
+    final preferredType = exams?.selectedExamType ?? _selectedExamType;
     setState(() {
-      _result = result;
-      _isLoading = false;
-      _selectedExamType = exams?.selectedExamType ?? _selectedExamType;
+      _selectedExamType =
+          typeOptions.isEmpty || typeOptions.containsKey(preferredType)
+          ? preferredType
+          : typeOptions.keys.first;
       if (selectedSemester != null) {
         _selectedSemester = selectedSemester;
         _selectedTerm = selectedSemester.termChoice ?? _selectedTerm;
       }
     });
-    widget.onResultChanged(result, _selectedTerm, _selectedSemester);
+    widget.onResultChanged(fetched!, _selectedTerm, _selectedSemester);
   }
 
   AcademicEamsSemesterOption? _findSemesterForTerm(
@@ -327,6 +333,47 @@ class _AcademicEamsExamDetailPageState
       if (option.matchesTerm(term)) return option;
     }
     return null;
+  }
+}
+
+class _AcademicExamDateBlock extends StatelessWidget {
+  const _AcademicExamDateBlock({required this.record});
+
+  final AcademicExamRecord record;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.compact;
+    final date = record.displayExamDate?.trim() ?? '';
+    final parts = date.split('-');
+    final dateLabel = record.hasScheduledExamDate && parts.length >= 3
+        ? '${parts[parts.length - 2]}·${parts.last}'
+        : '待定';
+    return SizedBox(
+      width:
+          theme.control.regular +
+          (compact ? theme.spacing.xl : theme.spacing.s),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            dateLabel,
+            style: theme.typography.h3.copyWith(
+              color: theme.color.serviceAcademic,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: theme.spacing.xs),
+          Text(
+            _gradeText(record.displayExamArrange, placeholder: '时间待公布'),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.typography.caption.copyWith(color: theme.color.muted),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -362,7 +409,7 @@ class _AcademicExamDropdownField<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
     final enabled = onChanged != null && items.isNotEmpty;
 
     return SizedBox(
@@ -372,23 +419,24 @@ class _AcademicExamDropdownField<T> extends StatelessWidget {
         children: [
           Text(
             label,
-            style: theme.typography.caption?.copyWith(
-              color: theme.resources.textFillColorSecondary,
-            ),
+            style: theme.typography.caption.copyWith(color: theme.color.muted),
           ),
-          const SizedBox(height: FluentSpacing.xs),
-          FluentSelect<T>(
+          SizedBox(height: theme.spacing.xs),
+          YhSelect<T>(
+            label: label,
+            showLabel: false,
+            compact: width < theme.control.regular * 3,
             value: value,
-            isExpanded: true,
-            placeholder: Text(placeholder),
-            items: [
+            hint: placeholder,
+            options: [
               for (final item in items)
-                FluentSelectItem<T>(
+                YhSelectOption<T>(
                   key: item.key,
                   value: item.value,
-                  child: Text(item.label),
+                  label: item.label,
                 ),
             ],
+            enabled: enabled,
             onChanged: enabled
                 ? (selected) {
                     if (selected != null) onChanged?.call(selected);
@@ -401,65 +449,41 @@ class _AcademicExamDropdownField<T> extends StatelessWidget {
   }
 }
 
-String _academicExamYearLabel(int year) => '$year-${year + 1} 学年';
+String _academicExamYearLabel(int year) => '$year–${year + 1}';
 
-/// 考试详情顶部汇总横幅。
-class _AcademicExamSummaryBanner extends StatelessWidget {
-  const _AcademicExamSummaryBanner({
-    required this.scopeLabel,
-    required this.examTypeLabel,
-    required this.totalCount,
-    required this.scheduledCount,
+List<AcademicExamRecord> _academicExamChronologicalRecords(
+  List<AcademicExamRecord> records, {
+  required _AcademicExamSortOrder order,
+}) {
+  final indexed = records.indexed.toList();
+  indexed.sort((left, right) {
+    final leftTime = _academicExamStartTime(left.$2);
+    final rightTime = _academicExamStartTime(right.$2);
+    if (leftTime == null && rightTime == null) {
+      return left.$1.compareTo(right.$1);
+    }
+    if (leftTime == null) return 1;
+    if (rightTime == null) return -1;
+    final timeOrder = leftTime.compareTo(rightTime);
+    if (timeOrder == 0) return left.$1.compareTo(right.$1);
+    return order == _AcademicExamSortOrder.ascending ? timeOrder : -timeOrder;
   });
+  return List.unmodifiable(indexed.map((entry) => entry.$2));
+}
 
-  final String scopeLabel;
-  final String? examTypeLabel;
-  final int totalCount;
-  final int scheduledCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-    final accent = context.fluentAccents.academic;
-    final type = examTypeLabel ?? '期末考试';
-    final summary = totalCount == 0
-        ? '$scopeLabel · $type · 暂无考试'
-        : scheduledCount == 0
-        ? '$scopeLabel · $type · $totalCount 门待公布时间'
-        : '$scopeLabel · $type · 共 $totalCount 门，$scheduledCount 门已排期';
-    return FluentSurface(
-      accentColor: accent,
-      padding: const EdgeInsets.all(FluentSpacing.l),
-      child: Row(
-        children: [
-          FluentSurfaceIcon(
-            icon: FluentIcons.calendar,
-            color: accent,
-            size: 36,
-          ),
-          const SizedBox(width: FluentSpacing.m),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '考试汇总',
-                  style: theme.typography.caption?.copyWith(
-                    color: theme.resources.textFillColorSecondary,
-                  ),
-                ),
-                const SizedBox(height: FluentSpacing.xxs),
-                Text(
-                  summary,
-                  style: theme.typography.subtitle?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+DateTime? _academicExamStartTime(AcademicExamRecord record) {
+  if (!record.hasScheduledExamDate) return null;
+  final date = DateTime.tryParse(record.displayExamDate?.trim() ?? '');
+  if (date == null) return null;
+  final match = RegExp(
+    r'(?<!\d)([01]?\d|2[0-3]):([0-5]\d)',
+  ).firstMatch(record.displayExamArrange ?? '');
+  if (match == null) return date;
+  return DateTime(
+    date.year,
+    date.month,
+    date.day,
+    int.parse(match.group(1)!),
+    int.parse(match.group(2)!),
+  );
 }

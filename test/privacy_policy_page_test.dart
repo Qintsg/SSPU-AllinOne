@@ -6,13 +6,18 @@
  * @Date : 2026-05-15
  */
 
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'dart:async';
+
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart' as qingyuan;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/widgets.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:sspu_allinone/app.dart';
 import 'package:sspu_allinone/pages/about_page.dart';
 import 'package:sspu_allinone/pages/agreement_page.dart';
 import 'package:sspu_allinone/pages/legal_notice_page.dart';
 import 'package:sspu_allinone/pages/privacy_policy_page.dart';
+import 'package:sspu_allinone/pages/settings_page.dart';
 import 'package:sspu_allinone/widgets/legal_consent_dialog.dart';
 
 void main() {
@@ -40,8 +45,8 @@ void main() {
     await tester.pump();
   }
 
-  Widget zhFluentApp({required Widget home}) {
-    return FluentApp(
+  Widget zhYhApp({required Widget home}) {
+    return qingyuan.YhApp(
       locale: const Locale('zh'),
       supportedLocales: const [Locale('zh'), Locale('en')],
       home: home,
@@ -50,8 +55,10 @@ void main() {
 
   String selectableTextBody(WidgetTester tester) {
     return tester
-        .widgetList<SelectableText>(find.byType(SelectableText))
-        .map((widget) => widget.data ?? widget.textSpan?.toPlainText() ?? '')
+        .widgetList<qingyuan.YhSelectableText>(
+          find.byType(qingyuan.YhSelectableText),
+        )
+        .map((widget) => widget.data)
         .join('\n');
   }
 
@@ -70,10 +77,12 @@ void main() {
     return selectableTextBody(tester);
   }
 
-  testWidgets('法律与隐私说明页面展示所有协议段落', (tester) async {
-    await tester.pumpWidget(zhFluentApp(home: const PrivacyPolicyPage()));
+  testWidgets('隐私说明页面展示所有协议段落', (tester) async {
+    await tester.pumpWidget(zhYhApp(home: const PrivacyPolicyPage()));
 
-    expect(find.text('法律与隐私说明'), findsOneWidget);
+    expect(find.text('隐私说明'), findsOneWidget);
+    expect(find.text('法律与隐私'), findsOneWidget);
+    expect(find.text('管理本地数据'), findsOneWidget);
     final body = await pumpUntilSelectableText(tester, containsText: '免责声明');
     expect(body, contains('免责声明'));
     expect(body, contains('用户协议'));
@@ -85,10 +94,130 @@ void main() {
     expect(body, isNot(contains('采用 MIT')));
   });
 
-  testWidgets('旧使用协议入口展示同一篇完整法律说明', (tester) async {
-    await tester.pumpWidget(zhFluentApp(home: const AgreementPage()));
+  testWidgets('结构化法律页展示来源、章节并执行主要行动', (tester) async {
+    var actionInvoked = false;
 
-    expect(find.text('法律与隐私说明'), findsOneWidget);
+    await tester.pumpWidget(
+      zhYhApp(
+        home: LegalNoticePage(
+          title: '隐私说明',
+          kicker: '法律与隐私',
+          summary: '按数据类型说明收集目的、存储位置、联网时机和删除方式。',
+          source: '随应用发布的文本',
+          primaryActionLabel: '管理本地数据',
+          onPrimaryAction: () => actionInvoked = true,
+          sections: const [
+            LegalNoticeSection(
+              title: '账户凭据',
+              body: '1. 本节说明账户凭据的使用边界和用户可执行的管理方式。',
+            ),
+            LegalNoticeSection(
+              title: '校园数据缓存',
+              body: '2. 本节说明校园数据缓存的保存位置和删除方式。',
+            ),
+            LegalNoticeSection(title: '诊断信息', body: '3. 本节说明诊断信息的处理范围。'),
+          ],
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('法律与隐私'), findsOneWidget);
+    expect(find.text('隐私说明'), findsOneWidget);
+    expect(find.text('按数据类型说明收集目的、存储位置、联网时机和删除方式。'), findsOneWidget);
+    expect(find.text('随应用发布的文本'), findsWidgets);
+    expect(find.text('账户凭据'), findsOneWidget);
+    expect(find.text('校园数据缓存'), findsOneWidget);
+    expect(find.text('诊断信息'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('更多操作'));
+    await tester.pumpAndSettle();
+    expect(find.text('文档信息'), findsOneWidget);
+    expect(find.text('来源'), findsOneWidget);
+    await tester.tap(find.text('关闭'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('管理本地数据'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+    await tester.pump();
+    expect(actionInvoked, isTrue);
+  });
+
+  testWidgets('宽屏短法律正文收束为左锚定阅读列', (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.binding.setSurfaceSize(const Size(1600, 1000));
+    addTearDown(() => resetView(tester));
+
+    await tester.pumpWidget(
+      zhYhApp(
+        home: const LegalNoticePage(
+          sections: [
+            LegalNoticeSection(title: '账户凭据', body: '仅用于已明确发起的校园服务请求。'),
+            LegalNoticeSection(title: '校园数据缓存', body: '可在设置中查看并按需清除。'),
+            LegalNoticeSection(title: '诊断信息', body: '仅用于解释应用当前状态。'),
+          ],
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final pageSize = tester.getSize(find.byType(qingyuan.YhPageScaffold));
+    final card = find.byKey(const Key('legal-sections-card'));
+    expect(card, findsOneWidget);
+    expect(tester.getSize(card).width, lessThan(pageSize.width * 0.7));
+    expect(tester.getSize(card).height, lessThan(pageSize.height * 0.5));
+  });
+
+  testWidgets('隐私说明主要行动进入本地数据管理', (tester) async {
+    await tester.pumpWidget(zhYhApp(home: const PrivacyPolicyPage()));
+    await pumpUntilSelectableText(tester, containsText: '免责声明');
+
+    await tester.tap(find.text('管理本地数据'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+    await tester.pump();
+
+    expect(find.byType(SettingsPage), findsOneWidget);
+    expect(find.byType(PrivacyPolicyPage), findsNothing);
+  });
+
+  testWidgets('法律正文加载失败后可在原页重试', (tester) async {
+    var loadCount = 0;
+
+    await tester.pumpWidget(
+      zhYhApp(
+        home: LegalNoticePage(
+          loadLegalNotice: (_) async {
+            loadCount += 1;
+            if (loadCount == 1) throw StateError('missing asset');
+            return '一、免责声明\n\n重新加载后的完整正文。';
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('无法加载协议正文'), findsOneWidget);
+    expect(find.bySemanticsLabel('返回'), findsOneWidget);
+    expect(find.text('重新加载'), findsOneWidget);
+
+    await tester.tap(find.text('重新加载'));
+    await tester.pumpAndSettle();
+
+    expect(loadCount, 2);
+    expect(find.text('无法加载协议正文'), findsNothing);
+    expect(find.text('一、免责声明'), findsOneWidget);
+    expect(selectableTextBody(tester), contains('重新加载后的完整正文。'));
+  });
+
+  testWidgets('旧使用协议入口展示同一篇完整法律说明', (tester) async {
+    await tester.pumpWidget(zhYhApp(home: const AgreementPage()));
+
+    expect(find.text('用户协议'), findsOneWidget);
+    expect(find.text('法律与协议'), findsOneWidget);
+    expect(find.text('返回'), findsWidgets);
     expect(find.byType(LegalNoticePage), findsOneWidget);
   });
 
@@ -96,7 +225,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1000, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(zhFluentApp(home: const AboutPage()));
+    await tester.pumpWidget(zhYhApp(home: const AboutPage()));
     await pumpPageAnimations(tester);
 
     expect(find.text('法律与隐私说明'), findsOneWidget);
@@ -104,24 +233,47 @@ void main() {
     expect(find.text('隐私协议'), findsNothing);
 
     await tester.tap(find.text('法律与隐私说明').first);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
     expect(find.byType(LegalNoticePage), findsOneWidget);
-    expect(find.text('返回'), findsOneWidget);
+    expect(find.text('法律声明'), findsOneWidget);
+    expect(find.text('返回设置'), findsOneWidget);
+    expect(find.bySemanticsLabel('返回'), findsOneWidget);
 
-    await tester.tap(find.text('返回'));
+    await tester.tap(find.bySemanticsLabel('返回'));
     await tester.pumpAndSettle();
 
     expect(find.byType(LegalNoticePage), findsNothing);
     expect(find.text('关于'), findsOneWidget);
   });
 
+  testWidgets('设置内法律详情保留生产导航壳', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      zhYhApp(
+        home: const AppShell(
+          initialDestinationIndex: 6,
+          destinationOverrides: {'设置': AboutPage()},
+        ),
+      ),
+    );
+    await pumpPageAnimations(tester);
+    await tester.ensureVisible(find.text('法律与隐私说明'));
+    await tester.tap(find.text('法律与隐私说明'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LegalNoticePage), findsOneWidget);
+    expect(find.byType(qingyuan.YhNavRail), findsOneWidget);
+    expect(find.text('设置'), findsOneWidget);
+  });
+
   testWidgets('关于页展示当前项目许可证和主要第三方组件', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1000, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(zhFluentApp(home: const AboutPage()));
+    await tester.pumpWidget(zhYhApp(home: const AboutPage()));
     await pumpPageAnimations(tester);
 
     expect(find.text('许可证：'), findsOneWidget);
@@ -143,7 +295,7 @@ void main() {
     addTearDown(() => resetView(tester));
 
     await tester.pumpWidget(
-      zhFluentApp(
+      zhYhApp(
         home: LegalConsentDialog(onAccept: () {}, onDecline: () {}),
       ),
     );
@@ -171,7 +323,7 @@ void main() {
     addTearDown(() => resetView(tester));
 
     await tester.pumpWidget(
-      zhFluentApp(
+      zhYhApp(
         home: LegalConsentDialog(onAccept: () {}, onDecline: () {}),
       ),
     );
@@ -194,7 +346,7 @@ void main() {
     var declined = false;
 
     await tester.pumpWidget(
-      zhFluentApp(
+      zhYhApp(
         home: LegalConsentDialog(
           onAccept: () => accepted = true,
           onDecline: () => declined = true,
@@ -207,10 +359,10 @@ void main() {
     expect(find.text('无法加载协议正文'), findsOneWidget);
     expect(find.text('协议正文加载完成后才可继续。'), findsOneWidget);
 
-    final acceptButton = tester.widget<FluentButton>(
+    final acceptButton = tester.widget<qingyuan.YhButton>(
       find.byKey(const Key('legal-consent-accept')),
     );
-    expect(acceptButton.onPressed, isNull);
+    expect(acceptButton.onTap, isNull);
 
     await tester.tap(
       find.byKey(const Key('legal-consent-accept')),
@@ -220,5 +372,101 @@ void main() {
 
     expect(accepted, isFalse);
     expect(declined, isFalse);
+  });
+
+  testWidgets('协议选择保存期间互斥，失败后保留正文并可重试', (tester) async {
+    final firstAttempt = Completer<void>();
+    var acceptAttempts = 0;
+    var declined = false;
+
+    await tester.pumpWidget(
+      zhYhApp(
+        home: LegalConsentDialog(
+          onAccept: () {
+            acceptAttempts++;
+            if (acceptAttempts == 1) return firstAttempt.future;
+            return Future<void>.value();
+          },
+          onDecline: () => declined = true,
+          loadLegalNotice: (_) async => '法律与隐私说明正文',
+        ),
+      ),
+    );
+    await pumpPageAnimations(tester);
+
+    await tester.tap(find.byKey(const Key('legal-consent-accept')));
+    await tester.pump();
+
+    expect(acceptAttempts, 1);
+    expect(find.text('正在保存…'), findsOneWidget);
+    expect(find.textContaining('正在将协议选择安全保存到本机'), findsOneWidget);
+    expect(
+      tester
+          .widget<qingyuan.YhButton>(
+            find.byKey(const Key('legal-consent-decline')),
+          )
+          .onTap,
+      isNull,
+    );
+    await tester.tap(
+      find.byKey(const Key('legal-consent-decline')),
+      warnIfMissed: false,
+    );
+    expect(declined, isFalse);
+
+    firstAttempt.completeError(StateError('storage unavailable'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.textContaining('未能保存协议选择'), findsOneWidget);
+    expect(find.text('法律与隐私说明正文'), findsOneWidget);
+    expect(find.text('重试保存并继续'), findsOneWidget);
+    expect(
+      tester
+          .widget<qingyuan.YhButton>(
+            find.byKey(const Key('legal-consent-decline')),
+          )
+          .onTap,
+      isNotNull,
+    );
+
+    await tester.tap(find.byKey(const Key('legal-consent-accept')));
+    await tester.pump();
+    expect(acceptAttempts, 2);
+    expect(find.textContaining('未能保存协议选择'), findsNothing);
+  });
+
+  testWidgets('协议正文加载失败后可在原弹窗重试', (tester) async {
+    var attempts = 0;
+    await tester.pumpWidget(
+      zhYhApp(
+        home: LegalConsentDialog(
+          onAccept: () {},
+          onDecline: () {},
+          loadLegalNotice: (_) async {
+            attempts++;
+            if (attempts == 1) throw StateError('asset unavailable');
+            return '重新加载后的协议正文';
+          },
+        ),
+      ),
+    );
+    await pumpPageAnimations(tester);
+
+    expect(find.text('无法加载协议正文'), findsOneWidget);
+    await tester.tap(find.text('重试加载协议'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(attempts, 2);
+    expect(find.text('重新加载后的协议正文'), findsOneWidget);
+    expect(
+      tester
+          .widget<qingyuan.YhButton>(
+            find.byKey(const Key('legal-consent-accept')),
+          )
+          .onTap,
+      isNotNull,
+    );
   });
 }

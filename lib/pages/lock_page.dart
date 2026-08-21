@@ -9,13 +9,41 @@
 
 import 'dart:async';
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 import '../services/app_display_name_service.dart';
 import '../services/password_service.dart';
 import '../services/system_auth_service.dart';
-import '../theme/app_motion.dart';
-import '../theme/app_spacing.dart';
+
+/// 锁屏认证 seam；生产与确定性视觉 adapter 共享同一页面状态机。
+abstract interface class LockAuthenticationAdapter {
+  Future<bool> verifyPassword(String password);
+
+  Future<bool> isQuickAuthEnabled();
+
+  Future<bool> isSystemAuthAvailable();
+
+  Future<SystemAuthResult> authenticate(String localizedReason);
+}
+
+class _ProductionLockAuthentication implements LockAuthenticationAdapter {
+  const _ProductionLockAuthentication();
+
+  @override
+  Future<bool> verifyPassword(String password) =>
+      PasswordService.verifyPassword(password);
+
+  @override
+  Future<bool> isQuickAuthEnabled() => PasswordService.isQuickAuthEnabled();
+
+  @override
+  Future<bool> isSystemAuthAvailable() =>
+      SystemAuthService.instance.isAvailable();
+
+  @override
+  Future<SystemAuthResult> authenticate(String localizedReason) =>
+      SystemAuthService.instance.authenticate(localizedReason: localizedReason);
+}
 
 /// 锁定页面。
 /// 当用户设置密码保护后，应用启动时显示此页面。
@@ -24,7 +52,13 @@ class LockPage extends StatefulWidget {
   /// 解锁成功后的回调。
   final VoidCallback onUnlocked;
 
-  const LockPage({super.key, required this.onUnlocked});
+  final LockAuthenticationAdapter authentication;
+
+  const LockPage({
+    super.key,
+    required this.onUnlocked,
+    this.authentication = const _ProductionLockAuthentication(),
+  });
 
   @override
   State<LockPage> createState() => _LockPageState();
@@ -68,35 +102,60 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _shakeController = AnimationController(
-      duration: AppMotion.long,
+      duration: YhTheme.light.motion.slow,
       vsync: this,
     );
+    final shakeDistance =
+        YhTheme.light.spacing.s + YhTheme.light.spacing.xs / 2;
     _shakeAnimation =
         TweenSequence<double>([
-          TweenSequenceItem(tween: Tween(begin: 0, end: -10), weight: 1),
-          TweenSequenceItem(tween: Tween(begin: -10, end: 10), weight: 2),
-          TweenSequenceItem(tween: Tween(begin: 10, end: -10), weight: 2),
-          TweenSequenceItem(tween: Tween(begin: -10, end: 10), weight: 2),
-          TweenSequenceItem(tween: Tween(begin: 10, end: 0), weight: 1),
+          TweenSequenceItem(
+            tween: Tween(begin: 0, end: -shakeDistance),
+            weight: 1,
+          ),
+          TweenSequenceItem(
+            tween: Tween(begin: -shakeDistance, end: shakeDistance),
+            weight: 2,
+          ),
+          TweenSequenceItem(
+            tween: Tween(begin: shakeDistance, end: -shakeDistance),
+            weight: 2,
+          ),
+          TweenSequenceItem(
+            tween: Tween(begin: -shakeDistance, end: shakeDistance),
+            weight: 2,
+          ),
+          TweenSequenceItem(
+            tween: Tween(begin: shakeDistance, end: 0),
+            weight: 1,
+          ),
         ]).animate(
-          CurvedAnimation(parent: _shakeController, curve: Curves.easeInOut),
+          CurvedAnimation(
+            parent: _shakeController,
+            curve: YhTheme.light.motion.curve,
+          ),
         );
 
     _unlockController = AnimationController(
-      duration: AppMotion.long,
+      duration: YhTheme.light.motion.slow,
       vsync: this,
     );
-    _unlockScale = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _unlockController, curve: Curves.easeOutCubic),
+    final unlockScale = 1 + (1 - YhTheme.light.motion.pressedScale) * 4;
+    _unlockScale = Tween<double>(begin: 1, end: unlockScale).animate(
+      CurvedAnimation(
+        parent: _unlockController,
+        curve: YhTheme.light.motion.curve,
+      ),
     );
-    _unlockOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(parent: _unlockController, curve: Curves.easeInCubic),
+    _unlockOpacity = Tween<double>(begin: 1, end: 0).animate(
+      CurvedAnimation(
+        parent: _unlockController,
+        curve: YhTheme.light.motion.curve,
+      ),
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _focusNode.requestFocus();
-      }
+      if (mounted) _focusNode.requestFocus();
     });
 
     unawaited(_loadAndTrySystemAuth());
@@ -113,7 +172,7 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
 
   /// 执行密码验证。
   Future<void> _handleUnlock() async {
-    if (_hasCompletedUnlock) return;
+    if (_hasCompletedUnlock || _isVerifying || _isSystemAuthenticating) return;
     final inputPassword = _passwordController.text;
 
     if (inputPassword.isEmpty) {
@@ -127,7 +186,18 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
       _errorMessage = null;
     });
 
-    final isCorrect = await PasswordService.verifyPassword(inputPassword);
+    late final bool isCorrect;
+    try {
+      isCorrect = await widget.authentication.verifyPassword(inputPassword);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isVerifying = false;
+        _errorMessage = '暂时无法验证密码，请稍后重试';
+      });
+      _restorePasswordFocus();
+      return;
+    }
 
     if (!mounted) return;
 
@@ -140,16 +210,24 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
       });
       _passwordController.clear();
       _triggerShake();
-      _focusNode.requestFocus();
+      _restorePasswordFocus();
     }
   }
 
   /// 加载系统快速验证配置，并在可用时优先尝试系统认证。
   Future<void> _loadAndTrySystemAuth() async {
-    final quickAuthEnabled = await PasswordService.isQuickAuthEnabled();
-    if (!quickAuthEnabled) return;
-
-    final systemAuthAvailable = await SystemAuthService.instance.isAvailable();
+    late final bool quickAuthEnabled;
+    late final bool systemAuthAvailable;
+    try {
+      quickAuthEnabled = await widget.authentication.isQuickAuthEnabled();
+      if (!quickAuthEnabled) return;
+      systemAuthAvailable = await widget.authentication.isSystemAuthAvailable();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _errorMessage = '系统认证设置暂不可用，请输入密码解锁');
+      _restorePasswordFocus();
+      return;
+    }
     if (!mounted || !systemAuthAvailable) return;
 
     setState(() => _isSystemAuthEnabled = true);
@@ -158,16 +236,27 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
 
   /// 执行系统认证解锁。失败、取消、超时或不可用时保留手动密码路径。
   Future<void> _handleSystemUnlock({bool autoTriggered = false}) async {
-    if (_hasCompletedUnlock || _isSystemAuthenticating) return;
+    if (_hasCompletedUnlock || _isSystemAuthenticating || _isVerifying) return;
 
     setState(() {
       _isSystemAuthenticating = true;
       if (!autoTriggered) _errorMessage = null;
     });
 
-    final result = await SystemAuthService.instance.authenticate(
-      localizedReason: '验证身份以解锁 ${AppDisplayName.of(context)}',
-    );
+    late final SystemAuthResult result;
+    try {
+      result = await widget.authentication.authenticate(
+        '验证身份以解锁 ${AppDisplayName.of(context)}',
+      );
+    } catch (_) {
+      if (!mounted || _hasCompletedUnlock) return;
+      setState(() {
+        _isSystemAuthenticating = false;
+        _errorMessage = '系统认证暂不可用，请输入密码解锁';
+      });
+      _restorePasswordFocus();
+      return;
+    }
 
     if (!mounted || _hasCompletedUnlock) return;
 
@@ -178,15 +267,31 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
 
     setState(() {
       _isSystemAuthenticating = false;
-      _errorMessage = '系统认证未完成，请输入密码解锁';
+      _errorMessage = switch (result) {
+        SystemAuthResult.failed => '系统认证未通过或已取消，请输入密码解锁',
+        SystemAuthResult.unavailable => '当前设备无法使用系统认证，请输入密码解锁',
+        SystemAuthResult.success => null,
+      };
     });
-    _focusNode.requestFocus();
+    _restorePasswordFocus();
+  }
+
+  void _restorePasswordFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_isVerifying && !_isSystemAuthenticating) {
+        _focusNode.requestFocus();
+      }
+    });
   }
 
   /// 播放解锁动画并通知上层进入主界面。
   void _completeUnlock() {
     if (_hasCompletedUnlock) return;
     _hasCompletedUnlock = true;
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+      widget.onUnlocked();
+      return;
+    }
     _unlockController.forward().then((_) {
       if (mounted) {
         widget.onUnlocked();
@@ -196,12 +301,16 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
 
   /// 触发密码输入框抖动效果。
   void _triggerShake() {
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+      _shakeController.value = 0;
+      return;
+    }
     _shakeController.forward(from: 0);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
 
     return AnimatedBuilder(
       animation: Listenable.merge([_unlockScale, _unlockOpacity]),
@@ -211,37 +320,62 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
           child: Transform.scale(scale: _unlockScale.value, child: child),
         );
       },
-      child: ScaffoldPage(
-        content: SafeArea(
+      child: YhPageScaffold(
+        body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: AppSpacing.regularPagePadding,
+              padding: EdgeInsets.all(theme.spacing.m),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 360),
+                constraints: BoxConstraints(
+                  maxWidth: theme.control.regular * 7.5,
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset(
-                      'assets/images/logo.png',
-                      width: 80,
-                      height: 80,
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: theme.color.structural,
+                        borderRadius: BorderRadius.circular(theme.radius.l),
+                      ),
+                      child: SizedBox.square(
+                        dimension: theme.control.regular + theme.spacing.l,
+                        child: Center(
+                          child: Text(
+                            '源',
+                            style: theme.typography.h1.copyWith(
+                              color: theme.color.onStructural,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: AppSpacing.lg),
+                    SizedBox(height: theme.spacing.m),
+                    Text(
+                      '本机安全',
+                      style: theme.typography.caption.copyWith(
+                        color: theme.color.brandStrong,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: theme.spacing.s),
                     Semantics(
                       header: true,
                       child: Text(
                         AppDisplayName.of(context),
-                        style: theme.typography.titleLarge,
+                        style: theme.typography.h1.copyWith(
+                          color: theme.color.foreground,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.sm),
+                    SizedBox(height: theme.spacing.m),
                     Text(
-                      '应用已锁定',
-                      style: theme.typography.bodyLarge?.copyWith(
-                        color: theme.resources.textFillColorSecondary,
+                      '应用已锁定，解锁信息只在本机验证。',
+                      textAlign: TextAlign.center,
+                      style: theme.typography.body.copyWith(
+                        color: theme.color.muted,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xl),
+                    SizedBox(height: theme.spacing.xl),
                     _buildPasswordForm(context),
                   ],
                 ),
@@ -255,7 +389,7 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
 
   /// 构建密码输入和解锁操作区。
   Widget _buildPasswordForm(BuildContext context) {
-    final theme = FluentTheme.of(context);
+    final theme = context.yhTheme;
 
     return AnimatedBuilder(
       animation: _shakeAnimation,
@@ -267,71 +401,52 @@ class _LockPageState extends State<LockPage> with TickerProviderStateMixin {
       },
       child: Column(
         children: [
-          FluentTextField(
+          YhTextField(
             controller: _passwordController,
             focusNode: _focusNode,
-            obscureText: true,
+            obscure: true,
             label: '密码',
-            placeholder: '输入密码以解锁',
-            prefixIcon: FluentIcons.lock,
+            hint: '输入密码以解锁',
+            prefixIcon: YhIcons.lock,
             errorText: _errorMessage,
+            enabled: !_isVerifying && !_isSystemAuthenticating,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _handleUnlock(),
           ),
-          if (_errorMessage != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Row(
-              children: [
-                Icon(
-                  FluentIcons.warning,
-                  color: theme.resources.systemFillColorCritical,
-                  size: 20,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    _errorMessage!,
-                    style: theme.typography.caption?.copyWith(
-                      color: theme.resources.systemFillColorCritical,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: AppSpacing.md),
+          SizedBox(height: theme.spacing.m),
           SizedBox(
             width: double.infinity,
-            child: FluentButton.primary(
-              onPressed: _isVerifying ? null : _handleUnlock,
-              expand: true,
-              child: _isVerifying
-                  ? const SizedBox.square(
-                      dimension: 20,
-                      child: FluentProgressRing(strokeWidth: 2),
-                    )
-                  : const Text('解锁'),
+            child: YhButton(
+              label: _isVerifying ? '正在验证…' : '解锁',
+              minWidth: theme.control.regular * 7.5,
+              onTap: _isVerifying || _isSystemAuthenticating
+                  ? null
+                  : _handleUnlock,
+              disabled: _isVerifying || _isSystemAuthenticating,
             ),
           ),
           if (_isSystemAuthEnabled) ...[
-            const SizedBox(height: AppSpacing.sm),
+            SizedBox(height: theme.spacing.s),
             SizedBox(
               width: double.infinity,
-              child: FluentButton.outlineIcon(
-                onPressed: _isSystemAuthenticating
+              child: YhButton(
+                label: _isSystemAuthenticating ? '等待系统认证' : '使用系统认证',
+                minWidth: theme.control.regular * 7.5,
+                variant: YhButtonVariant.secondary,
+                leadingIcon: YhIcons.fingerprint,
+                onTap: _isSystemAuthenticating || _isVerifying
                     ? null
                     : () => _handleSystemUnlock(),
-                icon: _isSystemAuthenticating
-                    ? const SizedBox.square(
-                        dimension: 20,
-                        child: FluentProgressRing(strokeWidth: 2),
-                      )
-                    : const Icon(FluentIcons.fingerprint),
-                expand: true,
-                label: Text(_isSystemAuthenticating ? '等待系统认证' : '使用系统认证'),
+                disabled: _isSystemAuthenticating || _isVerifying,
               ),
             ),
           ],
+          SizedBox(height: theme.spacing.m),
+          Text(
+            '系统认证取消或不可用时，仍可使用本地密码。',
+            textAlign: TextAlign.center,
+            style: theme.typography.caption.copyWith(color: theme.color.muted),
+          ),
         ],
       ),
     );

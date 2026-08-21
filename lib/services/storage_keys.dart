@@ -28,6 +28,9 @@ class StorageKeys {
   /// 关闭行为偏好（ask / minimize / exit）。
   static const String closeBehavior = 'close_behavior';
 
+  /// 清源主题模式（system / light / dark）。
+  static const String themeMode = 'theme_mode';
+
   /// 首页是否显示学籍信息卡片。
   static const String homeStudentProfileCardVisible =
       'home_student_profile_card_visible';

@@ -1,0 +1,45 @@
+/*
+ * 微信公众号扫码登录参考稿 — 认证接力条与填充式 WebView
+ * @Project : SSPU-AllinOne
+ * @File : _wechat-login-reference.css
+ * @Author : Qintsg
+ * @Date : 2026-08-18
+ */
+
+.reference-wechat-login { min-height: 0; flex: 1; overflow: hidden; display: flex; flex-direction: column; border: var(--layout-control-border) solid var(--border); border-radius: var(--radius-l); background: var(--surface); box-shadow: var(--shadow-1); }
+.reference-wechat-login-toolbar { min-height: var(--layout-app-bar-height); padding-inline: var(--space-s); display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: var(--space-xs); border-bottom: var(--layout-divider) solid var(--border); }
+.reference-wechat-login-toolbar strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--type-body); }
+.reference-wechat-login-toolbar button { min-width: var(--minimum-target); min-height: var(--minimum-target); padding: var(--space-xs); border: 0; border-radius: var(--radius-m); background: transparent; color: var(--fg); }
+.reference-wechat-login-toolbar button:hover:not(:disabled), .reference-wechat-login-toolbar button:focus-visible { background: var(--brand-tint); color: var(--brand-strong); }
+.reference-wechat-login-toolbar button:disabled { color: var(--muted); }
+.reference-wechat-login-body { min-height: 0; flex: 1; display: flex; flex-direction: column; }
+.reference-wechat-login-handoff { margin: var(--space-s) var(--space-m) var(--space-xs); padding: var(--space-s) var(--space-m); display: flex; align-items: flex-start; gap: var(--space-s); border-radius: var(--radius-m); background: var(--brand-tint); color: var(--fg); font-size: var(--type-small); line-height: var(--line-height-small); }
+.reference-wechat-login-handoff.is-success { background: var(--success-tint); }
+.reference-wechat-login-handoff.is-warn { background: var(--warn-tint); }
+.reference-wechat-login-handoff.is-error { background: var(--danger-tint); }
+.reference-wechat-login-handoff > span:first-child { flex: 0 0 auto; color: var(--brand-strong); font-weight: var(--weight-feed); }
+.reference-wechat-login-handoff p { margin: 0; }
+.reference-wechat-login-document { flex: 1; min-height: calc(var(--control-regular) * 7); margin-top: var(--space-xs); display: grid; place-items: center; align-content: center; gap: var(--space-s); background: var(--sunken); color: var(--muted); text-align: center; }
+.reference-wechat-login-document strong { color: var(--fg); font-size: var(--type-h3); }
+.reference-wechat-login-qr { width: calc(var(--layout-app-bar-height) * 2); aspect-ratio: 1; display: grid; place-items: center; border: var(--space-xs) solid var(--fg); border-radius: var(--radius-s); color: var(--fg); font-size: var(--type-h2); font-weight: var(--weight-feed); }
+.reference-wechat-login-loading, .reference-wechat-login-error { flex: 1; min-height: 0; padding: var(--space-l); display: grid; place-items: center; text-align: center; }
+.reference-wechat-login-loading > div, .reference-wechat-login-error > div { max-width: calc(var(--control-regular) * 9); display: grid; justify-items: center; gap: var(--space-s); }
+.reference-wechat-login-loading h2, .reference-wechat-login-loading p, .reference-wechat-login-error h2, .reference-wechat-login-error p { margin: 0; }
+.reference-wechat-login-error p { color: var(--muted); line-height: var(--line-height-body); }
+.reference-wechat-login-error button { min-height: var(--minimum-target); padding-inline: var(--space-m); border: 0; border-radius: var(--radius-m); background: var(--brand-strong); color: var(--on-brand); }
+
+body[data-surface="settings.wechat-login"] .reference-appbar,
+body[data-surface="settings.wechat-login"] .reference-heading,
+body[data-surface="settings.wechat-login"] .reference-source-strip { display: none; }
+body[data-surface="settings.wechat-login"] .reference-page { padding: 0; gap: 0; overflow: hidden; }
+body[data-surface="settings.wechat-login"] .reference-state { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+@media (max-width: 767px) {
+  body[data-surface="settings.wechat-login"] .reference-page { padding-bottom: var(--layout-bottom-navigation-height); }
+  .reference-wechat-login { border-inline: 0; border-radius: 0; box-shadow: none; }
+  .reference-wechat-login-handoff { margin-inline: var(--space-s); padding-inline: var(--space-s); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reference-wechat-login * { animation-duration: 0ms !important; transition-duration: 0ms !important; }
+}

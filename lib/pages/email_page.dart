@@ -8,14 +8,10 @@
 
 import 'dart:async';
 
-import '../design/fluent_ui.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-
+import '../design/qingyuan/qingyuan_ui.dart';
 import '../models/email_mailbox.dart';
 import '../services/academic_credentials_service.dart';
 import '../services/email_service.dart';
-import '../theme/fluent_tokens.dart';
-import '../widgets/app_feedback.dart';
 
 part 'email_compose_panel.dart';
 part 'email_page_layout.dart';
@@ -33,11 +29,15 @@ class EmailPage extends StatefulWidget {
   /// 测试专用：覆盖学校邮箱自动刷新间隔。
   final int? emailAutoRefreshIntervalOverride;
 
+  /// 测试专用：锁定当前时间，确保缓存新鲜度判定可重现。
+  final DateTime? nowOverride;
+
   const EmailPage({
     super.key,
     this.emailService,
     this.emailAutoRefreshEnabledOverride,
     this.emailAutoRefreshIntervalOverride,
+    this.nowOverride,
   });
 
   @override
@@ -48,13 +48,13 @@ class _EmailPageState extends State<EmailPage> {
   EmailProtocol _selectedProtocol = EmailProtocol.imap;
   EmailProtocol? _validatingProtocol;
   EmailMailboxQueryResult? _mailboxResult;
-  EmailLoginValidationResult? _validationResult;
   EmailSendResult? _sendResult;
   String? _selectedMessageId;
   bool _isFetchingMessages = false;
   bool _isSendingMessage = false;
   bool _showComposePane = false;
-  bool _emailAutoRefreshEnabled = false;
+  int _emailAutoRefreshIntervalMinutes =
+      EmailService.defaultAutoRefreshIntervalMinutes;
   Timer? _emailAutoRefreshTimer;
   StreamSubscription<int>? _credentialChangeSubscription;
   int _credentialGeneration = 0;
@@ -68,6 +68,8 @@ class _EmailPageState extends State<EmailPage> {
   EmailMailboxClient get _emailService {
     return widget.emailService ?? EmailService.instance;
   }
+
+  DateTime get _now => widget.nowOverride ?? DateTime.now();
 
   @override
   void initState() {
@@ -84,7 +86,6 @@ class _EmailPageState extends State<EmailPage> {
     _clearComposeInputs();
     setState(() {
       _mailboxResult = null;
-      _validationResult = null;
       _sendResult = null;
       _selectedMessageId = null;
       _isFetchingMessages = false;
@@ -103,7 +104,9 @@ class _EmailPageState extends State<EmailPage> {
         widget.emailAutoRefreshIntervalOverride ??
         await EmailService.instance.getAutoRefreshIntervalMinutes();
     if (!mounted) return;
-    setState(() => _emailAutoRefreshEnabled = enabled);
+    setState(() {
+      _emailAutoRefreshIntervalMinutes = interval;
+    });
     _restartEmailAutoRefreshTimer(enabled, interval);
     if (enabled && _shouldAutoRefresh(_mailboxResult?.checkedAt, interval)) {
       unawaited(_fetchMessages(silent: true));
@@ -197,6 +200,11 @@ class _EmailPageState extends State<EmailPage> {
     _openMessageDetail(message);
   }
 
+  void _focusMessage(EmailMessageSnapshot message) {
+    if (_selectedMessageId == message.id) return;
+    setState(() => _selectedMessageId = message.id);
+  }
+
   void _selectFirstMessageIfNeeded(List<EmailMessageSnapshot> messages) {
     if (messages.isEmpty || _selectedMessage(messages) != null) return;
     _selectedMessageId = messages.first.id;
@@ -205,8 +213,14 @@ class _EmailPageState extends State<EmailPage> {
   bool _shouldAutoRefresh(DateTime? fetchedAt, int intervalMinutes) {
     if (intervalMinutes <= 0) return false;
     if (fetchedAt == null) return true;
-    return DateTime.now().difference(fetchedAt) >=
-        Duration(minutes: intervalMinutes);
+    return _now.difference(fetchedAt) >= Duration(minutes: intervalMinutes);
+  }
+
+  bool _isMailboxSnapshotStale(EmailMailboxSnapshot snapshot) {
+    return _shouldAutoRefresh(
+      snapshot.fetchedAt,
+      _emailAutoRefreshIntervalMinutes,
+    );
   }
 
   @override
@@ -233,10 +247,14 @@ class _EmailPageState extends State<EmailPage> {
 
     final result = await _emailService.validateLogin(protocol);
     if (!mounted || generation != _credentialGeneration) return;
-    setState(() {
-      _validationResult = result;
-      _validatingProtocol = null;
-    });
+    setState(() => _validatingProtocol = null);
+    showYhFeedback(
+      context,
+      message: result.message,
+      severity: result.isSuccess
+          ? AppFeedbackSeverity.success
+          : AppFeedbackSeverity.error,
+    );
   }
 
   /// 通过 SMTP 主动发送当前撰写的普通文本邮件。
@@ -269,7 +287,7 @@ class _EmailPageState extends State<EmailPage> {
         _showComposePane = false;
       }
     });
-    showAppFeedback(
+    showYhFeedback(
       context,
       message: result.message,
       severity: result.isSuccess
@@ -315,10 +333,147 @@ class _EmailPageState extends State<EmailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return FluentPage.scrollable(
-      header: const FluentPageHeader(title: Text('学校邮箱')),
+    final theme = context.yhTheme;
+    final canPop = Navigator.of(context).canPop();
+    final viewportWidth = MediaQuery.sizeOf(context).width;
+    final fluidPaddingProgress =
+        ((viewportWidth - theme.breakpoint.medium) /
+                (theme.breakpoint.expanded - theme.breakpoint.medium))
+            .clamp(0.0, 1.0);
+    final horizontalPadding = viewportWidth < theme.breakpoint.medium
+        ? theme.spacing.m
+        : theme.spacing.xl +
+              (theme.spacing.xl2 - theme.spacing.xl) * fluidPaddingProgress;
+    // Flutter 的 MiSans 顶部字面比 Chromium 更紧，使用语义 token
+    // 补偿首行原点，保证 compact 冻结像素而非 CSS 盒值逐字相等。
+    final verticalPadding = viewportWidth < theme.breakpoint.medium
+        ? theme.spacing.l + theme.spacing.s + theme.layout.divider * 3
+        : theme.spacing.xl + theme.spacing.s;
+    final compactCompose =
+        _showComposePane && viewportWidth < theme.breakpoint.medium;
+    return YhPageScaffold(
+      appBar: canPop
+          ? YhAppBar(
+              title: '学校邮箱',
+              leading: YhIconButton(
+                icon: YhIcons.back,
+                semanticLabel: '返回',
+                variant: YhIconButtonVariant.ghost,
+                onTap: () => Navigator.of(context).maybePop(),
+              ),
+            )
+          : null,
+      bottomBar: compactCompose
+          ? EmailComposeActionDock(
+              isSending: _isSendingMessage,
+              onCancel: _closeCompose,
+              onSend: _sendEmail,
+            )
+          : null,
+      body: SingleChildScrollView(
+        child: Align(
+          alignment: AlignmentDirectional.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: theme.layout.pageContentWidth,
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildMailPageHeader(context, viewportWidth),
+                  SizedBox(
+                    height: viewportWidth < theme.breakpoint.medium
+                        ? _showComposePane
+                              ? theme.spacing.l + theme.layout.divider * 2
+                              : theme.spacing.l +
+                                    theme.spacing.xs +
+                                    theme.layout.divider * 2
+                        : theme.spacing.l,
+                  ),
+                  _buildEmailContent(context),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMailPageHeader(BuildContext context, double viewportWidth) {
+    final theme = context.yhTheme;
+    final compact = viewportWidth < theme.breakpoint.medium;
+    final composing = _showComposePane;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FluentContentWidth(maxWidth: 1440, child: _buildEmailContent(context)),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '学校邮箱',
+                style: theme.typography.caption.copyWith(
+                  color: theme.color.brandInk,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: theme.spacing.xs),
+              Semantics(
+                header: true,
+                child: Text(
+                  composing ? '撰写邮件' : '收件箱',
+                  style: theme.typography.h1,
+                ),
+              ),
+              SizedBox(height: theme.spacing.s),
+              Text(
+                composing
+                    ? '填写收件人、主题与普通文本正文；发送前仍可取消。'
+                    : '邮件原文只在本机读取；桌面采用列表—详情并列，移动端进入独立详情页。',
+                style:
+                    (compact ? theme.typography.small : theme.typography.body)
+                        .copyWith(color: theme.color.muted),
+              ),
+            ],
+          ),
+        ),
+        if (!composing) ...[
+          SizedBox(width: theme.spacing.l),
+          Transform.translate(
+            offset: Offset(0, -theme.spacing.s),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (compact)
+                  YhIconButton(
+                    key: const Key('email-compose-open'),
+                    icon: YhIcons.edit,
+                    semanticLabel: '写邮件',
+                    onTap: _startCompose,
+                  )
+                else
+                  YhButton(
+                    key: const Key('email-compose-open'),
+                    label: '写邮件',
+                    variant: YhButtonVariant.secondary,
+                    onTap: _startCompose,
+                  ),
+                SizedBox(width: theme.spacing.s),
+                YhIconButton(
+                  icon: YhIcons.refresh,
+                  semanticLabel: _isFetchingMessages ? '正在刷新邮箱' : '刷新邮箱',
+                  onTap: _isFetchingMessages ? null : _fetchMessages,
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -326,32 +481,49 @@ class _EmailPageState extends State<EmailPage> {
   /// 打开邮件正文详情页；详情页仍只展示本地快照。
   void _openMessageDetail(EmailMessageSnapshot message) {
     Navigator.of(context).push(
-      FluentPageRoute(builder: (_) => EmailMessageDetailPage(message: message)),
+      YhPageRoute(
+        builder: (_) =>
+            EmailMessageDetailPage(message: message, nowOverride: _now),
+      ),
     );
   }
 
-  FluentInfoSeverity _severityOf(EmailQueryStatus status) {
+  YhBannerKind _severityOf(EmailQueryStatus status) {
     return switch (status) {
-      EmailQueryStatus.success => FluentInfoSeverity.success,
+      EmailQueryStatus.success => YhBannerKind.success,
       EmailQueryStatus.missingEmailAccount ||
       EmailQueryStatus.missingEmailPassword ||
-      EmailQueryStatus.invalidInput => FluentInfoSeverity.warning,
+      EmailQueryStatus.invalidInput => YhBannerKind.warn,
       EmailQueryStatus.loginRejected ||
       EmailQueryStatus.parseFailed ||
       EmailQueryStatus.networkError ||
-      EmailQueryStatus.unexpectedError => FluentInfoSeverity.error,
+      EmailQueryStatus.unexpectedError => YhBannerKind.danger,
     };
   }
 
-  String _senderLabel(EmailMessageSnapshot message) {
-    if (message.senderName.isEmpty) return message.senderAddress;
-    return '${message.senderName} <${message.senderAddress}>';
+  String _senderDisplayName(EmailMessageSnapshot message) {
+    return message.senderName.isEmpty
+        ? message.senderAddress
+        : message.senderName;
   }
 
   String _formatOptionalDateTime(DateTime? dateTime) {
     if (dateTime == null) return '时间未知';
-    return _formatDateTime(dateTime);
+    final date = DateTime(dateTime.year, dateTime.month, dateTime.day);
+    final today = DateTime(_now.year, _now.month, _now.day);
+    final days = today.difference(date).inDays;
+    final clock = _formatClockTime(dateTime);
+    if (days == 0) return '今天 $clock';
+    if (days == 1) return '昨天 $clock';
+    if (dateTime.year == _now.year) {
+      return '${dateTime.month} 月 ${dateTime.day} 日';
+    }
+    return '${dateTime.year} 年 ${dateTime.month} 月 ${dateTime.day} 日';
   }
+
+  String _formatClockTime(DateTime dateTime) =>
+      '${dateTime.hour.toString().padLeft(2, '0')}:'
+      '${dateTime.minute.toString().padLeft(2, '0')}';
 
   String _formatDateTime(DateTime dateTime) {
     return '${dateTime.year.toString().padLeft(4, '0')}-'

@@ -14,6 +14,7 @@ void main() {
     const message = MessageItem(
       id: 'wechat-json-1',
       title: '微信 JSON 测试',
+      summary: '用于资讯卡的两行摘要。',
       date: '2026-04-25',
       url: 'https://mp.weixin.qq.com/s/json',
       sourceType: MessageSourceType.wechatPublic,
@@ -32,6 +33,7 @@ void main() {
     expect(restored.mpDisplayId, 'ssputw');
     expect(restored.mpBookId, 'fakeid-json');
     expect(restored.mpName, '青春二工大');
+    expect(restored.summary, '用于资讯卡的两行摘要。');
   });
 
   test('旧缓存缺少微信账号显示 ID 时仍可读取', () {
@@ -50,5 +52,6 @@ void main() {
     expect(restored.mpDisplayId, isNull);
     expect(restored.mpBookId, 'legacy-fakeid');
     expect(restored.mpName, '旧公众号名');
+    expect(restored.summary, isNull);
   });
 }

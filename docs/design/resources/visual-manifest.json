@@ -1,0 +1,90 @@
+{
+  "meta": {
+    "version": "0.4.0",
+    "designSystem": "qingyuan-0.4.0",
+    "reviewMode": "manual-per-screen",
+    "platforms": ["android", "ios", "windows", "macos", "linux"],
+    "excludedPlatforms": ["web"],
+    "viewports": [
+      {"width": 360, "height": 800},
+      {"width": 768, "height": 900},
+      {"width": 1200, "height": 900},
+      {"width": 1600, "height": 1000}
+    ],
+    "themes": ["light", "dark"],
+    "states": ["initial", "loading", "content", "empty", "stale", "error"],
+    "scenarioStates": ["external-confirmation", "external-cancelled", "external-error", "operation-locked", "partial-error", "credentials-required", "credentials-partial", "validation-error"],
+    "interactionChecks": ["single-flight", "stale-result-isolation", "system-back", "cancel", "context-preservation", "inline-retry", "external-failure"],
+    "capture": {
+      "locale": "zh_CN",
+      "timezone": "Asia/Shanghai",
+      "clock": "2026-07-18T09:30:00+08:00",
+      "font": "MiSans",
+      "animations": "disabled",
+      "fixture": "qingyuan-sanitized-v1",
+      "filePattern": "<surface>--<state>--<theme>--<width>x<height>.png"
+    }
+  },
+  "surfaces": [
+    {"id": "components.actions", "group": "components", "states": ["content"]},
+    {"id": "components.inputs", "group": "components", "states": ["content"]},
+    {"id": "components.feedback", "group": "components", "states": ["content"]},
+    {"id": "components.navigation", "group": "components", "states": ["content"]},
+    {"id": "components.data", "group": "components", "states": ["content"]},
+    {"id": "components.domain", "group": "components", "states": ["content"]},
+    {"id": "shell.startup", "group": "global", "states": ["loading", "error"]},
+    {"id": "shell.navigation", "group": "global", "states": ["content"]},
+    {"id": "shell.more-drawer", "group": "global", "states": ["content"]},
+    {"id": "shell.close-confirmation", "group": "global", "states": ["content", "operation-locked", "error"]},
+    {"id": "consent.first-run", "group": "global", "states": ["initial", "content", "error", "operation-locked", "partial-error"]},
+    {"id": "security.lock", "group": "global", "states": ["initial", "loading", "error"]},
+
+    {"id": "home.dashboard", "group": "home", "states": ["initial", "loading", "content", "stale", "error", "partial-error", "credentials-partial", "operation-locked"]},
+    {"id": "home.campus-card", "group": "home", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
+    {"id": "home.campus-card-detail", "group": "home", "states": ["content", "empty", "stale", "error", "partial-error", "operation-locked", "validation-error"]},
+
+    {"id": "academic.overview", "group": "academic", "states": ["initial", "loading", "content", "empty", "stale", "error", "partial-error", "credentials-required", "credentials-partial", "operation-locked"]},
+    {"id": "academic.grade-detail", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
+    {"id": "academic.exam-detail", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
+    {"id": "academic.grade-process", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
+    {"id": "academic.student-report", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
+    {"id": "academic.student-report-rules", "group": "academic", "states": ["content", "empty"]},
+    {"id": "academic.sports-attendance", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "operation-locked"]},
+    {"id": "academic.calendar", "group": "academic", "states": ["loading", "content", "empty", "stale", "error", "partial-error", "operation-locked", "external-confirmation", "external-error"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content", "stale", "partial-error", "operation-locked", "external-error"]}},
+
+    {"id": "schedule.calendar", "group": "schedule", "states": ["initial", "loading", "content", "empty", "stale", "error", "operation-locked"]},
+
+    {"id": "info.feed", "group": "info", "states": ["initial", "loading", "content", "empty", "stale", "error"]},
+    {"id": "info.filters", "group": "info", "states": ["content", "empty"]},
+
+    {"id": "mail.inbox", "group": "mail", "states": ["initial", "loading", "content", "empty", "stale", "error"]},
+    {"id": "mail.message-detail", "group": "mail", "states": ["content"]},
+    {"id": "mail.compose", "group": "mail", "states": ["initial", "loading", "content", "error"]},
+
+    {"id": "links.directory", "group": "links", "states": ["loading", "content", "empty", "error"]},
+    {"id": "links.external-confirmation", "group": "links", "states": ["content", "error"]},
+
+    {"id": "settings.account", "group": "settings", "states": ["content", "error"]},
+    {"id": "security.password-dialog", "group": "settings", "states": ["content", "validation-error"]},
+    {"id": "settings.home-notifications", "group": "settings", "states": ["content"]},
+    {"id": "settings.appearance", "group": "settings", "states": ["content"]},
+    {"id": "settings.data-privacy", "group": "settings", "states": ["content", "loading", "error"]},
+    {"id": "settings.confirm-clear-cache", "group": "settings", "states": ["content"]},
+    {"id": "settings.confirm-disconnect-accounts", "group": "settings", "states": ["content"]},
+    {"id": "settings.confirm-clear-all-data", "group": "settings", "states": ["content"]},
+    {"id": "settings.about", "group": "settings", "states": ["loading", "content", "error", "external-confirmation", "external-cancelled", "external-error", "operation-locked"]},
+    {"id": "settings.licenses", "group": "settings", "states": ["content", "external-confirmation", "external-cancelled", "external-error", "operation-locked"]},
+    {"id": "settings.wechat-auth", "group": "settings", "states": ["initial", "loading", "content", "error"]},
+    {"id": "settings.wechat-login", "group": "settings", "states": ["loading", "initial", "content", "error", "partial-error", "operation-locked", "external-confirmation", "external-error"], "externalRegions": ["document"], "externalRegionStates": {"document": ["initial", "content", "partial-error", "operation-locked", "external-error"]}},
+    {"id": "settings.wechat-config", "group": "settings", "states": ["content", "validation-error"]},
+    {"id": "settings.update", "group": "settings", "states": ["initial", "loading", "content", "error"]},
+
+    {"id": "legal.notice", "group": "legal", "states": ["loading", "content", "error"]},
+    {"id": "legal.privacy", "group": "legal", "states": ["loading", "content", "error"]},
+    {"id": "legal.agreement", "group": "legal", "states": ["loading", "content", "error"]},
+
+    {"id": "external.webview", "group": "external", "states": ["loading", "content", "error", "external-confirmation", "external-error", "operation-locked"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content", "external-error", "operation-locked"]}},
+    {"id": "external.pdf", "group": "external", "states": ["loading", "content", "empty", "error", "partial-error", "operation-locked", "external-confirmation", "external-error"], "externalRegions": ["document"], "externalRegionStates": {"document": ["content", "partial-error", "operation-locked", "external-error"]}},
+    {"id": "external.system-auth", "group": "external", "states": ["initial", "content", "error"], "externalRegions": ["system-dialog"], "externalRegionStates": {"system-dialog": ["content"]}}
+  ]
+}

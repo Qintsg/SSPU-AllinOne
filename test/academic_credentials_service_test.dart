@@ -247,4 +247,22 @@ void main() {
 
     expect(changes.length, 3);
   });
+
+  test('OA 身份流忽略邮箱与体育密码变化', () async {
+    final oaChanges = <int>[];
+    final subscription = service.oaChanges.listen(oaChanges.add);
+    addTearDown(subscription.cancel);
+
+    await service.saveCredentials(oaAccount: '20260001');
+    await service.saveCredentials(
+      oaAccount: '20260001',
+      emailPassword: 'mail-pass',
+      sportsQueryPassword: 'sports-pass',
+    );
+    await service.clearSecret(AcademicCredentialSecret.emailPassword);
+    await service.saveCredentials(oaAccount: '20260001', oaPassword: 'oa-pass');
+    await Future<void>.delayed(Duration.zero);
+
+    expect(oaChanges.length, 2);
+  });
 }
