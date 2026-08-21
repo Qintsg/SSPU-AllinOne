@@ -44,7 +44,7 @@ void main() {
   });
 
   test('列表页解析 2021 年以后校历并跳过旧格式', () {
-    final items = AcademicCalendarService.parseCalendarList(_listHtml);
+    final items = parseCalendarList(_listHtml);
 
     expect(items.map((item) => item.schoolYearStart), [2026, 2025, 2021]);
     expect(items.first.title, '2026-2027学年校历');
@@ -52,24 +52,24 @@ void main() {
       items.first.detailUrl,
       'https://jwc.sspu.edu.cn/2026/0604/c955a170325/page.htm',
     );
-    expect(AcademicCalendarService.hasNextPage(_listHtml), isTrue);
+    expect(hasNextPage(_listHtml), isTrue);
   });
 
   test('详情页按 PDF 播放器、PDF 链接和图片提取资源', () {
-    final playerAssets = AcademicCalendarService.parseCalendarDetailAssets(
+    final playerAssets = parseCalendarDetailAssets(
       _detailPdfPlayerHtml,
     );
     expect(playerAssets.pdfUrl, 'https://jwc.sspu.edu.cn/_upload/a.pdf');
     expect(playerAssets.sourceType, AcademicCalendarSourceType.pdf);
 
-    final mixedAssets = AcademicCalendarService.parseCalendarDetailAssets(
+    final mixedAssets = parseCalendarDetailAssets(
       _detailMixedHtml,
     );
     expect(mixedAssets.pdfUrl, 'https://jwc.sspu.edu.cn/files/calendar.pdf');
     expect(mixedAssets.imageUrls.single, 'https://jwc.sspu.edu.cn/img/a.png');
     expect(mixedAssets.sourceType, AcademicCalendarSourceType.mixed);
 
-    final emptyAssets = AcademicCalendarService.parseCalendarDetailAssets(
+    final emptyAssets = parseCalendarDetailAssets(
       '<html><body><div class="wp_articlecontent">暂无附件</div></body></html>',
     );
     expect(emptyAssets.sourceType, AcademicCalendarSourceType.unknown);
@@ -110,7 +110,7 @@ void main() {
   });
 
   test('PDF 文本解析学期范围、夏季教学段和特殊日期', () {
-    final schedule = AcademicCalendarService.parseTermScheduleFromText(
+    final schedule = parseTermScheduleFromText(
       _pdfText2025,
       schoolYearStart: 2025,
     );
@@ -128,7 +128,7 @@ void main() {
   });
 
   test('明确日期的工作日休息日和假期可生成标签', () {
-    final schedule = AcademicCalendarService.parseTermScheduleFromText(
+    final schedule = parseTermScheduleFromText(
       _pdfTextWithExplicitDayTags,
       schoolYearStart: 2025,
     );
@@ -146,7 +146,7 @@ void main() {
   });
 
   test('PDF 文本解析支持夏季 3+2 教学段且不把另行通知伪造成日期标签', () {
-    final schedule = AcademicCalendarService.parseTermScheduleFromText(
+    final schedule = parseTermScheduleFromText(
       _pdfTextSummer3Plus2,
       schoolYearStart: 2024,
     );
@@ -162,7 +162,7 @@ void main() {
 
   test('PDF 文本缺少关键句或日期顺序异常时结构化解析失败', () {
     expect(
-      AcademicCalendarService.parseTermScheduleFromText(
+      parseTermScheduleFromText(
         '9月22日（周一）秋季学期开始',
         schoolYearStart: 2025,
       ),
@@ -170,7 +170,7 @@ void main() {
     );
 
     expect(
-      AcademicCalendarService.parseTermScheduleFromText(
+      parseTermScheduleFromText(
         _pdfTextBadDateOrder,
         schoolYearStart: 2025,
       ),
@@ -179,7 +179,7 @@ void main() {
   });
 
   test('结构化缓存可转换为学期定义供 #172 复用', () {
-    final schedule = AcademicCalendarService.parseTermScheduleFromText(
+    final schedule = parseTermScheduleFromText(
       _pdfText2025,
       schoolYearStart: 2025,
     )!;
@@ -247,7 +247,7 @@ void main() {
 
   test('缓存集合保存和读取校历条目', () async {
     final service = AcademicCalendarService();
-    final schedule = AcademicCalendarService.parseTermScheduleFromText(
+    final schedule = parseTermScheduleFromText(
       _pdfText2025,
       schoolYearStart: 2025,
     )!;
@@ -295,7 +295,7 @@ void main() {
   });
 
   test('解析版本过旧时自动刷新并覆盖旧缓存', () async {
-    final oldSchedule = AcademicCalendarService.parseTermScheduleFromText(
+    final oldSchedule = parseTermScheduleFromText(
       _pdfText2025,
       schoolYearStart: 2025,
     )!;
@@ -330,7 +330,7 @@ void main() {
   });
 
   test('刷新失败时保留旧缓存并标记为可能过期', () async {
-    final schedule = AcademicCalendarService.parseTermScheduleFromText(
+    final schedule = parseTermScheduleFromText(
       _pdfText2025,
       schoolYearStart: 2025,
     )!;
@@ -357,7 +357,7 @@ void main() {
   });
 
   test('校历查看器首次或超过一个月进入时自动刷新', () async {
-    final schedule = AcademicCalendarService.parseTermScheduleFromText(
+    final schedule = parseTermScheduleFromText(
       _pdfText2025,
       schoolYearStart: 2025,
     )!;
