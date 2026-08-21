@@ -33,10 +33,7 @@ void main() {
     expect(releaseWorkflow, contains('codesign --force --deep --sign -'));
     expect(releaseWorkflow, isNot(contains('xcrun notarytool submit')));
     expect(releaseWorkflow, isNot(contains('xcrun stapler staple')));
-    expect(
-      releaseWorkflow,
-      isNot(contains('Developer ID Application')),
-    );
+    expect(releaseWorkflow, isNot(contains('Developer ID Application')));
     expect(
       releaseWorkflow,
       contains(
