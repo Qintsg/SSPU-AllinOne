@@ -74,7 +74,6 @@ void main() {
 const _expectedAssetNames = [
   'SSPU-AllinOne-v1.2.0-android-armeabi-v7a.apk',
   'SSPU-AllinOne-v1.2.0-android-arm64-v8a.apk',
-  'SSPU-AllinOne-v1.2.0-android-x86.apk',
   'SSPU-AllinOne-v1.2.0-android-x86_64.apk',
   'SSPU-AllinOne-v1.2.0-windows-x64-setup.exe',
   'SSPU-AllinOne-v1.2.0-windows-x64-portable.zip',

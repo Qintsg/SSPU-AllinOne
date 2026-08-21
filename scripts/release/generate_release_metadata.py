@@ -29,7 +29,6 @@ FILENAME_PATTERN = re.compile(
 EXPECTED_PRODUCT_ASSETS = {
     ("android", "armeabi-v7a", "apk"),
     ("android", "arm64-v8a", "apk"),
-    ("android", "x86", "apk"),
     ("android", "x86_64", "apk"),
     ("windows", "x64", "setup"),
     ("windows", "x64", "portable"),
