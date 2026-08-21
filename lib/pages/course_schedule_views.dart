@@ -14,12 +14,17 @@ class _CourseScheduleAdaptiveView extends StatelessWidget {
     required this.currentWeekday,
     required this.selectedMobileWeekday,
     required this.onSelectedMobileWeekdayChanged,
+    this.fillHeight = false,
   });
 
   final AcademicCourseTableSnapshot courseTable;
   final int currentWeekday;
+
   final int selectedMobileWeekday;
   final ValueChanged<int> onSelectedMobileWeekdayChanged;
+
+  /// 桌面端填充剩余视口高度，行高均分。
+  final bool fillHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -59,10 +64,19 @@ class _CourseScheduleAdaptiveView extends StatelessWidget {
             ),
             selectedWeekday: selectedMobileWeekday,
           )
+        else if (fillHeight)
+          Expanded(
+            child: _CourseWeekGridView(
+              entries: courseTable.entries,
+              currentWeekday: currentWeekday,
+              fillHeight: true,
+            ),
+          )
         else
           _CourseWeekGridView(
             entries: courseTable.entries,
             currentWeekday: currentWeekday,
+            fillHeight: false,
           ),
       ],
     );
@@ -73,10 +87,14 @@ class _CourseWeekGridView extends StatelessWidget {
   const _CourseWeekGridView({
     required this.entries,
     required this.currentWeekday,
+    this.fillHeight = false,
   });
 
   final List<AcademicCourseTableEntry> entries;
   final int currentWeekday;
+
+  /// 桌面端填充剩余视口高度，行高均分。
+  final bool fillHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -101,47 +119,75 @@ class _CourseWeekGridView extends StatelessWidget {
             periodColumnWidth: periodColumnWidth,
           ),
           for (var group = 0; group < groupCount; group++)
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _CoursePeriodCell(
-                    startUnit: group * 2 + 1,
-                    endUnit: group * 2 + 1 == periodTable.periods.length
-                        ? group * 2 + 1
-                        : group * 2 + 2,
-                    width: periodColumnWidth,
-                    minHeight: cellMinHeight,
+            if (fillHeight)
+              Expanded(
+                child: _buildRow(
+                  group,
+                  periodTable,
+                  periodColumnWidth,
+                  cellMinHeight,
+                  theme,
+                ),
+              )
+            else
+              _buildRow(
+                group,
+                periodTable,
+                periodColumnWidth,
+                cellMinHeight,
+                theme,
+              ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建单个节次组行；填充视口时由外层 Expanded 均分高度。
+  Widget _buildRow(
+    int group,
+    CoursePeriodTable periodTable,
+    double periodColumnWidth,
+    double cellMinHeight,
+    YhTheme theme,
+  ) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _CoursePeriodCell(
+            startUnit: group * 2 + 1,
+            endUnit: group * 2 + 1 == periodTable.periods.length
+                ? group * 2 + 1
+                : group * 2 + 2,
+            width: periodColumnWidth,
+            minHeight: cellMinHeight,
+          ),
+          for (var weekday = 1; weekday <= 7; weekday++)
+            Expanded(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: weekday == currentWeekday
+                      ? theme.color.brandTint
+                      : theme.color.surface,
+                  border: BorderDirectional(
+                    start: BorderSide(color: theme.color.border),
+                    top: BorderSide(color: theme.color.border),
                   ),
-                  for (var weekday = 1; weekday <= 7; weekday++)
-                    Expanded(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: weekday == currentWeekday
-                              ? theme.color.brandTint
-                              : theme.color.surface,
-                          border: BorderDirectional(
-                            start: BorderSide(color: theme.color.border),
-                            top: BorderSide(color: theme.color.border),
-                          ),
-                        ),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(minHeight: cellMinHeight),
-                          child: Padding(
-                            padding: EdgeInsets.all(theme.spacing.s),
-                            child: _CourseGridCell(
-                              entries: _entriesStartingBetween(
-                                entries,
-                                weekday,
-                                group * 2 + 1,
-                                group * 2 + 2,
-                              ),
-                            ),
-                          ),
-                        ),
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: cellMinHeight),
+                  child: Padding(
+                    padding: EdgeInsets.all(theme.spacing.s),
+                    child: _CourseGridCell(
+                      entries: _entriesStartingBetween(
+                        entries,
+                        weekday,
+                        group * 2 + 1,
+                        group * 2 + 2,
                       ),
                     ),
-                ],
+                  ),
+                ),
               ),
             ),
         ],

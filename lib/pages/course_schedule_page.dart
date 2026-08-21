@@ -192,6 +192,11 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     final canPop = Navigator.of(context).canPop();
     final courseTable = _result?.snapshot?.courseTable;
     final viewportWidth = MediaQuery.sizeOf(context).width;
+    final viewportHeight = MediaQuery.sizeOf(context).height;
+    final fillViewport =
+        !(viewportWidth < theme.breakpoint.medium) &&
+        viewportHeight >=
+            theme.control.regular * 16 + theme.spacing.s;
     final fluidPaddingProgress =
         ((viewportWidth - theme.breakpoint.medium) /
                 (theme.breakpoint.expanded - theme.breakpoint.medium))
@@ -223,31 +228,56 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
               ),
             )
           : null,
-      body: SingleChildScrollView(
-        primary: true,
-        child: Align(
-          alignment: AlignmentDirectional.topCenter,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: theme.layout.pageContentWidth,
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: horizontalPadding,
-                vertical: verticalPadding,
+      body: fillViewport
+          ? Align(
+              alignment: AlignmentDirectional.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: theme.layout.pageContentWidth,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                    vertical: verticalPadding,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildPageHeader(courseTable, viewportWidth),
+                      SizedBox(height: contentGap),
+                      Expanded(
+                        child: _buildContent(courseTable, fillHeight: true),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildPageHeader(courseTable, viewportWidth),
-                  SizedBox(height: contentGap),
-                  _buildContent(courseTable),
-                ],
+            )
+          : SingleChildScrollView(
+              primary: true,
+              child: Align(
+                alignment: AlignmentDirectional.topCenter,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: theme.layout.pageContentWidth,
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                      vertical: verticalPadding,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildPageHeader(courseTable, viewportWidth),
+                        SizedBox(height: contentGap),
+                        _buildContent(courseTable),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -382,42 +412,62 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     return '课程安排';
   }
 
-  Widget _buildContent(AcademicCourseTableSnapshot? courseTable) {
+  Widget _buildContent(
+    AcademicCourseTableSnapshot? courseTable, {
+    bool fillHeight = false,
+  }) {
     final theme = context.yhTheme;
     final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
+    Widget statePanel(_ScheduleStatePanel panel) =>
+        fillHeight ? Center(child: panel) : panel;
     if (_isLoading && _result == null) {
-      return const _ScheduleStatePanel(
-        loading: true,
-        statusLabel: '读取中',
-        title: '正在读取当前学期课表',
-        message: '正在从教务课表恢复数据；页面、校历入口和返回路径保持可用。',
-        contextLabel: '只读访问 · 当前学期',
+      return statePanel(
+        const _ScheduleStatePanel(
+          loading: true,
+          statusLabel: '读取中',
+          title: '正在读取当前学期课表',
+          message: '正在从教务课表恢复数据；页面、校历入口和返回路径保持可用。',
+          contextLabel: '只读访问 · 当前学期',
+        ),
       );
     }
     if (_result == null) {
-      return _ScheduleStatePanel(
-        symbol: '→',
-        statusLabel: '尚未开始',
-        title: '准备读取课程表',
-        message: '首次读取只访问当前 OA 登录态下的课表；由你决定何时开始。',
-        contextLabel: '只读访问 · 当前学期',
-        primaryActionLabel: '开始读取',
-        onPrimaryAction: _loadCourseTable,
-        onCalendar: _openAcademicCalendar,
+      return statePanel(
+        _ScheduleStatePanel(
+          symbol: '→',
+          statusLabel: '尚未开始',
+          title: '准备读取课程表',
+          message: '首次读取只访问当前 OA 登录态下的课表；由你决定何时开始。',
+          contextLabel: '只读访问 · 当前学期',
+          primaryActionLabel: '开始读取',
+          onPrimaryAction: _loadCourseTable,
+          onCalendar: _openAcademicCalendar,
+        ),
       );
     }
     if (!_result!.isSuccess || courseTable == null) {
-      return _ScheduleStatePanel(
-        symbol: '!',
-        statusLabel: '需要处理',
-        title: _result!.message,
-        message: _result!.detail,
-        contextLabel: '已有缓存不会被清空',
-        primaryActionLabel: '检查后重试',
-        onPrimaryAction: _loadCourseTable,
-        onCalendar: _openAcademicCalendar,
+      return statePanel(
+        _ScheduleStatePanel(
+          symbol: '!',
+          statusLabel: '需要处理',
+          title: _result!.message,
+          message: _result!.detail,
+          contextLabel: '已有缓存不会被清空',
+          primaryActionLabel: '检查后重试',
+          onPrimaryAction: _loadCourseTable,
+          onCalendar: _openAcademicCalendar,
+        ),
       );
     }
+    final courseView = _CourseScheduleAdaptiveView(
+      courseTable: courseTable,
+      currentWeekday: _now.weekday,
+      selectedMobileWeekday: _selectedMobileWeekday,
+      fillHeight: fillHeight,
+      onSelectedMobileWeekdayChanged: (weekday) {
+        setState(() => _selectedMobileWeekday = weekday);
+      },
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -440,31 +490,38 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
           SizedBox(height: theme.spacing.m),
         ],
         if (courseTable.entries.isEmpty)
-          Padding(
-            padding: EdgeInsets.only(
-              top: theme.spacing.s - theme.spacing.xs / 2,
-            ),
-            child: _ScheduleStatePanel(
-              symbol: '○',
-              statusLabel: '当前范围',
-              title: '本学期暂无课程',
-              message: '当前学期没有可展示的课程；刚完成选课时可稍后刷新，或查看校历确认学期。',
-              contextLabel:
-                  '0 门课程 · ${_formatCheckedTime(_result!.checkedAt)} 更新',
-              primaryActionLabel: '重新读取',
-              onPrimaryAction: _loadCourseTable,
-              onCalendar: _openAcademicCalendar,
-            ),
-          )
+          fillHeight
+              ? Center(
+                  child: _ScheduleStatePanel(
+                    symbol: '○',
+                    statusLabel: '当前范围',
+                    title: '本学期暂无课程',
+                    message: '当前学期没有可展示的课程；刚完成选课时可稍后刷新，或查看校历确认学期。',
+                    contextLabel:
+                        '0 门课程 · ${_formatCheckedTime(_result!.checkedAt)} 更新',
+                    primaryActionLabel: '重新读取',
+                    onPrimaryAction: _loadCourseTable,
+                    onCalendar: _openAcademicCalendar,
+                  ),
+                )
+              : Padding(
+                  padding: EdgeInsets.only(
+                    top: theme.spacing.s - theme.spacing.xs / 2,
+                  ),
+                  child: _ScheduleStatePanel(
+                    symbol: '○',
+                    statusLabel: '当前范围',
+                    title: '本学期暂无课程',
+                    message: '当前学期没有可展示的课程；刚完成选课时可稍后刷新，或查看校历确认学期。',
+                    contextLabel:
+                        '0 门课程 · ${_formatCheckedTime(_result!.checkedAt)} 更新',
+                    primaryActionLabel: '重新读取',
+                    onPrimaryAction: _loadCourseTable,
+                    onCalendar: _openAcademicCalendar,
+                  ),
+                )
         else
-          _CourseScheduleAdaptiveView(
-            courseTable: courseTable,
-            currentWeekday: _now.weekday,
-            selectedMobileWeekday: _selectedMobileWeekday,
-            onSelectedMobileWeekdayChanged: (weekday) {
-              setState(() => _selectedMobileWeekday = weekday);
-            },
-          ),
+          fillHeight ? Expanded(child: courseView) : courseView,
       ],
     );
   }
