@@ -87,19 +87,37 @@ class LegalConsentDialog extends StatelessWidget {
             constraints.maxHeight - verticalMargin * 2,
           );
           final regularWidth = theme.breakpoint.medium + theme.spacing.xl2 * 3;
-          final regularHeight = theme.breakpoint.medium - theme.spacing.s;
           final dialogWidth = isCompact
               ? availableWidth
               : math.min(regularWidth, availableWidth);
-          final dialogHeight = isCompact
-              ? availableHeight
-              : math.min(regularHeight, availableHeight);
-
+          // 桌面端用固定尺寸居中弹窗；移动端宽度仍撑满可用宽度，
+          // 但高度不强制填满视口——让卡片随内容自适应，仅在内容
+          // 超出时按可用高度截断滚动，避免移动端底部大片空白。
+          if (isCompact) {
+            return Center(
+              child: ConstrainedBox(
+                key: const Key('legal-consent-dialog'),
+                constraints: BoxConstraints(
+                  maxWidth: dialogWidth,
+                  maxHeight: availableHeight,
+                ),
+                child: _LegalConsentSurface(
+                  isCompact: isCompact,
+                  onAccept: onAccept,
+                  onDecline: onDecline,
+                  loadLegalNotice: loadLegalNotice,
+                ),
+              ),
+            );
+          }
           return Center(
             child: SizedBox(
               key: const Key('legal-consent-dialog'),
               width: dialogWidth,
-              height: dialogHeight,
+              height: math.min(
+                theme.breakpoint.medium - theme.spacing.s,
+                availableHeight,
+              ),
               child: _LegalConsentSurface(
                 isCompact: isCompact,
                 onAccept: onAccept,
@@ -196,7 +214,8 @@ class _LegalConsentSurfaceState extends State<_LegalConsentSurface> {
                   ),
                 ),
                 SizedBox(height: theme.spacing.m),
-                Expanded(
+                Flexible(
+                  fit: widget.isCompact ? FlexFit.loose : FlexFit.tight,
                   child: _LegalNoticeDocument(
                     isCompact: widget.isCompact,
                     snapshot: snapshot,
