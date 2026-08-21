@@ -1,14 +1,14 @@
 # 主题与深色模式
 
-> 子模块：[个性化](README.md)　·　状态：**部分实现**（token 体系已实现，切换设计中）
+> 子模块：[个性化](README.md)　·　状态：**已实现**（清源 token 体系 + 亮/暗/系统切换 + 偏好持久化）
 
 | 项 | 内容 |
 | --- | --- |
 | 功能 ID | `platform.personalization.theme` |
-| 状态 | 部分实现 |
+| 状态 | 已实现 |
 | 平台 | 全平台（Android · iOS · Windows · macOS · Linux） |
 | 关联 Issue | #168 |
-| 主要代码 | `lib/theme/`；`lib/design/fluent/fluent_theme.dart`、`tokens/` |
+| 主要代码 | `lib/design/qingyuan/theme/yh_theme.dart`；`lib/pages/settings_appearance_page.dart` |
 
 ## 1. 需求
 
@@ -21,12 +21,12 @@
 
 ## 2. 实现
 
-- 设计系统 token（`design/fluent/tokens/`）已支持亮/暗双主题，映射 Flutter `ThemeExtension`。
-- 主题模式（亮/暗/系统）与可选强调色在 [设置中心](../shell/settings.md)「主题」分区选择，偏好落 [本地存储](../system/storage-sync.md)。
+- 清源设计系统 token（`lib/design/qingyuan/theme/yh_theme.dart`）支持亮/暗双主题，映射 Flutter `ThemeExtension`。
+- 主题模式（亮/暗/系统）在 [设置中心](../shell/settings.md)「外观」分区（`SettingsAppearancePage`）选择，偏好通过 `StorageService.themeMode` 落 [本地存储](../system/storage-sync.md) 并即时生效。
 
 ## 3. 关联
 
-- 依赖：设计系统 token（`DESIGN.md`）、[设置中心](../shell/settings.md)、[本地存储](../system/storage-sync.md)。
+- 依赖：清源设计系统 token（`DESIGN.md`）、[设置中心](../shell/settings.md)、[本地存储](../system/storage-sync.md)。
 - 被依赖：全应用 UI。
 
 ## 4. 约束
@@ -35,5 +35,5 @@
 
 ## 5. 待办与演进
 
-- [ ] 亮/暗/系统切换与主题选择 UI（#168）。
-- [ ] 偏好持久化与即时生效。
+- [x] 亮/暗/系统切换与主题选择 UI（#168）。
+- [x] 偏好持久化与即时生效。

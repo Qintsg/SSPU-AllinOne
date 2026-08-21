@@ -108,7 +108,6 @@ def validate_visual_artifacts(root: Path, manifest_path: Path, platform: str) ->
         )
     for sidecar in sidecars:
         image_name = sidecar.name.removesuffix(".regions.json")
-        image_path = root / image_name
         match = FILE_PATTERN.fullmatch(image_name)
         if match is None or image_name not in actual:
             errors.append(f"外部区域 sidecar 没有对应候选图：{sidecar.name}")

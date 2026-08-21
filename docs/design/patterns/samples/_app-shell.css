@@ -488,7 +488,8 @@ button.overview-card:hover { background: var(--brand-tint); }
 .settings-data-summary h2 { margin: 0; }
 .settings-security-card > h2 { margin-bottom: var(--space-s); }
 .settings-security-card .security-toggle-row { grid-template-columns: var(--space-l) minmax(0, 1fr) auto; border-bottom: 0; }
-.security-inline-actions { display: flex; flex-wrap: wrap; gap: var(--space-s); margin-top: var(--space-s); }
+.settings-security-card { overflow-x: hidden; }
+.security-inline-actions { display: flex; flex-wrap: wrap; min-width: 0; gap: var(--space-s); margin-top: var(--space-s); }
 .settings-section-divider { height: var(--layout-divider); margin: var(--space-l) 0; background: var(--border); }
 .settings-account-error { max-width: none; margin-bottom: var(--space-l); }
 .settings-account-error > span { min-width: 0; flex: 1; }
@@ -496,7 +497,7 @@ button.overview-card:hover { background: var(--brand-tint); }
 .settings-credentials-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--space-l); }
 .settings-credentials-heading p,
 .settings-data-summary p { margin: var(--space-xs) 0 0; color: var(--muted); font-size: var(--type-small); line-height: var(--line-height-small); }
-.settings-credentials-heading > div:last-child { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-s); }
+.settings-credentials-heading > div:last-child { display: flex; flex-wrap: wrap; min-width: 0; justify-content: flex-end; gap: var(--space-s); }
 .settings-credentials-form { width: min(100%, var(--layout-form-content-width)); display: grid; gap: var(--space-m); margin-top: var(--space-l); }
 .settings-credentials-form .yh-field { max-width: none; }
 .settings-credentials-form .yh-field small { display: block; margin-top: var(--space-xs); color: var(--muted); }

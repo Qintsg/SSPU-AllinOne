@@ -56,15 +56,11 @@ void main() {
   });
 
   test('详情页按 PDF 播放器、PDF 链接和图片提取资源', () {
-    final playerAssets = parseCalendarDetailAssets(
-      _detailPdfPlayerHtml,
-    );
+    final playerAssets = parseCalendarDetailAssets(_detailPdfPlayerHtml);
     expect(playerAssets.pdfUrl, 'https://jwc.sspu.edu.cn/_upload/a.pdf');
     expect(playerAssets.sourceType, AcademicCalendarSourceType.pdf);
 
-    final mixedAssets = parseCalendarDetailAssets(
-      _detailMixedHtml,
-    );
+    final mixedAssets = parseCalendarDetailAssets(_detailMixedHtml);
     expect(mixedAssets.pdfUrl, 'https://jwc.sspu.edu.cn/files/calendar.pdf');
     expect(mixedAssets.imageUrls.single, 'https://jwc.sspu.edu.cn/img/a.png');
     expect(mixedAssets.sourceType, AcademicCalendarSourceType.mixed);
@@ -162,18 +158,12 @@ void main() {
 
   test('PDF 文本缺少关键句或日期顺序异常时结构化解析失败', () {
     expect(
-      parseTermScheduleFromText(
-        '9月22日（周一）秋季学期开始',
-        schoolYearStart: 2025,
-      ),
+      parseTermScheduleFromText('9月22日（周一）秋季学期开始', schoolYearStart: 2025),
       isNull,
     );
 
     expect(
-      parseTermScheduleFromText(
-        _pdfTextBadDateOrder,
-        schoolYearStart: 2025,
-      ),
+      parseTermScheduleFromText(_pdfTextBadDateOrder, schoolYearStart: 2025),
       isNull,
     );
   });

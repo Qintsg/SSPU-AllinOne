@@ -40,4 +40,3 @@ void main() {
     expect(find.byKey(const Key('app-feedback-toast')), findsNothing);
   });
 }
-

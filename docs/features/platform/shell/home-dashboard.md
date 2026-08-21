@@ -8,7 +8,7 @@
 | 状态 | 部分实现 |
 | 平台 | 全平台（Android · iOS · Windows · macOS · Linux） |
 | 关联 Issue | #187、#189 |
-| 主要代码 | `lib/pages/home_page.dart`、`home_*_card.dart`；`lib/design/components/fluent_dashboard_tile.dart` |
+| 主要代码 | `lib/pages/home_page.dart`、`home_*_card.dart`、`home_dashboard_widgets.dart` |
 
 ## 1. 需求
 
@@ -24,7 +24,7 @@
 
 ## 3. 实现
 
-- `home_page` 按**卡片配置**（显隐 + 排序，来自设置）动态渲染 `fluent_dashboard_tile` 卡片。
+- `home_page` 按**卡片配置**（显隐 + 排序，来自设置）动态渲染清源仪表盘卡片（`home_dashboard_widgets.dart`）。
 - 各卡片优先读本地缓存、再按各域刷新策略更新。
 - 配置持久化于 [本地存储](../system/storage-sync.md)。
 

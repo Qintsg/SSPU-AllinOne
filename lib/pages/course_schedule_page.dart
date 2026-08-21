@@ -195,8 +195,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     final viewportHeight = MediaQuery.sizeOf(context).height;
     final fillViewport =
         !(viewportWidth < theme.breakpoint.medium) &&
-        viewportHeight >=
-            theme.control.regular * 16 + theme.spacing.s;
+        viewportHeight >= theme.control.regular * 16 + theme.spacing.s;
     final fluidPaddingProgress =
         ((viewportWidth - theme.breakpoint.medium) /
                 (theme.breakpoint.expanded - theme.breakpoint.medium))

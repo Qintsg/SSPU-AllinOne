@@ -551,11 +551,10 @@ void main() {
       '2',
       '3',
     ]);
-    expect(gateway.submittedFieldsList.map((fields) => fields['pager.offset']), [
-      '0',
-      '10',
-      '20',
-    ]);
+    expect(
+      gateway.submittedFieldsList.map((fields) => fields['pager.offset']),
+      ['0', '10', '20'],
+    );
     expect(result.snapshot?.records.length, 21);
     expect(result.snapshot?.transactionPageCount, 3);
     expect(result.snapshot?.records.first.amount, -1);
@@ -587,7 +586,8 @@ void main() {
         List.generate(
           30,
           (index) => CampusCardTransactionRecord(
-            occurredAt: '2026-05-${(index + 1).toString().padLeft(2, '0')} 08:00',
+            occurredAt:
+                '2026-05-${(index + 1).toString().padLeft(2, '0')} 08:00',
             amount: -(index + 1).toDouble(),
             title: '旧交易 ${index + 1}',
             transactionId: 'OLD${index + 1}',
@@ -971,13 +971,18 @@ CampusCardHttpSnapshot _transactionQueryPage(
 }
 
 String _transactionQueryTable(List<_TransactionFixtureRow> rows) {
-  final bodyRows = rows.map((row) => '''
+  final bodyRows = rows
+      .map(
+        (row) =>
+            '''
   <tr>
     <td>${row.date}</td><td>${row.title}</td><td>${row.transactionId}</td>
     <td>${row.counterparty}</td><td>${row.amount}</td><td>${row.detail}</td>
     <td>${row.paymentMethod}</td><td>${row.status}</td><td>详情</td>
   </tr>
-''').join();
+''',
+      )
+      .join();
   return '''
 <ajax-response><![CDATA[
 <table>
