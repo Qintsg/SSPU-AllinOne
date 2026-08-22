@@ -368,86 +368,6 @@ jobs:
           name: macos-dmg
           path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-${{ steps.dmg.outputs.dmg_suffix }}.dmg
 
-  build-macos-x86_64:
-    needs: prepare
-    runs-on: macos-13
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-
-      - uses: ./.github/actions/setup-flutter
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-
-      - name: 构建 macOS x86_64
-        run: flutter build macos --release
-
-      - name: 自签名 macOS App Bundle
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          macos_app_bundle="$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
-          [[ -n "$macos_app_bundle" ]] || {
-            echo "未找到 macOS .app 产物。" >&2
-            exit 1
-          }
-
-          echo "使用 ad-hoc 自签名（未配置官方 Developer ID 签名与公证）"
-          codesign --force --deep --sign - \
-            --entitlements macos/Runner/Release.entitlements \
-            "$macos_app_bundle"
-
-      - name: 生成 macOS x86_64 DMG
-        id: dmg
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p dist
-
-          macos_app_bundle="$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
-
-          npm ci --prefix .github/npm/appdmg
-
-          staging="dmg-staging"
-          mkdir -p "$staging"
-          cp -R "$macos_app_bundle" "$staging/"
-          cp .github/installer/macos/bg.png "$staging/bg.png"
-
-          APP_VERSION="${{ needs.prepare.outputs.public_version }}"
-          DMG_TITLE="SSPU-AIO v${APP_VERSION}"
-          if [ "${#DMG_TITLE}" -gt 27 ]; then
-            echo "::warning::macOS DMG volume title '${DMG_TITLE}' is longer than appdmg limit; using short product title"
-            DMG_TITLE="SSPU-AIO"
-          fi
-
-          cat > "$staging/config.json" << APPDMG_EOF
-          {
-            "title": "${DMG_TITLE}",
-            "icon-size": 80,
-            "window": {
-              "size": {
-                "width": 520,
-                "height": 360
-              }
-            },
-            "background": "bg.png",
-            "contents": [
-              { "x": 130, "y": 215, "type": "file", "path": "SSPU-AllinOne.app" },
-              { "x": 395, "y": 215, "type": "link", "path": "/Applications" }
-            ]
-          }
-          APPDMG_EOF
-
-          ./.github/npm/appdmg/node_modules/.bin/appdmg "$staging/config.json" \
-            "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-x86_64.dmg"
-
-          rm -rf "$staging"
-
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: macos-x86_64-dmg
-          path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-x86_64.dmg
-
   build-linux:
     needs: prepare
     runs-on: ubuntu-latest
@@ -597,7 +517,6 @@ jobs:
         build-windows,
         build-windows-arm64,
         build-macos,
-        build-macos-x86_64,
         build-linux,
         build-linux-arm64,
         build-ios,

@@ -35,7 +35,6 @@ EXPECTED_PRODUCT_ASSETS = {
     ("windows", "arm64", "setup"),
     ("windows", "arm64", "portable"),
     ("macos", "arm64", "dmg"),
-    ("macos", "x86_64", "dmg"),
     ("linux", "x64", "appimage"),
     ("linux", "x64", "deb"),
     ("linux", "x64", "rpm"),

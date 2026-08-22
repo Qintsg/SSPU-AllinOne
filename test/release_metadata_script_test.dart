@@ -62,7 +62,7 @@ void main() {
       (entry) => entry['platform'] == 'macos',
     );
 
-    expect(macosEntries.length, 2);
+    expect(macosEntries.length, 1);
     final arm64Entry = macosEntries.firstWhere(
       (entry) => entry['arch'] == 'arm64',
     );
@@ -80,7 +80,6 @@ const _expectedAssetNames = [
   'SSPU-AllinOne-v1.2.0-windows-arm64-setup.exe',
   'SSPU-AllinOne-v1.2.0-windows-arm64-portable.zip',
   'SSPU-AllinOne-v1.2.0-macos-arm64.dmg',
-  'SSPU-AllinOne-v1.2.0-macos-x86_64.dmg',
   'SSPU-AllinOne-v1.2.0-linux-x64.AppImage',
   'SSPU-AllinOne-v1.2.0-linux-x64.deb',
   'SSPU-AllinOne-v1.2.0-linux-x64.rpm',
