@@ -23,7 +23,7 @@ FILENAME_PATTERN = re.compile(
     r"(?P<platform>android|ios|windows|macos|linux)-"
     r"(?P<arch>armeabi-v7a|arm64-v8a|x86|x86_64|x64|arm64)"
     r"(?:-(?P<kind>setup|portable|unsigned))?"
-    r"(?P<ext>\.AppImage|\.tar\.gz|\.zip|\.exe|\.dmg|\.deb|\.rpm|\.apk|\.app)$"
+    r"(?P<ext>\.app\.zip|\.AppImage|\.tar\.gz|\.zip|\.exe|\.dmg|\.deb|\.rpm|\.apk|\.app)$"
 )
 
 EXPECTED_PRODUCT_ASSETS = {
@@ -95,7 +95,7 @@ def infer_kind(platform_name: str, extension_name: str) -> str:
         return "apk"
     if platform_name == "macos" and extension_name == ".dmg":
         return "dmg"
-    if platform_name == "ios" and extension_name == ".app":
+    if platform_name == "ios" and extension_name in (".app", ".app.zip"):
         return "app"
     if platform_name == "linux" and extension_name == ".AppImage":
         return "appimage"

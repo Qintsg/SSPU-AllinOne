@@ -88,5 +88,5 @@ const _expectedAssetNames = [
   'SSPU-AllinOne-v1.2.0-linux-arm64.deb',
   'SSPU-AllinOne-v1.2.0-linux-arm64.rpm',
   'SSPU-AllinOne-v1.2.0-linux-arm64.tar.gz',
-  'SSPU-AllinOne-v1.2.0-ios-arm64.app',
+  'SSPU-AllinOne-v1.2.0-ios-arm64.app.zip',
 ];

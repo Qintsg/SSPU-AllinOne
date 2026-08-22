@@ -500,13 +500,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp -R build/ios/iphoneos/Runner.app \
-            "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-ios-arm64.app"
+          cd build/ios/iphoneos
+          zip -r "$OLDPWD/dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-ios-arm64.app.zip" Runner.app
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ios-app
-          path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-ios-arm64.app
+          path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-ios-arm64.app.zip
 
   publish:
     if: needs.prepare.result == 'success'
