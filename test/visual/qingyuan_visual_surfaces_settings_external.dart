@@ -39,6 +39,11 @@ final _settingsAndExternalSurfaces = <_VisualSurface>[
     prepare: _prepareSettingsHomeNotifications,
     destination: '设置',
   ),
+  _VisualSurface(
+    'settings.auto-refresh',
+    _settingsAutoRefresh,
+    destination: '设置',
+  ),
   _VisualSurface('settings.appearance', _settingsAppearance),
   for (final state in SettingsDataPrivacyState.values)
     _VisualSurface(

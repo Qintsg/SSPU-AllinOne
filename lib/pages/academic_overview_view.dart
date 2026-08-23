@@ -71,8 +71,8 @@ extension _AcademicOverviewStateView on _AcademicPageState {
       onRefresh:
           _isCoordinatedRefresh ||
               _anyAcademicSourceLoading ||
-              _credentialsStatus == null ||
-              _academicAvailableRefreshSourceCount == 0
+              (_credentialsStatus != null &&
+                  _academicAvailableRefreshSourceCount == 0)
           ? null
           : () => unawaited(_refreshAllAcademicSources()),
       onOpenGrades: _isCoordinatedRefresh ? null : _openAcademicGradeDetail,
@@ -90,12 +90,7 @@ extension _AcademicOverviewStateView on _AcademicPageState {
         primary: AcademicEamsSummaryCard(
           result: _academicEamsResult,
           isLoading: _academicEamsRefreshController.isLoading,
-          isRefreshActionLoading:
-              _academicEamsRefreshController.isLoading ||
-              _academicExamRefreshController.isLoading,
           autoRefreshEnabled: _academicEamsRefreshController.autoRefreshEnabled,
-          refreshFeedback: _academicEamsRefreshController.feedback,
-          onRefresh: () => unawaited(_loadAcademicEamsOverview()),
           onOpenCourseSchedule: _openCourseSchedule,
           examResult: _academicExamResult,
           examSchedule: AcademicEamsExamCard(
@@ -116,8 +111,6 @@ extension _AcademicOverviewStateView on _AcademicPageState {
           isLoading: _sportsAttendanceRefreshController.isLoading,
           autoRefreshEnabled:
               _sportsAttendanceRefreshController.autoRefreshEnabled,
-          refreshFeedback: _sportsAttendanceRefreshController.feedback,
-          onRefresh: () => unawaited(_loadSportsAttendance()),
           onDetailRefresh: () async =>
               (await _sportsAttendanceRefreshController.runRefresh())?.result,
         ),
@@ -126,8 +119,6 @@ extension _AcademicOverviewStateView on _AcademicPageState {
           isLoading: _studentReportRefreshController.isLoading,
           autoRefreshEnabled:
               _studentReportRefreshController.autoRefreshEnabled,
-          refreshFeedback: _studentReportRefreshController.feedback,
-          onRefresh: () => unawaited(_loadStudentReport()),
           onDetailRefresh: () async =>
               (await _studentReportRefreshController.runRefresh())?.result,
         ),

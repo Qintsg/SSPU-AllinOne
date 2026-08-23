@@ -23,6 +23,7 @@ import 'academic_credentials_service.dart';
 import 'academic_login_validation_service.dart';
 import 'authenticated_data_cache_service.dart';
 import 'campus_network_status_service.dart';
+import 'data_auto_refresh_preferences.dart';
 import 'http_service.dart';
 import 'storage_service.dart';
 
@@ -254,20 +255,12 @@ class AcademicEamsService implements AcademicEamsClient {
 
   /// 读取本专科教务自动刷新间隔。
   Future<int> getAutoRefreshIntervalMinutes() async {
-    final stored = await StorageService.getInt(
-      StorageKeys.academicEamsAutoRefreshIntervalMinutes,
-    );
-    return _normalizeAutoRefreshInterval(
-      stored ?? defaultAutoRefreshIntervalMinutes,
-    );
+    return DataAutoRefreshPreferences.instance.getIntervalMinutes();
   }
 
   /// 保存本专科教务自动刷新间隔。
   Future<void> setAutoRefreshIntervalMinutes(int minutes) async {
-    await StorageService.setInt(
-      StorageKeys.academicEamsAutoRefreshIntervalMinutes,
-      _normalizeAutoRefreshInterval(minutes),
-    );
+    await DataAutoRefreshPreferences.instance.setIntervalMinutes(minutes);
   }
 
   @override

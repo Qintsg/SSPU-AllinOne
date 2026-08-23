@@ -17,6 +17,7 @@ import '../services/academic_calendar_service.dart';
 import '../services/academic_credentials_service.dart';
 import '../services/academic_eams_service.dart';
 import '../services/academic_term_service.dart';
+import '../services/data_auto_refresh_preferences.dart';
 import 'academic_calendar_page.dart';
 
 part 'course_schedule_state_panel.dart';
@@ -65,6 +66,8 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   _refreshController;
   Timer? _autoRefreshTimer;
   StreamSubscription<int>? _credentialChangeSubscription;
+  StreamSubscription<int>? _dataAutoRefreshSubscription;
+  bool _autoRefreshEnabled = false;
   late int _selectedMobileWeekday;
   int _resultGeneration = 0;
 
@@ -88,6 +91,8 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     )..addListener(_handleRefreshChanged);
     _credentialChangeSubscription = AcademicCredentialsService.instance.changes
         .listen((_) => _clearAuthenticatedState());
+    _dataAutoRefreshSubscription = DataAutoRefreshPreferences.instance.changes
+        .listen(_handleDataAutoRefreshIntervalChanged);
     _loadCacheAndAutoRefreshSettings();
   }
 
@@ -127,6 +132,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   }
 
   void _restartAutoRefreshTimer(bool enabled, int intervalMinutes) {
+    _autoRefreshEnabled = enabled;
     _autoRefreshTimer?.cancel();
     _autoRefreshTimer = null;
     if (!enabled || intervalMinutes <= 0) return;
@@ -135,6 +141,15 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
         unawaited(_loadCourseTable(silent: true));
       }
     });
+  }
+
+  /// 共享刷新时长变化后重启课表定时器。
+  ///
+  /// :param minutes: 新的共享刷新间隔分钟数。
+  /// :returns: 无返回值。
+  void _handleDataAutoRefreshIntervalChanged(int minutes) {
+    if (widget.autoRefreshIntervalOverride != null) return;
+    _restartAutoRefreshTimer(_autoRefreshEnabled, minutes);
   }
 
   Future<void> _loadCacheAndAutoRefreshSettings() async {
@@ -179,6 +194,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   @override
   void dispose() {
     _credentialChangeSubscription?.cancel();
+    _dataAutoRefreshSubscription?.cancel();
     _autoRefreshTimer?.cancel();
     _refreshController
       ..removeListener(_handleRefreshChanged)
@@ -290,6 +306,21 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     final actionMinWidth = compact
         ? (viewportWidth - theme.spacing.m * 2 - theme.spacing.s) / 2
         : theme.control.minimumTarget * 2 + theme.spacing.m;
+    final refreshAction = compact
+        ? YhButton(
+            key: const Key('course-schedule-refresh'),
+            label: _isLoading ? '正在刷新…' : '刷新课表',
+            minWidth: actionMinWidth,
+            disabled: _isLoading,
+            onTap: _loadCourseTable,
+          )
+        : YhIconButton(
+            key: const Key('course-schedule-refresh'),
+            icon: _isLoading ? YhIcons.sync : YhIcons.refresh,
+            semanticLabel: _isLoading ? '正在刷新课程表' : '刷新课程表',
+            disabled: _isLoading,
+            onTap: _loadCourseTable,
+          );
     final actions = <Widget>[
       YhButton(
         key: const Key('open-academic-calendar'),
@@ -298,15 +329,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
         variant: YhButtonVariant.secondary,
         onTap: _openAcademicCalendar,
       ),
-      YhButton(
-        key: const Key('course-schedule-refresh'),
-        label: _isLoading ? '正在刷新…' : '刷新课表',
-        minWidth: !compact && _isLoading
-            ? actionMinWidth + theme.spacing.s
-            : actionMinWidth,
-        disabled: _isLoading,
-        onTap: _loadCourseTable,
-      ),
+      refreshAction,
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -462,7 +485,6 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
       courseTable: courseTable,
       currentWeekday: _now.weekday,
       selectedMobileWeekday: _selectedMobileWeekday,
-      fillHeight: fillHeight,
       onSelectedMobileWeekdayChanged: (weekday) {
         setState(() => _selectedMobileWeekday = weekday);
       },
@@ -520,7 +542,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
                   ),
                 )
         else
-          fillHeight ? Expanded(child: courseView) : courseView,
+          courseView,
       ],
     );
   }

@@ -22,7 +22,9 @@ void _registerAcademicEvidenceTests() {
       studentReportService: _FakeStudentReportClient(result: _creditResult),
     );
 
-    final legacyRefresh = find.byKey(const Key('academic-eams-refresh'));
+    final legacyRefresh = find.byKey(
+      const ValueKey('academic-overview-refresh'),
+    );
     await tester.ensureVisible(legacyRefresh);
     await tester.tap(legacyRefresh);
     await pumpUntilFound(tester, find.textContaining('姓名：张三'));
@@ -56,7 +58,7 @@ void _registerAcademicEvidenceTests() {
       studentReportService: _FakeStudentReportClient(result: _creditResult),
     );
 
-    final refresh = find.byKey(const Key('academic-eams-refresh'));
+    final refresh = find.byKey(const ValueKey('academic-overview-refresh'));
     await tester.ensureVisible(refresh);
     await tester.tap(refresh);
     final gradeCard = find.byKey(const Key('academic-eams-grade-card'));

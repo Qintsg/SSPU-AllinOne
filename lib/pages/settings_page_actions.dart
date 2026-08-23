@@ -71,35 +71,23 @@ mixin _SettingsPageActions on State<SettingsPage> {
   int get _campusNetworkDetectionIntervalMinutes;
   set _campusNetworkDetectionIntervalMinutes(int value);
 
+  int get _dataAutoRefreshIntervalMinutes;
+  set _dataAutoRefreshIntervalMinutes(int value);
+
   bool get _sportsAttendanceAutoRefreshEnabled;
   set _sportsAttendanceAutoRefreshEnabled(bool value);
-
-  int get _sportsAttendanceAutoRefreshIntervalMinutes;
-  set _sportsAttendanceAutoRefreshIntervalMinutes(int value);
 
   bool get _campusCardAutoRefreshEnabled;
   set _campusCardAutoRefreshEnabled(bool value);
 
-  int get _campusCardAutoRefreshIntervalMinutes;
-  set _campusCardAutoRefreshIntervalMinutes(int value);
-
   bool get _emailAutoRefreshEnabled;
   set _emailAutoRefreshEnabled(bool value);
-
-  int get _emailAutoRefreshIntervalMinutes;
-  set _emailAutoRefreshIntervalMinutes(int value);
 
   bool get _studentReportAutoRefreshEnabled;
   set _studentReportAutoRefreshEnabled(bool value);
 
-  int get _studentReportAutoRefreshIntervalMinutes;
-  set _studentReportAutoRefreshIntervalMinutes(int value);
-
   bool get _academicEamsAutoRefreshEnabled;
   set _academicEamsAutoRefreshEnabled(bool value);
-
-  int get _academicEamsAutoRefreshIntervalMinutes;
-  set _academicEamsAutoRefreshIntervalMinutes(int value);
 
   MessageStateService get _messageState;
 
@@ -152,28 +140,19 @@ mixin _SettingsPageActions on State<SettingsPage> {
     final campusNetworkDetectionInterval = await CampusNetworkStatusService
         .instance
         .getDetectionIntervalMinutes();
+    final dataAutoRefreshInterval = await DataAutoRefreshPreferences.instance
+        .getIntervalMinutes();
     final sportsAttendanceAutoRefreshEnabled = await SportsAttendanceService
         .instance
         .isAutoRefreshEnabled();
-    final sportsAttendanceAutoRefreshInterval = await SportsAttendanceService
-        .instance
-        .getAutoRefreshIntervalMinutes();
     final campusCardAutoRefreshEnabled = await CampusCardService.instance
         .isAutoRefreshEnabled();
-    final campusCardAutoRefreshInterval = await CampusCardService.instance
-        .getAutoRefreshIntervalMinutes();
     final emailAutoRefreshEnabled = await EmailService.instance
         .isAutoRefreshEnabled();
-    final emailAutoRefreshInterval = await EmailService.instance
-        .getAutoRefreshIntervalMinutes();
     final studentReportAutoRefreshEnabled = await StudentReportService.instance
         .isAutoRefreshEnabled();
-    final studentReportAutoRefreshInterval = await StudentReportService.instance
-        .getAutoRefreshIntervalMinutes();
     final academicEamsAutoRefreshEnabled = await AcademicEamsService.instance
         .isAutoRefreshEnabled();
-    final academicEamsAutoRefreshInterval = await AcademicEamsService.instance
-        .getAutoRefreshIntervalMinutes();
 
     if (!mounted) return;
     setState(() {
@@ -196,18 +175,12 @@ mixin _SettingsPageActions on State<SettingsPage> {
       _dndEndHour = dndEndHour;
       _dndEndMinute = dndEndMinute;
       _campusNetworkDetectionIntervalMinutes = campusNetworkDetectionInterval;
+      _dataAutoRefreshIntervalMinutes = dataAutoRefreshInterval;
       _sportsAttendanceAutoRefreshEnabled = sportsAttendanceAutoRefreshEnabled;
-      _sportsAttendanceAutoRefreshIntervalMinutes =
-          sportsAttendanceAutoRefreshInterval;
       _campusCardAutoRefreshEnabled = campusCardAutoRefreshEnabled;
-      _campusCardAutoRefreshIntervalMinutes = campusCardAutoRefreshInterval;
       _emailAutoRefreshEnabled = emailAutoRefreshEnabled;
-      _emailAutoRefreshIntervalMinutes = emailAutoRefreshInterval;
       _studentReportAutoRefreshEnabled = studentReportAutoRefreshEnabled;
-      _studentReportAutoRefreshIntervalMinutes =
-          studentReportAutoRefreshInterval;
       _academicEamsAutoRefreshEnabled = academicEamsAutoRefreshEnabled;
-      _academicEamsAutoRefreshIntervalMinutes = academicEamsAutoRefreshInterval;
       _isLoading = false;
     });
   }
@@ -381,22 +354,21 @@ mixin _SettingsPageActions on State<SettingsPage> {
     setState(() => _campusNetworkDetectionIntervalMinutes = minutes);
   }
 
+  /// 修改全部校园数据来源共用的自动刷新间隔。
+  ///
+  /// :param minutes: 新的共享刷新间隔分钟数。
+  /// :returns: 偏好保存并更新页面状态后结束。
+  Future<void> _onDataAutoRefreshIntervalChanged(int minutes) async {
+    await DataAutoRefreshPreferences.instance.setIntervalMinutes(minutes);
+    if (!mounted) return;
+    setState(() => _dataAutoRefreshIntervalMinutes = minutes);
+  }
+
   /// 修改体育部课外活动考勤自动刷新开关。
   Future<void> _onSportsAttendanceAutoRefreshChanged(bool enabled) async {
     await SportsAttendanceService.instance.setAutoRefreshEnabled(enabled);
     if (!mounted) return;
     setState(() => _sportsAttendanceAutoRefreshEnabled = enabled);
-  }
-
-  /// 修改体育部课外活动考勤自动刷新间隔。
-  Future<void> _onSportsAttendanceAutoRefreshIntervalChanged(
-    int minutes,
-  ) async {
-    await SportsAttendanceService.instance.setAutoRefreshIntervalMinutes(
-      minutes,
-    );
-    if (!mounted) return;
-    setState(() => _sportsAttendanceAutoRefreshIntervalMinutes = minutes);
   }
 
   /// 修改校园卡余额自动刷新开关。
@@ -406,25 +378,11 @@ mixin _SettingsPageActions on State<SettingsPage> {
     setState(() => _campusCardAutoRefreshEnabled = enabled);
   }
 
-  /// 修改校园卡余额自动刷新间隔。
-  Future<void> _onCampusCardAutoRefreshIntervalChanged(int minutes) async {
-    await CampusCardService.instance.setAutoRefreshIntervalMinutes(minutes);
-    if (!mounted) return;
-    setState(() => _campusCardAutoRefreshIntervalMinutes = minutes);
-  }
-
   /// 修改学校邮箱自动刷新开关。
   Future<void> _onEmailAutoRefreshChanged(bool enabled) async {
     await EmailService.instance.setAutoRefreshEnabled(enabled);
     if (!mounted) return;
     setState(() => _emailAutoRefreshEnabled = enabled);
-  }
-
-  /// 修改学校邮箱自动刷新间隔。
-  Future<void> _onEmailAutoRefreshIntervalChanged(int minutes) async {
-    await EmailService.instance.setAutoRefreshIntervalMinutes(minutes);
-    if (!mounted) return;
-    setState(() => _emailAutoRefreshIntervalMinutes = minutes);
   }
 
   /// 修改第二课堂学分自动刷新开关。
@@ -434,24 +392,10 @@ mixin _SettingsPageActions on State<SettingsPage> {
     setState(() => _studentReportAutoRefreshEnabled = enabled);
   }
 
-  /// 修改第二课堂学分自动刷新间隔。
-  Future<void> _onStudentReportAutoRefreshIntervalChanged(int minutes) async {
-    await StudentReportService.instance.setAutoRefreshIntervalMinutes(minutes);
-    if (!mounted) return;
-    setState(() => _studentReportAutoRefreshIntervalMinutes = minutes);
-  }
-
   /// 修改本专科教务自动刷新开关。
   Future<void> _onAcademicEamsAutoRefreshChanged(bool enabled) async {
     await AcademicEamsService.instance.setAutoRefreshEnabled(enabled);
     if (!mounted) return;
     setState(() => _academicEamsAutoRefreshEnabled = enabled);
-  }
-
-  /// 修改本专科教务自动刷新间隔。
-  Future<void> _onAcademicEamsAutoRefreshIntervalChanged(int minutes) async {
-    await AcademicEamsService.instance.setAutoRefreshIntervalMinutes(minutes);
-    if (!mounted) return;
-    setState(() => _academicEamsAutoRefreshIntervalMinutes = minutes);
   }
 }

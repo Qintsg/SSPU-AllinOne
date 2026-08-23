@@ -19,6 +19,7 @@ import '../services/academic_credentials_service.dart';
 import '../services/authenticated_data_cache_service.dart';
 import '../services/campus_card_service.dart';
 import '../services/campus_network_status_service.dart';
+import '../services/data_auto_refresh_preferences.dart';
 import '../services/email_service.dart';
 import '../services/message_state_service.dart';
 import '../services/password_service.dart';
@@ -177,50 +178,30 @@ class _SettingsPageState extends State<SettingsPage>
   int _campusNetworkDetectionIntervalMinutes =
       CampusNetworkStatusService.defaultDetectionIntervalMinutes;
 
+  /// 校园数据来源共用的自动刷新间隔，单位分钟。
+  @override
+  int _dataAutoRefreshIntervalMinutes =
+      DataAutoRefreshPreferences.defaultIntervalMinutes;
+
   /// 体育部课外活动考勤自动刷新开关。
   @override
   bool _sportsAttendanceAutoRefreshEnabled = false;
-
-  /// 体育部课外活动考勤自动刷新间隔，单位分钟。
-  @override
-  int _sportsAttendanceAutoRefreshIntervalMinutes =
-      SportsAttendanceService.defaultAutoRefreshIntervalMinutes;
 
   /// 校园卡余额自动刷新开关。
   @override
   bool _campusCardAutoRefreshEnabled = false;
 
-  /// 校园卡余额自动刷新间隔，单位分钟。
-  @override
-  int _campusCardAutoRefreshIntervalMinutes =
-      CampusCardService.defaultAutoRefreshIntervalMinutes;
-
   /// 学校邮箱自动刷新开关。
   @override
   bool _emailAutoRefreshEnabled = false;
-
-  /// 学校邮箱自动刷新间隔，单位分钟。
-  @override
-  int _emailAutoRefreshIntervalMinutes =
-      EmailService.defaultAutoRefreshIntervalMinutes;
 
   /// 第二课堂学分自动刷新开关。
   @override
   bool _studentReportAutoRefreshEnabled = false;
 
-  /// 第二课堂学分自动刷新间隔，单位分钟。
-  @override
-  int _studentReportAutoRefreshIntervalMinutes =
-      StudentReportService.defaultAutoRefreshIntervalMinutes;
-
   /// 本专科教务自动刷新开关。
   @override
   bool _academicEamsAutoRefreshEnabled = false;
-
-  /// 本专科教务自动刷新间隔，单位分钟。
-  @override
-  int _academicEamsAutoRefreshIntervalMinutes =
-      AcademicEamsService.defaultAutoRefreshIntervalMinutes;
 
   /// 当前选中的设置分区索引。
   /// 0=常规 1=学期 2=自动刷新 3=安全 4=职能部门 5=教学单位 6=微信推文 7=关于

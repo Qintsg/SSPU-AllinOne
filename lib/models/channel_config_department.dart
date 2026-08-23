@@ -52,7 +52,7 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'security_dept',
@@ -62,7 +62,7 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'construction',
@@ -72,7 +72,7 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'news_center',
@@ -102,7 +102,7 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'foreign_student_office',
@@ -112,7 +112,7 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'intl_exchange_office',
@@ -122,7 +122,7 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'admissions_office',
@@ -132,7 +132,7 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'hr_office',
@@ -142,7 +142,7 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'research_office',
@@ -152,7 +152,7 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'union',
@@ -162,7 +162,7 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'party_org_dept',
@@ -172,7 +172,7 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'united_front_dept',
@@ -182,7 +182,7 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'party_office',
@@ -192,7 +192,7 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'youth_league',
@@ -202,7 +202,7 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'assets_lab_office',
@@ -212,7 +212,7 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'sspu_news',
@@ -242,6 +242,6 @@ const List<ChannelConfig> departmentChannels = [
     group: ChannelGroup.department,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
 ];

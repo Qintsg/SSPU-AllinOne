@@ -294,7 +294,9 @@ void _registerAcademicLayoutTests() {
     );
 
     expect(find.textContaining('自动刷新未开启'), findsWidgets);
-    final sportsRefresh = find.byKey(const Key('academic-sports-refresh'));
+    final sportsRefresh = find.byKey(
+      const ValueKey('academic-overview-refresh'),
+    );
     await tester.ensureVisible(sportsRefresh);
     await tester.tap(sportsRefresh);
     await pumpUntilFound(tester, find.text('8'));
@@ -317,7 +319,7 @@ void _registerAcademicLayoutTests() {
     expect(sportsLastRefreshCenter.dy, greaterThan(sportsTitleCenter.dy));
     expect(sportsLastRefreshCenter.dy, greaterThan(sportsSummaryBottom));
     expect((sportsButtonCenter.dy - sportsTitleCenter.dy).abs(), lessThan(20));
-    expect(sportsService.requireCampusNetworkValues, [false]);
+    expect(sportsService.requireCampusNetworkValues, [true]);
 
     await tester.ensureVisible(find.text('查看考勤记录'));
     await tester.pumpAndSettle();
@@ -351,15 +353,15 @@ void _registerAcademicLayoutTests() {
       studentReportService: _FakeStudentReportClient(result: _creditResult),
     );
 
-    final sportsRefresh = find.byKey(const Key('academic-sports-refresh'));
+    final sportsRefresh = find.byKey(
+      const ValueKey('academic-overview-refresh'),
+    );
     await tester.ensureVisible(sportsRefresh);
     await tester.tap(sportsRefresh);
-    await pumpUntilFound(tester, find.text('请先保存体育部查询密码'));
+    await pumpUntilFound(tester, find.text('教务数据部分更新'));
 
-    expect(find.text('请先保存体育部查询密码'), findsOneWidget);
-    expect(find.textContaining('OA 密码不同'), findsOneWidget);
-    expect(find.text('刷新失败:未设置体育密码×'), findsOneWidget);
-    expect(find.text('上次刷新：2026-04-30 00:00'), findsOneWidget);
+    expect(find.text('教务数据部分更新'), findsOneWidget);
+    expect(find.textContaining('体育考勤未完成'), findsWidgets);
     await disposeAcademicPage(tester);
   });
 
@@ -403,12 +405,14 @@ void _registerAcademicLayoutTests() {
       studentReportService: _FakeStudentReportClient(result: _creditResult),
     );
 
-    final sportsRefresh = find.byKey(const Key('academic-sports-refresh'));
+    final sportsRefresh = find.byKey(
+      const ValueKey('academic-overview-refresh'),
+    );
     await tester.ensureVisible(sportsRefresh);
     await tester.tap(sportsRefresh);
-    await pumpUntilFound(tester, find.textContaining('校园网 / VPN 不可用'));
+    await pumpUntilFound(tester, find.text('教务数据部分更新'));
 
-    expect(find.textContaining('无法访问体育部查询系统'), findsOneWidget);
+    expect(find.textContaining('体育考勤未完成'), findsWidgets);
     await disposeAcademicPage(tester);
   });
 
@@ -426,13 +430,13 @@ void _registerAcademicLayoutTests() {
     );
 
     final studentReportRefresh = find.byKey(
-      const Key('academic-student-report-refresh'),
+      const ValueKey('academic-overview-refresh'),
     );
     await tester.ensureVisible(studentReportRefresh);
     await tester.tap(studentReportRefresh);
     await pumpUntilFound(tester, find.text('总已获分数'));
 
-    expect(find.text('刷新成功√'), findsOneWidget);
+    expect(find.text('教务数据已刷新'), findsOneWidget);
     expect(find.text('第二课堂学分'), findsOneWidget);
     expect(find.text('总已获分数'), findsOneWidget);
     expect(find.text('总必修积分'), findsOneWidget);
@@ -456,26 +460,18 @@ void _registerAcademicLayoutTests() {
     final lastRefreshCenter = tester.getCenter(
       find.text('上次刷新：2026-05-01 00:00'),
     );
-    final refreshCenter = tester.getCenter(studentReportRefresh);
-    final lastRefreshRight = tester
-        .getTopRight(find.text('上次刷新：2026-05-01 00:00'))
-        .dx;
     final titleLeft = tester.getTopLeft(find.text('第二课堂学分')).dx;
     final lastRefreshLeft = tester
         .getTopLeft(find.text('上次刷新：2026-05-01 00:00'))
         .dx;
-    final refreshLeft = tester.getTopLeft(studentReportRefresh).dx;
     expect(lastRefreshCenter.dy, greaterThan(titleCenter.dy));
     expect((lastRefreshLeft - titleLeft).abs(), lessThan(1));
-    expect((refreshCenter.dy - lastRefreshCenter.dy).abs(), lessThan(1));
-    expect(refreshLeft - lastRefreshRight, greaterThanOrEqualTo(0));
-    expect(refreshLeft - lastRefreshRight, lessThan(16));
     expect(
       lastRefreshCenter.dy,
       lessThan(tester.getTopLeft(find.text('总已获分数')).dy),
     );
 
-    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(seconds: 4));
     await tester.pump();
     expect(find.text('刷新成功√'), findsNothing);
 
@@ -523,7 +519,7 @@ void _registerAcademicLayoutTests() {
     await disposeAcademicPage(tester);
   });
 
-  testWidgets('第二课堂手动刷新失败时显示预置短原因', (tester) async {
+  testWidgets('第二课堂统一刷新失败时显示聚合来源原因', (tester) async {
     await pumpAcademicPage(
       tester,
       academicEamsService: _FakeAcademicEamsClient(result: _academicEamsResult),
@@ -544,16 +540,16 @@ void _registerAcademicLayoutTests() {
     );
 
     final studentReportRefresh = find.byKey(
-      const Key('academic-student-report-refresh'),
+      const ValueKey('academic-overview-refresh'),
     );
     await tester.ensureVisible(studentReportRefresh);
     await tester.tap(studentReportRefresh);
-    await pumpUntilFound(tester, find.text('刷新失败:校园网/VPN不可用×'));
+    await pumpUntilFound(tester, find.text('教务数据部分更新'));
 
-    expect(find.textContaining('无法访问学工报表系统'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 3));
+    expect(find.textContaining('第二课堂未完成'), findsWidgets);
+    await tester.pump(const Duration(seconds: 4));
     await tester.pump();
-    expect(find.text('刷新失败:校园网/VPN不可用×'), findsNothing);
+    expect(find.text('教务数据部分更新'), findsNothing);
     await disposeAcademicPage(tester);
   });
 
@@ -571,7 +567,7 @@ void _registerAcademicLayoutTests() {
     );
 
     final studentReportRefresh = find.byKey(
-      const Key('academic-student-report-refresh'),
+      const ValueKey('academic-overview-refresh'),
     );
     await tester.ensureVisible(studentReportRefresh);
     await tester.tap(studentReportRefresh);
@@ -617,7 +613,9 @@ void _registerAcademicLayoutTests() {
       studentReportService: _FakeStudentReportClient(result: _creditResult),
     );
 
-    final sportsRefresh = find.byKey(const Key('academic-sports-refresh'));
+    final sportsRefresh = find.byKey(
+      const ValueKey('academic-overview-refresh'),
+    );
     await tester.ensureVisible(sportsRefresh);
     await tester.tap(sportsRefresh);
     await pumpUntilFound(tester, find.text('8'));
@@ -651,7 +649,7 @@ void _registerAcademicLayoutTests() {
     );
 
     final studentReportRefresh = find.byKey(
-      const Key('academic-student-report-refresh'),
+      const ValueKey('academic-overview-refresh'),
     );
     await tester.ensureVisible(studentReportRefresh);
     await tester.tap(studentReportRefresh);

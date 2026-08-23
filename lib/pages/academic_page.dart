@@ -22,10 +22,10 @@ import '../models/student_report.dart';
 import '../services/academic_credentials_service.dart';
 import '../services/academic_eams_service.dart';
 import '../services/academic_term_service.dart';
+import '../services/data_auto_refresh_preferences.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/student_report_service.dart';
 import '../utils/query_result_messages.dart';
-import '../widgets/refresh_feedback_action.dart';
 import 'course_schedule_page.dart';
 
 part 'academic_eams_summary_card.dart';
@@ -149,6 +149,7 @@ class _AcademicPageState extends State<AcademicPage> {
   late final CardAutoRefreshController<StudentReportQueryResult>
   _studentReportRefreshController;
   StreamSubscription<int>? _credentialChangeSubscription;
+  StreamSubscription<int>? _dataAutoRefreshSubscription;
   Future<void>? _coordinatedRefreshFuture;
   bool _isCoordinatedRefresh = false;
   Set<String> _failedAcademicSources = const {};
@@ -249,6 +250,8 @@ class _AcademicPageState extends State<AcademicPage> {
         )..addListener(_handleRefreshControllerChanged);
     _credentialChangeSubscription = AcademicCredentialsService.instance.changes
         .listen((_) => _clearAuthenticatedState());
+    _dataAutoRefreshSubscription = DataAutoRefreshPreferences.instance.changes
+        .listen(_handleDataAutoRefreshIntervalChanged);
     _loadAcademicEamsCacheAndSettings();
     _loadSportsAttendanceCacheAndSettings();
     _loadStudentReportCacheAndSettings();
@@ -257,6 +260,34 @@ class _AcademicPageState extends State<AcademicPage> {
   void _handleRefreshControllerChanged() {
     if (!mounted) return;
     setState(() {});
+  }
+
+  /// 共享刷新时长变化后重启当前教务来源的定时器。
+  ///
+  /// :param minutes: 新的共享刷新间隔分钟数。
+  /// :returns: 无返回值。
+  void _handleDataAutoRefreshIntervalChanged(int minutes) {
+    if (widget.academicEamsAutoRefreshIntervalOverride == null) {
+      _academicEamsRefreshController.configureAutoRefresh(
+        enabled: _academicEamsRefreshController.autoRefreshEnabled,
+        intervalMinutes: minutes,
+        refreshIfStale: false,
+      );
+    }
+    if (widget.sportsAttendanceAutoRefreshIntervalOverride == null) {
+      _sportsAttendanceRefreshController.configureAutoRefresh(
+        enabled: _sportsAttendanceRefreshController.autoRefreshEnabled,
+        intervalMinutes: minutes,
+        refreshIfStale: false,
+      );
+    }
+    if (widget.studentReportAutoRefreshIntervalOverride == null) {
+      _studentReportRefreshController.configureAutoRefresh(
+        enabled: _studentReportRefreshController.autoRefreshEnabled,
+        intervalMinutes: minutes,
+        refreshIfStale: false,
+      );
+    }
   }
 
   /// 在教务页面状态类内部统一提交拆分模块的状态更新。
@@ -430,7 +461,7 @@ class _AcademicPageState extends State<AcademicPage> {
             context,
             message: '教务数据部分更新',
             details:
-                '${['${failedSources.join('、')}未完成', if (unavailableSources.isNotEmpty) '${unavailableSources.join('、')}未连接，本次未请求', if (retainedFailedSources.isNotEmpty) '${retainedFailedSources.join('、')}继续显示最后有效数据', if (failedSourcesWithoutFallback.isNotEmpty) '${failedSourcesWithoutFallback.join('、')}暂无可保留数据，可稍后分别重试'].join('；')}。',
+                '${['${failedSources.join('、')}未完成', if (unavailableSources.isNotEmpty) '${unavailableSources.join('、')}未连接，本次未请求', if (retainedFailedSources.isNotEmpty) '${retainedFailedSources.join('、')}继续显示最后有效数据', if (failedSourcesWithoutFallback.isNotEmpty) '${failedSourcesWithoutFallback.join('、')}暂无可保留数据，可稍后重试'].join('；')}。',
             severity: AppFeedbackSeverity.warning,
           );
         }
@@ -496,6 +527,7 @@ class _AcademicPageState extends State<AcademicPage> {
   @override
   void dispose() {
     _credentialChangeSubscription?.cancel();
+    _dataAutoRefreshSubscription?.cancel();
     _academicLegacySourcesFocusNode.dispose();
     _academicEamsRefreshController
       ..removeListener(_handleRefreshControllerChanged)

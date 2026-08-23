@@ -43,6 +43,12 @@ void _registerAcademicOverviewTests() {
 
     final refresh = find.byKey(const ValueKey('academic-overview-refresh'));
     expect(refresh, findsOneWidget);
+    expect(find.byKey(const Key('academic-eams-refresh')), findsNothing);
+    expect(find.byKey(const Key('academic-sports-refresh')), findsNothing);
+    expect(
+      find.byKey(const Key('academic-student-report-refresh')),
+      findsNothing,
+    );
     await tester.tap(refresh);
     await tester.pump();
 
@@ -451,7 +457,7 @@ void _registerAcademicOverviewTests() {
       contains(
         '考试、成绩、体育考勤、第二课堂未完成；'
         '体育考勤、第二课堂继续显示最后有效数据；'
-        '考试、成绩暂无可保留数据；可在详细数据源中分别重试。',
+        '考试、成绩暂无可保留数据；可使用页面顶部刷新按钮重试。',
       ),
     );
     expect(find.text('教务数据部分更新'), findsOneWidget);
@@ -501,7 +507,9 @@ void _registerAcademicOverviewTests() {
     );
     expect(sportsFailureBanner, findsOneWidget);
 
-    final sportsRefresh = find.byKey(const Key('academic-sports-refresh'));
+    final sportsRefresh = find.byKey(
+      const ValueKey('academic-overview-refresh'),
+    );
     await tester.ensureVisible(sportsRefresh);
     await tester.tap(sportsRefresh);
     await tester.pumpAndSettle();

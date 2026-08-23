@@ -21,7 +21,7 @@
 | 通用 | 显示名、基础项 | platform |
 | 主页卡片 | 卡片显隐 + 排序（#187） | [主页仪表盘](home-dashboard.md) |
 | 学期设置 | 查询使用学期 | [校历](../academic-calendar.md) |
-| 自动刷新 | 各域自动刷新开关/间隔/条数 | [后台自动刷新](../system/auto-refresh.md) |
+| 自动刷新 | 校园数据独立开关、共享间隔与消息来源入口 | [后台自动刷新](../system/auto-refresh.md) |
 | 安全与凭据 | 锁屏、学工号/密码状态 | [安全锁屏与隐私](../system/security-privacy.md)、[登录与凭据](../../academic/auth-credentials.md) |
 | 数据管理 | 本地数据、WebDAV 同步（#194） | [本地存储与同步](../system/storage-sync.md) |
 | 通知 | 全局开关、勿扰、提醒（#188） | [通知与提醒](../system/notifications.md) |
@@ -34,7 +34,7 @@
 
 ## 3. 实现
 
-- `settings_page` + 分区组件（`settings_*`）+ 公众号控制器；设置项落 [本地存储](../system/storage-sync.md) 或安全存储。
+- `settings_page` + 分区组件（`settings_*`）+ 公众号控制器；校园数据间隔经共享偏好模块统一落盘，其余设置项落 [本地存储](../system/storage-sync.md) 或安全存储。
 - 卡片显隐/排序配置作为 #187 的统一入口，供 [主页仪表盘](home-dashboard.md) 渲染。
 
 ## 4. 关联

@@ -266,38 +266,22 @@ mixin _SettingsPageLayout
         return SettingsAutoRefreshSection(
           campusNetworkDetectionIntervalMinutes:
               _campusNetworkDetectionIntervalMinutes,
+          dataAutoRefreshIntervalMinutes: _dataAutoRefreshIntervalMinutes,
           onCampusNetworkDetectionIntervalChanged:
               _onCampusNetworkDetectionIntervalChanged,
+          onDataAutoRefreshIntervalChanged: _onDataAutoRefreshIntervalChanged,
           sportsAttendanceAutoRefreshEnabled:
               _sportsAttendanceAutoRefreshEnabled,
-          sportsAttendanceAutoRefreshIntervalMinutes:
-              _sportsAttendanceAutoRefreshIntervalMinutes,
           onSportsAttendanceAutoRefreshChanged:
               _onSportsAttendanceAutoRefreshChanged,
-          onSportsAttendanceAutoRefreshIntervalChanged:
-              _onSportsAttendanceAutoRefreshIntervalChanged,
           campusCardAutoRefreshEnabled: _campusCardAutoRefreshEnabled,
-          campusCardAutoRefreshIntervalMinutes:
-              _campusCardAutoRefreshIntervalMinutes,
           onCampusCardAutoRefreshChanged: _onCampusCardAutoRefreshChanged,
-          onCampusCardAutoRefreshIntervalChanged:
-              _onCampusCardAutoRefreshIntervalChanged,
           emailAutoRefreshEnabled: _emailAutoRefreshEnabled,
-          emailAutoRefreshIntervalMinutes: _emailAutoRefreshIntervalMinutes,
           onEmailAutoRefreshChanged: _onEmailAutoRefreshChanged,
-          onEmailAutoRefreshIntervalChanged: _onEmailAutoRefreshIntervalChanged,
           studentReportAutoRefreshEnabled: _studentReportAutoRefreshEnabled,
-          studentReportAutoRefreshIntervalMinutes:
-              _studentReportAutoRefreshIntervalMinutes,
           onStudentReportAutoRefreshChanged: _onStudentReportAutoRefreshChanged,
-          onStudentReportAutoRefreshIntervalChanged:
-              _onStudentReportAutoRefreshIntervalChanged,
           academicEamsAutoRefreshEnabled: _academicEamsAutoRefreshEnabled,
-          academicEamsAutoRefreshIntervalMinutes:
-              _academicEamsAutoRefreshIntervalMinutes,
           onAcademicEamsAutoRefreshChanged: _onAcademicEamsAutoRefreshChanged,
-          onAcademicEamsAutoRefreshIntervalChanged:
-              _onAcademicEamsAutoRefreshIntervalChanged,
           onOpenDepartmentRefreshSettings: () =>
               setState(() => _selectedTab = 4),
           onOpenTeachingRefreshSettings: () => setState(() => _selectedTab = 5),

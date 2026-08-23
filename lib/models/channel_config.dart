@@ -82,6 +82,6 @@ class ChannelConfig {
     required this.group,
     this.implemented = false,
     this.defaultInterval = 0,
-    this.defaultEnabled = false,
+    this.defaultEnabled = true,
   });
 }

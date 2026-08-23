@@ -12,7 +12,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'college_im',
@@ -22,7 +22,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'college_re',
@@ -32,7 +32,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'college_em',
@@ -42,7 +42,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'college_ic',
@@ -52,7 +52,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'college_imhe',
@@ -62,7 +62,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'college_econ',
@@ -72,7 +72,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'college_lang',
@@ -82,7 +82,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'college_math',
@@ -92,7 +92,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'college_art',
@@ -102,7 +102,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'college_vte',
@@ -112,7 +112,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'college_vt',
@@ -122,7 +122,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'college_marx',
@@ -132,7 +132,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'college_ce',
@@ -142,7 +142,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'center_art_edu',
@@ -152,7 +152,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'center_intl',
@@ -162,7 +162,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'center_innov',
@@ -172,7 +172,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'center_training',
@@ -182,7 +182,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'graduate',
@@ -192,7 +192,7 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
   ChannelConfig(
     id: 'lib_center',
@@ -202,6 +202,6 @@ const List<ChannelConfig> teachingChannels = [
     group: ChannelGroup.teaching,
     implemented: true,
     defaultInterval: 120,
-    defaultEnabled: false,
+    defaultEnabled: true,
   ),
 ];

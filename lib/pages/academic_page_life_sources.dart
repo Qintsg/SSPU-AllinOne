@@ -51,11 +51,6 @@ extension _AcademicPageLifeSources on _AcademicPageState {
     await _loadSportsAttendanceAutoRefreshSettings();
   }
 
-  /// 读取体育部课外活动考勤；失败时在卡片内展示明确状态。
-  Future<void> _loadSportsAttendance({bool silent = false}) async {
-    await _sportsAttendanceRefreshController.runRefresh(silent: silent);
-  }
-
   Future<SportsAttendanceQueryResult> _fetchSportsAttendanceForController({
     required bool silent,
   }) {
@@ -101,11 +96,6 @@ extension _AcademicPageLifeSources on _AcademicPageState {
       _setAcademicState(() => _studentReportResult = cachedResult);
     }
     await _loadStudentReportAutoRefreshSettings();
-  }
-
-  /// 读取第二课堂学分；失败时在卡片内展示明确状态。
-  Future<void> _loadStudentReport({bool silent = false}) async {
-    await _studentReportRefreshController.runRefresh(silent: silent);
   }
 
   Future<StudentReportQueryResult> _fetchStudentReportForController({

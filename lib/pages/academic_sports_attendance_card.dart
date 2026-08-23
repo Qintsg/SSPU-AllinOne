@@ -13,8 +13,6 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
   final SportsAttendanceQueryResult? result;
   final bool isLoading;
   final bool autoRefreshEnabled;
-  final RefreshActionFeedback? refreshFeedback;
-  final VoidCallback onRefresh;
   final AcademicDetailRefreshTask<SportsAttendanceQueryResult>? onDetailRefresh;
 
   const AcademicSportsAttendanceCard({
@@ -22,8 +20,6 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
     required this.result,
     required this.isLoading,
     required this.autoRefreshEnabled,
-    required this.refreshFeedback,
-    required this.onRefresh,
     this.onDetailRefresh,
   });
 
@@ -54,9 +50,6 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
           SizedBox(height: theme.spacing.m),
           _SportsAttendanceCardFooter(
             lastRefreshLabel: _sportsAttendanceLastRefreshLabel(result),
-            isLoading: isLoading,
-            refreshFeedback: refreshFeedback,
-            onRefresh: onRefresh,
           ),
         ],
       ),
@@ -151,40 +144,18 @@ class _SportsAttendanceCardHeader extends StatelessWidget {
 }
 
 class _SportsAttendanceCardFooter extends StatelessWidget {
-  const _SportsAttendanceCardFooter({
-    required this.lastRefreshLabel,
-    required this.isLoading,
-    required this.refreshFeedback,
-    required this.onRefresh,
-  });
+  const _SportsAttendanceCardFooter({required this.lastRefreshLabel});
 
   final String lastRefreshLabel;
-  final bool isLoading;
-  final RefreshActionFeedback? refreshFeedback;
-  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     return Align(
       alignment: AlignmentDirectional.centerStart,
-      child: RefreshStatusLine(
-        label: lastRefreshLabel,
-        labelStyle: theme.typography.caption.copyWith(color: theme.color.muted),
-        minLineHeight: theme.control.minimumTarget,
-        actionReservedWidth: refreshFeedback == null
-            ? theme.control.minimumTarget
-            : theme.breakpoint.compact / 3,
-        action: RefreshFeedbackAction(
-          key: const Key('academic-sports-refresh'),
-          tooltip: '手动刷新体育考勤',
-          semanticLabel: '手动刷新体育考勤',
-          isLoading: isLoading,
-          feedback: refreshFeedback,
-          onPressed: onRefresh,
-          minTouchSize: theme.control.minimumTarget,
-          maxFeedbackWidth: theme.breakpoint.compact / 3,
-        ),
+      child: Text(
+        lastRefreshLabel,
+        style: theme.typography.caption.copyWith(color: theme.color.muted),
       ),
     );
   }
@@ -227,8 +198,8 @@ class _SportsAttendanceCardContent extends StatelessWidget {
     if (result == null) {
       return Text(
         autoRefreshEnabled
-            ? '自动刷新已开启，等待下一次读取；也可点击卡片底部刷新图标。'
-            : '自动刷新未开启。点击卡片底部刷新图标可手动读取；体育查询需要校园网或学校 VPN。',
+            ? '自动刷新已开启，等待下一次统一读取；也可使用页面顶部的刷新按钮。'
+            : '自动刷新未开启。可使用页面顶部的刷新按钮手动读取；体育查询需要校园网或学校 VPN。',
         style: theme.typography.body.copyWith(color: theme.color.muted),
       );
     }

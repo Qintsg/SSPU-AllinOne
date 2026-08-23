@@ -95,14 +95,6 @@ extension _AcademicPageEamsSources on _AcademicPageState {
     });
   }
 
-  /// 读取本专科教务摘要；失败时在卡片中展示明确状态。
-  ///
-  /// :param silent: 是否为不打断当前阅读的静默刷新。
-  /// :returns: 当前刷新结束时完成。
-  Future<void> _loadAcademicEamsOverview({bool silent = false}) async {
-    await _academicEamsRefreshController.runRefresh(silent: silent);
-  }
-
   /// 读取摘要，并在非协同刷新时级联更新考试和成绩快照。
   ///
   /// :param silent: 是否使用校园网络约束的静默读取。

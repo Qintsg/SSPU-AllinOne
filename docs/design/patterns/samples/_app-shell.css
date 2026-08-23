@@ -284,7 +284,8 @@ button.overview-card:hover { background: var(--brand-tint); }
 .day-course { display: grid; grid-template-columns: minmax(92px, auto) 1fr; gap: var(--space-m); align-items: start; padding: var(--space-m); border: 1px solid var(--border); border-radius: var(--radius-m); background: var(--surface); }
 .day-course time { padding-top: var(--space-s); color: var(--muted); font: 600 var(--type-caption)/1.4 var(--mono); }
 
-.feed-layout {
+.feed-layout,
+.mail-layout {
   display: grid;
   grid-template-columns: var(--layout-popover-width) minmax(0, 1fr);
   align-items: start;

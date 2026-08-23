@@ -20,6 +20,7 @@ import '../models/sports_attendance.dart';
 import 'academic_credentials_service.dart';
 import 'authenticated_data_cache_service.dart';
 import 'campus_network_status_service.dart';
+import 'data_auto_refresh_preferences.dart';
 import 'http_service.dart';
 import 'storage_service.dart';
 
@@ -145,20 +146,12 @@ class SportsAttendanceService implements SportsAttendanceClient {
 
   /// 读取体育部考勤自动刷新间隔。
   Future<int> getAutoRefreshIntervalMinutes() async {
-    final stored = await StorageService.getInt(
-      StorageKeys.sportsAttendanceAutoRefreshIntervalMinutes,
-    );
-    return _normalizeAutoRefreshInterval(
-      stored ?? defaultAutoRefreshIntervalMinutes,
-    );
+    return DataAutoRefreshPreferences.instance.getIntervalMinutes();
   }
 
   /// 保存体育部考勤自动刷新间隔。
   Future<void> setAutoRefreshIntervalMinutes(int minutes) async {
-    await StorageService.setInt(
-      StorageKeys.sportsAttendanceAutoRefreshIntervalMinutes,
-      _normalizeAutoRefreshInterval(minutes),
-    );
+    await DataAutoRefreshPreferences.instance.setIntervalMinutes(minutes);
   }
 
   /// 读取最近一次本地体育部考勤缓存。
@@ -431,9 +424,5 @@ class SportsAttendanceService implements SportsAttendanceClient {
       campusNetworkStatus: campusNetworkStatus,
       summary: summary,
     );
-  }
-
-  int _normalizeAutoRefreshInterval(int minutes) {
-    return minutes <= 0 ? defaultAutoRefreshIntervalMinutes : minutes;
   }
 }
