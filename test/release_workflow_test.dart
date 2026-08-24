@@ -16,10 +16,11 @@ void main() {
       '.github/workflows/release.yml',
     ).readAsStringSync();
     final publishStep = RegExp(
-      r'softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda[\s\S]*?files: dist/\*',
+      r'softprops/action-gh-release@[0-9a-f]{40}[\s\S]*?files: dist/\*',
     ).firstMatch(releaseWorkflow)?.group(0);
 
     expect(publishStep, isNotNull);
+    expect(publishStep, contains('# v3.0.2'));
     expect(
       publishStep,
       contains('tag_name: \${{ needs.prepare.outputs.tag }}'),
@@ -39,7 +40,7 @@ void main() {
     expect(windowsArm64Job, contains('runs-on: windows-11-arm'));
     expect(
       windowsArm64Job,
-      matches(RegExp(r'actions/setup-java@[0-9a-f]{40} # v5\.2\.0')),
+      matches(RegExp(r'actions/setup-java@[0-9a-f]{40} # v5\.7\.0')),
     );
     expect(windowsArm64Job, contains("java-version: '21'"));
     expect(windowsArm64Job, contains('architecture: arm64'));
