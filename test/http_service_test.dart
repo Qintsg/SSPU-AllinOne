@@ -45,6 +45,15 @@ void main() {
     expect(capturedLogs.join('\n'), isNot(contains('ticket')));
     expect(capturedLogs.join('\n'), isNot(contains('user:secret')));
   });
+
+  test('Dio 响应转换超时时返回明确错误描述', () {
+    final error = DioException(
+      requestOptions: RequestOptions(path: '/slow-response'),
+      type: DioExceptionType.transformTimeout,
+    );
+
+    expect(HttpService.describeError(error), '响应处理超时，请检查网络后重试');
+  });
 }
 
 class _HttpServiceTestAdapter implements HttpClientAdapter {

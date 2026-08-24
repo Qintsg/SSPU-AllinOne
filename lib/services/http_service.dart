@@ -176,6 +176,8 @@ class HttpService {
           return '请求发送超时，请检查网络后重试';
         case DioExceptionType.receiveTimeout:
           return '响应接收超时，请检查网络后重试';
+        case DioExceptionType.transformTimeout:
+          return '响应处理超时，请检查网络后重试';
         case DioExceptionType.connectionError:
           return '无法连接到服务器，请检查网络';
         case DioExceptionType.badCertificate:
