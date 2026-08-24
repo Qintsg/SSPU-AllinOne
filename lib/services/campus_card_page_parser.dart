@@ -442,15 +442,7 @@ class CampusCardPageParser {
   }
 
   static String _parseDirection(String text, double amount) {
-    if (_containsAny(text, const [
-      '收入',
-      '充值',
-      '补助',
-      '退款',
-      '退费',
-      '返还',
-      '发放',
-    ])) {
+    if (_containsAny(text, const ['收入', '充值', '补助', '退款', '退费', '返还', '发放'])) {
       return 'income';
     }
     if (_containsAny(text, const ['支出', '消费', '扣款', '付款', '支付']) ||

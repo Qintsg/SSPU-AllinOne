@@ -8,8 +8,7 @@
 
 import 'package:flutter/foundation.dart';
 
-import '../design/fluent.dart';
-
+import '../models/app_feedback_severity.dart';
 import '../models/sspu_wechat_accounts.dart';
 import '../services/auto_refresh_service.dart';
 import '../services/message_state_service.dart';
@@ -31,7 +30,7 @@ class SettingsWechatFeedback {
   final String? content;
 
   /// 提示等级。
-  final FluentInfoSeverity severity;
+  final AppFeedbackSeverity severity;
 
   const SettingsWechatFeedback({
     required this.title,
@@ -93,44 +92,47 @@ class SettingsWechatController extends ChangeNotifier {
   Future<void> load() async {
     if (_initialized) return;
     _initialized = true;
-
-    await _messageState.init();
-    await _wechatService.clearLegacyWereadState();
-
-    final stateFilePath = await StorageService.getStateFilePath();
-    var wxmpConfigPath = '';
-    var wxmpConfigMessage = '配置文件已就绪';
     try {
-      wxmpConfigPath = await _wxmpConfigService.ensureConfigFile();
+      await _messageState.init();
+      await _wechatService.clearLegacyWereadState();
+
+      final stateFilePath = await StorageService.getStateFilePath();
+      var wxmpConfigPath = '';
+      var wxmpConfigMessage = '配置文件已就绪';
+      try {
+        wxmpConfigPath = await _wxmpConfigService.ensureConfigFile();
+      } catch (error) {
+        wxmpConfigMessage = '配置文件初始化失败：$error';
+      }
+
+      final authStatus = await _wxmpAuth.getAuthStatus();
+      _wxmpAuthenticated = authStatus.isUsable;
+      _wxmpAuthStatus = authStatus;
+      _wxmpConfigPath = wxmpConfigPath;
+      _stateFilePath = stateFilePath;
+      _wxmpConfigMessage = wxmpConfigMessage;
+      _wechatAutoRefreshEnabled = await _messageState
+          .isChannelAutoRefreshEnabled('wechat_public');
+      _wechatRefreshInterval = await _messageState.getChannelDisplayInterval(
+        'wechat_public',
+        defaultValue: 120,
+      );
+      _wechatManualFetchCount = await _messageState.getChannelManualFetchCount(
+        'wechat_public',
+      );
+      _wechatAutoFetchCount = await _messageState.getChannelAutoFetchCount(
+        'wechat_public',
+      );
+
+      if (_wxmpAuthenticated) {
+        await _loadWxmpFollowedMps();
+      }
     } catch (error) {
-      wxmpConfigMessage = '配置文件初始化失败：$error';
+      _wxmpConfigMessage = '微信设置读取失败：$error';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-
-    final authStatus = await _wxmpAuth.getAuthStatus();
-    _wxmpAuthenticated = authStatus.isUsable;
-    _wxmpAuthStatus = authStatus;
-    _wxmpConfigPath = wxmpConfigPath;
-    _stateFilePath = stateFilePath;
-    _wxmpConfigMessage = wxmpConfigMessage;
-    _wechatAutoRefreshEnabled = await _messageState.isChannelAutoRefreshEnabled(
-      'wechat_public',
-    );
-    _wechatRefreshInterval = await _messageState.getChannelDisplayInterval(
-      'wechat_public',
-      defaultValue: 120,
-    );
-    _wechatManualFetchCount = await _messageState.getChannelManualFetchCount(
-      'wechat_public',
-    );
-    _wechatAutoFetchCount = await _messageState.getChannelAutoFetchCount(
-      'wechat_public',
-    );
-
-    if (_wxmpAuthenticated) {
-      await _loadWxmpFollowedMps();
-    }
-    _isLoading = false;
-    notifyListeners();
   }
 
   /// 修改手动刷新条数。
@@ -185,7 +187,7 @@ class SettingsWechatController extends ChangeNotifier {
       notifyListeners();
       return const SettingsWechatFeedback(
         title: '已打开配置文件',
-        severity: FluentInfoSeverity.success,
+        severity: AppFeedbackSeverity.success,
       );
     } catch (error) {
       _wxmpConfigMessage = '打开配置文件失败：$error';
@@ -193,7 +195,7 @@ class SettingsWechatController extends ChangeNotifier {
       return SettingsWechatFeedback(
         title: '打开配置文件失败',
         content: '$error',
-        severity: FluentInfoSeverity.error,
+        severity: AppFeedbackSeverity.error,
       );
     }
   }
@@ -222,7 +224,7 @@ class SettingsWechatController extends ChangeNotifier {
       notifyListeners();
       return const SettingsWechatFeedback(
         title: '配置文件已保存',
-        severity: FluentInfoSeverity.success,
+        severity: AppFeedbackSeverity.success,
       );
     } catch (error) {
       _wxmpConfigMessage = '保存配置文件失败：$error';
@@ -230,7 +232,7 @@ class SettingsWechatController extends ChangeNotifier {
       return SettingsWechatFeedback(
         title: '保存配置文件失败',
         content: '$error',
-        severity: FluentInfoSeverity.error,
+        severity: AppFeedbackSeverity.error,
       );
     }
   }
@@ -247,7 +249,7 @@ class SettingsWechatController extends ChangeNotifier {
       notifyListeners();
       return const SettingsWechatFeedback(
         title: '配置文件已保存',
-        severity: FluentInfoSeverity.success,
+        severity: AppFeedbackSeverity.success,
       );
     } catch (error) {
       _wxmpConfigMessage = '保存配置文件失败：$error';
@@ -255,7 +257,7 @@ class SettingsWechatController extends ChangeNotifier {
       return SettingsWechatFeedback(
         title: '保存配置文件失败',
         content: '$error',
-        severity: FluentInfoSeverity.error,
+        severity: AppFeedbackSeverity.error,
       );
     }
   }
@@ -269,7 +271,7 @@ class SettingsWechatController extends ChangeNotifier {
       notifyListeners();
       return const SettingsWechatFeedback(
         title: '已打开配置文件目录',
-        severity: FluentInfoSeverity.success,
+        severity: AppFeedbackSeverity.success,
       );
     } catch (error) {
       _wxmpConfigMessage = '打开配置文件目录失败：$error';
@@ -277,7 +279,7 @@ class SettingsWechatController extends ChangeNotifier {
       return SettingsWechatFeedback(
         title: '打开配置文件目录失败',
         content: '$error',
-        severity: FluentInfoSeverity.error,
+        severity: AppFeedbackSeverity.error,
       );
     }
   }
@@ -287,7 +289,7 @@ class SettingsWechatController extends ChangeNotifier {
     if (_wxmpValidating) {
       return const SettingsWechatFeedback(
         title: '正在校验中',
-        severity: FluentInfoSeverity.info,
+        severity: AppFeedbackSeverity.info,
       );
     }
 
@@ -308,8 +310,8 @@ class SettingsWechatController extends ChangeNotifier {
         title: validation.isValid ? '配置已重新加载并通过校验' : '配置已重新加载但认证不可用',
         content: _wxmpConfigMessage,
         severity: validation.isValid
-            ? FluentInfoSeverity.success
-            : FluentInfoSeverity.warning,
+            ? AppFeedbackSeverity.success
+            : AppFeedbackSeverity.warning,
       );
     } catch (error) {
       _wxmpValidating = false;
@@ -318,7 +320,7 @@ class SettingsWechatController extends ChangeNotifier {
       return SettingsWechatFeedback(
         title: '重新加载配置失败',
         content: '$error',
-        severity: FluentInfoSeverity.error,
+        severity: AppFeedbackSeverity.error,
       );
     }
   }
@@ -328,7 +330,7 @@ class SettingsWechatController extends ChangeNotifier {
     if (_wxmpValidating) {
       return const SettingsWechatFeedback(
         title: '正在校验中',
-        severity: FluentInfoSeverity.info,
+        severity: AppFeedbackSeverity.info,
       );
     }
 
@@ -347,8 +349,8 @@ class SettingsWechatController extends ChangeNotifier {
       title: validation.isValid ? '认证有效' : '认证不可用',
       content: validation.message,
       severity: validation.isValid
-          ? FluentInfoSeverity.success
-          : FluentInfoSeverity.warning,
+          ? AppFeedbackSeverity.success
+          : AppFeedbackSeverity.warning,
     );
   }
 
@@ -358,7 +360,9 @@ class SettingsWechatController extends ChangeNotifier {
     await setWechatMatrixEnabled(enabled);
     return SettingsWechatFeedback(
       title: enabled ? '已启用微信推文页全部开关' : '已关闭微信推文页全部开关',
-      severity: enabled ? FluentInfoSeverity.success : FluentInfoSeverity.info,
+      severity: enabled
+          ? AppFeedbackSeverity.success
+          : AppFeedbackSeverity.info,
     );
   }
 
@@ -373,7 +377,9 @@ class SettingsWechatController extends ChangeNotifier {
     notifyListeners();
     return SettingsWechatFeedback(
       title: enabled ? '已启用微信矩阵全部公众号' : '已关闭微信矩阵全部公众号',
-      severity: enabled ? FluentInfoSeverity.success : FluentInfoSeverity.info,
+      severity: enabled
+          ? AppFeedbackSeverity.success
+          : AppFeedbackSeverity.info,
     );
   }
 
@@ -385,30 +391,57 @@ class SettingsWechatController extends ChangeNotifier {
     _wxmpConfigPath = await _wxmpConfigService.getConfigPath();
     _wxmpConfigMessage = '扫码登录已自动更新配置文件';
     if (authStatus.isUsable) {
-      await _loadWxmpFollowedMps();
+      try {
+        await _loadWxmpFollowedMps();
+      } catch (_) {
+        _wxmpConfigMessage = '认证已更新，但公众号列表刷新失败，可稍后重试校验';
+        notifyListeners();
+        return const SettingsWechatFeedback(
+          title: '登录成功，但公众号列表刷新失败',
+          content: '认证连接已保留；可返回微信推文设置稍后刷新，不需要重新扫码。',
+          severity: AppFeedbackSeverity.warning,
+        );
+      }
     }
     notifyListeners();
-    return const SettingsWechatFeedback(
-      title: '公众号平台登录成功',
-      severity: FluentInfoSeverity.success,
+    return SettingsWechatFeedback(
+      title: authStatus.isUsable ? '公众号平台登录成功' : '登录结果缺少认证信息',
+      content: authStatus.isUsable ? null : authStatus.message,
+      severity: authStatus.isUsable
+          ? AppFeedbackSeverity.success
+          : AppFeedbackSeverity.warning,
     );
   }
 
   /// 清除公众号平台认证。
   Future<SettingsWechatFeedback> clearAuth() async {
-    await _wxmpAuth.clearAuth();
-    _wxmpAuthenticated = false;
-    _wxmpAuthStatus = const WxmpAuthStatus(
-      state: WxmpAuthState.missingCookie,
-      lastUpdate: null,
-    );
-    _wxmpFollowedMps = [];
-    _wxmpMpNotificationEnabled = {};
-    notifyListeners();
-    return const SettingsWechatFeedback(
-      title: '公众号平台认证已清除',
-      severity: FluentInfoSeverity.info,
-    );
+    try {
+      await _wxmpAuth.clearAuth();
+      _wxmpAuthenticated = false;
+      _wxmpAuthStatus = const WxmpAuthStatus(
+        state: WxmpAuthState.missingCookie,
+        lastUpdate: null,
+      );
+      _wxmpFollowedMps = [];
+      _wxmpMpNotificationEnabled = {};
+      _wxmpConfigMessage = '本机 Cookie 与 Token 已清除';
+      notifyListeners();
+      return const SettingsWechatFeedback(
+        title: '公众号平台认证已清除',
+        severity: AppFeedbackSeverity.info,
+      );
+    } catch (_) {
+      try {
+        final authStatus = await _wxmpAuth.getAuthStatus();
+        _wxmpAuthStatus = authStatus;
+        _wxmpAuthenticated = authStatus.isUsable;
+      } catch (_) {
+        // 读取也失败时保留进入操作前的可见状态，避免误报已经清除。
+      }
+      _wxmpConfigMessage = '清除认证失败，请检查本机存储和配置文件权限';
+      notifyListeners();
+      rethrow;
+    }
   }
 
   /// 修改单个公众号的通知开关。

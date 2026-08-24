@@ -7,9 +7,8 @@
  */
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/models/message_item.dart';
-import 'package:sspu_allinone/theme/app_theme.dart';
 import 'package:sspu_allinone/widgets/message_tile.dart';
 
 void main() {
@@ -19,17 +18,15 @@ void main() {
     double width = 900,
   }) async {
     await tester.pumpWidget(
-      FluentApp(
-        theme: AppTheme.build(Brightness.light),
-        home: ScaffoldPage(
-          content: SizedBox(
+      YhApp(
+        home: YhPageScaffold(
+          body: SizedBox(
             width: width,
             child: MessageTile(
               message: message,
               isRead: false,
-              isDark: false,
               onTap: () {},
-              onMarkRead: () {},
+              nowOverride: DateTime(2026, 4, 25, 12),
             ),
           ),
         ),
@@ -54,8 +51,8 @@ void main() {
 
     await pumpTile(tester, message);
 
-    expect(find.text('微信推文'), findsOneWidget);
-    expect(find.text('青春二工大'), findsOneWidget);
+    expect(find.textContaining('微信推文'), findsAtLeastNWidgets(1));
+    expect(find.textContaining('青春二工大'), findsOneWidget);
     expect(find.text('微信号：ssputw'), findsNothing);
   });
 
@@ -72,8 +69,8 @@ void main() {
 
     await pumpTile(tester, message);
 
-    expect(find.text('微信推文'), findsOneWidget);
-    expect(find.text('公众号名称未知'), findsOneWidget);
+    expect(find.textContaining('微信推文'), findsAtLeastNWidgets(1));
+    expect(find.textContaining('公众号名称未知'), findsOneWidget);
     expect(find.text('微信号未知'), findsNothing);
   });
 
@@ -90,9 +87,33 @@ void main() {
 
     await pumpTile(tester, message);
 
-    expect(find.text('学校官网'), findsOneWidget);
+    expect(find.textContaining('学校官网'), findsOneWidget);
     expect(find.text('教务处'), findsOneWidget);
-    expect(find.text('学生专栏'), findsOneWidget);
+    expect(find.textContaining('学生专栏'), findsOneWidget);
+  });
+
+  testWidgets('资讯卡优先展示已提供摘要与语义来源药丸', (tester) async {
+    const message = MessageItem(
+      id: 'summary-1',
+      title: '暑期开放时间调整',
+      summary: '入馆前请查看最新安排。',
+      date: '2026-04-25',
+      url: 'https://library.example.invalid/notice',
+      sourceType: MessageSourceType.schoolWebsite,
+      sourceName: MessageSourceName.libCenter,
+      category: MessageCategory.libCenterNotice,
+    );
+
+    await pumpTile(tester, message);
+
+    expect(find.text('学校官网'), findsOneWidget);
+    expect(find.text('入馆前请查看最新安排。'), findsOneWidget);
+    expect(find.byType(YhStatusPill), findsOneWidget);
+    final summary = tester.widget<Text>(find.text('入馆前请查看最新安排。'));
+    final theme = tester.element(find.byType(MessageTile)).yhTheme;
+    expect(summary.style?.height, theme.typography.supporting.height);
+    final title = tester.widget<Text>(find.text('暑期开放时间调整'));
+    expect(title.style?.height, theme.typography.feed.height);
   });
 
   testWidgets('窄屏消息卡片保持微信账号 fallback 与操作区可布局', (tester) async {
@@ -110,9 +131,8 @@ void main() {
 
     await pumpTile(tester, message, width: 320);
 
-    expect(find.text('微信推文'), findsOneWidget);
-    expect(find.text('青春二工大'), findsOneWidget);
-    expect(find.byIcon(FluentIcons.openInNewWindow), findsOneWidget);
-    expect(find.byIcon(FluentIcons.read), findsOneWidget);
+    expect(find.textContaining('微信推文'), findsAtLeastNWidgets(1));
+    expect(find.textContaining('青春二工大'), findsOneWidget);
+    expect(find.bySemanticsLabel('打开消息：${message.title}'), findsOneWidget);
   });
 }

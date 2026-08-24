@@ -1,0 +1,207 @@
+/*
+ * 清源对话框 — 统一模态决策、视口安全边距与焦点归还
+ * @Project : SSPU-AllinOne
+ * @File : yh_dialog.dart
+ * @Author : Qintsg
+ * @Date : 2026-08-17
+ */
+
+import 'package:flutter/widgets.dart';
+
+import '../theme/yh_theme.dart';
+import 'yh_button.dart';
+
+class YhDialog extends StatelessWidget {
+  const YhDialog({
+    super.key,
+    required this.title,
+    required this.content,
+    required this.actions,
+    this.constraints,
+    this.eyebrow,
+    this.stackActionsOnCompact = false,
+    this.headerInset = 0,
+    this.titleStyle,
+  });
+
+  final String title;
+  final Widget content;
+  final List<Widget> actions;
+  final BoxConstraints? constraints;
+  final String? eyebrow;
+  final bool stackActionsOnCompact;
+  final double headerInset;
+  final TextStyle? titleStyle;
+
+  static Future<T?> show<T>(
+    BuildContext context, {
+    required WidgetBuilder builder,
+    bool barrierDismissible = true,
+    String barrierLabel = '关闭对话框',
+    bool canPop = true,
+  }) {
+    final theme = context.yhTheme;
+    return showGeneralDialog<T>(
+      context: context,
+      barrierDismissible: barrierDismissible,
+      barrierLabel: barrierLabel,
+      barrierColor: theme.color.scrim,
+      transitionDuration: theme.motion.base,
+      pageBuilder: (dialogContext, animation, secondaryAnimation) =>
+          PopScope(canPop: canPop, child: builder(dialogContext)),
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final disableAnimations =
+            MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+        if (disableAnimations) return child;
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: context.yhTheme.motion.curve,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
+  static Future<bool> confirm(
+    BuildContext context, {
+    required String title,
+    required String message,
+    String confirmText = '确认',
+    String cancelText = '取消',
+    bool danger = false,
+    bool? barrierDismissible,
+  }) async {
+    final result = await show<bool>(
+      context,
+      barrierDismissible: barrierDismissible ?? !danger,
+      barrierLabel: '关闭对话框',
+      builder: (dialogContext) => YhDialog(
+        title: title,
+        content: Text(message),
+        actions: [
+          YhButton(
+            label: cancelText,
+            variant: YhButtonVariant.secondary,
+            autofocus: true,
+            onTap: () => Navigator.of(dialogContext).pop(false),
+          ),
+          YhButton(
+            label: confirmText,
+            variant: danger ? YhButtonVariant.danger : YhButtonVariant.primary,
+            onTap: () => Navigator.of(dialogContext).pop(true),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.all(theme.spacing.m),
+        child: Center(
+          child: Semantics(
+            scopesRoute: true,
+            namesRoute: true,
+            explicitChildNodes: true,
+            label: title,
+            child: FocusTraversalGroup(
+              policy: ReadingOrderTraversalPolicy(),
+              child: ConstrainedBox(
+                constraints:
+                    constraints ??
+                    BoxConstraints(maxWidth: theme.layout.dialogWidth),
+                child: DecoratedBox(
+                  key: const Key('yh-dialog-surface'),
+                  decoration: BoxDecoration(
+                    color: theme.color.surface,
+                    borderRadius: BorderRadius.circular(theme.radius.l),
+                    boxShadow: theme.elevation.e3,
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.all(theme.spacing.l),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (headerInset > 0) SizedBox(height: headerInset),
+                        if (eyebrow != null) ...[
+                          Text(
+                            eyebrow!,
+                            style: theme.typography.caption.copyWith(
+                              color: theme.color.brandStrong,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: theme.spacing.xs),
+                        ],
+                        Semantics(
+                          header: true,
+                          child: Text(
+                            title,
+                            style:
+                                titleStyle?.copyWith(
+                                  color: theme.color.foreground,
+                                ) ??
+                                theme.typography.h3.copyWith(
+                                  color: theme.color.foreground,
+                                ),
+                          ),
+                        ),
+                        SizedBox(height: theme.spacing.m),
+                        DefaultTextStyle(
+                          style: theme.typography.body.copyWith(
+                            color: theme.color.muted,
+                          ),
+                          child: content,
+                        ),
+                        SizedBox(height: theme.spacing.l),
+                        if (stackActionsOnCompact &&
+                            MediaQuery.sizeOf(context).width <
+                                theme.breakpoint.compact)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (
+                                var index = 0;
+                                index < actions.length;
+                                index++
+                              ) ...[
+                                actions[index],
+                                if (index < actions.length - 1)
+                                  SizedBox(height: theme.spacing.s),
+                              ],
+                            ],
+                          )
+                        else
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Wrap(
+                              spacing: theme.spacing.s,
+                              runSpacing: theme.spacing.s,
+                              alignment: WrapAlignment.end,
+                              runAlignment: WrapAlignment.end,
+                              children: actions,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -779,6 +779,83 @@ void main() {
     expect(result.snapshot?.programPlan, isNull);
   });
 
+  test('独立成绩读取合并当前与历史成绩并按学期分组', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final service = buildAcademicEamsServiceForTest(
+      gateway: FakeAcademicEamsGateway(),
+      campusReachable: true,
+    );
+
+    final result = await service.fetchGrades();
+
+    expect(result.status, AcademicEamsQueryStatus.success);
+    final grades = result.snapshot?.grades;
+    expect(grades, isNotNull);
+    expect(grades!.allRecords.length, 2);
+    expect(grades.availableTerms, ['2025-2026-2', '2025-2026-1']);
+    expect(grades.recordsForTerm('2025-2026-2').single.courseName, '高等数学');
+    expect(grades.creditsForTerm(null), 7);
+    // 成绩查询只解析成绩，不附带课表或考试。
+    expect(result.snapshot?.courseTable, isNull);
+    expect(result.snapshot?.exams, isNull);
+  });
+
+  test('成绩读取成功后写入本地成绩缓存', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final service = buildAcademicEamsServiceForTest(
+      gateway: FakeAcademicEamsGateway(),
+      campusReachable: true,
+    );
+
+    await service.fetchGrades();
+    final cached = await service.readLatestCachedGrades();
+
+    expect(cached?.status, AcademicEamsQueryStatus.success);
+    expect(cached?.snapshot?.grades?.allRecords.length, 2);
+  });
+
+  test('过程化成绩按学期请求并解析平时成绩明细', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final service = buildAcademicEamsServiceForTest(
+      gateway: FakeAcademicEamsGateway(),
+      campusReachable: true,
+    );
+
+    final result = await service.fetchGradeProcess();
+
+    expect(result.status, AcademicEamsQueryStatus.success);
+    final process = result.snapshot?.gradeProcess;
+    expect(process, isNotNull);
+    expect(process!.records.length, 2);
+    final linearAlgebra = process.records.firstWhere(
+      (record) => record.courseName == '线性代数',
+    );
+    expect(linearAlgebra.items.length, 1);
+    expect(linearAlgebra.items.single.label, '平时成绩Ⅰ');
+    expect(linearAlgebra.items.single.value, '100.0/15%');
+    // 仅解析过程化成绩，不附带课表或考试。
+    expect(result.snapshot?.courseTable, isNull);
+    expect(result.snapshot?.exams, isNull);
+  });
+
   test('开课检索会提交只读查询表单并解析列表', () async {
     await AcademicCredentialsService.instance.saveCredentials(
       oaAccount: '20260001',

@@ -98,4 +98,19 @@ token = "654321"
     expect(await authService.getToken(), '654321');
     expect((await authService.getAuthStatus()).isUsable, isTrue);
   });
+
+  test('候选凭据校验失败后可恢复二次登录前的原连接', () async {
+    SharedPreferences.setMockInitialValues({});
+    await StorageService.init();
+    final authService = WxmpAuthService.instance;
+    await authService.saveAuth('old-cookie', '123456');
+    final snapshot = await authService.captureAuth();
+
+    await authService.saveAuth('invalid-candidate', '654321');
+    await authService.restoreAuth(snapshot);
+
+    expect(await authService.getCookie(), 'old-cookie');
+    expect(await authService.getToken(), '123456');
+    expect((await authService.getAuthStatus()).isUsable, isTrue);
+  });
 }

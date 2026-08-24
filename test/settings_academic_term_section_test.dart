@@ -8,13 +8,12 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/models/academic_calendar.dart';
 import 'package:sspu_allinone/models/academic_term.dart';
 import 'package:sspu_allinone/services/academic_calendar_service.dart';
 import 'package:sspu_allinone/services/academic_term_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
-import 'package:sspu_allinone/theme/app_theme.dart';
 import 'package:sspu_allinone/widgets/settings_academic_term_section.dart';
 
 void main() {
@@ -31,15 +30,13 @@ void main() {
   testWidgets('设置页学期分区展示内置校历定位结果', (tester) async {
     var calendarOpened = false;
     await tester.pumpWidget(
-      FluentApp(
-        theme: AppTheme.build(Brightness.light),
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
-            child: SettingsAcademicTermSection(
-              service: _buildTermService(),
-              now: DateTime(2026, 3, 2),
-              onOpenAcademicCalendar: () => calendarOpened = true,
-            ),
+      YhApp(
+        themeMode: YhThemeMode.light,
+        home: SingleChildScrollView(
+          child: SettingsAcademicTermSection(
+            service: _buildTermService(),
+            now: DateTime(2026, 3, 2),
+            onOpenAcademicCalendar: () => calendarOpened = true,
           ),
         ),
       ),
@@ -56,7 +53,7 @@ void main() {
     );
     expect(find.text('学期设置'), findsOneWidget);
     expect(find.text('查看校历'), findsOneWidget);
-    expect(find.text('2025-2026 学年春季学期 第 1 / 17 周'), findsOneWidget);
+    expect(find.text('当前实际：2025-2026 学年春季学期 第 1 / 17 周'), findsOneWidget);
     expect(find.text('已定位当前教学周'), findsNothing);
     expect(find.text('已根据内置校历计算当前教学周。'), findsNothing);
     expect(find.text('规则说明'), findsNothing);
@@ -85,14 +82,12 @@ void main() {
     );
 
     await tester.pumpWidget(
-      FluentApp(
-        theme: AppTheme.build(Brightness.light),
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
-            child: SettingsAcademicTermSection(
-              service: service,
-              now: DateTime(2025, 2, 17),
-            ),
+      YhApp(
+        themeMode: YhThemeMode.light,
+        home: SingleChildScrollView(
+          child: SettingsAcademicTermSection(
+            service: service,
+            now: DateTime(2025, 2, 17),
           ),
         ),
       ),
@@ -104,7 +99,7 @@ void main() {
     );
 
     expect(find.text('已定位当前日期所在学期'), findsNothing);
-    expect(find.text('2024-2025 学年春季学期 第 1 / 17 周'), findsWidgets);
+    expect(find.text('当前实际：2024-2025 学年春季学期 第 1 / 17 周'), findsWidgets);
     expect(find.text('查询使用：2024-2025 学年秋季学期'), findsWidgets);
     expect(find.text('规则说明'), findsNothing);
     expect(find.textContaining('按寒假处理'), findsNothing);
@@ -116,15 +111,13 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
-      FluentApp(
-        theme: AppTheme.build(Brightness.light),
-        home: ScaffoldPage(
-          content: SingleChildScrollView(
-            child: SettingsAcademicTermSection(
-              service: _buildTermService(),
-              now: DateTime(2026, 6, 8),
-              onOpenAcademicCalendar: () {},
-            ),
+      YhApp(
+        themeMode: YhThemeMode.light,
+        home: SingleChildScrollView(
+          child: SettingsAcademicTermSection(
+            service: _buildTermService(),
+            now: DateTime(2026, 6, 8),
+            onOpenAcademicCalendar: () {},
           ),
         ),
       ),

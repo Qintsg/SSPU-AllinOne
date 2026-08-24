@@ -6,7 +6,7 @@
  * @Date : 2026-04-18
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 import 'legal_notice_page.dart';
 
@@ -16,6 +16,11 @@ class AgreementPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const LegalNoticePage();
+    return const LegalNoticePage(
+      title: '用户协议',
+      kicker: '法律与协议',
+      summary: '说明只读聚合、用户责任和外部服务边界，首次确认后仍可再次阅读。',
+      primaryActionLabel: '返回',
+    );
   }
 }

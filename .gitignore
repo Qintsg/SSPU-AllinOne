@@ -113,6 +113,7 @@ dist/
 !.claude/skills/
 .omx/
 .codex/
+.zcode/
 .playwright-mcp/
 .worktree/
 .worktrees/

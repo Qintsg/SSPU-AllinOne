@@ -8,6 +8,48 @@
 
 ## [Unreleased]
 
+### 变更
+
+- 项目许可证切换为 Apache License 2.0；同步更新仓库许可证、应用内法律说明、关于页、安装器许可页引用、协议确认键和相关文档与测试。
+
+## [0.4.0-beta] - 2026-08-22
+
+### 发布
+
+- 本版本是 `v0.4.0-beta` 预发布，聚焦清源设计系统完整重构、全前端 UI 门面迁移与设计语言规范建立；本版本有已知大量 bug，且大概率有恶性 bug，若需稳定请等待 rc 版本，欢迎提 bug issue。
+
+### 新增
+
+- 引入清源设计系统统一门面（`YhIcons`/`YhPageScaffold`/`YhAppBar` 等）与 45 个组件，覆盖按钮、输入、反馈、导航、数据展示与领域组件。
+- 新增深色模式与主题切换设置（亮/暗/跟随系统，偏好通过 `StorageService.themeMode` 持久化并即时生效）。
+- 建立设计稿与自评审文档体系（`docs/design/patterns/` + `docs/design/reviews/`），覆盖全部页面。
+- 新增视觉捕获测试矩阵（52 surface × 4 视口 × 亮暗主题）。
+
+### 变更
+
+- 业务页面全部迁移至 `Yh*` 清源门面，移除 `fluent_ui` 包依赖与旧 Fluent 设计门面。
+- 移除 `uses-material-design` 声明，业务页面不再直接引用 Material `Icons` 类。
+
+### 修复
+
+- 修复课表周网格桌面端视口填充的 RenderFlex 无界高度崩溃。
+- 修复首次使用协议弹窗移动端协议卡片空白过大。
+- 重写 OSV Scanner 工作流用 CLI 替代破损的 GitHub Action。
+- 修正 CI 治理与供应链固定校验。
+
+### 优化
+
+- 首页仪表盘密度优化：360×800 主页不滚动、消除过大卡片与间距。
+- 校历加载态布局优化。
+- 文件拆分解耦：`academic_calendar_service.dart` 686→382 行、`student_report_page_parser.dart` 815→620 行等。
+
+### 已知问题
+
+- 本版本有已知大量 bug，且大概率有恶性 bug，若需稳定请等待 rc 版本，欢迎提 bug issue。
+- macOS 签名公证后的钥匙串凭据保存能力仍需继续验证。
+- Linux/Android/macOS/iOS 真实构建仅在 CI 环境验证，未在开发机本地验证。
+- 部分页面在移动端输入法弹出时仍可能存在局部布局问题。
+
 ## [0.3.0-beta] - 2026-06-12
 
 ### 发布

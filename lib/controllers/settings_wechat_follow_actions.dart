@@ -20,13 +20,13 @@ extension SettingsWechatFollowActions on SettingsWechatController {
       if (fakeid.isEmpty) {
         return SettingsWechatFeedback(
           title: '已关闭「${account.name}」',
-          severity: FluentInfoSeverity.info,
+          severity: AppFeedbackSeverity.info,
         );
       }
       await setMpNotificationEnabled(fakeid, false);
       return SettingsWechatFeedback(
         title: '已关闭「${account.name}」推文获取',
-        severity: FluentInfoSeverity.info,
+        severity: AppFeedbackSeverity.info,
       );
     }
 
@@ -34,12 +34,12 @@ extension SettingsWechatFollowActions on SettingsWechatController {
       await setMpNotificationEnabled(fakeid, true);
       return SettingsWechatFeedback(
         title: '已启用「${account.name}」推文获取',
-        severity: FluentInfoSeverity.success,
+        severity: AppFeedbackSeverity.success,
       );
     }
 
     final feedback = await followSspuAccount(account);
-    if (feedback.severity != FluentInfoSeverity.success) return feedback;
+    if (feedback.severity != AppFeedbackSeverity.success) return feedback;
 
     final newFollowed = findFollowedSspuAccount(account);
     final newFakeid = newFollowed?['fakeid'] ?? '';
@@ -48,7 +48,7 @@ extension SettingsWechatFollowActions on SettingsWechatController {
     }
     return SettingsWechatFeedback(
       title: '已关注并启用「${account.name}」',
-      severity: FluentInfoSeverity.success,
+      severity: AppFeedbackSeverity.success,
     );
   }
 
@@ -59,7 +59,7 @@ extension SettingsWechatFollowActions on SettingsWechatController {
     if (_wxmpFollowingAccountId.isNotEmpty) {
       return const SettingsWechatFeedback(
         title: '正在处理上一次关注请求',
-        severity: FluentInfoSeverity.info,
+        severity: AppFeedbackSeverity.info,
       );
     }
 
@@ -68,7 +68,7 @@ extension SettingsWechatFollowActions on SettingsWechatController {
       return SettingsWechatFeedback(
         title: '公众号平台认证不可用',
         content: validation.message,
-        severity: FluentInfoSeverity.warning,
+        severity: AppFeedbackSeverity.warning,
       );
     }
 
@@ -96,24 +96,24 @@ extension SettingsWechatFollowActions on SettingsWechatController {
       await _loadWxmpFollowedMps();
       return SettingsWechatFeedback(
         title: '已关注「${account.name}」',
-        severity: FluentInfoSeverity.success,
+        severity: AppFeedbackSeverity.success,
       );
     } on WxmpSessionExpiredException {
       _wxmpAuthenticated = false;
       return const SettingsWechatFeedback(
         title: '会话已过期，请重新扫码登录',
-        severity: FluentInfoSeverity.error,
+        severity: AppFeedbackSeverity.error,
       );
     } on WxmpFrequencyLimitException {
       return const SettingsWechatFeedback(
         title: '请求频率过快，请稍后再试',
-        severity: FluentInfoSeverity.warning,
+        severity: AppFeedbackSeverity.warning,
       );
     } catch (error) {
       return SettingsWechatFeedback(
         title: '关注失败',
         content: '$error',
-        severity: FluentInfoSeverity.warning,
+        severity: AppFeedbackSeverity.warning,
       );
     } finally {
       _wxmpFollowingAccountId = '';
@@ -126,7 +126,7 @@ extension SettingsWechatFollowActions on SettingsWechatController {
     if (_wxmpBatchFollowing) {
       return const SettingsWechatFeedback(
         title: '批量关注正在进行中',
-        severity: FluentInfoSeverity.info,
+        severity: AppFeedbackSeverity.info,
       );
     }
 
@@ -135,7 +135,7 @@ extension SettingsWechatFollowActions on SettingsWechatController {
       return SettingsWechatFeedback(
         title: '公众号平台认证不可用',
         content: validation.message,
-        severity: FluentInfoSeverity.warning,
+        severity: AppFeedbackSeverity.warning,
       );
     }
 
@@ -196,7 +196,7 @@ extension SettingsWechatFollowActions on SettingsWechatController {
         _notifyStateChanged();
         return const SettingsWechatFeedback(
           title: '会话已过期，请重新扫码登录后重试',
-          severity: FluentInfoSeverity.error,
+          severity: AppFeedbackSeverity.error,
         );
       } on WxmpFrequencyLimitException {
         rateLimited = true;
@@ -229,10 +229,10 @@ extension SettingsWechatFollowActions on SettingsWechatController {
     return SettingsWechatFeedback(
       title: summary.isEmpty ? '已完成' : summary.toString(),
       severity: rateLimited
-          ? FluentInfoSeverity.warning
+          ? AppFeedbackSeverity.warning
           : (failed > 0
-                ? FluentInfoSeverity.warning
-                : FluentInfoSeverity.success),
+                ? AppFeedbackSeverity.warning
+                : AppFeedbackSeverity.success),
     );
   }
 }

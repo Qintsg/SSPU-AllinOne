@@ -21,18 +21,19 @@ void main() {
     expect(unsignedEntitlements, isNot(contains('keychain-access-groups')));
   });
 
-  test('macOS 正式 Release 要求签名材料齐全并使用公证工具链', () {
+  test('macOS Release 使用 ad-hoc 自签名替代官方签名与公证', () {
     final releaseWorkflow = File(
       '.github/workflows/release.yml',
     ).readAsStringSync();
 
     expect(
       releaseWorkflow,
-      contains('当前公开 Release 必须产出 Developer ID 签名并公证的 macOS DMG'),
+      contains('使用 ad-hoc 自签名（未配置官方 Developer ID 签名与公证）'),
     );
-    expect(releaseWorkflow, isNot(contains('-T /usr/bin/notarytool')));
-    expect(releaseWorkflow, contains('xcrun notarytool submit'));
-    expect(releaseWorkflow, contains('xcrun stapler staple'));
+    expect(releaseWorkflow, contains('codesign --force --deep --sign -'));
+    expect(releaseWorkflow, isNot(contains('xcrun notarytool submit')));
+    expect(releaseWorkflow, isNot(contains('xcrun stapler staple')));
+    expect(releaseWorkflow, isNot(contains('Developer ID Application')));
     expect(
       releaseWorkflow,
       contains(

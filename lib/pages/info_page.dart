@@ -8,32 +8,62 @@
  */
 
 import 'dart:math';
-import 'package:flutter/services.dart';
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 import '../models/message_item.dart';
 import '../models/channel_config.dart';
 import '../services/info_refresh_service.dart';
 import '../services/wechat_article_service.dart';
-import '../theme/fluent_tokens.dart';
-import '../widgets/app_feedback.dart';
 import '../widgets/message_tile.dart';
-import '../widgets/responsive_layout.dart';
 import '../services/message_state_service.dart';
 import '../utils/app_web_launcher.dart';
 
 part 'info_page_filters.dart';
-part 'info_page_controls.dart';
-part 'info_page_mobile_controls.dart';
-part 'info_page_filter_dialog.dart';
-part 'info_page_pagination.dart';
-part 'info_page_widgets.dart';
+part 'info_page_filter_catalog.dart';
+part 'info_page_filter_view.dart';
+part 'info_page_view.dart';
+part 'info_page_header.dart';
+part 'info_page_source_controls.dart';
+part 'info_page_state_panel.dart';
+
+/// 资讯页的确定性展示状态，仅用于视觉 fixture 与页面状态回归测试。
+enum InfoPageDisplayState { initial, loading, content, empty, stale, error }
 
 /// 信息中心页面
 /// 统一大列表展示所有渠道消息，支持搜索/筛选/已读未读/分页
 class InfoPage extends StatefulWidget {
-  const InfoPage({super.key});
+  const InfoPage({
+    super.key,
+    this.onOpenSourceSettings,
+    @visibleForTesting this.displayStateOverride,
+    @visibleForTesting this.messagesOverride,
+    @visibleForTesting this.wechatSourceConfiguredOverride,
+    @visibleForTesting this.nowOverride,
+    @visibleForTesting this.messageRenderLimitOverride,
+    @visibleForTesting this.filterEmptyOverride = false,
+  });
+
+  /// 打开资讯来源与认证设置；由应用壳负责切换到对应设置分区。
+  final VoidCallback? onOpenSourceSettings;
+
+  @visibleForTesting
+  final InfoPageDisplayState? displayStateOverride;
+
+  @visibleForTesting
+  final List<MessageItem>? messagesOverride;
+
+  @visibleForTesting
+  final bool? wechatSourceConfiguredOverride;
+
+  @visibleForTesting
+  final DateTime? nowOverride;
+
+  @visibleForTesting
+  final int? messageRenderLimitOverride;
+
+  @visibleForTesting
+  final bool filterEmptyOverride;
 
   @override
   State<InfoPage> createState() => _InfoPageState();
@@ -48,6 +78,14 @@ class _InfoPageState extends State<InfoPage> {
 
   /// 微信公众号来源是否已完成公众号平台认证。
   bool _wechatSourceConfigured = false;
+
+  bool _isInitializing = true;
+
+  Object? _loadError;
+
+  DateTime? _lastLoadedAt;
+
+  _InfoPrimarySource _primarySource = _InfoPrimarySource.all;
 
   /// 搜索关键词
   String _searchQuery = '';
@@ -85,16 +123,57 @@ class _InfoPageState extends State<InfoPage> {
   /// 自动刷新服务（用于手动全渠道刷新）
   final InfoRefreshService _refreshService = InfoRefreshService.instance;
 
+  bool _refreshListenerAttached = false;
+
   @override
   void initState() {
     super.initState();
-    _refreshService.addListener(_onRefreshServiceChanged);
+    if (widget.messagesOverride != null) {
+      _allMessages.addAll(widget.messagesOverride!);
+      _filteredMessages = List<MessageItem>.of(_allMessages);
+      _wechatSourceConfigured = widget.wechatSourceConfiguredOverride ?? false;
+      _lastLoadedAt = widget.nowOverride;
+      _isInitializing = false;
+      return;
+    }
+    _attachRefreshListener();
     _initAndLoad();
   }
 
   @override
+  void didUpdateWidget(InfoPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.messagesOverride == null && widget.messagesOverride != null) {
+      _detachRefreshListener();
+    } else if (oldWidget.messagesOverride != null &&
+        widget.messagesOverride == null) {
+      _attachRefreshListener();
+      _isInitializing = true;
+      _initAndLoad();
+    }
+    if (!identical(oldWidget.messagesOverride, widget.messagesOverride) &&
+        widget.messagesOverride != null) {
+      _allMessages
+        ..clear()
+        ..addAll(widget.messagesOverride!);
+      _filteredMessages = List<MessageItem>.of(_allMessages);
+      _primarySource = _InfoPrimarySource.all;
+      _searchController.clear();
+      _searchQuery = '';
+      _lastLoadedAt = widget.nowOverride;
+      _isInitializing = false;
+      _loadError = null;
+    }
+    if (oldWidget.wechatSourceConfiguredOverride !=
+        widget.wechatSourceConfiguredOverride) {
+      _wechatSourceConfigured =
+          widget.wechatSourceConfiguredOverride ?? _wechatSourceConfigured;
+    }
+  }
+
+  @override
   void dispose() {
-    _refreshService.removeListener(_onRefreshServiceChanged);
+    _detachRefreshListener();
     _searchController.dispose();
     _messageListController.dispose();
     super.dispose();
@@ -104,38 +183,54 @@ class _InfoPageState extends State<InfoPage> {
     _loadPersistedMessages();
   }
 
+  void _attachRefreshListener() {
+    if (_refreshListenerAttached) return;
+    _refreshService.addListener(_onRefreshServiceChanged);
+    _refreshListenerAttached = true;
+  }
+
+  void _detachRefreshListener() {
+    if (!_refreshListenerAttached) return;
+    _refreshService.removeListener(_onRefreshServiceChanged);
+    _refreshListenerAttached = false;
+  }
+
   Future<void> _loadPersistedMessages() async {
     final persisted = await _stateService.loadMessages();
     _allMessages
       ..clear()
       ..addAll(persisted);
     await _filterByEnabledChannels();
+    _lastLoadedAt = widget.nowOverride ?? DateTime.now();
   }
 
   /// 初始化状态服务，从本地存储加载消息并根据渠道开关过滤显示
   Future<void> _initAndLoad() async {
-    await _stateService.init();
-    await _loadPersistedMessages();
-
-    final wechatSourceConfigured = await WechatArticleService.instance
-        .hasConfiguredSource();
-    if (!mounted) return;
-    setState(() => _wechatSourceConfigured = wechatSourceConfigured);
+    try {
+      await _stateService.init();
+      await _loadPersistedMessages();
+      if (!mounted) return;
+      setState(() => _isInitializing = false);
+      final wechatSourceConfigured = await WechatArticleService.instance
+          .hasConfiguredSource();
+      if (!mounted) return;
+      setState(() {
+        _wechatSourceConfigured = wechatSourceConfigured;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = error;
+        _isInitializing = false;
+      });
+    }
   }
 
   /// 刷新官网消息：抓取所有已启用渠道的新数据并与已有数据合并持久化
   Future<void> _refreshSchoolWebsite() async {
     final started = await _refreshService.startSchoolWebsiteRefresh();
     if (!started && mounted) {
-      showFluentInfoBar(
-        context,
-        title: const Text('已有刷新任务正在进行'),
-        severity: FluentInfoSeverity.info,
-        actionBuilder: (close) => FluentIconButton(
-          icon: const Icon(FluentIcons.clear),
-          onPressed: close,
-        ),
-      );
+      showYhFeedback(context, message: '已有刷新任务正在进行');
     }
   }
 
@@ -146,15 +241,11 @@ class _InfoPageState extends State<InfoPage> {
     if (!isConfigured) {
       _wechatSourceConfigured = false;
       if (mounted) {
-        showFluentInfoBar(
+        showYhFeedback(
           context,
-          title: const Text('未获取到微信公众号文章'),
-          content: const Text('请先在设置中完成公众号平台认证并关注目标公众号'),
-          severity: FluentInfoSeverity.warning,
-          actionBuilder: (close) => FluentIconButton(
-            icon: const Icon(FluentIcons.clear),
-            onPressed: close,
-          ),
+          message: '未获取到微信公众号文章',
+          details: '请先在设置中完成公众号平台认证并关注目标公众号',
+          severity: AppFeedbackSeverity.warning,
         );
         setState(() {});
       }
@@ -164,15 +255,7 @@ class _InfoPageState extends State<InfoPage> {
     _wechatSourceConfigured = true;
     final started = await _refreshService.startWechatRefresh();
     if (!started && mounted) {
-      showFluentInfoBar(
-        context,
-        title: const Text('已有刷新任务正在进行'),
-        severity: FluentInfoSeverity.info,
-        actionBuilder: (close) => FluentIconButton(
-          icon: const Icon(FluentIcons.clear),
-          onPressed: close,
-        ),
-      );
+      showYhFeedback(context, message: '已有刷新任务正在进行');
     }
   }
 
@@ -202,8 +285,29 @@ class _InfoPageState extends State<InfoPage> {
   /// 应用搜索和筛选条件
   void _applyFilters() => _applyInfoPageFilters(this);
 
+  InfoPageDisplayState get _displayState {
+    final override = widget.displayStateOverride;
+    if (override != null) return override;
+    if (_isInitializing) return InfoPageDisplayState.loading;
+    if (_loadError != null && _allMessages.isEmpty) {
+      return InfoPageDisplayState.error;
+    }
+    if (_allMessages.isEmpty) return InfoPageDisplayState.empty;
+    if (_refreshService.snapshot.text.contains('失败')) {
+      return InfoPageDisplayState.stale;
+    }
+    return InfoPageDisplayState.content;
+  }
+
+  DateTime get _now => widget.nowOverride ?? DateTime.now();
+
   /// 获取当前页的消息列表
-  List<MessageItem> get _pagedMessages => _getPagedInfoMessages(this);
+  List<MessageItem> get _pagedMessages {
+    final messages = _getPagedInfoMessages(this);
+    final limit = widget.messageRenderLimitOverride;
+    if (limit == null || messages.length <= limit) return messages;
+    return messages.take(limit).toList(growable: false);
+  }
 
   /// 总页数
   int get _totalPages => _getInfoTotalPages(this);
@@ -221,14 +325,6 @@ class _InfoPageState extends State<InfoPage> {
   @override
   Widget build(BuildContext context) => _buildInfoPageView(this, context);
 
-  /// 构建刷新进度条。
-  Widget _buildRefreshProgress(FluentThemeData theme) =>
-      _buildInfoRefreshProgress(this, theme);
-
-  /// 构建搜索栏
-  Widget _buildSearchBar(FluentThemeData theme) =>
-      _buildInfoSearchBar(this, theme);
-
   /// 根据当前来源类型获取可选的来源名称列表
   List<MessageSourceName> _getAvailableSourceNames() =>
       _getInfoAvailableSourceNames(this);
@@ -240,37 +336,4 @@ class _InfoPageState extends State<InfoPage> {
   /// 根据当前来源名称获取可选的内容分类列表
   List<MessageCategory> _getAvailableCategories() =>
       _getInfoAvailableCategories(this);
-
-  /// 构建筛选下拉框通用方法
-  Widget _buildFilterCombo<T>({
-    required String label,
-    required T? value,
-    required List<T> items,
-    required String Function(T) itemLabel,
-    required void Function(T?) onChanged,
-    bool enabled = true,
-    double minWidth = 180,
-    double maxWidth = 240,
-  }) => _buildInfoFilterCombo(
-    label: label,
-    value: value,
-    items: items,
-    itemLabel: itemLabel,
-    onChanged: onChanged,
-    enabled: enabled,
-    minWidth: minWidth,
-    maxWidth: maxWidth,
-  );
-
-  /// 构建消息列表
-  Widget _buildMessageList(FluentThemeData theme, bool isDark) =>
-      _buildInfoMessageList(this, theme, isDark);
-
-  /// 构建分页导航栏
-  Widget _buildPagination(FluentThemeData theme) =>
-      _buildInfoPagination(this, theme);
-
-  /// 弹出页码跳转对话框
-  /// 用户输入目标页码后直接跳转
-  Future<void> _showPageJumpDialog() => _showInfoPageJumpDialog(this);
 }

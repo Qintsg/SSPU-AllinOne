@@ -1,0 +1,60 @@
+<!--
+  清源全状态设计参考宿主页。
+  @Project : SSPU-AllinOne
+  @File : state-reference.html
+  @Author : Qintsg
+  @Date : 2026-08-14
+-->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>清源全状态设计参考</title>
+  <link rel="stylesheet" href="../../components/samples/_qingyuan.css" />
+  <link rel="stylesheet" href="_state-reference.css" />
+  <link rel="stylesheet" href="_component-reference-layout.css" />
+  <link rel="stylesheet" href="_component-reference.css" />
+  <link rel="stylesheet" href="_student-report-rules-reference.css" />
+  <link rel="stylesheet" href="_wechat-login-reference.css" />
+</head>
+<body>
+  <div class="reference-shell" data-reference-root>
+    <aside class="reference-rail" aria-label="主导航">
+      <div class="reference-brand" aria-label="工大聚合">源</div>
+      <nav data-reference-nav></nav>
+      <span class="reference-rail-caption">清源 0.4</span>
+    </aside>
+    <main class="reference-main">
+      <header class="reference-appbar">
+        <button type="button" aria-label="返回" data-reference-back>←</button>
+        <div><span data-reference-group>主页</span><strong data-reference-source>本地数据</strong></div>
+        <button type="button" aria-label="更多操作" data-reference-more>•••</button>
+      </header>
+      <section class="reference-page" data-reference-page>
+        <header class="reference-heading">
+          <div>
+            <p data-reference-kicker></p>
+            <h1 data-reference-title></h1>
+            <p data-reference-summary></p>
+          </div>
+          <button class="reference-primary" type="button" data-reference-action></button>
+        </header>
+        <div class="reference-source-strip">
+          <span class="reference-domain-mark" aria-hidden="true"></span>
+          <span data-reference-source-detail></span>
+          <time>2026-07-18 · 09:30</time>
+        </div>
+        <div class="reference-state" data-reference-state></div>
+      </section>
+      <nav class="reference-bottom-nav" aria-label="主导航" data-reference-bottom-nav></nav>
+    </main>
+  </div>
+  <script src="_component-reference.js"></script>
+  <script src="_student-report-rules-reference.js"></script>
+  <script src="_settings-dialog-reference.js"></script>
+  <script src="_wechat-login-reference.js"></script>
+  <script src="_modal-reference.js"></script>
+  <script src="_state-reference.js"></script>
+</body>
+</html>

@@ -119,6 +119,14 @@ class AuthenticatedDataCacheService {
     }
   }
 
+  /// 是否存在任一鉴权业务快照，不读取或暴露其中的业务字段。
+  static Future<bool> hasAny() async {
+    for (final collection in _authenticatedCollections) {
+      if ((await _getAllData(collection)).isNotEmpty) return true;
+    }
+    return false;
+  }
+
   static Future<void> _trimCollection(String collection) async {
     final entries = await readLatestRecords(collection);
     if (entries.length <= maxRecordsPerType) return;
@@ -307,6 +315,8 @@ class AuthenticatedDataCacheService {
     StorageKeys.academicEamsOverviewCacheCollection,
     StorageKeys.academicEamsCourseTableCacheCollection,
     StorageKeys.academicEamsExamScheduleCacheCollection,
+    StorageKeys.academicEamsGradeCacheCollection,
+    StorageKeys.academicEamsGradeProcessCacheCollection,
     StorageKeys.emailMailboxCacheCollection,
     '${StorageKeys.emailMailboxCacheCollection}_imap',
     '${StorageKeys.emailMailboxCacheCollection}_pop',

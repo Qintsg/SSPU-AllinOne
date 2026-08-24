@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Badge 徽标样例 · 清源设计系统</title>
+  <link rel="stylesheet" href="_qingyuan.css" />
+</head>
+<body>
+  <button class="theme-toggle" type="button" aria-label="切换主题" aria-pressed="false">
+    <svg class="ic-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    <svg class="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    <span class="tt-label">深色</span>
+  </button>
+
+  <div class="container">
+    <h1>Badge 徽标</h1>
+    <p class="intro">清源设计系统 · 响应色 <b>#478384</b> · 未读计数 / 红点（角标固定用红）</p>
+
+    <div class="section">
+      <h2>计数 / 99+ / 红点</h2>
+      <div class="row" style="gap:28px">
+        <span class="yh-badge" data-count="3"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+        <span class="yh-badge" data-count="99+"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H5.17L4 17.17z"/></svg></span>
+        <span class="yh-badge dot"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <span class="yh-badge dot"><span class="yh-avatar md">饶</span></span>
+      </div>
+    </div>
+  </div>
+
+  <script src="_qingyuan.js"></script>
+</body>
+</html>

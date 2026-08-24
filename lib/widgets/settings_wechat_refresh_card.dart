@@ -6,8 +6,7 @@
  * @Date : 2026-06-11
  */
 
-import '../design/fluent_ui.dart';
-import '../theme/fluent_tokens.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import 'settings_widgets.dart';
 
 /// 微信推文刷新设置卡片。
@@ -50,92 +49,88 @@ class SettingsWechatRefreshCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
+    final theme = context.yhTheme;
 
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FluentSurfaceIcon(icon: FluentIcons.sync),
-                const SizedBox(width: FluentSpacing.s),
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('刷新设置', style: type.subtitle2),
-                      Text(
-                        '控制微信推文的抓取条数和自动刷新频率',
-                        style: type.caption1.copyWith(
-                          color: colors.neutralForeground2,
-                        ),
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(YhIcons.sync, color: theme.color.brandStrong),
+              SizedBox(width: theme.spacing.s),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('刷新设置', style: theme.typography.h3),
+                    Text(
+                      '控制微信推文的抓取条数和自动刷新频率',
+                      style: theme.typography.small.copyWith(
+                        color: theme.color.muted,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: FluentSpacing.l),
-            Wrap(
-              spacing: FluentSpacing.l,
-              runSpacing: FluentSpacing.m,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                buildCountNumberBox(
-                  context: context,
-                  label: '手动刷新条数',
-                  value: manualFetchCount,
-                  enabled: true,
-                  onChanged: onManualFetchCountChanged,
+              ),
+            ],
+          ),
+          SizedBox(height: theme.spacing.l),
+          Wrap(
+            spacing: theme.spacing.l,
+            runSpacing: theme.spacing.m,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              buildCountNumberBox(
+                context: context,
+                label: '手动刷新条数',
+                value: manualFetchCount,
+                enabled: true,
+                onChanged: onManualFetchCountChanged,
+              ),
+              _InlineWechatSetting(
+                label: '自动刷新',
+                enabled: true,
+                child: YhSwitch(
+                  value: autoRefreshEnabled,
+                  semanticLabel: '微信推文自动刷新',
+                  onChanged: onAutoRefreshChanged,
                 ),
-                _InlineWechatSetting(
-                  label: '自动刷新',
-                  enabled: true,
-                  child: FluentSwitch(
-                    value: autoRefreshEnabled,
-                    onChanged: onAutoRefreshChanged,
-                  ),
-                ),
-                _InlineWechatSetting(
+              ),
+              _InlineWechatSetting(
+                label: '刷新频率',
+                enabled: autoRefreshEnabled,
+                child: YhSelect<int>(
                   label: '刷新频率',
+                  showLabel: false,
+                  value: kIntervalOptions.containsKey(refreshInterval)
+                      ? refreshInterval
+                      : 120,
                   enabled: autoRefreshEnabled,
-                  child: FluentSelect<int>(
-                    value: kIntervalOptions.containsKey(refreshInterval)
-                        ? refreshInterval
-                        : 120,
-                    items: kIntervalOptions.entries
-                        .where((entry) => entry.key > 0)
-                        .map(
-                          (entry) => FluentSelectItem<int>(
-                            value: entry.key,
-                            child: Text(entry.value),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: autoRefreshEnabled
-                        ? (value) {
-                            if (value != null) onRefreshIntervalChanged(value);
-                          }
-                        : null,
-                  ),
+                  options: [
+                    for (final entry in kIntervalOptions.entries.where(
+                      (entry) => entry.key > 0,
+                    ))
+                      YhSelectOption<int>(value: entry.key, label: entry.value),
+                  ],
+                  onChanged: autoRefreshEnabled
+                      ? (value) {
+                          if (value != null) onRefreshIntervalChanged(value);
+                        }
+                      : null,
                 ),
-                buildCountNumberBox(
-                  context: context,
-                  label: '自动刷新条数',
-                  value: autoFetchCount,
-                  enabled: autoRefreshEnabled,
-                  onChanged: onAutoFetchCountChanged,
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+              buildCountNumberBox(
+                context: context,
+                label: '自动刷新条数',
+                value: autoFetchCount,
+                enabled: autoRefreshEnabled,
+                onChanged: onAutoFetchCountChanged,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -159,18 +154,15 @@ class _InlineWechatSetting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    final foreground = enabled
-        ? colors.neutralForeground2
-        : colors.neutralForegroundDisabled;
+    final theme = context.yhTheme;
+    final foreground = enabled ? theme.color.muted : theme.color.border;
 
     return Wrap(
-      spacing: FluentSpacing.xs,
-      runSpacing: FluentSpacing.xs,
+      spacing: theme.spacing.xs,
+      runSpacing: theme.spacing.xs,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Text(label, style: type.caption1.copyWith(color: foreground)),
+        Text(label, style: theme.typography.small.copyWith(color: foreground)),
         child,
       ],
     );

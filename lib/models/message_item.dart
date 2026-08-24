@@ -351,6 +351,9 @@ class MessageItem {
   /// 消息标题
   final String title;
 
+  /// 用于资讯列表的可选两行摘要
+  final String? summary;
+
   /// 消息发布日期（YYYY-MM-DD 格式）
   final String date;
 
@@ -381,6 +384,7 @@ class MessageItem {
   const MessageItem({
     required this.id,
     required this.title,
+    this.summary,
     required this.date,
     required this.url,
     required this.sourceType,
@@ -397,6 +401,7 @@ class MessageItem {
     return MessageItem(
       id: json['id'] as String,
       title: json['title'] as String,
+      summary: json['summary'] as String?,
       date: json['date'] as String,
       url: json['url'] as String,
       sourceType: MessageSourceType.values.firstWhere(
@@ -419,6 +424,7 @@ class MessageItem {
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,
+    if (summary != null) 'summary': summary,
     'date': date,
     'url': url,
     'sourceType': sourceType.name,

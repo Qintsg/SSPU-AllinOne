@@ -8,7 +8,7 @@
 
 import 'dart:async';
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 import '../models/academic_credentials.dart';
 import '../models/email_mailbox.dart';
@@ -17,8 +17,6 @@ import '../services/academic_oa_session_prewarm_service.dart';
 import '../services/academic_login_validation_service.dart';
 import '../services/email_service.dart';
 import '../services/sports_attendance_service.dart';
-import '../theme/fluent_tokens.dart';
-import 'app_feedback.dart';
 import 'responsive_layout.dart';
 import 'settings_widgets.dart';
 
@@ -51,11 +49,8 @@ class SettingsSecuritySection extends StatefulWidget {
   /// 立即上锁回调。
   final VoidCallback? onLock;
 
-  /// 清理消息缓存回调。
-  final VoidCallback onClearMessageCache;
-
-  /// 清除所有数据回调。
-  final VoidCallback onClearAllData;
+  /// 打开完整数据与隐私任务页。
+  final VoidCallback? onOpenDataPrivacy;
 
   /// 可替换的 OA 登录校验服务，便于测试中使用 fake 网关。
   final AcademicLoginValidationService? academicLoginValidationService;
@@ -69,6 +64,9 @@ class SettingsSecuritySection extends StatefulWidget {
   /// 可替换的邮箱登录验证服务，便于测试中使用 fake。
   final EmailMailboxClient? emailMailboxService;
 
+  /// 可替换的凭据状态读取器，用于确定性覆盖安全存储失败与恢复。
+  final Future<AcademicCredentialsStatus> Function()? credentialsStatusLoader;
+
   const SettingsSecuritySection({
     super.key,
     required this.isPasswordEnabled,
@@ -79,12 +77,12 @@ class SettingsSecuritySection extends StatefulWidget {
     required this.isQuickAuthBusy,
     required this.onQuickAuthChanged,
     required this.onLock,
-    required this.onClearMessageCache,
-    required this.onClearAllData,
+    this.onOpenDataPrivacy,
     this.academicLoginValidationService,
     this.academicOaSessionPrewarmService,
     this.sportsAttendanceService,
     this.emailMailboxService,
+    this.credentialsStatusLoader,
   });
 
   @override
@@ -107,8 +105,17 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
   Map<AcademicCredentialSecret, _CredentialValidationBadge>
   _credentialValidationBadges = const {};
   bool _isCredentialsLoading = true;
+  bool _credentialsLoadFailed = false;
+  bool _isCredentialsReloading = false;
   bool _isSavingCredentials = false;
   bool _isValidatingAcademicLogin = false;
+  int _credentialValidationGeneration = 0;
+
+  /// 凭据读取、保存或验证是否占用共享操作锁。
+  bool get _isCredentialOperationBusy =>
+      _isCredentialsReloading ||
+      _isSavingCredentials ||
+      _isValidatingAcademicLogin;
 
   AcademicLoginValidationService get _academicLoginValidationService {
     return widget.academicLoginValidationService ??
@@ -136,6 +143,7 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
 
   @override
   void dispose() {
+    _credentialValidationGeneration++;
     _oaAccountController.dispose();
     _oaPasswordController.dispose();
     _sportsPasswordController.dispose();
@@ -143,29 +151,59 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
     super.dispose();
   }
 
+  /// 服务替换时隔离仍在返回的旧验证结果。
+  @override
+  void didUpdateWidget(covariant SettingsSecuritySection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final validationServiceChanged =
+        !identical(
+          widget.academicLoginValidationService,
+          oldWidget.academicLoginValidationService,
+        ) ||
+        !identical(
+          widget.sportsAttendanceService,
+          oldWidget.sportsAttendanceService,
+        ) ||
+        !identical(widget.emailMailboxService, oldWidget.emailMailboxService);
+    if (!validationServiceChanged) return;
+    _credentialValidationGeneration++;
+    _isValidatingAcademicLogin = false;
+    _credentialValidationBadges = const {};
+  }
+
   /// 加载教务凭据状态，密码输入框始终保持为空。
-  Future<void> _loadAcademicCredentials() async {
+  Future<void> _loadAcademicCredentials({bool isRetry = false}) async {
+    if (isRetry) {
+      if (_isCredentialOperationBusy) return;
+      setState(() => _isCredentialsReloading = true);
+    }
     try {
-      final status = await _academicCredentials.getStatus();
+      final status =
+          await (widget.credentialsStatusLoader?.call() ??
+              _academicCredentials.getStatus());
       if (!mounted) return;
-      _oaAccountController.text = status.oaAccount;
-      _clearPasswordInputs();
+      if (_oaAccountController.text.isEmpty) {
+        _oaAccountController.text = status.oaAccount;
+      }
       setState(() {
         _credentialsStatus = status;
         _isCredentialsLoading = false;
+        _credentialsLoadFailed = false;
+        _isCredentialsReloading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _credentialsStatus = const AcademicCredentialsStatus.empty();
         _isCredentialsLoading = false;
+        _credentialsLoadFailed = true;
+        _isCredentialsReloading = false;
       });
     }
   }
 
   /// 保存本次填写的账号和密码。
   Future<void> _saveAcademicCredentials() async {
-    if (_isSavingCredentials) return;
+    if (_isCredentialOperationBusy) return;
     setState(() => _isSavingCredentials = true);
 
     try {
@@ -192,17 +230,17 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
               (enteredOaPassword != null && enteredOaPassword.isNotEmpty),
         ),
       );
-      _showCredentialInfoBar('教务凭据已保存', FluentInfoSeverity.success);
+      _showCredentialFeedback('教务凭据已保存', AppFeedbackSeverity.success);
     } catch (_) {
       if (!mounted) return;
       setState(() => _isSavingCredentials = false);
-      _showCredentialInfoBar('保存失败，请确认系统安全存储可用', FluentInfoSeverity.error);
+      _showCredentialFeedback('保存失败，请确认系统安全存储可用', AppFeedbackSeverity.error);
     }
   }
 
   /// 清除指定密码字段。
   Future<void> _clearAcademicSecret(AcademicCredentialSecret secret) async {
-    if (_isSavingCredentials) return;
+    if (_isCredentialOperationBusy) return;
     setState(() => _isSavingCredentials = true);
 
     try {
@@ -214,24 +252,25 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
         _credentialsStatus = status;
         _isSavingCredentials = false;
       });
-      _showCredentialInfoBar(
+      _showCredentialFeedback(
         '${_secretLabel(secret)}已清除',
-        FluentInfoSeverity.info,
+        AppFeedbackSeverity.info,
       );
     } catch (_) {
       if (!mounted) return;
       setState(() => _isSavingCredentials = false);
-      _showCredentialInfoBar('清除失败，请确认系统安全存储可用', FluentInfoSeverity.error);
+      _showCredentialFeedback('清除失败，请确认系统安全存储可用', AppFeedbackSeverity.error);
     }
   }
 
   /// 使用已保存账号密码执行一次只读聚合登录校验。
   Future<void> _validateAcademicLogin() async {
-    if (_isSavingCredentials || _isValidatingAcademicLogin) return;
+    if (_isCredentialOperationBusy) return;
     setState(() {
       _isValidatingAcademicLogin = true;
       _credentialValidationBadges = const {};
     });
+    final generation = _credentialValidationGeneration;
 
     try {
       final status = await _academicCredentials.getStatus();
@@ -247,14 +286,14 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
       }
 
       if (validations.isEmpty) {
-        if (!mounted) return;
+        if (!mounted || generation != _credentialValidationGeneration) return;
         setState(() => _isValidatingAcademicLogin = false);
-        _showCredentialInfoBar('没有可验证的已保存密码', FluentInfoSeverity.warning);
+        _showCredentialFeedback('没有可验证的已保存密码', AppFeedbackSeverity.warning);
         return;
       }
 
       final outcomes = await Future.wait(validations);
-      if (!mounted) return;
+      if (!mounted || generation != _credentialValidationGeneration) return;
       setState(() {
         _credentialValidationBadges = {
           for (final outcome in outcomes) outcome.secret: outcome.badge,
@@ -262,9 +301,9 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
         _isValidatingAcademicLogin = false;
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || generation != _credentialValidationGeneration) return;
       setState(() => _isValidatingAcademicLogin = false);
-      _showCredentialInfoBar('登录验证失败，请稍后重试', FluentInfoSeverity.error);
+      _showCredentialFeedback('登录验证失败，请稍后重试', AppFeedbackSeverity.error);
     }
   }
 
@@ -332,138 +371,135 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
   }
 
   /// 显示教务凭据操作反馈。
-  void _showCredentialInfoBar(String message, FluentInfoSeverity severity) {
-    showFluentInfoBar(
-      context,
-      title: Text(message),
-      severity: severity,
-      actionBuilder: (close) => FluentIconButton(
-        icon: const Icon(FluentIcons.clear),
-        onPressed: close,
-      ),
-    );
+  void _showCredentialFeedback(String message, AppFeedbackSeverity severity) {
+    showYhFeedback(context, message: message, severity: severity);
   }
 
   @override
   Widget build(BuildContext context) {
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(FluentSpacing.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('安全', style: FluentTheme.of(context).typography.subtitle),
-            const SizedBox(height: FluentSpacing.l),
+    final theme = context.yhTheme;
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.compact;
+    final titleStyle = theme.typography.body.copyWith(
+      fontWeight: FontWeight.w600,
+    );
+    final subtitleStyle = theme.typography.small.copyWith(
+      color: theme.color.muted,
+    );
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('安全', style: theme.typography.h3),
+          SizedBox(height: theme.spacing.s),
+          buildResponsiveSettingsRow(
+            context: context,
+            icon: YhIcons.lock,
+            title: Text('密码保护', style: titleStyle),
+            subtitle: Text(
+              widget.isPasswordEnabled
+                  ? '已开启 — 重新打开应用时需要输入密码'
+                  : '未开启 — 任何人可直接进入应用',
+              style: subtitleStyle,
+            ),
+            trailing: YhSwitch(
+              value: widget.isPasswordEnabled,
+              semanticLabel: '密码保护',
+              onChanged: widget.onPasswordProtectionChanged,
+            ),
+            stackTrailing: false,
+            hideIconOnCompact: true,
+          ),
+          if (widget.isPasswordEnabled && widget.isQuickAuthAvailable) ...[
+            SizedBox(height: theme.spacing.s),
             buildResponsiveSettingsRow(
               context: context,
-              icon: FluentIcons.lock,
-              title: Text(
-                '密码保护',
-                style: FluentTheme.of(context).typography.bodyStrong,
-              ),
+              icon: YhIcons.fingerprint,
+              title: Text('系统快速验证', style: titleStyle),
               subtitle: Text(
-                widget.isPasswordEnabled
-                    ? '已开启 — 重新打开应用时需要输入密码'
-                    : '未开启 — 任何人可直接进入应用',
-                style: FluentTheme.of(context).typography.caption,
+                widget.isQuickAuthEnabled
+                    ? '锁定页优先请求系统认证，仍可输入密码解锁'
+                    : '可使用设备 PIN、生物识别或平台支持的系统认证快速解锁',
+                style: subtitleStyle,
               ),
-              trailing: FluentSwitch(
-                value: widget.isPasswordEnabled,
-                onChanged: widget.onPasswordProtectionChanged,
-              ),
-            ),
-            if (widget.isPasswordEnabled && widget.isQuickAuthAvailable) ...[
-              const SizedBox(height: FluentSpacing.l),
-              buildResponsiveSettingsRow(
-                context: context,
-                icon: FluentIcons.fingerprint,
-                title: Text(
-                  '系统快速验证',
-                  style: FluentTheme.of(context).typography.bodyStrong,
-                ),
-                subtitle: Text(
-                  widget.isQuickAuthEnabled
-                      ? '已开启 — 锁定页会优先请求系统认证，仍可输入密码解锁'
-                      : '可使用设备 PIN、生物识别或平台支持的系统认证快速解锁',
-                  style: FluentTheme.of(context).typography.caption,
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (widget.isQuickAuthBusy) ...[
-                      const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: FluentProgressRing(strokeWidth: 2),
-                      ),
-                      const SizedBox(width: FluentSpacing.s),
-                    ],
-                    FluentSwitch(
-                      value: widget.isQuickAuthEnabled,
-                      onChanged: widget.isQuickAuthBusy
-                          ? null
-                          : widget.onQuickAuthChanged,
-                    ),
-                  ],
-                ),
-              ),
-            ] else if (widget.isPasswordEnabled) ...[
-              const SizedBox(height: FluentSpacing.l),
-              buildResponsiveSettingsRow(
-                context: context,
-                icon: FluentIcons.fingerprint,
-                title: Text(
-                  '系统快速验证不可用',
-                  style: FluentTheme.of(context).typography.bodyStrong,
-                ),
-                subtitle: Text(
-                  '当前平台、设备或系统认证未配置；仍可使用应用密码手动解锁。',
-                  style: FluentTheme.of(context).typography.caption,
-                ),
-                trailing: const Icon(FluentIcons.info, size: 16),
-              ),
-            ],
-            if (widget.isPasswordEnabled) ...[
-              const SizedBox(height: FluentSpacing.m),
-              Wrap(
-                spacing: FluentSpacing.m,
-                runSpacing: FluentSpacing.s,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  FluentButton.outline(
-                    onPressed: widget.onChangePassword,
-                    child: const Text('修改密码'),
-                  ),
-                  FluentButton.primary(
-                    onPressed: widget.onLock,
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(FluentIcons.lock, size: 14),
-                        SizedBox(width: FluentSpacing.xs + FluentSpacing.xxs),
-                        Text('立即上锁'),
-                      ],
+                  if (widget.isQuickAuthBusy) ...[
+                    SizedBox(
+                      width: theme.spacing.xl,
+                      child: const YhProgress(showPercent: false),
                     ),
+                    SizedBox(width: theme.spacing.s),
+                  ],
+                  YhSwitch(
+                    value: widget.isQuickAuthEnabled,
+                    semanticLabel: '系统快速验证',
+                    onChanged: widget.isQuickAuthBusy
+                        ? null
+                        : widget.onQuickAuthChanged,
                   ),
                 ],
               ),
-            ],
-            const SizedBox(height: FluentSpacing.xl),
-            const Divider(),
-            const SizedBox(height: FluentSpacing.l),
-            _buildAcademicCredentialsSection(context),
-            const SizedBox(height: FluentSpacing.xl),
-            const Divider(),
-            const SizedBox(height: FluentSpacing.l),
-            _DataManagementRow(
-              onClearMessageCache: widget.onClearMessageCache,
-              onClearAllData: widget.onClearAllData,
+              stackTrailing: false,
+              hideIconOnCompact: true,
+            ),
+          ] else if (widget.isPasswordEnabled) ...[
+            SizedBox(height: theme.spacing.s),
+            buildResponsiveSettingsRow(
+              context: context,
+              icon: YhIcons.fingerprint,
+              title: Text('系统快速验证不可用', style: titleStyle),
+              subtitle: Text(
+                '当前平台、设备或系统认证未配置；仍可使用应用密码手动解锁。',
+                style: subtitleStyle,
+              ),
+              trailing: Icon(
+                YhIcons.info,
+                size: theme.spacing.m,
+                color: theme.color.muted,
+              ),
+              stackTrailing: false,
+              hideIconOnCompact: true,
             ),
           ],
-        ),
+          if (widget.isPasswordEnabled) ...[
+            SizedBox(height: theme.spacing.m),
+            Wrap(
+              spacing: theme.spacing.m,
+              runSpacing: theme.spacing.s,
+              children: [
+                YhButton(
+                  label: '修改密码',
+                  onTap: widget.onChangePassword,
+                  variant: YhButtonVariant.secondary,
+                ),
+                YhButton(
+                  label: '立即上锁',
+                  onTap: widget.onLock,
+                  leadingIcon: YhIcons.lock,
+                ),
+              ],
+            ),
+          ],
+          SizedBox(height: compact ? theme.spacing.m : theme.spacing.l),
+          _securityDivider(context),
+          SizedBox(height: compact ? theme.spacing.m : theme.spacing.l),
+          _buildAcademicCredentialsSection(context),
+          SizedBox(height: theme.spacing.xl),
+          _securityDivider(context),
+          SizedBox(height: theme.spacing.l),
+          SettingsDataPrivacySummary(onOpenDetails: widget.onOpenDataPrivacy),
+        ],
       ),
     );
   }
+
+  /// 构建安全、凭据和数据任务之间的轻量分隔线。
+  Widget _securityDivider(BuildContext context) => SizedBox(
+    height: context.yhTheme.layout.divider,
+    width: double.infinity,
+    child: ColoredBox(color: context.yhTheme.color.border),
+  );
 
   /// 返回密码字段展示名。
   String _secretLabel(AcademicCredentialSecret secret) {

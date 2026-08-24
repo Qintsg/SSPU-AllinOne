@@ -76,6 +76,7 @@ void main() {
   test('当前协议确认键绑定完整法律说明版本', () {
     expect(StorageKeys.agreementAccepted, kLegalAgreementAcceptedKey);
     expect(StorageKeys.agreementAccepted, contains(kLegalAgreementVersion));
+    expect(StorageKeys.agreementAccepted, contains('apache20'));
     expect(StorageKeys.agreementAccepted, contains('email_smtp_send'));
   });
 

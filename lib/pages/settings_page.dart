@@ -8,16 +8,18 @@
 
 // ignore_for_file: use_build_context_synchronously
 
-import '../design/fluent_ui.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
+import '../models/academic_credentials.dart';
 import '../models/channel_config.dart';
 import '../services/academic_eams_service.dart';
 import '../services/app_display_name_service.dart';
 import '../services/app_exit_service.dart';
 import '../services/academic_credentials_service.dart';
+import '../services/authenticated_data_cache_service.dart';
 import '../services/campus_card_service.dart';
 import '../services/campus_network_status_service.dart';
+import '../services/data_auto_refresh_preferences.dart';
 import '../services/email_service.dart';
 import '../services/message_state_service.dart';
 import '../services/password_service.dart';
@@ -25,22 +27,28 @@ import '../services/sports_attendance_service.dart';
 import '../services/storage_service.dart';
 import '../services/student_report_service.dart';
 import '../services/system_auth_service.dart';
-import '../theme/fluent_tokens.dart';
+import '../services/wxmp_auth_service.dart';
 import '../widgets/channel_list_section.dart';
-import '../widgets/app_feedback.dart';
 import '../widgets/password_dialogs.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/settings_academic_term_section.dart';
 import '../widgets/settings_auto_refresh_section.dart';
+import '../widgets/settings_data_privacy_confirmation_dialogs.dart';
 import '../widgets/settings_general_section.dart';
 import '../widgets/settings_security_section.dart';
 import '../widgets/settings_wechat_section.dart';
 import '../widgets/settings_widgets.dart';
-import 'about_page.dart';
 import 'academic_calendar_page.dart';
+import 'legal_notice_page.dart';
+import 'settings_appearance_page.dart';
+import 'settings_data_privacy_page.dart';
+import 'settings_about_page.dart';
+import 'settings_update_page.dart';
 
 part 'settings_page_actions.dart';
+part 'settings_page_security_privacy_actions.dart';
 part 'settings_page_layout.dart';
+part 'settings_page_navigation_builders.dart';
 
 /// 设置页面。
 /// 页面本身只负责分区切换、常规/安全状态与顶部布局；
@@ -55,11 +63,29 @@ class SettingsPage extends StatefulWidget {
   /// 初始或后续定位请求。
   final SettingsLandingRequest? landingRequest;
 
+  final YhThemeMode themeMode;
+  final ValueChanged<YhThemeMode>? onThemeModeChanged;
+
+  /// 测试专用：跳过平台插件和持久化读取，直接使用确定性默认设置。
+  final bool initializedForTesting;
+
+  /// 测试专用：使用已开启的密码保护与系统快速验证状态。
+  final bool securityControlsEnabledForTesting;
+
+  /// 测试专用：覆盖安全分区的凭据状态读取。
+  final Future<AcademicCredentialsStatus> Function()?
+  credentialsStatusLoaderForTesting;
+
   const SettingsPage({
     super.key,
     this.onLock,
     this.academicTermNow,
     this.landingRequest,
+    this.themeMode = YhThemeMode.system,
+    this.onThemeModeChanged,
+    this.initializedForTesting = false,
+    this.securityControlsEnabledForTesting = false,
+    this.credentialsStatusLoaderForTesting,
   });
 
   @override
@@ -67,7 +93,10 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage>
-    with _SettingsPageActions, _SettingsPageLayout {
+    with
+        _SettingsPageActions,
+        _SettingsPageSecurityPrivacyActions,
+        _SettingsPageLayout {
   /// 是否已设置密码保护。
   @override
   bool _isPasswordEnabled = false;
@@ -149,50 +178,30 @@ class _SettingsPageState extends State<SettingsPage>
   int _campusNetworkDetectionIntervalMinutes =
       CampusNetworkStatusService.defaultDetectionIntervalMinutes;
 
+  /// 校园数据来源共用的自动刷新间隔，单位分钟。
+  @override
+  int _dataAutoRefreshIntervalMinutes =
+      DataAutoRefreshPreferences.defaultIntervalMinutes;
+
   /// 体育部课外活动考勤自动刷新开关。
   @override
   bool _sportsAttendanceAutoRefreshEnabled = false;
-
-  /// 体育部课外活动考勤自动刷新间隔，单位分钟。
-  @override
-  int _sportsAttendanceAutoRefreshIntervalMinutes =
-      SportsAttendanceService.defaultAutoRefreshIntervalMinutes;
 
   /// 校园卡余额自动刷新开关。
   @override
   bool _campusCardAutoRefreshEnabled = false;
 
-  /// 校园卡余额自动刷新间隔，单位分钟。
-  @override
-  int _campusCardAutoRefreshIntervalMinutes =
-      CampusCardService.defaultAutoRefreshIntervalMinutes;
-
   /// 学校邮箱自动刷新开关。
   @override
   bool _emailAutoRefreshEnabled = false;
-
-  /// 学校邮箱自动刷新间隔，单位分钟。
-  @override
-  int _emailAutoRefreshIntervalMinutes =
-      EmailService.defaultAutoRefreshIntervalMinutes;
 
   /// 第二课堂学分自动刷新开关。
   @override
   bool _studentReportAutoRefreshEnabled = false;
 
-  /// 第二课堂学分自动刷新间隔，单位分钟。
-  @override
-  int _studentReportAutoRefreshIntervalMinutes =
-      StudentReportService.defaultAutoRefreshIntervalMinutes;
-
   /// 本专科教务自动刷新开关。
   @override
   bool _academicEamsAutoRefreshEnabled = false;
-
-  /// 本专科教务自动刷新间隔，单位分钟。
-  @override
-  int _academicEamsAutoRefreshIntervalMinutes =
-      AcademicEamsService.defaultAutoRefreshIntervalMinutes;
 
   /// 当前选中的设置分区索引。
   /// 0=常规 1=学期 2=自动刷新 3=安全 4=职能部门 5=教学单位 6=微信推文 7=关于
@@ -207,7 +216,16 @@ class _SettingsPageState extends State<SettingsPage>
   void initState() {
     super.initState();
     _selectedTab = _tabIndexForLanding(widget.landingRequest?.section);
-    _loadSettings();
+    if (widget.initializedForTesting) {
+      _isLoading = false;
+      if (widget.securityControlsEnabledForTesting) {
+        _isPasswordEnabled = true;
+        _isQuickAuthEnabled = true;
+        _isQuickAuthAvailable = true;
+      }
+    } else {
+      _loadSettings();
+    }
   }
 
   @override
@@ -221,18 +239,37 @@ class _SettingsPageState extends State<SettingsPage>
   }
 
   @override
+  void dispose() {
+    disposeSettingsNavigation();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const FluentPage(content: Center(child: FluentProgressRing()));
+      return YhPageScaffold(
+        body: Center(
+          child: SizedBox(
+            width: context.yhTheme.layout.statusProgressWidth,
+            child: const YhProgress(showPercent: false),
+          ),
+        ),
+      );
     }
 
-    return FluentPage(
-      header: const FluentPageHeader(title: Text('设置')),
-      content: ResponsiveBuilder(
-        builder: (context, deviceType, constraints) {
-          return deviceType == DeviceType.phone
-              ? _buildNarrowSettingsLayout(context)
-              : _buildWideSettingsLayout(context);
+    return YhPageScaffold(
+      appBar: const YhAppBar(title: '设置'),
+      body: ResponsiveBuilder(
+        builder: (context, _, constraints) {
+          final viewportWidth = MediaQuery.sizeOf(context).width;
+          if (viewportWidth <
+              context.yhTheme.breakpoint.settingsNavigationCompact) {
+            return _buildNarrowSettingsLayout(context);
+          }
+          if (viewportWidth < context.yhTheme.breakpoint.expanded) {
+            return _buildMediumSettingsLayout(context);
+          }
+          return _buildWideSettingsLayout(context);
         },
       ),
     );
