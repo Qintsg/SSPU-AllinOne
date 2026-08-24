@@ -90,7 +90,7 @@ dev_dependencies:
     sdk: flutter
 
   # 视觉回归比较器：解码 PNG、生成差异热图。
-  image: ^4.8.0
+  image: ^4.9.2
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
