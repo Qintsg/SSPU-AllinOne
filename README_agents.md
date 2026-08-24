@@ -8,7 +8,7 @@ This file is the tracked source of truth for AI agents working in this repositor
 
 - Flutter SDK: `>= 3.44.0`
 - Dart SDK: `3.12.0`
-- License: Artistic License 2.0
+- License: Apache License 2.0
 - Shared agent skills: `.agents/skills/`
 - Local-only agent files: `AGENTS.md`, `CLAUDE.md`, `.codex/`, `.claude/`, `.opencode/`
 

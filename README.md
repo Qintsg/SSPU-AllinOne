@@ -2,7 +2,7 @@
 
 > 上海第二工业大学校园综合服务应用
 
-[![License: Artistic-2.0](https://img.shields.io/badge/License-Artistic--2.0-blue.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev)
 [![Version](https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2FQintsg%2FSSPU-AllinOne%2Fmain%2Fpubspec.yaml&query=%24.version&label=version&color=orange)](docs/CHANGELOG.md)
 [![OSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/Qintsg/SSPU-AllinOne?label=OSSF%20Scorecard)](https://securityscorecards.dev/viewer/?uri=github.com/Qintsg/SSPU-AllinOne)
@@ -173,4 +173,4 @@ flutter build ios --release --no-codesign
 
 ## 许可证
 
-[Artistic License 2.0](LICENSE) © [Qintsg](https://github.com/Qintsg)
+[Apache License 2.0](LICENSE) © [Qintsg](https://github.com/Qintsg)

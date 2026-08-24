@@ -91,13 +91,13 @@ Local data is retained only as long as necessary for the relevant functions, usu
 4. Open Source License and Third-Party Notices
 
 1. Project License
-The source code of SSPU-AllinOne is licensed under the Artistic License 2.0. Any use, copying, modification, distribution, redistribution, or distribution of compiled forms of this software must comply with the full text of the Artistic License 2.0 and the LICENSE file in the project repository.
+The source code of SSPU-AllinOne is licensed under the Apache License 2.0. Any use, copying, modification, distribution, redistribution, or distribution of compiled forms of this software must comply with the full text of the Apache License 2.0 and the LICENSE file in the project repository.
 
 2. Copyright Notice
-The copyright of this software belongs to the project author and contributors. The Artistic License 2.0 does not grant any right to use the trademarks, service marks, names, logos, or branding of the project author, contributors, the university, or any third-party rights holder unless separately authorized by the relevant rights holder.
+The copyright of this software belongs to the project author and contributors. The Apache License 2.0 does not grant any right to use the trademarks, service marks, names, logos, or branding of the project author, contributors, the university, or any third-party rights holder unless separately authorized by the relevant rights holder.
 
 3. Modified Versions and Distribution
-If you distribute a modified version of this software, you must comply with the Artistic License 2.0, retain copyright notices and disclaimers, clearly document the modifications, and provide the applicable license text and valid instructions for obtaining the corresponding source code where required. You must not falsely imply that a modified version is officially released, certified, endorsed, or maintained by the original author, the university, or any third-party service provider.
+If you distribute a modified version of this software, you must comply with the Apache License 2.0, retain copyright notices, the license, any applicable NOTICE file, and disclaimers, clearly document the modifications, and provide the applicable license text and valid instructions for obtaining the corresponding source code where required. You must not falsely imply that a modified version is officially released, certified, endorsed, or maintained by the original author, the university, or any third-party service provider.
 
 4. Third-Party Open-Source Components
 This software uses Flutter, Dart, and third-party open-source dependencies, including but not limited to fluentui_system_icons, shared_preferences, path_provider, crypto, flutter_secure_storage, local_auth, url_launcher, window_manager, tray_manager, dio, local_notifier, html, gbk_codec, flutter_animate, flutter_inappwebview, package_info_plus, and enough_mail. Copyright and license terms for third-party components belong to their respective authors or rights holders. The authoritative references are pubspec.yaml, pubspec.lock, official package pages, source repositories, and license files.

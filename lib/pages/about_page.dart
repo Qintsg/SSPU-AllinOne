@@ -203,7 +203,7 @@ class AboutSettingsSection extends StatelessWidget {
                     SizedBox(height: theme.spacing.m),
                     _InfoRow(label: '著作人', value: 'Qintsg'),
                     SizedBox(height: theme.spacing.s),
-                    _InfoRow(label: '许可证', value: 'Artistic License 2.0'),
+                    _InfoRow(label: '许可证', value: 'Apache License 2.0'),
                   ],
                 );
               },
