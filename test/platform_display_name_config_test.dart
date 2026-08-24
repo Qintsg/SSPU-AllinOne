@@ -119,6 +119,39 @@ void main() {
     );
   });
 
+  test('Apple 项目不固定签名团队并保持 macOS 测试主机配置一致', () {
+    final iosProject = _read('ios/Runner.xcodeproj/project.pbxproj');
+    final macosProject = _read('macos/Runner.xcodeproj/project.pbxproj');
+    final macosInfo = _read('macos/Runner/Info.plist');
+    final macosDebugConfig = _read('macos/Flutter/Flutter-Debug.xcconfig');
+    final macosReleaseConfig = _read('macos/Flutter/Flutter-Release.xcconfig');
+    final macosPodLock = _read('macos/Podfile.lock');
+
+    expect(iosProject, isNot(contains('DEVELOPMENT_TEAM = ')));
+    expect(macosProject, isNot(contains('DEVELOPMENT_TEAM = ')));
+    expect(
+      macosProject,
+      contains(
+        'TEST_HOST = "\$(BUILT_PRODUCTS_DIR)/SSPU-AllinOne.app/\$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SSPU-AllinOne";',
+      ),
+    );
+    expect(macosProject, isNot(contains('sspu_allinone.app')));
+    expect(macosInfo, contains('public.app-category.utilities'));
+    expect(macosDebugConfig, contains('#include "Pods/Target Support Files'));
+    expect(macosReleaseConfig, contains('#include "Pods/Target Support Files'));
+    expect(macosDebugConfig, isNot(contains('#include?')));
+    expect(macosReleaseConfig, isNot(contains('#include?')));
+    for (final pod in [
+      'screen_retriever_macos',
+      'shared_preferences_foundation',
+      'tray_manager',
+      'url_launcher_macos',
+      'window_manager',
+    ]) {
+      expect(macosPodLock, contains(pod));
+    }
+  });
+
   test('Apple Xcode 版本号跟随 Flutter 构建元数据', () {
     final iosProject = _read('ios/Runner.xcodeproj/project.pbxproj');
     final macosAppInfo = _read('macos/Runner/Configs/AppInfo.xcconfig');

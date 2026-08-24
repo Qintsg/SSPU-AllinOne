@@ -509,7 +509,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = cn.qintsg.sspuAllInOne.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/sspu_allinone.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/sspu_allinone";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SSPU-AllinOne.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SSPU-AllinOne";
 			};
 			name = Debug;
 		};
@@ -524,7 +524,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = cn.qintsg.sspuAllInOne.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/sspu_allinone.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/sspu_allinone";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SSPU-AllinOne.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SSPU-AllinOne";
 			};
 			name = Release;
 		};
@@ -539,7 +539,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = cn.qintsg.sspuAllInOne.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/sspu_allinone.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/sspu_allinone";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SSPU-AllinOne.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SSPU-AllinOne";
 			};
 			name = Profile;
 		};
@@ -602,7 +602,6 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = 8LDARH2S3X;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -737,7 +736,6 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = 8LDARH2S3X;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -760,7 +758,6 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = 8LDARH2S3X;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				LD_RUNPATH_SEARCH_PATHS = (
