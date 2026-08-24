@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 import tempfile
 import unittest
@@ -82,6 +83,26 @@ class DesignStylesheetValidatorTest(unittest.TestCase):
                 r"未进入原型加载链.*_orphan\.css",
             ):
                 validate_design_stylesheets(root)
+
+    def test_mail_layout_uses_desktop_list_detail_grid(self) -> None:
+        """邮箱参考稿在桌面必须并列展示邮件列表与正文。"""
+        stylesheet = (
+            PROJECT_ROOT
+            / "docs"
+            / "design"
+            / "patterns"
+            / "samples"
+            / "_app-shell.css"
+        ).read_text(encoding="utf-8")
+
+        self.assertRegex(
+            stylesheet,
+            re.compile(
+                r"\.feed-layout\s*,\s*\.mail-layout\s*\{[^}]*"
+                r"\bdisplay:\s*grid",
+                re.DOTALL,
+            ),
+        )
 
 
 if __name__ == "__main__":

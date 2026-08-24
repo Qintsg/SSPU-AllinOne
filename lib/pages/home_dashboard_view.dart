@@ -73,6 +73,15 @@ extension _HomeDashboardView on _HomePageState {
     required bool allowScrolling,
   }) {
     final state = _homeDashboardDisplayState;
+    final desktopPrimaryHeight =
+        (MediaQuery.sizeOf(context).height *
+                theme.responsive.homeContentHeightViewportPercent /
+                100)
+            .clamp(
+              theme.layout.homeContentMinHeight,
+              theme.layout.homeContentMaxHeight,
+            )
+            .toDouble();
     final retainedContent = {
       HomeDashboardDisplayState.content,
       HomeDashboardDisplayState.stale,
@@ -105,7 +114,8 @@ extension _HomeDashboardView on _HomePageState {
             child: _buildHomePrimaryLayout(theme, width, compact: compact),
           )
         else
-          Expanded(
+          SizedBox(
+            height: desktopPrimaryHeight,
             child: _buildHomePrimaryLayout(theme, width, compact: compact),
           ),
         _buildHomeUtilityDock(theme, compact: compact),

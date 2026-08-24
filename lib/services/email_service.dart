@@ -16,6 +16,7 @@ import '../models/academic_credentials.dart';
 import '../models/email_mailbox.dart';
 import 'academic_credentials_service.dart';
 import 'authenticated_data_cache_service.dart';
+import 'data_auto_refresh_preferences.dart';
 import 'storage_service.dart';
 
 part 'email_gateway.dart';
@@ -178,20 +179,12 @@ class EmailService implements EmailMailboxClient {
 
   /// 读取学校邮箱自动刷新间隔。
   Future<int> getAutoRefreshIntervalMinutes() async {
-    final stored = await StorageService.getInt(
-      StorageKeys.emailAutoRefreshIntervalMinutes,
-    );
-    return _normalizeAutoRefreshInterval(
-      stored ?? defaultAutoRefreshIntervalMinutes,
-    );
+    return DataAutoRefreshPreferences.instance.getIntervalMinutes();
   }
 
   /// 保存学校邮箱自动刷新间隔。
   Future<void> setAutoRefreshIntervalMinutes(int minutes) async {
-    await StorageService.setInt(
-      StorageKeys.emailAutoRefreshIntervalMinutes,
-      _normalizeAutoRefreshInterval(minutes),
-    );
+    await DataAutoRefreshPreferences.instance.setIntervalMinutes(minutes);
   }
 
   /// 读取最近一次指定协议的本地邮箱缓存。
@@ -483,10 +476,6 @@ class EmailService implements EmailMailboxClient {
       EmailProtocol.pop => popEndpoint,
       EmailProtocol.smtp => smtpEndpoint,
     };
-  }
-
-  int _normalizeAutoRefreshInterval(int minutes) {
-    return minutes <= 0 ? defaultAutoRefreshIntervalMinutes : minutes;
   }
 
   String _mailboxCacheCollection(EmailProtocol protocol) {

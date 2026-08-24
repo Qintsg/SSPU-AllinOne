@@ -11,6 +11,7 @@ import 'dart:async';
 import '../design/qingyuan/qingyuan_ui.dart';
 import '../models/email_mailbox.dart';
 import '../services/academic_credentials_service.dart';
+import '../services/data_auto_refresh_preferences.dart';
 import '../services/email_service.dart';
 
 part 'email_compose_panel.dart';
@@ -57,6 +58,8 @@ class _EmailPageState extends State<EmailPage> {
       EmailService.defaultAutoRefreshIntervalMinutes;
   Timer? _emailAutoRefreshTimer;
   StreamSubscription<int>? _credentialChangeSubscription;
+  StreamSubscription<int>? _dataAutoRefreshSubscription;
+  bool _emailAutoRefreshEnabled = false;
   int _credentialGeneration = 0;
   int _mailboxGeneration = 0;
   final TextEditingController _toController = TextEditingController();
@@ -76,6 +79,8 @@ class _EmailPageState extends State<EmailPage> {
     super.initState();
     _credentialChangeSubscription = AcademicCredentialsService.instance.changes
         .listen((_) => _clearAuthenticatedState());
+    _dataAutoRefreshSubscription = DataAutoRefreshPreferences.instance.changes
+        .listen(_handleDataAutoRefreshIntervalChanged);
     _loadMailboxCacheAndSettings();
   }
 
@@ -114,6 +119,7 @@ class _EmailPageState extends State<EmailPage> {
   }
 
   void _restartEmailAutoRefreshTimer(bool enabled, int intervalMinutes) {
+    _emailAutoRefreshEnabled = enabled;
     _emailAutoRefreshTimer?.cancel();
     _emailAutoRefreshTimer = null;
     if (!enabled || intervalMinutes <= 0) return;
@@ -125,6 +131,16 @@ class _EmailPageState extends State<EmailPage> {
         }
       },
     );
+  }
+
+  /// 共享刷新时长变化后重启邮箱定时器并更新陈旧状态判断。
+  ///
+  /// :param minutes: 新的共享刷新间隔分钟数。
+  /// :returns: 无返回值。
+  void _handleDataAutoRefreshIntervalChanged(int minutes) {
+    if (widget.emailAutoRefreshIntervalOverride != null || !mounted) return;
+    setState(() => _emailAutoRefreshIntervalMinutes = minutes);
+    _restartEmailAutoRefreshTimer(_emailAutoRefreshEnabled, minutes);
   }
 
   /// 先显示当前协议的本地邮箱缓存，再按间隔决定是否静默刷新。
@@ -226,6 +242,7 @@ class _EmailPageState extends State<EmailPage> {
   @override
   void dispose() {
     _credentialChangeSubscription?.cancel();
+    _dataAutoRefreshSubscription?.cancel();
     _emailAutoRefreshTimer?.cancel();
     _toController.dispose();
     _ccController.dispose();

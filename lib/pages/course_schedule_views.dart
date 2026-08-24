@@ -14,7 +14,6 @@ class _CourseScheduleAdaptiveView extends StatelessWidget {
     required this.currentWeekday,
     required this.selectedMobileWeekday,
     required this.onSelectedMobileWeekdayChanged,
-    this.fillHeight = false,
   });
 
   final AcademicCourseTableSnapshot courseTable;
@@ -22,9 +21,6 @@ class _CourseScheduleAdaptiveView extends StatelessWidget {
 
   final int selectedMobileWeekday;
   final ValueChanged<int> onSelectedMobileWeekdayChanged;
-
-  /// 桌面端填充剩余视口高度，行高均分。
-  final bool fillHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -64,19 +60,10 @@ class _CourseScheduleAdaptiveView extends StatelessWidget {
             ),
             selectedWeekday: selectedMobileWeekday,
           )
-        else if (fillHeight)
-          Expanded(
-            child: _CourseWeekGridView(
-              entries: courseTable.entries,
-              currentWeekday: currentWeekday,
-              fillHeight: true,
-            ),
-          )
         else
           _CourseWeekGridView(
             entries: courseTable.entries,
             currentWeekday: currentWeekday,
-            fillHeight: false,
           ),
       ],
     );
@@ -87,14 +74,10 @@ class _CourseWeekGridView extends StatelessWidget {
   const _CourseWeekGridView({
     required this.entries,
     required this.currentWeekday,
-    this.fillHeight = false,
   });
 
   final List<AcademicCourseTableEntry> entries;
   final int currentWeekday;
-
-  /// 桌面端填充剩余视口高度，行高均分。
-  final bool fillHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -119,30 +102,19 @@ class _CourseWeekGridView extends StatelessWidget {
             periodColumnWidth: periodColumnWidth,
           ),
           for (var group = 0; group < groupCount; group++)
-            if (fillHeight)
-              Expanded(
-                child: _buildRow(
-                  group,
-                  periodTable,
-                  periodColumnWidth,
-                  cellMinHeight,
-                  theme,
-                ),
-              )
-            else
-              _buildRow(
-                group,
-                periodTable,
-                periodColumnWidth,
-                cellMinHeight,
-                theme,
-              ),
+            _buildRow(
+              group,
+              periodTable,
+              periodColumnWidth,
+              cellMinHeight,
+              theme,
+            ),
         ],
       ),
     );
   }
 
-  /// 构建单个节次组行；填充视口时由外层 Expanded 均分高度。
+  /// 构建单个固定密度的节次组行。
   Widget _buildRow(
     int group,
     CoursePeriodTable periodTable,

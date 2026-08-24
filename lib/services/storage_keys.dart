@@ -68,6 +68,10 @@ class StorageKeys {
   static const String campusNetworkDetectionIntervalMinutes =
       'campus_network_detection_interval_minutes';
 
+  /// 校园数据来源共用的自动刷新间隔（分钟）。
+  static const String dataAutoRefreshIntervalMinutes =
+      'data_auto_refresh_interval_minutes';
+
   /// 体育部课外活动考勤自动刷新开关。
   static const String sportsAttendanceAutoRefreshEnabled =
       'sports_attendance_auto_refresh_enabled';

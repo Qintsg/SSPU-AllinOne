@@ -9,6 +9,7 @@
 import 'dart:async';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/models/academic_calendar.dart';
@@ -19,8 +20,14 @@ import 'package:sspu_allinone/pages/course_schedule_page.dart';
 import 'package:sspu_allinone/services/academic_calendar_service.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
 import 'package:sspu_allinone/services/academic_eams_service.dart';
+import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/utils/course_week_parser.dart';
 
+/// 推进测试时钟直到目标组件出现或达到尝试上限。
+///
+/// :param tester: 当前组件测试器。
+/// :param finder: 等待出现的目标组件。
+/// :returns: 等待流程结束时完成。
 Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
   for (var attempt = 0; attempt < 40; attempt++) {
     await tester.pump(const Duration(milliseconds: 50));
@@ -28,17 +35,31 @@ Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
   }
 }
 
+/// 销毁课程表页面并释放定时器。
+///
+/// :param tester: 当前组件测试器。
+/// :returns: 页面销毁流程结束时完成。
 Future<void> disposeCourseSchedulePage(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pump(const Duration(milliseconds: 120));
 }
 
+/// 构建课程表测试页面。
+///
+/// :param tester: 当前组件测试器。
+/// :param academicEamsService: 测试用教务客户端。
+/// :param initialResult: 可选初始课表快照。
+/// :param autoRefreshEnabledOverride: 自动刷新开关覆盖值。
+/// :param autoRefreshIntervalOverride: 自动刷新间隔覆盖值；为空时读取共享偏好。
+/// :param nowOverride: 可选确定性时钟。
+/// :param academicCalendarService: 可选校历客户端。
+/// :returns: 页面完成首帧构建时结束。
 Future<void> pumpCourseSchedulePage(
   WidgetTester tester, {
   required AcademicEamsClient academicEamsService,
   AcademicEamsQueryResult? initialResult,
   bool autoRefreshEnabledOverride = false,
-  int autoRefreshIntervalOverride = 30,
+  int? autoRefreshIntervalOverride = 30,
   DateTime? nowOverride,
   AcademicCalendarClient? academicCalendarService,
 }) async {
@@ -56,6 +77,9 @@ Future<void> pumpCourseSchedulePage(
   );
 }
 
+/// 注册课程表功能、刷新与布局测试。
+///
+/// :returns: 无返回值。
 void main() {
   test('内置作息时间表包含教务处 1-13 节数据', () {
     const table = CoursePeriodTable.standard;
@@ -97,6 +121,33 @@ void main() {
     expect(find.text('返回'), findsNothing);
     expect(service.courseTableFetchCount, 1);
 
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pump();
+
+    expect(service.courseTableFetchCount, 2);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('页面停留期间共享刷新时长变化会重启课表定时器', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+    addTearDown(() {
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+      SharedPreferences.setMockInitialValues({});
+    });
+    await AcademicEamsService.instance.setAutoRefreshIntervalMinutes(60);
+    final service = _FakeAcademicEamsClient(result: _successResult);
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      autoRefreshEnabledOverride: true,
+      autoRefreshIntervalOverride: null,
+      nowOverride: DateTime(2026, 5, 4),
+    );
+    await pumpUntilFound(tester, find.text('高等数学'));
+    expect(service.courseTableFetchCount, 1);
+
+    await AcademicEamsService.instance.setAutoRefreshIntervalMinutes(1);
     await tester.pump(const Duration(minutes: 1));
     await tester.pump();
 
@@ -159,7 +210,7 @@ void main() {
     await tester.tap(find.byKey(const Key('course-schedule-refresh')));
     await tester.pump();
 
-    expect(find.text('正在刷新…'), findsOneWidget);
+    expect(find.bySemanticsLabel('正在刷新课程表'), findsOneWidget);
     expect(find.text('高等数学'), findsOneWidget);
     expect(find.textContaining('星期选择和校历入口保持可用'), findsOneWidget);
     expect(
@@ -330,7 +381,7 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const Key('open-academic-calendar')), findsOneWidget);
-    expect(find.text('刷新课表'), findsOneWidget);
+    expect(find.bySemanticsLabel('刷新课程表'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await disposeCourseSchedulePage(tester);
   });

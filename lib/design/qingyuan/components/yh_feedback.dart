@@ -14,7 +14,6 @@ import '../../../models/app_feedback_severity.dart';
 import '../icons/yh_icons.dart';
 import '../theme/yh_theme.dart';
 import 'yh_card.dart';
-import 'yh_icon_button.dart';
 
 export '../../../models/app_feedback_severity.dart';
 
@@ -62,16 +61,18 @@ void showYhFeedback(
       final preferredWidth = theme.breakpoint.medium / 2 + theme.spacing.xl2;
       final maxWidth = availableWidth.clamp(0.0, preferredWidth).toDouble();
       return PositionedDirectional(
-        top: media.padding.top + theme.spacing.l,
+        top: media.padding.top + theme.layout.appBarHeight + theme.spacing.xl2,
         end: media.padding.right + theme.spacing.l,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth),
-          child: _YhFeedbackOverlay(
-            message: message,
-            details: details,
-            severity: severity,
-            disableAnimations: MediaQuery.disableAnimationsOf(context),
-            onDismissed: removeEntry,
+        child: IgnorePointer(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: _YhFeedbackOverlay(
+              message: message,
+              details: details,
+              severity: severity,
+              disableAnimations: MediaQuery.disableAnimationsOf(context),
+              onDismissed: removeEntry,
+            ),
           ),
         ),
       );
@@ -226,13 +227,6 @@ class _YhFeedbackOverlayState extends State<_YhFeedbackOverlay> {
                         ],
                       ],
                     ),
-                  ),
-                  SizedBox(width: theme.spacing.s),
-                  YhIconButton(
-                    icon: YhIcons.close,
-                    semanticLabel: '关闭反馈',
-                    variant: YhIconButtonVariant.ghost,
-                    onTap: dismiss,
                   ),
                 ],
               ),

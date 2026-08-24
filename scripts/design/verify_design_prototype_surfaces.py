@@ -389,6 +389,55 @@ def _capture_settings_home_surface_prefix(
                 height,
             )
 
+def _capture_settings_auto_refresh_surface_prefix(
+    page: Page,
+    output_dir: Path,
+    prototype_url: str,
+) -> None:
+    """
+    采集校园数据统一自动刷新设置参考图。
+
+    :param page: Playwright 页面。
+    :param output_dir: 截图输出目录。
+    :param prototype_url: 页面原型地址。
+    :returns: None。
+    """
+    for width, height in VIEWPORTS:
+        page.set_viewport_size({"width": width, "height": height})
+        page.emulate_media(reduced_motion="reduce")
+        page.goto(prototype_url, wait_until="networkidle")
+        for theme in ("light", "dark"):
+            page.evaluate(
+                "theme => localStorage.setItem('qingyuan:samples:theme', theme)",
+                theme,
+            )
+            _open_screen(page, prototype_url, "settings")
+            page.locator('[data-settings-section="refresh"]').evaluate(
+                "element => element.click()"
+            )
+            panel = page.locator('[data-settings-panel="refresh"]:visible')
+            _assert(panel.count() == 1, "自动刷新设置未显示")
+            _assert(
+                panel.locator('[role="switch"]:visible').count() == 5,
+                "五个校园数据来源开关未完整显示",
+            )
+            _assert(
+                panel.get_by_role("button", name="校园数据统一刷新间隔").count() == 1,
+                "统一刷新频率入口未显示",
+            )
+            document_width = page.evaluate("document.documentElement.scrollWidth")
+            _assert(
+                document_width <= width,
+                f"{width}x{height} 自动刷新设置出现页面级横向溢出：{document_width}>{width}",
+            )
+            _assert_targets(page, width, "settings.auto-refresh")
+            _capture_reference(
+                page,
+                output_dir / f"settings.auto-refresh--content--{theme}--{width}x{height}.png",
+                width,
+                height,
+            )
+
 def _capture_settings_account_state_references(
     page: Page,
     output_dir: Path,

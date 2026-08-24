@@ -25,6 +25,7 @@ import '../services/academic_credentials_service.dart';
 import '../services/academic_eams_service.dart';
 import '../services/campus_card_service.dart';
 import '../services/campus_network_status_service.dart';
+import '../services/data_auto_refresh_preferences.dart';
 import '../services/email_service.dart';
 import '../services/message_state_service.dart';
 import '../services/quick_links_config_service.dart';
@@ -196,6 +197,7 @@ class _HomePageState extends State<HomePage> {
   late final CardAutoRefreshController<CampusCardQueryResult>
   _campusCardRefreshController;
   StreamSubscription<int>? _credentialChangeSubscription;
+  StreamSubscription<int>? _dataAutoRefreshSubscription;
 
   CampusCardBalanceClient get _campusCardService {
     return widget.campusCardService ?? CampusCardService.instance;
@@ -242,6 +244,8 @@ class _HomePageState extends State<HomePage> {
           unawaited(_loadDashboardCaches());
           unawaited(_loadCredentialsStatus());
         });
+    _dataAutoRefreshSubscription = DataAutoRefreshPreferences.instance.changes
+        .listen(_handleDataAutoRefreshIntervalChanged);
     if (widget.messagesOverride == null) {
       _loadLatestMessages();
     } else {
@@ -267,6 +271,19 @@ class _HomePageState extends State<HomePage> {
   void _handleCampusCardRefreshControllerChanged() {
     if (!mounted) return;
     setState(() {});
+  }
+
+  /// 共享刷新时长变化后重启首页校园卡定时器。
+  ///
+  /// :param minutes: 新的共享刷新间隔分钟数。
+  /// :returns: 无返回值。
+  void _handleDataAutoRefreshIntervalChanged(int minutes) {
+    if (widget.campusCardAutoRefreshIntervalOverride != null) return;
+    _campusCardRefreshController.configureAutoRefresh(
+      enabled: _campusCardRefreshController.autoRefreshEnabled,
+      intervalMinutes: minutes,
+      refreshIfStale: false,
+    );
   }
 
   void _clearAuthenticatedState() {
@@ -513,6 +530,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _credentialChangeSubscription?.cancel();
+    _dataAutoRefreshSubscription?.cancel();
     _campusCardRefreshController
       ..removeListener(_handleCampusCardRefreshControllerChanged)
       ..dispose();

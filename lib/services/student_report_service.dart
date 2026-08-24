@@ -22,6 +22,7 @@ import 'academic_credentials_service.dart';
 import 'academic_login_validation_service.dart';
 import 'authenticated_data_cache_service.dart';
 import 'campus_network_status_service.dart';
+import 'data_auto_refresh_preferences.dart';
 import 'http_service.dart';
 import 'storage_service.dart';
 
@@ -157,20 +158,12 @@ class StudentReportService implements StudentReportClient {
 
   /// 读取学工报表自动刷新间隔。
   Future<int> getAutoRefreshIntervalMinutes() async {
-    final stored = await StorageService.getInt(
-      StorageKeys.studentReportAutoRefreshIntervalMinutes,
-    );
-    return _normalizeAutoRefreshInterval(
-      stored ?? defaultAutoRefreshIntervalMinutes,
-    );
+    return DataAutoRefreshPreferences.instance.getIntervalMinutes();
   }
 
   /// 保存学工报表自动刷新间隔。
   Future<void> setAutoRefreshIntervalMinutes(int minutes) async {
-    await StorageService.setInt(
-      StorageKeys.studentReportAutoRefreshIntervalMinutes,
-      _normalizeAutoRefreshInterval(minutes),
-    );
+    await DataAutoRefreshPreferences.instance.setIntervalMinutes(minutes);
   }
 
   /// 读取最近一次本地第二课堂学分缓存。
@@ -660,9 +653,5 @@ class StudentReportService implements StudentReportClient {
       campusNetworkStatus: campusNetworkStatus,
       summary: summary,
     );
-  }
-
-  int _normalizeAutoRefreshInterval(int minutes) {
-    return minutes <= 0 ? defaultAutoRefreshIntervalMinutes : minutes;
   }
 }

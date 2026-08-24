@@ -193,7 +193,7 @@ extension _EmailPageLayout on _EmailPageState {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: theme.breakpoint.compact / 2 - theme.spacing.m,
+          width: theme.layout.popoverWidth,
           child: _EmailMailboxListPanel(
             snapshot: snapshot,
             messages: messages,

@@ -12,9 +12,9 @@ part of 'widget_test.dart';
 ///
 /// :returns: 无返回值。
 void _registerSettingsTests() {
-  testWidgets('自动刷新设置分区显示校园网检测和快捷入口', (WidgetTester tester) async {
+  testWidgets('自动刷新设置分区使用一个共享时长并在窄屏完整显示文本', (WidgetTester tester) async {
     var selectedShortcut = 0;
-    await tester.binding.setSurfaceSize(const Size(1000, 1000));
+    await tester.binding.setSurfaceSize(const Size(360, 1200));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
@@ -23,27 +23,19 @@ void _registerSettingsTests() {
           body: SingleChildScrollView(
             child: SettingsAutoRefreshSection(
               campusNetworkDetectionIntervalMinutes: 15,
+              dataAutoRefreshIntervalMinutes: 30,
               sportsAttendanceAutoRefreshEnabled: true,
-              sportsAttendanceAutoRefreshIntervalMinutes: 30,
               campusCardAutoRefreshEnabled: true,
-              campusCardAutoRefreshIntervalMinutes: 60,
               emailAutoRefreshEnabled: true,
-              emailAutoRefreshIntervalMinutes: 30,
               studentReportAutoRefreshEnabled: true,
-              studentReportAutoRefreshIntervalMinutes: 30,
               academicEamsAutoRefreshEnabled: true,
-              academicEamsAutoRefreshIntervalMinutes: 30,
               onCampusNetworkDetectionIntervalChanged: (_) async {},
+              onDataAutoRefreshIntervalChanged: (_) async {},
               onSportsAttendanceAutoRefreshChanged: (_) async {},
-              onSportsAttendanceAutoRefreshIntervalChanged: (_) async {},
               onCampusCardAutoRefreshChanged: (_) async {},
-              onCampusCardAutoRefreshIntervalChanged: (_) async {},
               onEmailAutoRefreshChanged: (_) async {},
-              onEmailAutoRefreshIntervalChanged: (_) async {},
               onStudentReportAutoRefreshChanged: (_) async {},
-              onStudentReportAutoRefreshIntervalChanged: (_) async {},
               onAcademicEamsAutoRefreshChanged: (_) async {},
-              onAcademicEamsAutoRefreshIntervalChanged: (_) async {},
               onOpenDepartmentRefreshSettings: () => selectedShortcut = 3,
               onOpenTeachingRefreshSettings: () => selectedShortcut = 4,
               onOpenWechatRefreshSettings: () => selectedShortcut = 5,
@@ -55,19 +47,22 @@ void _registerSettingsTests() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('校园网 / VPN 状态检测'), findsOneWidget);
-    expect(find.text('体育查询自动刷新'), findsOneWidget);
-    expect(find.text('校园卡余额自动刷新'), findsOneWidget);
-    expect(find.text('学校邮箱自动刷新'), findsOneWidget);
-    expect(find.text('第二课堂学分自动刷新'), findsOneWidget);
-    expect(find.text('本专科教务自动刷新'), findsOneWidget);
+    expect(find.text('统一刷新频率'), findsOneWidget);
+    expect(find.text('体育考勤'), findsOneWidget);
+    expect(find.text('校园卡余额'), findsOneWidget);
+    expect(find.text('学校邮箱'), findsOneWidget);
+    expect(find.text('第二课堂'), findsOneWidget);
+    expect(find.text('本专科教务'), findsOneWidget);
     expect(find.text('15 分钟'), findsOneWidget);
-    expect(find.text('30 分钟'), findsNWidgets(4));
-    expect(find.text('1 小时'), findsOneWidget);
+    expect(find.text('30 分钟'), findsOneWidget);
     expect(find.text('职能部门'), findsOneWidget);
     expect(find.text('教学单位'), findsOneWidget);
     expect(find.text('微信推文'), findsOneWidget);
+    expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text('前往设置').first);
+    await tester.ensureVisible(find.text('管理').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('管理').first);
     await tester.pump(const Duration(milliseconds: 150));
     expect(selectedShortcut, 3);
   });

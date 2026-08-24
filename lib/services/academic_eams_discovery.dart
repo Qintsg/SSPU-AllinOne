@@ -247,10 +247,4 @@ extension _AcademicEamsDiscovery on AcademicEamsService {
       freeClassrooms: freeClassrooms,
     );
   }
-
-  int _normalizeAutoRefreshInterval(int minutes) {
-    return minutes <= 0
-        ? AcademicEamsService.defaultAutoRefreshIntervalMinutes
-        : minutes;
-  }
 }

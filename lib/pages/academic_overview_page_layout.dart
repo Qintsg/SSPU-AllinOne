@@ -246,7 +246,7 @@ String _academicPartialFailureText(
   final retainedSources = failedSources.difference(
     failedSourcesWithoutFallback,
   );
-  return '${['${failedSources.join('、')}未完成', if (retainedSources.isNotEmpty) '${retainedSources.join('、')}继续显示最后有效数据', if (failedSourcesWithoutFallback.isNotEmpty) '${failedSourcesWithoutFallback.join('、')}暂无可保留数据', '可在详细数据源中分别重试'].join('；')}。';
+  return '${['${failedSources.join('、')}未完成', if (retainedSources.isNotEmpty) '${retainedSources.join('、')}继续显示最后有效数据', if (failedSourcesWithoutFallback.isNotEmpty) '${failedSourcesWithoutFallback.join('、')}暂无可保留数据', '可使用页面顶部刷新按钮重试'].join('；')}。';
 }
 
 String _academicCredentialWarningText(int refreshSourceCount) {

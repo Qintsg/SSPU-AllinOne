@@ -7,10 +7,7 @@ class AcademicEamsSummaryCard extends StatelessWidget {
     super.key,
     required this.result,
     required this.isLoading,
-    required this.isRefreshActionLoading,
     required this.autoRefreshEnabled,
-    required this.refreshFeedback,
-    required this.onRefresh,
     required this.onOpenCourseSchedule,
     required this.examResult,
     required this.examSchedule,
@@ -20,10 +17,7 @@ class AcademicEamsSummaryCard extends StatelessWidget {
 
   final AcademicEamsQueryResult? result;
   final bool isLoading;
-  final bool isRefreshActionLoading;
   final bool autoRefreshEnabled;
-  final RefreshActionFeedback? refreshFeedback;
-  final VoidCallback onRefresh;
   final VoidCallback onOpenCourseSchedule;
   final AcademicEamsQueryResult? examResult;
   final Widget examSchedule;
@@ -57,8 +51,8 @@ class AcademicEamsSummaryCard extends StatelessWidget {
           else if (result == null)
             Text(
               autoRefreshEnabled
-                  ? '自动刷新已开启，等待下一次读取；也可点击右上角刷新。'
-                  : '自动刷新未开启。点击右上角刷新图标可手动读取；本专科教务需要校园网或学校 VPN。',
+                  ? '自动刷新已开启，等待下一次统一读取；也可使用页面顶部的刷新按钮。'
+                  : '自动刷新未开启。可使用页面顶部的刷新按钮手动读取；本专科教务需要校园网或学校 VPN。',
               style: theme.typography.body.copyWith(color: theme.color.muted),
             )
           else if (result!.isSuccess && snapshot != null)
@@ -93,24 +87,10 @@ class AcademicEamsSummaryCard extends StatelessWidget {
           SizedBox(height: theme.spacing.m),
           Align(
             alignment: AlignmentDirectional.centerEnd,
-            child: RefreshStatusLine(
-              label: _lastRefreshLabel(result),
-              labelStyle: theme.typography.caption.copyWith(
+            child: Text(
+              _lastRefreshLabel(result),
+              style: theme.typography.caption.copyWith(
                 color: theme.color.muted,
-              ),
-              minLineHeight: theme.control.minimumTarget,
-              actionReservedWidth: refreshFeedback == null
-                  ? theme.control.minimumTarget
-                  : theme.breakpoint.compact / 3,
-              action: RefreshFeedbackAction(
-                key: const Key('academic-eams-refresh'),
-                tooltip: '手动刷新本专科教务',
-                semanticLabel: '手动刷新本专科教务',
-                isLoading: isRefreshActionLoading,
-                feedback: refreshFeedback,
-                onPressed: onRefresh,
-                minTouchSize: theme.control.minimumTarget,
-                maxFeedbackWidth: theme.breakpoint.compact / 3,
               ),
             ),
           ),

@@ -126,7 +126,7 @@ void _registerAcademicTermsTests() {
       studentReportService: _FakeStudentReportClient(result: _creditResult),
     );
 
-    final refresh = find.byKey(const Key('academic-eams-refresh'));
+    final refresh = find.byKey(const ValueKey('academic-overview-refresh'));
     await tester.ensureVisible(refresh);
     await tester.tap(refresh);
     await pumpUntilFound(tester, find.text('大学生心理健康教育'));

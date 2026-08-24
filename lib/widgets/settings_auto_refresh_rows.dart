@@ -1,5 +1,5 @@
 /*
- * 设置页自动刷新行 — 构建受限服务刷新开关与间隔选择
+ * 设置页自动刷新行 — 构建共享频率下的来源开关
  * @Project : SSPU-AllinOne
  * @File : settings_auto_refresh_rows.dart
  * @Author : Qintsg
@@ -9,175 +9,118 @@
 part of 'settings_auto_refresh_section.dart';
 
 extension _SettingsAutoRefreshRows on SettingsAutoRefreshSection {
+  /// 构建体育考勤来源开关行。
+  ///
+  /// :param context: 当前构建上下文。
+  /// :returns: 体育考勤自动刷新设置行。
   Widget _buildSportsAttendanceAutoRefreshRow(BuildContext context) {
-    final theme = context.yhTheme;
-    return buildResponsiveSettingsRow(
+    return _buildSourceToggleRow(
       context: context,
       icon: YhIcons.sports,
-      title: _title(context, '体育查询自动刷新'),
-      subtitle: Text(
-        '控制教务中心课外活动考勤卡片的自动读取；体育查询需要校园网或学校 VPN，关闭后仍可在卡片右上角手动刷新',
-        style: theme.typography.small.copyWith(color: theme.color.muted),
-      ),
-      trailing: _buildAutoRefreshControls(
-        context: context,
-        semanticLabel: '体育查询自动刷新',
-        enabled: sportsAttendanceAutoRefreshEnabled,
-        interval: sportsAttendanceAutoRefreshIntervalMinutes,
-        onEnabledChanged: onSportsAttendanceAutoRefreshChanged,
-        onIntervalChanged: onSportsAttendanceAutoRefreshIntervalChanged,
-      ),
+      title: '体育考勤',
+      description: '需要校园网或学校 VPN，并使用体育查询密码',
+      semanticLabel: '体育考勤自动刷新',
+      enabled: sportsAttendanceAutoRefreshEnabled,
+      onChanged: onSportsAttendanceAutoRefreshChanged,
     );
   }
 
+  /// 构建校园卡来源开关行。
+  ///
+  /// :param context: 当前构建上下文。
+  /// :returns: 校园卡自动刷新设置行。
   Widget _buildCampusCardAutoRefreshRow(BuildContext context) {
-    final theme = context.yhTheme;
-    return buildResponsiveSettingsRow(
+    return _buildSourceToggleRow(
       context: context,
       icon: YhIcons.finance,
-      title: _title(context, '校园卡余额自动刷新'),
-      subtitle: Text(
-        '控制主页校园卡余额卡片的自动读取；需要校园网或学校 VPN 与 OA 登录，关闭后仍可在卡片右下角手动刷新',
-        style: theme.typography.small.copyWith(color: theme.color.muted),
-      ),
-      trailing: _buildAutoRefreshControls(
-        context: context,
-        semanticLabel: '校园卡余额自动刷新',
-        enabled: campusCardAutoRefreshEnabled,
-        interval: campusCardAutoRefreshIntervalMinutes,
-        onEnabledChanged: onCampusCardAutoRefreshChanged,
-        onIntervalChanged: onCampusCardAutoRefreshIntervalChanged,
-      ),
+      title: '校园卡余额',
+      description: '需要校园网或学校 VPN，并使用 OA 登录状态',
+      semanticLabel: '校园卡余额自动刷新',
+      enabled: campusCardAutoRefreshEnabled,
+      onChanged: onCampusCardAutoRefreshChanged,
     );
   }
 
+  /// 构建学校邮箱来源开关行。
+  ///
+  /// :param context: 当前构建上下文。
+  /// :returns: 学校邮箱自动刷新设置行。
   Widget _buildEmailAutoRefreshRow(BuildContext context) {
-    final theme = context.yhTheme;
-    return buildResponsiveSettingsRow(
+    return _buildSourceToggleRow(
       context: context,
       icon: YhIcons.mail,
-      title: _title(context, '学校邮箱自动刷新'),
-      subtitle: Text(
-        '控制学校邮箱页面的自动收信；邮箱系统不要求校园网或 VPN，关闭后仍可在邮箱页手动读取',
-        style: theme.typography.small.copyWith(color: theme.color.muted),
-      ),
-      trailing: _buildAutoRefreshControls(
-        context: context,
-        semanticLabel: '学校邮箱自动刷新',
-        enabled: emailAutoRefreshEnabled,
-        interval: emailAutoRefreshIntervalMinutes,
-        onEnabledChanged: onEmailAutoRefreshChanged,
-        onIntervalChanged: onEmailAutoRefreshIntervalChanged,
-      ),
+      title: '学校邮箱',
+      description: '无需校园网或 VPN，使用学校邮箱账户收信',
+      semanticLabel: '学校邮箱自动刷新',
+      enabled: emailAutoRefreshEnabled,
+      onChanged: onEmailAutoRefreshChanged,
     );
   }
 
+  /// 构建第二课堂来源开关行。
+  ///
+  /// :param context: 当前构建上下文。
+  /// :returns: 第二课堂自动刷新设置行。
   Widget _buildStudentReportAutoRefreshRow(BuildContext context) {
-    final theme = context.yhTheme;
-    return buildResponsiveSettingsRow(
+    return _buildSourceToggleRow(
       context: context,
       icon: YhIcons.certificate,
-      title: _title(context, '第二课堂学分自动刷新'),
-      subtitle: Text(
-        '控制教务中心第二课堂学分卡片的自动读取；需要校园网或学校 VPN 与 OA 登录，关闭后仍可在卡片右上角手动刷新',
-        style: theme.typography.small.copyWith(color: theme.color.muted),
-      ),
-      trailing: _buildAutoRefreshControls(
-        context: context,
-        semanticLabel: '第二课堂学分自动刷新',
-        enabled: studentReportAutoRefreshEnabled,
-        interval: studentReportAutoRefreshIntervalMinutes,
-        onEnabledChanged: onStudentReportAutoRefreshChanged,
-        onIntervalChanged: onStudentReportAutoRefreshIntervalChanged,
-      ),
+      title: '第二课堂',
+      description: '需要校园网或学校 VPN，并使用 OA 登录状态',
+      semanticLabel: '第二课堂自动刷新',
+      enabled: studentReportAutoRefreshEnabled,
+      onChanged: onStudentReportAutoRefreshChanged,
     );
   }
 
+  /// 构建本专科教务来源开关行。
+  ///
+  /// :param context: 当前构建上下文。
+  /// :returns: 本专科教务自动刷新设置行。
   Widget _buildAcademicEamsAutoRefreshRow(BuildContext context) {
+    return _buildSourceToggleRow(
+      context: context,
+      icon: YhIcons.task,
+      title: '本专科教务',
+      description: '课程、成绩、考试与培养方案共用一次自动读取',
+      semanticLabel: '本专科教务自动刷新',
+      enabled: academicEamsAutoRefreshEnabled,
+      onChanged: onAcademicEamsAutoRefreshChanged,
+    );
+  }
+
+  /// 构建共享频率下的单个来源开关行。
+  ///
+  /// :param context: 当前构建上下文。
+  /// :param icon: 来源图标。
+  /// :param title: 来源标题。
+  /// :param description: 来源约束说明。
+  /// :param semanticLabel: 开关的无障碍名称。
+  /// :param enabled: 当前是否启用自动刷新。
+  /// :param onChanged: 开关状态变化回调。
+  /// :returns: 响应式来源开关行。
+  Widget _buildSourceToggleRow({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String description,
+    required String semanticLabel,
+    required bool enabled,
+    required Future<void> Function(bool enabled) onChanged,
+  }) {
     final theme = context.yhTheme;
     return buildResponsiveSettingsRow(
       context: context,
-      icon: YhIcons.task,
-      title: _title(context, '本专科教务自动刷新'),
+      icon: icon,
+      title: _title(context, title),
       subtitle: Text(
-        '控制教务中心本专科教务摘要和独立课程表页面的自动读取；需要校园网或学校 VPN 与 OA 登录，关闭后仍可在页面中手动刷新',
+        description,
         style: theme.typography.small.copyWith(color: theme.color.muted),
       ),
-      trailing: _buildAutoRefreshControls(
-        context: context,
-        semanticLabel: '本专科教务自动刷新',
-        enabled: academicEamsAutoRefreshEnabled,
-        interval: academicEamsAutoRefreshIntervalMinutes,
-        onEnabledChanged: onAcademicEamsAutoRefreshChanged,
-        onIntervalChanged: onAcademicEamsAutoRefreshIntervalChanged,
-      ),
-    );
-  }
-
-  Widget _buildAutoRefreshControls({
-    required BuildContext context,
-    required String semanticLabel,
-    required bool enabled,
-    required int interval,
-    required Future<void> Function(bool enabled) onEnabledChanged,
-    required Future<void> Function(int minutes) onIntervalChanged,
-  }) {
-    return Wrap(
-      spacing: context.yhTheme.spacing.s,
-      runSpacing: context.yhTheme.spacing.s,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        YhSwitch(
-          value: enabled,
-          semanticLabel: semanticLabel,
-          onChanged: (value) => onEnabledChanged(value),
-        ),
-        _buildEnabledIntervalDropdown(
-          context: context,
-          label: '$semanticLabel间隔',
-          selectedIntervalMinutes: interval,
-          enabled: enabled,
-          onChanged: onIntervalChanged,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEnabledIntervalDropdown({
-    required BuildContext context,
-    required String label,
-    required int selectedIntervalMinutes,
-    required bool enabled,
-    required Future<void> Function(int minutes) onChanged,
-  }) {
-    final enabledIntervalOptions = Map<int, String>.fromEntries(
-      kIntervalOptions.entries.where((entry) => entry.key > 0),
-    );
-    final selectedValue =
-        enabledIntervalOptions.containsKey(selectedIntervalMinutes)
-        ? selectedIntervalMinutes
-        : 30;
-
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: context.yhTheme.layout.inlineControlWidth,
-      ),
-      child: YhSelect<int>(
-        label: label,
-        showLabel: false,
-        value: selectedValue,
-        enabled: enabled,
-        options: [
-          for (final entry in enabledIntervalOptions.entries)
-            YhSelectOption<int>(value: entry.key, label: entry.value),
-        ],
-        onChanged: enabled
-            ? (value) {
-                if (value != null) {
-                  onChanged(value);
-                }
-              }
-            : null,
+      trailing: YhSwitch(
+        value: enabled,
+        semanticLabel: semanticLabel,
+        onChanged: (value) => onChanged(value),
       ),
     );
   }

@@ -109,22 +109,26 @@ void main() {
     StorageService.debugUseSharedPreferencesStorageForTesting(null);
   });
 
-  testWidgets('1600x1000 主区弹性填充视口且行动坞贴底', (tester) async {
-    await _pumpHome(tester, const Size(1600, 1000));
+  testWidgets('1200x900 桌面主区遵循参考稿的 42vh 流体高度', (tester) async {
+    const viewport = Size(1200, 900);
+    await _pumpHome(tester, viewport);
 
     final timeline = tester.getRect(
       find.byKey(const Key('home-today-courses-tile')),
     );
-    final dock = tester.getRect(find.byKey(const Key('home-utility-dock')));
     final theme = tester
         .element(find.byKey(const Key('home-today-courses-tile')))
         .yhTheme;
 
-    // 时间轨封顶并垂直居中，剩余高度化为上下均等边距。
-    expect(timeline.height, lessThanOrEqualTo(468.5));
-    // 行动坞贴近内容列底部，不堆积页面空白。
-    expect(dock.bottom, greaterThanOrEqualTo(1000 - theme.spacing.xl - 0.5));
-    expect(dock.height, lessThanOrEqualTo(88));
+    final expectedHeight =
+        (viewport.height *
+                theme.responsive.homeContentHeightViewportPercent /
+                100)
+            .clamp(
+              theme.layout.homeContentMinHeight,
+              theme.layout.homeContentMaxHeight,
+            );
+    expect(timeline.height, closeTo(expectedHeight, 0.5));
     expect(tester.takeException(), isNull);
   });
 

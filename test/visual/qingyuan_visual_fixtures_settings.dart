@@ -240,6 +240,14 @@ Future<void> _prepareSettingsHomeNotifications(WidgetTester tester) async {
   await tester.pump();
 }
 
+/// 构建 _settingsAutoRefresh 对应的确定性视觉场景。
+///
+/// :returns: 可用于视觉采集的界面。
+Widget _settingsAutoRefresh() => SettingsPage(
+  initializedForTesting: true,
+  landingRequest: SettingsLandingRequest(SettingsLandingSection.autoRefresh),
+);
+
 /// 构建 _settingsAccountContent 对应的确定性视觉场景。
 ///
 /// :returns: 可用于视觉采集的界面。

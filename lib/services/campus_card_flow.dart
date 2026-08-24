@@ -381,12 +381,6 @@ extension _CampusCardFlow on CampusCardService {
     );
   }
 
-  int _normalizeAutoRefreshInterval(int minutes) {
-    return minutes <= 0
-        ? CampusCardService.defaultAutoRefreshIntervalMinutes
-        : minutes;
-  }
-
   static const int _transactionPageSize = 10;
 }
 

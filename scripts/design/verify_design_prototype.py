@@ -44,6 +44,7 @@ from verify_design_prototype_surfaces import (
     _capture_mail_state_references,
     _capture_settings_account_state_references,
     _capture_settings_account_surface_prefix,
+    _capture_settings_auto_refresh_surface_prefix,
     _capture_settings_home_surface_prefix,
 )
 
@@ -78,6 +79,12 @@ def verify(output_dir: Path, surface_prefix: str | None = None) -> None:
                 )
             elif surface_prefix == "settings.home-notifications":
                 _capture_settings_home_surface_prefix(
+                    page,
+                    output_dir,
+                    prototype_url,
+                )
+            elif surface_prefix == "settings.auto-refresh":
+                _capture_settings_auto_refresh_surface_prefix(
                     page,
                     output_dir,
                     prototype_url,
@@ -193,6 +200,14 @@ def verify(output_dir: Path, surface_prefix: str | None = None) -> None:
                         width,
                         height,
                     )
+                    _open_screen(page, prototype_url, "settings")
+                    page.locator('[data-settings-section="refresh"]').evaluate("element => element.click()")
+                    _capture_reference(
+                        page,
+                        output_dir / f"settings.auto-refresh--content--light--{width}x{height}.png",
+                        width,
+                        height,
+                    )
                 if screen == "campus-card-detail":
                     _capture_campus_card_detail_state_references(page, output_dir, "light", width, height)
                 if screen == "academic":
@@ -258,6 +273,14 @@ def verify(output_dir: Path, surface_prefix: str | None = None) -> None:
                     _capture_reference(
                         page,
                         output_dir / f"settings.home-notifications--content--dark--{width}x{height}.png",
+                        width,
+                        height,
+                    )
+                    _open_screen(page, prototype_url, "settings")
+                    page.locator('[data-settings-section="refresh"]').evaluate("element => element.click()")
+                    _capture_reference(
+                        page,
+                        output_dir / f"settings.auto-refresh--content--dark--{width}x{height}.png",
                         width,
                         height,
                     )

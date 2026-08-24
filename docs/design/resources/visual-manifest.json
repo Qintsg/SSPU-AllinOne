@@ -67,6 +67,7 @@
     {"id": "settings.account", "group": "settings", "states": ["content", "error"]},
     {"id": "security.password-dialog", "group": "settings", "states": ["content", "validation-error"]},
     {"id": "settings.home-notifications", "group": "settings", "states": ["content"]},
+    {"id": "settings.auto-refresh", "group": "settings", "states": ["content"]},
     {"id": "settings.appearance", "group": "settings", "states": ["content"]},
     {"id": "settings.data-privacy", "group": "settings", "states": ["content", "loading", "error"]},
     {"id": "settings.confirm-clear-cache", "group": "settings", "states": ["content"]},

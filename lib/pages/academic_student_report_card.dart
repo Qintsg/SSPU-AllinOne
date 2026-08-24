@@ -19,12 +19,6 @@ class AcademicStudentReportCard extends StatelessWidget {
   /// 是否已开启自动刷新。
   final bool autoRefreshEnabled;
 
-  /// 手动刷新结束后的短暂反馈。
-  final RefreshActionFeedback? refreshFeedback;
-
-  /// 手动刷新回调。
-  final VoidCallback onRefresh;
-
   /// 详情页原地刷新 adapter。
   final AcademicDetailRefreshTask<StudentReportQueryResult>? onDetailRefresh;
 
@@ -33,8 +27,6 @@ class AcademicStudentReportCard extends StatelessWidget {
     required this.result,
     required this.isLoading,
     required this.autoRefreshEnabled,
-    required this.refreshFeedback,
-    required this.onRefresh,
     this.onDetailRefresh,
   });
 
@@ -53,9 +45,6 @@ class AcademicStudentReportCard extends StatelessWidget {
             summary: summary,
             canOpenDetail: result?.isSuccess == true && summary != null,
             lastRefreshLabel: _studentReportLastRefreshLabel(result),
-            isLoading: isLoading,
-            refreshFeedback: refreshFeedback,
-            onRefresh: onRefresh,
             onDetailRefresh: onDetailRefresh,
           ),
           SizedBox(height: theme.spacing.m),
@@ -138,8 +127,8 @@ class _SecondClassroomCardContent extends StatelessWidget {
     if (result == null) {
       return Text(
         autoRefreshEnabled
-            ? '自动刷新已开启，等待下一次读取；也可点击右上角刷新。'
-            : '自动刷新未开启。点击右上角刷新图标可手动读取；学工报表需要校园网或学校 VPN。',
+            ? '自动刷新已开启，等待下一次统一读取；也可使用页面顶部的刷新按钮。'
+            : '自动刷新未开启。可使用页面顶部的刷新按钮手动读取；学工报表需要校园网或学校 VPN。',
         style: theme.typography.body.copyWith(color: theme.color.muted),
       );
     }
@@ -167,9 +156,6 @@ class _SecondClassroomCardHeader extends StatelessWidget {
     required this.summary,
     required this.canOpenDetail,
     required this.lastRefreshLabel,
-    required this.isLoading,
-    required this.refreshFeedback,
-    required this.onRefresh,
     required this.onDetailRefresh,
   });
 
@@ -177,9 +163,6 @@ class _SecondClassroomCardHeader extends StatelessWidget {
   final SecondClassroomCreditSummary? summary;
   final bool canOpenDetail;
   final String lastRefreshLabel;
-  final bool isLoading;
-  final RefreshActionFeedback? refreshFeedback;
-  final VoidCallback onRefresh;
   final AcademicDetailRefreshTask<StudentReportQueryResult>? onDetailRefresh;
 
   @override
@@ -233,23 +216,9 @@ class _SecondClassroomCardHeader extends StatelessWidget {
 
   Widget _buildRefreshLine(BuildContext context) {
     final theme = context.yhTheme;
-    return RefreshStatusLine(
-      label: lastRefreshLabel,
-      labelStyle: theme.typography.caption.copyWith(color: theme.color.muted),
-      minLineHeight: theme.control.minimumTarget,
-      actionReservedWidth: refreshFeedback == null
-          ? theme.control.minimumTarget
-          : theme.breakpoint.compact / 3,
-      action: RefreshFeedbackAction(
-        key: const Key('academic-student-report-refresh'),
-        tooltip: '手动刷新第二课堂学分',
-        semanticLabel: '手动刷新第二课堂学分',
-        isLoading: isLoading,
-        feedback: refreshFeedback,
-        onPressed: onRefresh,
-        minTouchSize: theme.control.minimumTarget,
-        maxFeedbackWidth: theme.breakpoint.compact / 3,
-      ),
+    return Text(
+      lastRefreshLabel,
+      style: theme.typography.caption.copyWith(color: theme.color.muted),
     );
   }
 }
