@@ -6,9 +6,7 @@
  * @Date : 2026-04-23
  */
 
-import '../design/fluent_ui.dart';
-
-import '../theme/app_spacing.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 /// 微信公众号平台接入说明。
 class SettingsWechatAuthGuide extends StatelessWidget {
@@ -19,15 +17,10 @@ class SettingsWechatAuthGuide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expander(
-      leading: const Icon(FluentIcons.info),
-      header: const Text('微信公众平台注册方式'),
-      contentPadding: const EdgeInsetsDirectional.fromSTEB(
-        AppSpacing.lg,
-        AppSpacing.md,
-        AppSpacing.lg,
-        AppSpacing.lg,
-      ),
+    final theme = context.yhTheme;
+    return YhDisclosure(
+      title: '微信公众平台注册方式',
+      leadingIcon: YhIcons.info,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -45,12 +38,13 @@ class SettingsWechatAuthGuide extends StatelessWidget {
             '个人使用场景通常会先看“公众号 / 订阅号”路线；具体账号能力与限制请以注册页当时显示的官方说明为准。',
             '如果扫码登录时页面提示“该微信还未注册公众平台账号”，说明当前微信下没有可登录的公众号，需要先完成上面的注册流程。',
           ]),
-          FluentButton.outlineIcon(
-            onPressed: onOpenOfficialSite,
-            icon: const Icon(FluentIcons.openInNewWindow),
-            label: const Text('打开微信公众平台官网'),
+          YhButton(
+            label: '打开微信公众平台官网',
+            onTap: onOpenOfficialSite,
+            leadingIcon: YhIcons.open,
+            variant: YhButtonVariant.secondary,
           ),
-          const SizedBox(height: AppSpacing.md),
+          SizedBox(height: theme.spacing.m),
           _buildSection(context, '在本应用中的配置步骤', const [
             '1. 先确保你已经能在浏览器正常进入 mp.weixin.qq.com 后台。',
             '2. 回到本应用，进入「设置 → 微信」。',
@@ -81,18 +75,18 @@ class SettingsWechatAuthGuide extends StatelessWidget {
 
   /// 构建说明分区。
   Widget _buildSection(BuildContext context, String title, List<String> lines) {
-    final typography = FluentTheme.of(context).typography;
+    final theme = context.yhTheme;
     return Padding(
-      padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.md),
+      padding: EdgeInsetsDirectional.only(bottom: theme.spacing.m),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: typography.subtitle),
-          const SizedBox(height: AppSpacing.xs),
+          Text(title, style: theme.typography.h3),
+          SizedBox(height: theme.spacing.xs),
           for (final line in lines)
             Padding(
-              padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.xs),
-              child: Text('• $line', style: typography.body),
+              padding: EdgeInsetsDirectional.only(bottom: theme.spacing.xs),
+              child: Text('• $line', style: theme.typography.body),
             ),
         ],
       ),
@@ -101,28 +95,37 @@ class SettingsWechatAuthGuide extends StatelessWidget {
 
   /// 构建 FAQ 分区。
   Widget _buildFaq(BuildContext context) {
-    final typography = FluentTheme.of(context).typography;
+    final theme = context.yhTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('FAQ', style: typography.subtitle),
-        const SizedBox(height: AppSpacing.xs),
-        Text('Q：个人一定要完成额外认证才能用吗？', style: typography.subtitle),
+        Text('FAQ', style: theme.typography.h3),
+        SizedBox(height: theme.spacing.xs),
+        Text(
+          'Q：个人一定要完成额外认证才能用吗？',
+          style: theme.typography.body.copyWith(fontWeight: FontWeight.w600),
+        ),
         Text(
           'A：本应用需要的是“你能正常登录公众平台后台并拿到登录态”。是否还需要做后续认证，取决于你自己的运营需求和平台当时规则。',
-          style: typography.body,
+          style: theme.typography.body,
         ),
-        const SizedBox(height: AppSpacing.xs),
-        Text('Q：为什么这一方式要先注册公众号？', style: typography.subtitle),
+        SizedBox(height: theme.spacing.xs),
+        Text(
+          'Q：为什么这一方式要先注册公众号？',
+          style: theme.typography.body.copyWith(fontWeight: FontWeight.w600),
+        ),
         Text(
           'A：因为应用调用的是公众平台后台接口，必须先有一个能登录后台的账号作为入口。',
-          style: typography.body,
+          style: theme.typography.body,
         ),
-        const SizedBox(height: AppSpacing.xs),
-        Text('Q：为什么现在只保留这一种方式？', style: typography.subtitle),
+        SizedBox(height: theme.spacing.xs),
+        Text(
+          'Q：为什么现在只保留这一种方式？',
+          style: theme.typography.body.copyWith(fontWeight: FontWeight.w600),
+        ),
         Text(
           'A：为减少配置分叉与维护成本，应用已统一保留公众号平台链路，并围绕该链路提供搜索、关注和刷新能力。',
-          style: typography.body,
+          style: theme.typography.body,
         ),
       ],
     );

@@ -185,7 +185,8 @@ class CampusCardSnapshot {
           DateTime.tryParse(json['fetchedAt'] as String? ?? '')?.toLocal() ??
           DateTime.fromMillisecondsSinceEpoch(0),
       sourceUri: Uri.parse(json['sourceUri'] as String? ?? ''),
-      transactionPageCount: (json['transactionPageCount'] as num?)?.toInt() ?? 0,
+      transactionPageCount:
+          (json['transactionPageCount'] as num?)?.toInt() ?? 0,
     );
   }
 

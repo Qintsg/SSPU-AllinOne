@@ -1,14 +1,12 @@
 /*
- * Fluent 2 通用分区卡片 — 统一页面分区容器样式
+ * 清源通用分区卡片 — 统一页面分区容器样式
  * @Project : SSPU-AllinOne
  * @File : section_card.dart
  * @Author : Qintsg
  * @Date : 2026-05-16
  */
 
-import '../design/fluent_ui.dart';
-
-import '../theme/app_spacing.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 /// 页面通用分区卡片。
 class SectionCard extends StatelessWidget {
@@ -28,7 +26,7 @@ class SectionCard extends StatelessWidget {
   final Widget child;
 
   /// 卡片内边距。
-  final EdgeInsetsGeometry padding;
+  final EdgeInsetsGeometry? padding;
 
   const SectionCard({
     super.key,
@@ -37,62 +35,63 @@ class SectionCard extends StatelessWidget {
     this.icon,
     this.trailing,
     required this.child,
-    this.padding = AppSpacing.cardPadding,
+    this.padding,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
+    final theme = context.yhTheme;
     final hasHeader = title != null || subtitle != null || trailing != null;
 
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: padding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (hasHeader) ...[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (icon != null) ...[
-                    Icon(icon, color: colors.brandForeground1),
-                    const SizedBox(width: AppSpacing.sm),
-                  ],
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (title != null)
-                          Semantics(
-                            header: true,
-                            child: Text(title!, style: type.subtitle1),
-                          ),
-                        if (subtitle != null) ...[
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            subtitle!,
-                            style: type.caption1.copyWith(
-                              color: colors.neutralForeground2,
+    return YhCard(
+      padding: padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (hasHeader) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, color: theme.color.brandStrong),
+                  SizedBox(width: theme.spacing.s),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (title != null)
+                        Semantics(
+                          header: true,
+                          child: Text(
+                            title!,
+                            style: theme.typography.h3.copyWith(
+                              color: theme.color.foreground,
                             ),
                           ),
-                        ],
+                        ),
+                      if (subtitle != null) ...[
+                        SizedBox(height: theme.spacing.xs),
+                        Text(
+                          subtitle!,
+                          style: theme.typography.caption.copyWith(
+                            color: theme.color.muted,
+                          ),
+                        ),
                       ],
-                    ),
+                    ],
                   ),
-                  if (trailing != null) ...[
-                    const SizedBox(width: AppSpacing.md),
-                    trailing!,
-                  ],
+                ),
+                if (trailing != null) ...[
+                  SizedBox(width: theme.spacing.m),
+                  trailing!,
                 ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-            ],
-            child,
+              ],
+            ),
+            SizedBox(height: theme.spacing.m),
           ],
-        ),
+          child,
+        ],
       ),
     );
   }

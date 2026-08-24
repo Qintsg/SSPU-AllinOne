@@ -7,50 +7,58 @@
  */
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import '../controllers/card_auto_refresh_controller.dart';
-import '../design/fluent_ui.dart';
+import '../controllers/retained_refresh_controller.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/academic_eams.dart';
+import '../models/academic_credentials.dart';
 import '../models/academic_term.dart';
 import '../models/sports_attendance.dart';
 import '../models/student_report.dart';
 import '../services/academic_credentials_service.dart';
 import '../services/academic_eams_service.dart';
 import '../services/academic_term_service.dart';
+import '../services/data_auto_refresh_preferences.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/student_report_service.dart';
-import '../theme/fluent_tokens.dart';
-import '../theme/app_breakpoints.dart';
 import '../utils/query_result_messages.dart';
-import '../widgets/refresh_feedback_action.dart';
-import '../widgets/responsive_layout.dart';
 import 'course_schedule_page.dart';
 
 part 'academic_eams_summary_card.dart';
+part 'academic_detail_refresh_controller.dart';
+part 'academic_eams_evidence_widgets.dart';
 part 'academic_eams_exam_card.dart';
 part 'academic_eams_exam_detail_page.dart';
+part 'academic_eams_exam_evidence_body.dart';
+part 'academic_eams_grade_card.dart';
+part 'academic_eams_grade_detail_page.dart';
+part 'academic_eams_grade_process_page.dart';
 part 'academic_sports_attendance_card.dart';
 part 'academic_sports_attendance_detail_page.dart';
+part 'academic_sports_attendance_detail_panels.dart';
 part 'academic_student_report_card.dart';
 part 'academic_student_report_summary.dart';
+part 'academic_student_report_progress_helpers.dart';
 part 'academic_student_report_detail_page.dart';
+part 'academic_student_report_rules_page.dart';
 part 'academic_student_report_rule_matrix.dart';
+part 'academic_student_report_rule_ledger.dart';
+part 'academic_overview_view.dart';
+part 'academic_overview_page_layout.dart';
+part 'academic_overview_content_grid.dart';
+part 'academic_overview_cards.dart';
+part 'academic_overview_state_panel.dart';
+part 'academic_overview_legacy_sources.dart';
 
-/// 仅当缓存考试快照的学期与目标学期一致时才返回该缓存，否则返回 null。
-///
-/// 避免出现“卡片标题用全局默认学期、考试记录却是旧学期快照”的错位展示。
-AcademicEamsQueryResult? displayableExamCacheForTerm(
-  AcademicEamsQueryResult? cachedResult,
-  AcademicTermChoice? term,
-) {
-  if (term == null) return null;
-  final matches =
-      cachedResult?.snapshot?.exams?.selectedSemester?.matchesTerm(term) ??
-      false;
-  return matches ? cachedResult : null;
-}
+part 'academic_page_display_utils.dart';
+part 'academic_page_life_sources.dart';
+part 'academic_page_eams_sources.dart';
+part 'academic_page_navigation.dart';
+part 'academic_dashboard_layout.dart';
 
 /// 教务中心页面。
 /// 已接入体育部考勤和第二课堂学分，其余教务能力保留规划入口。
@@ -76,11 +84,26 @@ class AcademicPage extends StatefulWidget {
   /// 本专科教务只读服务，测试中可替换为 fake。
   final AcademicEamsClient? academicEamsService;
 
+  /// 全局学期解析模块；视觉 fixture 可注入完全离线的校历 adapter。
+  final AcademicTermService? academicTermService;
+
+  /// 学期解析时钟；为空时使用生产当前时间。
+  final DateTime? academicTermNow;
+
   /// 测试专用：覆盖本专科教务自动刷新开关。
   final bool? academicEamsAutoRefreshEnabledOverride;
 
   /// 测试专用：覆盖本专科教务自动刷新间隔。
   final int? academicEamsAutoRefreshIntervalOverride;
+
+  /// 凭据缺失时进入账户与连接的宿主导航回调。
+  final VoidCallback? onOpenAccountConnections;
+
+  /// 空数据时进入全局学期设置的宿主导航回调。
+  final VoidCallback? onAdjustAcademicTerm;
+
+  /// 测试与离线视觉 fixture 可注入确定性的凭据状态；生产读取安全存储。
+  final AcademicCredentialsStatus? credentialsStatusOverride;
 
   const AcademicPage({
     super.key,
@@ -91,8 +114,13 @@ class AcademicPage extends StatefulWidget {
     this.studentReportAutoRefreshEnabledOverride,
     this.studentReportAutoRefreshIntervalOverride,
     this.academicEamsService,
+    this.academicTermService,
+    this.academicTermNow,
     this.academicEamsAutoRefreshEnabledOverride,
     this.academicEamsAutoRefreshIntervalOverride,
+    this.onOpenAccountConnections,
+    this.onAdjustAcademicTerm,
+    this.credentialsStatusOverride,
   });
 
   @override
@@ -109,6 +137,9 @@ class _AcademicPageState extends State<AcademicPage> {
   _academicEamsRefreshController;
   late final CardAutoRefreshController<AcademicEamsQueryResult>
   _academicExamRefreshController;
+  AcademicEamsQueryResult? _academicGradeResult;
+  late final CardAutoRefreshController<AcademicEamsQueryResult>
+  _academicGradeRefreshController;
 
   SportsAttendanceQueryResult? _sportsAttendanceResult;
   late final CardAutoRefreshController<SportsAttendanceQueryResult>
@@ -118,6 +149,17 @@ class _AcademicPageState extends State<AcademicPage> {
   late final CardAutoRefreshController<StudentReportQueryResult>
   _studentReportRefreshController;
   StreamSubscription<int>? _credentialChangeSubscription;
+  StreamSubscription<int>? _dataAutoRefreshSubscription;
+  Future<void>? _coordinatedRefreshFuture;
+  bool _isCoordinatedRefresh = false;
+  Set<String> _failedAcademicSources = const {};
+  AcademicCredentialsStatus? _credentialsStatus;
+  Future<AcademicCredentialsStatus>? _credentialsStatusFuture;
+  int _credentialGeneration = 0;
+  final GlobalKey _academicLegacySourcesKey = GlobalKey();
+  final FocusNode _academicLegacySourcesFocusNode = FocusNode(
+    debugLabel: 'academic-legacy-sources',
+  );
 
   SportsAttendanceClient get _sportsAttendanceService {
     return widget.sportsAttendanceService ?? SportsAttendanceService.instance;
@@ -129,6 +171,38 @@ class _AcademicPageState extends State<AcademicPage> {
 
   AcademicEamsClient get _academicEamsService {
     return widget.academicEamsService ?? AcademicEamsService.instance;
+  }
+
+  AcademicTermService get _academicTermService {
+    return widget.academicTermService ?? AcademicTermService.instance;
+  }
+
+  /// 读取当前考试查询使用的学期，避免与展示辅助函数重名。
+  ///
+  /// :returns: 当前服务查询学期。
+  AcademicTermChoice? _readAcademicExamTermSelection() {
+    return _academicExamSelectedTerm;
+  }
+
+  /// 写入当前考试查询使用的学期。
+  ///
+  /// :param value: 要用于后续查询的学期。
+  void _writeAcademicExamTermSelection(AcademicTermChoice? value) {
+    _academicExamSelectedTerm = value;
+  }
+
+  /// 读取当前考试查询使用的服务端学期选项。
+  ///
+  /// :returns: 当前服务端学期选项。
+  AcademicEamsSemesterOption? _readAcademicExamSemesterSelection() {
+    return _academicExamSelectedSemester;
+  }
+
+  /// 写入当前考试查询使用的服务端学期选项。
+  ///
+  /// :param value: 服务端确认的学期选项。
+  void _writeAcademicExamSemesterSelection(AcademicEamsSemesterOption? value) {
+    _academicExamSelectedSemester = value;
   }
 
   @override
@@ -150,6 +224,14 @@ class _AcademicPageState extends State<AcademicPage> {
           checkedAt: () => _academicExamResult?.checkedAt,
           failureReason: _academicEamsRefreshFailureReason,
         )..addListener(_handleRefreshControllerChanged);
+    _academicGradeRefreshController =
+        CardAutoRefreshController<AcademicEamsQueryResult>(
+          refreshTask: _fetchAcademicGradeForController,
+          isSuccess: (result) => result.isSuccess,
+          applyResult: _applyAcademicGradeResult,
+          checkedAt: () => _academicGradeResult?.checkedAt,
+          failureReason: _academicEamsRefreshFailureReason,
+        )..addListener(_handleRefreshControllerChanged);
     _sportsAttendanceRefreshController =
         CardAutoRefreshController<SportsAttendanceQueryResult>(
           refreshTask: _fetchSportsAttendanceForController,
@@ -168,6 +250,8 @@ class _AcademicPageState extends State<AcademicPage> {
         )..addListener(_handleRefreshControllerChanged);
     _credentialChangeSubscription = AcademicCredentialsService.instance.changes
         .listen((_) => _clearAuthenticatedState());
+    _dataAutoRefreshSubscription = DataAutoRefreshPreferences.instance.changes
+        .listen(_handleDataAutoRefreshIntervalChanged);
     _loadAcademicEamsCacheAndSettings();
     _loadSportsAttendanceCacheAndSettings();
     _loadStudentReportCacheAndSettings();
@@ -178,329 +262,280 @@ class _AcademicPageState extends State<AcademicPage> {
     setState(() {});
   }
 
+  /// 共享刷新时长变化后重启当前教务来源的定时器。
+  ///
+  /// :param minutes: 新的共享刷新间隔分钟数。
+  /// :returns: 无返回值。
+  void _handleDataAutoRefreshIntervalChanged(int minutes) {
+    if (widget.academicEamsAutoRefreshIntervalOverride == null) {
+      _academicEamsRefreshController.configureAutoRefresh(
+        enabled: _academicEamsRefreshController.autoRefreshEnabled,
+        intervalMinutes: minutes,
+        refreshIfStale: false,
+      );
+    }
+    if (widget.sportsAttendanceAutoRefreshIntervalOverride == null) {
+      _sportsAttendanceRefreshController.configureAutoRefresh(
+        enabled: _sportsAttendanceRefreshController.autoRefreshEnabled,
+        intervalMinutes: minutes,
+        refreshIfStale: false,
+      );
+    }
+    if (widget.studentReportAutoRefreshIntervalOverride == null) {
+      _studentReportRefreshController.configureAutoRefresh(
+        enabled: _studentReportRefreshController.autoRefreshEnabled,
+        intervalMinutes: minutes,
+        refreshIfStale: false,
+      );
+    }
+  }
+
+  /// 在教务页面状态类内部统一提交拆分模块的状态更新。
+  ///
+  /// :param update: 需要在一次 rebuild 中应用的状态变更。
+  void _setAcademicState(void Function() update) {
+    if (!mounted) return;
+    setState(update);
+  }
+
   void _clearAuthenticatedState() {
     if (!mounted) return;
-    _academicEamsRefreshController.clearTransientState();
-    _academicExamRefreshController.clearTransientState();
-    _sportsAttendanceRefreshController.clearTransientState();
-    _studentReportRefreshController.clearTransientState();
+    _credentialGeneration++;
+    _academicEamsRefreshController.clearTransientState(stopAutoRefresh: true);
+    _academicExamRefreshController.clearTransientState(stopAutoRefresh: true);
+    _academicGradeRefreshController.clearTransientState(stopAutoRefresh: true);
+    _sportsAttendanceRefreshController.clearTransientState(
+      stopAutoRefresh: true,
+    );
+    _studentReportRefreshController.clearTransientState(stopAutoRefresh: true);
+    _credentialsStatusFuture = null;
+    _coordinatedRefreshFuture = null;
     setState(() {
+      _isCoordinatedRefresh = false;
+      _failedAcademicSources = const {};
+      _credentialsStatus = null;
       _academicEamsResult = null;
       _academicExamResult = null;
       _academicExamSelectedSemester = null;
+      _academicGradeResult = null;
       _sportsAttendanceResult = null;
       _studentReportResult = null;
     });
+    unawaited(_reloadAcademicSourcesAfterCredentialChange());
   }
 
-  /// 读取本专科教务自动刷新设置；未启用时不主动访问教务系统。
-  Future<void> _loadAcademicEamsAutoRefreshSettings() async {
-    final service = widget.academicEamsService is AcademicEamsService
-        ? widget.academicEamsService as AcademicEamsService
-        : AcademicEamsService.instance;
-    final enabled =
-        widget.academicEamsAutoRefreshEnabledOverride ??
-        await service.isAutoRefreshEnabled();
-    final interval =
-        widget.academicEamsAutoRefreshIntervalOverride ??
-        await service.getAutoRefreshIntervalMinutes();
-    if (!mounted) return;
-    _academicEamsRefreshController.configureAutoRefresh(
-      enabled: enabled,
-      intervalMinutes: interval,
-    );
+  Future<AcademicCredentialsStatus> _loadCredentialsStatus() {
+    final active = _credentialsStatusFuture;
+    if (active != null) return active;
+    final generation = _credentialGeneration;
+    final future = () async {
+      AcademicCredentialsStatus status;
+      try {
+        status =
+            widget.credentialsStatusOverride ??
+            await AcademicCredentialsService.instance.getStatus();
+      } catch (_) {
+        status = const AcademicCredentialsStatus.empty();
+      }
+      if (mounted && generation == _credentialGeneration) {
+        setState(() => _credentialsStatus = status);
+      }
+      return status;
+    }();
+    _credentialsStatusFuture = future;
+    return future;
   }
 
-  /// 先显示本地本专科教务缓存，再按间隔决定是否静默刷新。
-  Future<void> _loadAcademicEamsCacheAndSettings() async {
-    final cachedResult = await _academicEamsService.readLatestCachedOverview();
-    if (mounted && cachedResult != null) {
-      setState(() => _academicEamsResult = cachedResult);
-    }
-    await _loadAcademicExamCacheAndDefaultTerm();
-    await _loadAcademicEamsAutoRefreshSettings();
+  Future<void> _reloadAcademicSourcesAfterCredentialChange() async {
+    await Future.wait<void>([
+      _loadAcademicEamsCacheAndSettings(),
+      _loadSportsAttendanceCacheAndSettings(),
+      _loadStudentReportCacheAndSettings(),
+    ]);
   }
 
-  /// 读取考试安排缓存，并把卡片学期默认到全局查询学期。
-  Future<void> _loadAcademicExamCacheAndDefaultTerm() async {
-    final cachedResult = await _academicEamsService
-        .readLatestCachedExamSchedule();
-    final context = await AcademicTermService.instance.getEffectiveContext();
-    final defaultTerm = context.effectiveQueryTerm;
-    final cachedExams = cachedResult?.snapshot?.exams;
-    // 仅当缓存学期与全局默认学期一致时才展示缓存，否则会出现“标题用默认学期、
-    // 记录却是旧学期快照”的错位；不一致时清空展示，等刷新按默认学期重新读取。
-    final displayableCache = displayableExamCacheForTerm(
-      cachedResult,
-      defaultTerm,
-    );
-    if (!mounted) return;
-    setState(() {
-      _academicExamSelectedTerm = defaultTerm;
-      _academicExamResult = displayableCache;
-      _academicExamSelectedSemester =
-          displayableCache?.snapshot?.exams?.selectedSemester ??
-          _findAcademicExamSemesterForTerm(
-            cachedExams?.semesterOptions ?? const [],
-            defaultTerm,
-          );
-    });
-  }
-
-  /// 读取本专科教务摘要；失败时在卡片中展示明确状态。
-  Future<void> _loadAcademicEamsOverview({bool silent = false}) async {
-    await _academicEamsRefreshController.runRefresh(silent: silent);
-  }
-
-  Future<AcademicEamsQueryResult> _fetchAcademicEamsForController({
-    required bool silent,
-  }) async {
-    _academicEamsLastRefreshHadExamFailure = false;
-    final result = await _academicEamsService.fetchOverview(
-      requireCampusNetwork: silent,
-    );
-    if (result.isSuccess || !silent) {
-      await _academicExamRefreshController.runRefresh(silent: silent);
-      final examResult = _academicExamResult;
-      _academicEamsLastRefreshHadExamFailure =
-          !silent && examResult != null && !examResult.isSuccess;
-    }
-    return result;
-  }
-
-  bool _isAcademicEamsRefreshSuccess(AcademicEamsQueryResult result) {
-    return result.isSuccess && !_academicEamsLastRefreshHadExamFailure;
-  }
-
-  void _applyAcademicEamsResult(AcademicEamsQueryResult result) {
-    if (!mounted) return;
-    setState(() => _academicEamsResult = result);
-  }
-
-  Future<AcademicEamsQueryResult> _fetchAcademicExamForController({
-    required bool silent,
-  }) {
-    return _academicEamsService.fetchExamSchedule(
-      term: _academicExamSelectedTerm,
-      semester: _academicExamSelectedSemester,
-      requireCampusNetwork: silent,
-    );
-  }
-
-  void _applyAcademicExamResult(AcademicEamsQueryResult result) {
-    if (!mounted) return;
-    final selectedSemester = result.snapshot?.exams?.selectedSemester;
-    setState(() {
-      _academicExamResult = result;
-      if (selectedSemester != null) {
-        _academicExamSelectedSemester = selectedSemester;
-        _academicExamSelectedTerm =
-            selectedSemester.termChoice ?? _academicExamSelectedTerm;
+  Future<void> _refreshAllAcademicSources() {
+    final active = _coordinatedRefreshFuture;
+    if (active != null) return active;
+    final future = _performCoordinatedRefresh();
+    _coordinatedRefreshFuture = future;
+    return future.whenComplete(() {
+      if (identical(_coordinatedRefreshFuture, future)) {
+        _coordinatedRefreshFuture = null;
       }
     });
   }
 
-  void _openAcademicExamDetail() {
-    Navigator.of(context).push(
-      FluentPageRoute(
-        builder: (_) => AcademicEamsExamDetailPage(
-          academicEamsService: _academicEamsService,
-          initialResult: _academicExamResult,
-          initialSelectedTerm: _academicExamSelectedTerm,
-          initialSelectedSemester: _academicExamSelectedSemester,
-          onResultChanged: _applyAcademicExamDetailResult,
-        ),
-      ),
-    );
-  }
-
-  void _applyAcademicExamDetailResult(
-    AcademicEamsQueryResult result,
-    AcademicTermChoice? selectedTerm,
-    AcademicEamsSemesterOption? selectedSemester,
-  ) {
-    if (!mounted) return;
-    final resultSemester = result.snapshot?.exams?.selectedSemester;
+  Future<void> _performCoordinatedRefresh() async {
+    if (!mounted || _anyAcademicSourceLoading) return;
+    final generation = _credentialGeneration;
+    await _loadCredentialsStatus();
+    if (!mounted || generation != _credentialGeneration) return;
+    final refreshAcademic = _academicOaCredentialsReady;
+    final refreshSports = _academicSportsCredentialsReady;
+    if (!refreshAcademic && !refreshSports) {
+      showYhFeedback(
+        context,
+        message: '请先完成教务账户连接',
+        details: '未发起任何校园服务请求。',
+        severity: AppFeedbackSeverity.warning,
+      );
+      return;
+    }
+    final requestedSourceCount =
+        (refreshAcademic ? 4 : 0) + (refreshSports ? 1 : 0);
+    final hadContentBeforeRefresh = _academicOverviewHasContent;
     setState(() {
-      _academicExamResult = result;
-      _academicExamSelectedSemester = resultSemester ?? selectedSemester;
-      _academicExamSelectedTerm =
-          resultSemester?.termChoice ??
-          selectedTerm ??
-          _academicExamSelectedTerm;
+      _isCoordinatedRefresh = true;
+      _failedAcademicSources = const {};
     });
-  }
 
-  AcademicEamsSemesterOption? _findAcademicExamSemesterForTerm(
-    Iterable<AcademicEamsSemesterOption> options,
-    AcademicTermChoice term,
-  ) {
-    for (final option in options) {
-      if (option.matchesTerm(term)) return option;
+    CardRefreshOutcome<AcademicEamsQueryResult>? overviewOutcome;
+    CardRefreshOutcome<AcademicEamsQueryResult>? examOutcome;
+    CardRefreshOutcome<AcademicEamsQueryResult>? gradeOutcome;
+    CardRefreshOutcome<SportsAttendanceQueryResult>? sportsOutcome;
+    CardRefreshOutcome<StudentReportQueryResult>? reportOutcome;
+    try {
+      await Future.wait<void>([
+        if (refreshAcademic) ...[
+          _academicEamsRefreshController
+              .runRefresh(silent: true)
+              .then((value) => overviewOutcome = value),
+          _academicExamRefreshController
+              .runRefresh(silent: true)
+              .then((value) => examOutcome = value),
+          _academicGradeRefreshController
+              .runRefresh(silent: true)
+              .then((value) => gradeOutcome = value),
+          _studentReportRefreshController
+              .runRefresh(silent: true)
+              .then((value) => reportOutcome = value),
+        ],
+        if (refreshSports)
+          _sportsAttendanceRefreshController
+              .runRefresh(silent: true)
+              .then((value) => sportsOutcome = value),
+      ]);
+    } finally {
+      if (mounted && generation == _credentialGeneration) {
+        final failedSources = {
+          if (refreshAcademic && overviewOutcome?.success != true) '教务摘要',
+          if (refreshAcademic && examOutcome?.success != true) '考试',
+          if (refreshAcademic && gradeOutcome?.success != true) '成绩',
+          if (refreshSports && sportsOutcome?.success != true) '体育考勤',
+          if (refreshAcademic && reportOutcome?.success != true) '第二课堂',
+        };
+        final unavailableSources = {
+          if (!refreshAcademic) ...['教务摘要', '考试', '成绩', '第二课堂'],
+          if (!refreshSports) '体育考勤',
+        };
+        final failedSourcesWithoutFallback = failedSources
+            .where((source) => !_academicSourceHasFallbackData(source))
+            .toSet();
+        final retainedFailedSources = failedSources.difference(
+          failedSourcesWithoutFallback,
+        );
+        setState(() {
+          _failedAcademicSources = failedSources;
+          _isCoordinatedRefresh = false;
+        });
+        if (failedSources.isEmpty) {
+          showYhFeedback(
+            context,
+            message: unavailableSources.isEmpty ? '教务数据已刷新' : '可用教务数据已刷新',
+            details: unavailableSources.isEmpty
+                ? null
+                : '${unavailableSources.join('、')}未连接，本次未请求。',
+            severity: AppFeedbackSeverity.success,
+          );
+        } else if (failedSources.length == requestedSourceCount) {
+          showYhFeedback(
+            context,
+            message: unavailableSources.isEmpty ? '教务数据刷新失败' : '可用教务数据刷新失败',
+            details:
+                '${['${failedSources.join('、')}均未完成', if (unavailableSources.isNotEmpty) '${unavailableSources.join('、')}未连接，本次未请求', if (retainedFailedSources.isNotEmpty) '${retainedFailedSources.join('、')}继续显示最后有效数据', if (failedSourcesWithoutFallback.isNotEmpty) '${failedSourcesWithoutFallback.join('、')}暂无可保留数据', if (!hadContentBeforeRefresh || failedSourcesWithoutFallback.isNotEmpty) '请检查校园网/VPN 或稍后重试'].join('；')}。',
+            severity: AppFeedbackSeverity.error,
+          );
+        } else {
+          showYhFeedback(
+            context,
+            message: '教务数据部分更新',
+            details:
+                '${['${failedSources.join('、')}未完成', if (unavailableSources.isNotEmpty) '${unavailableSources.join('、')}未连接，本次未请求', if (retainedFailedSources.isNotEmpty) '${retainedFailedSources.join('、')}继续显示最后有效数据', if (failedSourcesWithoutFallback.isNotEmpty) '${failedSourcesWithoutFallback.join('、')}暂无可保留数据，可稍后重试'].join('；')}。',
+            severity: AppFeedbackSeverity.warning,
+          );
+        }
+      }
     }
-    return null;
   }
 
-  /// 读取体育部自动刷新设置；未启用时不主动访问体育部系统。
-  Future<void> _loadSportsAttendanceAutoRefreshSettings() async {
-    final enabled =
-        widget.sportsAttendanceAutoRefreshEnabledOverride ??
-        await SportsAttendanceService.instance.isAutoRefreshEnabled();
-    final interval =
-        widget.sportsAttendanceAutoRefreshIntervalOverride ??
-        await SportsAttendanceService.instance.getAutoRefreshIntervalMinutes();
-    if (!mounted) return;
-    _sportsAttendanceRefreshController.configureAutoRefresh(
-      enabled: enabled,
-      intervalMinutes: interval,
-    );
-  }
-
-  /// 先显示本地体育部考勤缓存，再按间隔决定是否静默刷新。
-  Future<void> _loadSportsAttendanceCacheAndSettings() async {
-    final cachedResult = await _sportsAttendanceService
-        .readLatestCachedAttendanceSummary();
-    if (mounted && cachedResult != null) {
-      setState(() => _sportsAttendanceResult = cachedResult);
-    }
-    await _loadSportsAttendanceAutoRefreshSettings();
-  }
-
-  /// 读取体育部课外活动考勤；失败时在卡片内展示明确状态。
-  Future<void> _loadSportsAttendance({bool silent = false}) async {
-    await _sportsAttendanceRefreshController.runRefresh(silent: silent);
-  }
-
-  Future<SportsAttendanceQueryResult> _fetchSportsAttendanceForController({
-    required bool silent,
-  }) {
-    return _sportsAttendanceService.fetchAttendanceSummary(
-      requireCampusNetwork: silent,
-    );
-  }
-
-  void _applySportsAttendanceResult(SportsAttendanceQueryResult result) {
-    if (!mounted) return;
-    setState(() => _sportsAttendanceResult = result);
-  }
-
-  /// 读取第二课堂学分自动刷新设置；未启用时不主动访问学工报表。
-  Future<void> _loadStudentReportAutoRefreshSettings() async {
-    final enabled =
-        widget.studentReportAutoRefreshEnabledOverride ??
-        await StudentReportService.instance.isAutoRefreshEnabled();
-    final interval =
-        widget.studentReportAutoRefreshIntervalOverride ??
-        await StudentReportService.instance.getAutoRefreshIntervalMinutes();
-    if (!mounted) return;
-    _studentReportRefreshController.configureAutoRefresh(
-      enabled: enabled,
-      intervalMinutes: interval,
-    );
-  }
-
-  /// 先显示本地第二课堂学分缓存，再按间隔决定是否静默刷新。
-  Future<void> _loadStudentReportCacheAndSettings() async {
-    final cachedResult = await _studentReportService
-        .readLatestCachedSecondClassroomCredits();
-    if (mounted && cachedResult != null) {
-      setState(() => _studentReportResult = cachedResult);
-    }
-    await _loadStudentReportAutoRefreshSettings();
-  }
-
-  /// 读取第二课堂学分；失败时在卡片内展示明确状态。
-  Future<void> _loadStudentReport({bool silent = false}) async {
-    await _studentReportRefreshController.runRefresh(silent: silent);
-  }
-
-  Future<StudentReportQueryResult> _fetchStudentReportForController({
-    required bool silent,
-  }) {
-    return _studentReportService.fetchSecondClassroomCredits(
-      requireCampusNetwork: silent,
-    );
-  }
-
-  void _applyStudentReportResult(StudentReportQueryResult result) {
-    if (!mounted) return;
-    setState(() => _studentReportResult = result);
-  }
-
-  String _academicEamsRefreshFailureReason(AcademicEamsQueryResult result) {
-    final examResult = _academicExamResult;
-    if (result.isSuccess &&
-        _academicEamsLastRefreshHadExamFailure &&
-        examResult != null) {
-      return _academicEamsRefreshFailureReason(examResult);
-    }
-    return switch (result.status) {
-      AcademicEamsQueryStatus.success => '',
-      AcademicEamsQueryStatus.partialSuccess => '部分数据降级',
-      AcademicEamsQueryStatus.missingOaAccount => '未设置OA账号',
-      AcademicEamsQueryStatus.missingOaPassword => '未设置OA密码',
-      AcademicEamsQueryStatus.campusNetworkUnavailable => '校园网/VPN不可用',
-      AcademicEamsQueryStatus.oaLoginRequired => 'OA登录失效',
-      AcademicEamsQueryStatus.systemUnavailable => '教务系统不可用',
-      AcademicEamsQueryStatus.readOnlyEntryUnavailable => '教务入口不可用',
-      AcademicEamsQueryStatus.queryFormUnavailable => '查询表单不可用',
-      AcademicEamsQueryStatus.parseFailed ||
-      AcademicEamsQueryStatus.networkError ||
-      AcademicEamsQueryStatus.unexpectedError => firstNonEmptyText(
-        result.detail,
-        result.message,
-        fallback: '查询失败',
+  Future<void> _openAcademicLegacySources() async {
+    final targetContext = _academicLegacySourcesKey.currentContext;
+    if (targetContext == null || _isCoordinatedRefresh) return;
+    final theme = context.yhTheme;
+    await Scrollable.ensureVisible(
+      targetContext,
+      duration: theme.motion.effective(
+        theme.motion.slow,
+        disableAnimations: MediaQuery.disableAnimationsOf(context),
       ),
-    };
+      curve: theme.motion.curve,
+      alignment: 0,
+    );
+    if (mounted) _academicLegacySourcesFocusNode.requestFocus();
   }
 
-  String _sportsAttendanceRefreshFailureReason(
-    SportsAttendanceQueryResult result,
-  ) {
-    return switch (result.status) {
-      SportsAttendanceQueryStatus.success => '',
-      SportsAttendanceQueryStatus.missingStudentId => '未设置学工号',
-      SportsAttendanceQueryStatus.missingSportsPassword => '未设置体育密码',
-      SportsAttendanceQueryStatus.campusNetworkUnavailable => '校园网/VPN不可用',
-      SportsAttendanceQueryStatus.loginPageUnavailable => '登录页不可用',
-      SportsAttendanceQueryStatus.credentialsRejected => '体育密码错误',
-      SportsAttendanceQueryStatus.sessionUnavailable => '会话失效',
-      SportsAttendanceQueryStatus.parseFailed ||
-      SportsAttendanceQueryStatus.networkError ||
-      SportsAttendanceQueryStatus.unexpectedError => firstNonEmptyText(
-        result.detail,
-        result.message,
-        fallback: '查询失败',
-      ),
-    };
+  bool get _anyAcademicSourceLoading =>
+      _academicEamsRefreshController.isLoading ||
+      _academicExamRefreshController.isLoading ||
+      _academicGradeRefreshController.isLoading ||
+      _sportsAttendanceRefreshController.isLoading ||
+      _studentReportRefreshController.isLoading;
+
+  bool get _academicOaCredentialsReady {
+    final status = _credentialsStatus;
+    if (status == null ||
+        status.oaAccount.trim().isEmpty ||
+        !status.hasOaPassword) {
+      return false;
+    }
+    bool missing(AcademicEamsQueryResult? result) =>
+        result?.status == AcademicEamsQueryStatus.missingOaAccount ||
+        result?.status == AcademicEamsQueryStatus.missingOaPassword;
+    return !missing(_academicEamsResult) &&
+        !missing(_academicGradeResult) &&
+        !missing(_academicExamResult);
   }
 
-  String _studentReportRefreshFailureReason(StudentReportQueryResult result) {
-    return switch (result.status) {
-      StudentReportQueryStatus.success => '',
-      StudentReportQueryStatus.missingOaAccount => '未设置OA账号',
-      StudentReportQueryStatus.missingOaPassword => '未设置OA密码',
-      StudentReportQueryStatus.campusNetworkUnavailable => '校园网/VPN不可用',
-      StudentReportQueryStatus.oaLoginRequired => 'OA登录失效',
-      StudentReportQueryStatus.reportSystemUnavailable => '学工报表不可用',
-      StudentReportQueryStatus.secondClassroomEntryUnavailable => '未找到二课入口',
-      StudentReportQueryStatus.parseFailed ||
-      StudentReportQueryStatus.networkError ||
-      StudentReportQueryStatus.unexpectedError => firstNonEmptyText(
-        result.detail,
-        result.message,
-        fallback: '查询失败',
-      ),
-    };
+  bool get _academicSportsCredentialsReady {
+    final status = _credentialsStatus;
+    if (status == null ||
+        status.oaAccount.trim().isEmpty ||
+        !status.hasSportsQueryPassword) {
+      return false;
+    }
+    return _sportsAttendanceResult?.status !=
+            SportsAttendanceQueryStatus.missingStudentId &&
+        _sportsAttendanceResult?.status !=
+            SportsAttendanceQueryStatus.missingSportsPassword;
   }
+
+  int get _academicAvailableRefreshSourceCount =>
+      (_academicOaCredentialsReady ? 4 : 0) +
+      (_academicSportsCredentialsReady ? 1 : 0);
 
   @override
   void dispose() {
     _credentialChangeSubscription?.cancel();
+    _dataAutoRefreshSubscription?.cancel();
+    _academicLegacySourcesFocusNode.dispose();
     _academicEamsRefreshController
       ..removeListener(_handleRefreshControllerChanged)
       ..dispose();
     _academicExamRefreshController
+      ..removeListener(_handleRefreshControllerChanged)
+      ..dispose();
+    _academicGradeRefreshController
       ..removeListener(_handleRefreshControllerChanged)
       ..dispose();
     _sportsAttendanceRefreshController
@@ -514,170 +549,6 @@ class _AcademicPageState extends State<AcademicPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveBuilder(
-      builder: (context, deviceType, constraints) {
-        return FluentPage.scrollable(
-          header: const FluentPageHeader(title: Text('教务中心')),
-          padding: responsivePagePadding(deviceType),
-          children: [
-            FluentContentWidth(
-              child: _AcademicDashboardGrid(
-                primary: AcademicEamsSummaryCard(
-                  result: _academicEamsResult,
-                  isLoading: _academicEamsRefreshController.isLoading,
-                  isRefreshActionLoading:
-                      _academicEamsRefreshController.isLoading ||
-                      _academicExamRefreshController.isLoading,
-                  autoRefreshEnabled:
-                      _academicEamsRefreshController.autoRefreshEnabled,
-                  refreshFeedback: _academicEamsRefreshController.feedback,
-                  onRefresh: _loadAcademicEamsOverview,
-                  onOpenCourseSchedule: () => Navigator.of(context).push(
-                    FluentPageRoute(
-                      builder: (_) => CourseSchedulePage(
-                        academicEamsService: _academicEamsService,
-                        initialResult: _academicEamsResult,
-                        autoRefreshEnabledOverride:
-                            _academicEamsRefreshController.autoRefreshEnabled,
-                        autoRefreshIntervalOverride:
-                            _academicEamsRefreshController
-                                .autoRefreshIntervalMinutes,
-                      ),
-                    ),
-                  ),
-                  examResult: _academicExamResult,
-                  examSchedule: AcademicEamsExamCard(
-                    result: _academicExamResult,
-                    isLoading: _academicExamRefreshController.isLoading,
-                    selectedTerm: _academicExamSelectedTerm,
-                    onOpenDetail: _openAcademicExamDetail,
-                  ),
-                ),
-                sports: AcademicSportsAttendanceCard(
-                  result: _sportsAttendanceResult,
-                  isLoading: _sportsAttendanceRefreshController.isLoading,
-                  autoRefreshEnabled:
-                      _sportsAttendanceRefreshController.autoRefreshEnabled,
-                  refreshFeedback: _sportsAttendanceRefreshController.feedback,
-                  onRefresh: _loadSportsAttendance,
-                ),
-                secondClassroom: AcademicStudentReportCard(
-                  result: _studentReportResult,
-                  isLoading: _studentReportRefreshController.isLoading,
-                  autoRefreshEnabled:
-                      _studentReportRefreshController.autoRefreshEnabled,
-                  refreshFeedback: _studentReportRefreshController.feedback,
-                  onRefresh: _loadStudentReport,
-                ),
-              ),
-            ),
-            const SizedBox(height: FluentSpacing.m),
-            const FluentContentWidth(
-              child: FluentInfoBar(
-                title: Text('只读边界'),
-                content: Text(
-                  '本专科教务仅接入个人信息、课表、成绩、考试、培养计划、开课检索和空闲教室等只读能力；'
-                  '不提供选课、退课、调课、教学评价、提交申请或任何状态变更入口。',
-                ),
-                severity: FluentInfoSeverity.info,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _AcademicDashboardGrid extends StatelessWidget {
-  const _AcademicDashboardGrid({
-    required this.primary,
-    required this.sports,
-    required this.secondClassroom,
-  });
-
-  final Widget primary;
-  final Widget sports;
-  final Widget secondClassroom;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth >= 1040) {
-          return Column(
-            children: [
-              _AcademicAnimatedCard(index: 0, child: primary),
-              const SizedBox(height: FluentSpacing.m),
-              _AcademicEqualHeightRow(
-                left: _AcademicAnimatedCard(index: 1, child: sports),
-                right: _AcademicAnimatedCard(index: 2, child: secondClassroom),
-              ),
-            ],
-          );
-        }
-
-        if (constraints.maxWidth >= 720) {
-          return Column(
-            children: [
-              _AcademicAnimatedCard(index: 0, child: primary),
-              const SizedBox(height: FluentSpacing.m),
-              _AcademicEqualHeightRow(
-                left: _AcademicAnimatedCard(index: 1, child: sports),
-                right: _AcademicAnimatedCard(index: 2, child: secondClassroom),
-              ),
-            ],
-          );
-        }
-
-        return Column(
-          children: [
-            _AcademicAnimatedCard(index: 0, child: primary),
-            const SizedBox(height: FluentSpacing.m),
-            _AcademicAnimatedCard(index: 1, child: sports),
-            const SizedBox(height: FluentSpacing.m),
-            _AcademicAnimatedCard(index: 2, child: secondClassroom),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _AcademicEqualHeightRow extends StatelessWidget {
-  const _AcademicEqualHeightRow({required this.left, required this.right});
-
-  final Widget left;
-  final Widget right;
-
-  @override
-  Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(child: left),
-          const SizedBox(width: FluentSpacing.m),
-          Expanded(child: right),
-        ],
-      ),
-    );
-  }
-}
-
-class _AcademicAnimatedCard extends StatelessWidget {
-  const _AcademicAnimatedCard({required this.index, required this.child});
-
-  final int index;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final disableAnimations = MediaQuery.disableAnimationsOf(context);
-    if (disableAnimations) return child;
-    return child
-        .animate(delay: FluentDuration.stagger * index)
-        .fadeIn(duration: FluentDuration.slow, curve: FluentEasing.decelerate)
-        .slideY(begin: 0.05, end: 0);
+    return _buildAcademicOverview(context);
   }
 }

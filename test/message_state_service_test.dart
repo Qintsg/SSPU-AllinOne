@@ -10,6 +10,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sspu_allinone/models/channel_config.dart';
 import 'package:sspu_allinone/services/message_state_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 
@@ -32,16 +33,24 @@ void main() {
     }
   });
 
-  test('未写入存储时使用渠道配置中的默认启用状态', () async {
+  test('未写入存储时所有消息渠道默认开启', () async {
     SharedPreferences.setMockInitialValues({});
     await StorageService.init();
     final stateService = MessageStateService.instance;
 
-    // 自动刷新服务不传默认值时，也应和设置页展示的默认状态一致。
-    expect(await stateService.isChannelEnabled('jwc'), isTrue);
-    expect(await stateService.isChannelEnabled('news_center'), isTrue);
-    expect(await stateService.isChannelEnabled('college_cs'), isFalse);
-    expect(await stateService.isChannelEnabled('wechat_public'), isTrue);
+    final channels = [
+      ...departmentChannels,
+      ...teachingChannels,
+      ...wechatChannels,
+    ];
+    for (final channel in channels) {
+      expect(
+        await stateService.isChannelEnabled(channel.id),
+        isTrue,
+        reason: '${channel.name} 应在首次使用时默认开启',
+      );
+    }
+    expect(await stateService.isWechatServiceEnabled(), isTrue);
   });
 
   test('未写入存储时使用渠道配置中的默认刷新间隔', () async {

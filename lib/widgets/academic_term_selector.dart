@@ -6,20 +6,11 @@
  * @Date : 2026-06-08
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import '../models/academic_term.dart';
-import '../theme/app_spacing.dart';
 
-/// 学期选择组件展示模式。
-enum AcademicTermSelectorVariant {
-  /// 设置页完整模式。
-  settings,
+enum AcademicTermSelectorVariant { settings, compact }
 
-  /// 详情页紧凑模式。
-  compact,
-}
-
-/// 可复用学期选择组件。
 class AcademicTermSelector extends StatelessWidget {
   const AcademicTermSelector({
     super.key,
@@ -31,161 +22,128 @@ class AcademicTermSelector extends StatelessWidget {
     this.variant = AcademicTermSelectorVariant.settings,
   });
 
-  /// 当前选择。
   final AcademicTermChoice selection;
-
-  /// 选择变化回调。
   final ValueChanged<AcademicTermChoice> onChanged;
-
-  /// 可选学期。
   final List<AcademicTermChoice> availableTerms;
-
-  /// 当前生效上下文，用于设置页展示自动计算结果。
   final AcademicTermContext? contextSummary;
-
-  /// 控件是否可操作。
   final bool enabled;
-
-  /// 展示模式。
   final AcademicTermSelectorVariant variant;
 
   @override
   Widget build(BuildContext context) {
-    final type = context.fluentType;
-    final colors = context.fluentColors;
+    final theme = context.yhTheme;
     final sourceText = _sourceText(contextSummary);
     final summaryText = contextSummary?.summaryLabel ?? selection.label;
-
-    final form = LayoutBuilder(
-      builder: (context, constraints) {
-        final stack = constraints.maxWidth < 520;
-        final controls = [
-          _buildYearSelector(selection),
-          _buildSeasonSelector(selection),
-        ];
-
-        if (stack) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var i = 0; i < controls.length; i++) ...[
-                controls[i],
-                if (i < controls.length - 1)
-                  const SizedBox(height: AppSpacing.sm),
-              ],
-            ],
-          );
-        }
-
-        return Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: controls,
-        );
-      },
-    );
+    final years =
+        availableTerms.map((term) => term.academicYear).toSet().toList()
+          ..sort();
 
     return Column(
       key: const Key('academic-term-selector'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        form,
-        const SizedBox(height: AppSpacing.sm),
-        Wrap(
-          spacing: AppSpacing.xs,
-          runSpacing: AppSpacing.xs,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Icon(
-              FluentIcons.calendarWeek,
-              size: 16,
-              color: colors.neutralForeground2,
-            ),
-            Text(summaryText, style: type.caption1),
-            Text(
-              sourceText,
-              style: type.caption1.copyWith(
-                color: contextSummary?.isUnsupported == true
-                    ? colors.statusWarningForeground
-                    : colors.neutralForeground2,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final stack =
+                variant != AcademicTermSelectorVariant.compact &&
+                constraints.maxWidth < theme.breakpoint.compact;
+            final compactWidth = (constraints.maxWidth - theme.spacing.s) / 2;
+            final controlWidth = variant == AcademicTermSelectorVariant.compact
+                ? compactWidth
+                : theme.spacing.xl2 * 4;
+            final controls = [
+              SizedBox(
+                width: controlWidth,
+                child: YhSelect<int>(
+                  key: const Key('academic-term-year-select'),
+                  label: '学年',
+                  value: selection.academicYear,
+                  enabled: enabled,
+                  options: [
+                    for (final year in years)
+                      YhSelectOption(
+                        value: year,
+                        label: variant == AcademicTermSelectorVariant.compact
+                            ? '$year–${(year + 1).toString().substring(2)} 学年'
+                            : '$year-${year + 1} 学年',
+                      ),
+                  ],
+                  onChanged: (year) {
+                    if (year != null) {
+                      onChanged(selection.copyWith(academicYear: year));
+                    }
+                  },
+                ),
               ),
+              SizedBox(
+                width: controlWidth,
+                child: YhSelect<AcademicTermSeason>(
+                  key: const Key('academic-term-season-select'),
+                  label: '学期',
+                  value: selection.season,
+                  enabled: enabled,
+                  options: [
+                    for (final season in AcademicTermSeason.values)
+                      YhSelectOption(value: season, label: season.label),
+                  ],
+                  onChanged: (season) {
+                    if (season != null) {
+                      onChanged(selection.copyWith(season: season));
+                    }
+                  },
+                ),
+              ),
+            ];
+            if (stack) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  controls.first,
+                  SizedBox(height: theme.spacing.s),
+                  controls.last,
+                ],
+              );
+            }
+            return Wrap(
+              spacing: theme.spacing.s,
+              runSpacing: theme.spacing.s,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: controls,
+            );
+          },
+        ),
+        SizedBox(height: theme.spacing.s),
+        if (variant == AcademicTermSelectorVariant.compact) ...[
+          Text('当前实际：$summaryText', style: theme.typography.small),
+          Text(
+            sourceText,
+            style: theme.typography.small.copyWith(
+              color: contextSummary?.isUnsupported == true
+                  ? theme.color.warning
+                  : theme.color.muted,
+            ),
+          ),
+          if (contextSummary?.hasDifferentQueryTerm == true)
+            Text(
+              '查询使用：${contextSummary!.effectiveQueryTerm.label}',
+              style: theme.typography.small,
+            ),
+        ] else ...[
+          _TermContextLine(
+            icon: YhIcons.calendar,
+            primary: '当前实际：$summaryText',
+            secondary: sourceText,
+            warning: contextSummary?.isUnsupported == true,
+          ),
+          if (contextSummary?.hasDifferentQueryTerm == true) ...[
+            SizedBox(height: theme.spacing.xs),
+            _TermContextLine(
+              icon: YhIcons.search,
+              primary: '查询使用：${contextSummary!.effectiveQueryTerm.label}',
             ),
           ],
-        ),
-        if (contextSummary?.hasDifferentQueryTerm == true) ...[
-          const SizedBox(height: AppSpacing.xs),
-          Wrap(
-            spacing: AppSpacing.xs,
-            runSpacing: AppSpacing.xs,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Icon(
-                FluentIcons.search,
-                size: 16,
-                color: colors.neutralForeground2,
-              ),
-              Text(
-                '查询使用：${contextSummary!.effectiveQueryTerm.label}',
-                style: type.caption1.copyWith(color: colors.neutralForeground2),
-              ),
-            ],
-          ),
         ],
       ],
-    );
-  }
-
-  Widget _buildYearSelector(AcademicTermChoice current) {
-    final years =
-        availableTerms.map((term) => term.academicYear).toSet().toList()
-          ..sort();
-    return _TermFieldShell(
-      label: '学年',
-      child: FluentSelect<int>(
-        key: const Key('academic-term-year-select'),
-        value: current.academicYear,
-        isExpanded: true,
-        items: years
-            .map(
-              (year) => FluentSelectItem<int>(
-                value: year,
-                child: Text('$year-${year + 1} 学年'),
-              ),
-            )
-            .toList(),
-        onChanged: enabled
-            ? (year) {
-                if (year != null) {
-                  onChanged(current.copyWith(academicYear: year));
-                }
-              }
-            : null,
-      ),
-    );
-  }
-
-  Widget _buildSeasonSelector(AcademicTermChoice current) {
-    return _TermFieldShell(
-      label: '学期',
-      child: FluentSelect<AcademicTermSeason>(
-        key: const Key('academic-term-season-select'),
-        value: current.season,
-        isExpanded: true,
-        items: AcademicTermSeason.values
-            .map(
-              (season) => FluentSelectItem<AcademicTermSeason>(
-                value: season,
-                child: Text(season.label),
-              ),
-            )
-            .toList(),
-        onChanged: enabled
-            ? (season) {
-                if (season != null) onChanged(current.copyWith(season: season));
-              }
-            : null,
-      ),
     );
   }
 
@@ -200,25 +158,36 @@ class AcademicTermSelector extends StatelessWidget {
   }
 }
 
-class _TermFieldShell extends StatelessWidget {
-  const _TermFieldShell({required this.label, required this.child});
+class _TermContextLine extends StatelessWidget {
+  const _TermContextLine({
+    required this.icon,
+    required this.primary,
+    this.secondary,
+    this.warning = false,
+  });
 
-  final String label;
-  final Widget child;
+  final IconData icon;
+  final String primary;
+  final String? secondary;
+  final bool warning;
 
   @override
   Widget build(BuildContext context) {
-    final type = context.fluentType;
-    return SizedBox(
-      width: 210,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: type.caption1),
-          const SizedBox(height: AppSpacing.xs),
-          child,
-        ],
-      ),
+    final theme = context.yhTheme;
+    final muted = warning ? theme.color.warning : theme.color.muted;
+    return Wrap(
+      spacing: theme.spacing.xs,
+      runSpacing: theme.spacing.xs,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Icon(icon, size: theme.spacing.m, color: muted),
+        Text(primary, style: theme.typography.small),
+        if (secondary != null)
+          Text(
+            secondary!,
+            style: theme.typography.small.copyWith(color: muted),
+          ),
+      ],
     );
   }
 }

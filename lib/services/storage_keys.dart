@@ -28,6 +28,9 @@ class StorageKeys {
   /// 关闭行为偏好（ask / minimize / exit）。
   static const String closeBehavior = 'close_behavior';
 
+  /// 清源主题模式（system / light / dark）。
+  static const String themeMode = 'theme_mode';
+
   /// 首页是否显示学籍信息卡片。
   static const String homeStudentProfileCardVisible =
       'home_student_profile_card_visible';
@@ -64,6 +67,10 @@ class StorageKeys {
   /// 校园网 / VPN 状态检测间隔（分钟，0 = 关闭自动检测）。
   static const String campusNetworkDetectionIntervalMinutes =
       'campus_network_detection_interval_minutes';
+
+  /// 校园数据来源共用的自动刷新间隔（分钟）。
+  static const String dataAutoRefreshIntervalMinutes =
+      'data_auto_refresh_interval_minutes';
 
   /// 体育部课外活动考勤自动刷新开关。
   static const String sportsAttendanceAutoRefreshEnabled =
@@ -141,6 +148,14 @@ class StorageKeys {
   /// 本专科教务考试安排业务快照缓存集合。
   static const String academicEamsExamScheduleCacheCollection =
       'cache_academic_eams_exam_schedule';
+
+  /// 本专科教务成绩业务快照缓存集合。
+  static const String academicEamsGradeCacheCollection =
+      'cache_academic_eams_grade';
+
+  /// 本专科教务过程化成绩业务快照缓存集合。
+  static const String academicEamsGradeProcessCacheCollection =
+      'cache_academic_eams_grade_process';
 
   /// 教务处校历缓存集合。
   static const String academicCalendarCollection = 'cache_academic_calendar';

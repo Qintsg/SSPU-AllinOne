@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TextField 文本输入框样例 · 清源设计系统</title>
+  <link rel="stylesheet" href="_qingyuan.css" />
+</head>
+<body>
+  <button class="theme-toggle" type="button" aria-label="切换主题" aria-pressed="false">
+    <svg class="ic-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    <svg class="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    <span class="tt-label">深色</span>
+  </button>
+
+  <div class="container">
+    <h1>TextField 文本输入框</h1>
+    <p class="intro">清源设计系统 · 响应色 <b>#478384</b> · 标签在上 · 文本与图标竖向居中</p>
+
+    <div class="section">
+      <h2>Default 标准输入框</h2>
+      <p class="label">标签在上 · 可选辅助文字</p>
+      <div class="col">
+        <div class="yh-field">
+          <span class="flabel">学号</span>
+          <div class="control"><input type="text" placeholder="请输入 10 位学号" /></div>
+          <span class="helper">10 位数字</span>
+        </div>
+        <div class="yh-field">
+          <span class="flabel">邮箱</span>
+          <div class="control"><input type="email" placeholder="name@mail.sspu.edu.cn" /></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>带前置 / 后置图标</h2>
+      <p class="label">图标与文本同行 flex 居中 · 永不重合；眼睛可点切换</p>
+      <div class="col">
+        <div class="yh-field">
+          <span class="flabel">用户名</span>
+          <div class="control">
+            <svg class="ic prefix" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <input type="text" placeholder="输入用户名" />
+          </div>
+        </div>
+        <div class="yh-field">
+          <span class="flabel">密码</span>
+          <div class="control">
+            <input type="password" placeholder="输入密码" value="campus2026" />
+            <svg class="ic suffix" data-pw viewBox="0 0 24 24" aria-label="显示密码"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Textarea 多行</h2>
+      <p class="label">反馈 / 备注 · 文本顶部对齐，右下计数</p>
+      <div class="yh-field">
+        <span class="flabel">意见反馈</span>
+        <div class="control" style="height:auto;align-items:stretch"><textarea rows="3" placeholder="说说你的想法…"></textarea></div>
+        <span class="helper"><span class="count">0 / 200</span>请文明发言</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Error 错误状态</h2>
+      <p class="label">红色边框 + 错误提示</p>
+      <div class="yh-field error">
+        <span class="flabel">邮箱</span>
+        <div class="control"><input type="email" value="invalid@" /></div>
+        <span class="helper">邮箱格式不正确</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Disabled 禁用状态</h2>
+      <p class="label">不透明度 + 浅底 · 不可编辑</p>
+      <div class="yh-field disabled">
+        <span class="flabel">院系</span>
+        <div class="control"><input type="text" value="计算机与信息工程学院" disabled /></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="_qingyuan.js"></script>
+</body>
+</html>

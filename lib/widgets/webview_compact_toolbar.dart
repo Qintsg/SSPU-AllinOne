@@ -6,7 +6,7 @@
  * @Date : 2026-06-07
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 
 /// WebView 页面紧凑工具栏。
 class WebViewCompactToolbar extends StatelessWidget {
@@ -22,7 +22,7 @@ class WebViewCompactToolbar extends StatelessWidget {
   final String title;
 
   /// 返回或退出按钮回调。
-  final VoidCallback onBackPressed;
+  final VoidCallback? onBackPressed;
 
   /// 返回按钮语义标签。
   final String backSemanticLabel;
@@ -32,45 +32,16 @@ class WebViewCompactToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        border: Border(
-          bottom: BorderSide(color: theme.resources.controlStrokeColorDefault),
-        ),
+    return YhAppBar(
+      title: title,
+      leading: YhIconButton(
+        key: const Key('webview-back-close-button'),
+        icon: YhIcons.back,
+        semanticLabel: backSemanticLabel,
+        variant: YhIconButtonVariant.ghost,
+        onTap: onBackPressed,
       ),
-      child: SizedBox(
-        height: 48,
-        child: Row(
-          children: [
-            Semantics(
-              key: const Key('webview-back-close-button'),
-              button: true,
-              enabled: true,
-              label: backSemanticLabel,
-              onTap: onBackPressed,
-              child: FluentIconButton(
-                tooltip: backSemanticLabel,
-                icon: const Icon(FluentIcons.back),
-                onPressed: onBackPressed,
-                size: 32,
-                iconSize: 18,
-              ),
-            ),
-            Expanded(
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.typography.bodyStrong,
-              ),
-            ),
-            for (final action in actions) action,
-          ],
-        ),
-      ),
+      actions: actions,
     );
   }
 }

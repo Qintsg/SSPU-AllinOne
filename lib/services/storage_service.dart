@@ -363,6 +363,20 @@ class StorageService {
     await setString(StorageKeys.closeBehavior, behavior);
   }
 
+  /// 获取清源主题模式，未知值安全回退为跟随系统。
+  static Future<String> getThemeMode() async {
+    final value = await getString(StorageKeys.themeMode);
+    return const {'system', 'light', 'dark'}.contains(value)
+        ? value!
+        : 'system';
+  }
+
+  /// 保存清源主题模式。
+  static Future<void> setThemeMode(String mode) async {
+    if (!const {'system', 'light', 'dark'}.contains(mode)) return;
+    await setString(StorageKeys.themeMode, mode);
+  }
+
   // ==================== 结构化数据操作 ====================
 
   /// 保存结构化数据（JSON 序列化后存储）。

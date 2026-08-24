@@ -8,7 +8,7 @@
 
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/pages/webview_page.dart';
 import 'package:sspu_allinone/utils/app_web_launcher.dart';
 
@@ -34,15 +34,15 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        FluentApp(
+        YhApp(
           home: Builder(
-            builder: (context) => FluentButton(
-              onPressed: () => openAppWebUrl(
+            builder: (context) => YhButton(
+              label: '打开网页',
+              onTap: () => openAppWebUrl(
                 context,
                 url: 'https://example.com/news',
                 title: '网页标题',
               ),
-              child: const Text('打开网页'),
             ),
           ),
         ),
@@ -78,15 +78,15 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        FluentApp(
+        YhApp(
           home: Builder(
-            builder: (context) => FluentButton(
-              onPressed: () => openAppWebUrl(
+            builder: (context) => YhButton(
+              label: '打开网页',
+              onTap: () => openAppWebUrl(
                 context,
                 url: 'https://example.com/news',
                 title: '网页标题',
               ),
-              child: const Text('打开网页'),
             ),
           ),
         ),
@@ -118,15 +118,15 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        FluentApp(
+        YhApp(
           home: Builder(
-            builder: (context) => FluentButton(
-              onPressed: () => openAppWebUrl(
+            builder: (context) => YhButton(
+              label: '打开网页',
+              onTap: () => openAppWebUrl(
                 context,
                 url: 'https://example.com/news',
                 title: '网页标题',
               ),
-              child: const Text('打开网页'),
             ),
           ),
         ),
@@ -161,15 +161,15 @@ void main() {
 
     try {
       await tester.pumpWidget(
-        FluentApp(
+        YhApp(
           home: Builder(
-            builder: (context) => FluentButton(
-              onPressed: () => openAppWebUrl(
+            builder: (context) => YhButton(
+              label: '打开网页',
+              onTap: () => openAppWebUrl(
                 context,
                 url: 'https://wywh.sspu.edu.cnjavascript:void(0);',
                 title: '无效链接',
               ),
-              child: const Text('打开网页'),
             ),
           ),
         ),

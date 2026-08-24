@@ -10,13 +10,12 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/models/message_item.dart';
 import 'package:sspu_allinone/pages/info_page.dart';
 import 'package:sspu_allinone/services/message_state_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/services/wxmp_config_service.dart';
-import 'package:sspu_allinone/theme/app_theme.dart';
 import 'package:sspu_allinone/widgets/message_tile.dart';
 
 void main() {
@@ -87,16 +86,221 @@ void main() {
     await messageStateService.saveMessages(_buildMessages(messageCount));
     expect(await messageStateService.loadMessages(), hasLength(messageCount));
 
-    await tester.pumpWidget(
-      FluentApp(
-        theme: AppTheme.build(Brightness.light),
-        home: const InfoPage(),
-      ),
-    );
+    await tester.pumpWidget(const YhApp(home: InfoPage()));
 
     await _pumpUntilFound(tester, find.byKey(const Key('info-message-list')));
     expect(tester.takeException(), isNull);
   }
+
+  Future<void> pumpInfoFixture(
+    WidgetTester tester, {
+    required Size size,
+    required InfoPageDisplayState displayState,
+    List<MessageItem>? messages,
+    VoidCallback? onOpenSourceSettings,
+    bool filterEmptyOverride = false,
+  }) async {
+    await configureView(tester, size: size);
+    await tester.pumpWidget(
+      YhApp(
+        home: InfoPage(
+          displayStateOverride: displayState,
+          messagesOverride: messages ?? const [],
+          wechatSourceConfiguredOverride: true,
+          nowOverride: DateTime(2026, 7, 18, 9, 30),
+          onOpenSourceSettings: onOpenSourceSettings,
+          filterEmptyOverride: filterEmptyOverride,
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  }
+
+  testWidgets('资讯内容态按断点切换来源条与桌面来源面板', (tester) async {
+    try {
+      final messages = _buildMessages(3);
+      await pumpInfoFixture(
+        tester,
+        size: const Size(390, 844),
+        displayState: InfoPageDisplayState.content,
+        messages: messages,
+      );
+
+      expect(find.text('校园资讯'), findsOneWidget);
+      expect(find.byKey(const Key('info-status-row')), findsOneWidget);
+      expect(
+        find.byKey(const Key('info-compact-source-strip')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('info-source-panel')), findsNothing);
+      expect(find.byKey(const Key('info-message-list')), findsOneWidget);
+
+      await pumpInfoFixture(
+        tester,
+        size: const Size(1200, 900),
+        displayState: InfoPageDisplayState.content,
+        messages: messages,
+      );
+      expect(find.byKey(const Key('info-source-panel')), findsOneWidget);
+      expect(find.byKey(const Key('info-compact-source-strip')), findsNothing);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await resetView(tester);
+    }
+  });
+
+  testWidgets('资讯六类展示状态与筛选空态具有独立文案', (tester) async {
+    try {
+      const expected = <InfoPageDisplayState, String>{
+        InfoPageDisplayState.initial: '尚未读取校园资讯',
+        InfoPageDisplayState.loading: '正在读取校园资讯',
+        InfoPageDisplayState.empty: '尚未认证可用的资讯来源',
+        InfoPageDisplayState.error: '无法刷新校园资讯',
+      };
+      for (final entry in expected.entries) {
+        await pumpInfoFixture(
+          tester,
+          size: const Size(768, 900),
+          displayState: entry.key,
+        );
+        expect(find.text(entry.value), findsOneWidget);
+        if (entry.key == InfoPageDisplayState.loading) {
+          expect(find.byType(YhRing), findsOneWidget);
+          expect(find.byType(YhProgress), findsNothing);
+        } else {
+          expect(find.byKey(const Key('info-state-icon')), findsOneWidget);
+        }
+      }
+
+      await pumpInfoFixture(
+        tester,
+        size: const Size(768, 900),
+        displayState: InfoPageDisplayState.stale,
+        messages: _buildMessages(3),
+      );
+      expect(find.byKey(const Key('info-stale-banner')), findsOneWidget);
+      expect(find.byKey(const Key('info-message-list')), findsOneWidget);
+
+      await tester.enterText(find.byType(EditableText).first, '不存在的资讯');
+      await tester.pump();
+      expect(find.text('当前筛选没有结果'), findsOneWidget);
+      expect(find.byKey(const Key('info-message-list')), findsNothing);
+
+      await pumpInfoFixture(
+        tester,
+        size: const Size(768, 900),
+        displayState: InfoPageDisplayState.content,
+        messages: _buildMessages(3),
+        filterEmptyOverride: true,
+      );
+      expect(find.byKey(const Key('info-filter-empty')), findsOneWidget);
+      expect(
+        tester.widget<EditableText>(find.byType(EditableText)).controller.text,
+        isEmpty,
+      );
+      final theme = tester
+          .element(find.byKey(const Key('info-filter-empty')))
+          .yhTheme;
+      expect(
+        tester.getSize(find.byKey(const Key('info-filter-empty'))).height,
+        theme.layout.popoverWidth + theme.spacing.xl,
+      );
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await resetView(tester);
+    }
+  });
+
+  testWidgets('资讯空错态按视口压缩并在宽屏把恢复行动放到说明右侧', (tester) async {
+    try {
+      await pumpInfoFixture(
+        tester,
+        size: const Size(360, 800),
+        displayState: InfoPageDisplayState.initial,
+      );
+      final compactPanel = find.byKey(const Key('info-state-initial'));
+      final compactTheme = tester.element(compactPanel).yhTheme;
+      expect(
+        tester.getSize(compactPanel).height,
+        compactTheme.control.regular * 5,
+      );
+      expect(
+        tester.getTopLeft(find.text('读取校园资讯')).dy,
+        greaterThan(tester.getBottomLeft(find.text('尚未读取校园资讯')).dy),
+      );
+
+      await pumpInfoFixture(
+        tester,
+        size: const Size(1200, 900),
+        displayState: InfoPageDisplayState.error,
+      );
+      final widePanel = find.byKey(const Key('info-state-error'));
+      final wideTheme = tester.element(widePanel).yhTheme;
+      expect(tester.getSize(widePanel).height, wideTheme.control.regular * 4);
+      expect(
+        tester.getTopLeft(find.text('重试')).dx,
+        greaterThan(tester.getTopRight(find.text('无法刷新校园资讯')).dx),
+      );
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await resetView(tester);
+    }
+  });
+
+  testWidgets('资讯宽屏错误状态收束为左锚定恢复列', (tester) async {
+    try {
+      await pumpInfoFixture(
+        tester,
+        size: const Size(1200, 900),
+        displayState: InfoPageDisplayState.error,
+      );
+
+      final panel = find.byKey(const Key('info-state-error'));
+      final title = find.text('校园资讯');
+      expect(panel, findsOneWidget);
+      expect(title, findsOneWidget);
+      expect(tester.getSize(panel).width, lessThanOrEqualTo(560));
+      expect(
+        (tester.getTopLeft(panel).dx - tester.getTopLeft(title).dx).abs(),
+        lessThan(1),
+      );
+      expect(find.text('重试'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await resetView(tester);
+    }
+  });
+
+  testWidgets('资讯未认证空态打开来源设置而非误触刷新', (tester) async {
+    var openedSettings = false;
+    try {
+      await pumpInfoFixture(
+        tester,
+        size: const Size(390, 844),
+        displayState: InfoPageDisplayState.empty,
+        onOpenSourceSettings: () => openedSettings = true,
+      );
+
+      await tester.tap(find.text('来源与认证设置'));
+      await tester.pump();
+
+      expect(openedSettings, isTrue);
+      final action = tester.widget<YhButton>(
+        find.widgetWithText(YhButton, '来源与认证设置'),
+      );
+      expect(action.variant, YhButtonVariant.secondary);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await resetView(tester);
+    }
+  });
 
   tearDown(() async {
     StorageService.debugUseSharedPreferencesStorageForTesting(null);
@@ -112,17 +316,31 @@ void main() {
       final controls = find.byKey(const Key('info-mobile-controls'));
       final list = find.byKey(const Key('info-message-list'));
       final pagination = find.byKey(const Key('info-mobile-pagination'));
+      final sourceStrip = find.byKey(const Key('info-compact-source-strip'));
+      final filterButton = find.byKey(const Key('info-mobile-filter-button'));
 
       expect(controls, findsOneWidget);
       expect(list, findsOneWidget);
       expect(pagination, findsOneWidget);
+      expect(sourceStrip, findsOneWidget);
+      expect(filterButton, findsOneWidget);
+      expect(find.text('筛选'), findsOneWidget);
+      expect(find.text('更多筛选'), findsNothing);
       expect(find.text('消息操作'), findsNothing);
-      expect(tester.widget<Padding>(controls).padding, isA<EdgeInsets>());
+      expect(
+        tester.widget<Row>(controls).crossAxisAlignment,
+        CrossAxisAlignment.start,
+      );
 
-      expect(tester.getSize(controls).height, lessThanOrEqualTo(112));
-      expect(tester.getSize(pagination).height, lessThanOrEqualTo(40));
-      expect(tester.getSize(list).height, greaterThanOrEqualTo(500));
-      expect(find.byType(MessageTile), findsAtLeastNWidgets(5));
+      expect(tester.getSize(controls).height, lessThanOrEqualTo(160));
+      expect(tester.getSize(pagination).height, 48);
+      expect(tester.getSize(list).height, greaterThanOrEqualTo(280));
+      expect(tester.getSize(filterButton).height, greaterThanOrEqualTo(48));
+      expect(
+        tester.getTopRight(sourceStrip).dx,
+        lessThanOrEqualTo(tester.getTopLeft(filterButton).dx),
+      );
+      expect(find.byType(MessageTile), findsAtLeastNWidgets(2));
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
@@ -138,27 +356,24 @@ void main() {
       final list = find.byKey(const Key('info-message-list'));
       final pagination = find.byKey(const Key('info-regular-pagination'));
 
-      final title = find.text('信息中心');
-      final markReadButton = find.textContaining('全部标为已读');
+      final title = find.text('校园资讯');
 
       expect(title, findsOneWidget);
-      expect(markReadButton, findsOneWidget);
       expect(find.text('消息操作'), findsNothing);
       expect(controls, findsOneWidget);
       expect(pagination, findsOneWidget);
       expect(find.byKey(const Key('info-mobile-controls')), findsNothing);
       expect(find.byKey(const Key('info-mobile-pagination')), findsNothing);
       expect(list, findsOneWidget);
-      expect(tester.widget<Column>(controls).mainAxisSize, MainAxisSize.min);
-      expect(tester.getSize(controls).height, lessThanOrEqualTo(136));
-      expect(tester.getSize(pagination).height, lessThanOrEqualTo(40));
-      expect(tester.getSize(list).height, greaterThanOrEqualTo(560));
-      expect(tester.getTopLeft(pagination).dy, greaterThan(820));
       expect(
-        (tester.getCenter(markReadButton).dy - tester.getCenter(title).dy)
-            .abs(),
-        lessThanOrEqualTo(20),
+        tester.widget<Row>(controls).crossAxisAlignment,
+        CrossAxisAlignment.start,
       );
+      expect(tester.getSize(controls).height, lessThanOrEqualTo(144));
+      expect(tester.getSize(pagination).height, 48);
+      expect(tester.getSize(list).height, greaterThanOrEqualTo(380));
+      expect(tester.getTopLeft(pagination).dy, greaterThan(760));
+      expect(find.bySemanticsLabel('刷新校园资讯'), findsOneWidget);
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
@@ -178,7 +393,10 @@ void main() {
         bottomPadding: 34,
       );
 
-      await tester.tap(find.byKey(const Key('info-mobile-filter-button')));
+      final filterButton = find.byKey(const Key('info-mobile-filter-button'));
+      await tester.ensureVisible(filterButton);
+      await tester.pump();
+      await tester.tap(filterButton);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
 
@@ -188,6 +406,28 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
       debugDefaultTargetPlatformOverride = previousTargetPlatform;
+      await resetView(tester);
+    }
+  });
+
+  testWidgets('信息页搜索与全部已读保持原有业务状态契约', (tester) async {
+    try {
+      await pumpInfoPage(tester, size: const Size(1200, 900), messageCount: 8);
+
+      await tester.enterText(find.byType(EditableText).first, '测试消息 1');
+      await tester.pump();
+      expect(find.byType(MessageTile), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('info-regular-filter-button')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('全部标为已读'));
+      await tester.pumpAndSettle();
+
+      expect(MessageStateService.instance.isRead('layout-message-0'), isTrue);
+      expect(find.textContaining('全部标为已读 (1)'), findsNothing);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
       await resetView(tester);
     }
   });

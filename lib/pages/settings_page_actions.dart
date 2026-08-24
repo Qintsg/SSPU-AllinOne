@@ -71,35 +71,23 @@ mixin _SettingsPageActions on State<SettingsPage> {
   int get _campusNetworkDetectionIntervalMinutes;
   set _campusNetworkDetectionIntervalMinutes(int value);
 
+  int get _dataAutoRefreshIntervalMinutes;
+  set _dataAutoRefreshIntervalMinutes(int value);
+
   bool get _sportsAttendanceAutoRefreshEnabled;
   set _sportsAttendanceAutoRefreshEnabled(bool value);
-
-  int get _sportsAttendanceAutoRefreshIntervalMinutes;
-  set _sportsAttendanceAutoRefreshIntervalMinutes(int value);
 
   bool get _campusCardAutoRefreshEnabled;
   set _campusCardAutoRefreshEnabled(bool value);
 
-  int get _campusCardAutoRefreshIntervalMinutes;
-  set _campusCardAutoRefreshIntervalMinutes(int value);
-
   bool get _emailAutoRefreshEnabled;
   set _emailAutoRefreshEnabled(bool value);
-
-  int get _emailAutoRefreshIntervalMinutes;
-  set _emailAutoRefreshIntervalMinutes(int value);
 
   bool get _studentReportAutoRefreshEnabled;
   set _studentReportAutoRefreshEnabled(bool value);
 
-  int get _studentReportAutoRefreshIntervalMinutes;
-  set _studentReportAutoRefreshIntervalMinutes(int value);
-
   bool get _academicEamsAutoRefreshEnabled;
   set _academicEamsAutoRefreshEnabled(bool value);
-
-  int get _academicEamsAutoRefreshIntervalMinutes;
-  set _academicEamsAutoRefreshIntervalMinutes(int value);
 
   MessageStateService get _messageState;
 
@@ -152,28 +140,19 @@ mixin _SettingsPageActions on State<SettingsPage> {
     final campusNetworkDetectionInterval = await CampusNetworkStatusService
         .instance
         .getDetectionIntervalMinutes();
+    final dataAutoRefreshInterval = await DataAutoRefreshPreferences.instance
+        .getIntervalMinutes();
     final sportsAttendanceAutoRefreshEnabled = await SportsAttendanceService
         .instance
         .isAutoRefreshEnabled();
-    final sportsAttendanceAutoRefreshInterval = await SportsAttendanceService
-        .instance
-        .getAutoRefreshIntervalMinutes();
     final campusCardAutoRefreshEnabled = await CampusCardService.instance
         .isAutoRefreshEnabled();
-    final campusCardAutoRefreshInterval = await CampusCardService.instance
-        .getAutoRefreshIntervalMinutes();
     final emailAutoRefreshEnabled = await EmailService.instance
         .isAutoRefreshEnabled();
-    final emailAutoRefreshInterval = await EmailService.instance
-        .getAutoRefreshIntervalMinutes();
     final studentReportAutoRefreshEnabled = await StudentReportService.instance
         .isAutoRefreshEnabled();
-    final studentReportAutoRefreshInterval = await StudentReportService.instance
-        .getAutoRefreshIntervalMinutes();
     final academicEamsAutoRefreshEnabled = await AcademicEamsService.instance
         .isAutoRefreshEnabled();
-    final academicEamsAutoRefreshInterval = await AcademicEamsService.instance
-        .getAutoRefreshIntervalMinutes();
 
     if (!mounted) return;
     setState(() {
@@ -196,37 +175,31 @@ mixin _SettingsPageActions on State<SettingsPage> {
       _dndEndHour = dndEndHour;
       _dndEndMinute = dndEndMinute;
       _campusNetworkDetectionIntervalMinutes = campusNetworkDetectionInterval;
+      _dataAutoRefreshIntervalMinutes = dataAutoRefreshInterval;
       _sportsAttendanceAutoRefreshEnabled = sportsAttendanceAutoRefreshEnabled;
-      _sportsAttendanceAutoRefreshIntervalMinutes =
-          sportsAttendanceAutoRefreshInterval;
       _campusCardAutoRefreshEnabled = campusCardAutoRefreshEnabled;
-      _campusCardAutoRefreshIntervalMinutes = campusCardAutoRefreshInterval;
       _emailAutoRefreshEnabled = emailAutoRefreshEnabled;
-      _emailAutoRefreshIntervalMinutes = emailAutoRefreshInterval;
       _studentReportAutoRefreshEnabled = studentReportAutoRefreshEnabled;
-      _studentReportAutoRefreshIntervalMinutes =
-          studentReportAutoRefreshInterval;
       _academicEamsAutoRefreshEnabled = academicEamsAutoRefreshEnabled;
-      _academicEamsAutoRefreshIntervalMinutes = academicEamsAutoRefreshInterval;
       _isLoading = false;
     });
   }
 
   /// 显示操作成功提示。
   void _showSuccessBar(String message) {
-    showFluentInfoBar(
+    showYhFeedback(
       context,
-      title: Text(message),
-      severity: FluentInfoSeverity.success,
+      message: message,
+      severity: AppFeedbackSeverity.success,
     );
   }
 
   /// 显示操作失败提示。
   void _showErrorBar(String message) {
-    showFluentInfoBar(
+    showYhFeedback(
       context,
-      title: Text(message),
-      severity: FluentInfoSeverity.error,
+      message: message,
+      severity: AppFeedbackSeverity.error,
     );
   }
 
@@ -339,7 +312,7 @@ mixin _SettingsPageActions on State<SettingsPage> {
   void _openAcademicCalendar() {
     Navigator.of(
       context,
-    ).push(FluentPageRoute(builder: (_) => AcademicCalendarPage()));
+    ).push(YhPageRoute<void>(builder: (_) => AcademicCalendarPage()));
   }
 
   /// 修改勿扰开始时间。
@@ -381,22 +354,21 @@ mixin _SettingsPageActions on State<SettingsPage> {
     setState(() => _campusNetworkDetectionIntervalMinutes = minutes);
   }
 
+  /// 修改全部校园数据来源共用的自动刷新间隔。
+  ///
+  /// :param minutes: 新的共享刷新间隔分钟数。
+  /// :returns: 偏好保存并更新页面状态后结束。
+  Future<void> _onDataAutoRefreshIntervalChanged(int minutes) async {
+    await DataAutoRefreshPreferences.instance.setIntervalMinutes(minutes);
+    if (!mounted) return;
+    setState(() => _dataAutoRefreshIntervalMinutes = minutes);
+  }
+
   /// 修改体育部课外活动考勤自动刷新开关。
   Future<void> _onSportsAttendanceAutoRefreshChanged(bool enabled) async {
     await SportsAttendanceService.instance.setAutoRefreshEnabled(enabled);
     if (!mounted) return;
     setState(() => _sportsAttendanceAutoRefreshEnabled = enabled);
-  }
-
-  /// 修改体育部课外活动考勤自动刷新间隔。
-  Future<void> _onSportsAttendanceAutoRefreshIntervalChanged(
-    int minutes,
-  ) async {
-    await SportsAttendanceService.instance.setAutoRefreshIntervalMinutes(
-      minutes,
-    );
-    if (!mounted) return;
-    setState(() => _sportsAttendanceAutoRefreshIntervalMinutes = minutes);
   }
 
   /// 修改校园卡余额自动刷新开关。
@@ -406,25 +378,11 @@ mixin _SettingsPageActions on State<SettingsPage> {
     setState(() => _campusCardAutoRefreshEnabled = enabled);
   }
 
-  /// 修改校园卡余额自动刷新间隔。
-  Future<void> _onCampusCardAutoRefreshIntervalChanged(int minutes) async {
-    await CampusCardService.instance.setAutoRefreshIntervalMinutes(minutes);
-    if (!mounted) return;
-    setState(() => _campusCardAutoRefreshIntervalMinutes = minutes);
-  }
-
   /// 修改学校邮箱自动刷新开关。
   Future<void> _onEmailAutoRefreshChanged(bool enabled) async {
     await EmailService.instance.setAutoRefreshEnabled(enabled);
     if (!mounted) return;
     setState(() => _emailAutoRefreshEnabled = enabled);
-  }
-
-  /// 修改学校邮箱自动刷新间隔。
-  Future<void> _onEmailAutoRefreshIntervalChanged(int minutes) async {
-    await EmailService.instance.setAutoRefreshIntervalMinutes(minutes);
-    if (!mounted) return;
-    setState(() => _emailAutoRefreshIntervalMinutes = minutes);
   }
 
   /// 修改第二课堂学分自动刷新开关。
@@ -434,185 +392,10 @@ mixin _SettingsPageActions on State<SettingsPage> {
     setState(() => _studentReportAutoRefreshEnabled = enabled);
   }
 
-  /// 修改第二课堂学分自动刷新间隔。
-  Future<void> _onStudentReportAutoRefreshIntervalChanged(int minutes) async {
-    await StudentReportService.instance.setAutoRefreshIntervalMinutes(minutes);
-    if (!mounted) return;
-    setState(() => _studentReportAutoRefreshIntervalMinutes = minutes);
-  }
-
   /// 修改本专科教务自动刷新开关。
   Future<void> _onAcademicEamsAutoRefreshChanged(bool enabled) async {
     await AcademicEamsService.instance.setAutoRefreshEnabled(enabled);
     if (!mounted) return;
     setState(() => _academicEamsAutoRefreshEnabled = enabled);
-  }
-
-  /// 修改本专科教务自动刷新间隔。
-  Future<void> _onAcademicEamsAutoRefreshIntervalChanged(int minutes) async {
-    await AcademicEamsService.instance.setAutoRefreshIntervalMinutes(minutes);
-    if (!mounted) return;
-    setState(() => _academicEamsAutoRefreshIntervalMinutes = minutes);
-  }
-
-  /// 切换密码保护。
-  Future<void> _onPasswordProtectionChanged(bool enabled) async {
-    if (enabled) {
-      final ok = await showSetPasswordDialog(context);
-      if (ok && mounted) {
-        setState(() {
-          _isPasswordEnabled = true;
-          _isQuickAuthEnabled = false;
-        });
-        _showSuccessBar('密码已设置');
-      }
-      return;
-    }
-
-    final ok = await showRemovePasswordDialog(context);
-    if (ok && mounted) {
-      setState(() {
-        _isPasswordEnabled = false;
-        _isQuickAuthEnabled = false;
-      });
-      _showSuccessBar('密码保护已移除');
-    }
-  }
-
-  /// 修改密码。
-  Future<void> _onChangePassword() async {
-    final ok = await showChangePasswordDialog(context);
-    if (ok && mounted) {
-      setState(() => _isQuickAuthEnabled = false);
-      _showSuccessBar('密码已修改');
-    }
-  }
-
-  /// 修改系统快速验证开关。
-  Future<void> _onQuickAuthChanged(bool enabled) async {
-    if (!_isPasswordEnabled || _isQuickAuthBusy) return;
-
-    if (!enabled) {
-      await PasswordService.setQuickAuthEnabled(false);
-      if (!mounted) return;
-      setState(() => _isQuickAuthEnabled = false);
-      _showSuccessBar('系统快速验证已关闭');
-      return;
-    }
-
-    if (!_isQuickAuthAvailable) {
-      _showErrorBar('当前平台或设备不支持系统快速验证');
-      return;
-    }
-
-    final passwordConfirmed = await showConfirmCurrentPasswordDialog(
-      context,
-      title: '启用系统快速验证',
-      message: '请输入当前密码。通过后将调用系统认证完成启用确认。',
-      confirmLabel: '继续',
-    );
-    if (!passwordConfirmed || !mounted) return;
-
-    setState(() => _isQuickAuthBusy = true);
-    final authResult = await SystemAuthService.instance.authenticate(
-      localizedReason: '验证身份以启用 ${AppDisplayName.of(context)} 系统快速解锁',
-    );
-    if (!mounted) return;
-
-    if (authResult == SystemAuthResult.success) {
-      await PasswordService.setQuickAuthEnabled(true);
-      if (!mounted) return;
-      setState(() {
-        _isQuickAuthEnabled = true;
-        _isQuickAuthBusy = false;
-      });
-      _showSuccessBar('系统快速验证已启用');
-      return;
-    }
-
-    await PasswordService.setQuickAuthEnabled(false);
-    if (!mounted) return;
-    setState(() {
-      _isQuickAuthEnabled = false;
-      _isQuickAuthBusy = false;
-    });
-    _showErrorBar('系统认证未完成，已保留手动密码解锁');
-  }
-
-  /// 清理信息中心缓存。
-  Future<void> _showClearMessageCacheDialog() async {
-    final confirmed = await showFluentDialog<bool>(
-      context: context,
-      builder: (ctx) => FluentDialog(
-        title: const Text('清理信息中心缓存'),
-        content: const FluentDialogMessage(
-          icon: FluentIcons.broom,
-          message: '将清除信息中心缓存的官网消息和微信公众号文章。',
-          details: '登录信息、设置和关注列表不会受到影响。点击弹窗外区域可取消本次操作。',
-        ),
-        actions: [
-          FluentButton.outline(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
-          ),
-          FluentButton.primary(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('确认清理'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await StorageService.remove(MessageChannelKeys.persistedMessages);
-      await StorageService.remove(MessageChannelKeys.readMessageIds);
-      if (!mounted) return;
-      showFluentInfoBar(
-        context,
-        title: const Text('信息中心缓存已清理'),
-        severity: FluentInfoSeverity.success,
-        actionBuilder: (close) => FluentIconButton(
-          icon: const Icon(FluentIcons.clear),
-          onPressed: close,
-        ),
-      );
-    }
-  }
-
-  /// 清除所有本地数据并退出。
-  Future<void> _showClearAllDataDialog() async {
-    final confirmed = await showFluentDialog<bool>(
-      context: context,
-      builder: (ctx) => FluentDialog(
-        title: const Text('确认清除所有数据'),
-        content: const FluentDialogMessage(
-          icon: FluentIcons.delete,
-          tone: FluentDialogMessageTone.danger,
-          message: '将清除所有本地数据，包括登录信息、设置和缓存。',
-          details: '操作完成后应用会退出。点击弹窗外区域可取消本次操作。',
-        ),
-        actions: [
-          FluentButton.outline(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
-          ),
-          FluentButton.primary(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('确认清除并退出'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await AcademicCredentialsService.instance.clearAll();
-        await StorageService.clearAll();
-        await AppExitService.instance.exit();
-      } catch (_) {
-        if (!mounted) return;
-        _showErrorBar('清除失败，请确认系统安全存储可用');
-      }
-    }
   }
 }

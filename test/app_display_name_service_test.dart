@@ -6,7 +6,7 @@
  * @Date : 2026-06-06
  */
 
-import 'package:sspu_allinone/design/fluent_ui.dart';
+import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/services/app_display_name_service.dart';
 
@@ -37,7 +37,7 @@ void main() {
 
   testWidgets('BuildContext 优先使用 Flutter Localizations locale', (tester) async {
     await tester.pumpWidget(
-      FluentApp(
+      YhApp(
         locale: const Locale('zh'),
         supportedLocales: const [Locale('zh'), Locale('en')],
         home: Builder(builder: (context) => Text(AppDisplayName.of(context))),

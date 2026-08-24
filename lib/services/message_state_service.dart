@@ -178,10 +178,11 @@ class MessageStateService
     await StorageService.setBool(MessageChannelKeys.wechatPublicEnabled, true);
   }
 
-  /// 获取微信服务号渠道是否启用（默认关闭 — 占位）
+  /// 获取微信服务号渠道是否启用（默认开启 — 占位）
   Future<bool> isWechatServiceEnabled() async {
     return await StorageService.getBool(
       MessageChannelKeys.wechatServiceEnabled,
+      defaultValue: true,
     );
   }
 

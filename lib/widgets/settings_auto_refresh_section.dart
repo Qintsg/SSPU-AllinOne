@@ -6,9 +6,7 @@
  * @Date : 2026-04-27
  */
 
-import '../design/fluent_ui.dart';
-
-import '../theme/app_spacing.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import 'settings_widgets.dart';
 
 part 'settings_auto_refresh_rows.dart';
@@ -18,35 +16,23 @@ class SettingsAutoRefreshSection extends StatelessWidget {
   /// 校园网 / VPN 状态检测间隔，单位分钟。
   final int campusNetworkDetectionIntervalMinutes;
 
+  /// 校园数据来源共用的自动刷新间隔，单位分钟。
+  final int dataAutoRefreshIntervalMinutes;
+
   /// 体育部课外活动考勤自动刷新开关。
   final bool sportsAttendanceAutoRefreshEnabled;
-
-  /// 体育部课外活动考勤自动刷新间隔，单位分钟。
-  final int sportsAttendanceAutoRefreshIntervalMinutes;
 
   /// 校园卡余额自动刷新开关。
   final bool campusCardAutoRefreshEnabled;
 
-  /// 校园卡余额自动刷新间隔，单位分钟。
-  final int campusCardAutoRefreshIntervalMinutes;
-
   /// 学校邮箱自动刷新开关。
   final bool emailAutoRefreshEnabled;
-
-  /// 学校邮箱自动刷新间隔，单位分钟。
-  final int emailAutoRefreshIntervalMinutes;
 
   /// 第二课堂学分自动刷新开关。
   final bool studentReportAutoRefreshEnabled;
 
-  /// 第二课堂学分自动刷新间隔，单位分钟。
-  final int studentReportAutoRefreshIntervalMinutes;
-
   /// 本专科教务自动刷新开关。
   final bool academicEamsAutoRefreshEnabled;
-
-  /// 本专科教务自动刷新间隔，单位分钟。
-  final int academicEamsAutoRefreshIntervalMinutes;
 
   /// 校园网 / VPN 状态检测间隔修改回调。
   final Future<void> Function(int minutes)
@@ -56,36 +42,20 @@ class SettingsAutoRefreshSection extends StatelessWidget {
   final Future<void> Function(bool enabled)
   onSportsAttendanceAutoRefreshChanged;
 
-  /// 体育部课外活动考勤自动刷新间隔修改回调。
-  final Future<void> Function(int minutes)
-  onSportsAttendanceAutoRefreshIntervalChanged;
+  /// 校园数据来源共用刷新间隔修改回调。
+  final Future<void> Function(int minutes) onDataAutoRefreshIntervalChanged;
 
   /// 校园卡余额自动刷新开关修改回调。
   final Future<void> Function(bool enabled) onCampusCardAutoRefreshChanged;
 
-  /// 校园卡余额自动刷新间隔修改回调。
-  final Future<void> Function(int minutes)
-  onCampusCardAutoRefreshIntervalChanged;
-
   /// 学校邮箱自动刷新开关修改回调。
   final Future<void> Function(bool enabled) onEmailAutoRefreshChanged;
-
-  /// 学校邮箱自动刷新间隔修改回调。
-  final Future<void> Function(int minutes) onEmailAutoRefreshIntervalChanged;
 
   /// 第二课堂学分自动刷新开关修改回调。
   final Future<void> Function(bool enabled) onStudentReportAutoRefreshChanged;
 
-  /// 第二课堂学分自动刷新间隔修改回调。
-  final Future<void> Function(int minutes)
-  onStudentReportAutoRefreshIntervalChanged;
-
   /// 本专科教务自动刷新开关修改回调。
   final Future<void> Function(bool enabled) onAcademicEamsAutoRefreshChanged;
-
-  /// 本专科教务自动刷新间隔修改回调。
-  final Future<void> Function(int minutes)
-  onAcademicEamsAutoRefreshIntervalChanged;
 
   /// 跳转职能部门自动刷新设置。
   final VoidCallback onOpenDepartmentRefreshSettings;
@@ -99,27 +69,19 @@ class SettingsAutoRefreshSection extends StatelessWidget {
   const SettingsAutoRefreshSection({
     super.key,
     required this.campusNetworkDetectionIntervalMinutes,
+    required this.dataAutoRefreshIntervalMinutes,
     required this.sportsAttendanceAutoRefreshEnabled,
-    required this.sportsAttendanceAutoRefreshIntervalMinutes,
     required this.campusCardAutoRefreshEnabled,
-    required this.campusCardAutoRefreshIntervalMinutes,
     required this.emailAutoRefreshEnabled,
-    required this.emailAutoRefreshIntervalMinutes,
     required this.studentReportAutoRefreshEnabled,
-    required this.studentReportAutoRefreshIntervalMinutes,
     required this.academicEamsAutoRefreshEnabled,
-    required this.academicEamsAutoRefreshIntervalMinutes,
     required this.onCampusNetworkDetectionIntervalChanged,
+    required this.onDataAutoRefreshIntervalChanged,
     required this.onSportsAttendanceAutoRefreshChanged,
-    required this.onSportsAttendanceAutoRefreshIntervalChanged,
     required this.onCampusCardAutoRefreshChanged,
-    required this.onCampusCardAutoRefreshIntervalChanged,
     required this.onEmailAutoRefreshChanged,
-    required this.onEmailAutoRefreshIntervalChanged,
     required this.onStudentReportAutoRefreshChanged,
-    required this.onStudentReportAutoRefreshIntervalChanged,
     required this.onAcademicEamsAutoRefreshChanged,
-    required this.onAcademicEamsAutoRefreshIntervalChanged,
     required this.onOpenDepartmentRefreshSettings,
     required this.onOpenTeachingRefreshSettings,
     required this.onOpenWechatRefreshSettings,
@@ -127,118 +89,154 @@ class SettingsAutoRefreshSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildCampusNetworkIntervalCard(context),
-        const SizedBox(height: AppSpacing.lg),
+        _buildDataRefreshCard(context),
+        SizedBox(height: theme.spacing.l),
+        _buildConnectionDetectionCard(context),
+        SizedBox(height: theme.spacing.l),
         _buildRefreshShortcutCard(context),
       ],
     );
   }
 
-  Widget _buildCampusNetworkIntervalCard(BuildContext context) {
-    final type = context.fluentType;
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: AppSpacing.cardPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Semantics(header: true, child: Text('自动刷新设置', style: type.subtitle1)),
-            const SizedBox(height: AppSpacing.md),
-            buildResponsiveSettingsRow(
-              context: context,
-              icon: FluentIcons.power,
-              title: Text('校园网 / VPN 状态检测', style: type.body1Strong),
-              subtitle: Text(
-                '控制导航栏状态徽标的自动检测频率；关闭后仍可点击徽标手动检测',
-                style: type.caption1,
-              ),
-              trailing: _buildIntervalComboBox(),
+  /// 构建校园数据共享刷新设置卡片。
+  ///
+  /// :param context: 当前构建上下文。
+  /// :returns: 含统一频率和五个来源开关的卡片。
+  Widget _buildDataRefreshCard(BuildContext context) {
+    final theme = context.yhTheme;
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            header: true,
+            child: Text('校园数据自动刷新', style: theme.typography.h3),
+          ),
+          SizedBox(height: theme.spacing.s),
+          Text(
+            '教务、体育、第二课堂、校园卡和邮箱共用一个刷新频率；每项仍可独立暂停。',
+            style: theme.typography.small.copyWith(color: theme.color.muted),
+          ),
+          SizedBox(height: theme.spacing.m),
+          buildResponsiveSettingsRow(
+            context: context,
+            icon: YhIcons.sync,
+            title: _title(context, '统一刷新频率'),
+            subtitle: Text(
+              '修改后同时应用到以下五个校园数据来源',
+              style: theme.typography.small.copyWith(color: theme.color.muted),
             ),
-            const SizedBox(height: AppSpacing.md),
-            _buildSportsAttendanceAutoRefreshRow(context),
-            const SizedBox(height: AppSpacing.md),
-            _buildCampusCardAutoRefreshRow(context),
-            const SizedBox(height: AppSpacing.md),
-            _buildEmailAutoRefreshRow(context),
-            const SizedBox(height: AppSpacing.md),
-            _buildStudentReportAutoRefreshRow(context),
-            const SizedBox(height: AppSpacing.md),
-            _buildAcademicEamsAutoRefreshRow(context),
-          ],
-        ),
+            trailing: _buildDataRefreshIntervalComboBox(context),
+          ),
+          SizedBox(height: theme.spacing.m),
+          _buildAcademicEamsAutoRefreshRow(context),
+          SizedBox(height: theme.spacing.m),
+          _buildSportsAttendanceAutoRefreshRow(context),
+          SizedBox(height: theme.spacing.m),
+          _buildStudentReportAutoRefreshRow(context),
+          SizedBox(height: theme.spacing.m),
+          _buildCampusCardAutoRefreshRow(context),
+          SizedBox(height: theme.spacing.m),
+          _buildEmailAutoRefreshRow(context),
+        ],
       ),
     );
   }
 
+  /// 构建校园网与 VPN 状态检测设置卡片。
+  ///
+  /// :param context: 当前构建上下文。
+  /// :returns: 独立网络检测频率卡片。
+  Widget _buildConnectionDetectionCard(BuildContext context) {
+    final theme = context.yhTheme;
+    return YhCard(
+      child: buildResponsiveSettingsRow(
+        context: context,
+        icon: YhIcons.networkVpn,
+        title: _title(context, '校园网 / VPN 状态检测'),
+        subtitle: Text(
+          '仅控制导航栏网络状态检测，不影响校园数据刷新频率',
+          style: theme.typography.small.copyWith(color: theme.color.muted),
+        ),
+        trailing: _buildNetworkIntervalComboBox(context),
+      ),
+    );
+  }
+
+  /// 构建消息来源设置快捷入口卡片。
+  ///
+  /// :param context: 当前构建上下文。
+  /// :returns: 三类消息来源的管理入口。
   Widget _buildRefreshShortcutCard(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    return FluentCard(
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: AppSpacing.cardPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Semantics(header: true, child: Text('消息自动刷新快捷入口', style: type.subtitle1)),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              '以下入口会跳转到对应分区顶部的自动刷新设置面板。',
-              style: type.caption1.copyWith(color: colors.neutralForeground2),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildShortcutRow(
-              context: context,
-              icon: FluentIcons.education,
-              title: '职能部门',
-              description: '配置职能部门官网消息的自动刷新频率和抓取条数',
-              onPressed: onOpenDepartmentRefreshSettings,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildShortcutRow(
-              context: context,
-              icon: FluentIcons.library,
-              title: '教学单位',
-              description: '配置学院、中心等教学单位消息的自动刷新频率和抓取条数',
-              onPressed: onOpenTeachingRefreshSettings,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildShortcutRow(
-              context: context,
-              icon: FluentIcons.chat,
-              title: '微信推文',
-              description: '配置公众号平台推文的自动刷新频率和抓取条数',
-              onPressed: onOpenWechatRefreshSettings,
-            ),
-          ],
-        ),
+    final theme = context.yhTheme;
+    return YhCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            header: true,
+            child: Text('消息来源', style: theme.typography.h3),
+          ),
+          SizedBox(height: theme.spacing.s),
+          Text(
+            '管理官网与公众号消息的显示、抓取条数和刷新策略。',
+            style: theme.typography.small.copyWith(color: theme.color.muted),
+          ),
+          SizedBox(height: theme.spacing.m),
+          _buildShortcutRow(
+            context: context,
+            icon: YhIcons.education,
+            title: '职能部门',
+            description: '学校官网与职能部门消息',
+            onPressed: onOpenDepartmentRefreshSettings,
+          ),
+          SizedBox(height: theme.spacing.m),
+          _buildShortcutRow(
+            context: context,
+            icon: YhIcons.library,
+            title: '教学单位',
+            description: '学院、中心与教学单位消息',
+            onPressed: onOpenTeachingRefreshSettings,
+          ),
+          SizedBox(height: theme.spacing.m),
+          _buildShortcutRow(
+            context: context,
+            icon: YhIcons.chat,
+            title: '微信推文',
+            description: '微信公众号平台推文',
+            onPressed: onOpenWechatRefreshSettings,
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildIntervalComboBox() {
+  /// 构建校园网状态检测间隔选择器。
+  ///
+  /// :param context: 当前构建上下文。
+  /// :returns: 网络检测间隔选择控件。
+  Widget _buildNetworkIntervalComboBox(BuildContext context) {
     final selectedValue =
         kIntervalOptions.containsKey(campusNetworkDetectionIntervalMinutes)
         ? campusNetworkDetectionIntervalMinutes
         : 15;
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 180),
-      child: FluentSelect<int>(
-        isExpanded: true,
+      constraints: BoxConstraints(
+        maxWidth: context.yhTheme.layout.inlineControlWidth,
+      ),
+      child: YhSelect<int>(
+        label: '校园网检测间隔',
+        showLabel: false,
         value: selectedValue,
-        items: kIntervalOptions.entries
-            .map(
-              (entry) => FluentSelectItem<int>(
-                value: entry.key,
-                child: Text(entry.value),
-              ),
-            )
-            .toList(),
+        options: [
+          for (final entry in kIntervalOptions.entries)
+            YhSelectOption<int>(value: entry.key, label: entry.value),
+        ],
         onChanged: (value) {
           if (value != null) {
             onCampusNetworkDetectionIntervalChanged(value);
@@ -248,6 +246,46 @@ class SettingsAutoRefreshSection extends StatelessWidget {
     );
   }
 
+  /// 构建五个校园数据来源共用的刷新间隔选择器。
+  ///
+  /// :param context: 当前构建上下文。
+  /// :returns: 共享刷新间隔选择控件。
+  Widget _buildDataRefreshIntervalComboBox(BuildContext context) {
+    final enabledOptions = kIntervalOptions.entries.where(
+      (entry) => entry.key > 0,
+    );
+    final selectedValue =
+        kIntervalOptions.containsKey(dataAutoRefreshIntervalMinutes)
+        ? dataAutoRefreshIntervalMinutes
+        : 30;
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: context.yhTheme.layout.inlineControlWidth,
+      ),
+      child: YhSelect<int>(
+        key: const Key('settings-data-refresh-interval'),
+        label: '校园数据统一刷新间隔',
+        showLabel: false,
+        value: selectedValue,
+        options: [
+          for (final entry in enabledOptions)
+            YhSelectOption<int>(value: entry.key, label: entry.value),
+        ],
+        onChanged: (value) {
+          if (value != null) onDataAutoRefreshIntervalChanged(value);
+        },
+      ),
+    );
+  }
+
+  /// 构建单个消息来源管理入口。
+  ///
+  /// :param context: 当前构建上下文。
+  /// :param icon: 来源图标。
+  /// :param title: 来源名称。
+  /// :param description: 来源内容说明。
+  /// :param onPressed: 打开来源设置的回调。
+  /// :returns: 响应式消息来源入口行。
   Widget _buildShortcutRow({
     required BuildContext context,
     required IconData icon,
@@ -255,16 +293,33 @@ class SettingsAutoRefreshSection extends StatelessWidget {
     required String description,
     required VoidCallback onPressed,
   }) {
-    final type = context.fluentType;
     return buildResponsiveSettingsRow(
       context: context,
       icon: icon,
-      title: Text(title, style: type.body1Strong),
-      subtitle: Text(description, style: type.caption1),
-      trailing: FluentButton.outline(
-        onPressed: onPressed,
-        child: const Text('前往设置'),
+      title: _title(context, title),
+      subtitle: Text(
+        description,
+        style: context.yhTheme.typography.small.copyWith(
+          color: context.yhTheme.color.muted,
+        ),
+      ),
+      trailing: YhButton(
+        label: '管理',
+        onTap: onPressed,
+        variant: YhButtonVariant.secondary,
       ),
     );
   }
+
+  /// 构建设置行标题文本。
+  ///
+  /// :param context: 当前构建上下文。
+  /// :param text: 标题内容。
+  /// :returns: 使用设置标题字重的文本组件。
+  Widget _title(BuildContext context, String text) => Text(
+    text,
+    style: context.yhTheme.typography.body.copyWith(
+      fontWeight: FontWeight.w600,
+    ),
+  );
 }

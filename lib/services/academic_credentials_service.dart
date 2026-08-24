@@ -55,10 +55,16 @@ class AcademicCredentialsService {
 
   final StreamController<int> _changeController =
       StreamController<int>.broadcast();
+  final StreamController<int> _oaChangeController =
+      StreamController<int>.broadcast();
   int _changeVersion = 0;
+  int _oaChangeVersion = 0;
 
   /// 凭据变化通知；页面据此丢弃已挂载的旧账号业务状态。
   Stream<int> get changes => _changeController.stream;
+
+  /// OA 账号或密码变化通知；只依赖 OA 身份的页面不受邮箱、体育密码扰动。
+  Stream<int> get oaChanges => _oaChangeController.stream;
 
   /// 获取设置页展示所需的凭据状态。
   Future<AcademicCredentialsStatus> getStatus() async {
@@ -103,6 +109,7 @@ class AcademicCredentialsService {
     await _writeWhenPresent(_sportsQueryPasswordKey, sportsQueryPassword);
     await _writeWhenPresent(_emailPasswordKey, emailPassword);
     if (hasOaAccountChanged || hasPasswordChanged) _notifyChanged();
+    if (shouldClearOaSession) _notifyOaChanged();
   }
 
   /// 读取指定密码字段原文，供后续登录外部网站使用。
@@ -228,6 +235,7 @@ class AcademicCredentialsService {
     if (secret == AcademicCredentialSecret.oaPassword) {
       await clearOaLoginSession();
       await clearStudentProfile();
+      _notifyOaChanged();
     }
     _notifyChanged();
   }
@@ -239,6 +247,7 @@ class AcademicCredentialsService {
     }
     await AuthenticatedDataCacheService.clearAll();
     _notifyChanged();
+    _notifyOaChanged();
   }
 
   /// 当前服务管理的全部安全存储键。
@@ -311,5 +320,10 @@ class AcademicCredentialsService {
   void _notifyChanged() {
     _changeVersion++;
     _changeController.add(_changeVersion);
+  }
+
+  void _notifyOaChanged() {
+    _oaChangeVersion++;
+    _oaChangeController.add(_oaChangeVersion);
   }
 }

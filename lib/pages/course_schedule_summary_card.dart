@@ -6,10 +6,9 @@
  * @Date : 2026-06-11
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import '../models/academic_eams.dart';
 import '../services/academic_term_service.dart';
-import '../theme/fluent_tokens.dart';
 
 /// 课程表页顶部的本学期概览卡片。
 class CourseScheduleSummaryCard extends StatelessWidget {
@@ -35,59 +34,54 @@ class CourseScheduleSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     final profile = snapshot.profile;
     final courseTable = snapshot.courseTable!;
     final planText = _validProgramPlanText(snapshot.programCompletion);
     final metrics = [
       _CourseSummaryMetric(
-        icon: FluentIcons.calendarWeek,
+        icon: YhIcons.calendar,
         label: '学期',
         value: _resolvedTermName(courseTable.termName),
       ),
       _CourseSummaryMetric(
-        icon: FluentIcons.education,
+        icon: YhIcons.education,
         label: '课程数',
         value: '${courseTable.entries.length} 门',
       ),
       _CourseSummaryMetric(
-        icon: FluentIcons.clock,
+        icon: YhIcons.clock,
         label: '刷新时间',
         value: _formatTime(checkedAt),
       ),
       if (planText != null)
         _CourseSummaryMetric(
-          icon: FluentIcons.task,
+          icon: YhIcons.task,
           label: '培养计划',
           value: planText,
         ),
     ];
 
-    return FluentSurface(
-      padding: const EdgeInsets.all(FluentSpacing.l),
-      accentColor: context.fluentAccents.schedule,
+    return YhCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FluentSectionHeader(
-            title: '本学期概览',
+          _CourseSummaryHeader(
             subtitle: autoRefreshEnabled
                 ? '自动刷新每 $autoRefreshIntervalMinutes 分钟运行一次'
                 : '自动刷新未开启，可使用右上角按钮手动读取',
-            icon: FluentIcons.calendar,
-            accentColor: context.fluentAccents.schedule,
           ),
-          const SizedBox(height: FluentSpacing.m),
+          SizedBox(height: theme.spacing.m),
           _CourseSummaryMetricGrid(metrics: metrics),
           if (profile != null && profile.hasAnyValue) ...[
-            const SizedBox(height: FluentSpacing.m),
+            SizedBox(height: theme.spacing.m),
             _CourseProfileStrip(profile: profile),
           ],
           if (snapshot.warnings.isNotEmpty) ...[
-            const SizedBox(height: FluentSpacing.m),
-            FluentInfoBar(
-              title: const Text('课表已可用，部分教务模块仍在降级'),
-              content: Text(snapshot.warnings.join('；')),
-              severity: FluentInfoSeverity.warning,
+            SizedBox(height: theme.spacing.m),
+            YhBanner(
+              text: '课表已可用，部分教务模块仍在降级：${snapshot.warnings.join('；')}',
+              kind: YhBannerKind.warn,
             ),
           ],
         ],
@@ -129,6 +123,53 @@ class CourseScheduleSummaryCard extends StatelessWidget {
   }
 }
 
+class _CourseSummaryHeader extends StatelessWidget {
+  const _CourseSummaryHeader({required this.subtitle});
+
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    final accent = theme.color.serviceSchedule;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: theme.color.sunken,
+            border: Border.all(color: accent),
+            borderRadius: BorderRadius.circular(theme.radius.s),
+          ),
+          child: SizedBox.square(
+            dimension: theme.spacing.xl2,
+            child: Icon(YhIcons.calendar, color: accent),
+          ),
+        ),
+        SizedBox(width: theme.spacing.m),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Semantics(
+                header: true,
+                child: Text('本学期概览', style: theme.typography.h3),
+              ),
+              SizedBox(height: theme.spacing.xs),
+              Text(
+                subtitle,
+                style: theme.typography.small.copyWith(
+                  color: theme.color.muted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _CourseSummaryMetricGrid extends StatelessWidget {
   const _CourseSummaryMetricGrid({required this.metrics});
 
@@ -136,19 +177,20 @@ class _CourseSummaryMetricGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final columns = width >= 900
+        final columns = width >= theme.breakpoint.medium
             ? 4
-            : width >= 560
+            : width >= theme.breakpoint.compact
             ? 2
             : 1;
-        final itemWidth = (width - FluentSpacing.s * (columns - 1)) / columns;
+        final itemWidth = (width - theme.spacing.s * (columns - 1)) / columns;
 
         return Wrap(
-          spacing: FluentSpacing.s,
-          runSpacing: FluentSpacing.s,
+          spacing: theme.spacing.s,
+          runSpacing: theme.spacing.s,
           children: [
             for (final metric in metrics)
               SizedBox(width: itemWidth, child: metric),
@@ -172,46 +214,47 @@ class _CourseSummaryMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
-    final radii = context.fluentRadii;
-    final accent = context.fluentAccents.schedule;
+    final theme = context.yhTheme;
+    final accent = theme.color.serviceSchedule;
 
-    return Container(
-      padding: const EdgeInsets.all(FluentSpacing.m),
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.08),
-        borderRadius: radii.largeBorder,
-        border: Border.all(color: accent.withValues(alpha: 0.18)),
+        color: theme.color.sunken,
+        borderRadius: BorderRadius.circular(theme.radius.input),
+        border: Border.all(color: theme.color.border),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 18, color: accent),
-          const SizedBox(width: FluentSpacing.s),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: type.caption1.copyWith(
-                    color: colors.neutralForeground3,
+      child: Padding(
+        padding: EdgeInsets.all(theme.spacing.m),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: theme.spacing.l, color: accent),
+            SizedBox(width: theme.spacing.s),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: theme.typography.caption.copyWith(
+                      color: theme.color.muted,
+                    ),
                   ),
-                ),
-                const SizedBox(height: FluentSpacing.xxs),
-                Text(
-                  value,
-                  softWrap: true,
-                  style: type.body1Strong.copyWith(
-                    color: colors.neutralForeground1,
+                  SizedBox(height: theme.spacing.xs),
+                  Text(
+                    value,
+                    softWrap: true,
+                    style: theme.typography.body.copyWith(
+                      color: theme.color.foreground,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -224,6 +267,7 @@ class _CourseProfileStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.yhTheme;
     final items = [
       if (_hasText(profile.name)) ('姓名', profile.name!.trim()),
       if (_hasText(profile.department)) ('院系', profile.department!.trim()),
@@ -232,21 +276,25 @@ class _CourseProfileStrip extends StatelessWidget {
     ];
     if (items.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(FluentSpacing.m),
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: context.fluentColors.neutralBackground2,
-        borderRadius: context.fluentRadii.largeBorder,
-        border: Border.all(color: context.fluentColors.neutralStroke2),
+        color: theme.color.sunken,
+        borderRadius: BorderRadius.circular(theme.radius.input),
+        border: Border.all(color: theme.color.border),
       ),
-      child: Wrap(
-        spacing: FluentSpacing.l,
-        runSpacing: FluentSpacing.s,
-        children: [
-          for (final item in items)
-            _CourseProfileItem(label: item.$1, value: item.$2),
-        ],
+      child: SizedBox(
+        width: double.infinity,
+        child: Padding(
+          padding: EdgeInsets.all(theme.spacing.m),
+          child: Wrap(
+            spacing: theme.spacing.l,
+            runSpacing: theme.spacing.s,
+            children: [
+              for (final item in items)
+                _CourseProfileItem(label: item.$1, value: item.$2),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -262,24 +310,27 @@ class _CourseProfileItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.fluentColors;
-    final type = context.fluentType;
+    final theme = context.yhTheme;
     return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 96, maxWidth: 360),
+      constraints: BoxConstraints(
+        minWidth: theme.control.regular * 2,
+        maxWidth: theme.breakpoint.compact - theme.spacing.xl2 * 5,
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '$label：',
-            style: type.body1.copyWith(color: colors.neutralForeground3),
+            style: theme.typography.body.copyWith(color: theme.color.muted),
           ),
           Flexible(
             child: Text(
               value,
               softWrap: true,
-              style: type.body1Strong.copyWith(
-                color: colors.neutralForeground1,
+              style: theme.typography.body.copyWith(
+                color: theme.color.foreground,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),

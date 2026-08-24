@@ -6,6 +6,8 @@
  * @Date : 2026-06-11
  */
 
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sspu_allinone/controllers/card_auto_refresh_controller.dart';
 
@@ -45,13 +47,71 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await controller.runRefresh(silent: true);
+    final outcome = await controller.runRefresh(silent: true);
 
     expect(fetchCount, 1);
     expect(appliedResult.success, isTrue);
     expect(appliedResult.checkedAt, DateTime(2026, 6, 11, 8));
     expect(controller.isLoading, isFalse);
     expect(controller.feedback, isNull);
+    expect(outcome?.result?.success, isFalse);
+    expect(outcome?.success, isFalse);
+    expect(outcome?.applied, isFalse);
+  });
+
+  test('刷新任务抛出异常后解除加载锁并返回失败结果', () async {
+    final controller = CardAutoRefreshController<_RefreshResult>(
+      refreshTask: ({required bool silent}) =>
+          Future<_RefreshResult>.error(StateError('network exploded')),
+      isSuccess: (result) => result.success,
+      applyResult: (_) {},
+      checkedAt: () => null,
+      failureReason: (result) => result.reason,
+    );
+    addTearDown(controller.dispose);
+
+    final outcome = await controller.runRefresh(silent: true);
+
+    expect(outcome?.success, isFalse);
+    expect(outcome?.applied, isFalse);
+    expect(outcome?.error, isA<StateError>());
+    expect(controller.isLoading, isFalse);
+  });
+
+  test('清除瞬态状态后旧代请求不得覆盖新代结果', () async {
+    final first = Completer<_RefreshResult>();
+    final second = Completer<_RefreshResult>();
+    var callCount = 0;
+    _RefreshResult? appliedResult;
+    final controller = CardAutoRefreshController<_RefreshResult>(
+      refreshTask: ({required bool silent}) {
+        callCount++;
+        return callCount == 1 ? first.future : second.future;
+      },
+      isSuccess: (result) => result.success,
+      applyResult: (result) => appliedResult = result,
+      checkedAt: () => appliedResult?.checkedAt,
+      failureReason: (result) => result.reason,
+    );
+    addTearDown(controller.dispose);
+
+    final oldRequest = controller.runRefresh(silent: true);
+    controller.clearTransientState();
+    final newRequest = controller.runRefresh(silent: true);
+    final newResult = _RefreshResult(
+      success: true,
+      checkedAt: DateTime(2026, 7, 29, 10),
+    );
+    second.complete(newResult);
+    expect((await newRequest)?.applied, isTrue);
+    expect(appliedResult, same(newResult));
+
+    first.complete(
+      _RefreshResult(success: true, checkedAt: DateTime(2026, 7, 29, 9)),
+    );
+    expect((await oldRequest)?.applied, isFalse);
+    expect(appliedResult, same(newResult));
+    expect(controller.isLoading, isFalse);
   });
 
   testWidgets('手动刷新失败显示短反馈并在三秒后恢复', (tester) async {

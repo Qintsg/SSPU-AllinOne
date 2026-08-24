@@ -22,6 +22,7 @@ import 'academic_credentials_service.dart';
 import 'academic_login_validation_service.dart';
 import 'authenticated_data_cache_service.dart';
 import 'campus_network_status_service.dart';
+import 'data_auto_refresh_preferences.dart';
 import 'http_service.dart';
 import 'storage_service.dart';
 
@@ -182,20 +183,12 @@ class CampusCardService implements CampusCardBalanceClient {
 
   /// 读取校园卡余额自动刷新间隔。
   Future<int> getAutoRefreshIntervalMinutes() async {
-    final stored = await StorageService.getInt(
-      StorageKeys.campusCardAutoRefreshIntervalMinutes,
-    );
-    return _normalizeAutoRefreshInterval(
-      stored ?? defaultAutoRefreshIntervalMinutes,
-    );
+    return DataAutoRefreshPreferences.instance.getIntervalMinutes();
   }
 
   /// 保存校园卡余额自动刷新间隔。
   Future<void> setAutoRefreshIntervalMinutes(int minutes) async {
-    await StorageService.setInt(
-      StorageKeys.campusCardAutoRefreshIntervalMinutes,
-      _normalizeAutoRefreshInterval(minutes),
-    );
+    await DataAutoRefreshPreferences.instance.setIntervalMinutes(minutes);
   }
 
   /// 读取最近一次本地校园卡业务快照。

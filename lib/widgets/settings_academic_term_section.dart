@@ -6,11 +6,9 @@
  * @Date : 2026-06-08
  */
 
-import '../design/fluent_ui.dart';
+import '../design/qingyuan/qingyuan_ui.dart';
 import '../models/academic_term.dart';
 import '../services/academic_term_service.dart';
-import '../theme/app_spacing.dart';
-import '../theme/fluent_tokens.dart';
 import 'academic_term_selector.dart';
 
 /// 设置页学期分区。
@@ -66,11 +64,10 @@ class _SettingsAcademicTermSectionState
 
   @override
   Widget build(BuildContext context) {
-    final type = context.fluentType;
-    final colors = context.fluentColors;
+    final theme = context.yhTheme;
 
     if (_isLoading || _settings == null) {
-      return const FluentCard(child: Center(child: FluentProgressRing()));
+      return const YhCard(child: Center(child: YhProgress(showPercent: false)));
     }
 
     final contextSummary = _context;
@@ -79,71 +76,67 @@ class _SettingsAcademicTermSectionState
         contextSummary?.term ??
         AcademicTermService.defaultTerm;
 
-    return FluentCard(
+    return YhCard(
       key: const Key('settings-academic-term-section'),
-      padding: EdgeInsets.zero,
-      child: Padding(
-        padding: AppSpacing.cardPadding,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final stackHeader =
-                constraints.maxWidth < FluentBreakpoints.compact;
-            final headerText = Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Semantics(
-                  header: true,
-                  child: Text('学期设置', style: type.subtitle1),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final stackHeader = constraints.maxWidth < theme.breakpoint.compact;
+          final headerText = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Semantics(
+                header: true,
+                child: Text('学期设置', style: theme.typography.h3),
+              ),
+              SizedBox(height: theme.spacing.s),
+              Text(
+                '当前全局学期会作为课表、成绩、考试等详情页的统一默认上下文；周数由内置校历按周一自动计算。',
+                style: theme.typography.small.copyWith(
+                  color: theme.color.muted,
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  '当前全局学期会作为课表、成绩、考试等详情页的统一默认上下文；周数由内置校历按周一自动计算。',
-                  style: type.caption1.copyWith(
-                    color: colors.neutralForeground2,
-                  ),
-                ),
-              ],
-            );
-            final calendarButton = FluentButton.outlineIcon(
-              key: const Key('settings-academic-term-calendar-button'),
-              onPressed: widget.onOpenAcademicCalendar,
-              icon: const Icon(FluentIcons.calendarWeek, size: 14),
-              label: const Text('查看校历'),
-              expand: stackHeader,
-            );
+              ),
+            ],
+          );
+          final calendarButton = YhButton(
+            key: const Key('settings-academic-term-calendar-button'),
+            label: '查看校历',
+            onTap: widget.onOpenAcademicCalendar,
+            leadingIcon: YhIcons.calendar,
+            variant: YhButtonVariant.secondary,
+            minWidth: stackHeader ? double.infinity : null,
+          );
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (stackHeader)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      headerText,
-                      const SizedBox(height: AppSpacing.sm),
-                      calendarButton,
-                    ],
-                  )
-                else
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: headerText),
-                      const SizedBox(width: AppSpacing.md),
-                      calendarButton,
-                    ],
-                  ),
-                const SizedBox(height: AppSpacing.md),
-                AcademicTermSelector(
-                  selection: selectedTerm,
-                  availableTerms: widget.service.availableTerms,
-                  contextSummary: contextSummary,
-                  onChanged: _setSelectedTerm,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (stackHeader)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    headerText,
+                    SizedBox(height: theme.spacing.s),
+                    calendarButton,
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: headerText),
+                    SizedBox(width: theme.spacing.m),
+                    calendarButton,
+                  ],
                 ),
-              ],
-            );
-          },
-        ),
+              SizedBox(height: theme.spacing.m),
+              AcademicTermSelector(
+                selection: selectedTerm,
+                availableTerms: widget.service.availableTerms,
+                contextSummary: contextSummary,
+                onChanged: _setSelectedTerm,
+              ),
+            ],
+          );
+        },
       ),
     );
   }

@@ -210,7 +210,7 @@ CAS 要求图形验证码、MFA / 安全验证或页面结构变化时，应用�
 
 本专科教务固定使用 `https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw` 入口并复用 OA/CAS 会话，业务站点使用 Firefox UA。页面仅展示个人基本信息、课表、成绩、考试、培养计划和入口状态，不提供选课、退课、调课、教学评价、确认、提交申请、预约教室或任何写入入口。
 
-课程表页标题命令区提供“校历”入口，可查看教务处 2021 年以后的校历缓存、结构化学期范围、夏季教学段、特殊日期说明和原始 PDF。校历来源为 `https://jwc.sspu.edu.cn/xl/list.htm`，无需校园网 / VPN；应用优先读取本地缓存，缺少当前学年或 7/8 月临近下一学年时自动抓取。桌面端和移动端会将 PDF 与抽取文本保存到 `.sspu-aio/academic_calendars/pdf/` 和 `.sspu-aio/academic_calendars/text/`。
+课程表页标题命令区提供“校历”入口，可查看教务处 2021 年以后的校历缓存、结构化学期范围、夏季教学段、特殊日期说明和原始 PDF。校历来源为 `https://jwc.sspu.edu.cn/xl/list.htm`，无需校园网 / VPN；应用优先读取本地缓存，缺少当前学年或 7/8 月临近下一学年时自动抓取。桌面端和移动端会将 PDF 与抽取文本保存到系统默认应用数据目录（由 `path_provider` 提供，如 Windows `%APPDATA%`、macOS 沙盒容器、Linux `$XDG_DATA_HOME`）下的 `academic_calendars/pdf/` 和 `academic_calendars/text/`。
 
 设置页提供“学期设置”分区，可统一选择后续查询使用的学期。当前日期所在学期和周数仍由校历缓存优先、内置官网校历兜底按周一自动计算；选择非当前学期时，设置页会继续显示当前日期实际所在学期，并单独标明“查询使用”的学期。夏季学期按逐年教学段定位，中间非教学区间显示为暑假，其它空档显示为寒假。当前日期或所选学期超出可定位范围时，应用会提示暂无日期定位，后续课表、成绩、考试等详情页应按不可定位状态降级处理。该设置是后续详情页复用的默认查询上下文，不会在当前版本中改变 EAMS 只读查询范围。
 
@@ -218,7 +218,7 @@ CAS 要求图形验证码、MFA / 安全验证或页面结构变化时，应用�
 
 设置页常规分区提供“应用更新”卡片，可按正式版 / 测试版渠道查询 GitHub Release。发现新版本后，应用会优先读取 `manifest.json` 中的资产元数据和 SHA-256 校验值，失败时回退 `SHA256SUMS.txt`，再回退 GitHub API `digest` 字段。
 
-支持本地安装入口的平台会在应用内下载推荐安装资产到 `.sspu-aio/update_downloads/<tag>/`，下载完成后必须通过 SHA-256 校验才显示“打开安装入口”。Windows 会严格区分 x64 / arm64 并优先选择 installer；macOS 选择 DMG；Linux 优先 AppImage，再选择 deb / rpm / portable；Android 选择 APK。portable 压缩包只会打开所在文件夹并提示手动替换，应用不会自动解压、覆盖或静默安装。
+支持本地安装入口的平台会在应用内下载推荐安装资产到系统默认应用数据目录下的 `update_downloads/<tag>/`，下载完成后必须通过 SHA-256 校验才显示“打开安装入口”。Windows 会严格区分 x64 / arm64 并优先选择 installer；macOS 选择 DMG；Linux 优先 AppImage，再选择 deb / rpm / portable；Android 选择 APK。portable 压缩包只会打开所在文件夹并提示手动替换，应用不会自动解压、覆盖或静默安装。
 
 取消下载、下载失败或校验失败时，应用会删除半成品，避免用户误用。iOS 等不支持本地安装的平台仅显示清晰提示，并保留“打开 Release”按钮供用户前往 GitHub Release 页面。
 
@@ -295,9 +295,9 @@ flutter build windows --release
 - 启动入口为 `sspu_allinone.exe`
 - GitHub Release 默认同时提供 x64 / arm64 的 installer 与 portable 产物
 - Windows installer 使用 Inno Setup 双模式安装：全新安装默认选择“仅当前用户”，安装到当前用户程序目录且不需要管理员权限；用户显式选择“所有用户”或使用 `/ALLUSERS` 时安装到系统 Program Files 并按需触发 UAC。升级已存在安装时会先检测既有安装版本，版本不同时进入升级安装并沿用既有安装范围和目录，不再让用户重新选择路径。
-- Windows installer 检测到已安装相同版本时，会询问是否重新安装；确认后先调用既有卸载器，卸载器会询问是否保留用户目录下的 `.sspu-aio/` 应用数据，完成卸载后再回到全新安装流程并重新显示当前用户 / 所有用户安装范围选择。静默同版本重装需显式传入 `/SSPUREINSTALL=1`，此时默认保留应用数据。
+- Windows installer 检测到已安装相同版本时，会询问是否重新安装；确认后先调用既有卸载器，卸载器会询问是否保留用户的应用数据，完成卸载后再回到全新安装流程并重新显示当前用户 / 所有用户安装范围选择。静默同版本重装需显式传入 `/SSPUREINSTALL=1`，此时默认保留应用数据。
 - Windows installer 的应用显示名可按系统语言显示为“工大聚合”或 `SSPU-AllinOne`，但默认安装目录固定使用英文技术名 `SSPU-AllinOne`，避免不同语言环境生成不同安装路径。
-- 安装目录只保存应用程序文件；应用状态、微信公众号配置和 Windows WebView2 运行态仍保存在用户数据目录 `~/.sspu-aio/` 或移动端系统应用支持目录下的 `.sspu-aio/`。
+- 安装目录只保存应用程序文件；应用状态、微信公众号配置和 Windows WebView2 运行态保存在系统默认应用数据目录（由 `path_provider` 提供，如 Windows `%APPDATA%`、macOS 沙盒容器、Linux `$XDG_DATA_HOME`、移动端系统应用支持目录），不再使用 `.sspu-aio` 目录。
 
 ### 7.4 macOS 桌面
 
@@ -411,7 +411,7 @@ SSPU-AllinOne/
 │   ├── workflows/                 # CI 与 Release 工作流
 │   ├── ISSUE_TEMPLATE/            # Issue 模板
 │   └── PULL_REQUEST_TEMPLATE/     # PR 模板
-├── LICENSE                      # Artistic License 2.0 许可证
+├── LICENSE                      # Apache License 2.0 许可证
 ├── pubspec.yaml                 # 项目配置与依赖
 ├── pubspec.lock                 # 依赖锁定文件
 └── analysis_options.yaml        # 静态分析配置
@@ -468,7 +468,7 @@ flutter analyze
 
 ### 10.6 本地状态文件异常
 
-桌面端会将用户设置、认证信息、消息缓存和 WebView2 运行态写入 `~/.sspu-aio/`；Android / iOS 会写入系统分配的应用支持目录下的 `.sspu-aio/`。设置页提供 `wxmp_config.toml` 内置编辑器，移动端可直接在应用内修改公众号平台认证配置。全局学期设置写入统一状态文件，教务凭据使用系统安全存储单独保存，不写入 `app_state.json`，安全设置页只显示学工号和密码填写状态。若状态文件损坏或需要重建本地状态，可先退出应用，备份后删除对应目录中的文件，再重新启动应用。
+桌面端与 Android / iOS 都会将用户设置、认证信息、消息缓存和 WebView2 运行态写入系统默认应用数据目录（由 `path_provider` 提供，如 Windows `%APPDATA%`、macOS 沙盒容器、Linux `$XDG_DATA_HOME`、移动端系统应用支持目录），不再使用 `.sspu-aio` 目录。设置页提供 `wxmp_config.toml` 内置编辑器，移动端可直接在应用内修改公众号平台认证配置。全局学期设置写入统一状态文件，教务凭据使用系统安全存储单独保存，不写入 `app_state.json`，安全设置页只显示学工号和密码填写状态。若状态文件损坏或需要重建本地状态，可先退出应用，备份后删除对应目录中的文件，再重新启动应用。
 
 常用文件：
 
@@ -485,7 +485,7 @@ Windows x64 / arm64 Inno Setup 安装器会在安装阶段展示同一份中文�
 
 关于页提供“法律与隐私说明”入口，可随时查看本地状态文件、系统安全存储、WebView2 运行态、外部服务访问、用户清理方式、开源许可证和主要第三方组件说明。协议正文同时提供中文与英文资产，便于后续 i18n 扩展。
 
-协议确认状态使用 `agreement_20260612_email_smtp_send_accepted` 保存；旧版 `agreement_20260607_artistic20_combined_accepted`、`agreement_20260515_artistic20_accepted`、`agreement_20260515_accepted` 与 `eula_accepted` 仅保留为历史状态，不作为当前协议确认依据。已确认旧协议的用户需要重新确认当前完整法律与隐私说明。
+协议确认状态使用 `agreement_20260824_apache20_email_smtp_send_accepted` 保存；旧版 `agreement_20260612_email_smtp_send_accepted`、`agreement_20260607_artistic20_combined_accepted`、`agreement_20260515_artistic20_accepted`、`agreement_20260515_accepted` 与 `eula_accepted` 仅保留为历史状态，不作为当前协议确认依据。已确认旧协议的用户需要重新确认当前完整法律与隐私说明。
 
 隐私说明中的清理入口与设置页保持一致：安全设置可清理信息中心缓存、清除全部本地数据，教务凭据区域可单独清除 OA 密码、体育部查询密码和邮箱密码，微信公众号平台区域可清除认证信息或编辑 `wxmp_config.toml`。
 
@@ -496,5 +496,5 @@ Windows x64 / arm64 Inno Setup 安装器会在安装阶段展示同一份中文�
 1. **不要提交 `.env` 文件**：项目 `.gitignore` 已配置忽略环境变量文件
 2. **不要修改 `pubspec.lock`**：除非执行了 `flutter pub get/upgrade`
 3. **Windows 开发**：确保以管理员身份运行 Visual Studio Installer 安装 C++ 工作负载
-4. **用户数据存储位置**：桌面端位于 `~/.sspu-aio/`，移动端位于系统分配的应用支持目录下的 `.sspu-aio/`，包括密码哈希、设置项、消息缓存、微信公众号认证配置和 WebView2 运行态；教务凭据另存于系统安全存储
+4. **用户数据存储位置**：统一位于系统默认应用数据目录（由 `path_provider` 提供，如 Windows `%APPDATA%`、macOS 沙盒容器、Linux `$XDG_DATA_HOME`、移动端系统应用支持目录），不再使用 `.sspu-aio` 目录，包括密码哈希、设置项、消息缓存、微信公众号认证配置和 WebView2 运行态；教务凭据另存于系统安全存储
 5. **协议入口**：首次启动会展示完整法律与隐私说明，关于页可随时查看免责声明、用户协议、隐私协议、开源许可证与第三方协议说明
