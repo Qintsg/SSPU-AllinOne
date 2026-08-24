@@ -411,7 +411,7 @@ SSPU-AllinOne/
 │   ├── workflows/                 # CI 与 Release 工作流
 │   ├── ISSUE_TEMPLATE/            # Issue 模板
 │   └── PULL_REQUEST_TEMPLATE/     # PR 模板
-├── LICENSE                      # Artistic License 2.0 许可证
+├── LICENSE                      # Apache License 2.0 许可证
 ├── pubspec.yaml                 # 项目配置与依赖
 ├── pubspec.lock                 # 依赖锁定文件
 └── analysis_options.yaml        # 静态分析配置
@@ -485,7 +485,7 @@ Windows x64 / arm64 Inno Setup 安装器会在安装阶段展示同一份中文�
 
 关于页提供“法律与隐私说明”入口，可随时查看本地状态文件、系统安全存储、WebView2 运行态、外部服务访问、用户清理方式、开源许可证和主要第三方组件说明。协议正文同时提供中文与英文资产，便于后续 i18n 扩展。
 
-协议确认状态使用 `agreement_20260612_email_smtp_send_accepted` 保存；旧版 `agreement_20260607_artistic20_combined_accepted`、`agreement_20260515_artistic20_accepted`、`agreement_20260515_accepted` 与 `eula_accepted` 仅保留为历史状态，不作为当前协议确认依据。已确认旧协议的用户需要重新确认当前完整法律与隐私说明。
+协议确认状态使用 `agreement_20260824_apache20_email_smtp_send_accepted` 保存；旧版 `agreement_20260612_email_smtp_send_accepted`、`agreement_20260607_artistic20_combined_accepted`、`agreement_20260515_artistic20_accepted`、`agreement_20260515_accepted` 与 `eula_accepted` 仅保留为历史状态，不作为当前协议确认依据。已确认旧协议的用户需要重新确认当前完整法律与隐私说明。
 
 隐私说明中的清理入口与设置页保持一致：安全设置可清理信息中心缓存、清除全部本地数据，教务凭据区域可单独清除 OA 密码、体育部查询密码和邮箱密码，微信公众号平台区域可清除认证信息或编辑 `wxmp_config.toml`。
 

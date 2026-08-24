@@ -90,7 +90,7 @@ void main() {
     expect(body, contains('开源许可证与第三方协议说明'));
     expect(body, contains('用户主动使用学校邮箱 SMTP 发信时'));
     expect(body, contains('收件人、抄送、密送、主题和正文会提交给学校邮箱服务端处理'));
-    expect(body, contains('Artistic License 2.0'));
+    expect(body, contains('Apache License 2.0'));
     expect(body, isNot(contains('采用 MIT')));
   });
 
@@ -277,7 +277,7 @@ void main() {
     await pumpPageAnimations(tester);
 
     expect(find.text('许可证：'), findsOneWidget);
-    expect(find.text('Artistic License 2.0'), findsOneWidget);
+    expect(find.text('Apache License 2.0'), findsOneWidget);
     expect(find.text('项目'), findsOneWidget);
     expect(find.text('使用场景'), findsOneWidget);
     expect(find.text('许可证说明'), findsOneWidget);
