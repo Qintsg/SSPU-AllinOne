@@ -85,13 +85,12 @@ void main() {
     final authService = WxmpAuthService.instance;
     await authService.saveAuth('stored-cookie', 'stored-token');
     await WxmpConfigService.instance.ensureConfigFile();
-    await File(await WxmpConfigService.instance.getConfigPath()).writeAsString(
-      '''
+    await File(await WxmpConfigService.instance.getConfigPath())
+        .writeAsString('''
 [wxmp]
 cookie = "file-cookie"
 token = "654321"
-''',
-    );
+''');
 
     // 高级配置用于 WebView 不可用时手动接管认证信息。
     expect(await authService.getCookie(), 'file-cookie');

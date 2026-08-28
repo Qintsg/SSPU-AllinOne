@@ -512,17 +512,17 @@ class AppUpdateFileOpenResult {
 }
 
 /// 下载函数类型。
-typedef AppUpdateDownloadFile =
-    Future<void> Function(
-      String url,
-      String savePath, {
-      required CancelToken cancelToken,
-      required void Function(int received, int total) onReceiveProgress,
-    });
+typedef AppUpdateDownloadFile = Future<void> Function(
+  String url,
+  String savePath, {
+  required CancelToken cancelToken,
+  required void Function(int received, int total) onReceiveProgress,
+});
 
 /// 本地文件打开函数类型。
-typedef AppUpdateOpenFile =
-    Future<AppUpdateFileOpenResult> Function(String path);
+typedef AppUpdateOpenFile = Future<AppUpdateFileOpenResult> Function(
+  String path,
+);
 
 /// 应用数据目录函数类型。
 typedef AppUpdateEnsureDirectory = Future<String> Function(String relativePath);

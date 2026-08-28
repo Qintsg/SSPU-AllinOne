@@ -207,9 +207,8 @@ int comparePublicVersions(String left, String right) {
     if (leftNumber != rightNumber) return leftNumber.compareTo(rightNumber);
   }
 
-  return _channelRank(
-    leftParts.channel,
-  ).compareTo(_channelRank(rightParts.channel));
+  return _channelRank(leftParts.channel)
+      .compareTo(_channelRank(rightParts.channel));
 }
 
 ({List<int> numbers, String channel}) _parseVersionParts(String version) {

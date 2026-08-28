@@ -12,11 +12,10 @@ class _RecordingAcademicOaSessionPrewarmService
     extends AcademicOaSessionPrewarmService {
   _RecordingAcademicOaSessionPrewarmService()
     : super(
-        ensureSession:
-            ({
-              bool forceRefresh = false,
-              bool requireCampusNetwork = true,
-            }) async => _successResult(),
+        ensureSession: ({
+          bool forceRefresh = false,
+          bool requireCampusNetwork = true,
+        }) async => _successResult(),
         ensureStudentProfile: ({bool forceRefresh = false}) async =>
             const AcademicEamsProfile(
               name: '张三',

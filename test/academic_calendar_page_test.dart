@@ -7,7 +7,9 @@
  */
 
 import 'package:flutter_test/flutter_test.dart';
+
 import 'dart:async';
+
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:sspu_allinone/models/academic_calendar.dart';
 import 'package:sspu_allinone/models/academic_term.dart';

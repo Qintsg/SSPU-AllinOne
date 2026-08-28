@@ -12,9 +12,8 @@ Future<_CollegeArticlePublishTime?> _fetchCollegeMathPublishTime(
 
     for (final selector in const ['.arti_update', '.time']) {
       final timeText = document.querySelector(selector)?.text ?? '';
-      final match = RegExp(
-        r'(\d{4}-\d{2}-\d{2})(?:\s+(\d{2}:\d{2}:\d{2}))?',
-      ).firstMatch(timeText);
+      final match = RegExp(r'(\d{4}-\d{2}-\d{2})(?:\s+(\d{2}:\d{2}:\d{2}))?')
+          .firstMatch(timeText);
       if (match == null) continue;
 
       final date = normalizeDate(match.group(1) ?? '');

@@ -50,9 +50,8 @@ String normalizeDate(String rawDate) {
   if (cleaned.isEmpty) return todayString();
 
   // 完整格式: YYYY-MM-DD 或 YYYY/MM/DD
-  final fullMatch = RegExp(
-    r'^(\d{4})[/\-](\d{1,2})[/\-](\d{1,2})$',
-  ).firstMatch(cleaned);
+  final fullMatch = RegExp(r'^(\d{4})[/\-](\d{1,2})[/\-](\d{1,2})$')
+      .firstMatch(cleaned);
   if (fullMatch != null) {
     final year = fullMatch.group(1)!;
     final month = int.parse(fullMatch.group(2)!).toString().padLeft(2, '0');

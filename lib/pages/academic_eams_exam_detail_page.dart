@@ -8,12 +8,11 @@
 
 part of 'academic_page.dart';
 
-typedef AcademicExamDetailResultChanged =
-    void Function(
-      AcademicEamsQueryResult result,
-      AcademicTermChoice? selectedTerm,
-      AcademicEamsSemesterOption? selectedSemester,
-    );
+typedef AcademicExamDetailResultChanged = void Function(
+  AcademicEamsQueryResult result,
+  AcademicTermChoice? selectedTerm,
+  AcademicEamsSemesterOption? selectedSemester,
+);
 
 enum _AcademicExamSortOrder { ascending, descending }
 
@@ -475,9 +474,8 @@ DateTime? _academicExamStartTime(AcademicExamRecord record) {
   if (!record.hasScheduledExamDate) return null;
   final date = DateTime.tryParse(record.displayExamDate?.trim() ?? '');
   if (date == null) return null;
-  final match = RegExp(
-    r'(?<!\d)([01]?\d|2[0-3]):([0-5]\d)',
-  ).firstMatch(record.displayExamArrange ?? '');
+  final match = RegExp(r'(?<!\d)([01]?\d|2[0-3]):([0-5]\d)')
+      .firstMatch(record.displayExamArrange ?? '');
   if (match == null) return date;
   return DateTime(
     date.year,

@@ -10,8 +10,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'design/qingyuan/qingyuan_ui.dart';
+
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
+
 import 'app.dart';
 import 'pages/lock_page.dart';
 import 'services/app_exit_service.dart';

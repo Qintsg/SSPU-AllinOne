@@ -8,6 +8,7 @@
  */
 
 import 'dart:convert';
+
 import '../models/channel_config.dart';
 import '../models/message_item.dart';
 import '../services/storage_service.dart';

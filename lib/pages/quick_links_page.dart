@@ -16,8 +16,9 @@ part 'quick_links_presentation.dart';
 
 typedef QuickLinksGroupsLoader = Future<List<QuickLinkGroupConfig>> Function();
 typedef QuickLinkOpenCallback = Future<void> Function(String url);
-typedef QuickLinkAuthenticationResolver =
-    Future<bool> Function(QuickLinkItemConfig item);
+typedef QuickLinkAuthenticationResolver = Future<bool> Function(
+  QuickLinkItemConfig item,
+);
 
 class QuickLinksPage extends StatefulWidget {
   const QuickLinksPage({

@@ -28,8 +28,10 @@ part 'academic_calendar_page_selector.dart';
 part 'academic_calendar_page_viewer.dart';
 
 /// 校历正文查看器 seam；平台集成使用 PDF 实现，视觉测试可注入确定性 adapter。
-typedef AcademicCalendarViewerBuilder =
-    Widget Function(BuildContext context, AcademicCalendarCacheEntry? entry);
+typedef AcademicCalendarViewerBuilder = Widget Function(
+  BuildContext context,
+  AcademicCalendarCacheEntry? entry,
+);
 
 String _yearLabel(AcademicCalendarCacheEntry entry) =>
     '${entry.schoolYearStart}–${entry.schoolYearStart + 1} 学年';

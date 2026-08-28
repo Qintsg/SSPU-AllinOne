@@ -7,6 +7,7 @@
  */
 
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:tray_manager/tray_manager.dart';
 

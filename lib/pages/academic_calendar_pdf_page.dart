@@ -9,6 +9,7 @@
 import 'dart:io';
 
 import '../design/qingyuan/qingyuan_ui.dart';
+
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfrx/pdfrx.dart';
@@ -19,13 +20,12 @@ import 'academic_calendar_pdf_file.dart';
 import 'academic_calendar_pdf_frame.dart';
 
 /// PDF 正文 seam；平台集成使用 pdfrx，行为与视觉测试可注入确定性 adapter。
-typedef AcademicCalendarPdfDocumentBuilder =
-    Widget Function(
-      BuildContext context,
-      String? source,
-      int revision,
-      AcademicCalendarPdfDocumentActions actions,
-    );
+typedef AcademicCalendarPdfDocumentBuilder = Widget Function(
+  BuildContext context,
+  String? source,
+  int revision,
+  AcademicCalendarPdfDocumentActions actions,
+);
 
 /// 注入式 PDF 正文可使用的真实页面恢复动作。
 class AcademicCalendarPdfDocumentActions {
@@ -44,8 +44,10 @@ class AcademicCalendarPdfDocumentActions {
 enum AcademicCalendarPdfDocumentState { loading, content, empty, error }
 
 /// PDF 保存 adapter。
-typedef AcademicCalendarPdfDownloadAdapter =
-    Future<void> Function(String source, String title);
+typedef AcademicCalendarPdfDownloadAdapter = Future<void> Function(
+  String source,
+  String title,
+);
 
 /// PDF 外部打开 adapter。
 typedef AcademicCalendarPdfExternalAdapter = Future<bool> Function(Uri uri);

@@ -217,8 +217,7 @@ void main() {
     final service = _FakeAppUpdateService(
       checkResult: _availableResult(
         resolvedAsset: _resolvedAsset(
-          name:
-              'SSPU-AllinOne-v1.2.0-windows-x64-installer-with-a-very-long-name.exe',
+          name: 'SSPU-AllinOne-v1.2.0-windows-x64-installer-with-a-very-long-name.exe',
         ),
       ),
     );
@@ -445,17 +444,16 @@ Future<void> tapLastText(WidgetTester tester, String text) async {
   await tester.tap(find.text(text).last);
 }
 
-typedef _FakeDownloadHandler =
-    Future<AppUpdateDownloadResult> Function(
-      AppReleaseInfo release,
-      AppUpdateResolvedAsset asset, {
-      required CancelToken cancelToken,
-      required void Function(AppUpdateDownloadProgress progress)
-      onReceiveProgress,
-    });
+typedef _FakeDownloadHandler = Future<AppUpdateDownloadResult> Function(
+  AppReleaseInfo release,
+  AppUpdateResolvedAsset asset, {
+  required CancelToken cancelToken,
+  required void Function(AppUpdateDownloadProgress progress) onReceiveProgress,
+});
 
-typedef _FakeOpenHandler =
-    Future<AppUpdateOpenResult> Function(AppUpdateDownloadResult result);
+typedef _FakeOpenHandler = Future<AppUpdateOpenResult> Function(
+  AppUpdateDownloadResult result,
+);
 
 class _FakeAppUpdateService extends AppUpdateService {
   _FakeAppUpdateService({

@@ -120,9 +120,8 @@ double? _parseNumber(String text) {
       .replaceAll('学分', '')
       .replaceAll('积分', '')
       .replaceAll('分', '');
-  final match = RegExp(
-    r'([+\-]?(?:\d+(?:\.\d+)?|\.\d+))',
-  ).firstMatch(normalizedText);
+  final match = RegExp(r'([+\-]?(?:\d+(?:\.\d+)?|\.\d+))')
+      .firstMatch(normalizedText);
   var value = match?.group(1);
   if (value != null && value.startsWith('.')) value = '0$value';
   if (value != null && value.startsWith('-.')) {

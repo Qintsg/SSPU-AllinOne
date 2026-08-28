@@ -26,8 +26,11 @@ class YhPressableState {
   final bool disabled;
 }
 
-typedef YhPressableBuilder =
-    Widget Function(BuildContext context, YhPressableState state, Widget child);
+typedef YhPressableBuilder = Widget Function(
+  BuildContext context,
+  YhPressableState state,
+  Widget child,
+);
 
 class YhPressable extends StatefulWidget {
   const YhPressable({

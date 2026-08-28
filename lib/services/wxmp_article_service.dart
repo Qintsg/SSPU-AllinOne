@@ -9,6 +9,7 @@
  */
 
 import 'dart:convert';
+
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -22,13 +23,12 @@ import 'wxmp_config_service.dart';
 part 'wxmp_article_fetch.dart';
 part 'wxmp_article_following.dart';
 
-typedef WxmpFetchProgressCallback =
-    Future<void> Function(
-      List<MessageItem> messages,
-      int completed,
-      int total,
-      String accountName,
-    );
+typedef WxmpFetchProgressCallback = Future<void> Function(
+  List<MessageItem> messages,
+  int completed,
+  int total,
+  String accountName,
+);
 
 /// 公众号平台 API 错误码
 class WxmpApiError {
@@ -129,9 +129,8 @@ class WxmpArticleService {
 
     final htmlText = response.data?.toString() ?? '';
     final urlTokenMatch = RegExp(r'token=(\d+)').firstMatch(htmlText);
-    final jsonTokenMatch = RegExp(
-      r'"token"\s*:\s*"?(\d+)"?',
-    ).firstMatch(htmlText);
+    final jsonTokenMatch = RegExp(r'"token"\s*:\s*"?(\d+)"?')
+        .firstMatch(htmlText);
     final freshToken = urlTokenMatch?.group(1) ?? jsonTokenMatch?.group(1);
     if (freshToken == null || freshToken.isEmpty) {
       throw WxmpInvalidCsrfException('Cookie 有效性不足，无法从首页提取 Token');

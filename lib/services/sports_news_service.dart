@@ -10,6 +10,7 @@
  */
 
 import 'dart:convert';
+
 import 'package:crypto/crypto.dart';
 import 'package:html/parser.dart' as html_parser;
 
@@ -167,9 +168,8 @@ class SportsNewsService {
       final htmlText = await _http.fetchText(articleUrl);
       final document = html_parser.parse(htmlText);
       final timeText = document.querySelector('.time')?.text ?? '';
-      final match = RegExp(
-        r'(\d{4}-\d{2}-\d{2})(?:\s+(\d{2}:\d{2}:\d{2}))?',
-      ).firstMatch(timeText);
+      final match = RegExp(r'(\d{4}-\d{2}-\d{2})(?:\s+(\d{2}:\d{2}:\d{2}))?')
+          .firstMatch(timeText);
       if (match == null) return null;
 
       final date = normalizeDate(match.group(1) ?? '');

@@ -224,9 +224,8 @@ class _SettingsAboutPageState extends State<SettingsAboutPage> {
       widget.onCheckUpdate!();
       return;
     }
-    Navigator.of(
-      context,
-    ).push(YhPageRoute<void>(builder: (_) => const SettingsUpdatePage()));
+    Navigator.of(context)
+        .push(YhPageRoute<void>(builder: (_) => const SettingsUpdatePage()));
   }
 
   void _openLegal() {
@@ -235,9 +234,8 @@ class _SettingsAboutPageState extends State<SettingsAboutPage> {
       widget.onOpenLegal!();
       return;
     }
-    Navigator.of(
-      context,
-    ).push(YhPageRoute<void>(builder: (_) => const LegalNoticePage()));
+    Navigator.of(context)
+        .push(YhPageRoute<void>(builder: (_) => const LegalNoticePage()));
   }
 
   void _openLicenses() {

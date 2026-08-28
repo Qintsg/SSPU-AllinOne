@@ -22,19 +22,27 @@ void main() {
   });
 
   test('macOS Release 使用无 entitlement 的 ad-hoc 签名', () {
-    final releaseWorkflow = File(
-      '.github/workflows/release.yml',
-    ).readAsStringSync();
+    final releaseWorkflow = File('.github/workflows/release.yml')
+        .readAsStringSync();
 
-    expect(releaseWorkflow, contains('使用无 entitlement 的 ad-hoc 签名 macOS App Bundle'));
+    expect(
+      releaseWorkflow,
+      contains('使用无 entitlement 的 ad-hoc 签名 macOS App Bundle'),
+    );
     expect(releaseWorkflow, contains('codesign --force --deep --sign -'));
-    expect(releaseWorkflow, contains('codesign --verify --deep --strict --verbose=2'));
+    expect(
+      releaseWorkflow,
+      contains('codesign --verify --deep --strict --verbose=2'),
+    );
     expect(releaseWorkflow, contains('仍包含受限 entitlement'));
     expect(releaseWorkflow, contains('ditto "\$macos_app_bundle"'));
     expect(releaseWorkflow, isNot(contains('Developer ID Application')));
     expect(releaseWorkflow, isNot(contains('xcrun notarytool submit')));
     expect(releaseWorkflow, isNot(contains('xcrun stapler staple')));
-    expect(releaseWorkflow, isNot(contains('MACOS_SIGNING_CERTIFICATE_BASE64')));
+    expect(
+      releaseWorkflow,
+      isNot(contains('MACOS_SIGNING_CERTIFICATE_BASE64')),
+    );
     expect(
       releaseWorkflow,
       contains(
@@ -44,9 +52,8 @@ void main() {
   });
 
   test('macOS DMG 卷名保持在 appdmg 长度限制内', () {
-    final releaseWorkflow = File(
-      '.github/workflows/release.yml',
-    ).readAsStringSync();
+    final releaseWorkflow = File('.github/workflows/release.yml')
+        .readAsStringSync();
 
     expect(
       releaseWorkflow,

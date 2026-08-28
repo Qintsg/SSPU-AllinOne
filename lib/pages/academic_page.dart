@@ -12,6 +12,7 @@ import 'dart:math' as math;
 import '../controllers/card_auto_refresh_controller.dart';
 import '../controllers/retained_refresh_controller.dart';
 import '../design/qingyuan/qingyuan_ui.dart';
+
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/academic_eams.dart';

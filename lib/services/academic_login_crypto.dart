@@ -32,9 +32,8 @@ class _RsaPkcs1Encryptor {
     block[paddingLength + 2] = 0x00;
     block.setRange(paddingLength + 3, keyLength, message);
 
-    final encrypted = _bytesToBigInt(
-      block,
-    ).modPow(publicKey.exponent, publicKey.modulus);
+    final encrypted = _bytesToBigInt(block)
+        .modPow(publicKey.exponent, publicKey.modulus);
     return base64Encode(_bigIntToFixedBytes(encrypted, keyLength));
   }
 
@@ -76,9 +75,8 @@ class _RsaPublicKey {
       throw const FormatException('CAS RSA 公钥 BIT STRING 格式异常');
     }
 
-    final keySequence = _DerReader(
-      Uint8List.fromList(bitString.sublist(1)),
-    ).readConstructed(0x30);
+    final keySequence = _DerReader(Uint8List.fromList(bitString.sublist(1)))
+        .readConstructed(0x30);
     return _RsaPublicKey(
       modulus: _stripLeadingZeroAndReadInteger(keySequence.readValue(0x02)),
       exponent: _stripLeadingZeroAndReadInteger(keySequence.readValue(0x02)),

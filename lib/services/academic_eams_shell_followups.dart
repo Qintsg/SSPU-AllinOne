@@ -551,9 +551,8 @@ extension _AcademicEamsShellFollowups on AcademicEamsService {
     required String value,
     required String label,
   }) {
-    final match = RegExp(
-      r'(\d{4})\s*-\s*(\d{4})\s*-?\s*(1|2|3|秋季?|春季?|夏季?)',
-    ).firstMatch(label);
+    final match = RegExp(r'(\d{4})\s*-\s*(\d{4})\s*-?\s*(1|2|3|秋季?|春季?|夏季?)')
+        .firstMatch(label);
     if (match == null) {
       return AcademicEamsSemesterOption(id: value, label: label);
     }
