@@ -11,33 +11,34 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('unsigned macOS release 使用空 entitlements 剥离受限权限', () {
+  test('unsigned macOS 本地 entitlements 剥离受限权限', () {
     final unsignedEntitlements = File(
       'macos/Runner/Release-unsigned.entitlements',
     ).readAsStringSync();
 
-    // unsigned DMG 使用空 entitlements 剥离沙盒与钥匙串权限，避免 AMFI 拒绝启动。
+    // 本地 ad-hoc 构建使用空 entitlements，避免 AMFI 拒绝启动。
     expect(unsignedEntitlements, isNot(contains('com.apple.security.')));
     expect(unsignedEntitlements, isNot(contains('keychain-access-groups')));
   });
 
-  test('macOS Release 使用 ad-hoc 自签名替代官方签名与公证', () {
+  test('macOS Release 使用无 entitlement 的 ad-hoc 签名', () {
     final releaseWorkflow = File(
       '.github/workflows/release.yml',
     ).readAsStringSync();
 
-    expect(
-      releaseWorkflow,
-      contains('使用 ad-hoc 自签名（未配置官方 Developer ID 签名与公证）'),
-    );
+    expect(releaseWorkflow, contains('使用无 entitlement 的 ad-hoc 签名 macOS App Bundle'));
     expect(releaseWorkflow, contains('codesign --force --deep --sign -'));
+    expect(releaseWorkflow, contains('codesign --verify --deep --strict --verbose=2'));
+    expect(releaseWorkflow, contains('仍包含受限 entitlement'));
+    expect(releaseWorkflow, contains('ditto "\$macos_app_bundle"'));
+    expect(releaseWorkflow, isNot(contains('Developer ID Application')));
     expect(releaseWorkflow, isNot(contains('xcrun notarytool submit')));
     expect(releaseWorkflow, isNot(contains('xcrun stapler staple')));
-    expect(releaseWorkflow, isNot(contains('Developer ID Application')));
+    expect(releaseWorkflow, isNot(contains('MACOS_SIGNING_CERTIFICATE_BASE64')));
     expect(
       releaseWorkflow,
       contains(
-        'dist/SSPU-AllinOne-v\${{ needs.prepare.outputs.version }}-macos-arm64.dmg',
+        'dist/SSPU-AllinOne-v\${{ needs.prepare.outputs.version }}-macos-universal.dmg',
       ),
     );
   });
@@ -57,7 +58,7 @@ void main() {
     expect(releaseWorkflow, contains('if [ "\${#DMG_TITLE}" -gt 27 ]; then'));
     expect(releaseWorkflow, contains('"title": "\${DMG_TITLE}"'));
 
-    const currentPublicVersion = '0.2.8-alpha';
+    const currentPublicVersion = '0.4.0-beta';
     expect('SSPU-AIO v$currentPublicVersion'.length, lessThanOrEqualTo(27));
   });
 }
