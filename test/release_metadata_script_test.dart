@@ -21,8 +21,9 @@ void main() {
     });
 
     for (final assetName in _expectedAssetNames) {
-      await File('${tempDir.path}${Platform.pathSeparator}$assetName')
-          .writeAsString('fixture:$assetName');
+      await File(
+        '${tempDir.path}${Platform.pathSeparator}$assetName',
+      ).writeAsString('fixture:$assetName');
     }
 
     final pythonExecutable = Platform.isWindows ? 'python' : 'python3';
@@ -50,10 +51,13 @@ void main() {
 
     expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');
 
-    final manifest = jsonDecode(
-      await File('${tempDir.path}${Platform.pathSeparator}manifest.json')
-          .readAsString(),
-    ) as Map<String, Object?>;
+    final manifest =
+        jsonDecode(
+              await File(
+                '${tempDir.path}${Platform.pathSeparator}manifest.json',
+              ).readAsString(),
+            )
+            as Map<String, Object?>;
     final platforms = manifest['platforms']! as List<Object?>;
     final macosEntries = platforms.cast<Map<String, Object?>>().where(
       (entry) => entry['platform'] == 'macos',

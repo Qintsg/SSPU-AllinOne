@@ -362,13 +362,13 @@ final AcademicEamsHttpSnapshot academicEamsCurrentGradeSnapshot =
 ''',
     );
 
-final AcademicEamsHttpSnapshot academicEamsHistoryGradeSnapshot =
-    AcademicEamsHttpSnapshot(
-      finalUri: Uri.parse(
-        'https://jx.sspu.edu.cn/eams/teach/grade/course/person!historyCourseGrade.action?projectType=MAJOR',
-      ),
-      statusCode: 200,
-      body: '''
+final AcademicEamsHttpSnapshot
+academicEamsHistoryGradeSnapshot = AcademicEamsHttpSnapshot(
+  finalUri: Uri.parse(
+    'https://jx.sspu.edu.cn/eams/teach/grade/course/person!historyCourseGrade.action?projectType=MAJOR',
+  ),
+  statusCode: 200,
+  body: '''
 <html>
   <body>
     <table>
@@ -378,7 +378,7 @@ final AcademicEamsHttpSnapshot academicEamsHistoryGradeSnapshot =
   </body>
 </html>
 ''',
-    );
+);
 
 final AcademicEamsHttpSnapshot
 academicEamsGradeProcessSnapshot = AcademicEamsHttpSnapshot(

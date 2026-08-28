@@ -17,13 +17,10 @@ import '../widgets/settings_wechat_config_dialog.dart';
 import 'wxmp_login_page.dart';
 
 typedef SettingsWechatLoginFlow = Future<bool?> Function(BuildContext context);
-typedef SettingsWechatConfigEditor = Future<WxmpConfig?> Function(
-  BuildContext context,
-  WxmpConfig config,
-);
-typedef SettingsWechatClearConfirmation = Future<bool> Function(
-  BuildContext context,
-);
+typedef SettingsWechatConfigEditor =
+    Future<WxmpConfig?> Function(BuildContext context, WxmpConfig config);
+typedef SettingsWechatClearConfirmation =
+    Future<bool> Function(BuildContext context);
 
 /// 微信公众号认证的独立任务页。
 ///

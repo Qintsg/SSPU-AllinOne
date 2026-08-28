@@ -26,8 +26,9 @@ void main() {
 
   test('Windows x64 和 arm64 安装器默认安装目录固定使用英文技术名', () {
     final x64 = File('.github/installer/windows-x64.iss').readAsStringSync();
-    final arm64 = File('.github/installer/windows-arm64.iss')
-        .readAsStringSync();
+    final arm64 = File(
+      '.github/installer/windows-arm64.iss',
+    ).readAsStringSync();
 
     const expected = r'DefaultDirName={autopf}\{#AppTechnicalName}';
     expect(x64, contains(expected));
@@ -118,8 +119,9 @@ void main() {
 
   test('Windows 安装器按架构检测对应 AppId 卸载注册表', () {
     final x64 = File('.github/installer/windows-x64.iss').readAsStringSync();
-    final arm64 = File('.github/installer/windows-arm64.iss')
-        .readAsStringSync();
+    final arm64 = File(
+      '.github/installer/windows-arm64.iss',
+    ).readAsStringSync();
 
     expect(
       x64,

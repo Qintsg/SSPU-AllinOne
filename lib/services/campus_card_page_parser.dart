@@ -78,8 +78,9 @@ class CampusCardPageParser {
     if (tableValue != null && tableValue.isNotEmpty) return tableValue;
 
     final text = _cleanText(document.body?.text ?? document.outerHtml);
-    final match = RegExp(r'(?:卡状态|账户状态)\s*[:：]\s*([^，。；;\s]{1,20})')
-        .firstMatch(text);
+    final match = RegExp(
+      r'(?:卡状态|账户状态)\s*[:：]\s*([^，。；;\s]{1,20})',
+    ).firstMatch(text);
     final value = match?.group(1)?.trim();
     return _isPlausibleCardStatus(value) ? value : null;
   }
@@ -502,8 +503,9 @@ class CampusCardPageParser {
 
   static double? _parseMoney(String text) {
     final normalizedText = text.replaceAll(',', '').replaceAll('￥', '');
-    final match = RegExp(r'([+\-]?\d+(?:\.\d{1,2})?)')
-        .firstMatch(normalizedText);
+    final match = RegExp(
+      r'([+\-]?\d+(?:\.\d{1,2})?)',
+    ).firstMatch(normalizedText);
     return double.tryParse(match?.group(1) ?? '');
   }
 
@@ -516,10 +518,9 @@ class CampusCardPageParser {
   }
 
   static String _normalizeLabel(String text) {
-    return _cleanText(text)
-        .replaceAll(RegExp(r'[：:]+$'), '')
-        .replaceAll(RegExp(r'\s+'), '')
-        .trim();
+    return _cleanText(
+      text,
+    ).replaceAll(RegExp(r'[：:]+$'), '').replaceAll(RegExp(r'\s+'), '').trim();
   }
 
   static String? _cellAt(List<String> cells, int? index) {

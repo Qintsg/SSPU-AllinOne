@@ -310,8 +310,9 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
   /// 打开校历查看页。
   void _openAcademicCalendar() {
-    Navigator.of(context)
-        .push(YhPageRoute<void>(builder: (_) => AcademicCalendarPage()));
+    Navigator.of(
+      context,
+    ).push(YhPageRoute<void>(builder: (_) => AcademicCalendarPage()));
   }
 
   /// 修改勿扰开始时间。

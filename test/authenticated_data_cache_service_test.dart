@@ -120,9 +120,9 @@ void main() {
       data: const {'value': 'cached'},
     );
 
-    final storedPayload = (await StorageService.getAllData(collection))
-        .values
-        .single;
+    final storedPayload = (await StorageService.getAllData(
+      collection,
+    )).values.single;
 
     expect(storedPayload.toString(), isNot(contains('20260001')));
     expect(storedPayload['ownerAccount'], isNotEmpty);
@@ -239,9 +239,9 @@ void main() {
       },
     );
 
-    final storedPayload = (await StorageService.getAllData(collection))
-        .values
-        .single;
+    final storedPayload = (await StorageService.getAllData(
+      collection,
+    )).values.single;
 
     expect(storedPayload.toString(), isNot(contains('ticket')));
     expect(storedPayload.toString(), isNot(contains('ST-secret')));

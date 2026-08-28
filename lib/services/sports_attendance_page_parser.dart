@@ -69,8 +69,9 @@ class _SportsAttendancePageParser {
       }
       final category = _categoryOf(joinedCells);
       final hasDate = _datePattern.hasMatch(joinedCells);
-      final hasUsefulNumber = RegExp(r'-?\d+\s*次(?!数|调整)')
-          .hasMatch(joinedCells);
+      final hasUsefulNumber = RegExp(
+        r'-?\d+\s*次(?!数|调整)',
+      ).hasMatch(joinedCells);
       if (category == SportsAttendanceCategory.unknown && !hasDate) continue;
       if (!hasDate && !hasUsefulNumber) continue;
 
@@ -141,8 +142,9 @@ class _SportsAttendancePageParser {
   ) {
     final joinedCells = cells.join(' ');
     if (joinedCells.contains('无效')) return 0;
-    final countWithUnit = RegExp(r'(-?\d+)\s*次(?!数|调整)')
-        .firstMatch(joinedCells);
+    final countWithUnit = RegExp(
+      r'(-?\d+)\s*次(?!数|调整)',
+    ).firstMatch(joinedCells);
     final parsedCountWithUnit = int.tryParse(countWithUnit?.group(1) ?? '');
     if (parsedCountWithUnit != null) return parsedCountWithUnit;
 

@@ -193,8 +193,9 @@ class EmailMessageSnapshot {
       senderAddress: json['senderAddress'] as String? ?? '',
       preview: json['preview'] as String? ?? '',
       body: json['body'] as String? ?? '',
-      receivedAt: DateTime.tryParse(json['receivedAt'] as String? ?? '')
-          ?.toLocal(),
+      receivedAt: DateTime.tryParse(
+        json['receivedAt'] as String? ?? '',
+      )?.toLocal(),
     );
   }
 

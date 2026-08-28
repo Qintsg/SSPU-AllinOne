@@ -13,17 +13,16 @@ import '../services/wxmp_article_service.dart';
 import '../services/wxmp_auth_service.dart';
 
 /// 测试替换 Cookie 读取器。
-typedef WxmpCookieReaderOverride = Future<WxmpCookieReadResult> Function({
-  required String successUrl,
-  required InAppWebViewController controller,
-  WebViewEnvironment? webViewEnvironment,
-});
+typedef WxmpCookieReaderOverride =
+    Future<WxmpCookieReadResult> Function({
+      required String successUrl,
+      required InAppWebViewController controller,
+      WebViewEnvironment? webViewEnvironment,
+    });
 
 /// 测试替换认证保存器。
-typedef WxmpAuthSaveOverride = Future<void> Function(
-  String cookie,
-  String token,
-);
+typedef WxmpAuthSaveOverride =
+    Future<void> Function(String cookie, String token);
 
 /// 微信公众号登录流程的可选测试注入点；生产页面保持为空。
 class WxmpLoginTestOverrides {

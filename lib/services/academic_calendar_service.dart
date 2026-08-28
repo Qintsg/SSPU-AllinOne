@@ -20,9 +20,8 @@ import 'storage_service.dart';
 part 'academic_calendar_service_parsers.dart';
 
 /// PDF 文本抽取函数。
-typedef AcademicCalendarPdfTextExtractor = Future<String> Function(
-  String pdfFilePath,
-);
+typedef AcademicCalendarPdfTextExtractor =
+    Future<String> Function(String pdfFilePath);
 
 /// 校历只读客户端。
 abstract class AcademicCalendarClient {

@@ -24,8 +24,9 @@ List<AcademicCalendarListItem> parseCalendarList(
     final href = anchor.attributes['href']?.trim() ?? '';
     if (title.isEmpty || href.isEmpty) continue;
 
-    final yearMatch = RegExp(r'(20\d{2})\s*[-—－]\s*(20\d{2})\s*(?:学年|年)')
-        .firstMatch(title);
+    final yearMatch = RegExp(
+      r'(20\d{2})\s*[-—－]\s*(20\d{2})\s*(?:学年|年)',
+    ).firstMatch(title);
     if (yearMatch == null) continue;
 
     final startYear = int.parse(yearMatch.group(1)!);
@@ -204,8 +205,9 @@ List<AcademicCalendarDayTag> _parseDayTags(
   required int schoolYearStart,
 }) {
   final tags = <AcademicCalendarDayTag>[];
-  final sportsMatch = RegExp(r'校运会[：:\s]*(\d{1,2}月\d{1,2}日)[^。；;\n]*(停课一天|停课)')
-      .firstMatch(text);
+  final sportsMatch = RegExp(
+    r'校运会[：:\s]*(\d{1,2}月\d{1,2}日)[^。；;\n]*(停课一天|停课)',
+  ).firstMatch(text);
   if (sportsMatch != null) {
     final source = sportsMatch.group(0)!;
     tags.add(
@@ -310,9 +312,9 @@ DateTime _parseChineseDate(String raw, {required int defaultYear}) {
 
 int _weekCountInclusive(DateTime start, DateTime end) {
   final days =
-      AcademicTermDefinition.dateOnly(end)
-          .difference(AcademicTermDefinition.dateOnly(start))
-          .inDays +
+      AcademicTermDefinition.dateOnly(
+        end,
+      ).difference(AcademicTermDefinition.dateOnly(start)).inDays +
       1;
   return (days / 7).ceil();
 }

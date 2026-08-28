@@ -22,8 +22,9 @@ void main() {
   });
 
   test('macOS Release 使用无 entitlement 的 ad-hoc 签名', () {
-    final releaseWorkflow = File('.github/workflows/release.yml')
-        .readAsStringSync();
+    final releaseWorkflow = File(
+      '.github/workflows/release.yml',
+    ).readAsStringSync();
 
     expect(
       releaseWorkflow,
@@ -52,8 +53,9 @@ void main() {
   });
 
   test('macOS DMG 卷名保持在 appdmg 长度限制内', () {
-    final releaseWorkflow = File('.github/workflows/release.yml')
-        .readAsStringSync();
+    final releaseWorkflow = File(
+      '.github/workflows/release.yml',
+    ).readAsStringSync();
 
     expect(
       releaseWorkflow,

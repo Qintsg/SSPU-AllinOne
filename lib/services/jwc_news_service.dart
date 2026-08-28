@@ -192,8 +192,9 @@ class JwcNewsService {
       final htmlText = await _http.fetchText(articleUrl);
       final document = html_parser.parse(htmlText);
       final updateText = document.querySelector('.arti_update')?.text ?? '';
-      final match = RegExp(r'(\d{4}-\d{2}-\d{2})(?:\s+(\d{2}:\d{2}:\d{2}))?')
-          .firstMatch(updateText);
+      final match = RegExp(
+        r'(\d{4}-\d{2}-\d{2})(?:\s+(\d{2}:\d{2}:\d{2}))?',
+      ).firstMatch(updateText);
       if (match == null) return null;
 
       final date = normalizeDate(match.group(1) ?? '');

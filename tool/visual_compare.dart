@@ -303,9 +303,9 @@ image.Image _createHeatmap(image.Image baseline, image.Image actual) {
 
 Future<int> runVisualComparison(List<String> arguments) async {
   final options = _parseArguments(arguments);
-  final manifest = jsonDecode(
-    await File(options.manifest).readAsString(),
-  ) as Map<String, Object?>;
+  final manifest =
+      jsonDecode(await File(options.manifest).readAsString())
+          as Map<String, Object?>;
   final metadata = manifest['meta']! as Map<String, Object?>;
   if (metadata['reviewMode'] == 'manual-per-screen') {
     stdout.writeln('视觉清单已启用逐屏人工评审，跳过 SSIM 比较。');
@@ -384,8 +384,9 @@ Future<int> runVisualComparison(List<String> arguments) async {
     'passed': allPassed,
     'results': results,
   };
-  await File('${outputRoot.path}${Platform.pathSeparator}report.json')
-      .writeAsString(const JsonEncoder.withIndent('  ').convert(report));
+  await File(
+    '${outputRoot.path}${Platform.pathSeparator}report.json',
+  ).writeAsString(const JsonEncoder.withIndent('  ').convert(report));
   stdout.writeln(
     'Visual comparison ${allPassed ? 'passed' : 'failed'}: '
     '${results.length} image(s), platform=${options.platform}',
@@ -423,8 +424,9 @@ Future<void> _writeFailureArtifacts({
     '${directory.path}${Platform.pathSeparator}baseline.png',
   );
   await actualFile.copy('${directory.path}${Platform.pathSeparator}actual.png');
-  await File('${directory.path}${Platform.pathSeparator}diff.png')
-      .writeAsBytes(image.encodePng(heatmap));
+  await File(
+    '${directory.path}${Platform.pathSeparator}diff.png',
+  ).writeAsBytes(image.encodePng(heatmap));
 }
 
 String _relativePath(String root, String path) {

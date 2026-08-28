@@ -21,9 +21,9 @@ class YhMasonryGrid extends StatelessWidget {
     if (children.isEmpty) return const SizedBox.shrink();
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = columnsForWidth(constraints.maxWidth)
-            .clamp(1, children.length)
-            .toInt();
+        final columns = columnsForWidth(
+          constraints.maxWidth,
+        ).clamp(1, children.length).toInt();
         if (columns == 1) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

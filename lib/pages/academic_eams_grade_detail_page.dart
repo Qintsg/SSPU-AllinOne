@@ -8,9 +8,8 @@
 
 part of 'academic_page.dart';
 
-typedef AcademicGradeDetailResultChanged = void Function(
-  AcademicEamsQueryResult result,
-);
+typedef AcademicGradeDetailResultChanged =
+    void Function(AcademicEamsQueryResult result);
 
 /// 本专科教务成绩详情页。
 class AcademicEamsGradeDetailPage extends StatefulWidget {

@@ -16,10 +16,8 @@ import 'http_service.dart';
 import 'storage_service.dart';
 
 /// 校园网检测探针签名。
-typedef CampusNetworkProbe = Future<CampusNetworkProbeResult> Function(
-  Uri probeUri,
-  Duration timeout,
-);
+typedef CampusNetworkProbe =
+    Future<CampusNetworkProbeResult> Function(Uri probeUri, Duration timeout);
 
 /// 单次探针访问结果。
 class CampusNetworkProbeResult {

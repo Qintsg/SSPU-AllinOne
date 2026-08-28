@@ -64,8 +64,9 @@ void main() {
       '${rootDirectory.path}${Platform.pathSeparator}wxmp_config.toml',
     );
     expect(
-      await File('${rootDirectory.path}${Platform.pathSeparator}app_state.json')
-          .exists(),
+      await File(
+        '${rootDirectory.path}${Platform.pathSeparator}app_state.json',
+      ).exists(),
       isTrue,
     );
     expect(
@@ -86,8 +87,9 @@ void main() {
     AppDataDirectoryService.debugSetDirectoryForTesting(rootDirectory.path);
 
     await legacyDirectory.create(recursive: true);
-    await File('${legacyDirectory.path}${Platform.pathSeparator}legacy.txt')
-        .writeAsString('legacy backup');
+    await File(
+      '${legacyDirectory.path}${Platform.pathSeparator}legacy.txt',
+    ).writeAsString('legacy backup');
     await StorageService.init();
     await StorageService.setString('sample', 'value');
 
@@ -96,8 +98,9 @@ void main() {
     expect(await rootDirectory.exists(), isFalse);
     expect(await legacyDirectory.exists(), isTrue);
     expect(
-      await File('${legacyDirectory.path}${Platform.pathSeparator}legacy.txt')
-          .readAsString(),
+      await File(
+        '${legacyDirectory.path}${Platform.pathSeparator}legacy.txt',
+      ).readAsString(),
       'legacy backup',
     );
   });

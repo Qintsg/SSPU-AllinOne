@@ -124,15 +124,15 @@ void main() {
     final macosAppInfo = _read('macos/Runner/Configs/AppInfo.xcconfig');
 
     expect(
-      RegExp(r'MARKETING_VERSION = "\$\(FLUTTER_BUILD_NAME\)";')
-          .allMatches(iosProject)
-          .length,
+      RegExp(
+        r'MARKETING_VERSION = "\$\(FLUTTER_BUILD_NAME\)";',
+      ).allMatches(iosProject).length,
       3,
     );
     expect(
-      RegExp(r'CURRENT_PROJECT_VERSION = "\$\(FLUTTER_BUILD_NUMBER\)";')
-          .allMatches(iosProject)
-          .length,
+      RegExp(
+        r'CURRENT_PROJECT_VERSION = "\$\(FLUTTER_BUILD_NUMBER\)";',
+      ).allMatches(iosProject).length,
       3,
     );
     expect(

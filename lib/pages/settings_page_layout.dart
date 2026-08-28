@@ -358,12 +358,14 @@ mixin _SettingsPageLayout
   }
 
   void _openUpdateSettings() {
-    Navigator.of(context)
-        .push(YhPageRoute<void>(builder: (_) => const SettingsUpdatePage()));
+    Navigator.of(
+      context,
+    ).push(YhPageRoute<void>(builder: (_) => const SettingsUpdatePage()));
   }
 
   void _openAboutSettings() {
-    Navigator.of(context)
-        .push(YhPageRoute<void>(builder: (_) => const SettingsAboutPage()));
+    Navigator.of(
+      context,
+    ).push(YhPageRoute<void>(builder: (_) => const SettingsAboutPage()));
   }
 }

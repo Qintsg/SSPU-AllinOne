@@ -188,8 +188,9 @@ class AcademicGradeSnapshot {
   /// :param term: 目标学年学期名，null 表示统计全部。
   /// :returns: 学分合计，缺少学分的记录按 0 计。
   double creditsForTerm(String? term) {
-    return recordsForTerm(term)
-        .fold(0, (sum, record) => sum + (record.credit ?? 0));
+    return recordsForTerm(
+      term,
+    ).fold(0, (sum, record) => sum + (record.credit ?? 0));
   }
 
   /// 指定学期（或全部）的学分加权平均绩点。

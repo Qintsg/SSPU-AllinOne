@@ -356,8 +356,9 @@ List<AcademicCourseTableEntry> _parseCourseTableActivities(String body) {
       continue;
     }
 
-    final indexMatch = RegExp(r'index\s*=\s*(\d+)\*unitCount\+(\d+);')
-        .firstMatch(line);
+    final indexMatch = RegExp(
+      r'index\s*=\s*(\d+)\*unitCount\+(\d+);',
+    ).firstMatch(line);
     if (indexMatch != null && currentActivity != null) {
       final dayOffset = int.tryParse(indexMatch.group(1) ?? '');
       final unitOffset = int.tryParse(indexMatch.group(2) ?? '');
