@@ -300,21 +300,22 @@ jobs:
       - name: 构建 macOS universal
         run: flutter build macos --release
 
-      - name: 自签名 macOS App Bundle
+      - name: 使用无 entitlement 的 ad-hoc 签名 macOS App Bundle
         shell: bash
         run: |
           set -euo pipefail
 
           macos_app_bundle="$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
-          [[ -n "$macos_app_bundle" ]] || {
-            echo "未找到 macOS .app 产物。" >&2
+          [[ -n "$macos_app_bundle" ]] || { echo "未找到 macOS .app 产物。" >&2; exit 1; }
+          # ad-hoc 签名不得携带 app sandbox、钥匙串访问组等受限 entitlement，
+          # 否则 AMFI 会在启动时拒绝进程。
+          codesign --force --deep --sign - "$macos_app_bundle"
+          codesign --verify --deep --strict --verbose=2 "$macos_app_bundle"
+          if codesign -d --entitlements :- "$macos_app_bundle" 2>&1 \
+            | rg -q 'keychain-access-groups|com\.apple\.security\.'; then
+            echo "ad-hoc 签名后的 macOS App 仍包含受限 entitlement。" >&2
             exit 1
-          }
-
-          echo "使用 ad-hoc 自签名（未配置官方 Developer ID 签名与公证）"
-          codesign --force --deep --sign - \
-            --entitlements macos/Runner/Release.entitlements \
-            "$macos_app_bundle"
+          fi
 
       - name: 生成 macOS DMG
         id: dmg
@@ -324,12 +325,13 @@ jobs:
           mkdir -p dist
 
           macos_app_bundle="$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
+          dmg_path="dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-universal.dmg"
 
           npm ci --prefix .github/npm/appdmg
 
           staging="dmg-staging"
           mkdir -p "$staging"
-          cp -R "$macos_app_bundle" "$staging/"
+          ditto "$macos_app_bundle" "$staging/SSPU-AllinOne.app"
           cp .github/installer/macos/bg.png "$staging/bg.png"
 
           APP_VERSION="${{ needs.prepare.outputs.public_version }}"
@@ -357,11 +359,10 @@ jobs:
           }
           APPDMG_EOF
 
-          ./.github/npm/appdmg/node_modules/.bin/appdmg "$staging/config.json" \
-            "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-arm64.dmg"
+          ./.github/npm/appdmg/node_modules/.bin/appdmg "$staging/config.json" "$dmg_path"
 
           rm -rf "$staging"
-          echo "dmg_suffix=arm64" >> "$GITHUB_OUTPUT"
+          echo "dmg_suffix=universal" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

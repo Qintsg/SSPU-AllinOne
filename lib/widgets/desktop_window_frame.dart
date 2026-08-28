@@ -7,6 +7,7 @@
  */
 
 import 'dart:async';
+
 import 'package:window_manager/window_manager.dart';
 
 import '../design/qingyuan/qingyuan_ui.dart';

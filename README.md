@@ -131,10 +131,17 @@ flutter build macos --release
 - 产物位置：
   `build/macos/Build/Products/Release/`
 - 使用方式：
-  分发生成的 `.app` 包；首次运行若被系统拦截，需要在"系统设置 → 隐私与安全性"中手动放行
-  公开 Release 当前默认提供多架构 DMG：
-  `SSPU-AllinOne-v{version}-macos-arm64.dmg`
-  `SSPU-AllinOne-v{version}-macos-x86_64.dmg`
+  公开 Release 为未公证的 ad-hoc 签名 DMG：
+  `SSPU-AllinOne-v{version}-macos-universal.dmg`
+  将 App 拖入“应用程序”后，确认下载来源可信，再执行：
+
+```bash
+xattr -cr "/Applications/SSPU-AllinOne.app"
+open "/Applications/SSPU-AllinOne.app"
+```
+
+  该包不需要 Apple 开发者证书；发布流程会剥离受限 entitlement，避免
+  ad-hoc 签名 App 被 AMFI 拒绝启动。
 
 ### iOS
 

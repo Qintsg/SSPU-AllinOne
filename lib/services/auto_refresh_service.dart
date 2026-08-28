@@ -9,6 +9,7 @@
  */
 
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/message_item.dart';

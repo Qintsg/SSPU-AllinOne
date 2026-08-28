@@ -7,6 +7,7 @@
  */
 
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:html/parser.dart' as html_parser;
 

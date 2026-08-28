@@ -315,17 +315,15 @@ class _SettingsWechatAuthPageState extends State<SettingsWechatAuthPage> {
       setState(() => _noticeMessage = '已取消清除，公众号连接保持不变。');
       return;
     }
-    await _runOperation(
-      _WechatAuthOperation.clear,
-      (operationGeneration) async {
-        final controller = _controller;
-        final feedback = await controller.clearAuth();
-        if (!_isCurrent(operationGeneration)) return;
-        _showFeedback(feedback, generation: operationGeneration);
-        _noticeMessage = '本机 Cookie 与 Token 已清除；公众号平台账号未受影响。';
-      },
-      failureMessage: '未能完整清除本机认证；连接状态保持可见，请检查本机存储后重试。',
-    );
+    await _runOperation(_WechatAuthOperation.clear, (
+      operationGeneration,
+    ) async {
+      final controller = _controller;
+      final feedback = await controller.clearAuth();
+      if (!_isCurrent(operationGeneration)) return;
+      _showFeedback(feedback, generation: operationGeneration);
+      _noticeMessage = '本机 Cookie 与 Token 已清除；公众号平台账号未受影响。';
+    }, failureMessage: '未能完整清除本机认证；连接状态保持可见，请检查本机存储后重试。');
   }
 
   Future<bool> _defaultClearConfirmation(BuildContext context) {

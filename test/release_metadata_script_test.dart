@@ -26,7 +26,8 @@ void main() {
       ).writeAsString('fixture:$assetName');
     }
 
-    final result = await Process.run('python', [
+    final pythonExecutable = Platform.isWindows ? 'python' : 'python3';
+    final result = await Process.run(pythonExecutable, [
       'scripts/release/generate_release_metadata.py',
       '--asset-dir',
       tempDir.path,
@@ -63,11 +64,14 @@ void main() {
     );
 
     expect(macosEntries.length, 1);
-    final arm64Entry = macosEntries.firstWhere(
-      (entry) => entry['arch'] == 'arm64',
+    final universalEntry = macosEntries.firstWhere(
+      (entry) => entry['arch'] == 'universal',
     );
-    expect(arm64Entry['kind'], 'dmg');
-    expect(arm64Entry['filename'], 'SSPU-AllinOne-v1.2.0-macos-arm64.dmg');
+    expect(universalEntry['kind'], 'dmg');
+    expect(
+      universalEntry['filename'],
+      'SSPU-AllinOne-v1.2.0-macos-universal.dmg',
+    );
   });
 }
 
@@ -79,7 +83,7 @@ const _expectedAssetNames = [
   'SSPU-AllinOne-v1.2.0-windows-x64-portable.zip',
   'SSPU-AllinOne-v1.2.0-windows-arm64-setup.exe',
   'SSPU-AllinOne-v1.2.0-windows-arm64-portable.zip',
-  'SSPU-AllinOne-v1.2.0-macos-arm64.dmg',
+  'SSPU-AllinOne-v1.2.0-macos-universal.dmg',
   'SSPU-AllinOne-v1.2.0-linux-x64.AppImage',
   'SSPU-AllinOne-v1.2.0-linux-x64.deb',
   'SSPU-AllinOne-v1.2.0-linux-x64.rpm',
