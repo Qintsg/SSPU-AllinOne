@@ -126,9 +126,11 @@ dist/
 !.agents/skills/issue-writing/
 !.agents/skills/lore-usage/
 !.agents/skills/pr-writing/
+!.agents/skills/speckit-*/
 .opencode/
 .sisyphus/
 CLAUDE.md
 AGENTS.md
+!AGENTS.md
 docs/plans/
 docs/compose/
