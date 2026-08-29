@@ -1,0 +1,37 @@
+# GitHub Spec Kit — 校验规格驱动开发基础设施与项目宪章。
+name: Spec Kit
+
+on:
+  pull_request:
+    branches: [develop]
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - '.specify/**'
+      - '.agents/skills/speckit-*/**'
+      - 'scripts/ci/validate_spec_kit.py'
+      - 'specs/**'
+      - '.github/workflows/spec-kit.yml'
+  push:
+    branches: [develop, main]
+    paths:
+      - '.specify/**'
+      - '.agents/skills/speckit-*/**'
+      - 'scripts/ci/validate_spec_kit.py'
+      - 'specs/**'
+      - '.github/workflows/spec-kit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Spec Kit
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: 校验 Spec Kit 项目结构与宪章
+        run: python scripts/ci/validate_spec_kit.py

@@ -164,6 +164,18 @@ flutter build ios --release --no-codesign
 | [Dependency Review](https://github.com/Qintsg/SSPU-AllinOne/actions/workflows/dependency-review.yml) | 依赖供应链审查 | PR 依赖变更 |
 | [OSSF Scorecard](https://github.com/Qintsg/SSPU-AllinOne/actions/workflows/scorecard.yml) | 供应链安全态势评估 | push to main / 每周 |
 
+## Spec-Driven Development
+
+本项目已接入 [GitHub Spec Kit](https://github.com/github/spec-kit)，使用规格驱动的方式
+管理新功能：先描述用户场景，再形成技术计划和任务清单，最后实现并收敛验证。Codex
+可直接使用以下技能：`$speckit-specify`、`$speckit-plan`、`$speckit-tasks`、
+`$speckit-implement` 与 `$speckit-converge`；需要澄清或一致性分析时可使用
+`$speckit-clarify`、`$speckit-analyze`。
+
+- [Spec Kit 项目配置](.specify/)
+- [规格目录与工作流说明](specs/README.md)
+- [Spec Kit 校验工作流](.github/workflows/spec-kit.yml)
+
 ## 文档
 
 - [贡献指南](CONTRIBUTE.md) — Git Flow 工作流、开发环境、提交与 PR 规范
