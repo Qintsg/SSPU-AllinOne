@@ -27,6 +27,12 @@ class WebViewPage extends StatefulWidget {
   /// Windows 平台需要的 WebViewEnvironment（可选，由外部传入）。
   final WebViewEnvironment? webViewEnvironment;
 
+  /// 首次导航请求附带的请求头。
+  ///
+  /// 快捷入口的 OA 页面会把当前已认证会话以 Cookie 请求头注入首次导航，
+  /// 这样不会把凭据交给系统浏览器，也不会把 Cookie 持久化到普通网页入口。
+  final Map<String, String>? initialHeaders;
+
   /// 系统浏览器启动 seam；测试可注入确定性 adapter。
   final Future<bool> Function(Uri uri)? launchUrlOverride;
 
@@ -38,6 +44,7 @@ class WebViewPage extends StatefulWidget {
     required this.url,
     this.initialTitle = '加载中…',
     this.webViewEnvironment,
+    this.initialHeaders,
     this.launchUrlOverride,
     this.initializationTimeout = const Duration(seconds: 12),
   });
@@ -140,6 +147,31 @@ class _WebViewPageState extends State<WebViewPage> {
       } finally {
         if (mounted) setState(() => _isOpeningExternal = false);
       }
+    }
+  }
+
+  /// 将浏览器识别出的下载交给系统应用，避免下载响应卡在 WebView 空白页。
+  Future<void> _handleDownloadStart(DownloadStartRequest request) async {
+    if (_isOpeningExternal || !mounted) return;
+    final uri = Uri.tryParse(request.url.toString());
+    if (uri == null || uri.host.isEmpty) return;
+    final confirmed = await confirmWebViewExternalOpen(context, uri);
+    if (!confirmed || !mounted || _isOpeningExternal) return;
+    setState(() {
+      _isOpeningExternal = true;
+      _externalOpenError = null;
+    });
+    try {
+      final opened = widget.launchUrlOverride != null
+          ? await widget.launchUrlOverride!(uri)
+          : await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened && mounted) {
+        setState(() => _externalOpenError = '系统未能打开下载链接，请检查默认浏览器或下载应用。');
+      }
+    } on Object catch (error) {
+      if (mounted) setState(() => _externalOpenError = '系统未能打开下载链接：$error');
+    } finally {
+      if (mounted) setState(() => _isOpeningExternal = false);
     }
   }
 
@@ -307,7 +339,10 @@ class _WebViewPageState extends State<WebViewPage> {
         document: InAppWebView(
           key: ValueKey('webview-document-$documentGeneration'),
           webViewEnvironment: widget.webViewEnvironment,
-          initialUrlRequest: URLRequest(url: WebUri(_currentUrl)),
+          initialUrlRequest: URLRequest(
+            url: WebUri(_currentUrl),
+            headers: widget.initialHeaders,
+          ),
           initialSettings: InAppWebViewSettings(
             javaScriptEnabled: true,
             isInspectable: kDebugMode,
@@ -354,6 +389,9 @@ class _WebViewPageState extends State<WebViewPage> {
                 _loadErrorDescription = error.description;
               });
             }
+          },
+          onDownloadStartRequest: (controller, request) {
+            unawaited(_handleDownloadStart(request));
           },
         ),
       ),

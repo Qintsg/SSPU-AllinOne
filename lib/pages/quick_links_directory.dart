@@ -287,6 +287,7 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
   }
 
   String _itemDescription(QuickLinkItemConfig item) {
+    if (item.kind == QuickLinkKind.app) return '在已安装的应用中打开';
     final name = item.name;
     if (name.contains('教务')) return '成绩、选课与考试';
     if (name.contains('学习') || name.contains('教学')) return '课程学习与作业';

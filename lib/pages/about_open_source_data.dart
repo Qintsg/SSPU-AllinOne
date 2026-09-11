@@ -84,10 +84,16 @@ const List<_OpenSourceProject> _openSourceProjects = [
     url: 'https://pub.dev/packages/dio',
   ),
   _OpenSourceProject(
-    name: 'local_notifier',
-    description: 'Windows 本地系统通知推送',
-    license: 'MIT',
-    url: 'https://pub.dev/packages/local_notifier',
+    name: 'flutter_local_notifications',
+    description: 'Android、iOS、macOS、Windows 与 Linux 系统通知适配',
+    license: 'BSD-3-Clause',
+    url: 'https://pub.dev/packages/flutter_local_notifications',
+  ),
+  _OpenSourceProject(
+    name: 'timezone',
+    description: '课程与考试提醒的本地时区计算',
+    license: 'BSD-3-Clause',
+    url: 'https://pub.dev/packages/timezone',
   ),
   _OpenSourceProject(
     name: 'html',

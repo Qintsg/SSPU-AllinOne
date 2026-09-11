@@ -73,10 +73,13 @@ Future<void> pumpAcademicPage(
   required StudentReportClient studentReportService,
   AcademicTermService? academicTermService,
   bool academicEamsAutoRefreshEnabledOverride = false,
+  bool academicEamsFetchEnabledOverride = true,
   int academicEamsAutoRefreshIntervalOverride = 30,
   bool sportsAttendanceAutoRefreshEnabledOverride = false,
+  bool sportsAttendanceFetchEnabledOverride = true,
   int sportsAttendanceAutoRefreshIntervalOverride = 30,
   bool studentReportAutoRefreshEnabledOverride = false,
+  bool studentReportFetchEnabledOverride = true,
   int studentReportAutoRefreshIntervalOverride = 30,
   VoidCallback? onOpenAccountConnections,
   VoidCallback? onAdjustAcademicTerm,
@@ -92,14 +95,18 @@ Future<void> pumpAcademicPage(
         studentReportService: studentReportService,
         academicEamsAutoRefreshEnabledOverride:
             academicEamsAutoRefreshEnabledOverride,
+        academicEamsFetchEnabledOverride: academicEamsFetchEnabledOverride,
         academicEamsAutoRefreshIntervalOverride:
             academicEamsAutoRefreshIntervalOverride,
         sportsAttendanceAutoRefreshEnabledOverride:
             sportsAttendanceAutoRefreshEnabledOverride,
+        sportsAttendanceFetchEnabledOverride:
+            sportsAttendanceFetchEnabledOverride,
         sportsAttendanceAutoRefreshIntervalOverride:
             sportsAttendanceAutoRefreshIntervalOverride,
         studentReportAutoRefreshEnabledOverride:
             studentReportAutoRefreshEnabledOverride,
+        studentReportFetchEnabledOverride: studentReportFetchEnabledOverride,
         studentReportAutoRefreshIntervalOverride:
             studentReportAutoRefreshIntervalOverride,
         onOpenAccountConnections: onOpenAccountConnections,

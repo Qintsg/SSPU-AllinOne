@@ -199,11 +199,15 @@ class _AcademicArchiveCard extends StatelessWidget {
     required this.onOpenGrades,
     required this.onOpenExams,
     required this.onOpenSchedule,
+    required this.onOpenProgramPlan,
+    required this.onOpenFreeClassrooms,
   });
 
   final VoidCallback? onOpenGrades;
   final VoidCallback? onOpenExams;
   final VoidCallback? onOpenSchedule;
+  final VoidCallback? onOpenProgramPlan;
+  final VoidCallback? onOpenFreeClassrooms;
 
   @override
   Widget build(BuildContext context) {
@@ -231,10 +235,26 @@ class _AcademicArchiveCard extends StatelessWidget {
           _AcademicActionRow(
             key: const ValueKey('academic-overview-schedule'),
             icon: YhIcons.info,
-            title: '课表与培养进度',
-            detail: '当前课表、已修学分和待完成课程',
+            title: '课程表',
+            detail: '当前周次、节次和上课地点',
             trail: '›',
             onTap: onOpenSchedule,
+          ),
+          _AcademicActionRow(
+            key: const ValueKey('academic-overview-program-plan'),
+            icon: YhIcons.academic,
+            title: '培养方案',
+            detail: '模块学分进度与课程要求',
+            trail: '›',
+            onTap: onOpenProgramPlan,
+          ),
+          _AcademicActionRow(
+            key: const ValueKey('academic-overview-free-classrooms'),
+            icon: YhIcons.location,
+            title: '空闲教室',
+            detail: '按日期与节次查找学习空间',
+            trail: '›',
+            onTap: onOpenFreeClassrooms,
           ),
         ],
       ),

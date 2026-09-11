@@ -16,6 +16,13 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
     AcademicEamsSemesterOption? examSemester,
     String? examTypeId,
   }) async {
+    if (!await _isFetchEnabled()) {
+      return _buildResult(
+        AcademicEamsQueryStatus.fetchDisabled,
+        message: '本专科教务已停止获取',
+        detail: '可继续查看本地缓存；如需刷新课表、成绩、考试或培养方案，请在设置中重新允许联网获取。',
+      );
+    }
     CampusNetworkStatus? campusStatus;
     try {
       final credentialsStatus = await _credentialsService.getStatus();
@@ -142,6 +149,7 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
       fetchedAt: snapshot.fetchedAt,
       data: snapshot.toJson(),
     );
+    _cacheChangesController.add(null);
   }
 
   Future<bool> _hasSameOaCredentials(

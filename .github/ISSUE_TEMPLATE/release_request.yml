@@ -75,6 +75,7 @@ body:
         - Windows arm64 installer
         - Windows arm64 portable
         - macOS universal signed DMG
+        - iOS arm64 unsigned app.zip
         - Linux x64 AppImage
         - Linux x64 deb
         - Linux x64 rpm

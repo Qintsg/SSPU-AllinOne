@@ -8,11 +8,14 @@
 
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:async';
+
 import '../design/qingyuan/qingyuan_ui.dart';
 
 import '../models/academic_credentials.dart';
 import '../models/channel_config.dart';
 import '../services/academic_eams_service.dart';
+import '../services/academic_reminder_coordinator.dart';
 import '../services/app_display_name_service.dart';
 import '../services/app_exit_service.dart';
 import '../services/academic_credentials_service.dart';
@@ -20,8 +23,11 @@ import '../services/authenticated_data_cache_service.dart';
 import '../services/campus_card_service.dart';
 import '../services/campus_network_status_service.dart';
 import '../services/data_auto_refresh_preferences.dart';
+import '../services/data_module_preferences.dart';
 import '../services/email_service.dart';
+import '../services/home_dashboard_preferences.dart';
 import '../services/message_state_service.dart';
+import '../services/notification_service.dart';
 import '../services/password_service.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/storage_service.dart';
@@ -125,9 +131,34 @@ class _SettingsPageState extends State<SettingsPage>
   @override
   bool _notificationEnabled = true;
 
+  /// 普通校园消息通知开关。
+  @override
+  bool _messageNotificationEnabled = true;
+
+  /// 当前系统通知权限状态。
+  @override
+  NotificationPermissionStatus _notificationPermissionStatus =
+      NotificationPermissionStatus.unknown;
+
   /// 勿扰模式开关。
   @override
   bool _dndEnabled = false;
+
+  /// 课程开始提醒开关。
+  @override
+  bool _courseReminderEnabled = false;
+
+  /// 课程提醒提前量，单位分钟。
+  @override
+  int _courseReminderLeadMinutes = 15;
+
+  /// 考试提醒开关。
+  @override
+  bool _examReminderEnabled = false;
+
+  /// 考试提醒提前量，单位分钟。
+  @override
+  int _examReminderLeadMinutes = 24 * 60;
 
   /// 首页是否显示学籍信息卡片。
   @override
@@ -160,6 +191,17 @@ class _SettingsPageState extends State<SettingsPage>
   /// 首页是否显示快速跳转磁贴。
   @override
   bool _homeQuickLinksTileVisible = true;
+
+  /// 首页服务摘要的展示顺序。
+  @override
+  List<HomeOverviewItem> _homeOverviewOrder =
+      HomeDashboardPreferences.defaultOverviewOrder;
+
+  /// 各校园数据模块是否允许联网获取。
+  @override
+  Map<CampusDataModule, bool> _dataModuleFetchEnabled = {
+    for (final module in CampusDataModule.values) module: true,
+  };
 
   /// 勿扰开始时间。
   @override

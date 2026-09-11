@@ -23,6 +23,7 @@ import '../services/academic_credentials_service.dart';
 import '../services/academic_eams_service.dart';
 import '../services/academic_term_service.dart';
 import '../services/data_auto_refresh_preferences.dart';
+import '../services/data_module_preferences.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/student_report_service.dart';
 import '../utils/query_result_messages.dart';
@@ -37,6 +38,8 @@ part 'academic_eams_exam_evidence_body.dart';
 part 'academic_eams_grade_card.dart';
 part 'academic_eams_grade_detail_page.dart';
 part 'academic_eams_grade_process_page.dart';
+part 'academic_free_classroom_page.dart';
+part 'academic_program_plan_page.dart';
 part 'academic_sports_attendance_card.dart';
 part 'academic_sports_attendance_detail_page.dart';
 part 'academic_sports_attendance_detail_panels.dart';
@@ -72,17 +75,29 @@ class AcademicPage extends StatefulWidget {
   /// 测试专用：覆盖体育部考勤自动刷新开关，避免读取真实本地设置。
   final bool? sportsAttendanceAutoRefreshEnabledOverride;
 
+  /// 测试专用：覆盖体育考勤模块联网获取偏好。
+  final bool? sportsAttendanceFetchEnabledOverride;
+
   /// 测试专用：覆盖体育部考勤自动刷新间隔。
   final int? sportsAttendanceAutoRefreshIntervalOverride;
 
   /// 测试专用：覆盖第二课堂学分自动刷新开关。
   final bool? studentReportAutoRefreshEnabledOverride;
 
+  /// 测试专用：覆盖第二课堂模块联网获取偏好。
+  final bool? studentReportFetchEnabledOverride;
+
   /// 测试专用：覆盖第二课堂学分自动刷新间隔。
   final int? studentReportAutoRefreshIntervalOverride;
 
   /// 本专科教务只读服务，测试中可替换为 fake。
   final AcademicEamsClient? academicEamsService;
+
+  /// 空闲教室只读查询服务，测试中可独立替换。
+  final AcademicFreeClassroomClient? freeClassroomService;
+
+  /// 培养方案详情只读服务，测试中可独立替换。
+  final AcademicProgramPlanClient? programPlanService;
 
   /// 全局学期解析模块；视觉 fixture 可注入完全离线的校历 adapter。
   final AcademicTermService? academicTermService;
@@ -92,6 +107,9 @@ class AcademicPage extends StatefulWidget {
 
   /// 测试专用：覆盖本专科教务自动刷新开关。
   final bool? academicEamsAutoRefreshEnabledOverride;
+
+  /// 测试专用：覆盖本专科教务模块联网获取偏好。
+  final bool? academicEamsFetchEnabledOverride;
 
   /// 测试专用：覆盖本专科教务自动刷新间隔。
   final int? academicEamsAutoRefreshIntervalOverride;
@@ -110,13 +128,18 @@ class AcademicPage extends StatefulWidget {
     this.sportsAttendanceService,
     this.studentReportService,
     this.sportsAttendanceAutoRefreshEnabledOverride,
+    this.sportsAttendanceFetchEnabledOverride,
     this.sportsAttendanceAutoRefreshIntervalOverride,
     this.studentReportAutoRefreshEnabledOverride,
+    this.studentReportFetchEnabledOverride,
     this.studentReportAutoRefreshIntervalOverride,
     this.academicEamsService,
+    this.freeClassroomService,
+    this.programPlanService,
     this.academicTermService,
     this.academicTermNow,
     this.academicEamsAutoRefreshEnabledOverride,
+    this.academicEamsFetchEnabledOverride,
     this.academicEamsAutoRefreshIntervalOverride,
     this.onOpenAccountConnections,
     this.onAdjustAcademicTerm,
@@ -150,6 +173,7 @@ class _AcademicPageState extends State<AcademicPage> {
   _studentReportRefreshController;
   StreamSubscription<int>? _credentialChangeSubscription;
   StreamSubscription<int>? _dataAutoRefreshSubscription;
+  StreamSubscription<CampusDataModule>? _dataModuleSubscription;
   Future<void>? _coordinatedRefreshFuture;
   bool _isCoordinatedRefresh = false;
   Set<String> _failedAcademicSources = const {};
@@ -171,6 +195,26 @@ class _AcademicPageState extends State<AcademicPage> {
 
   AcademicEamsClient get _academicEamsService {
     return widget.academicEamsService ?? AcademicEamsService.instance;
+  }
+
+  AcademicFreeClassroomClient get _freeClassroomService {
+    final override = widget.freeClassroomService;
+    if (override != null) return override;
+    final academicService = _academicEamsService;
+    if (academicService is AcademicFreeClassroomClient) {
+      return academicService as AcademicFreeClassroomClient;
+    }
+    return AcademicEamsService.instance;
+  }
+
+  AcademicProgramPlanClient get _programPlanService {
+    final override = widget.programPlanService;
+    if (override != null) return override;
+    final academicService = _academicEamsService;
+    if (academicService is AcademicProgramPlanClient) {
+      return academicService as AcademicProgramPlanClient;
+    }
+    return AcademicEamsService.instance;
   }
 
   AcademicTermService get _academicTermService {
@@ -252,6 +296,9 @@ class _AcademicPageState extends State<AcademicPage> {
         .listen((_) => _clearAuthenticatedState());
     _dataAutoRefreshSubscription = DataAutoRefreshPreferences.instance.changes
         .listen(_handleDataAutoRefreshIntervalChanged);
+    _dataModuleSubscription = DataModulePreferences.instance.changes.listen(
+      _handleDataModulePreferenceChanged,
+    );
     _loadAcademicEamsCacheAndSettings();
     _loadSportsAttendanceCacheAndSettings();
     _loadStudentReportCacheAndSettings();
@@ -287,6 +334,20 @@ class _AcademicPageState extends State<AcademicPage> {
         intervalMinutes: minutes,
         refreshIfStale: false,
       );
+    }
+  }
+
+  void _handleDataModulePreferenceChanged(CampusDataModule module) {
+    switch (module) {
+      case CampusDataModule.academicEams:
+        unawaited(_loadAcademicEamsAutoRefreshSettings());
+      case CampusDataModule.sportsAttendance:
+        unawaited(_loadSportsAttendanceAutoRefreshSettings());
+      case CampusDataModule.studentReport:
+        unawaited(_loadStudentReportAutoRefreshSettings());
+      case CampusDataModule.campusCard:
+      case CampusDataModule.email:
+        break;
     }
   }
 
@@ -528,6 +589,7 @@ class _AcademicPageState extends State<AcademicPage> {
   void dispose() {
     _credentialChangeSubscription?.cancel();
     _dataAutoRefreshSubscription?.cancel();
+    _dataModuleSubscription?.cancel();
     _academicLegacySourcesFocusNode.dispose();
     _academicEamsRefreshController
       ..removeListener(_handleRefreshControllerChanged)

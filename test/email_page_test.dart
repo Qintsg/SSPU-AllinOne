@@ -31,6 +31,7 @@ Future<void> pumpEmailPage(
   required bool emailAutoRefreshEnabledOverride,
   int emailAutoRefreshIntervalOverride = 30,
   DateTime? nowOverride,
+  EmailAttachmentPicker? attachmentPicker,
 }) async {
   await tester.pumpWidget(
     YhApp(
@@ -38,7 +39,9 @@ Future<void> pumpEmailPage(
         emailService: emailService,
         emailAutoRefreshEnabledOverride: emailAutoRefreshEnabledOverride,
         emailAutoRefreshIntervalOverride: emailAutoRefreshIntervalOverride,
+        emailFetchEnabledOverride: true,
         nowOverride: nowOverride,
+        attachmentPicker: attachmentPicker,
       ),
     ),
   );
@@ -73,7 +76,7 @@ void main() {
 
     await tester.ensureVisible(find.text('读取最近邮件'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('读取最近邮件'));
+    await tester.tap(find.text('读取最近邮件').last);
     await pumpUntilFound(tester, find.text('教务通知'));
 
     expect(service.fetchCount, 1);
@@ -109,6 +112,35 @@ void main() {
     expect(selectable.style?.fontSize, theme.typography.reading.fontSize);
     expect(selectable.style?.height, theme.typography.reading.height);
     expect(selectable.style?.color, theme.color.muted);
+  });
+
+  testWidgets('邮件正文展示附件并把下载动作回传列表页', (tester) async {
+    const attachment = EmailAttachmentSnapshot(
+      id: 'attachment-1',
+      fileName: '课程安排.pdf',
+      mediaType: 'application/pdf',
+      size: 2048,
+    );
+    EmailAttachmentSnapshot? downloadedAttachment;
+
+    await tester.pumpWidget(
+      YhApp(
+        home: EmailMessageDetailPage(
+          message: _message.copyWith(attachments: const [attachment]),
+          onDownloadAttachment: (selected) async {
+            downloadedAttachment = selected;
+          },
+        ),
+      ),
+    );
+
+    expect(find.text('附件（1）'), findsOneWidget);
+    expect(find.text('课程安排.pdf'), findsOneWidget);
+
+    await tester.tap(find.text('下载'));
+    await tester.pump();
+
+    expect(downloadedAttachment, same(attachment));
   });
 
   testWidgets('邮箱页面可触发 SMTP 登录校验但不读取邮件', (tester) async {
@@ -205,6 +237,35 @@ void main() {
     await tester.pump(const Duration(milliseconds: 120));
   });
 
+  testWidgets('选择超大附件时明确提示且不加入撰写列表', (tester) async {
+    final service = _FakeEmailClient();
+    await pumpEmailPage(
+      tester,
+      emailService: service,
+      emailAutoRefreshEnabledOverride: false,
+      attachmentPicker: () async => const [
+        EmailAttachmentRequest(
+          path: 'huge.bin',
+          fileName: 'huge.bin',
+          size: EmailService.maxAttachmentBytes + 1,
+        ),
+      ],
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(const Key('email-compose-open')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('email-add-attachment')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('email-add-attachment')));
+    await tester.pump();
+
+    expect(find.textContaining('总大小超过 100 MB'), findsOneWidget);
+    expect(
+      find.byKey(const Key('email-compose-attachment-huge.bin')),
+      findsNothing,
+    );
+  });
+
   testWidgets('邮箱撰写面板在窄屏下不溢出', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
@@ -228,9 +289,7 @@ void main() {
 
     expect(find.text('撰写邮件'), findsOneWidget);
     expect(find.byKey(const Key('email-compose-action-dock')), findsOneWidget);
-    final detail = tester.widget<Text>(
-      find.text('仅在点击发送后提交普通文本；不保存草稿，不在后台重试。'),
-    );
+    final detail = tester.widget<Text>(find.text('仅在点击发送后提交；不保存草稿，不在后台重试。'));
     final theme = tester
         .element(find.byKey(const Key('email-compose-panel')))
         .yhTheme;
@@ -589,6 +648,76 @@ void main() {
     expect(find.text('第二封邮件'), findsOneWidget);
     semantics.dispose();
   });
+
+  testWidgets('邮箱页面可在本地缓存内即时搜索主题与正文', (tester) async {
+    await pumpEmailPage(
+      tester,
+      emailService: _FakeEmailClient(cachedResult: _twoMessageMailboxResult),
+      emailAutoRefreshEnabledOverride: false,
+    );
+    await pumpUntilFound(tester, find.byKey(const Key('email-search-field')));
+
+    expect(find.text('缓存通知'), findsOneWidget);
+    expect(find.text('第二封邮件'), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('email-search-field')), '第二封');
+    await tester.pump();
+
+    expect(find.text('第二封邮件'), findsOneWidget);
+    expect(find.text('缓存通知'), findsNothing);
+    expect(find.text('1/2 封邮件'), findsOneWidget);
+    expect(find.textContaining('仅筛选已缓存'), findsNothing);
+
+    await tester.enterText(find.byKey(const Key('email-search-field')), '不存在');
+    await tester.pump();
+    expect(find.text('没有匹配邮件'), findsOneWidget);
+    expect(find.textContaining('本地缓存的 2 封邮件'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('清除邮件搜索'));
+    await tester.pump();
+    expect(find.text('缓存通知'), findsOneWidget);
+    expect(find.text('第二封邮件'), findsOneWidget);
+  });
+
+  testWidgets('邮箱页面按十封一组加载更早邮件', (tester) async {
+    final service = _PagingEmailClient();
+    await pumpEmailPage(
+      tester,
+      emailService: service,
+      emailAutoRefreshEnabledOverride: false,
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await openEmailConnectionDrawer(tester);
+    await tester.tap(find.text('读取最近邮件').last);
+    await pumpUntilFound(tester, find.text('第 10 封邮件'));
+
+    expect(service.requestedCounts, [10]);
+    await tester.ensureVisible(find.byKey(const Key('email-load-more')));
+    await tester.tap(find.byKey(const Key('email-load-more')));
+    await pumpUntilFound(tester, find.text('第 20 封邮件'));
+
+    expect(service.requestedCounts, [10, 20]);
+    expect(find.text('20 封邮件'), findsOneWidget);
+  });
+
+  testWidgets('打开未读 IMAP 邮件会回写服务器已读状态', (tester) async {
+    final service = _AdvancedFakeEmailClient(
+      cachedResult: _unreadMailboxResult,
+    );
+    await pumpEmailPage(
+      tester,
+      emailService: service,
+      emailAutoRefreshEnabledOverride: false,
+    );
+    await pumpUntilFound(tester, find.text('未读通知'));
+
+    await tester.tap(find.text('未读通知'));
+    await tester.pumpAndSettle();
+
+    expect(service.markedMessageIds, ['IMAP:unread']);
+    expect(find.text('邮件正文'), findsOneWidget);
+  });
 }
 
 class _FakeEmailClient implements EmailMailboxClient {
@@ -698,6 +827,92 @@ class _FakeEmailClient implements EmailMailboxClient {
   }
 }
 
+class _PagingEmailClient implements EmailMailboxClient {
+  final List<int> requestedCounts = [];
+
+  @override
+  Future<EmailMailboxQueryResult?> readLatestCachedMessages(
+    EmailProtocol protocol,
+  ) async => null;
+
+  @override
+  Future<EmailMailboxQueryResult> fetchMessages({
+    required EmailProtocol protocol,
+    int messageCount = 10,
+  }) async {
+    requestedCounts.add(messageCount);
+    final messages = [
+      for (var index = 1; index <= messageCount; index++)
+        EmailMessageSnapshot(
+          id: 'IMAP:$index',
+          subject: '第 $index 封邮件',
+          senderName: '测试发件人',
+          senderAddress: 'sender@example.invalid',
+          preview: '分页测试内容',
+          body: '分页测试内容',
+          receivedAt: DateTime(2026, 5, 1).subtract(Duration(days: index)),
+        ),
+    ];
+    return EmailMailboxQueryResult(
+      status: EmailQueryStatus.success,
+      protocol: protocol,
+      message: '${protocol.label} 邮件读取完成',
+      detail: '已读取最近邮件。',
+      checkedAt: DateTime(2026, 5, 1, 9, 30),
+      endpoint: _endpoint,
+      snapshot: EmailMailboxSnapshot(
+        protocol: protocol,
+        account: 'student@sspu.edu.cn',
+        messages: messages,
+        fetchedAt: DateTime(2026, 5, 1, 9, 30),
+        endpoint: _endpoint,
+      ),
+    );
+  }
+
+  @override
+  Future<EmailLoginValidationResult> validateLogin(EmailProtocol protocol) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<EmailSendResult> sendMessage(EmailComposeRequest request) {
+    throw UnimplementedError();
+  }
+}
+
+class _AdvancedFakeEmailClient extends _FakeEmailClient
+    implements AdvancedEmailMailboxClient {
+  _AdvancedFakeEmailClient({required super.cachedResult});
+
+  final List<String> markedMessageIds = [];
+
+  @override
+  Future<EmailMailboxQueryResult> markMessageAsRead(
+    EmailMessageSnapshot message,
+  ) async {
+    markedMessageIds.add(message.id);
+    return EmailMailboxQueryResult(
+      status: EmailQueryStatus.success,
+      protocol: EmailProtocol.imap,
+      message: '邮件已标记为已读',
+      detail: 'IMAP \\Seen 状态已回写服务器。',
+      checkedAt: DateTime(2026, 5, 1, 9, 30),
+      endpoint: _endpoint,
+    );
+  }
+
+  @override
+  Future<EmailAttachmentDownloadResult> downloadAttachment(
+    EmailMessageSnapshot message,
+    EmailAttachmentSnapshot attachment,
+  ) async => const EmailAttachmentDownloadResult(
+    status: EmailQueryStatus.parseFailed,
+    message: '附件内容不可用',
+    detail: '测试附件为空。',
+  );
+}
+
 const EmailServerEndpoint _endpoint = EmailServerEndpoint(
   host: 'imap.exmail.qq.com',
   port: 993,
@@ -739,6 +954,34 @@ final EmailMailboxQueryResult _cachedMailboxResult = EmailMailboxQueryResult(
         preview: '缓存邮件内容。',
         body: '缓存邮件内容。',
         receivedAt: null,
+      ),
+    ],
+    fetchedAt: DateTime.now(),
+    endpoint: _endpoint,
+  ),
+);
+
+final EmailMailboxQueryResult _unreadMailboxResult = EmailMailboxQueryResult(
+  status: EmailQueryStatus.success,
+  protocol: EmailProtocol.imap,
+  message: '已显示本地邮箱缓存',
+  detail: '显示最近一次成功读取并保存的 IMAP 邮件快照。',
+  checkedAt: DateTime.now(),
+  endpoint: _endpoint,
+  snapshot: EmailMailboxSnapshot(
+    protocol: EmailProtocol.imap,
+    account: 'student@sspu.edu.cn',
+    messages: const [
+      EmailMessageSnapshot(
+        id: 'IMAP:unread',
+        subject: '未读通知',
+        senderName: '教务处',
+        senderAddress: 'notice@sspu.edu.cn',
+        preview: '请查看未读通知。',
+        body: '请查看未读通知。',
+        receivedAt: null,
+        isRead: false,
+        serverUid: '42',
       ),
     ],
     fetchedAt: DateTime.now(),

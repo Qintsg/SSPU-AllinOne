@@ -376,7 +376,7 @@ class SettingsWechatController extends ChangeNotifier {
     }
     notifyListeners();
     return SettingsWechatFeedback(
-      title: enabled ? '已启用微信矩阵全部公众号' : '已关闭微信矩阵全部公众号',
+      title: enabled ? '已开启微信矩阵全部通知' : '已关闭微信矩阵全部通知',
       severity: enabled
           ? AppFeedbackSeverity.success
           : AppFeedbackSeverity.info,

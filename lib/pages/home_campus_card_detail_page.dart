@@ -338,6 +338,7 @@ class _CampusCardDetailPageState extends State<CampusCardDetailPage> {
   String _failureReason(CampusCardQueryResult result) {
     return switch (result.status) {
       CampusCardQueryStatus.success => '',
+      CampusCardQueryStatus.fetchDisabled => '已在设置中停止获取',
       CampusCardQueryStatus.missingOaAccount => '未设置 OA 账号',
       CampusCardQueryStatus.missingOaPassword => '未设置 OA 密码',
       CampusCardQueryStatus.campusNetworkUnavailable => '校园网 / VPN 不可用',

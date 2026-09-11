@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>chaoxing</string>
+	</array>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use system authentication to quickly unlock SSPU-AllinOne after password protection is enabled.</string>
 	<key>UIApplicationSceneManifest</key>

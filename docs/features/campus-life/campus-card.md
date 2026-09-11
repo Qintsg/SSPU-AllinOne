@@ -1,11 +1,11 @@
 # 校园卡余额与明细
 
-> 模块：[校园生活](README.md)　·　状态：**部分实现**（服务层已实现，前端重构中）
+> 模块：[校园生活](README.md)　·　状态：**已实现**
 
 | 项 | 内容 |
 | --- | --- |
 | 功能 ID | `campus-life.campus-card` |
-| 状态 | 部分实现（服务层可用，前端重新规划） |
+| 状态 | 已实现 |
 | 平台 | 全平台（Android · iOS · Windows · macOS · Linux） |
 | 关联 Issue | #187（卡片显隐） |
 | 主要代码 | `lib/services/campus_card_*.dart`；`lib/models/campus_card.dart` |
@@ -94,4 +94,6 @@ OA/CAS 会话 ─→ 校园卡入口(oa.sspu.edu.cn/...xykxt) ─跟随跳转→
 
 ## 7. 待办与演进
 
-- [ ] 与 #187 卡片显隐配置协同。
+- [x] 与 #187 首页卡片显隐和摘要排序配置协同。
+- [x] 与 #187 模块级“停止获取”配置协同。
+- [x] 基于本地交易明细提供[消费趋势统计](consumption-analytics.md)，支持自定义日期范围与日/周/月聚合。

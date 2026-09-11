@@ -13,6 +13,9 @@ enum StudentReportQueryStatus {
   /// 查询或登录校验成功。
   success,
 
+  /// 用户已在设置中停止学工报表联网获取。
+  fetchDisabled,
+
   /// 未保存学工号 / OA 账号。
   missingOaAccount,
 

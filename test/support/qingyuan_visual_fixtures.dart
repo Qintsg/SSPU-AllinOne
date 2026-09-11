@@ -1215,7 +1215,10 @@ final EmailMailboxQueryResult qingyuanEmailContentResult = _emailMailboxResult(
 
 final EmailMailboxQueryResult qingyuanHomeEmailResult = _emailMailboxResult(
   checkedAt: DateTime(2026, 7, 18, 8, 42),
-  messages: qingyuanEmailMessages.take(2).toList(growable: false),
+  messages: qingyuanEmailMessages
+      .take(2)
+      .map((message) => message.copyWith(isRead: false))
+      .toList(growable: false),
 );
 
 final EmailMailboxQueryResult qingyuanEmailEmptyResult = _emailMailboxResult(

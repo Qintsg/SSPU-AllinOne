@@ -21,7 +21,7 @@ enum ChannelGroup {
   /// 教学单位
   teaching('教学单位'),
 
-  /// 微信（占位）
+  /// 微信渠道（公众号与服务号统一由公众号平台链路处理）
   wechat('微信');
 
   final String label;
@@ -65,7 +65,7 @@ class ChannelConfig {
   /// 所属分组
   final ChannelGroup group;
 
-  /// 是否已实现数据源抓取（未实现的显示"暂未接入"提示）
+  /// 是否已实现数据源抓取（未实现的显示“暂未接入”提示）
   final bool implemented;
 
   /// 默认刷新间隔（分钟，0 = 关闭自动刷新）

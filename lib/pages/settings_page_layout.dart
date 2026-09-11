@@ -224,7 +224,13 @@ mixin _SettingsPageLayout
           onOpenUpdate: _openUpdateSettings,
           closeBehavior: _closeBehavior,
           notificationEnabled: _notificationEnabled,
+          messageNotificationEnabled: _messageNotificationEnabled,
+          notificationPermissionStatus: _notificationPermissionStatus,
           dndEnabled: _dndEnabled,
+          courseReminderEnabled: _courseReminderEnabled,
+          examReminderEnabled: _examReminderEnabled,
+          courseReminderLeadMinutes: _courseReminderLeadMinutes,
+          examReminderLeadMinutes: _examReminderLeadMinutes,
           homeStudentProfileCardVisible: _homeStudentProfileCardVisible,
           homeCampusCardBalanceCardVisible: _homeCampusCardBalanceCardVisible,
           homeTodayCoursesTileVisible: _homeTodayCoursesTileVisible,
@@ -233,13 +239,23 @@ mixin _SettingsPageLayout
           homeMessagesTileVisible: _homeMessagesTileVisible,
           homeEmailTileVisible: _homeEmailTileVisible,
           homeQuickLinksTileVisible: _homeQuickLinksTileVisible,
+          homeOverviewOrder: _homeOverviewOrder,
+          dataModuleFetchEnabled: _dataModuleFetchEnabled,
           dndStartHour: _dndStartHour,
           dndStartMinute: _dndStartMinute,
           dndEndHour: _dndEndHour,
           dndEndMinute: _dndEndMinute,
           onCloseBehaviorChanged: _onCloseBehaviorChanged,
           onNotificationChanged: _onNotificationChanged,
+          onMessageNotificationChanged: _onMessageNotificationChanged,
+          onNotificationPermissionRefresh: () =>
+              unawaited(_refreshNotificationPermission()),
           onDndChanged: _onDndChanged,
+          onCourseReminderChanged: _onCourseReminderChanged,
+          onExamReminderChanged: _onExamReminderChanged,
+          onCourseReminderLeadMinutesChanged:
+              _onCourseReminderLeadMinutesChanged,
+          onExamReminderLeadMinutesChanged: _onExamReminderLeadMinutesChanged,
           onHomeStudentProfileCardVisibleChanged:
               _onHomeStudentProfileCardVisibleChanged,
           onHomeCampusCardBalanceCardVisibleChanged:
@@ -254,6 +270,8 @@ mixin _SettingsPageLayout
           onHomeEmailTileVisibleChanged: _onHomeEmailTileVisibleChanged,
           onHomeQuickLinksTileVisibleChanged:
               _onHomeQuickLinksTileVisibleChanged,
+          onHomeOverviewOrderChanged: _onHomeOverviewOrderChanged,
+          onDataModuleFetchChanged: _onDataModuleFetchChanged,
           onDndStartChanged: _onDndStartChanged,
           onDndEndChanged: _onDndEndChanged,
         );

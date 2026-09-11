@@ -1,11 +1,11 @@
 # 考试安排
 
-> 子模块：[EAMS 教务](README.md)　·　状态：**部分实现**（服务层已实现，前端重构）
+> 子模块：[EAMS 教务](README.md)　·　状态：**已实现**
 
 | 项 | 内容 |
 | --- | --- |
 | 功能 ID | `academic.eams.exam-schedule` |
-| 状态 | 部分实现 |
+| 状态 | 已实现 |
 | 平台 | 全平台 |
 | 关联 Issue | #178 |
 | 主要代码 | `lib/services/academic_eams_service.dart`（`fetchExamSchedule`）、`academic_eams_page_parser_tables.dart`；`lib/models/academic_eams/exams.dart` |
@@ -37,6 +37,8 @@
 
 ## 5. 待办与演进
 
-- [x] 前端重构后的考试卡片/详情与类型切换。
+- [x] 清源考试卡片、详情与类型切换。
 - [x] 列表按考试时间排序（默认正序）与正/倒序切换。
-- [ ] 与 #188 考试提醒、#189 小组件对接；考试时间叠加到 [日历](calendar.md)。
+- [x] 考试时间已叠加到[课程与考试日历](calendar.md)，并可随议程导出 `.ics`。
+- [x] 已接入 #188 考试提醒规划与调度链路；真实设备到点投递仍待验证。
+- [ ] 与 #189 系统小组件进行平台能力对接。

@@ -21,25 +21,53 @@ void main() {
     expect(unsignedEntitlements, isNot(contains('keychain-access-groups')));
   });
 
-  test('macOS Release 使用 ad-hoc 自签名替代官方签名与公证', () {
+  test('macOS Release 必须使用 Developer ID 签名、公证并生成 universal DMG', () {
     final releaseWorkflow = File(
       '.github/workflows/release.yml',
     ).readAsStringSync();
 
-    expect(
-      releaseWorkflow,
-      contains('使用 ad-hoc 自签名（未配置官方 Developer ID 签名与公证）'),
-    );
-    expect(releaseWorkflow, contains('codesign --force --deep --sign -'));
-    expect(releaseWorkflow, isNot(contains('xcrun notarytool submit')));
-    expect(releaseWorkflow, isNot(contains('xcrun stapler staple')));
-    expect(releaseWorkflow, isNot(contains('Developer ID Application')));
+    for (final secretName in const [
+      'MACOS_SIGNING_CERTIFICATE_BASE64',
+      'MACOS_SIGNING_CERTIFICATE_PASSWORD',
+      'MACOS_NOTARY_APPLE_ID',
+      'MACOS_NOTARY_TEAM_ID',
+      'MACOS_NOTARY_PASSWORD',
+    ]) {
+      expect(releaseWorkflow, contains(secretName));
+    }
+    expect(releaseWorkflow, contains('Developer ID Application'));
     expect(
       releaseWorkflow,
       contains(
-        'dist/SSPU-AllinOne-v\${{ needs.prepare.outputs.version }}-macos-arm64.dmg',
+        'printf \'%s\' "\$MACOS_SIGNING_CERTIFICATE_BASE64" | base64 -D',
       ),
     );
+    expect(
+      releaseWorkflow,
+      isNot(
+        contains(
+          'printf \'%s\' "\$MACOS_SIGNING_CERTIFICATE_BASE64" | base64 --decode',
+        ),
+      ),
+    );
+    expect(releaseWorkflow, contains('security import'));
+    expect(releaseWorkflow, contains('--options runtime'));
+    expect(releaseWorkflow, contains('--timestamp'));
+    expect(releaseWorkflow, contains('codesign --verify --deep --strict'));
+    expect(releaseWorkflow, contains('xcrun notarytool submit'));
+    expect(releaseWorkflow, contains('xcrun stapler staple'));
+    expect(releaseWorkflow, contains('spctl --assess'));
+    expect(
+      releaseWorkflow,
+      isNot(contains('codesign --force --deep --sign -')),
+    );
+    expect(
+      releaseWorkflow,
+      contains(
+        'dist/SSPU-AllinOne-v\${{ needs.prepare.outputs.version }}-macos-universal.dmg',
+      ),
+    );
+    expect(releaseWorkflow, isNot(contains('dmg_suffix=arm64')));
   });
 
   test('macOS DMG 卷名保持在 appdmg 长度限制内', () {

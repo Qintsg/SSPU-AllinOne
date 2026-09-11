@@ -17,6 +17,7 @@ import '../models/email_mailbox.dart';
 import 'academic_credentials_service.dart';
 import 'authenticated_data_cache_service.dart';
 import 'data_auto_refresh_preferences.dart';
+import 'data_module_preferences.dart';
 import 'storage_service.dart';
 
 part 'email_gateway.dart';
@@ -40,6 +41,18 @@ abstract class EmailMailboxClient {
 
   /// 通过 SMTP 主动发送一封普通文本邮件。
   Future<EmailSendResult> sendMessage(EmailComposeRequest request);
+}
+
+/// 可选的邮箱高级能力，避免破坏已有测试 fake 与第三方实现。
+abstract interface class AdvancedEmailMailboxClient {
+  Future<EmailMailboxQueryResult> markMessageAsRead(
+    EmailMessageSnapshot message,
+  );
+
+  Future<EmailAttachmentDownloadResult> downloadAttachment(
+    EmailMessageSnapshot message,
+    EmailAttachmentSnapshot attachment,
+  );
 }
 
 /// 可替换的邮箱协议网关。
@@ -96,11 +109,34 @@ abstract class EmailGateway {
   });
 }
 
+/// 可选的协议高级能力，避免破坏已有 EmailGateway fake。
+abstract interface class AdvancedEmailGateway {
+  Future<void> markImapMessageSeen({
+    required EmailServerEndpoint endpoint,
+    required String account,
+    required String password,
+    required String serverUid,
+    required Duration timeout,
+  });
+
+  Future<EmailAttachmentDownload?> fetchImapAttachment({
+    required EmailServerEndpoint endpoint,
+    required String account,
+    required String password,
+    required String serverUid,
+    required String fetchId,
+    required String fileName,
+    required String mediaType,
+    required Duration timeout,
+  });
+}
+
 /// 学校邮箱服务。
-class EmailService implements EmailMailboxClient {
+class EmailService implements EmailMailboxClient, AdvancedEmailMailboxClient {
   EmailService({
     AcademicCredentialsService? credentialsService,
     EmailGateway? gateway,
+    Future<bool> Function()? isFetchEnabled,
     EmailServerEndpoint? imapEndpoint,
     EmailServerEndpoint? popEndpoint,
     EmailServerEndpoint? smtpEndpoint,
@@ -108,6 +144,11 @@ class EmailService implements EmailMailboxClient {
   }) : _credentialsService =
            credentialsService ?? AcademicCredentialsService.instance,
        _gateway = gateway ?? EnoughMailGateway(),
+       _isFetchEnabled =
+           isFetchEnabled ??
+           (() => DataModulePreferences.instance.isFetchEnabled(
+             CampusDataModule.email,
+           )),
        imapEndpoint = imapEndpoint ?? defaultImapEndpoint,
        popEndpoint = popEndpoint ?? defaultPopEndpoint,
        smtpEndpoint = smtpEndpoint ?? defaultSmtpEndpoint,
@@ -152,8 +193,38 @@ class EmailService implements EmailMailboxClient {
   /// 单次 SMTP 发信允许的最大纯文本正文长度。
   static const int maxSendBodyLength = 20000;
 
+  /// 单封邮件允许的附件数量上限。
+  static const int maxAttachmentCount = 25;
+
+  /// 单封邮件附件总大小上限（100 MiB）。
+  static const int maxAttachmentBytes = 100 * 1024 * 1024;
+
+  /// 在已经加载到本地的邮件中匹配主题、发件人、摘要和正文。
+  ///
+  /// 该纯函数不读取凭据或访问邮箱网关，供页面即时筛选与性能契约测试复用。
+  static List<EmailMessageSnapshot> filterLocalMessages(
+    List<EmailMessageSnapshot> messages,
+    String query,
+  ) {
+    final normalizedQuery = query.trim().toLowerCase();
+    if (normalizedQuery.isEmpty) return messages;
+    return messages
+        .where((message) {
+          final haystack = [
+            message.subject,
+            message.senderName,
+            message.senderAddress,
+            message.preview,
+            message.body,
+          ].join('\n').toLowerCase();
+          return haystack.contains(normalizedQuery);
+        })
+        .toList(growable: false);
+  }
+
   final AcademicCredentialsService _credentialsService;
   final EmailGateway _gateway;
+  final Future<bool> Function() _isFetchEnabled;
 
   /// IMAP 只读收信端点。
   final EmailServerEndpoint imapEndpoint;
@@ -229,6 +300,15 @@ class EmailService implements EmailMailboxClient {
     int messageCount = 10,
   }) async {
     final endpoint = endpointFor(protocol);
+    if (protocol != EmailProtocol.smtp && !await _isFetchEnabled()) {
+      return _buildMailboxResult(
+        status: EmailQueryStatus.fetchDisabled,
+        protocol: protocol,
+        endpoint: endpoint,
+        message: '邮箱已停止获取',
+        detail: '本地缓存会继续保留；如需收取新邮件，请在设置中重新开启邮箱联网获取。',
+      );
+    }
     if (protocol == EmailProtocol.smtp) {
       return _buildMailboxResult(
         status: EmailQueryStatus.loginRejected,
@@ -251,7 +331,14 @@ class EmailService implements EmailMailboxClient {
     }
 
     try {
-      final safeMessageCount = messageCount.clamp(1, 30);
+      final safeMessageCount = messageCount.clamp(1, 100);
+      final cachedEntry = await AuthenticatedDataCacheService.readLatest(
+        _mailboxCacheCollection(protocol),
+        accountKey: credentials.account,
+      );
+      final cachedMessages = cachedEntry == null
+          ? const <EmailMessageSnapshot>[]
+          : EmailMailboxSnapshot.fromJson(cachedEntry.data).messages;
       final messages = switch (protocol) {
         EmailProtocol.imap => await _gateway.fetchImapMessages(
           endpoint: endpoint,
@@ -269,11 +356,24 @@ class EmailService implements EmailMailboxClient {
         ),
         EmailProtocol.smtp => const <EmailMessageSnapshot>[],
       };
+      final mergedById = <String, EmailMessageSnapshot>{
+        for (final message in cachedMessages) message.id: message,
+        for (final message in messages) message.id: message,
+      };
+      final mergedMessages = mergedById.values.toList()
+        ..sort((left, right) {
+          final leftDate = left.receivedAt;
+          final rightDate = right.receivedAt;
+          if (leftDate == null && rightDate == null) return 0;
+          if (leftDate == null) return 1;
+          if (rightDate == null) return -1;
+          return rightDate.compareTo(leftDate);
+        });
       final fetchedAt = DateTime.now();
       final snapshot = EmailMailboxSnapshot(
         protocol: protocol,
         account: credentials.account,
-        messages: messages,
+        messages: mergedMessages.take(safeMessageCount).toList(),
         fetchedAt: fetchedAt,
         endpoint: endpoint,
       );
@@ -282,7 +382,7 @@ class EmailService implements EmailMailboxClient {
         protocol: protocol,
         endpoint: endpoint,
         message: '${protocol.label} 邮件读取完成',
-        detail: '已通过只读协议读取最近 ${messages.length} 封邮件。',
+        detail: '已通过只读协议读取并合并最近 ${snapshot.messages.length} 封邮件。',
         checkedAt: fetchedAt,
         snapshot: snapshot,
       );
@@ -343,6 +443,15 @@ class EmailService implements EmailMailboxClient {
     EmailProtocol protocol,
   ) async {
     final endpoint = endpointFor(protocol);
+    if (protocol != EmailProtocol.smtp && !await _isFetchEnabled()) {
+      return _buildValidationResult(
+        status: EmailQueryStatus.fetchDisabled,
+        protocol: protocol,
+        endpoint: endpoint,
+        message: '邮箱已停止获取',
+        detail: '本地缓存会继续保留；如需校验收信协议，请在设置中重新开启邮箱联网获取。',
+      );
+    }
     final credentials = await _readCredentials();
     if (!credentials.isSuccess) {
       return _buildValidationResult(
@@ -424,6 +533,14 @@ class EmailService implements EmailMailboxClient {
         detail: validation.$2,
       );
     }
+    final attachmentValidation = await _validateAttachmentFiles(request);
+    if (attachmentValidation != null) {
+      return _buildSendResult(
+        status: EmailQueryStatus.invalidInput,
+        message: attachmentValidation.$1,
+        detail: attachmentValidation.$2,
+      );
+    }
 
     final credentials = await _readCredentials();
     if (!credentials.isSuccess) {
@@ -469,6 +586,183 @@ class EmailService implements EmailMailboxClient {
     }
   }
 
+  @override
+  Future<EmailMailboxQueryResult> markMessageAsRead(
+    EmailMessageSnapshot message,
+  ) async {
+    final endpoint = endpointFor(EmailProtocol.imap);
+    if (!await _isFetchEnabled()) {
+      return _buildMailboxResult(
+        status: EmailQueryStatus.fetchDisabled,
+        protocol: EmailProtocol.imap,
+        endpoint: endpoint,
+        message: '邮箱已停止获取',
+        detail: '已保留当前页面的本地已读状态，不会访问邮箱服务器。',
+      );
+    }
+    if (message.serverUid == null || message.serverUid!.isEmpty) {
+      return _buildMailboxResult(
+        status: EmailQueryStatus.parseFailed,
+        protocol: EmailProtocol.imap,
+        endpoint: endpoint,
+        message: '邮件缺少服务器标识',
+        detail: '当前缓存无法定位到服务器 UID，已保留本地已读状态。',
+      );
+    }
+    final credentials = await _readCredentials();
+    if (!credentials.isSuccess) {
+      return _buildMailboxResult(
+        status: credentials.status!,
+        protocol: EmailProtocol.imap,
+        endpoint: endpoint,
+        message: credentials.message!,
+        detail: credentials.detail!,
+      );
+    }
+    try {
+      final advancedGateway = _gateway is AdvancedEmailGateway
+          ? _gateway as AdvancedEmailGateway
+          : null;
+      if (advancedGateway == null) {
+        throw UnsupportedError('当前邮箱网关不支持已读回写');
+      }
+      await advancedGateway.markImapMessageSeen(
+        endpoint: endpoint,
+        account: credentials.account,
+        password: credentials.password,
+        serverUid: message.serverUid!,
+        timeout: timeout,
+      );
+      return _buildMailboxResult(
+        status: EmailQueryStatus.success,
+        protocol: EmailProtocol.imap,
+        endpoint: endpoint,
+        message: '邮件已标记为已读',
+        detail: 'IMAP \\Seen 状态已回写服务器。',
+      );
+    } on TimeoutException {
+      return _networkFailure(EmailProtocol.imap, endpoint, '邮箱服务器响应超时');
+    } on SocketException {
+      return _networkFailure(EmailProtocol.imap, endpoint, '邮箱服务器网络连接失败');
+    } on ImapException {
+      return _loginRejected(EmailProtocol.imap, endpoint);
+    } catch (error) {
+      return _buildMailboxResult(
+        status: EmailQueryStatus.unexpectedError,
+        protocol: EmailProtocol.imap,
+        endpoint: endpoint,
+        message: '邮件已在本地标记为已读',
+        detail: '服务器已读回写失败：${error.runtimeType}。',
+      );
+    }
+  }
+
+  @override
+  Future<EmailAttachmentDownloadResult> downloadAttachment(
+    EmailMessageSnapshot message,
+    EmailAttachmentSnapshot attachment,
+  ) async {
+    if (!await _isFetchEnabled()) {
+      return const EmailAttachmentDownloadResult(
+        status: EmailQueryStatus.fetchDisabled,
+        message: '邮箱已停止获取',
+        detail: '如需下载附件，请先在设置中重新开启邮箱联网获取。',
+      );
+    }
+    if (attachment.id.isEmpty ||
+        !_validImapFetchId.hasMatch(attachment.id) ||
+        attachment.fileName.trim().isEmpty ||
+        attachment.size != null && attachment.size! < 0) {
+      return const EmailAttachmentDownloadResult(
+        status: EmailQueryStatus.invalidInput,
+        message: '附件信息无效',
+        detail: '附件定位、名称或大小元数据不完整，已停止下载。',
+      );
+    }
+    final credentials = await _readCredentials();
+    if (!credentials.isSuccess) {
+      return EmailAttachmentDownloadResult(
+        status: credentials.status!,
+        message: credentials.message!,
+        detail: credentials.detail!,
+      );
+    }
+    if (message.serverUid == null || message.serverUid!.isEmpty) {
+      return const EmailAttachmentDownloadResult(
+        status: EmailQueryStatus.parseFailed,
+        message: '邮件缺少服务器标识',
+        detail: '当前缓存无法定位服务器邮件，不能按需下载附件。',
+      );
+    }
+    final advancedGateway = _gateway is AdvancedEmailGateway
+        ? _gateway as AdvancedEmailGateway
+        : null;
+    if (advancedGateway == null) {
+      return const EmailAttachmentDownloadResult(
+        status: EmailQueryStatus.parseFailed,
+        message: '当前协议不支持附件按需下载',
+        detail: '请切换到支持 MIME part 读取的 IMAP 协议。',
+      );
+    }
+    try {
+      final download = await advancedGateway.fetchImapAttachment(
+        endpoint: imapEndpoint,
+        account: credentials.account,
+        password: credentials.password,
+        serverUid: message.serverUid!,
+        fetchId: attachment.id,
+        fileName: attachment.fileName,
+        mediaType: attachment.mediaType,
+        timeout: timeout,
+      );
+      if (download == null) {
+        return const EmailAttachmentDownloadResult(
+          status: EmailQueryStatus.parseFailed,
+          message: '附件内容不可用',
+          detail: '服务器未返回对应 MIME part，附件可能已移动或协议不支持分段读取。',
+        );
+      }
+      return EmailAttachmentDownloadResult(
+        status: EmailQueryStatus.success,
+        message: '附件下载完成',
+        detail: '附件已按需读取并通过本地元数据校验。',
+        download: download,
+      );
+    } on TimeoutException {
+      return const EmailAttachmentDownloadResult(
+        status: EmailQueryStatus.networkError,
+        message: '附件下载超时',
+        detail: '邮箱服务器未在规定时间内返回附件内容。',
+      );
+    } on SocketException {
+      return const EmailAttachmentDownloadResult(
+        status: EmailQueryStatus.networkError,
+        message: '附件下载网络连接失败',
+        detail: '请检查网络、校园网或 VPN 状态后重试。',
+      );
+    } on HandshakeException {
+      return const EmailAttachmentDownloadResult(
+        status: EmailQueryStatus.networkError,
+        message: '附件下载安全连接失败',
+        detail: '邮箱服务器 TLS 握手未完成。',
+      );
+    } on ImapException {
+      return const EmailAttachmentDownloadResult(
+        status: EmailQueryStatus.loginRejected,
+        message: '附件下载被邮箱服务器拒绝',
+        detail: '请检查邮箱密码与 IMAP 客户端协议是否已启用。',
+      );
+    } catch (error) {
+      return EmailAttachmentDownloadResult(
+        status: EmailQueryStatus.unexpectedError,
+        message: '附件下载失败',
+        detail: '未归类异常类型：${error.runtimeType}',
+      );
+    }
+  }
+
+  static final RegExp _validImapFetchId = RegExp(r'^\d+(?:\.\d+)*(?:\.TEXT)?$');
+
   /// 返回协议对应的默认服务端点。
   EmailServerEndpoint endpointFor(EmailProtocol protocol) {
     return switch (protocol) {
@@ -501,10 +795,30 @@ class EmailService implements EmailMailboxClient {
     if (request.body.length > maxSendBodyLength) {
       return ('邮件正文过长', '正文最多 $maxSendBodyLength 个字符。');
     }
+    if (request.attachments.length > maxAttachmentCount) {
+      return ('附件过多', '单次发送最多支持 $maxAttachmentCount 个附件。');
+    }
 
     for (final address in [...request.to, ...request.cc, ...request.bcc]) {
       if (!_looksLikeEmailAddress(address)) {
         return ('收件人格式不正确', '请检查 To / Cc / Bcc 中的邮箱地址格式。');
+      }
+    }
+    return null;
+  }
+
+  Future<(String, String)?> _validateAttachmentFiles(
+    EmailComposeRequest request,
+  ) async {
+    var totalBytes = 0;
+    for (final attachment in request.attachments) {
+      final file = File(attachment.path);
+      if (!await file.exists()) {
+        return ('附件不可用', '附件“${attachment.fileName}”已移动或删除，请重新选择。');
+      }
+      totalBytes += await file.length();
+      if (totalBytes > maxAttachmentBytes) {
+        return ('附件总大小过大', '单次发送的附件总大小不能超过 100 MB。');
       }
     }
     return null;

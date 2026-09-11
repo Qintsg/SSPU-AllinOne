@@ -49,6 +49,38 @@ void main() {
     expect(await service.getAutoRefreshIntervalMinutes(), 60);
   });
 
+  test('停止获取后所有教务联网入口均不调用网关', () async {
+    final gateway = FakeAcademicEamsGateway();
+    final service = buildAcademicEamsServiceForTest(
+      gateway: gateway,
+      campusReachable: true,
+      isFetchEnabled: () async => false,
+    );
+
+    final results = [
+      await service.fetchOverview(),
+      await service.fetchCourseTable(),
+      await service.fetchExamSchedule(),
+      await service.fetchGrades(),
+      await service.fetchGradeProcess(),
+      await service.searchCourseOfferings(
+        const AcademicCourseOfferingSearchCriteria(),
+      ),
+      await service.searchFreeClassrooms(
+        const AcademicFreeClassroomSearchCriteria(),
+      ),
+    ];
+
+    expect(
+      results.map((result) => result.status),
+      everyElement(AcademicEamsQueryStatus.fetchDisabled),
+    );
+    expect(gateway.openCount, 0);
+    expect(gateway.resetCookieHeaders, isEmpty);
+    expect(gateway.requestedPageUris, isEmpty);
+    expect(gateway.submittedFieldsHistory, isEmpty);
+  });
+
   test('未保存学工号时不访问本专科教务入口', () async {
     final gateway = FakeAcademicEamsGateway();
     final service = buildAcademicEamsServiceForTest(
@@ -770,8 +802,10 @@ void main() {
       gateway: FakeAcademicEamsGateway(),
       campusReachable: true,
     );
+    final cacheChanged = expectLater(service.cacheChanges, emits(isNull));
 
     final result = await service.fetchCourseTable();
+    await cacheChanged;
 
     expect(result.status, AcademicEamsQueryStatus.success);
     expect(result.snapshot?.courseTable?.entries.single.courseName, '高等数学');

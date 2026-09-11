@@ -42,9 +42,10 @@ Future<void> _doAutoRefresh(
     final fetched = await fetchMessages(existingIds);
 
     // 找出真正的新消息（ID 不在已有集合中）
-    final newMessages = fetched
-        .where((m) => !existingIds.contains(m.id))
-        .toList();
+    final newMessages = service._stateService.findNewMessages(
+      existingMessages,
+      fetched,
+    );
 
     if (newMessages.isEmpty) return;
 
@@ -57,8 +58,13 @@ Future<void> _doAutoRefresh(
 
     // 推送系统通知（检查全局开关和勿扰时段）
     final notifEnabled = await service._stateService.isNotificationEnabled();
+    final messageNotifEnabled = await service._stateService
+        .isMessageNotificationEnabled();
     final inDnd = await service._stateService.isInDndPeriod();
-    if (notifEnabled && !inDnd && service._notificationService.isAvailable) {
+    if (notifEnabled &&
+        messageNotifEnabled &&
+        !inDnd &&
+        service._notificationService.isAvailable) {
       // 过滤掉单个公众号通知关闭的消息
       final notifiableMessages = <MessageItem>[];
       for (final msg in newMessages) {

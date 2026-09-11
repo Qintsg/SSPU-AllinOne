@@ -24,12 +24,17 @@ extension _AcademicPageEamsSources on _AcademicPageState {
     final interval =
         widget.academicEamsAutoRefreshIntervalOverride ??
         await service.getAutoRefreshIntervalMinutes();
+    final fetchEnabled =
+        widget.academicEamsFetchEnabledOverride ??
+        await DataModulePreferences.instance.isFetchEnabled(
+          CampusDataModule.academicEams,
+        );
     final credentials = await _loadCredentialsStatus();
     final credentialsReady =
         credentials.oaAccount.trim().isNotEmpty && credentials.hasOaPassword;
     if (!mounted || generation != _credentialGeneration) return;
     _academicEamsRefreshController.configureAutoRefresh(
-      enabled: enabled && credentialsReady,
+      enabled: enabled && credentialsReady && fetchEnabled,
       intervalMinutes: interval,
     );
   }

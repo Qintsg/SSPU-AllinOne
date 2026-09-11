@@ -9,7 +9,7 @@
 
 ## 简介
 
-工大聚合（SSPU-AllinOne）是面向上海第二工业大学师生的校园综合服务应用（非官方应用），基于 Flutter + Fluent UI 构建，公开 Release 面向 Android / iOS / macOS / Linux / Windows。所有数据仅保留在本地，不上传至任何云端服务。
+工大聚合（SSPU-AllinOne）是面向上海第二工业大学师生的校园综合服务应用（非官方应用），基于 Flutter 与项目自研“清源”设计系统构建，公开 Release 面向 Android / iOS / macOS / Linux / Windows。所有数据仅保留在本地，不上传至任何云端服务。
 
 中文语言环境下，应用窗口、启动器、安装器和关于页默认显示为“工大聚合”；英文语言环境和技术标识仍使用 `SSPU-AllinOne`。包名、Bundle ID、可执行文件名、仓库名与 GitHub Release 资产命名不随显示名变化。
 
@@ -60,7 +60,6 @@ flutter build linux          # Linux
   `SSPU-AllinOne-v{version}-android-arm64-v8a.apk`
   `SSPU-AllinOne-v{version}-android-armeabi-v7a.apk`
   `SSPU-AllinOne-v{version}-android-x86_64.apk`
-  `SSPU-AllinOne-v{version}-android-x86.apk`
 - 构建命令：
 
 ```bash
@@ -131,10 +130,10 @@ flutter build macos --release
 - 产物位置：
   `build/macos/Build/Products/Release/`
 - 使用方式：
-  分发生成的 `.app` 包；首次运行若被系统拦截，需要在"系统设置 → 隐私与安全性"中手动放行
-  公开 Release 当前默认提供多架构 DMG：
-  `SSPU-AllinOne-v{version}-macos-arm64.dmg`
-  `SSPU-AllinOne-v{version}-macos-x86_64.dmg`
+  本地直接构建的未签名 `.app` 仅用于开发验证，Gatekeeper 可能要求在
+  “系统设置 → 隐私与安全性”中手动放行。公开 Release 提供经过 Developer ID
+  签名、Apple 公证并装订公证票据的 universal DMG，正常安装不应依赖手动放行：
+  `SSPU-AllinOne-v{version}-macos-universal.dmg`
 
 ### iOS
 
@@ -148,8 +147,8 @@ flutter build ios --release --no-codesign
   `build/ios/iphoneos/Runner.app`
 - 使用方式：
   未签名 `.app` 仅可用于 Xcode 模拟器运行；真机安装需要 Apple Developer 账号签名
-  公开 Release 当前默认提供未签名 .app：
-  `SSPU-AllinOne-v{version}-ios-arm64.app`
+  公开 Release 当前默认提供未签名 `.app.zip`：
+  `SSPU-AllinOne-v{version}-ios-arm64.app.zip`
 
 ## 安全扫描
 

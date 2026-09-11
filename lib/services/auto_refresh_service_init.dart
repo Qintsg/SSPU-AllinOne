@@ -297,8 +297,7 @@ Future<void> _initAutoRefreshService(AutoRefreshService service) async {
     },
   );
 
-  // 微信服务号占位 — 未来接入时取消注释
-  // await _setupAutoRefreshTimer(service, channelKey: 'wechatService', ...);
+  // 服务号文章同样由公众号平台链路抓取；不再注册第二套定时器，避免重复请求与重复通知。
 }
 
 /// 立即抓取所有已启用官网/信息中心渠道的消息并返回合并结果

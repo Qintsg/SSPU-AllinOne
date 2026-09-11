@@ -27,6 +27,7 @@ import 'package:sspu_allinone/models/email_mailbox.dart';
 import 'package:sspu_allinone/models/sports_attendance.dart';
 import 'package:sspu_allinone/models/student_report.dart';
 import 'package:sspu_allinone/pages/about_page.dart';
+import 'package:sspu_allinone/pages/ai_services_page.dart';
 import 'package:sspu_allinone/pages/academic_calendar_page.dart';
 import 'package:sspu_allinone/pages/academic_calendar_pdf_page.dart';
 import 'package:sspu_allinone/pages/academic_page.dart';
@@ -389,6 +390,7 @@ int _destinationIndex(String destination) => switch (destination) {
   '邮箱' => 4,
   '跳转' => 5,
   '设置' => 6,
+  'AI 服务' => 7,
   _ => throw ArgumentError.value(destination, 'destination'),
 };
 

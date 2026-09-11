@@ -44,6 +44,9 @@ enum SportsAttendanceQueryStatus {
   /// 查询成功。
   success,
 
+  /// 用户已在设置中停止体育考勤联网获取。
+  fetchDisabled,
+
   /// 未保存学工号。
   missingStudentId,
 

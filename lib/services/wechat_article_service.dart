@@ -8,7 +8,6 @@
  */
 
 import '../models/message_item.dart';
-import 'message_state_service.dart';
 import 'storage_service.dart';
 import 'wxmp_article_service.dart';
 import 'wxmp_auth_service.dart';
@@ -22,7 +21,6 @@ class WechatArticleService {
 
   final WxmpAuthService _auth = WxmpAuthService.instance;
   final WxmpArticleService _wxmpService = WxmpArticleService.instance;
-  final MessageStateService _stateService = MessageStateService.instance;
 
   /// 历史微信读书方案遗留的存储键。
   static const List<String> _legacyWereadKeys = [
@@ -51,15 +49,12 @@ class WechatArticleService {
     return _wxmpService.validateAuth();
   }
 
-  /// 是否存在启用中的微信推文抓取项。
-  Future<bool> hasEnabledRefreshTarget() async {
+  /// 是否存在已配置的微信推文刷新目标。
+  ///
+  /// 单来源通知意愿只控制系统通知，不得阻断文章抓取。
+  Future<bool> hasConfiguredRefreshTarget() async {
     final followedMps = await _wxmpService.getLocalFollowedMps();
-    for (final entry in followedMps.entries) {
-      if (await _stateService.isMpNotificationEnabled(entry.key)) {
-        return true;
-      }
-    }
-    return false;
+    return followedMps.isNotEmpty;
   }
 
   /// 获取所有已关注公众号的最新文章。
@@ -74,6 +69,22 @@ class WechatArticleService {
     if (!await _auth.hasAuth()) return [];
 
     return _wxmpService.fetchArticles(
+      maxCount: maxCount,
+      knownMessageIds: knownMessageIds,
+      validateBeforeFetch: validateBeforeFetch,
+      onAccountCompleted: onAccountCompleted,
+    );
+  }
+
+  /// 返回可供 UI 区分认证失效、部分失败和完整成功的刷新结果。
+  Future<WxmpFetchResult> fetchArticlesDetailed({
+    int maxCount = 50,
+    Set<String>? knownMessageIds,
+    bool validateBeforeFetch = true,
+    WxmpFetchProgressCallback? onAccountCompleted,
+  }) async {
+    await clearLegacyWereadState();
+    return _wxmpService.fetchArticlesDetailed(
       maxCount: maxCount,
       knownMessageIds: knownMessageIds,
       validateBeforeFetch: validateBeforeFetch,

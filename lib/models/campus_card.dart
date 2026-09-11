@@ -13,6 +13,9 @@ enum CampusCardQueryStatus {
   /// 查询成功，至少读取到余额或交易记录。
   success,
 
+  /// 用户已在设置中停止校园卡联网获取。
+  fetchDisabled,
+
   /// 未保存学工号 / OA 账号。
   missingOaAccount,
 

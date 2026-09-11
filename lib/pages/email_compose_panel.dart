@@ -20,6 +20,9 @@ class EmailComposePanel extends StatelessWidget {
     required this.isSending,
     required this.severityOf,
     required this.onSend,
+    this.attachments = const [],
+    this.onPickAttachments,
+    this.onRemoveAttachment,
     this.result,
     this.onCancel,
     this.showActions = true,
@@ -52,6 +55,10 @@ class EmailComposePanel extends StatelessWidget {
   /// 点击发送。
   final VoidCallback onSend;
 
+  final List<EmailAttachmentRequest> attachments;
+  final VoidCallback? onPickAttachments;
+  final ValueChanged<EmailAttachmentRequest>? onRemoveAttachment;
+
   /// 点击取消或关闭撰写面板。
   final VoidCallback? onCancel;
 
@@ -75,7 +82,7 @@ class EmailComposePanel extends StatelessWidget {
           ),
           SizedBox(height: theme.spacing.xs),
           Text(
-            '仅在点击发送后提交普通文本；不保存草稿，不在后台重试。',
+            '仅在点击发送后提交；不保存草稿，不在后台重试。',
             style: theme.typography.small.copyWith(color: theme.color.muted),
           ),
           SizedBox(height: theme.spacing.m),
@@ -158,6 +165,51 @@ class EmailComposePanel extends StatelessWidget {
             maxLines: 4,
             keyboardType: TextInputType.multiline,
           ),
+          SizedBox(height: theme.spacing.m),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: YhButton(
+              key: const Key('email-add-attachment'),
+              label: '添加附件',
+              leadingIcon: YhIcons.attachment,
+              variant: YhButtonVariant.secondary,
+              onTap: isSending ? null : onPickAttachments,
+            ),
+          ),
+          if (attachments.isNotEmpty) ...[
+            SizedBox(height: theme.spacing.s),
+            for (final attachment in attachments)
+              Padding(
+                padding: EdgeInsets.only(bottom: theme.spacing.xs),
+                child: Row(
+                  key: Key('email-compose-attachment-${attachment.path}'),
+                  children: [
+                    Icon(
+                      YhIcons.attachment,
+                      size: theme.spacing.m,
+                      color: theme.color.muted,
+                    ),
+                    SizedBox(width: theme.spacing.s),
+                    Expanded(
+                      child: Text(
+                        attachment.fileName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.typography.small,
+                      ),
+                    ),
+                    YhIconButton(
+                      icon: YhIcons.close,
+                      semanticLabel: '移除附件 ${attachment.fileName}',
+                      variant: YhIconButtonVariant.ghost,
+                      onTap: isSending
+                          ? null
+                          : () => onRemoveAttachment?.call(attachment),
+                    ),
+                  ],
+                ),
+              ),
+          ],
           if (result != null) ...[
             SizedBox(height: theme.spacing.m),
             Text(result!.message, style: theme.typography.h3),

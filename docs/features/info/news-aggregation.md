@@ -1,11 +1,11 @@
 # 多源新闻聚合
 
-> 模块：[资讯](README.md)　·　状态：**部分实现**（抓取/解析层已实现，前端重构）
+> 模块：[资讯](README.md)　·　状态：**已实现**
 
 | 项 | 内容 |
 | --- | --- |
 | 功能 ID | `info.news-aggregation` |
-| 状态 | 部分实现 |
+| 状态 | 已实现 |
 | 平台 | 全平台（Android · iOS · Windows · macOS · Linux） |
 | 关联 Issue | — |
 | 主要代码 | `lib/services/college_news_service*.dart`、`jwc/itc/security/sports/construction/campus/sspu_news_service.dart`、`sspu_official_service.dart`、`web_content_service.dart`；`lib/models/message_item.dart`、`channel_config*.dart` |
@@ -58,6 +58,6 @@
 
 ## 6. 待办与演进
 
-- [ ] 随前端重构对接消息中心展示。
+- [x] 接入清源消息中心的聚合、筛选、搜索与阅读流程。
 - [ ] 站点改版时维护对应 `CollegeConfig`/专用源解析。
 - [ ] **后续**：源配置远程下发（如需免发版修复改版）。

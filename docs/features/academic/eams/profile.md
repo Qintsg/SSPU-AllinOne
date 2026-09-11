@@ -1,11 +1,11 @@
 # 个人信息
 
-> 子模块：[EAMS 教务](README.md)　·　状态：**部分实现**（服务层已实现，前端重构）
+> 子模块：[EAMS 教务](README.md)　·　状态：**已实现**
 
 | 项 | 内容 |
 | --- | --- |
 | 功能 ID | `academic.eams.profile` |
-| 状态 | 部分实现 |
+| 状态 | 已实现 |
 | 平台 | 全平台 |
 | 关联 Issue | — |
 | 主要代码 | `lib/services/academic_eams_page_parser_profile.dart`、`academic_eams_overview_flow.dart`；`lib/models/academic_eams/profile.dart` |
@@ -30,4 +30,4 @@
 
 ## 5. 待办与演进
 
-- [ ] 前端重构后的个人信息展示与刷新。
+- [x] 清源教务总览中的个人信息展示、加密缓存恢复与静默刷新。

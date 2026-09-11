@@ -9,12 +9,16 @@ class ExternalLinkConfirmationPage extends StatelessWidget {
     required this.uri,
     required this.authenticationRequired,
     required this.authenticationReady,
+    this.openInApp = false,
   });
 
   final String displayName;
   final Uri uri;
   final bool authenticationRequired;
   final bool authenticationReady;
+
+  /// 普通网页或 OA 会话入口在应用内 WebView 打开时使用的展示模式。
+  final bool openInApp;
 
   bool get _canOpen => !authenticationRequired || authenticationReady;
 
@@ -80,7 +84,9 @@ class ExternalLinkConfirmationPage extends StatelessWidget {
                   ),
                   SizedBox(height: theme.spacing.s + theme.spacing.xs),
                   Text(
-                    '即将离开工大聚合，并由系统浏览器打开以下地址。',
+                    openInApp
+                        ? '将在工大聚合内打开以下地址；网页内容由目标站点提供。'
+                        : '即将离开工大聚合，并由系统浏览器打开以下地址。',
                     style: theme.typography.small.copyWith(
                       color: theme.color.muted,
                     ),
@@ -130,7 +136,11 @@ class ExternalLinkConfirmationPage extends StatelessWidget {
                     kind: _canOpen ? YhBannerKind.info : YhBannerKind.warn,
                     text: _canOpen
                         ? authenticationRequired
-                              ? '本机存在可复用的 OA 登录会话；外部网站仍可能要求再次登录。'
+                              ? openInApp
+                                    ? '本机存在可复用的 OA 登录会话；仅将目标 OA 域名的会话用于本次应用内打开。'
+                                    : '本机存在可复用的 OA 登录会话；外部网站仍可能要求再次登录。'
+                              : openInApp
+                              ? '网页将在应用内打开；如需下载文件，可在页面工具栏交给系统应用处理。'
                               : '此链接将交给系统浏览器，浏览器中的登录与隐私设置由系统管理。'
                         : '当前没有可复用的 OA 登录会话。为避免无意义重定向，当前不会打开网站。',
                   ),
@@ -149,7 +159,7 @@ class ExternalLinkConfirmationPage extends StatelessWidget {
                                 onTap: () => Navigator.of(context).pop(false),
                               ),
                               YhButton(
-                                label: '打开外部网站',
+                                label: openInApp ? '在应用内打开' : '打开外部网站',
                                 onTap: () => Navigator.of(context).pop(true),
                               ),
                             ]

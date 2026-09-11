@@ -34,7 +34,9 @@ class _QuickLinkDirectoryRow extends StatelessWidget {
       children: [
         Expanded(
           child: YhPressable(
-            semanticLabel: '${item.name}，外部链接，将打开外部应用',
+            semanticLabel: item.kind == QuickLinkKind.app
+                ? '${item.name}，应用链接，将打开目标应用'
+                : '${item.name}，外部链接，将打开外部应用',
             onPressed: onOpen,
             builder: (context, state, child) => Container(
               padding: EdgeInsets.fromLTRB(

@@ -1,11 +1,11 @@
 # 快捷跳转
 
-> 模块：[常用操作](README.md)　·　状态：**部分实现**（配置/搜索层已实现，前端重构 + 新增 App 深链与平台可见性）
+> 模块：[常用操作](README.md)　·　状态：**已实现**（清源分组、搜索、内嵌网页、OA 会话复用与移动端 App 深链已接通；跨平台真实设备仍需验收）
 
 | 项 | 内容 |
 | --- | --- |
 | 功能 ID | `quick-operations.quick-jump` |
-| 状态 | 部分实现 |
+| 状态 | 已实现 |
 | 平台 | 全平台（条目按平台可见性过滤） |
 | 关联 Issue | #280 |
 | 主要代码 | `lib/services/quick_links_config_service.dart`、`quick_links_search_service.dart` |
@@ -48,6 +48,8 @@ site_groups:
 
 - 按当前平台与 `platforms` 白名单过滤；`kind: app` 条目额外做**安装检测**，未安装即隐藏。
 - 隐藏而非禁用：用户只看到当前可用的入口。
+- 当前学习通使用 `chaoxing://` 检测与唤起，Android 包名记录为 `com.chaoxing.mobile`；Android/iOS 均已登记 scheme 查询权限。
+- 快捷跳转目录和首页收藏共用同一可用性筛选链路，避免桌面端或未安装设备泄漏 App 条目。
 
 ### 3.2 跳转行为
 
@@ -55,7 +57,7 @@ site_groups:
 | --- | --- |
 | `web` | 内置 WebView 打开（带外部浏览器按钮），下载型 URL 交系统/外部（复用 [info 处理](../info/message-center.md)） |
 | `app` | 移动端唤起目标 App 深链（#280 学习通）；唤起失败按隐藏前提不应出现 |
-| `oa` | 经 OA 会话进入入口（依赖 [登录与凭据](../academic/auth-credentials.md)） |
+| `oa` | 经已认证 OA 会话在应用内 WebView 进入入口（依赖 [登录与凭据](../academic/auth-credentials.md)）；会话缺失时停留在确认页，不回退到未认证外链 |
 
 ### 3.3 搜索
 
@@ -74,7 +76,8 @@ site_groups:
 
 ## 6. 待办与演进
 
-- [ ] 配置模型扩展 `kind`/`platforms`/`appId`。
-- [ ] App 安装检测与条目隐藏；移动端 App 深链（#280）。
-- [ ] `oa` 类入口经 OA 会话跳转。
-- [ ] `web` 类复用 info 的内置 WebView 与下载型 URL 处理。
+- [x] 配置模型扩展 `kind`/`platforms`/`appId`。
+- [x] App 安装检测与条目隐藏；移动端学习通 App 深链（#280）。
+- [x] OA 入口识别、会话状态检查与外链确认。
+- [x] `oa` 类型经已认证 OA 会话在应用内 WebView 打开；Cookie 仅注入目标 OA 首次请求。
+- [x] `web` 类型复用 info 的内置 WebView 与下载型 URL 处理。

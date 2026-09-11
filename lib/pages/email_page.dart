@@ -7,17 +7,25 @@
  */
 
 import 'dart:async';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:open_filex/open_filex.dart';
 
 import '../design/qingyuan/qingyuan_ui.dart';
 import '../models/email_mailbox.dart';
 import '../services/academic_credentials_service.dart';
 import '../services/data_auto_refresh_preferences.dart';
+import '../services/data_module_preferences.dart';
 import '../services/email_service.dart';
+import '../services/app_data_directory_service.dart';
 
 part 'email_compose_panel.dart';
 part 'email_page_layout.dart';
 part 'email_message_detail_page.dart';
 part 'email_mailbox_widgets.dart';
+
+typedef EmailAttachmentPicker = Future<List<EmailAttachmentRequest>> Function();
 
 /// 学校邮箱页面。
 class EmailPage extends StatefulWidget {
@@ -30,15 +38,23 @@ class EmailPage extends StatefulWidget {
   /// 测试专用：覆盖学校邮箱自动刷新间隔。
   final int? emailAutoRefreshIntervalOverride;
 
+  /// 测试专用：覆盖邮箱模块联网获取门禁。
+  final bool? emailFetchEnabledOverride;
+
   /// 测试专用：锁定当前时间，确保缓存新鲜度判定可重现。
   final DateTime? nowOverride;
+
+  /// 测试可替换的本地附件选择器；生产环境仍由 file_picker 提供。
+  final EmailAttachmentPicker? attachmentPicker;
 
   const EmailPage({
     super.key,
     this.emailService,
     this.emailAutoRefreshEnabledOverride,
     this.emailAutoRefreshIntervalOverride,
+    this.emailFetchEnabledOverride,
     this.nowOverride,
+    this.attachmentPicker,
   });
 
   @override
@@ -59,6 +75,7 @@ class _EmailPageState extends State<EmailPage> {
   Timer? _emailAutoRefreshTimer;
   StreamSubscription<int>? _credentialChangeSubscription;
   StreamSubscription<int>? _dataAutoRefreshSubscription;
+  StreamSubscription<CampusDataModule>? _dataModuleSubscription;
   bool _emailAutoRefreshEnabled = false;
   int _credentialGeneration = 0;
   int _mailboxGeneration = 0;
@@ -67,6 +84,13 @@ class _EmailPageState extends State<EmailPage> {
   final TextEditingController _bccController = TextEditingController();
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _bodyController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+  String _emailSearchQuery = '';
+  final List<EmailAttachmentRequest> _composeAttachments = [];
+  int _messageFetchCount = 10;
+  bool _isLoadingMoreMessages = false;
+  bool _canLoadMoreMessages = true;
+  final Set<String> _downloadingAttachmentIds = <String>{};
 
   EmailMailboxClient get _emailService {
     return widget.emailService ?? EmailService.instance;
@@ -81,6 +105,13 @@ class _EmailPageState extends State<EmailPage> {
         .listen((_) => _clearAuthenticatedState());
     _dataAutoRefreshSubscription = DataAutoRefreshPreferences.instance.changes
         .listen(_handleDataAutoRefreshIntervalChanged);
+    _dataModuleSubscription = DataModulePreferences.instance.changes.listen((
+      module,
+    ) {
+      if (module == CampusDataModule.email) {
+        unawaited(_loadEmailAutoRefreshSettings());
+      }
+    });
     _loadMailboxCacheAndSettings();
   }
 
@@ -89,6 +120,7 @@ class _EmailPageState extends State<EmailPage> {
     _credentialGeneration++;
     _mailboxGeneration++;
     _clearComposeInputs();
+    _clearEmailSearch();
     setState(() {
       _mailboxResult = null;
       _sendResult = null;
@@ -108,12 +140,19 @@ class _EmailPageState extends State<EmailPage> {
     final interval =
         widget.emailAutoRefreshIntervalOverride ??
         await EmailService.instance.getAutoRefreshIntervalMinutes();
+    final fetchEnabled =
+        widget.emailFetchEnabledOverride ??
+        await DataModulePreferences.instance.isFetchEnabled(
+          CampusDataModule.email,
+        );
     if (!mounted) return;
     setState(() {
       _emailAutoRefreshIntervalMinutes = interval;
     });
-    _restartEmailAutoRefreshTimer(enabled, interval);
-    if (enabled && _shouldAutoRefresh(_mailboxResult?.checkedAt, interval)) {
+    final shouldEnable = enabled && fetchEnabled;
+    _restartEmailAutoRefreshTimer(shouldEnable, interval);
+    if (shouldEnable &&
+        _shouldAutoRefresh(_mailboxResult?.checkedAt, interval)) {
       unawaited(_fetchMessages(silent: true));
     }
   }
@@ -169,15 +208,24 @@ class _EmailPageState extends State<EmailPage> {
   }
 
   /// 使用当前选择的只读协议读取最近邮件。
-  Future<void> _fetchMessages({bool silent = false}) async {
-    if (_isFetchingMessages || _selectedProtocol == EmailProtocol.smtp) return;
+  Future<void> _fetchMessages({
+    bool silent = false,
+    int? messageCount,
+    bool allowWhileLoadingMore = false,
+  }) async {
+    if (_isFetchingMessages ||
+        (_isLoadingMoreMessages && !allowWhileLoadingMore) ||
+        _selectedProtocol == EmailProtocol.smtp) {
+      return;
+    }
     final credentialGeneration = _credentialGeneration;
     final mailboxGeneration = _mailboxGeneration;
+    final requestedCount = (messageCount ?? _messageFetchCount).clamp(1, 100);
     if (!silent) setState(() => _isFetchingMessages = true);
 
     final result = await _emailService.fetchMessages(
       protocol: _selectedProtocol,
-      messageCount: 10,
+      messageCount: requestedCount,
     );
     if (!mounted ||
         credentialGeneration != _credentialGeneration ||
@@ -187,11 +235,41 @@ class _EmailPageState extends State<EmailPage> {
     if (silent && !result.isSuccess) return;
     setState(() {
       _mailboxResult = result;
-      _selectedMessageId = result.snapshot?.messages.isNotEmpty == true
-          ? result.snapshot!.messages.first.id
-          : null;
+      final messages =
+          result.snapshot?.messages ?? const <EmailMessageSnapshot>[];
+      if (_selectedMessageId == null ||
+          !messages.any((message) => message.id == _selectedMessageId)) {
+        _selectedMessageId = messages.isNotEmpty ? messages.first.id : null;
+      }
+      _messageFetchCount = requestedCount;
+      _canLoadMoreMessages =
+          messages.length >= requestedCount && requestedCount < 100;
       if (!silent) _isFetchingMessages = false;
     });
+  }
+
+  Future<void> _loadMoreMessages() async {
+    if (_isFetchingMessages ||
+        _isLoadingMoreMessages ||
+        !_canLoadMoreMessages) {
+      return;
+    }
+    final nextCount = (_messageFetchCount + 10).clamp(1, 100);
+    final beforeCount = _mailboxResult?.snapshot?.messages.length ?? 0;
+    setState(() => _isLoadingMoreMessages = true);
+    try {
+      await _fetchMessages(
+        messageCount: nextCount,
+        allowWhileLoadingMore: true,
+      );
+      if (!mounted) return;
+      final afterCount = _mailboxResult?.snapshot?.messages.length ?? 0;
+      if (afterCount <= beforeCount || afterCount < nextCount) {
+        setState(() => _canLoadMoreMessages = false);
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingMoreMessages = false);
+    }
   }
 
   EmailMessageSnapshot? _selectedMessage(List<EmailMessageSnapshot> messages) {
@@ -206,6 +284,7 @@ class _EmailPageState extends State<EmailPage> {
     EmailMessageSnapshot message, {
     required bool inline,
   }) {
+    unawaited(_markMessageAsReadIfNeeded(message));
     if (inline) {
       setState(() {
         _selectedMessageId = message.id;
@@ -214,6 +293,48 @@ class _EmailPageState extends State<EmailPage> {
       return;
     }
     _openMessageDetail(message);
+  }
+
+  Future<void> _markMessageAsReadIfNeeded(EmailMessageSnapshot message) async {
+    if (message.isRead) return;
+    final result = _mailboxResult;
+    final snapshot = result?.snapshot;
+    if (result == null || snapshot == null) return;
+    final updatedMessage = message.copyWith(isRead: true);
+    final updatedSnapshot = EmailMailboxSnapshot(
+      protocol: snapshot.protocol,
+      account: snapshot.account,
+      messages: snapshot.messages
+          .map((item) => item.id == message.id ? updatedMessage : item)
+          .toList(growable: false),
+      fetchedAt: snapshot.fetchedAt,
+      endpoint: snapshot.endpoint,
+    );
+    if (mounted) {
+      setState(
+        () => _mailboxResult = EmailMailboxQueryResult(
+          status: result.status,
+          protocol: result.protocol,
+          message: result.message,
+          detail: result.detail,
+          checkedAt: result.checkedAt,
+          endpoint: result.endpoint,
+          snapshot: updatedSnapshot,
+        ),
+      );
+    }
+    if (_selectedProtocol != EmailProtocol.imap ||
+        _emailService is! AdvancedEmailMailboxClient) {
+      return;
+    }
+    final writeResult = await (_emailService as AdvancedEmailMailboxClient)
+        .markMessageAsRead(message);
+    if (!mounted || writeResult.isSuccess) return;
+    showYhFeedback(
+      context,
+      message: writeResult.message,
+      severity: AppFeedbackSeverity.warning,
+    );
   }
 
   void _focusMessage(EmailMessageSnapshot message) {
@@ -243,13 +364,34 @@ class _EmailPageState extends State<EmailPage> {
   void dispose() {
     _credentialChangeSubscription?.cancel();
     _dataAutoRefreshSubscription?.cancel();
+    _dataModuleSubscription?.cancel();
     _emailAutoRefreshTimer?.cancel();
     _toController.dispose();
     _ccController.dispose();
     _bccController.dispose();
     _subjectController.dispose();
     _bodyController.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  /// 在已经缓存的邮件快照内进行即时筛选，不触发网络请求。
+  void _setEmailSearchQuery(String value) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized == _emailSearchQuery) return;
+    setState(() => _emailSearchQuery = normalized);
+  }
+
+  void _clearEmailSearch() {
+    _searchController.clear();
+    _emailSearchQuery = '';
+  }
+
+  /// 返回匹配主题、发件人、摘要或正文的本地邮件。
+  List<EmailMessageSnapshot> _filteredMessages(
+    List<EmailMessageSnapshot> messages,
+  ) {
+    return EmailService.filterLocalMessages(messages, _emailSearchQuery);
   }
 
   /// 校验指定协议登录状态。
@@ -293,6 +435,7 @@ class _EmailPageState extends State<EmailPage> {
       bcc: _parseAddressInput(_bccController.text),
       subject: _subjectController.text.trim(),
       body: _bodyController.text,
+      attachments: List.unmodifiable(_composeAttachments),
     );
     final result = await _emailService.sendMessage(request);
     if (!mounted || generation != _credentialGeneration) return;
@@ -323,12 +466,15 @@ class _EmailPageState extends State<EmailPage> {
   }
 
   void _selectProtocol(EmailProtocol protocol) {
+    _clearEmailSearch();
     setState(() {
       _mailboxGeneration++;
       _selectedProtocol = protocol;
       _mailboxResult = null;
       _selectedMessageId = null;
       _isFetchingMessages = false;
+      _messageFetchCount = 10;
+      _canLoadMoreMessages = true;
     });
   }
 
@@ -338,6 +484,130 @@ class _EmailPageState extends State<EmailPage> {
     _bccController.clear();
     _subjectController.clear();
     _bodyController.clear();
+    _composeAttachments.clear();
+  }
+
+  Future<void> _pickAttachments() async {
+    final pickedFiles =
+        await (widget.attachmentPicker?.call() ?? _pickLocalAttachments());
+    if (!mounted || pickedFiles.isEmpty) return;
+    var totalBytes = _composeAttachments.fold<int>(
+      0,
+      (sum, attachment) => sum + (attachment.size ?? 0),
+    );
+    var invalidCount = 0;
+    var duplicateCount = 0;
+    var countLimitedCount = 0;
+    var sizeLimitedCount = 0;
+    for (final file in pickedFiles) {
+      final path = file.path;
+      if (path.trim().isEmpty || file.fileName.trim().isEmpty) {
+        invalidCount++;
+        continue;
+      }
+      if (_composeAttachments.any((attachment) => attachment.path == path)) {
+        duplicateCount++;
+        continue;
+      }
+      if (_composeAttachments.length >= EmailService.maxAttachmentCount) {
+        countLimitedCount++;
+        continue;
+      }
+      final size = file.size;
+      if (size == null || size < 0) {
+        invalidCount++;
+        continue;
+      }
+      if (totalBytes + size > EmailService.maxAttachmentBytes) {
+        sizeLimitedCount++;
+        continue;
+      }
+      _composeAttachments.add(file);
+      totalBytes += size;
+    }
+    setState(() {});
+    final rejectedCount =
+        invalidCount + duplicateCount + countLimitedCount + sizeLimitedCount;
+    if (rejectedCount > 0) {
+      final reasons = <String>[
+        if (invalidCount > 0) '$invalidCount 个文件不可用',
+        if (duplicateCount > 0) '$duplicateCount 个文件已添加',
+        if (countLimitedCount > 0)
+          '$countLimitedCount 个文件超过 ${EmailService.maxAttachmentCount} 个上限',
+        if (sizeLimitedCount > 0) '$sizeLimitedCount 个文件使总大小超过 100 MB',
+      ];
+      showYhFeedback(
+        context,
+        message: '未添加 $rejectedCount 个附件：${reasons.join('，')}。',
+        severity: AppFeedbackSeverity.warning,
+      );
+    }
+  }
+
+  static Future<List<EmailAttachmentRequest>> _pickLocalAttachments() async {
+    final files = await FilePicker.pickFiles();
+    final result = <EmailAttachmentRequest>[];
+    for (final file in files) {
+      int? size;
+      try {
+        size = await file.length();
+      } catch (_) {
+        // 由统一的选择结果校验反馈“文件不可用”。
+      }
+      result.add(
+        EmailAttachmentRequest(
+          path: file.path ?? '',
+          fileName: file.name,
+          size: size,
+        ),
+      );
+    }
+    return result;
+  }
+
+  void _removeComposeAttachment(EmailAttachmentRequest attachment) {
+    setState(() => _composeAttachments.remove(attachment));
+  }
+
+  Future<void> _downloadAttachment(
+    EmailMessageSnapshot message,
+    EmailAttachmentSnapshot attachment,
+  ) async {
+    if (_emailService is! AdvancedEmailMailboxClient ||
+        _downloadingAttachmentIds.contains(attachment.id)) {
+      return;
+    }
+    setState(() => _downloadingAttachmentIds.add(attachment.id));
+    try {
+      final result = await (_emailService as AdvancedEmailMailboxClient)
+          .downloadAttachment(message, attachment);
+      if (!mounted) return;
+      final download = result.download;
+      if (!result.isSuccess || download == null) {
+        showYhFeedback(
+          context,
+          message: result.message,
+          severity: AppFeedbackSeverity.error,
+        );
+        return;
+      }
+      final directory = await AppDataDirectoryService.ensureDirectoryPath(
+        'email/attachments',
+      );
+      final safeName = download.fileName.replaceAll(
+        RegExp(r'[\\/:*?"<>|]'),
+        '_',
+      );
+      final file = File(
+        '$directory${Platform.pathSeparator}${safeName.isEmpty ? '附件' : safeName}',
+      );
+      await file.writeAsBytes(download.bytes, flush: true);
+      await OpenFilex.open(file.path, type: download.mediaType);
+    } finally {
+      if (mounted) {
+        setState(() => _downloadingAttachmentIds.remove(attachment.id));
+      }
+    }
   }
 
   List<String> _parseAddressInput(String input) {
@@ -499,8 +769,13 @@ class _EmailPageState extends State<EmailPage> {
   void _openMessageDetail(EmailMessageSnapshot message) {
     Navigator.of(context).push(
       YhPageRoute(
-        builder: (_) =>
-            EmailMessageDetailPage(message: message, nowOverride: _now),
+        builder: (_) => EmailMessageDetailPage(
+          message: message.copyWith(isRead: true),
+          nowOverride: _now,
+          downloadingAttachmentIds: _downloadingAttachmentIds,
+          onDownloadAttachment: (attachment) =>
+              _downloadAttachment(message, attachment),
+        ),
       ),
     );
   }
@@ -508,6 +783,7 @@ class _EmailPageState extends State<EmailPage> {
   YhBannerKind _severityOf(EmailQueryStatus status) {
     return switch (status) {
       EmailQueryStatus.success => YhBannerKind.success,
+      EmailQueryStatus.fetchDisabled ||
       EmailQueryStatus.missingEmailAccount ||
       EmailQueryStatus.missingEmailPassword ||
       EmailQueryStatus.invalidInput => YhBannerKind.warn,

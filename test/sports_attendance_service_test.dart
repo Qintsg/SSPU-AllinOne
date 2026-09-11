@@ -47,6 +47,24 @@ void main() {
     expect(await service.getAutoRefreshIntervalMinutes(), 60);
   });
 
+  test('停止获取后体育考勤不读取凭据也不访问网关', () async {
+    final gateway = _FakeSportsAttendanceGateway();
+    final service = _buildService(
+      gateway: gateway,
+      campusReachable: true,
+      isFetchEnabled: () async => false,
+    );
+
+    final result = await service.fetchAttendanceSummary();
+
+    expect(result.status, SportsAttendanceQueryStatus.fetchDisabled);
+    expect(result.message, '体育考勤已停止获取');
+    expect(gateway.resetCount, 0);
+    expect(gateway.openCount, 0);
+    expect(gateway.submitCount, 0);
+    expect(gateway.fetchScoreCount, 0);
+  });
+
   test('未保存学工号时不访问体育部登录页', () async {
     final gateway = _FakeSportsAttendanceGateway();
     final service = _buildService(gateway: gateway, campusReachable: true);
@@ -216,9 +234,11 @@ void main() {
 SportsAttendanceService _buildService({
   required _FakeSportsAttendanceGateway gateway,
   required bool campusReachable,
+  Future<bool> Function()? isFetchEnabled,
 }) {
   return SportsAttendanceService(
     gateway: gateway,
+    isFetchEnabled: isFetchEnabled,
     campusNetworkStatusService: CampusNetworkStatusService(
       probeUri: Uri.parse('https://tygl.sspu.edu.cn/'),
       probe: (probeUri, timeout) async => CampusNetworkProbeResult(
@@ -278,11 +298,16 @@ class _FakeSportsAttendanceGateway implements SportsAttendanceGateway {
   final SportsAttendanceHttpSnapshot submitPage;
   final SportsAttendanceHttpSnapshot scorePage;
   final Future<void> Function()? beforeScoreReturn;
+  int resetCount = 0;
   int openCount = 0;
+  int submitCount = 0;
+  int fetchScoreCount = 0;
   Map<String, String>? submittedFields;
 
   @override
-  Future<void> resetSession() async {}
+  Future<void> resetSession() async {
+    resetCount++;
+  }
 
   @override
   Future<SportsAttendanceHttpSnapshot> openLoginPage(
@@ -299,6 +324,7 @@ class _FakeSportsAttendanceGateway implements SportsAttendanceGateway {
     required Map<String, String> fields,
     required Duration timeout,
   }) async {
+    submitCount++;
     submittedFields = fields;
     return submitPage;
   }
@@ -308,6 +334,7 @@ class _FakeSportsAttendanceGateway implements SportsAttendanceGateway {
     Uri scoreUri,
     Duration timeout,
   ) async {
+    fetchScoreCount++;
     await beforeScoreReturn?.call();
     return scorePage;
   }

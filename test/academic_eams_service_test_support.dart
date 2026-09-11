@@ -16,10 +16,12 @@ AcademicEamsService buildAcademicEamsServiceForTest({
   required FakeAcademicEamsGateway gateway,
   required bool campusReachable,
   AcademicEamsOaLoginRefresher? refreshOaLogin,
+  Future<bool> Function()? isFetchEnabled,
 }) {
   return AcademicEamsService(
     gateway: gateway,
     refreshOaLogin: refreshOaLogin,
+    isFetchEnabled: isFetchEnabled,
     campusNetworkStatusService: CampusNetworkStatusService(
       probeUri: Uri.parse('https://jx.sspu.edu.cn/'),
       probe: (probeUri, timeout) async => CampusNetworkProbeResult(

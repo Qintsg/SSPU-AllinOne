@@ -1,6 +1,6 @@
 # 设置中心
 
-> 子模块：[壳层](README.md)　·　状态：**已实现**（前端重构 + 卡片显隐配置）
+> 子模块：[壳层](README.md)　·　状态：**已实现**
 
 | 项 | 内容 |
 | --- | --- |
@@ -16,21 +16,19 @@
 
 ## 2. 设置分区（汇总）
 
-| 分区 | 内容 | 归属功能 |
-| --- | --- | --- |
-| 通用 | 显示名、基础项 | platform |
-| 主页卡片 | 卡片显隐 + 排序（#187） | [主页仪表盘](home-dashboard.md) |
-| 学期设置 | 查询使用学期 | [校历](../academic-calendar.md) |
-| 自动刷新 | 校园数据独立开关、共享间隔与消息来源入口 | [后台自动刷新](../system/auto-refresh.md) |
-| 安全与凭据 | 锁屏、学工号/密码状态 | [安全锁屏与隐私](../system/security-privacy.md)、[登录与凭据](../../academic/auth-credentials.md) |
-| 数据管理 | 本地数据、WebDAV 同步（#194） | [本地存储与同步](../system/storage-sync.md) |
-| 通知 | 全局开关、勿扰、提醒（#188） | [通知与提醒](../system/notifications.md) |
-| 公众号 | `wxmp_config.toml`、扫码登录 | [微信公众号文章](../../info/wechat-articles.md) |
-| 主题 | 深色模式/主题（#168） | [主题与深色模式](../personalization/theme.md) |
-| 语言 | 界面语言（#192） | [国际化](../personalization/i18n.md) |
-| 更新 | 渠道、检查更新 | [应用更新检测](../system/app-update.md) |
-| AI | BYOK、授权矩阵、MCP 暴露 | [AI 助手](../../ai/README.md) |
-| VPN | 自动连接开关（仅桌面） | [VPN 一键连接](../../network/vpn-connect.md) |
+| 分区 | 内容 | 状态 | 归属功能 |
+| --- | --- | --- | --- |
+| 常规 | 主页区域显隐、服务摘要显隐/排序、模块联网获取、普通消息/课程/考试提醒、通知权限状态、勿扰与关闭行为 | 已实现 | [主页仪表盘](home-dashboard.md)、[通知与提醒](../system/notifications.md) |
+| 学期 | 查询使用学期、校历入口 | 已实现 | [校历](../academic-calendar.md) |
+| 自动刷新 | 校园数据独立开关、共享间隔与消息来源入口 | 已实现 | [后台自动刷新](../system/auto-refresh.md) |
+| 安全 | 锁屏、凭据、数据与隐私入口 | 已实现 | [安全锁屏与隐私](../system/security-privacy.md)、[登录与凭据](../../academic/auth-credentials.md) |
+| 职能部门 / 教学单位 | 资讯来源、抓取条数与自动刷新配置 | 已实现 | [消息中心](../../info/message-center.md) |
+| 微信推文 | `wxmp_config.toml`、扫码登录、公众号开关与统一刷新 | 部分实现；真实平台认证待验证 | [微信公众号文章](../../info/wechat-articles.md) |
+| 外观 | 亮色、暗色、跟随系统 | 已实现 | [主题与深色模式](../personalization/theme.md) |
+| 更新 | 渠道、检查、下载与校验 | 已实现 | [应用更新检测](../system/app-update.md) |
+| 关于 | 版本、设计语言、开源许可与法律说明 | 已实现 | platform |
+
+WebDAV、界面语言、AI 与 VPN 当前没有设置入口；其中 VPN 已按 #169 明确不再计划，其他能力仍以各自功能文档为准。
 
 ## 3. 实现
 
@@ -49,4 +47,5 @@
 
 ## 6. 待办与演进
 
-- [ ] 前端重构后的设置分区与卡片显隐/排序配置（#187）。
+- [x] 清源设置分区、响应式导航与卡片显隐/排序配置（#187）。
+- [x] 为各数据域增加独立“停止获取”开关，并与手动/自动刷新和详情入口联动（#187）。

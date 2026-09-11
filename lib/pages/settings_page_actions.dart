@@ -29,8 +29,26 @@ mixin _SettingsPageActions on State<SettingsPage> {
   bool get _notificationEnabled;
   set _notificationEnabled(bool value);
 
+  bool get _messageNotificationEnabled;
+  set _messageNotificationEnabled(bool value);
+
+  NotificationPermissionStatus get _notificationPermissionStatus;
+  set _notificationPermissionStatus(NotificationPermissionStatus value);
+
   bool get _dndEnabled;
   set _dndEnabled(bool value);
+
+  bool get _courseReminderEnabled;
+  set _courseReminderEnabled(bool value);
+
+  int get _courseReminderLeadMinutes;
+  set _courseReminderLeadMinutes(int value);
+
+  bool get _examReminderEnabled;
+  set _examReminderEnabled(bool value);
+
+  int get _examReminderLeadMinutes;
+  set _examReminderLeadMinutes(int value);
 
   bool get _homeStudentProfileCardVisible;
   set _homeStudentProfileCardVisible(bool value);
@@ -55,6 +73,12 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
   bool get _homeQuickLinksTileVisible;
   set _homeQuickLinksTileVisible(bool value);
+
+  List<HomeOverviewItem> get _homeOverviewOrder;
+  set _homeOverviewOrder(List<HomeOverviewItem> value);
+
+  Map<CampusDataModule, bool> get _dataModuleFetchEnabled;
+  set _dataModuleFetchEnabled(Map<CampusDataModule, bool> value);
 
   int get _dndStartHour;
   set _dndStartHour(int value);
@@ -100,7 +124,17 @@ mixin _SettingsPageActions on State<SettingsPage> {
     await _messageState.init();
 
     final notifEnabled = await _messageState.isNotificationEnabled();
+    final messageNotifEnabled = await _messageState
+        .isMessageNotificationEnabled();
+    final permissionStatus = await NotificationService.instance
+        .permissionStatus();
     final dndOn = await _messageState.isDndEnabled();
+    final courseReminderEnabled = await _messageState.isCourseReminderEnabled();
+    final examReminderEnabled = await _messageState.isExamReminderEnabled();
+    final courseReminderLeadMinutes = await _messageState
+        .getCourseReminderLeadMinutes();
+    final examReminderLeadMinutes = await _messageState
+        .getExamReminderLeadMinutes();
     final homeStudentProfileCardVisible = await StorageService.getBool(
       StorageKeys.homeStudentProfileCardVisible,
       defaultValue: true,
@@ -133,6 +167,10 @@ mixin _SettingsPageActions on State<SettingsPage> {
       StorageKeys.homeQuickLinksTileVisible,
       defaultValue: true,
     );
+    final homeOverviewOrder = await HomeDashboardPreferences.instance
+        .getOverviewOrder();
+    final dataModuleFetchEnabled = await DataModulePreferences.instance
+        .readAll();
     final dndStartHour = await _messageState.getDndStartHour();
     final dndStartMinute = await _messageState.getDndStartMinute();
     final dndEndHour = await _messageState.getDndEndHour();
@@ -161,7 +199,13 @@ mixin _SettingsPageActions on State<SettingsPage> {
       _isQuickAuthAvailable = quickAuthAvailable;
       _closeBehavior = behavior;
       _notificationEnabled = notifEnabled;
+      _messageNotificationEnabled = messageNotifEnabled;
+      _notificationPermissionStatus = permissionStatus;
       _dndEnabled = dndOn;
+      _courseReminderEnabled = courseReminderEnabled;
+      _examReminderEnabled = examReminderEnabled;
+      _courseReminderLeadMinutes = courseReminderLeadMinutes;
+      _examReminderLeadMinutes = examReminderLeadMinutes;
       _homeStudentProfileCardVisible = homeStudentProfileCardVisible;
       _homeCampusCardBalanceCardVisible = homeCampusCardBalanceCardVisible;
       _homeTodayCoursesTileVisible = homeTodayCoursesTileVisible;
@@ -170,6 +214,8 @@ mixin _SettingsPageActions on State<SettingsPage> {
       _homeMessagesTileVisible = homeMessagesTileVisible;
       _homeEmailTileVisible = homeEmailTileVisible;
       _homeQuickLinksTileVisible = homeQuickLinksTileVisible;
+      _homeOverviewOrder = homeOverviewOrder;
+      _dataModuleFetchEnabled = dataModuleFetchEnabled;
       _dndStartHour = dndStartHour;
       _dndStartMinute = dndStartMinute;
       _dndEndHour = dndEndHour;
@@ -212,9 +258,45 @@ mixin _SettingsPageActions on State<SettingsPage> {
 
   /// 修改消息推送总开关。
   Future<void> _onNotificationChanged(bool enabled) async {
+    if (enabled && !await NotificationService.instance.requestPermission()) {
+      if (mounted) _showErrorBar('系统通知权限未开启，无法启用消息推送');
+      return;
+    }
     await _messageState.setNotificationEnabled(enabled);
     if (!mounted) return;
-    setState(() => _notificationEnabled = enabled);
+    final permissionStatus = await NotificationService.instance
+        .permissionStatus();
+    if (!mounted) return;
+    setState(() {
+      _notificationEnabled = enabled;
+      _notificationPermissionStatus = permissionStatus;
+    });
+    unawaited(AcademicReminderCoordinator.instance.requestSync());
+  }
+
+  /// 重新查询系统通知权限并刷新设置页说明。
+  Future<void> _refreshNotificationPermission() async {
+    final permissionStatus = await NotificationService.instance
+        .permissionStatus();
+    if (!mounted) return;
+    setState(() => _notificationPermissionStatus = permissionStatus);
+  }
+
+  /// 修改普通校园消息通知开关。
+  Future<void> _onMessageNotificationChanged(bool enabled) async {
+    if (enabled && !await NotificationService.instance.requestPermission()) {
+      if (mounted) _showErrorBar('系统通知权限未开启，无法启用普通消息通知');
+      return;
+    }
+    await _messageState.setMessageNotificationEnabled(enabled);
+    if (!mounted) return;
+    final permissionStatus = await NotificationService.instance
+        .permissionStatus();
+    if (!mounted) return;
+    setState(() {
+      _messageNotificationEnabled = enabled;
+      _notificationPermissionStatus = permissionStatus;
+    });
   }
 
   /// 修改勿扰模式开关。
@@ -222,6 +304,47 @@ mixin _SettingsPageActions on State<SettingsPage> {
     await _messageState.setDndEnabled(enabled);
     if (!mounted) return;
     setState(() => _dndEnabled = enabled);
+    unawaited(AcademicReminderCoordinator.instance.requestSync());
+  }
+
+  /// 修改课程提醒开关，并在首次启用时请求系统通知权限。
+  Future<void> _onCourseReminderChanged(bool enabled) async {
+    if (enabled && !await NotificationService.instance.requestPermission()) {
+      if (mounted) _showErrorBar('系统通知权限未开启，无法启用课程提醒');
+      return;
+    }
+    await _messageState.setCourseReminderEnabled(enabled);
+    if (!mounted) return;
+    setState(() => _courseReminderEnabled = enabled);
+    unawaited(AcademicReminderCoordinator.instance.requestSync());
+  }
+
+  /// 修改考试提醒开关，并在首次启用时请求系统通知权限。
+  Future<void> _onExamReminderChanged(bool enabled) async {
+    if (enabled && !await NotificationService.instance.requestPermission()) {
+      if (mounted) _showErrorBar('系统通知权限未开启，无法启用考试提醒');
+      return;
+    }
+    await _messageState.setExamReminderEnabled(enabled);
+    if (!mounted) return;
+    setState(() => _examReminderEnabled = enabled);
+    unawaited(AcademicReminderCoordinator.instance.requestSync());
+  }
+
+  /// 修改课程提醒提前量，并立即按新时间重排提醒。
+  Future<void> _onCourseReminderLeadMinutesChanged(int minutes) async {
+    await _messageState.setCourseReminderLeadMinutes(minutes);
+    if (!mounted) return;
+    setState(() => _courseReminderLeadMinutes = minutes);
+    unawaited(AcademicReminderCoordinator.instance.requestSync());
+  }
+
+  /// 修改考试提醒提前量，并立即按新时间重排提醒。
+  Future<void> _onExamReminderLeadMinutesChanged(int minutes) async {
+    await _messageState.setExamReminderLeadMinutes(minutes);
+    if (!mounted) return;
+    setState(() => _examReminderLeadMinutes = minutes);
+    unawaited(AcademicReminderCoordinator.instance.requestSync());
   }
 
   /// 修改首页学籍信息卡片显示开关。
@@ -298,6 +421,32 @@ mixin _SettingsPageActions on State<SettingsPage> {
     );
   }
 
+  /// 保存首页服务摘要的展示顺序。
+  Future<void> _onHomeOverviewOrderChanged(List<HomeOverviewItem> order) async {
+    await HomeDashboardPreferences.instance.setOverviewOrder(order);
+    if (!mounted) return;
+    setState(() {
+      _homeOverviewOrder = HomeDashboardPreferences.normalizeOverviewItems(
+        order,
+      );
+    });
+  }
+
+  /// 修改模块级联网获取权限；显隐与自动刷新频率保持独立。
+  Future<void> _onDataModuleFetchChanged(
+    CampusDataModule module,
+    bool enabled,
+  ) async {
+    await DataModulePreferences.instance.setFetchEnabled(module, enabled);
+    if (!mounted) return;
+    setState(() {
+      _dataModuleFetchEnabled = {..._dataModuleFetchEnabled, module: enabled};
+    });
+    if (module == CampusDataModule.academicEams) {
+      unawaited(AcademicReminderCoordinator.instance.requestSync());
+    }
+  }
+
   Future<void> _setHomeTileVisible(
     String key,
     bool visible,
@@ -328,6 +477,7 @@ mixin _SettingsPageActions on State<SettingsPage> {
       _dndStartHour = hour;
       _dndStartMinute = minute;
     });
+    unawaited(AcademicReminderCoordinator.instance.requestSync());
   }
 
   /// 修改勿扰结束时间。
@@ -343,6 +493,7 @@ mixin _SettingsPageActions on State<SettingsPage> {
       _dndEndHour = hour;
       _dndEndMinute = minute;
     });
+    unawaited(AcademicReminderCoordinator.instance.requestSync());
   }
 
   /// 修改校园网 / VPN 状态检测间隔。

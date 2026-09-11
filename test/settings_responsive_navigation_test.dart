@@ -75,7 +75,14 @@ void main() {
 
     final trigger = find.byKey(const Key('settings-narrow-section-trigger'));
     expect(trigger, findsOneWidget);
-    expect(find.byType(YhSelect<int>), findsNothing);
+    expect(
+      find.byKey(const Key('settings-course-reminder-lead-select')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('settings-exam-reminder-lead-select')),
+      findsOneWidget,
+    );
     expect(tester.getSize(trigger).height, greaterThanOrEqualTo(48));
 
     await tester.tap(trigger);

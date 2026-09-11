@@ -3,9 +3,18 @@ site_groups:
     items:
       - name: 学校官网
         url: https://www.sspu.edu.cn/
-      - name: 超星学习通
+      - name: 学习通（APP）
+        kind: app
+        url: chaoxing://
+        appId: com.chaoxing.mobile
+        platforms: [android, ios]
+        icon: education
+      - name: 学习通（网页）
+        kind: web
         url: https://i.chaoxing.com/
+        icon: education
       - name: OA办公
+        kind: oa
         url: https://oa.sspu.edu.cn/
       - name: SSPU邮箱
         url: https://mail.sspu.edu.cn/
@@ -16,18 +25,25 @@ site_groups:
       - name: 智慧图书馆
         url: https://libraryuse.sspu.edu.cn/
       - name: 网络教学平台（OA）
+        kind: oa
         url: https://oa.sspu.edu.cn/interface/Entrance.jsp?id=wljxpt
       - name: 学工报表系统（第二课堂学分查询）（OA）
+        kind: oa
         url: https://oa.sspu.edu.cn/interface/Entrance.jsp?id=xgreport
       - name: 本专科教务系统（OA）
+        kind: oa
         url: https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw
       - name: 研究生教务系统（OA）
+        kind: oa
         url: https://oa.sspu.edu.cn/interface/Entrance.jsp?id=yjsglxtsnew
       - name: 大学生创新创业（OA）
+        kind: oa
         url: https://oa.sspu.edu.cn/interface/Entrance.jsp?id=dxscxcy
       - name: 校园卡（OA）
+        kind: oa
         url: https://oa.sspu.edu.cn/interface/Entrance.jsp?id=xykxt
       - name: 财务系统（OA）
+        kind: oa
         url: https://oa.sspu.edu.cn/interface/Entrance.jsp?id=cwxt1
 
   - category: 教学学习

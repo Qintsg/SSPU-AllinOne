@@ -12,10 +12,12 @@ StudentReportService _buildService({
   required _FakeStudentReportGateway gateway,
   required bool campusReachable,
   StudentReportOaLoginRefresher? refreshOaLogin,
+  Future<bool> Function()? isFetchEnabled,
 }) {
   return StudentReportService(
     gateway: gateway,
     refreshOaLogin: refreshOaLogin,
+    isFetchEnabled: isFetchEnabled,
     campusNetworkStatusService: CampusNetworkStatusService(
       probeUri: Uri.parse('https://xgbb.sspu.edu.cn/'),
       probe: (probeUri, timeout) async => CampusNetworkProbeResult(

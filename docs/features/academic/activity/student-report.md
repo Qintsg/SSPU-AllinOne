@@ -1,11 +1,11 @@
 # 第二课堂学生报告
 
-> 子模块：[课外活动](README.md)　·　状态：**部分实现**（服务层已实现，前端重构）
+> 子模块：[课外活动](README.md)　·　状态：**已实现**
 
 | 项 | 内容 |
 | --- | --- |
 | 功能 ID | `academic.activity.student-report` |
-| 状态 | 部分实现 |
+| 状态 | 已实现 |
 | 平台 | 全平台 |
 | 关联 Issue | — |
 | 主要代码 | `lib/services/student_report_service.dart`、`student_report_gateway.dart`、`student_report_page_parser.dart`、`student_report_page_navigator.dart`、`student_report_detail_json_parser.dart`、`student_affairs_service.dart`；`lib/models/student_report.dart` |
@@ -31,4 +31,4 @@
 
 ## 5. 待办与演进
 
-- [ ] 前端重构后的报告卡片、详情页与规则矩阵展示。
+- [x] 清源报告卡片、详情页、规则台账与规则矩阵展示。

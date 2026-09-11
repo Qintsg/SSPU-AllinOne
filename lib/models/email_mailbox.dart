@@ -35,6 +35,9 @@ enum EmailQueryStatus {
   /// 操作成功。
   success,
 
+  /// 用户已在设置中停止邮箱联网获取。
+  fetchDisabled,
+
   /// 未保存用于派生学校邮箱账号的学工号。
   missingEmailAccount,
 
@@ -65,6 +68,7 @@ class EmailComposeRequest {
     required this.body,
     this.cc = const [],
     this.bcc = const [],
+    this.attachments = const [],
   });
 
   /// 收件人地址列表，至少一个。
@@ -82,8 +86,87 @@ class EmailComposeRequest {
   /// 纯文本正文。
   final String body;
 
+  /// 用户主动选择、随 SMTP 邮件发送的本地附件。
+  final List<EmailAttachmentRequest> attachments;
+
   /// 所有收件人数量。
   int get recipientCount => to.length + cc.length + bcc.length;
+}
+
+/// 本地待发送附件的最小描述，不把二进制内容放入普通缓存。
+class EmailAttachmentRequest {
+  const EmailAttachmentRequest({
+    required this.path,
+    required this.fileName,
+    this.mediaType = 'application/octet-stream',
+    this.size,
+  });
+
+  final String path;
+  final String fileName;
+  final String mediaType;
+  final int? size;
+}
+
+/// 收件箱附件元数据；下载时才读取正文二进制。
+class EmailAttachmentSnapshot {
+  const EmailAttachmentSnapshot({
+    required this.id,
+    required this.fileName,
+    required this.mediaType,
+    this.size,
+  });
+
+  final String id;
+  final String fileName;
+  final String mediaType;
+  final int? size;
+
+  factory EmailAttachmentSnapshot.fromJson(Map<String, dynamic> json) {
+    return EmailAttachmentSnapshot(
+      id: json['id'] as String? ?? '',
+      fileName: json['fileName'] as String? ?? '附件',
+      mediaType: json['mediaType'] as String? ?? 'application/octet-stream',
+      size: (json['size'] as num?)?.toInt(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'fileName': fileName,
+    'mediaType': mediaType,
+    'size': size,
+  };
+}
+
+/// 按需下载附件的结果。
+class EmailAttachmentDownload {
+  const EmailAttachmentDownload({
+    required this.fileName,
+    required this.mediaType,
+    required this.bytes,
+  });
+
+  final String fileName;
+  final String mediaType;
+  final List<int> bytes;
+}
+
+/// 附件按需下载结果；失败时不携带二进制内容。
+class EmailAttachmentDownloadResult {
+  const EmailAttachmentDownloadResult({
+    required this.status,
+    required this.message,
+    required this.detail,
+    this.download,
+  });
+
+  final EmailQueryStatus status;
+  final String message;
+  final String detail;
+  final EmailAttachmentDownload? download;
+
+  bool get isSuccess => status == EmailQueryStatus.success && download != null;
 }
 
 /// SMTP 主动发件结果。
@@ -161,6 +244,9 @@ class EmailMessageSnapshot {
     required this.preview,
     required this.body,
     this.receivedAt,
+    this.isRead = true,
+    this.serverUid,
+    this.attachments = const [],
   });
 
   /// 邮件在当前协议结果中的稳定展示标识，不用于服务器写操作。
@@ -184,6 +270,34 @@ class EmailMessageSnapshot {
   /// 邮件头中的发送时间。
   final DateTime? receivedAt;
 
+  /// 服务器返回的已读状态；POP 协议通常没有可靠状态。
+  final bool isRead;
+
+  /// IMAP UID，用于已读回写和按需下载附件。
+  final String? serverUid;
+
+  /// 附件元数据，不包含附件二进制。
+  final List<EmailAttachmentSnapshot> attachments;
+
+  EmailMessageSnapshot copyWith({
+    bool? isRead,
+    String? serverUid,
+    List<EmailAttachmentSnapshot>? attachments,
+  }) {
+    return EmailMessageSnapshot(
+      id: id,
+      subject: subject,
+      senderName: senderName,
+      senderAddress: senderAddress,
+      preview: preview,
+      body: body,
+      receivedAt: receivedAt,
+      isRead: isRead ?? this.isRead,
+      serverUid: serverUid ?? this.serverUid,
+      attachments: attachments ?? this.attachments,
+    );
+  }
+
   /// 从 JSON 恢复邮件快照。
   factory EmailMessageSnapshot.fromJson(Map<String, dynamic> json) {
     return EmailMessageSnapshot(
@@ -196,6 +310,12 @@ class EmailMessageSnapshot {
       receivedAt: DateTime.tryParse(
         json['receivedAt'] as String? ?? '',
       )?.toLocal(),
+      isRead: json['isRead'] as bool? ?? true,
+      serverUid: json['serverUid'] as String?,
+      attachments: (json['attachments'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(EmailAttachmentSnapshot.fromJson)
+          .toList(),
     );
   }
 
@@ -209,6 +329,11 @@ class EmailMessageSnapshot {
       'preview': preview,
       'body': body,
       'receivedAt': receivedAt?.toUtc().toIso8601String(),
+      'isRead': isRead,
+      'serverUid': serverUid,
+      'attachments': attachments
+          .map((attachment) => attachment.toJson())
+          .toList(),
     };
   }
 }

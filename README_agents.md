@@ -4,7 +4,7 @@ This file is the tracked source of truth for AI agents working in this repositor
 
 ## Project
 
-**SSPU-AllinOne（工大聚合）** is a Flutter + Fluent UI campus services app for Shanghai Second Polytechnic University. It targets Android, iOS, macOS, Linux, and Windows.
+**SSPU-AllinOne（工大聚合）** is a Flutter campus services app for Shanghai Second Polytechnic University, built with the repository-owned Qingyuan design system. It targets Android, iOS, macOS, Linux, and Windows.
 
 - Flutter SDK: `>= 3.44.0`
 - Dart SDK: `3.12.0`
@@ -205,12 +205,11 @@ Release PR bodies must include:
 
 ## Design System
 
-- Existing Fluent pages use the single UI import `import 'design/fluent_ui.dart'`.
-- Qingyuan pages and components use `import 'design/qingyuan/qingyuan_ui.dart'` once that facade exists; do not mix both facades in a new component.
-- Do not import `package:fluent_ui`, Material visual controls, or Cupertino visual controls directly inside Qingyuan components.
-- Existing pages use the project `FluentIcons` facade. Qingyuan code uses the project `YhIcons` facade; neither may use Material `Icons.*` directly.
+- Product UI uses the single facade `import 'design/qingyuan/qingyuan_ui.dart'`.
+- Do not import `package:fluent_ui`, Material visual controls, or Cupertino visual controls in product UI.
+- Use the project `YhIcons` facade; do not use Material `Icons.*` directly.
 - Avoid raw design tokens: no direct `Color(0xFF...)`, `Colors.*`, bare `EdgeInsets`, or bare `fontSize` in product UI.
-- Existing pages prefer components from `design/components/`; new Qingyuan work belongs under `design/qingyuan/`.
+- Prefer `Yh*` components from `design/qingyuan/components/`; shared Qingyuan foundations belong under `design/qingyuan/`.
 - `docs/design/resources/tokens.json` is the machine-readable source of truth. Generated or mirrored Flutter/CSS values must be validated against it.
 - Full rules live in `DESIGN.md`.
 

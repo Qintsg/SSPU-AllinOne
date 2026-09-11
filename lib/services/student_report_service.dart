@@ -23,6 +23,7 @@ import 'academic_login_validation_service.dart';
 import 'authenticated_data_cache_service.dart';
 import 'campus_network_status_service.dart';
 import 'data_auto_refresh_preferences.dart';
+import 'data_module_preferences.dart';
 import 'http_service.dart';
 import 'storage_service.dart';
 
@@ -94,6 +95,7 @@ class StudentReportService implements StudentReportClient {
     CampusNetworkStatusService? campusNetworkStatusService,
     StudentReportGateway? gateway,
     StudentReportOaLoginRefresher? refreshOaLogin,
+    Future<bool> Function()? isFetchEnabled,
     Uri? entranceUri,
     Uri? homeUri,
     Duration? timeout,
@@ -102,6 +104,11 @@ class StudentReportService implements StudentReportClient {
        _campusNetworkStatusService =
            campusNetworkStatusService ?? CampusNetworkStatusService.instance,
        _gateway = gateway ?? DioStudentReportGateway(),
+       _isFetchEnabled =
+           isFetchEnabled ??
+           (() => DataModulePreferences.instance.isFetchEnabled(
+             CampusDataModule.studentReport,
+           )),
        _refreshOaLogin =
            refreshOaLogin ??
            (({bool forceRefresh = false, bool requireCampusNetwork = true}) =>
@@ -132,6 +139,7 @@ class StudentReportService implements StudentReportClient {
   final AcademicCredentialsService _credentialsService;
   final CampusNetworkStatusService _campusNetworkStatusService;
   final StudentReportGateway _gateway;
+  final Future<bool> Function() _isFetchEnabled;
   final StudentReportOaLoginRefresher _refreshOaLogin;
 
   /// OA 学工报表入口地址。
@@ -209,6 +217,14 @@ class StudentReportService implements StudentReportClient {
   }) async {
     CampusNetworkStatus? campusStatus;
     try {
+      if (!await _isFetchEnabled()) {
+        return _buildResult(
+          StudentReportQueryStatus.fetchDisabled,
+          message: '学工报表已停止获取',
+          detail: '本地缓存会继续保留；如需获取新数据，请在设置中重新开启第二课堂联网获取。',
+        );
+      }
+
       final credentialsStatus = await _credentialsService.getStatus();
       final studentId = credentialsStatus.oaAccount.trim();
       if (studentId.isEmpty) {

@@ -61,4 +61,20 @@ mixin MessageStateServiceMessages {
     }
     return messageMap.values.toList();
   }
+
+  /// 返回本次刷新真正新增的消息，并按 ID 去重。
+  ///
+  /// 同一批抓取结果可能来自分页重叠或多个来源，通知层必须使用此结果，
+  /// 不能仅依赖最终持久化时的去重，否则会对同一篇文章重复提醒。
+  List<MessageItem> findNewMessages(
+    List<MessageItem> existingMessages,
+    List<MessageItem> fetchedMessages,
+  ) {
+    final knownIds = existingMessages.map((message) => message.id).toSet();
+    final newMessages = <MessageItem>[];
+    for (final message in fetchedMessages) {
+      if (knownIds.add(message.id)) newMessages.add(message);
+    }
+    return List.unmodifiable(newMessages);
+  }
 }

@@ -1,11 +1,11 @@
 # 登录与凭据
 
-> 模块：[教务](README.md)　·　状态：**部分实现**（服务层已实现，前端重构）
+> 模块：[教务](README.md)　·　状态：**已实现**
 
 | 项 | 内容 |
 | --- | --- |
 | 功能 ID | `academic.auth-credentials` |
-| 状态 | 部分实现 |
+| 状态 | 已实现 |
 | 平台 | 全平台（Android · iOS · Windows · macOS · Linux） |
 | 关联 Issue | — |
 | 主要代码 | `lib/services/academic_login_*.dart`、`academic_credentials_service.dart`、`academic_login_validation_service.dart`、`academic_oa_session_prewarm_service.dart`；`lib/models/academic_credentials.dart`、`academic_login_validation.dart` |
@@ -45,5 +45,6 @@
 
 ## 6. 待办与演进
 
-- [ ] 前端重构后的登录/凭据填写与状态展示。
-- [ ] 会话预热与失效刷新策略复核。
+- [x] 清源设置页中的登录、凭据填写与连接状态展示。
+- [x] 会话预热、失效刷新与凭据变更后的旧结果丢弃。
+- [ ] 持续维护学校登录页面改版后的解析兼容性。

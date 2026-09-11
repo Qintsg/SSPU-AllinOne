@@ -10,6 +10,9 @@ part of 'qingyuan_visual_capture_test.dart';
 
 const Key _wechatLoginExternalRegionKey = Key('visual-wechat-login-document');
 
+/// 构建 AI 服务 MCP 管理页的确定性视觉场景。
+Widget _aiServicesOverview() => const AiServicesPage();
+
 /// 构建 _settingsAppearance 对应的确定性视觉场景。
 ///
 /// :returns: 可用于视觉采集的界面。

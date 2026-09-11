@@ -26,8 +26,11 @@ import '../services/academic_eams_service.dart';
 import '../services/campus_card_service.dart';
 import '../services/campus_network_status_service.dart';
 import '../services/data_auto_refresh_preferences.dart';
+import '../services/data_module_preferences.dart';
 import '../services/email_service.dart';
+import '../services/home_dashboard_preferences.dart';
 import '../services/message_state_service.dart';
+import '../services/quick_links_availability_service.dart';
 import '../services/quick_links_config_service.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/storage_service.dart';
@@ -36,6 +39,7 @@ import '../utils/query_result_messages.dart';
 import '../widgets/campus_network_status_indicator.dart';
 import '../widgets/refresh_feedback_action.dart';
 import 'external_link_confirmation_page.dart';
+import 'campus_consumption_analytics_page.dart';
 part 'home_campus_card_balance_card.dart';
 part 'home_campus_card_detail_page.dart';
 part 'home_campus_card_detail_layout.dart';
@@ -194,10 +198,13 @@ class _HomePageState extends State<HomePage> {
   bool _messagesTileVisible = true;
   bool _emailTileVisible = true;
   bool _quickLinksTileVisible = true;
+  List<HomeOverviewItem> _homeOverviewOrder =
+      HomeDashboardPreferences.defaultOverviewOrder;
   late final CardAutoRefreshController<CampusCardQueryResult>
   _campusCardRefreshController;
   StreamSubscription<int>? _credentialChangeSubscription;
   StreamSubscription<int>? _dataAutoRefreshSubscription;
+  StreamSubscription<CampusDataModule>? _dataModuleSubscription;
 
   CampusCardBalanceClient get _campusCardService {
     return widget.campusCardService ?? CampusCardService.instance;
@@ -246,6 +253,13 @@ class _HomePageState extends State<HomePage> {
         });
     _dataAutoRefreshSubscription = DataAutoRefreshPreferences.instance.changes
         .listen(_handleDataAutoRefreshIntervalChanged);
+    _dataModuleSubscription = DataModulePreferences.instance.changes.listen((
+      module,
+    ) {
+      if (module == CampusDataModule.campusCard) {
+        unawaited(_loadCampusCardAutoRefreshSettings());
+      }
+    });
     if (widget.messagesOverride == null) {
       _loadLatestMessages();
     } else {
@@ -335,6 +349,8 @@ class _HomePageState extends State<HomePage> {
       StorageKeys.homeQuickLinksTileVisible,
       defaultValue: true,
     );
+    final overviewOrder = await HomeDashboardPreferences.instance
+        .getOverviewOrder();
     final credentialsStatus = await AcademicCredentialsService.instance
         .getStatus();
     if (!mounted) return;
@@ -347,6 +363,7 @@ class _HomePageState extends State<HomePage> {
       _emailTileVisible = emailVisible;
       _studentReportTileVisible = studentReportVisible;
       _quickLinksTileVisible = quickLinksVisible;
+      _homeOverviewOrder = overviewOrder;
       _credentialsStatus = credentialsStatus;
     });
   }
@@ -415,7 +432,11 @@ class _HomePageState extends State<HomePage> {
   Future<List<QuickLinkItemConfig>> _loadQuickLinkFavorites() async {
     try {
       final groups = await QuickLinksConfigService.instance.loadGroups();
-      final allItems = groups.expand((group) => group.items).toList();
+      final availableGroups =
+          await QuickLinksAvailabilityService.filterCurrentGroups(groups);
+      final allItems = availableGroups
+          .expand((group) => group.items)
+          .toList(growable: false);
       final favoriteUrls = await StorageService.getStringList(
         StorageKeys.quickLinkFavoriteUrls,
       );
@@ -441,9 +462,12 @@ class _HomePageState extends State<HomePage> {
     final interval =
         widget.campusCardAutoRefreshIntervalOverride ??
         await CampusCardService.instance.getAutoRefreshIntervalMinutes();
+    final fetchEnabled = await DataModulePreferences.instance.isFetchEnabled(
+      CampusDataModule.campusCard,
+    );
     if (!mounted) return;
     _campusCardRefreshController.configureAutoRefresh(
-      enabled: enabled,
+      enabled: enabled && fetchEnabled,
       intervalMinutes: interval,
     );
   }
@@ -512,6 +536,7 @@ class _HomePageState extends State<HomePage> {
   String _campusCardRefreshFailureReason(CampusCardQueryResult result) {
     return switch (result.status) {
       CampusCardQueryStatus.success => '',
+      CampusCardQueryStatus.fetchDisabled => '已在设置中停止获取',
       CampusCardQueryStatus.missingOaAccount => '未设置OA账号',
       CampusCardQueryStatus.missingOaPassword => '未设置OA密码',
       CampusCardQueryStatus.campusNetworkUnavailable => '校园网/VPN不可用',
@@ -531,6 +556,7 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _credentialChangeSubscription?.cancel();
     _dataAutoRefreshSubscription?.cancel();
+    _dataModuleSubscription?.cancel();
     _campusCardRefreshController
       ..removeListener(_handleCampusCardRefreshControllerChanged)
       ..dispose();

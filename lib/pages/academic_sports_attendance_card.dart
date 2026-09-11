@@ -59,6 +59,7 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
   YhBannerKind _sportsAttendanceBannerKind(SportsAttendanceQueryStatus status) {
     return switch (status) {
       SportsAttendanceQueryStatus.success => YhBannerKind.success,
+      SportsAttendanceQueryStatus.fetchDisabled ||
       SportsAttendanceQueryStatus.missingStudentId ||
       SportsAttendanceQueryStatus.missingSportsPassword ||
       SportsAttendanceQueryStatus.campusNetworkUnavailable => YhBannerKind.warn,

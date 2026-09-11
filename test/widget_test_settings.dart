@@ -76,6 +76,15 @@ void _registerSettingsTests() {
     var messagesVisible = true;
     var emailVisible = true;
     var quickLinksVisible = true;
+    var messageNotificationEnabled = true;
+    var courseReminderEnabled = false;
+    var examReminderEnabled = false;
+    var courseReminderLeadMinutes = 15;
+    var examReminderLeadMinutes = 24 * 60;
+    var overviewOrder = HomeDashboardPreferences.defaultOverviewOrder;
+    var fetchEnabled = {
+      for (final module in CampusDataModule.values) module: true,
+    };
     await tester.pumpWidget(
       YhApp(
         home: YhPageScaffold(
@@ -83,7 +92,14 @@ void _registerSettingsTests() {
             child: SettingsGeneralSection(
               closeBehavior: 'ask',
               notificationEnabled: true,
+              messageNotificationEnabled: true,
+              notificationPermissionStatus:
+                  NotificationPermissionStatus.granted,
               dndEnabled: false,
+              courseReminderEnabled: courseReminderEnabled,
+              examReminderEnabled: examReminderEnabled,
+              courseReminderLeadMinutes: courseReminderLeadMinutes,
+              examReminderLeadMinutes: examReminderLeadMinutes,
               homeStudentProfileCardVisible: true,
               homeCampusCardBalanceCardVisible: true,
               homeTodayCoursesTileVisible: true,
@@ -92,13 +108,24 @@ void _registerSettingsTests() {
               homeMessagesTileVisible: true,
               homeEmailTileVisible: true,
               homeQuickLinksTileVisible: true,
+              homeOverviewOrder: overviewOrder,
+              dataModuleFetchEnabled: fetchEnabled,
               dndStartHour: 22,
               dndStartMinute: 0,
               dndEndHour: 7,
               dndEndMinute: 0,
               onCloseBehaviorChanged: (_) {},
               onNotificationChanged: (_) {},
+              onMessageNotificationChanged: (value) =>
+                  messageNotificationEnabled = value,
+              onNotificationPermissionRefresh: () {},
               onDndChanged: (_) {},
+              onCourseReminderChanged: (value) => courseReminderEnabled = value,
+              onExamReminderChanged: (value) => examReminderEnabled = value,
+              onCourseReminderLeadMinutesChanged: (value) =>
+                  courseReminderLeadMinutes = value,
+              onExamReminderLeadMinutesChanged: (value) =>
+                  examReminderLeadMinutes = value,
               onHomeStudentProfileCardVisibleChanged: (value) =>
                   studentVisible = value,
               onHomeCampusCardBalanceCardVisibleChanged: (value) =>
@@ -114,6 +141,10 @@ void _registerSettingsTests() {
               onHomeEmailTileVisibleChanged: (value) => emailVisible = value,
               onHomeQuickLinksTileVisibleChanged: (value) =>
                   quickLinksVisible = value,
+              onHomeOverviewOrderChanged: (value) => overviewOrder = value,
+              onDataModuleFetchChanged: (module, value) {
+                fetchEnabled = {...fetchEnabled, module: value};
+              },
               onDndStartChanged: (_, _) async {},
               onDndEndChanged: (_, _) async {},
             ),
@@ -124,8 +155,8 @@ void _registerSettingsTests() {
     await tester.pump();
 
     expect(find.text('首页显示'), findsOneWidget);
-    expect(find.text('时间与学习'), findsOneWidget);
-    expect(find.text('校园服务'), findsOneWidget);
+    expect(find.text('时间与行动'), findsOneWidget);
+    expect(find.text('服务摘要'), findsOneWidget);
     expect(find.text('培养方案'), findsOneWidget);
     expect(find.text('校园卡余额'), findsOneWidget);
     expect(find.text('今日学程时间轨'), findsOneWidget);
@@ -134,7 +165,23 @@ void _registerSettingsTests() {
     expect(find.text('最近校园待办'), findsOneWidget);
     expect(find.text('学校邮箱'), findsOneWidget);
     expect(find.text('常用入口'), findsOneWidget);
+    expect(find.text('普通消息通知'), findsOneWidget);
+    expect(find.text('联网获取'), findsOneWidget);
+    expect(find.text('本专科教务数据'), findsOneWidget);
     expect(find.text('应用体验'), findsOneWidget);
+    expect(find.text('课程提醒'), findsOneWidget);
+    expect(find.text('考试提醒'), findsOneWidget);
+    expect(find.text('在课程开始前 15 分钟提醒'), findsOneWidget);
+    expect(find.text('在考试开始前 24 小时提醒'), findsOneWidget);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-message-notification-switch')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('settings-message-notification-switch')),
+    );
+    await tester.pump();
+    expect(messageNotificationEnabled, isFalse);
     await tester.ensureVisible(
       find.byKey(const Key('settings-home-student-profile-card-switch')),
     );
@@ -151,6 +198,51 @@ void _registerSettingsTests() {
     await tester.tap(find.byKey(const Key('settings-home-campus-card-switch')));
     await tester.pump();
     expect(campusCardVisible, isFalse);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-module-email-fetch-switch')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('settings-module-email-fetch-switch')),
+    );
+    await tester.pump();
+    expect(fetchEnabled[CampusDataModule.email], isFalse);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-course-reminder-lead-select')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('settings-course-reminder-lead-select')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('提前 30 分钟'));
+    await tester.pumpAndSettle();
+    expect(courseReminderLeadMinutes, 30);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-course-reminder-switch')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings-course-reminder-switch')));
+    await tester.pump();
+    expect(courseReminderEnabled, isTrue);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-exam-reminder-switch')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings-exam-reminder-switch')));
+    await tester.pump();
+    expect(examReminderEnabled, isTrue);
+    await tester.ensureVisible(
+      find.byKey(const Key('settings-exam-reminder-lead-select')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('settings-exam-reminder-lead-select')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('提前 48 小时'));
+    await tester.pumpAndSettle();
+    expect(examReminderLeadMinutes, 48 * 60);
     await tester.ensureVisible(
       find.byKey(const Key('settings-home-today-courses-switch')),
     );
@@ -199,6 +291,17 @@ void _registerSettingsTests() {
     await tester.tap(find.byKey(const Key('settings-home-quick-links-switch')));
     await tester.pump();
     expect(quickLinksVisible, isFalse);
+    final campusCardUp = find.byKey(
+      const Key('settings-home-overview-campus-card-up'),
+    );
+    await tester.ensureVisible(campusCardUp);
+    await tester.pumpAndSettle();
+    await tester.tap(campusCardUp);
+    await tester.pump();
+    expect(overviewOrder.take(2), [
+      HomeOverviewItem.campusCard,
+      HomeOverviewItem.trainingPlan,
+    ]);
     await tester.pump(const Duration(milliseconds: 120));
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
@@ -440,8 +543,8 @@ void _registerSettingsTests() {
       expect(find.text('校验有效性'), findsNothing);
       expect(find.text('使用 Visual Studio Code 打开配置文件'), findsNothing);
       expect(find.text('刷新设置'), findsOneWidget);
-      expect(find.text('全部开启'), findsOneWidget);
-      expect(find.text('全部关闭'), findsOneWidget);
+      expect(find.text('全部开启通知'), findsOneWidget);
+      expect(find.text('全部关闭通知'), findsOneWidget);
       expect(find.textContaining('矩阵开关'), findsNothing);
       expect(find.text('微信矩阵'), findsOneWidget);
       expect(find.text('SSPU 微信矩阵'), findsNothing);

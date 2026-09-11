@@ -1,11 +1,11 @@
 # 过程化成绩
 
-> 子模块：[EAMS 教务](README.md)　·　状态：**部分实现**（解析就绪，前端重构）
+> 子模块：[EAMS 教务](README.md)　·　状态：**已实现**
 
 | 项 | 内容 |
 | --- | --- |
 | 功能 ID | `academic.eams.grade-process` |
-| 状态 | 部分实现 |
+| 状态 | 已实现 |
 | 平台 | 全平台 |
 | 关联 Issue | #177 |
 | 主要代码 | `lib/services/academic_eams_grade_flow.dart`、`academic_eams_service.dart`（`fetchGradeProcess`）；`lib/models/academic_eams/*` |
@@ -34,4 +34,4 @@
 
 ## 5. 待办与演进
 
-- [ ] 前端重构后的过程化成绩页与学期切换（#177）。
+- [x] 清源过程化成绩页、课程明细与学期切换（#177）。

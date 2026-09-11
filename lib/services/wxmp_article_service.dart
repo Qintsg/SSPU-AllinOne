@@ -30,6 +30,63 @@ typedef WxmpFetchProgressCallback =
       String accountName,
     );
 
+enum WxmpFetchFailureKind {
+  authentication,
+  sessionExpired,
+  frequencyLimited,
+  invalidCsrf,
+  source,
+}
+
+class WxmpAccountFetchFailure {
+  const WxmpAccountFetchFailure({
+    required this.accountName,
+    required this.kind,
+    required this.message,
+  });
+
+  final String accountName;
+  final WxmpFetchFailureKind kind;
+  final String message;
+
+  bool get requiresReauthentication =>
+      kind == WxmpFetchFailureKind.authentication ||
+      kind == WxmpFetchFailureKind.sessionExpired ||
+      kind == WxmpFetchFailureKind.invalidCsrf;
+}
+
+/// 一次公众号/服务号统一刷新结果，同时保留成功文章与失败来源。
+class WxmpFetchResult {
+  const WxmpFetchResult({
+    required this.messages,
+    required this.completedAccounts,
+    required this.totalAccounts,
+    this.failures = const [],
+  });
+
+  final List<MessageItem> messages;
+  final int completedAccounts;
+  final int totalAccounts;
+  final List<WxmpAccountFetchFailure> failures;
+
+  int get failedAccounts => failures.length;
+  bool get hasFailures => failures.isNotEmpty;
+  bool get requiresReauthentication =>
+      failures.any((failure) => failure.requiresReauthentication);
+
+  String get summary {
+    if (requiresReauthentication) {
+      return messages.isEmpty
+          ? '微信平台认证已失效，请重新扫码登录'
+          : '已保留 ${messages.length} 条新推文；认证已失效，请重新扫码登录';
+    }
+    if (hasFailures) {
+      return '已保留 ${messages.length} 条新推文；$failedAccounts / $totalAccounts 个来源刷新失败，可稍后重试';
+    }
+    return messages.isEmpty ? '未获取到新的微信推文' : '微信推文刷新完成，新增 ${messages.length} 条';
+  }
+}
+
 /// 公众号平台 API 错误码
 class WxmpApiError {
   static const int success = 0;
@@ -85,13 +142,18 @@ MessageItem? debugArticleToMessageItem(
 /// 微信公众号平台文章采集服务（单例）
 /// 通过 mp.weixin.qq.com 的 cgi-bin API 搜索公众号、获取文章列表
 class WxmpArticleService {
-  WxmpArticleService._();
+  WxmpArticleService._({Dio? dio}) : _dio = dio ?? Dio();
   static final WxmpArticleService instance = WxmpArticleService._();
+
+  /// 测试专用工厂，允许在不访问真实公众平台的情况下验证完整抓取契约。
+  @visibleForTesting
+  static WxmpArticleService debugWithDio(Dio dio) =>
+      WxmpArticleService._(dio: dio);
 
   final WxmpAuthService _auth = WxmpAuthService.instance;
   final MessageStateService _stateService = MessageStateService.instance;
   final WxmpConfigService _configService = WxmpConfigService.instance;
-  final Dio _dio = Dio();
+  final Dio _dio;
 
   /// 本地关注列表存储键（JSON：{fakeid: {name, alias, avatar}}）
   static const String _keyFollowedMps = 'wxmp_followed_mps';

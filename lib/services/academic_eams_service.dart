@@ -24,6 +24,7 @@ import 'academic_login_validation_service.dart';
 import 'authenticated_data_cache_service.dart';
 import 'campus_network_status_service.dart';
 import 'data_auto_refresh_preferences.dart';
+import 'data_module_preferences.dart';
 import 'http_service.dart';
 import 'storage_service.dart';
 
@@ -102,6 +103,22 @@ abstract class AcademicEamsClient {
   });
 }
 
+/// 空闲教室查询页依赖的最小只读接口。
+abstract class AcademicFreeClassroomClient {
+  /// 按校区、楼宇、日期与节次查询空闲教室。
+  Future<AcademicEamsQueryResult> searchFreeClassrooms(
+    AcademicFreeClassroomSearchCriteria criteria,
+  );
+}
+
+/// 培养方案详情页依赖的最小只读接口。
+abstract class AcademicProgramPlanClient {
+  /// 读取培养方案、模块进度与课程要求。
+  Future<AcademicEamsQueryResult> fetchProgramPlan({
+    bool requireCampusNetwork = true,
+  });
+}
+
 /// 本专科教务系统 HTTP 响应快照。
 class AcademicEamsHttpSnapshot {
   const AcademicEamsHttpSnapshot({
@@ -173,12 +190,17 @@ enum _AcademicFeature {
 }
 
 /// 本专科教务只读查询服务。
-class AcademicEamsService implements AcademicEamsClient {
+class AcademicEamsService
+    implements
+        AcademicEamsClient,
+        AcademicFreeClassroomClient,
+        AcademicProgramPlanClient {
   AcademicEamsService({
     AcademicCredentialsService? credentialsService,
     CampusNetworkStatusService? campusNetworkStatusService,
     AcademicEamsGateway? gateway,
     AcademicEamsOaLoginRefresher? refreshOaLogin,
+    Future<bool> Function()? isFetchEnabled,
     Uri? entranceUri,
     Uri? homeUri,
     Uri? submenuBaseUri,
@@ -195,6 +217,11 @@ class AcademicEamsService implements AcademicEamsClient {
                  forceRefresh: forceRefresh,
                  requireCampusNetwork: requireCampusNetwork,
                )),
+       _isFetchEnabled =
+           isFetchEnabled ??
+           (() => DataModulePreferences.instance.isFetchEnabled(
+             CampusDataModule.academicEams,
+           )),
        entranceUri = entranceUri ?? defaultEntranceUri,
        homeUri = homeUri ?? defaultHomeUri,
        submenuBaseUri = submenuBaseUri ?? defaultSubmenuBaseUri,
@@ -221,10 +248,25 @@ class AcademicEamsService implements AcademicEamsClient {
   /// 教务自动刷新默认间隔，单位分钟。
   static const int defaultAutoRefreshIntervalMinutes = 30;
 
+  /// 培养方案当前与教务摘要共用同一受控读取链路。
+  @override
+  Future<AcademicEamsQueryResult> fetchProgramPlan({
+    bool requireCampusNetwork = true,
+  }) {
+    return fetchOverview(requireCampusNetwork: requireCampusNetwork);
+  }
+
   final AcademicCredentialsService _credentialsService;
   final CampusNetworkStatusService _campusNetworkStatusService;
   final AcademicEamsGateway _gateway;
   final AcademicEamsOaLoginRefresher _refreshOaLogin;
+  final Future<bool> Function() _isFetchEnabled;
+
+  final StreamController<void> _cacheChangesController =
+      StreamController<void>.broadcast();
+
+  /// 课表、考试或概览缓存成功写入后的变化通知。
+  Stream<void> get cacheChanges => _cacheChangesController.stream;
 
   /// 教务 OA 入口地址。
   final Uri entranceUri;
@@ -364,6 +406,7 @@ class AcademicEamsService implements AcademicEamsClient {
   }
 
   /// 只读查询空闲教室；仅提交搜索条件，不执行预约或占用操作。
+  @override
   Future<AcademicEamsQueryResult> searchFreeClassrooms(
     AcademicFreeClassroomSearchCriteria criteria,
   ) async {

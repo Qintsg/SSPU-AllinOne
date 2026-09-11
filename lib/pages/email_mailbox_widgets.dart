@@ -200,16 +200,38 @@ class _EmailListRow extends StatelessWidget {
                     children: [
                       Row(
                         children: [
+                          if (!message.isRead) ...[
+                            Container(
+                              key: Key('email-unread-${message.id}'),
+                              width: theme.spacing.xs,
+                              height: theme.spacing.xs,
+                              decoration: BoxDecoration(
+                                color: theme.color.brand,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            SizedBox(width: theme.spacing.s),
+                          ],
                           Expanded(
                             child: Text(
                               message.subject,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.typography.body.copyWith(
-                                fontWeight: FontWeight.w600,
+                                fontWeight: message.isRead
+                                    ? FontWeight.w400
+                                    : FontWeight.w600,
                               ),
                             ),
                           ),
+                          if (message.attachments.isNotEmpty) ...[
+                            SizedBox(width: theme.spacing.s),
+                            Icon(
+                              YhIcons.attachment,
+                              size: theme.spacing.m,
+                              color: theme.color.muted,
+                            ),
+                          ],
                           SizedBox(width: theme.spacing.s),
                           Text(
                             formatDateTime(message.receivedAt),
@@ -289,6 +311,8 @@ class _EmailInlineDetailPanel extends StatelessWidget {
     required this.protocolLabel,
     required this.fetchedAtLabel,
     required this.formatDateTime,
+    required this.onDownloadAttachment,
+    required this.downloadingAttachmentIds,
   });
 
   final EmailMessageSnapshot? message;
@@ -296,6 +320,12 @@ class _EmailInlineDetailPanel extends StatelessWidget {
   final String protocolLabel;
   final String fetchedAtLabel;
   final String Function(DateTime? dateTime) formatDateTime;
+  final Future<void> Function(
+    EmailMessageSnapshot message,
+    EmailAttachmentSnapshot attachment,
+  )
+  onDownloadAttachment;
+  final Set<String> downloadingAttachmentIds;
 
   @override
   Widget build(BuildContext context) {
@@ -356,9 +386,78 @@ class _EmailInlineDetailPanel extends StatelessWidget {
               current.body.isEmpty ? '无可展示正文。' : current.body,
               semanticLabel: '邮件正文快照',
             ),
+            if (current.attachments.isNotEmpty) ...[
+              SizedBox(height: theme.spacing.l),
+              _EmailAttachmentList(
+                message: current,
+                downloadingAttachmentIds: downloadingAttachmentIds,
+                onDownloadAttachment: onDownloadAttachment,
+              ),
+            ],
           ],
         ),
       ),
+    );
+  }
+}
+
+class _EmailAttachmentList extends StatelessWidget {
+  const _EmailAttachmentList({
+    required this.message,
+    required this.downloadingAttachmentIds,
+    required this.onDownloadAttachment,
+  });
+
+  final EmailMessageSnapshot message;
+  final Set<String> downloadingAttachmentIds;
+  final Future<void> Function(
+    EmailMessageSnapshot message,
+    EmailAttachmentSnapshot attachment,
+  )
+  onDownloadAttachment;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('附件（${message.attachments.length}）', style: theme.typography.h3),
+        SizedBox(height: theme.spacing.s),
+        for (final attachment in message.attachments)
+          Padding(
+            padding: EdgeInsets.only(bottom: theme.spacing.xs),
+            child: Row(
+              key: Key('email-attachment-${attachment.id}'),
+              children: [
+                Icon(
+                  YhIcons.attachment,
+                  size: theme.spacing.m,
+                  color: theme.color.muted,
+                ),
+                SizedBox(width: theme.spacing.s),
+                Expanded(
+                  child: Text(
+                    attachment.fileName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.typography.small,
+                  ),
+                ),
+                YhButton(
+                  label: downloadingAttachmentIds.contains(attachment.id)
+                      ? '下载中'
+                      : '下载',
+                  leadingIcon: YhIcons.download,
+                  variant: YhButtonVariant.text,
+                  onTap: downloadingAttachmentIds.contains(attachment.id)
+                      ? null
+                      : () => onDownloadAttachment(message, attachment),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

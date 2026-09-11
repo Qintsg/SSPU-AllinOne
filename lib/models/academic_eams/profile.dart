@@ -18,6 +18,7 @@ class AcademicEamsProfile {
     required this.studyLength,
     required this.educationLevel,
     required this.rawFields,
+    this.savedAt,
   });
 
   /// 学生姓名。
@@ -47,6 +48,9 @@ class AcademicEamsProfile {
   /// 原始字段集合，供页面结构变化时回退展示。
   final Map<String, String> rawFields;
 
+  /// 本地学籍快照写入时间。旧缓存没有该字段时保持 null。
+  final DateTime? savedAt;
+
   /// 从 JSON 恢复个人基本信息。
   factory AcademicEamsProfile.fromJson(Map<String, dynamic> json) {
     return AcademicEamsProfile(
@@ -59,6 +63,7 @@ class AcademicEamsProfile {
       studyLength: json['studyLength'] as String?,
       educationLevel: json['educationLevel'] as String?,
       rawFields: const {},
+      savedAt: DateTime.tryParse(json['savedAt'] as String? ?? ''),
     );
   }
 
@@ -73,6 +78,7 @@ class AcademicEamsProfile {
       'gender': gender,
       'studyLength': studyLength,
       'educationLevel': educationLevel,
+      if (savedAt != null) 'savedAt': savedAt!.toUtc().toIso8601String(),
     };
   }
 

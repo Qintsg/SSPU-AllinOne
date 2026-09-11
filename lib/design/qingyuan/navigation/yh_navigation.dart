@@ -97,20 +97,32 @@ class YhNavRail extends StatelessWidget {
               ?header,
               if (header != null)
                 SizedBox(height: theme.spacing.l - theme.spacing.xs),
-              for (var itemIndex = 0; itemIndex < items.length; itemIndex++)
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: theme.spacing.s,
-                    vertical: theme.spacing.xs,
-                  ),
-                  child: _YhNavigationButton(
-                    item: items[itemIndex],
-                    selected: itemIndex == index,
-                    onPressed: () => onChanged(itemIndex),
-                    horizontal: extended,
+              Expanded(
+                child: SingleChildScrollView(
+                  primary: false,
+                  child: Column(
+                    children: [
+                      for (
+                        var itemIndex = 0;
+                        itemIndex < items.length;
+                        itemIndex++
+                      )
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: theme.spacing.s,
+                            vertical: theme.spacing.xs,
+                          ),
+                          child: _YhNavigationButton(
+                            item: items[itemIndex],
+                            selected: itemIndex == index,
+                            onPressed: () => onChanged(itemIndex),
+                            horizontal: extended,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-              const Spacer(),
+              ),
               ?footer,
             ],
           ),

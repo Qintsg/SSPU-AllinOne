@@ -29,6 +29,7 @@ class YhIcons {
   static const IconData back = system.FluentIcons.arrow_left_24_regular;
   static const IconData chevronRight =
       system.FluentIcons.chevron_right_24_regular;
+  static const IconData chevronUp = system.FluentIcons.chevron_up_24_regular;
   static const IconData chevronDown =
       system.FluentIcons.chevron_down_24_regular;
   static const IconData refresh = system.FluentIcons.arrow_clockwise_24_regular;
@@ -56,6 +57,7 @@ class YhIcons {
   static const IconData favoriteFilled = system.FluentIcons.star_24_filled;
   static const IconData open = system.FluentIcons.open_24_regular;
   static const IconData download = system.FluentIcons.arrow_download_24_regular;
+  static const IconData attachment = system.FluentIcons.attach_24_regular;
   static const IconData zoomIn = system.FluentIcons.zoom_in_24_regular;
   static const IconData zoomOut = system.FluentIcons.zoom_out_24_regular;
   static const IconData database = system.FluentIcons.database_24_regular;
