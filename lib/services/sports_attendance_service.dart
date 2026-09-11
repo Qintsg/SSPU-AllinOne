@@ -21,6 +21,7 @@ import 'academic_credentials_service.dart';
 import 'authenticated_data_cache_service.dart';
 import 'campus_network_status_service.dart';
 import 'data_auto_refresh_preferences.dart';
+import 'data_module_preferences.dart';
 import 'http_service.dart';
 import 'storage_service.dart';
 
@@ -88,6 +89,7 @@ class SportsAttendanceService implements SportsAttendanceClient {
     AcademicCredentialsService? credentialsService,
     CampusNetworkStatusService? campusNetworkStatusService,
     SportsAttendanceGateway? gateway,
+    Future<bool> Function()? isFetchEnabled,
     Uri? entranceUri,
     Uri? scoreUri,
     Duration? timeout,
@@ -96,6 +98,11 @@ class SportsAttendanceService implements SportsAttendanceClient {
        _campusNetworkStatusService =
            campusNetworkStatusService ?? CampusNetworkStatusService.instance,
        _gateway = gateway ?? DioSportsAttendanceGateway(),
+       _isFetchEnabled =
+           isFetchEnabled ??
+           (() => DataModulePreferences.instance.isFetchEnabled(
+             CampusDataModule.sportsAttendance,
+           )),
        entranceUri = entranceUri ?? defaultEntranceUri,
        scoreUri = scoreUri ?? defaultScoreUri,
        timeout = timeout ?? const Duration(seconds: 15);
@@ -119,6 +126,7 @@ class SportsAttendanceService implements SportsAttendanceClient {
   final AcademicCredentialsService _credentialsService;
   final CampusNetworkStatusService _campusNetworkStatusService;
   final SportsAttendanceGateway _gateway;
+  final Future<bool> Function() _isFetchEnabled;
 
   /// 登录入口地址。
   final Uri entranceUri;
@@ -182,6 +190,14 @@ class SportsAttendanceService implements SportsAttendanceClient {
   }) async {
     CampusNetworkStatus? campusStatus;
     try {
+      if (!await _isFetchEnabled()) {
+        return _buildResult(
+          SportsAttendanceQueryStatus.fetchDisabled,
+          message: '体育考勤已停止获取',
+          detail: '本地缓存会继续保留；如需获取新数据，请在设置中重新开启体育考勤联网获取。',
+        );
+      }
+
       final credentialsStatus = await _credentialsService.getStatus();
       final studentId = credentialsStatus.oaAccount.trim();
       if (studentId.isEmpty) {

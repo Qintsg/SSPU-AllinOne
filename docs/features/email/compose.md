@@ -1,11 +1,11 @@
 # 撰写发送
 
-> 模块：[邮箱](README.md)　·　状态：**部分实现**（纯文本发信已实现，新增附件）
+> 模块：[邮箱](README.md)　·　状态：**已实现**（纯文本与附件选择、校验、MIME 发送已接通）
 
 | 项 | 内容 |
 | --- | --- |
 | 功能 ID | `email.compose` |
-| 状态 | 部分实现 |
+| 状态 | 已实现 |
 | 平台 | 全平台（Android · iOS · Windows · macOS · Linux） |
 | 关联 Issue | — |
 | 主要代码 | `lib/services/email_service.dart`（`sendMessage`）；`lib/models/email_mailbox.dart`（`EmailComposeRequest`） |
@@ -19,11 +19,11 @@
 - 支持附件：单封总大小 ≤ 100MB、附件数 ≤ 25 个。
 - 沿用现有输入校验；发信明文不入日志与普通缓存。
 
-## 2. 交互与界面（期望行为，前端重构后落地）
+## 2. 交互与界面
 
 - 撰写表单：To/Cc/Bcc、主题、纯文本正文、附件添加/移除。
 - 提交后展示脱敏状态（成功/被拒/网络失败），不回显完整收件人或正文。
-- 组件形态由设计系统与前端重构决定，本文档只约束**字段与校验语义**。
+- 在现有清源撰写面板中增加附件选择、清单、移除与校验反馈。
 
 ## 3. 实现
 
@@ -42,8 +42,9 @@
 | 地址格式 | To/Cc/Bcc 逐项格式校验 |
 | **附件** | **单封总大小 ≤ 100MB，附件数 ≤ 25 个** |
 
-- `EmailComposeRequest` 需扩展附件字段（文件路径/字节、文件名、MIME 类型）。
-- 附件随 SMTP 以 MIME multipart 发送。
+- `EmailComposeRequest` 已扩展本地文件路径、文件名、MIME 类型与大小字段。
+- 附件随 SMTP 以 MIME multipart 发送，复用 `enough_mail` 的 `MessageBuilder.addFile`，不自行拼接 MIME 边界。
+- 文件选择阶段会立即说明重复、无效、超大或数量超限的附件；发送使用单飞锁，同一次用户提交不会被静默重试或重复投递。
 
 ## 4. 关联
 
@@ -58,7 +59,7 @@
 
 ## 6. 待办与演进
 
-- [ ] `EmailComposeRequest` 扩展附件字段；SMTP MIME multipart 发送。
-- [ ] 附件大小（≤100MB）/数量（≤25）本地校验与提示。
-- [ ] 同步更新 `EMAIL_RULES.md` 的发信边界（放开附件）。
+- [x] `EmailComposeRequest` 扩展附件字段；SMTP MIME multipart 发送。
+- [x] 附件大小（≤100MB）/数量（≤25）及文件存在性本地校验。
+- [x] `EMAIL_RULES.md` 已放开发信附件并写明数量、大小、隐私与 MIME 复用边界。
 - [ ] **后续**：草稿保存、回复/转发、富文本。

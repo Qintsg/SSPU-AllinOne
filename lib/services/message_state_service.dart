@@ -26,10 +26,10 @@ class MessageChannelKeys {
   /// 通知公示(3149) 开关
   static const String noticeEnabled = 'channel_notice_enabled';
 
-  /// 微信公众号开关（占位）
+  /// 微信公众号开关（与服务号共用同一刷新链路）
   static const String wechatPublicEnabled = 'channel_wechat_public_enabled';
 
-  /// 微信服务号开关（占位）
+  /// 兼容旧版服务号开关键；当前与公众号开关统一
   static const String wechatServiceEnabled = 'channel_wechat_service_enabled';
 
   /// 最新公开信息自动刷新间隔（分钟，0 = 关闭）
@@ -46,6 +46,23 @@ class MessageChannelKeys {
 
   /// 消息推送全局开关
   static const String notificationEnabled = 'notification_enabled';
+
+  /// 普通校园消息通知开关（课程/考试提醒之外）。
+  static const String messageNotificationEnabled =
+      'message_notification_enabled';
+
+  /// 课程开课提醒开关。
+  static const String courseReminderEnabled = 'course_reminder_enabled';
+
+  /// 考试提醒开关。
+  static const String examReminderEnabled = 'exam_reminder_enabled';
+
+  /// 课程提前提醒分钟数。
+  static const String courseReminderLeadMinutes =
+      'course_reminder_lead_minutes';
+
+  /// 考试提前提醒分钟数。
+  static const String examReminderLeadMinutes = 'exam_reminder_lead_minutes';
 
   /// 勿扰模式开关
   static const String dndEnabled = 'dnd_enabled';
@@ -178,20 +195,14 @@ class MessageStateService
     await StorageService.setBool(MessageChannelKeys.wechatPublicEnabled, true);
   }
 
-  /// 获取微信服务号渠道是否启用（默认开启 — 占位）
+  /// 获取兼容旧版的微信服务号渠道开关；当前统一返回公众号链路状态。
   Future<bool> isWechatServiceEnabled() async {
-    return await StorageService.getBool(
-      MessageChannelKeys.wechatServiceEnabled,
-      defaultValue: true,
-    );
+    return isWechatPublicEnabled();
   }
 
   /// 设置微信服务号渠道启用状态
   Future<void> setWechatServiceEnabled(bool enabled) async {
-    await StorageService.setBool(
-      MessageChannelKeys.wechatServiceEnabled,
-      enabled,
-    );
+    await setWechatPublicEnabled(enabled);
   }
 
   // ==================== 单个公众号通知开关 ====================

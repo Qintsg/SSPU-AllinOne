@@ -10,15 +10,15 @@
 
 | 功能 | 状态 | Issue | 文档 |
 | --- | --- | --- | --- |
-| EAMS 基座 | 部分实现 | — | [`foundation.md`](foundation.md) |
-| 个人信息 | 部分实现 | — | [`profile.md`](profile.md) |
-| 日历（课程+考试） | 部分实现 | #175 | [`calendar.md`](calendar.md) |
-| 成绩查询 | 部分实现 | #177 | [`grade.md`](grade.md) |
-| 过程化成绩 | 部分实现 | #177 | [`grade-process.md`](grade-process.md) |
-| 考试安排 | 部分实现 | #178 | [`exam-schedule.md`](exam-schedule.md) |
-| 开课查询 | 部分实现 | #179 | [`course-offerings.md`](course-offerings.md) |
-| 空闲教室查询 | 部分实现 | #176 | [`free-classrooms.md`](free-classrooms.md) |
-| 培养计划 | 部分实现 | #174 | [`program-plan.md`](program-plan.md) |
+| EAMS 基座 | 已实现 | — | [`foundation.md`](foundation.md) |
+| 个人信息 | 已实现 | — | [`profile.md`](profile.md) |
+| 日历（课程+考试） | 本地实现与自动化测试完成；系统日历实机验收待补 | #175 | [`calendar.md`](calendar.md) |
+| 成绩查询 | 已实现 | #177（已关闭） | [`grade.md`](grade.md) |
+| 过程化成绩 | 已实现 | #177（已关闭） | [`grade-process.md`](grade-process.md) |
+| 考试安排 | 已实现 | #178（已关闭） | [`exam-schedule.md`](exam-schedule.md) |
+| 开课查询 | 部分实现 | #179（不再计划独立页面） | [`course-offerings.md`](course-offerings.md) |
+| 空闲教室查询 | 已实现 | #176 | [`free-classrooms.md`](free-classrooms.md) |
+| 培养计划 | 已实现 | #174 | [`program-plan.md`](program-plan.md) |
 
 ## 3. 共性约束
 

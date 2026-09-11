@@ -111,9 +111,38 @@ extension _EmailPageLayout on _EmailPageState {
     }
 
     final snapshot = result.snapshot!;
-    final messages = snapshot.messages;
+    final allMessages = snapshot.messages;
+    final messages = _filteredMessages(allMessages);
     _selectFirstMessageIfNeeded(messages);
-    if (messages.isEmpty) {
+    if (messages.isEmpty &&
+        allMessages.isNotEmpty &&
+        _emailSearchQuery.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildEmailSearchField(context, allMessages.length),
+          SizedBox(height: theme.spacing.m),
+          _buildMailboxStateCard(
+            context,
+            child: _EmailMailboxStateMessage(
+              icon: YhIcons.search,
+              title: '没有匹配邮件',
+              message:
+                  '未在本地缓存的 ${allMessages.length} 封邮件中找到“$_emailSearchQuery”。',
+              action: YhButton(
+                label: '清除搜索',
+                variant: YhButtonVariant.secondary,
+                onTap: () {
+                  _searchController.clear();
+                  _setEmailSearchQuery('');
+                },
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    if (allMessages.isEmpty) {
       return _buildMailboxStateCard(
         context,
         child: _EmailMailboxStateMessage(
@@ -131,6 +160,8 @@ extension _EmailPageLayout on _EmailPageState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildEmailSearchField(context, allMessages.length),
+        SizedBox(height: theme.spacing.m),
         Wrap(
           spacing: theme.spacing.s,
           runSpacing: theme.spacing.s,
@@ -140,7 +171,9 @@ extension _EmailPageLayout on _EmailPageState {
               kind: YhStatusKind.success,
             ),
             YhStatusPill(
-              label: '${messages.length} 封邮件',
+              label: _emailSearchQuery.isEmpty
+                  ? '${allMessages.length} 封邮件'
+                  : '${messages.length}/${allMessages.length} 封邮件',
               kind: YhStatusKind.info,
             ),
             YhStatusPill(
@@ -180,14 +213,52 @@ extension _EmailPageLayout on _EmailPageState {
             onMessagePressed: (message) =>
                 _openOrSelectMessage(message, inline: false),
           ),
+        if (_emailSearchQuery.isEmpty && _canLoadMoreMessages) ...[
+          SizedBox(height: theme.spacing.m),
+          Align(
+            alignment: AlignmentDirectional.center,
+            child: YhButton(
+              key: const Key('email-load-more'),
+              label: _isLoadingMoreMessages ? '正在加载' : '加载更早邮件',
+              variant: YhButtonVariant.secondary,
+              onTap: _isLoadingMoreMessages ? null : _loadMoreMessages,
+            ),
+          ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildEmailSearchField(BuildContext context, int totalCount) {
+    return YhTextField(
+      key: const Key('email-search-field'),
+      label: '搜索邮件',
+      hint: '按主题、发件人或正文搜索本地缓存',
+      controller: _searchController,
+      prefixIcon: YhIcons.search,
+      textInputAction: TextInputAction.search,
+      onChanged: _setEmailSearchQuery,
+      suffix: _emailSearchQuery.isEmpty
+          ? null
+          : YhIconButton(
+              icon: YhIcons.close,
+              semanticLabel: '清除邮件搜索',
+              variant: YhIconButtonVariant.ghost,
+              onTap: () {
+                _searchController.clear();
+                _setEmailSearchQuery('');
+              },
+            ),
+      helper: _emailSearchQuery.isEmpty
+          ? '仅筛选已缓存的 $totalCount 封邮件，不会访问服务器。'
+          : '本地匹配结果：${_filteredMessages(_mailboxResult!.snapshot!.messages).length} 封',
     );
   }
 
   Widget _buildDesktopMailClient(BuildContext context) {
     final theme = context.yhTheme;
     final snapshot = _mailboxResult!.snapshot!;
-    final messages = snapshot.messages;
+    final messages = _filteredMessages(snapshot.messages);
     return Row(
       key: const Key('email-desktop-client-layout'),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,6 +287,8 @@ extension _EmailPageLayout on _EmailPageState {
             protocolLabel: snapshot.protocol.label,
             fetchedAtLabel: _formatDateTime(snapshot.fetchedAt),
             formatDateTime: _formatOptionalDateTime,
+            downloadingAttachmentIds: _downloadingAttachmentIds,
+            onDownloadAttachment: _downloadAttachment,
           ),
         ),
       ],
@@ -286,6 +359,9 @@ extension _EmailPageLayout on _EmailPageState {
       result: _sendResult,
       severityOf: _severityOf,
       onSend: _sendEmail,
+      attachments: _composeAttachments,
+      onPickAttachments: _pickAttachments,
+      onRemoveAttachment: _removeComposeAttachment,
       onCancel: _closeCompose,
       showActions:
           MediaQuery.sizeOf(context).width >= context.yhTheme.breakpoint.medium,

@@ -7,21 +7,29 @@
  */
 
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:open_filex/open_filex.dart';
 import '../controllers/retained_refresh_controller.dart';
 import '../design/qingyuan/qingyuan_ui.dart';
 import '../models/academic_eams.dart';
+import '../models/academic_term.dart';
 import '../models/course_period.dart';
 import '../services/academic_calendar_service.dart';
 import '../services/academic_credentials_service.dart';
 import '../services/academic_eams_service.dart';
+import '../services/academic_ics_export_service.dart';
 import '../services/academic_term_service.dart';
+import '../services/app_data_directory_service.dart';
 import '../services/data_auto_refresh_preferences.dart';
+import '../services/data_module_preferences.dart';
 import 'academic_calendar_page.dart';
 
 part 'course_schedule_state_panel.dart';
 part 'course_schedule_views.dart';
+
+enum _CourseScheduleMode { timetable, calendar }
 
 /// 独立课程表页面。
 class CourseSchedulePage extends StatefulWidget {
@@ -33,6 +41,9 @@ class CourseSchedulePage extends StatefulWidget {
 
   /// 测试专用：覆盖自动刷新开关。
   final bool? autoRefreshEnabledOverride;
+
+  /// 测试专用：覆盖教务模块联网获取偏好。
+  final bool? fetchEnabledOverride;
 
   /// 测试专用：覆盖自动刷新间隔。
   final int? autoRefreshIntervalOverride;
@@ -51,6 +62,7 @@ class CourseSchedulePage extends StatefulWidget {
     this.academicEamsService,
     this.initialResult,
     this.autoRefreshEnabledOverride,
+    this.fetchEnabledOverride,
     this.autoRefreshIntervalOverride,
     this.nowOverride,
     this.termLabelOverride,
@@ -67,7 +79,13 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   Timer? _autoRefreshTimer;
   StreamSubscription<int>? _credentialChangeSubscription;
   StreamSubscription<int>? _dataAutoRefreshSubscription;
+  StreamSubscription<CampusDataModule>? _dataModuleSubscription;
   bool _autoRefreshEnabled = false;
+  bool _isExportingCalendar = false;
+  String? _calendarExportMessage;
+  AcademicExamSnapshot? _examSnapshot;
+  _CourseScheduleMode _displayMode = _CourseScheduleMode.timetable;
+  bool _showWholeTermAgenda = false;
   late int _selectedMobileWeekday;
   int _resultGeneration = 0;
 
@@ -82,6 +100,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   @override
   void initState() {
     super.initState();
+    _examSnapshot = widget.initialResult?.snapshot?.exams;
     _selectedMobileWeekday = _now.weekday;
     _refreshController = RetainedRefreshController(
       initialResult: widget.initialResult,
@@ -93,6 +112,13 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
         .listen((_) => _clearAuthenticatedState());
     _dataAutoRefreshSubscription = DataAutoRefreshPreferences.instance.changes
         .listen(_handleDataAutoRefreshIntervalChanged);
+    _dataModuleSubscription = DataModulePreferences.instance.changes.listen((
+      module,
+    ) {
+      if (module == CampusDataModule.academicEams) {
+        unawaited(_loadAutoRefreshSettings());
+      }
+    });
     _loadCacheAndAutoRefreshSettings();
   }
 
@@ -102,6 +128,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     if (!identical(oldWidget.initialResult, widget.initialResult)) {
       _resultGeneration++;
       _refreshController.updateExternalResult(widget.initialResult);
+      _examSnapshot = widget.initialResult?.snapshot?.exams ?? _examSnapshot;
     }
   }
 
@@ -111,6 +138,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
 
   void _clearAuthenticatedState() {
     _resultGeneration++;
+    _examSnapshot = null;
     _refreshController.updateExternalResult(null);
   }
 
@@ -124,9 +152,15 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     final interval =
         widget.autoRefreshIntervalOverride ??
         await service.getAutoRefreshIntervalMinutes();
+    final fetchEnabled =
+        widget.fetchEnabledOverride ??
+        await DataModulePreferences.instance.isFetchEnabled(
+          CampusDataModule.academicEams,
+        );
     if (!mounted) return;
-    _restartAutoRefreshTimer(enabled, interval);
-    if (enabled && _shouldAutoRefresh(_result?.checkedAt, interval)) {
+    final shouldEnable = enabled && fetchEnabled;
+    _restartAutoRefreshTimer(shouldEnable, interval);
+    if (shouldEnable && _shouldAutoRefresh(_result?.checkedAt, interval)) {
       unawaited(_loadCourseTable(silent: true));
     }
   }
@@ -154,13 +188,20 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
 
   Future<void> _loadCacheAndAutoRefreshSettings() async {
     final generation = _resultGeneration;
-    final cachedResult = await _academicEamsService
+    final cachedCourseFuture = _academicEamsService
         .readLatestCachedCourseTable();
+    final cachedExamFuture = _academicEamsService
+        .readLatestCachedExamSchedule();
+    final cachedResult = await cachedCourseFuture;
     if (mounted &&
         generation == _resultGeneration &&
         cachedResult != null &&
         !_hasUsableCourseTable(_result)) {
       _refreshController.updateExternalResult(cachedResult);
+    }
+    final cachedExamResult = await cachedExamFuture;
+    if (mounted && generation == _resultGeneration) {
+      _examSnapshot ??= cachedExamResult?.snapshot?.exams;
     }
     await _loadAutoRefreshSettings();
   }
@@ -171,9 +212,20 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
   }
 
   Future<void> _loadCourseTable({bool silent = false}) async {
+    final generation = _resultGeneration;
+    final examFuture = _academicEamsService.fetchExamSchedule(
+      requireCampusNetwork: silent,
+    );
     await _refreshController.refresh(
       () => _academicEamsService.fetchCourseTable(requireCampusNetwork: silent),
     );
+    final examResult = await examFuture;
+    if (mounted &&
+        generation == _resultGeneration &&
+        examResult.isSuccess &&
+        examResult.snapshot?.exams != null) {
+      setState(() => _examSnapshot = examResult.snapshot!.exams);
+    }
   }
 
   bool _shouldAutoRefresh(DateTime? fetchedAt, int intervalMinutes) {
@@ -191,10 +243,79 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     );
   }
 
+  Future<void> _exportAcademicCalendar() async {
+    final table = _result?.snapshot?.courseTable;
+    if (table == null || table.entries.isEmpty || _isExportingCalendar) return;
+    final resolver = AcademicCalendarResolver();
+    final definition = _resolveExportTerm(resolver, table.termName);
+    if (definition == null) {
+      setState(() => _calendarExportMessage = '当前学期缺少可定位的校历，暂时无法生成日历。');
+      return;
+    }
+    setState(() {
+      _isExportingCalendar = true;
+      _calendarExportMessage = null;
+    });
+    try {
+      final content = AcademicIcsExportService.buildCalendar(
+        courseTable: table,
+        exams: _examSnapshot ?? _result?.snapshot?.exams,
+        term: definition,
+      );
+      final path = await AppDataDirectoryService.ensureFilePath(
+        'exports${Platform.pathSeparator}sspu-academic-calendar.ics',
+      );
+      final file = File(path);
+      await file.parent.create(recursive: true);
+      await file.writeAsString(content, flush: true);
+      final openResult = await OpenFilex.open(file.path, type: 'text/calendar');
+      if (!mounted) return;
+      setState(() {
+        _calendarExportMessage = openResult.type == ResultType.done
+            ? '日历已导出并交给系统打开。'
+            : '日历已保存：${file.path}';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _calendarExportMessage = '导出失败：$error');
+    } finally {
+      if (mounted) setState(() => _isExportingCalendar = false);
+    }
+  }
+
+  AcademicTermDefinition? _resolveExportTerm(
+    AcademicCalendarResolver resolver,
+    String? termName,
+  ) {
+    final value = termName?.trim() ?? '';
+    final match = RegExp(
+      r'(20\d{2})(?:\D+20\d{2})?\D+(1|2|3)',
+    ).firstMatch(value);
+    if (match != null) {
+      final year = int.tryParse(match.group(1)!);
+      final season = switch (match.group(2)) {
+        '1' => AcademicTermSeason.fall,
+        '2' => AcademicTermSeason.spring,
+        '3' => AcademicTermSeason.summer,
+        _ => null,
+      };
+      if (year != null && season != null) {
+        final exact = resolver.definitionFor(
+          AcademicTermChoice(academicYear: year, season: season),
+        );
+        if (exact != null) return exact;
+      }
+      return null;
+    }
+    if (value.isNotEmpty) return null;
+    return resolver.definitionForContext(_now);
+  }
+
   @override
   void dispose() {
     _credentialChangeSubscription?.cancel();
     _dataAutoRefreshSubscription?.cancel();
+    _dataModuleSubscription?.cancel();
     _autoRefreshTimer?.cancel();
     _refreshController
       ..removeListener(_handleRefreshChanged)
@@ -304,7 +425,7 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     final normalizedTerm = _resolvedTermName(courseTable);
     final compact = viewportWidth < theme.breakpoint.medium;
     final actionMinWidth = compact
-        ? (viewportWidth - theme.spacing.m * 2 - theme.spacing.s) / 2
+        ? (viewportWidth - theme.spacing.m * 2 - theme.spacing.s * 2) / 3
         : theme.control.minimumTarget * 2 + theme.spacing.m;
     final refreshAction = compact
         ? YhButton(
@@ -328,6 +449,17 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
         minWidth: actionMinWidth,
         variant: YhButtonVariant.secondary,
         onTap: _openAcademicCalendar,
+      ),
+      YhButton(
+        key: const Key('export-academic-calendar'),
+        label: _isExportingCalendar ? '正在导出…' : '导出日历',
+        minWidth: actionMinWidth,
+        variant: YhButtonVariant.secondary,
+        disabled:
+            _isExportingCalendar ||
+            courseTable == null ||
+            courseTable.entries.isEmpty,
+        onTap: _exportAcademicCalendar,
       ),
       refreshAction,
     ];
@@ -375,6 +507,8 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
                   children: [
                     actions.first,
                     SizedBox(width: theme.spacing.s),
+                    actions[1],
+                    SizedBox(width: theme.spacing.s),
                     actions.last,
                   ],
                 ),
@@ -386,11 +520,16 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
           SizedBox(height: theme.spacing.l),
           Row(
             children: [
-              Expanded(child: actions.first),
-              SizedBox(width: theme.spacing.s),
-              Expanded(child: actions.last),
+              for (var index = 0; index < actions.length; index++) ...[
+                if (index > 0) SizedBox(width: theme.spacing.s),
+                Expanded(child: actions[index]),
+              ],
             ],
           ),
+        ],
+        if (_calendarExportMessage != null) ...[
+          SizedBox(height: theme.spacing.s),
+          YhBanner(text: _calendarExportMessage!),
         ],
         if (_result?.isSuccess == true && courseTable != null) ...[
           SizedBox(height: compact ? theme.spacing.m : theme.spacing.l),
@@ -510,7 +649,8 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
           ),
           SizedBox(height: theme.spacing.m),
         ],
-        if (courseTable.entries.isEmpty)
+        if (courseTable.entries.isEmpty &&
+            (_examSnapshot?.records.isEmpty ?? true))
           fillHeight
               ? Center(
                   child: _ScheduleStatePanel(
@@ -541,9 +681,52 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
                     onCalendar: _openAcademicCalendar,
                   ),
                 )
-        else
-          courseView,
+        else ...[
+          YhTabs<_CourseScheduleMode>(
+            key: const Key('academic-schedule-mode-tabs'),
+            tabs: const [
+              YhTab(value: _CourseScheduleMode.timetable, label: '按周课表'),
+              YhTab(value: _CourseScheduleMode.calendar, label: '课程与考试'),
+            ],
+            value: _displayMode,
+            onChanged: (mode) => setState(() => _displayMode = mode),
+            distributeEvenly: compact,
+          ),
+          SizedBox(height: theme.spacing.m),
+          if (_displayMode == _CourseScheduleMode.calendar)
+            _buildAcademicAgenda(courseTable)
+          else if (courseTable.entries.isEmpty)
+            const YhBanner(text: '当前只有考试安排；切换到“课程与考试”查看。')
+          else
+            courseView,
+        ],
       ],
+    );
+  }
+
+  Widget _buildAcademicAgenda(AcademicCourseTableSnapshot courseTable) {
+    final definition = _resolveExportTerm(
+      AcademicCalendarResolver(),
+      courseTable.termName,
+    );
+    if (definition == null) {
+      return const YhBanner(
+        text: '当前学期缺少可定位的校历，暂时只能查看周期课表，无法展开为具体日期。',
+        kind: YhBannerKind.warn,
+      );
+    }
+    final events = AcademicIcsExportService.buildEvents(
+      courseTable: courseTable,
+      exams: _examSnapshot ?? _result?.snapshot?.exams,
+      term: definition,
+    );
+    return _AcademicAgendaView(
+      events: events,
+      now: _now,
+      showWholeTerm: _showWholeTermAgenda,
+      onShowWholeTermChanged: (value) {
+        setState(() => _showWholeTermAgenda = value);
+      },
     );
   }
 

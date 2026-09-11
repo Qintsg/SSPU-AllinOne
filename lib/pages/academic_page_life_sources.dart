@@ -28,13 +28,18 @@ extension _AcademicPageLifeSources on _AcademicPageState {
     final interval =
         widget.sportsAttendanceAutoRefreshIntervalOverride ??
         await SportsAttendanceService.instance.getAutoRefreshIntervalMinutes();
+    final fetchEnabled =
+        widget.sportsAttendanceFetchEnabledOverride ??
+        await DataModulePreferences.instance.isFetchEnabled(
+          CampusDataModule.sportsAttendance,
+        );
     final credentials = await _loadCredentialsStatus();
     final credentialsReady =
         credentials.oaAccount.trim().isNotEmpty &&
         credentials.hasSportsQueryPassword;
     if (!mounted || generation != _credentialGeneration) return;
     _sportsAttendanceRefreshController.configureAutoRefresh(
-      enabled: enabled && credentialsReady,
+      enabled: enabled && credentialsReady && fetchEnabled,
       intervalMinutes: interval,
     );
   }
@@ -76,12 +81,17 @@ extension _AcademicPageLifeSources on _AcademicPageState {
     final interval =
         widget.studentReportAutoRefreshIntervalOverride ??
         await StudentReportService.instance.getAutoRefreshIntervalMinutes();
+    final fetchEnabled =
+        widget.studentReportFetchEnabledOverride ??
+        await DataModulePreferences.instance.isFetchEnabled(
+          CampusDataModule.studentReport,
+        );
     final credentials = await _loadCredentialsStatus();
     final credentialsReady =
         credentials.oaAccount.trim().isNotEmpty && credentials.hasOaPassword;
     if (!mounted || generation != _credentialGeneration) return;
     _studentReportRefreshController.configureAutoRefresh(
-      enabled: enabled && credentialsReady,
+      enabled: enabled && credentialsReady && fetchEnabled,
       intervalMinutes: interval,
     );
   }
@@ -151,6 +161,7 @@ extension _AcademicPageLifeSources on _AcademicPageState {
     return switch (result.status) {
       AcademicEamsQueryStatus.success => '',
       AcademicEamsQueryStatus.partialSuccess => '部分数据降级',
+      AcademicEamsQueryStatus.fetchDisabled => '已在设置中停止获取',
       AcademicEamsQueryStatus.missingOaAccount => '未设置OA账号',
       AcademicEamsQueryStatus.missingOaPassword => '未设置OA密码',
       AcademicEamsQueryStatus.campusNetworkUnavailable => '校园网/VPN不可用',
@@ -173,6 +184,7 @@ extension _AcademicPageLifeSources on _AcademicPageState {
   ) {
     return switch (result.status) {
       SportsAttendanceQueryStatus.success => '',
+      SportsAttendanceQueryStatus.fetchDisabled => '已在设置中停止获取',
       SportsAttendanceQueryStatus.missingStudentId => '未设置学工号',
       SportsAttendanceQueryStatus.missingSportsPassword => '未设置体育密码',
       SportsAttendanceQueryStatus.campusNetworkUnavailable => '校园网/VPN不可用',
@@ -192,6 +204,7 @@ extension _AcademicPageLifeSources on _AcademicPageState {
   String _studentReportRefreshFailureReason(StudentReportQueryResult result) {
     return switch (result.status) {
       StudentReportQueryStatus.success => '',
+      StudentReportQueryStatus.fetchDisabled => '已在设置中停止获取',
       StudentReportQueryStatus.missingOaAccount => '未设置OA账号',
       StudentReportQueryStatus.missingOaPassword => '未设置OA密码',
       StudentReportQueryStatus.campusNetworkUnavailable => '校园网/VPN不可用',

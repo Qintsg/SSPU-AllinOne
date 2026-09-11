@@ -14,6 +14,9 @@ enum AcademicEamsQueryStatus {
   /// 主要数据已读取成功，但存在可降级模块或入口未识别。
   partialSuccess,
 
+  /// 用户已关闭本专科教务模块的联网获取。
+  fetchDisabled,
+
   /// 未保存学工号 / OA 账号。
   missingOaAccount,
 

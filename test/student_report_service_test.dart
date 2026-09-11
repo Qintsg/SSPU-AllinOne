@@ -53,6 +53,25 @@ void main() {
     expect(await service.getAutoRefreshIntervalMinutes(), 60);
   });
 
+  test('停止获取后学工报表所有联网入口均不访问网关', () async {
+    final gateway = _FakeStudentReportGateway();
+    final service = _buildService(
+      gateway: gateway,
+      campusReachable: true,
+      isFetchEnabled: () async => false,
+    );
+
+    final validationResult = await service.validateLoginStatus();
+    final creditsResult = await service.fetchSecondClassroomCredits();
+
+    expect(validationResult.status, StudentReportQueryStatus.fetchDisabled);
+    expect(creditsResult.status, StudentReportQueryStatus.fetchDisabled);
+    expect(gateway.resetCookieHeaders, isEmpty);
+    expect(gateway.openCount, 0);
+    expect(gateway.fetchCount, 0);
+    expect(gateway.fetchedUris, isEmpty);
+  });
+
   test('未保存学工号时不访问学工报表入口', () async {
     final gateway = _FakeStudentReportGateway();
     final service = _buildService(gateway: gateway, campusReachable: true);

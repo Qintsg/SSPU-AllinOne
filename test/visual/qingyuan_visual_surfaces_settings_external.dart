@@ -45,6 +45,11 @@ final _settingsAndExternalSurfaces = <_VisualSurface>[
     destination: '设置',
   ),
   _VisualSurface('settings.appearance', _settingsAppearance),
+  _VisualSurface(
+    'ai-services.overview',
+    _aiServicesOverview,
+    destination: 'AI 服务',
+  ),
   for (final state in SettingsDataPrivacyState.values)
     _VisualSurface(
       'settings.data-privacy',

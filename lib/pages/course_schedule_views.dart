@@ -374,6 +374,157 @@ class _CourseBlock extends StatelessWidget {
   }
 }
 
+class _AcademicAgendaView extends StatelessWidget {
+  const _AcademicAgendaView({
+    required this.events,
+    required this.now,
+    required this.showWholeTerm,
+    required this.onShowWholeTermChanged,
+  });
+
+  final List<AcademicCalendarEvent> events;
+  final DateTime now;
+  final bool showWholeTerm;
+  final ValueChanged<bool> onShowWholeTermChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    final weekStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+    final weekEnd = weekStart.add(const Duration(days: 7));
+    final visibleEvents = showWholeTerm
+        ? events
+        : events
+              .where(
+                (event) =>
+                    !event.start.isBefore(weekStart) &&
+                    event.start.isBefore(weekEnd),
+              )
+              .toList(growable: false);
+    return Column(
+      key: const Key('academic-integrated-agenda'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        YhTabs<bool>(
+          tabs: const [
+            YhTab(value: false, label: '本周'),
+            YhTab(value: true, label: '整学期'),
+          ],
+          value: showWholeTerm,
+          onChanged: onShowWholeTermChanged,
+        ),
+        SizedBox(height: theme.spacing.m),
+        if (visibleEvents.isEmpty)
+          YhCard(
+            child: YhEmptyState(
+              icon: YhIcons.calendar,
+              title: showWholeTerm ? '本学期暂无日历事件' : '本周暂无课程或考试',
+              message: showWholeTerm
+                  ? '课表和考试安排中没有可定位到具体日期的记录。'
+                  : '可切换到整学期查看后续课程与考试。',
+            ),
+          )
+        else
+          for (var index = 0; index < visibleEvents.length; index++) ...[
+            _AcademicAgendaEventCard(event: visibleEvents[index]),
+            if (index != visibleEvents.length - 1)
+              SizedBox(height: theme.spacing.s),
+          ],
+      ],
+    );
+  }
+}
+
+class _AcademicAgendaEventCard extends StatelessWidget {
+  const _AcademicAgendaEventCard({required this.event});
+
+  final AcademicCalendarEvent event;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    final isExam = event.type == AcademicCalendarEventType.exam;
+    return YhCard(
+      padding: EdgeInsets.all(theme.spacing.m),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: theme.control.regular * 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${event.start.month}月${event.start.day}日',
+                  style: theme.typography.caption.copyWith(
+                    color: theme.color.muted,
+                    fontFamily: YhTypographyTokens.fontFamilyMono,
+                  ),
+                ),
+                SizedBox(height: theme.spacing.xs),
+                Text(
+                  _agendaTimeRange(event),
+                  style: theme.typography.small.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: theme.spacing.m),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: theme.spacing.s,
+                  runSpacing: theme.spacing.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    YhStatusPill(
+                      label: isExam ? '考试' : '课程',
+                      kind: isExam ? YhStatusKind.warning : YhStatusKind.info,
+                    ),
+                    Text(event.title, style: theme.typography.h3),
+                  ],
+                ),
+                if (event.location.isNotEmpty) ...[
+                  SizedBox(height: theme.spacing.s),
+                  Text(
+                    event.location,
+                    style: theme.typography.small.copyWith(
+                      color: theme.color.muted,
+                    ),
+                  ),
+                ],
+                if (event.description.isNotEmpty) ...[
+                  SizedBox(height: theme.spacing.xs),
+                  Text(
+                    event.description,
+                    style: theme.typography.caption.copyWith(
+                      color: theme.color.muted,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _agendaTimeRange(AcademicCalendarEvent event) {
+  String two(int value) => value.toString().padLeft(2, '0');
+  return '${two(event.start.hour)}:${two(event.start.minute)}–'
+      '${two(event.end.hour)}:${two(event.end.minute)}';
+}
+
 List<AcademicCourseTableEntry> _entriesForWeekday(
   List<AcademicCourseTableEntry> entries,
   int weekday,

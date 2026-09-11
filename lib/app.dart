@@ -2,6 +2,7 @@
 
 import 'design/qingyuan/qingyuan_ui.dart';
 import 'pages/academic_page.dart';
+import 'pages/ai_services_page.dart';
 import 'pages/course_schedule_page.dart';
 import 'pages/email_page.dart';
 import 'pages/home_page.dart';
@@ -20,7 +21,7 @@ class AppShell extends StatefulWidget {
     this.destinationOverrides = const {},
     this.themeMode = YhThemeMode.system,
     this.onThemeModeChanged,
-  }) : assert(initialDestinationIndex >= 0 && initialDestinationIndex < 7);
+  }) : assert(initialDestinationIndex >= 0 && initialDestinationIndex < 8);
 
   final VoidCallback? onLock;
   final CampusNetworkStatusService? campusNetworkStatusService;
@@ -110,6 +111,11 @@ class _AppShellState extends State<AppShell> {
           onThemeModeChanged: widget.onThemeModeChanged,
         ),
       ),
+    ),
+    _AppDestination(
+      title: 'AI 服务',
+      icon: YhIcons.chat,
+      body: _destinationBody('AI 服务', const AiServicesPage()),
     ),
   ];
 

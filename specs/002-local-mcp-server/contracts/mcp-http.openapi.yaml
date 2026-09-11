@@ -1,0 +1,244 @@
+openapi: 3.0.3
+info:
+  title: SSPU-AllinOne Local MCP HTTP Transport
+  version: 0.1.0
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  description: >-
+    Contract for the local MCP 2026-07-28 Streamable HTTP endpoint. This API
+    exposes only user-authorized, read-only local snapshots. LAN transport is
+    plain HTTP; Bearer authentication does not provide transport encryption.
+servers:
+  - url: http://127.0.0.1:{port}
+    description: Loopback mode
+    variables:
+      port:
+        default: '8765'
+        description: User-configured local port.
+paths:
+  /mcp:
+    post:
+      operationId: postMcpRequest
+      summary: Send one MCP JSON-RPC request or notification
+      description: >-
+        Accepts one MCP 2026-07-28 JSON-RPC message. Authentication is optional
+        only when the user explicitly disables it in loopback mode; LAN mode
+        always requires Bearer authentication.
+      security:
+        - bearerAuth: []
+        - {}
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersion'
+        - $ref: '#/components/parameters/McpMethod'
+        - $ref: '#/components/parameters/McpName'
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonRpcMessage'
+      responses:
+        '200':
+          description: MCP JSON-RPC response or request-scoped SSE response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonRpcResponse'
+            text/event-stream:
+              schema:
+                type: string
+                description: Request-scoped Server-Sent Events stream.
+        '202':
+          description: MCP notification accepted; no response body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: SSPU-MCP-API-Key
+  parameters:
+    ProtocolVersion:
+      name: MCP-Protocol-Version
+      in: header
+      required: true
+      description: MCP protocol version selected for this request.
+      schema:
+        type: string
+        enum:
+          - '2026-07-28'
+    McpMethod:
+      name: Mcp-Method
+      in: header
+      required: true
+      description: Must match the JSON-RPC method in the request body.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+    McpName:
+      name: Mcp-Name
+      in: header
+      required: false
+      description: Capability name when required by the MCP method.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+    Origin:
+      name: Origin
+      in: header
+      required: false
+      description: >-
+        Requests that include Origin must exactly match an allowlist. The MVP
+        has no browser-origin allowlist and therefore rejects Origin-bearing
+        requests.
+      schema:
+        type: string
+        format: uri
+  schemas:
+    JsonRpcMessage:
+      type: object
+      required:
+        - jsonrpc
+        - method
+      properties:
+        jsonrpc:
+          type: string
+          enum:
+            - '2.0'
+        id:
+          oneOf:
+            - type: string
+              nullable: true
+            - type: integer
+              nullable: true
+        method:
+          type: string
+          enum:
+            - initialize
+            - notifications/initialized
+            - ping
+            - tools/list
+            - tools/call
+        params:
+          type: object
+          additionalProperties: true
+      additionalProperties: false
+    JsonRpcResponse:
+      type: object
+      required:
+        - jsonrpc
+        - id
+      properties:
+        jsonrpc:
+          type: string
+          enum:
+            - '2.0'
+        id:
+          oneOf:
+            - type: string
+              nullable: true
+            - type: integer
+              nullable: true
+        result:
+          type: object
+          additionalProperties: true
+        error:
+          $ref: '#/components/schemas/JsonRpcError'
+      additionalProperties: false
+    JsonRpcError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            code:
+              type: string
+          additionalProperties: true
+      additionalProperties: false
+    HttpError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      additionalProperties: false
+  responses:
+    BadRequest:
+      description: Invalid JSON, protocol metadata, or header/body mismatch.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HttpError'
+    Unauthorized:
+      description: Missing or invalid Bearer API key.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HttpError'
+    Forbidden:
+      description: Host or Origin validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HttpError'
+    PayloadTooLarge:
+      description: Request body exceeds 256 KiB.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HttpError'
+    UnsupportedMediaType:
+      description: Content-Type is not application/json.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HttpError'
+    TooManyRequests:
+      description: Per-source rate or global concurrency limit exceeded.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HttpError'
+    Unavailable:
+      description: Service is stopping, locked, or otherwise unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HttpError'

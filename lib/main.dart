@@ -24,6 +24,8 @@ import 'services/tray_service.dart';
 import 'services/notification_service.dart';
 import 'services/auto_refresh_service.dart';
 import 'services/academic_oa_session_prewarm_service.dart';
+import 'services/academic_reminder_coordinator.dart';
+import 'services/mcp_server_controller.dart';
 import 'widgets/desktop_window_frame.dart';
 import 'widgets/legal_consent_dialog.dart';
 import 'widgets/app_startup_status.dart';
@@ -149,6 +151,14 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
           _ => YhThemeMode.system,
         };
       });
+      final mcpConfig = await McpServerController.instance.loadConfig();
+      // Never expose a listener before the privacy agreements have been
+      // accepted.  The config may have been persisted from an earlier run,
+      // but an unaccepted/changed agreement must keep MCP stopped until the
+      // user reaches the unlocked app shell.
+      if (agreementsOk && !hasPassword && mcpConfig.enabled) {
+        unawaited(McpServerController.instance.start());
+      }
       unawaited(_initBackgroundServices());
     } catch (_) {
       if (!mounted || generation != _initializationGeneration) return;
@@ -193,6 +203,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
     );
     try {
       await NotificationService.instance.init();
+      AcademicReminderCoordinator.instance.start();
       await AutoRefreshService.instance.init();
     } catch (_) {
       // 后台刷新或通知初始化失败不应阻断 Android 启动主流程。
@@ -201,6 +212,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
 
   /// 手动上锁，从设置页触发
   void _lockApp() {
+    unawaited(McpServerController.instance.stop());
     setState(() => _isUnlocked = false);
   }
 
@@ -322,6 +334,13 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
           if (mounted) {
             setState(() => _agreementsAccepted = true);
           }
+          // Initialization intentionally keeps MCP stopped until consent is
+          // granted.  If this is an unlocked install, resume an explicitly
+          // enabled service now that the privacy gate has passed.
+          final config = await McpServerController.instance.loadConfig();
+          if (config.enabled && _isUnlocked) {
+            unawaited(McpServerController.instance.start());
+          }
         } else if (accepted == false) {
           // 不同意协议时按平台能力关闭应用入口。
           await _closeApplication();
@@ -398,6 +417,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       return LockPage(
         onUnlocked: () {
           setState(() => _isUnlocked = true);
+          unawaited(_startMcpAfterUnlock());
         },
       );
     }
@@ -409,5 +429,10 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       themeMode: _themeMode,
       onThemeModeChanged: _setThemeMode,
     );
+  }
+
+  Future<void> _startMcpAfterUnlock() async {
+    final config = await McpServerController.instance.loadConfig();
+    if (config.enabled) await McpServerController.instance.start();
   }
 }

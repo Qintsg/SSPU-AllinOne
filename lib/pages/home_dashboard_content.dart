@@ -13,17 +13,25 @@ extension _HomeDashboardContent on _HomePageState {
     final children = <Widget>[];
     void add(Widget child) => children.add(child);
 
-    if (_studentProfileCardVisible) {
-      add(_buildProgramOverviewCard(theme, compact: compactGrid));
-    }
-    if (_campusCardCardVisible) {
-      add(_buildCampusCardBalanceCard(context, compact: compactGrid));
-    }
-    if (_emailTileVisible) {
-      add(_buildEmailOverviewCard(theme, compact: compactGrid));
-    }
-    if (_sportsAttendanceTileVisible) {
-      add(_buildSportsOverviewCard(theme, compact: compactGrid));
+    for (final item in _homeOverviewOrder) {
+      switch (item) {
+        case HomeOverviewItem.trainingPlan:
+          if (_studentProfileCardVisible) {
+            add(_buildProgramOverviewCard(theme, compact: compactGrid));
+          }
+        case HomeOverviewItem.campusCard:
+          if (_campusCardCardVisible) {
+            add(_buildCampusCardBalanceCard(context, compact: compactGrid));
+          }
+        case HomeOverviewItem.email:
+          if (_emailTileVisible) {
+            add(_buildEmailOverviewCard(theme, compact: compactGrid));
+          }
+        case HomeOverviewItem.sportsAttendance:
+          if (_sportsAttendanceTileVisible) {
+            add(_buildSportsOverviewCard(theme, compact: compactGrid));
+          }
+      }
     }
 
     if (children.isEmpty) return const SizedBox.shrink();
@@ -309,7 +317,19 @@ extension _HomeDashboardContent on _HomePageState {
 
   Future<void> _openQuickLink(QuickLinkItemConfig item) async {
     final uri = Uri.tryParse(item.url);
-    if (uri == null || uri.host.isEmpty) return;
+    if (uri == null || uri.scheme.isEmpty) return;
+    if (item.kind == QuickLinkKind.app) {
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened && mounted) {
+        showYhFeedback(
+          context,
+          message: '无法打开${item.name}，请确认应用仍已安装',
+          severity: AppFeedbackSeverity.warning,
+        );
+      }
+      return;
+    }
+    if (uri.host.isEmpty) return;
     final authenticationRequired = _quickLinkRequiresOaAuthentication(item);
     final authenticationReady =
         !authenticationRequired ||
@@ -330,6 +350,7 @@ extension _HomeDashboardContent on _HomePageState {
   }
 
   bool _quickLinkRequiresOaAuthentication(QuickLinkItemConfig item) {
+    if (item.kind == QuickLinkKind.oa) return true;
     final host = Uri.tryParse(item.url)?.host.toLowerCase() ?? '';
     return host == 'oa.sspu.edu.cn' ||
         item.name.contains('（OA）') ||
@@ -360,14 +381,19 @@ extension _HomeDashboardContent on _HomePageState {
   }
 
   Widget _buildEmailOverviewCard(YhTheme theme, {required bool compact}) {
-    final count = _emailResult?.snapshot?.messages.length;
+    final messages = _emailResult?.snapshot?.messages;
+    final unreadCount = messages?.where((message) => !message.isRead).length;
     return _HomeOverviewCard(
       key: const Key('home-email-tile'),
       icon: YhIcons.mail,
       color: theme.color.serviceMail,
       title: '学校邮箱',
-      detail: count == null ? '邮箱缓存尚未读取' : '$count 封未读邮件',
-      value: count?.toString() ?? '未读取',
+      detail: unreadCount == null
+          ? '邮箱缓存尚未读取'
+          : unreadCount == 0
+          ? '暂无未读邮件'
+          : '$unreadCount 封未读邮件',
+      value: unreadCount?.toString() ?? '未读取',
       compact: compact,
     );
   }

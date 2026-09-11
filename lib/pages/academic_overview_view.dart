@@ -78,6 +78,10 @@ extension _AcademicOverviewStateView on _AcademicPageState {
       onOpenGrades: _isCoordinatedRefresh ? null : _openAcademicGradeDetail,
       onOpenExams: _isCoordinatedRefresh ? null : _openAcademicExamDetail,
       onOpenSchedule: _isCoordinatedRefresh ? null : _openCourseSchedule,
+      onOpenProgramPlan: _isCoordinatedRefresh
+          ? null
+          : _openAcademicProgramPlan,
+      onOpenFreeClassrooms: _isCoordinatedRefresh ? null : _openFreeClassrooms,
       onOpenAccountConnections: widget.onOpenAccountConnections,
       onAdjustAcademicTerm: widget.onAdjustAcademicTerm,
       onOpenDetailedSources: _isCoordinatedRefresh

@@ -15,11 +15,16 @@ class EmailMessageDetailPage extends StatelessWidget {
 
   /// 视觉测试与相对时间文案使用的固定时钟。
   final DateTime? nowOverride;
+  final Future<void> Function(EmailAttachmentSnapshot attachment)?
+  onDownloadAttachment;
+  final Set<String> downloadingAttachmentIds;
 
   const EmailMessageDetailPage({
     super.key,
     required this.message,
     this.nowOverride,
+    this.onDownloadAttachment,
+    this.downloadingAttachmentIds = const {},
   });
 
   @override
@@ -95,8 +100,20 @@ class EmailMessageDetailPage extends StatelessWidget {
                         ),
                         semanticLabel: '邮件正文内容',
                       ),
+                      if (message.attachments.isNotEmpty &&
+                          onDownloadAttachment != null) ...[
+                        SizedBox(height: theme.spacing.l),
+                        _EmailAttachmentList(
+                          message: message,
+                          downloadingAttachmentIds: downloadingAttachmentIds,
+                          onDownloadAttachment: (_, attachment) =>
+                              onDownloadAttachment!(attachment),
+                        ),
+                      ],
                       SizedBox(height: theme.spacing.l),
-                      const YhBanner(text: '只读正文快照；不会执行回复、转发、删除、移动或标记已读操作。'),
+                      const YhBanner(
+                        text: '打开邮件会回写 IMAP 已读；不会执行回复、转发、删除或移动操作。',
+                      ),
                     ],
                   ),
                 ),

@@ -141,7 +141,7 @@ class InfoRefreshService extends ChangeNotifier {
   }
 
   Future<void> _runWechatRefresh() async {
-    if (!await WechatArticleService.instance.hasEnabledRefreshTarget()) {
+    if (!await WechatArticleService.instance.hasConfiguredRefreshTarget()) {
       _update(
         const InfoRefreshSnapshot(
           isRefreshing: true,
@@ -171,7 +171,7 @@ class InfoRefreshService extends ChangeNotifier {
         'wechat_public',
         defaultValue: 10,
       );
-      final articles = await WechatArticleService.instance.fetchArticles(
+      final result = await WechatArticleService.instance.fetchArticlesDetailed(
         maxCount: maxCount,
         knownMessageIds: persistedMessages.map((msg) => msg.id).toSet(),
         validateBeforeFetch: true,
@@ -189,27 +189,15 @@ class InfoRefreshService extends ChangeNotifier {
           );
         },
       );
-      if (articles.isEmpty && _snapshot.total == 0) {
-        _update(
-          const InfoRefreshSnapshot(
-            isRefreshing: true,
-            kind: InfoRefreshKind.wechat,
-            text: '未获取到新的微信推文',
-            completed: 0,
-            total: 0,
-          ),
-        );
-      } else {
-        _update(
-          InfoRefreshSnapshot(
-            isRefreshing: true,
-            kind: InfoRefreshKind.wechat,
-            text: '微信推文刷新完成，新增 ${articles.length} 条',
-            completed: _snapshot.total,
-            total: _snapshot.total,
-          ),
-        );
-      }
+      _update(
+        InfoRefreshSnapshot(
+          isRefreshing: true,
+          kind: InfoRefreshKind.wechat,
+          text: result.summary,
+          completed: result.completedAccounts,
+          total: result.totalAccounts,
+        ),
+      );
     } catch (error) {
       _update(
         InfoRefreshSnapshot(

@@ -63,6 +63,7 @@ class AcademicStudentReportCard extends StatelessWidget {
   YhBannerKind _studentReportBannerKind(StudentReportQueryStatus status) {
     return switch (status) {
       StudentReportQueryStatus.success => YhBannerKind.success,
+      StudentReportQueryStatus.fetchDisabled ||
       StudentReportQueryStatus.missingOaAccount ||
       StudentReportQueryStatus.missingOaPassword ||
       StudentReportQueryStatus.campusNetworkUnavailable => YhBannerKind.warn,

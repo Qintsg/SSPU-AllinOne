@@ -49,6 +49,28 @@ void main() {
     expect(await service.getAutoRefreshIntervalMinutes(), 60);
   });
 
+  test('停止获取后校园卡不读取凭据也不访问网关', () async {
+    final gateway = _FakeCampusCardGateway();
+    final service = _buildService(
+      gateway: gateway,
+      campusReachable: true,
+      isFetchEnabled: () async => false,
+    );
+
+    final result = await service.fetchCampusCard(
+      queryTransactions: true,
+      syncAllTransactions: true,
+    );
+
+    expect(result.status, CampusCardQueryStatus.fetchDisabled);
+    expect(result.message, '校园卡已停止获取');
+    expect(gateway.openCount, 0);
+    expect(gateway.resetCookieHeaders, isEmpty);
+    expect(gateway.fetchedPageUris, isEmpty);
+    expect(gateway.submittedQueryUris, isEmpty);
+    expect(gateway.submittedFieldsList, isEmpty);
+  });
+
   test('未保存学工号时不访问校园卡入口', () async {
     final gateway = _FakeCampusCardGateway();
     final service = _buildService(gateway: gateway, campusReachable: true);
@@ -848,10 +870,12 @@ CampusCardService _buildService({
   required _FakeCampusCardGateway gateway,
   required bool campusReachable,
   CampusCardOaLoginRefresher? refreshOaLogin,
+  Future<bool> Function()? isFetchEnabled,
 }) {
   return CampusCardService(
     gateway: gateway,
     refreshOaLogin: refreshOaLogin,
+    isFetchEnabled: isFetchEnabled,
     campusNetworkStatusService: CampusNetworkStatusService(
       probeUri: Uri.parse('https://tygl.sspu.edu.cn/'),
       probe: (probeUri, timeout) async => CampusNetworkProbeResult(

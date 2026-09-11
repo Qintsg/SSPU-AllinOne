@@ -10,8 +10,8 @@ EAMS 之外、与学业相关的课外活动只读查询：体育打卡考勤、
 
 | 功能 | 状态 | Issue | 文档 |
 | --- | --- | --- | --- |
-| 体育打卡考勤 | 部分实现 | — | [`sports-attendance.md`](sports-attendance.md) |
-| 第二课堂学生报告 | 部分实现 | — | [`student-report.md`](student-report.md) |
+| 体育打卡考勤 | 已实现 | — | [`sports-attendance.md`](sports-attendance.md) |
+| 第二课堂学生报告 | 已实现 | — | [`student-report.md`](student-report.md) |
 
 ## 3. 共性约束
 

@@ -47,7 +47,7 @@ extension SettingsWechatFollowActions on SettingsWechatController {
       await setMpNotificationEnabled(newFakeid, true);
     }
     return SettingsWechatFeedback(
-      title: '已关注并启用「${account.name}」',
+      title: '已添加「${account.name}」并开启通知',
       severity: AppFeedbackSeverity.success,
     );
   }
@@ -95,7 +95,7 @@ extension SettingsWechatFollowActions on SettingsWechatController {
       );
       await _loadWxmpFollowedMps();
       return SettingsWechatFeedback(
-        title: '已关注「${account.name}」',
+        title: '已添加固定来源「${account.name}」',
         severity: AppFeedbackSeverity.success,
       );
     } on WxmpSessionExpiredException {
@@ -212,10 +212,10 @@ extension SettingsWechatFollowActions on SettingsWechatController {
     _notifyStateChanged();
 
     final summary = StringBuffer();
-    if (added > 0) summary.write('新关注 $added 个');
+    if (added > 0) summary.write('新添加 $added 个');
     if (skipped > 0) {
       if (summary.isNotEmpty) summary.write('，');
-      summary.write('已关注跳过 $skipped 个');
+      summary.write('已添加跳过 $skipped 个');
     }
     if (failed > 0) {
       if (summary.isNotEmpty) summary.write('，');

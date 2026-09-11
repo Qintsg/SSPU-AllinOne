@@ -191,19 +191,19 @@ class SettingsWechatMatrixCard extends StatelessWidget {
           children: [
             if (showBatchFollow)
               YhButton(
-                label: batchFollowing ? '关注中' : '一键全部关注',
+                label: batchFollowing ? '添加中' : '添加全部来源',
                 onTap: !authenticated || batchFollowing ? null : onBatchFollow,
                 disabled: !authenticated || batchFollowing,
                 leadingIcon: batchFollowing ? null : YhIcons.add,
               ),
             YhButton(
-              label: '全部开启',
+              label: '全部开启通知',
               leadingIcon: YhIcons.check,
               onTap: authenticated ? onEnableAll : null,
               disabled: !authenticated,
             ),
             YhButton(
-              label: '全部关闭',
+              label: '全部关闭通知',
               leadingIcon: YhIcons.close,
               onTap: authenticated ? onDisableAll : null,
               disabled: !authenticated,
@@ -268,8 +268,8 @@ class _WechatAccountToggleButton extends StatelessWidget {
     final tooltipMessage = !authenticated
         ? '需先完成公众号平台认证'
         : followed
-        ? '切换是否获取该公众号推文'
-        : '切换后会自动关注并获取该公众号推文';
+        ? '切换该来源的系统通知；文章仍会正常刷新'
+        : '添加为固定来源并开启系统通知';
 
     return YhTooltip(
       message: tooltipMessage,

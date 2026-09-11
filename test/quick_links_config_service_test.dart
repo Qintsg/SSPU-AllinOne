@@ -36,6 +36,29 @@ site_groups:
     expect(groups.last.items.single.name, '教务处');
   });
 
+  test('可以解析 App 条目的类型、平台白名单和安装标识', () {
+    final groups = QuickLinksConfigService.parseGroups('''
+site_groups:
+  - category: 学习平台
+    items:
+      - name: 学习通（APP）
+        kind: app
+        url: chaoxing://
+        appId: com.chaoxing.mobile
+        platforms: [android, ios]
+        icon: education
+''');
+
+    final item = groups.single.items.single;
+    expect(item.kind, QuickLinkKind.app);
+    expect(item.appId, 'com.chaoxing.mobile');
+    expect(item.platforms, const {
+      QuickLinkPlatform.android,
+      QuickLinkPlatform.ios,
+    });
+    expect(item.url, 'chaoxing://');
+  });
+
   test('快捷跳转搜索支持名称和 URL 精确匹配', () {
     final groups = _buildSearchFixture();
 

@@ -103,6 +103,8 @@ class _AcademicContentGrid extends StatelessWidget {
     required this.onOpenGrades,
     required this.onOpenExams,
     required this.onOpenSchedule,
+    required this.onOpenProgramPlan,
+    required this.onOpenFreeClassrooms,
   });
 
   final bool compact;
@@ -118,6 +120,8 @@ class _AcademicContentGrid extends StatelessWidget {
   final VoidCallback? onOpenGrades;
   final VoidCallback? onOpenExams;
   final VoidCallback? onOpenSchedule;
+  final VoidCallback? onOpenProgramPlan;
+  final VoidCallback? onOpenFreeClassrooms;
 
   @override
   Widget build(BuildContext context) {
@@ -135,6 +139,8 @@ class _AcademicContentGrid extends StatelessWidget {
       onOpenGrades: onOpenGrades,
       onOpenExams: onOpenExams,
       onOpenSchedule: onOpenSchedule,
+      onOpenProgramPlan: onOpenProgramPlan,
+      onOpenFreeClassrooms: onOpenFreeClassrooms,
     );
     final completion = _AcademicCompletionCard(
       value: completionValue,

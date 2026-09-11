@@ -23,6 +23,13 @@ extension _AcademicEamsSearchFlow on AcademicEamsService {
     )
     resultBuilder,
   }) async {
+    if (!await _isFetchEnabled()) {
+      return _buildResult(
+        AcademicEamsQueryStatus.fetchDisabled,
+        message: '本专科教务已停止获取',
+        detail: '空闲教室等只读查询需要联网；请先在设置中重新允许本专科教务获取数据。',
+      );
+    }
     CampusNetworkStatus? campusStatus;
     try {
       final credentialsStatus = await _credentialsService.getStatus();

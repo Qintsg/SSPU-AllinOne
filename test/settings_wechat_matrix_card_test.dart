@@ -192,7 +192,7 @@ void main() {
     }
   });
 
-  testWidgets('矩阵卡片提供全部开启和全部关闭入口', (tester) async {
+  testWidgets('矩阵卡片明确区分添加来源与通知开关', (tester) async {
     var enabledAll = false;
     var disabledAll = false;
 
@@ -219,12 +219,13 @@ void main() {
 
     await tester.pump();
 
-    expect(find.text('全部开启'), findsOneWidget);
-    expect(find.text('全部关闭'), findsOneWidget);
+    expect(find.text('添加全部来源'), findsOneWidget);
+    expect(find.text('全部开启通知'), findsOneWidget);
+    expect(find.text('全部关闭通知'), findsOneWidget);
 
-    await tester.tap(find.text('全部开启'));
+    await tester.tap(find.text('全部开启通知'));
     await tester.pump();
-    await tester.tap(find.text('全部关闭'));
+    await tester.tap(find.text('全部关闭通知'));
     await tester.pump();
 
     expect(enabledAll, isTrue);

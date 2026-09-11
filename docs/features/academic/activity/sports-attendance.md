@@ -1,11 +1,11 @@
 # 体育打卡考勤
 
-> 子模块：[课外活动](README.md)　·　状态：**部分实现**（服务层已实现，前端重构）
+> 子模块：[课外活动](README.md)　·　状态：**已实现**
 
 | 项 | 内容 |
 | --- | --- |
 | 功能 ID | `academic.activity.sports-attendance` |
-| 状态 | 部分实现 |
+| 状态 | 已实现 |
 | 平台 | 全平台 |
 | 关联 Issue | — |
 | 主要代码 | `lib/services/sports_attendance_service.dart`、`sports_attendance_gateway.dart`、`sports_attendance_page_parser.dart`、`sports_attendance_support.dart`；`lib/models/sports_attendance.dart` |
@@ -31,4 +31,4 @@
 
 ## 5. 待办与演进
 
-- [ ] 前端重构后的打卡卡片与详情页。
+- [x] 清源体育考勤卡片、详情页、状态反馈与响应式布局。

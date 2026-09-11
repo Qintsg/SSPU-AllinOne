@@ -98,6 +98,39 @@ void main() {
     expect(find.text('清除搜索'), findsOneWidget);
   });
 
+  testWidgets('App 条目不经网页确认直接唤起目标应用', (tester) async {
+    String? openedUrl;
+    const appGroups = <QuickLinkGroupConfig>[
+      QuickLinkGroupConfig(
+        category: '学习平台',
+        items: [
+          QuickLinkItemConfig(
+            name: '学习通（APP）',
+            url: 'chaoxing://',
+            kind: QuickLinkKind.app,
+            platforms: {QuickLinkPlatform.android, QuickLinkPlatform.ios},
+          ),
+        ],
+      ),
+    ];
+    await tester.pumpWidget(
+      YhApp(
+        home: QuickLinksPage(
+          groupsLoader: () async => appGroups,
+          availabilityResolver: (groups) async => groups,
+          onOpenUrl: (url) async => openedUrl = url,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.bySemanticsLabel('学习通（APP），应用链接，将打开目标应用'));
+    await tester.pumpAndSettle();
+
+    expect(openedUrl, 'chaoxing://');
+    expect(find.text('确认打开外部网站'), findsNothing);
+  });
+
   testWidgets('清源快速跳转在配置为空时显示明确空状态', (tester) async {
     await tester.pumpWidget(
       YhApp(

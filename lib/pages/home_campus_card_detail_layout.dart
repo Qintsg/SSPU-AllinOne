@@ -32,6 +32,18 @@ extension _CampusCardDetailLayout on _CampusCardDetailPageState {
           '保留本机记录供快速浏览；仅在主动查询或同步时访问校园服务。',
           style: theme.typography.body.copyWith(color: theme.color.muted),
         ),
+        SizedBox(height: theme.spacing.m),
+        YhButton(
+          key: const Key('campus-card-open-analytics'),
+          label: '查看消费趋势',
+          variant: YhButtonVariant.secondary,
+          onTap: () => Navigator.of(context).push(
+            YhPageRoute(
+              builder: (_) =>
+                  CampusConsumptionAnalyticsPage(snapshot: _snapshot),
+            ),
+          ),
+        ),
       ],
     );
   }

@@ -109,14 +109,13 @@ extension _HomeDashboardPrimaryLayout on _HomePageState {
   }) {
     final disableAnimations =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final overview = _buildHomeOverviewStack(theme, compactGrid: compactGrid);
+    if (disableAnimations) return overview;
     return AnimatedSize(
-      duration: theme.motion.effective(
-        theme.motion.base,
-        disableAnimations: disableAnimations,
-      ),
+      duration: theme.motion.base,
       curve: theme.motion.curve,
       alignment: AlignmentDirectional.topCenter,
-      child: _buildHomeOverviewStack(theme, compactGrid: compactGrid),
+      child: overview,
     );
   }
 

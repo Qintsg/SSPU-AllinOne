@@ -290,6 +290,12 @@ jobs:
   build-macos:
     needs: prepare
     runs-on: macos-latest
+    env:
+      MACOS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.MACOS_SIGNING_CERTIFICATE_BASE64 }}
+      MACOS_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_SIGNING_CERTIFICATE_PASSWORD }}
+      MACOS_NOTARY_APPLE_ID: ${{ secrets.MACOS_NOTARY_APPLE_ID }}
+      MACOS_NOTARY_TEAM_ID: ${{ secrets.MACOS_NOTARY_TEAM_ID }}
+      MACOS_NOTARY_PASSWORD: ${{ secrets.MACOS_NOTARY_PASSWORD }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -297,10 +303,65 @@ jobs:
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
 
+      - name: 准备 macOS Developer ID 签名
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          missing_secrets=()
+          for secret_name in \
+            MACOS_SIGNING_CERTIFICATE_BASE64 \
+            MACOS_SIGNING_CERTIFICATE_PASSWORD \
+            MACOS_NOTARY_APPLE_ID \
+            MACOS_NOTARY_TEAM_ID \
+            MACOS_NOTARY_PASSWORD; do
+            if [[ -z "${!secret_name:-}" ]]; then
+              missing_secrets+=("$secret_name")
+            fi
+          done
+
+          if [[ "${#missing_secrets[@]}" -gt 0 ]]; then
+            printf 'macOS Release 签名与公证 Secrets 缺失：%s\n' "${missing_secrets[*]}" >&2
+            echo "正式发布不得回退到 ad-hoc 签名或未公证产物。" >&2
+            exit 1
+          fi
+
+          certificate_path="$RUNNER_TEMP/macos-developer-id.p12"
+          keychain_path="$RUNNER_TEMP/macos-signing.keychain-db"
+          keychain_password="$(openssl rand -base64 32)"
+          # macOS 自带 BSD base64 使用 -D 解码；--decode 是 GNU 参数，
+          # 会让签名准备在 GitHub macOS Runner 上提前失败。
+          printf '%s' "$MACOS_SIGNING_CERTIFICATE_BASE64" | base64 -D > "$certificate_path"
+
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$certificate_path" \
+            -k "$keychain_path" \
+            -P "$MACOS_SIGNING_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k "$keychain_password" \
+            "$keychain_path"
+          security default-keychain -s "$keychain_path"
+          security list-keychains -d user -s "$keychain_path"
+
+          signing_identity="$(security find-identity -v -p codesigning "$keychain_path" \
+            | awk -F '"' '/Developer ID Application/ { print $2; exit }')"
+          if [[ -z "$signing_identity" ]]; then
+            echo "证书中未找到 Developer ID Application 签名身份。" >&2
+            exit 1
+          fi
+
+          echo "MACOS_SIGNING_IDENTITY=$signing_identity" >> "$GITHUB_ENV"
+          echo "MACOS_SIGNING_KEYCHAIN=$keychain_path" >> "$GITHUB_ENV"
+
       - name: 构建 macOS universal
         run: flutter build macos --release
 
-      - name: 自签名 macOS App Bundle
+      - name: 校验架构并签名 macOS App Bundle
         shell: bash
         run: |
           set -euo pipefail
@@ -311,10 +372,43 @@ jobs:
             exit 1
           }
 
-          echo "使用 ad-hoc 自签名（未配置官方 Developer ID 签名与公证）"
-          codesign --force --deep --sign - \
+          macos_executable="$(find "$macos_app_bundle/Contents/MacOS" -maxdepth 1 -type f -perm -111 -print -quit)"
+          [[ -n "$macos_executable" ]] || { echo "未找到 macOS 主程序。" >&2; exit 1; }
+          architectures="$(lipo -archs "$macos_executable")"
+          [[ " $architectures " == *" arm64 "* && " $architectures " == *" x86_64 "* ]] || {
+            echo "macOS 主程序不是 universal 二进制：$architectures" >&2
+            exit 1
+          }
+
+          codesign --force --deep \
+            --sign "$MACOS_SIGNING_IDENTITY" \
+            --options runtime \
+            --timestamp \
+            "$macos_app_bundle"
+          codesign --force \
+            --sign "$MACOS_SIGNING_IDENTITY" \
+            --options runtime \
+            --timestamp \
             --entitlements macos/Runner/Release.entitlements \
             "$macos_app_bundle"
+          codesign --verify --deep --strict --verbose=2 "$macos_app_bundle"
+
+      - name: 公证并装订 macOS App Bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          macos_app_bundle="$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
+          notarization_archive="$RUNNER_TEMP/SSPU-AllinOne-macos.zip"
+          ditto -c -k --keepParent "$macos_app_bundle" "$notarization_archive"
+          xcrun notarytool submit "$notarization_archive" \
+            --apple-id "$MACOS_NOTARY_APPLE_ID" \
+            --team-id "$MACOS_NOTARY_TEAM_ID" \
+            --password "$MACOS_NOTARY_PASSWORD" \
+            --wait
+          xcrun stapler staple "$macos_app_bundle"
+          xcrun stapler validate "$macos_app_bundle"
+          spctl --assess --type execute --verbose=4 "$macos_app_bundle"
 
       - name: 生成 macOS DMG
         id: dmg
@@ -324,12 +418,13 @@ jobs:
           mkdir -p dist
 
           macos_app_bundle="$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
+          dmg_path="dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-universal.dmg"
 
           npm ci --prefix .github/npm/appdmg
 
           staging="dmg-staging"
           mkdir -p "$staging"
-          cp -R "$macos_app_bundle" "$staging/"
+          ditto "$macos_app_bundle" "$staging/SSPU-AllinOne.app"
           cp .github/installer/macos/bg.png "$staging/bg.png"
 
           APP_VERSION="${{ needs.prepare.outputs.public_version }}"
@@ -357,16 +452,41 @@ jobs:
           }
           APPDMG_EOF
 
-          ./.github/npm/appdmg/node_modules/.bin/appdmg "$staging/config.json" \
-            "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-arm64.dmg"
+          ./.github/npm/appdmg/node_modules/.bin/appdmg "$staging/config.json" "$dmg_path"
 
           rm -rf "$staging"
-          echo "dmg_suffix=arm64" >> "$GITHUB_OUTPUT"
+          codesign --force --sign "$MACOS_SIGNING_IDENTITY" --timestamp "$dmg_path"
+          codesign --verify --verbose=2 "$dmg_path"
+          echo "dmg_path=$dmg_path" >> "$GITHUB_OUTPUT"
+
+      - name: 公证并验证 macOS DMG
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          dmg_path="${{ steps.dmg.outputs.dmg_path }}"
+          xcrun notarytool submit "$dmg_path" \
+            --apple-id "$MACOS_NOTARY_APPLE_ID" \
+            --team-id "$MACOS_NOTARY_TEAM_ID" \
+            --password "$MACOS_NOTARY_PASSWORD" \
+            --wait
+          xcrun stapler staple "$dmg_path"
+          xcrun stapler validate "$dmg_path"
+          spctl --assess --type open --context context:primary-signature --verbose=4 "$dmg_path"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: macos-dmg
-          path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-macos-${{ steps.dmg.outputs.dmg_suffix }}.dmg
+          path: ${{ steps.dmg.outputs.dmg_path }}
+
+      - name: 清理 macOS 签名材料
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          if [[ -n "${MACOS_SIGNING_KEYCHAIN:-}" ]]; then
+            security delete-keychain "$MACOS_SIGNING_KEYCHAIN" || true
+          fi
+          rm -f "$RUNNER_TEMP/macos-developer-id.p12" "$RUNNER_TEMP/SSPU-AllinOne-macos.zip"
 
   build-linux:
     needs: prepare

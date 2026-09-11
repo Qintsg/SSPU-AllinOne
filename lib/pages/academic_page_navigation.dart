@@ -80,4 +80,31 @@ extension _AcademicPageNavigation on _AcademicPageState {
       ),
     );
   }
+
+  /// 打开培养方案详情，并将刷新结果回写教务摘要。
+  void _openAcademicProgramPlan() {
+    if (_isCoordinatedRefresh) return;
+    Navigator.of(context).push(
+      YhPageRoute(
+        builder: (_) => AcademicProgramPlanPage(
+          client: _programPlanService,
+          initialResult: _academicEamsResult,
+          onResultChanged: _applyAcademicEamsResult,
+        ),
+      ),
+    );
+  }
+
+  /// 打开空闲教室只读查询页。
+  void _openFreeClassrooms() {
+    if (_isCoordinatedRefresh) return;
+    Navigator.of(context).push(
+      YhPageRoute(
+        builder: (_) => AcademicFreeClassroomPage(
+          client: _freeClassroomService,
+          nowOverride: widget.academicTermNow,
+        ),
+      ),
+    );
+  }
 }

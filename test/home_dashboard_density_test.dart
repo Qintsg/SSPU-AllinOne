@@ -11,8 +11,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sspu_allinone/app.dart';
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
+import 'package:sspu_allinone/models/email_mailbox.dart';
 import 'package:sspu_allinone/pages/home_page.dart';
 import 'package:sspu_allinone/services/campus_network_status_service.dart';
+import 'package:sspu_allinone/services/home_dashboard_preferences.dart';
 import 'package:sspu_allinone/services/quick_links_config_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 
@@ -46,7 +48,7 @@ CampusNetworkStatusService _networkService() {
   );
 }
 
-Widget _homeAt(Size size) {
+Widget _homeAt(Size size, {EmailMailboxQueryResult? emailResult}) {
   return YhApp(
     home: MediaQuery(
       data: MediaQueryData(
@@ -69,7 +71,7 @@ Widget _homeAt(Size size) {
             courseTableResultOverride: qingyuanHomeAcademicResult,
             academicOverviewResultOverride: qingyuanHomeAcademicResult,
             sportsAttendanceResultOverride: qingyuanHomeSportsResult,
-            emailResultOverride: qingyuanHomeEmailResult,
+            emailResultOverride: emailResult ?? qingyuanHomeEmailResult,
             studentReportResultOverride: qingyuanHomeStudentReportResult,
             quickLinkFavoritesOverride: _favorites,
           ),
@@ -79,10 +81,14 @@ Widget _homeAt(Size size) {
   );
 }
 
-Future<void> _pumpHome(WidgetTester tester, Size size) async {
+Future<void> _pumpHome(
+  WidgetTester tester,
+  Size size, {
+  EmailMailboxQueryResult? emailResult,
+}) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  await tester.pumpWidget(_homeAt(size));
+  await tester.pumpWidget(_homeAt(size, emailResult: emailResult));
   await tester.pump(const Duration(milliseconds: 500));
 }
 
@@ -107,6 +113,33 @@ void main() {
 
   tearDown(() {
     StorageService.debugUseSharedPreferencesStorageForTesting(null);
+  });
+
+  testWidgets('首页邮箱摘要只统计未读邮件', (tester) async {
+    final messages = [
+      qingyuanEmailMessages.first.copyWith(isRead: false),
+      qingyuanEmailMessages[1].copyWith(isRead: true),
+    ];
+    final emailResult = EmailMailboxQueryResult(
+      status: EmailQueryStatus.success,
+      protocol: EmailProtocol.imap,
+      message: '邮箱已同步',
+      detail: '已读取最近邮件。',
+      checkedAt: qingyuanVisualNow,
+      endpoint: qingyuanEmailImapEndpoint,
+      snapshot: EmailMailboxSnapshot(
+        protocol: EmailProtocol.imap,
+        account: 'student@example.invalid',
+        messages: messages,
+        fetchedAt: qingyuanVisualNow,
+        endpoint: qingyuanEmailImapEndpoint,
+      ),
+    );
+
+    await _pumpHome(tester, const Size(1200, 900), emailResult: emailResult);
+
+    expect(find.text('1 封未读邮件'), findsOneWidget);
+    expect(find.text('2 封未读邮件'), findsNothing);
   });
 
   testWidgets('1200x900 桌面主区遵循参考稿的 42vh 流体高度', (tester) async {
@@ -225,6 +258,26 @@ void main() {
       find.byKey(const Key('home-overview-stack')),
     );
     expect(overview.height, lessThanOrEqualTo(72));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('服务摘要遵循用户保存的顺序且不改变时间轨位置', (tester) async {
+    await HomeDashboardPreferences.instance.setOverviewOrder(const [
+      HomeOverviewItem.campusCard,
+      HomeOverviewItem.trainingPlan,
+      HomeOverviewItem.email,
+      HomeOverviewItem.sportsAttendance,
+    ]);
+    await _pumpHome(tester, const Size(1200, 900));
+
+    final campusCard = tester.getRect(
+      find.byKey(const Key('home-campus-card-balance-card')),
+    );
+    final trainingPlan = tester.getRect(
+      find.byKey(const Key('home-training-plan-card')),
+    );
+    expect(campusCard.top, lessThan(trainingPlan.top));
+    expect(find.byKey(const Key('home-today-courses-tile')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

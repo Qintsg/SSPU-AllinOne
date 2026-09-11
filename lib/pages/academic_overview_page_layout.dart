@@ -32,6 +32,8 @@ class _AcademicOverviewPage extends StatelessWidget {
     required this.onOpenGrades,
     required this.onOpenExams,
     required this.onOpenSchedule,
+    required this.onOpenProgramPlan,
+    required this.onOpenFreeClassrooms,
     required this.onOpenAccountConnections,
     required this.onAdjustAcademicTerm,
     required this.onOpenDetailedSources,
@@ -60,6 +62,8 @@ class _AcademicOverviewPage extends StatelessWidget {
   final VoidCallback? onOpenGrades;
   final VoidCallback? onOpenExams;
   final VoidCallback? onOpenSchedule;
+  final VoidCallback? onOpenProgramPlan;
+  final VoidCallback? onOpenFreeClassrooms;
   final VoidCallback? onOpenAccountConnections;
   final VoidCallback? onAdjustAcademicTerm;
   final VoidCallback? onOpenDetailedSources;
@@ -198,6 +202,8 @@ class _AcademicOverviewPage extends StatelessWidget {
                         onOpenGrades: onOpenGrades,
                         onOpenExams: onOpenExams,
                         onOpenSchedule: onOpenSchedule,
+                        onOpenProgramPlan: onOpenProgramPlan,
+                        onOpenFreeClassrooms: onOpenFreeClassrooms,
                       ),
                     ] else
                       _AcademicStatePanel(

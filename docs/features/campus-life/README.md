@@ -10,8 +10,8 @@
 
 | 功能 | 状态 | Issue | 文档 |
 | --- | --- | --- | --- |
-| 校园卡余额与明细 | 部分实现 | #187 | [`campus-card.md`](campus-card.md) |
-| 消费统计与可视化 | 设计中 | — | [`consumption-analytics.md`](consumption-analytics.md) |
+| 校园卡余额与明细 | 已实现 | #187（仅关联显隐/获取设置） | [`campus-card.md`](campus-card.md) |
+| 消费统计与可视化 | 已实现（本地趋势、自定义窗口、日/周/月聚合） | — | [`consumption-analytics.md`](consumption-analytics.md) |
 
 ## 3. 内部依赖
 

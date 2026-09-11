@@ -13,7 +13,7 @@
 | 功能 | 状态 | Issue | 文档 |
 | --- | --- | --- | --- |
 | 导航与响应式壳层 | 已实现 | #298 | [`shell/navigation-shell.md`](shell/navigation-shell.md) |
-| 主页仪表盘与卡片 | 部分实现 | #187 | [`shell/home-dashboard.md`](shell/home-dashboard.md) |
+| 主页仪表盘与卡片 | 已实现 | #187 | [`shell/home-dashboard.md`](shell/home-dashboard.md) |
 | 设置中心 | 已实现 | #187 | [`shell/settings.md`](shell/settings.md) |
 
 ### 系统能力 [`system/`](system/README.md)
@@ -25,19 +25,20 @@
 | 通知与提醒 | 部分实现 | #188 | [`system/notifications.md`](system/notifications.md) |
 | 后台自动刷新 | 已实现 | — | [`system/auto-refresh.md`](system/auto-refresh.md) |
 | 应用更新检测 | 已实现 | — | [`system/app-update.md`](system/app-update.md) |
+| 发布与 macOS 首次启动 | 部分实现 | #327 | [`system/release.md`](system/release.md) |
 
 ### 个性化 [`personalization/`](personalization/README.md)
 
 | 功能 | 状态 | Issue | 文档 |
 | --- | --- | --- | --- |
-| 主题与深色模式 | 部分实现 | #168 | [`personalization/theme.md`](personalization/theme.md) |
+| 主题与深色模式 | 已实现 | #168（已关闭） | [`personalization/theme.md`](personalization/theme.md) |
 | 国际化基础设施 | 设计中 | #192 | [`personalization/i18n.md`](personalization/i18n.md) |
 
 ### 通用能力
 
 | 功能 | 状态 | Issue | 文档 |
 | --- | --- | --- | --- |
-| 校历（无需登录，供全局学期/周次计算） | 部分实现 | — | [`academic-calendar.md`](academic-calendar.md) |
+| 校历（无需登录，供全局学期/周次计算） | 已实现 | — | [`academic-calendar.md`](academic-calendar.md) |
 
 ## 3. 内部依赖
 
@@ -52,4 +53,4 @@
 
 ## 5. 相关 Issue
 
-#298（前端重构）、#187（卡片/模块显隐）、#188（推送提醒）、#168（主题）、#192（i18n）、#194（WebDAV 同步）、#189（小组件）。
+#298（前端重构，已关闭）、#187（卡片/模块显隐与获取）、#188（推送提醒）、#327（macOS 首次启动）、#168（主题，已关闭）、#192（i18n）、#194（WebDAV 同步）、#189（小组件）。

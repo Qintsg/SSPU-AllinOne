@@ -158,6 +158,12 @@ flutter test test/widget_test.dart
 | `test/academic_eams_service_test.dart` | 单元测试 | 本专科教务只读服务、开课检索、空闲教室查询 |
 | `test/academic_page_test.dart` | Widget 测试 | 教务中心卡片、二级页面与本专科教务摘要入口 |
 | `test/course_schedule_page_test.dart` | Widget 测试 | 独立课程表页面状态与自动刷新 |
+| `test/email_page_test.dart` | Widget 测试 | 邮箱分页入口、本地搜索、已读状态、撰写与附件交互 |
+| `test/email_service_test.dart` | 单元测试 | IMAP/POP 收信、已读回写、附件下载、SMTP 附件发送与安全边界 |
+| `test/quick_links_page_test.dart` | Widget 测试 | 快捷入口搜索、App 深链、OA 会话门禁与 WebView 分流 |
+| `test/academic_ics_export_service_test.dart` | 单元测试 | 课程/考试事件合并、RFC 5545 转义和 UTC `DTSTAMP` |
+| `test/campus_consumption_analytics_service_test.dart` | 单元测试 | 消费趋势日期窗口与日/周/月聚合 |
+| `test/campus_consumption_analytics_page_test.dart` | Widget 测试 | 消费趋势窗口、日期范围和聚合切换 |
 | `test/widget_test.dart` | 冒烟测试 | SSPUApp 可正常构建 |
 
 > 测试体系仍在继续补充，后续会进一步扩展集成测试与更多异常分支覆盖。
@@ -190,13 +196,13 @@ CAS 要求图形验证码、MFA / 安全验证或页面结构变化时，应用�
 
 主页提供“校园卡余额”卡片，标题行包含上次刷新时间、刷新按钮和交易记录入口；成功态只展示余额，卡状态仅在异常时显示短提示。详情页进入后会自动查询系统默认最近交易，并支持“最近 / 近7天 / 近30天”或手动日期范围只读查询。默认不自动访问校园卡系统；可手动刷新，也可在设置页开启“校园卡余额自动刷新”。
 
-校园卡链路复用 OA/CAS 会话，每次读取前都会执行校园网 / VPN 前置检测，不提供充值、支付或其它写入入口。登录与解析规则探索记录见 [CAMPUS_CARD_RULES.md](CAMPUS_CARD_RULES.md)。
+校园卡链路复用 OA/CAS 会话，每次读取前都会执行校园网 / VPN 前置检测，不提供充值、支付或其它写入入口。详情页的“消费趋势”入口只读取本地交易缓存，支持全部、近 7 天、近 30 天、自定义日期范围，以及按日、按周、按月聚合；不会为统计额外发起网络请求。登录与解析规则探索记录见 [CAMPUS_CARD_RULES.md](CAMPUS_CARD_RULES.md)。
 
 ## 6.8 学校邮箱收信与 SMTP 发信调试
 
-侧边导航提供“学校邮箱”页面，用于校验邮箱协议登录状态，通过 IMAP 或 POP 读取最近邮件，并通过 SMTP 主动发送普通文本邮件。邮箱账号固定由学工号派生为 `学工号@sspu.edu.cn`，邮箱密码独立于 OA 密码。
+导航提供“学校邮箱”页面，用于校验邮箱协议登录状态，通过 IMAP 或 POP 读取最近邮件，并通过 SMTP 主动发送纯文本邮件。邮箱账号固定由学工号派生为 `学工号@sspu.edu.cn`，邮箱密码独立于 OA 密码。
 
-收信侧仅展示标题、发件人、时间、正文摘要和正文快照；IMAP 使用 BODY.PEEK[]，POP 仅 RETR 最近邮件，不提供回复、转发、删除、移动或标记已读入口。发信侧仅在用户点击“发送邮件”时通过 SMTP 提交 To / Cc / Bcc / 主题 / 正文，暂不支持附件、草稿、自动发送或后台重试，也不会把发件正文或收件人明文写入普通缓存。登录与协议规则探索记录见 [EMAIL_RULES.md](EMAIL_RULES.md)。
+当前收信侧展示标题、发件人、时间、正文摘要和正文快照，支持 IMAP 分页、已读回写、本地搜索和附件按需下载；发信侧仅在用户点击“发送邮件”时提交 To / Cc / Bcc / 主题 / 纯文本正文与附件。附件最多 25 个、总大小不超过 100MB。应用始终不提供回复、转发、删除、移动或其它服务器写操作，也不会把发件正文、收件人或附件明文写入普通缓存。详细边界见 [EMAIL_RULES.md](EMAIL_RULES.md)。
 
 ## 6.9 学工报表第二课堂学分调试
 
@@ -209,6 +215,8 @@ CAS 要求图形验证码、MFA / 安全验证或页面结构变化时，应用�
 教务中心页新增“本专科教务”摘要卡片，独立“课表”页面展示当前学期课表。两者共用 EAMS 只读服务与自动刷新配置，默认不自动访问本专科教务系统。
 
 本专科教务固定使用 `https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw` 入口并复用 OA/CAS 会话，业务站点使用 Firefox UA。页面仅展示个人基本信息、课表、成绩、考试、培养计划和入口状态，不提供选课、退课、调课、教学评价、确认、提交申请、预约教室或任何写入入口。
+
+课表页可在“课表”和“课程与考试”之间切换；后者支持本周与整学期议程，将课程按校历周次展开、将考试作为单次事件展示。点击“导出 .ics”会在系统默认应用数据目录生成标准 iCalendar 文件，并交给系统关联的日历应用打开；没有关联应用时保留文件路径，用户可以手动导入。导出只读数据，不回写教务系统。
 
 课程表页标题命令区提供“校历”入口，可查看教务处 2021 年以后的校历缓存、结构化学期范围、夏季教学段、特殊日期说明和原始 PDF。校历来源为 `https://jwc.sspu.edu.cn/xl/list.htm`，无需校园网 / VPN；应用优先读取本地缓存，缺少当前学年或 7/8 月临近下一学年时自动抓取。桌面端和移动端会将 PDF 与抽取文本保存到系统默认应用数据目录（由 `path_provider` 提供，如 Windows `%APPDATA%`、macOS 沙盒容器、Linux `$XDG_DATA_HOME`）下的 `academic_calendars/pdf/` 和 `academic_calendars/text/`。
 
@@ -265,7 +273,10 @@ flutter build appbundle --release
 
 - `app-release.apk` 可直接安装到 Android 设备
 - `app-release.aab` 用于应用商店上传，不适合本地直接安装
-- GitHub Release 默认公开发布 `SSPU-AllinOne-v{version}-android-universal.apk`
+- GitHub Release 默认公开发布按 ABI 拆分的 APK：
+  `SSPU-AllinOne-v{version}-android-armeabi-v7a.apk`、
+  `SSPU-AllinOne-v{version}-android-arm64-v8a.apk`、
+  `SSPU-AllinOne-v{version}-android-x86_64.apk`
 
 ### 7.2 iOS
 
@@ -277,6 +288,8 @@ flutter build ios --release
 iOS Bundle ID 已迁移为 `cn.qintsg.sspuAllInOne`。Bundle ID 变化后，需要在 Apple Developer 账号中准备新的 App ID，并重新生成匹配的 provisioning profile；证书本身不因显示名称变化而重取，但 profile 必须覆盖新的 Bundle ID。
 
 iOS 系统快速验证通过 `local_auth` 调用系统能力，`Info.plist` 已配置 `NSFaceIDUsageDescription`。启用该功能仍需先开启应用密码保护并输入当前密码确认。
+
+GitHub Release 当前提供未签名的 `SSPU-AllinOne-v{version}-ios-arm64.app.zip`；真机安装仍需使用 Apple Developer 账号重新签名。
 
 ### 7.3 Windows 桌面
 
@@ -344,13 +357,13 @@ chmod +x sspu_allinone
 
 若通过 GitHub Release 工作流发布，当前还会额外生成：
 
-- `SSPU-AllinOne-v{version}-linux-x64-appimage.AppImage`
-- `SSPU-AllinOne-v{version}-linux-x64-deb.deb`
-- `SSPU-AllinOne-v{version}-linux-x64-rpm.rpm`
+- `SSPU-AllinOne-v{version}-linux-x64.AppImage`
+- `SSPU-AllinOne-v{version}-linux-x64.deb`
+- `SSPU-AllinOne-v{version}-linux-x64.rpm`
 - `SSPU-AllinOne-v{version}-linux-x64-portable.tar.gz`
-- `SSPU-AllinOne-v{version}-linux-arm64-appimage.AppImage`
-- `SSPU-AllinOne-v{version}-linux-arm64-deb.deb`
-- `SSPU-AllinOne-v{version}-linux-arm64-rpm.rpm`
+- `SSPU-AllinOne-v{version}-linux-arm64.AppImage`
+- `SSPU-AllinOne-v{version}-linux-arm64.deb`
+- `SSPU-AllinOne-v{version}-linux-arm64.rpm`
 - `SSPU-AllinOne-v{version}-linux-arm64-portable.tar.gz`
 
 Linux 当前没有 `local_auth` 官方实现，系统快速验证入口会隐藏，用户仍使用手动密码解锁。
@@ -358,7 +371,7 @@ Linux 当前没有 `local_auth` 官方实现，系统快速验证入口会隐藏
 面向 Debian / Ubuntu 及其衍生发行版，可直接使用：
 
 ```bash
-sudo apt install ./SSPU-AllinOne-v{version}-linux-x64-deb.deb
+sudo apt install ./SSPU-AllinOne-v{version}-linux-x64.deb
 ```
 
 ---
@@ -449,9 +462,9 @@ flutter pub get
 flutter run -d windows
 ```
 
-### 10.4 Fluent 2 组件编译问题
+### 10.4 清源组件编译问题
 
-确认 Flutter SDK 版本满足 `pubspec.yaml` 的最低要求，并避免重新引入已移除的外部 Fluent UI 依赖：
+确认 Flutter SDK 版本满足 `pubspec.yaml` 的最低要求，并避免绕过 `design/qingyuan/qingyuan_ui.dart` 门面或重新引入外部成品 UI 依赖：
 
 ```bash
 flutter --version

@@ -10,14 +10,14 @@
 
 | 功能 | 状态 | Issue | 文档 |
 | --- | --- | --- | --- |
-| 多源新闻聚合 | 部分实现 | — | [`news-aggregation.md`](news-aggregation.md) |
+| 多源新闻聚合 | 已实现 | — | [`news-aggregation.md`](news-aggregation.md) |
 | 消息中心 | 部分实现 | #188 | [`message-center.md`](message-center.md) |
-| 微信公众号文章 | 部分实现 | — | [`wechat-articles.md`](wechat-articles.md) |
+| 微信公众号文章 | 部分实现（公众号/服务号已统一刷新；真实认证待验证） | — | [`wechat-articles.md`](wechat-articles.md) |
 
 ## 3. 信息架构（三级标签）
 
 - tag1 来源类型（`MessageSourceType`）→ tag2 来源名称（`MessageSourceName`）→ tag3 内容分类（`MessageCategory`）。
-- **微信推文仅两级**：tag1 + tag2（公众号名），无 tag3。
+- **微信内容仅两级**：tag1 + tag2（公众号名），无 tag3；公众号与服务号进入同一抓取、刷新和消息合并链路。
 - 频道(channel)开关 + 子分类开关 + 自动刷新间隔/抓取条数（默认值后续可调）+ 已读集合。
 
 ## 3.1 功能关系

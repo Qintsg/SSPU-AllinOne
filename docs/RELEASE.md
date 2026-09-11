@@ -141,32 +141,38 @@ SSPU-AllinOne-v{public_version}-{platform}-{arch}-{kind}.{ext}
 
 应用显示名可以按语言环境显示为“工大聚合”或 `SSPU-AllinOne`，但 Release 资产文件名始终使用 `SSPU-AllinOne-v...` 规则，不使用中文显示名。Windows installer 默认安装目录也必须固定使用英文技术名 `SSPU-AllinOne`，不得随显示语言变为中文目录。
 
-Android universal APK 使用固定短名：
+Android Release 使用按 ABI 拆分的 APK：
 
 ```text
-SSPU-AllinOne-v{public_version}-android-universal.apk
+SSPU-AllinOne-v{public_version}-android-armeabi-v7a.apk
+SSPU-AllinOne-v{public_version}-android-arm64-v8a.apk
+SSPU-AllinOne-v{public_version}-android-x86_64.apk
 ```
 
 示例：
 
 ```text
-SSPU-AllinOne-v1.0.0-alpha-android-universal.apk
-SSPU-AllinOne-v1.0.0-windows-x64-installer.exe
-SSPU-AllinOne-v1.0.0.1-hotfix-linux-x64-appimage.AppImage
+SSPU-AllinOne-v1.0.0-alpha-android-arm64-v8a.apk
+SSPU-AllinOne-v1.0.0-windows-x64-setup.exe
+SSPU-AllinOne-v1.0.0.1-hotfix-linux-x64-portable.tar.gz
+SSPU-AllinOne-v1.0.0-alpha-ios-arm64.app.zip
 ```
 
 ---
 
 ## 5. 平台支持矩阵
 
+macOS 0.4.0-beta 首次启动问题（#327）的发布门槛是 Developer ID 签名、公证、staple、Gatekeeper 和 universal 架构检查全部通过；Windows 工作树或静态 workflow 检查不能替代 macOS Runner 上的首次启动证据。未具备 macOS Runner 与签名材料时，发布文档和变更日志必须标记为待验收，不得写成已修复并验证。
+
 | 平台 | 架构 | 发布形式 | 默认进入公开 Release |
 |---|---|---|---|
-| Android | universal | APK | 是 |
+| Android | armeabi-v7a / arm64-v8a / x86_64 | APK（按 ABI 拆分） | 是 |
 | Windows | x64 | installer / portable | 是 |
 | Windows | arm64 | installer / portable | 是 |
 | macOS | universal | Developer ID 签名并公证的 DMG | 是 |
 | Linux | x64 | AppImage / deb / rpm / tar.gz | 是 |
 | Linux | arm64 | AppImage / deb / rpm / tar.gz | 是 |
+| iOS | arm64 | 未签名 `.app.zip`（需开发者账号安装） | 是 |
 
 Linux 正式发布必须同时覆盖 `x64` 与 `arm64`，并提供 AppImage、deb、rpm、tar.gz 四类产物。
 

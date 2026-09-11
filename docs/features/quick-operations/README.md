@@ -12,7 +12,7 @@
 
 | 功能 | 状态 | Issue | 文档 |
 | --- | --- | --- | --- |
-| 快捷跳转 | 部分实现 | #280 | [`quick-jump.md`](quick-jump.md) |
+| 快捷跳转 | 已实现（App 深链、内嵌 WebView、OA 会话复用） | #280 | [`quick-jump.md`](quick-jump.md) |
 | 文档查询 | 设计中 | #131 | [`document-query.md`](document-query.md) |
 
 ## 3. 内部依赖
@@ -28,4 +28,4 @@
 
 ## 5. 相关 Issue
 
-#280（移动端学习通 App 跳转）、#131（常用办事流程与文档汇总）。
+#280（移动端学习通 App 跳转，已实现）、#131（常用办事流程与文档汇总）。

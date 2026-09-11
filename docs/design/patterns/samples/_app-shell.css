@@ -459,6 +459,12 @@ button.overview-card:hover { background: var(--brand-tint); }
 .settings-sheet-scrim { display: none; }
 .setting-subheading { margin: var(--space-l) 0 0; color: var(--muted); font: 600 var(--type-caption)/1.4 var(--font); letter-spacing: .05em; }
 .settings-home-card .setting-subheading + .setting-row { margin-top: var(--space-xs); }
+.settings-order-note { margin: var(--space-xs) 0 var(--space-s); color: var(--muted); font-size: var(--type-small); line-height: var(--line-height-small); }
+.settings-order-actions { display: flex; align-items: center; gap: var(--space-xs); }
+.settings-order-button { width: var(--control-regular); height: var(--control-regular); border: 0; border-radius: var(--radius-s); color: var(--muted); background: transparent; font: 600 var(--type-body)/1 var(--font); cursor: pointer; }
+.settings-order-button:hover { color: var(--brand-strong); background: var(--brand-tint); }
+.settings-order-button:focus-visible { outline: var(--focus-ring-width) solid var(--brand-strong); outline-offset: var(--focus-ring-gap); }
+.settings-order-button:disabled { opacity: .4; cursor: default; }
 .setting-group { display: grid; gap: var(--space-s); }
 .settings-panel { display: grid; gap: var(--space-l); }
 .setting-row { min-height: 56px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--space-m); padding: var(--space-xs) 0; border-bottom: 1px solid var(--border); }
@@ -607,6 +613,8 @@ button.overview-card:hover { background: var(--brand-tint); }
   .settings-page .settings-panel .section-card { padding: var(--space-l); border-radius: var(--radius-l); }
   .settings-page .settings-panel .settings-home-card { padding-bottom: var(--space-m); }
   .setting-row { min-height: 56px; padding-block: var(--space-xs); }
+  .settings-overview-row { grid-template-columns: var(--space-l) minmax(0, 1fr); }
+  .settings-overview-row .settings-order-actions { grid-column: 2; justify-self: end; }
   .settings-security-card .security-toggle-row { grid-template-columns: minmax(0, 1fr) auto; }
   .settings-security-card .security-toggle-row .settings-row-icon { display: none; }
   .settings-section-divider { margin-block: var(--space-m); }

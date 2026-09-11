@@ -15,6 +15,7 @@ import 'package:window_manager/window_manager.dart';
 import 'auto_refresh_service.dart';
 import 'tray_service.dart';
 import '../utils/webview_env.dart';
+import 'mcp_server_controller.dart';
 
 /// 仅桌面平台具备窗口与托盘资源，移动端 / Web 走系统退出。
 bool get _supportsDesktopShell =>
@@ -105,6 +106,7 @@ class AppExitService {
     _isExiting = true;
 
     try {
+      await McpServerController.instance.stop();
       if (_supportsDesktopShell) {
         await _hideVisibleWindowBeforeExit();
         await _finishDesktopExitInBackground();

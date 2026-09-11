@@ -61,8 +61,34 @@ class StorageKeys {
   static const String homeQuickLinksTileVisible =
       'home_quick_links_tile_visible';
 
+  /// 首页服务摘要的展示顺序。
+  static const String homeOverviewOrder = 'home_overview_order';
+
+  /// 本专科教务模块是否允许联网获取数据。
+  static const String academicEamsModuleFetchEnabled =
+      'module_academic_eams_fetch_enabled';
+
+  /// 校园卡模块是否允许联网获取数据。
+  static const String campusCardModuleFetchEnabled =
+      'module_campus_card_fetch_enabled';
+
+  /// 学校邮箱模块是否允许联网获取数据。
+  static const String emailModuleFetchEnabled = 'module_email_fetch_enabled';
+
+  /// 体育考勤模块是否允许联网获取数据。
+  static const String sportsAttendanceModuleFetchEnabled =
+      'module_sports_attendance_fetch_enabled';
+
+  /// 第二课堂模块是否允许联网获取数据。
+  static const String studentReportModuleFetchEnabled =
+      'module_student_report_fetch_enabled';
+
   /// 快速跳转常用入口 URL 列表。
   static const String quickLinkFavoriteUrls = 'quick_link_favorite_urls';
+
+  /// 已调度的教务通知 ID 列表，用于重新计划时取消旧提醒。
+  static const String academicReminderNotificationIds =
+      'academic_reminder_notification_ids';
 
   /// 校园网 / VPN 状态检测间隔（分钟，0 = 关闭自动检测）。
   static const String campusNetworkDetectionIntervalMinutes =
@@ -166,4 +192,13 @@ class StorageKeys {
 
   /// 学校邮箱业务快照缓存集合。
   static const String emailMailboxCacheCollection = 'cache_email_mailbox';
+
+  /// 本地 MCP 服务普通配置（不包含 API Key）。
+  static const String mcpServerConfig = 'mcp_server_config';
+
+  /// 本地 MCP 授权矩阵（默认全关闭）。
+  static const String mcpAuthorization = 'mcp_authorization';
+
+  /// 本地 MCP 脱敏审计记录。
+  static const String mcpAccessAudit = 'mcp_access_audit';
 }

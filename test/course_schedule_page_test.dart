@@ -20,6 +20,7 @@ import 'package:sspu_allinone/pages/course_schedule_page.dart';
 import 'package:sspu_allinone/services/academic_calendar_service.dart';
 import 'package:sspu_allinone/services/academic_credentials_service.dart';
 import 'package:sspu_allinone/services/academic_eams_service.dart';
+import 'package:sspu_allinone/services/data_module_preferences.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/utils/course_week_parser.dart';
 
@@ -59,6 +60,7 @@ Future<void> pumpCourseSchedulePage(
   required AcademicEamsClient academicEamsService,
   AcademicEamsQueryResult? initialResult,
   bool autoRefreshEnabledOverride = false,
+  bool? fetchEnabledOverride = true,
   int? autoRefreshIntervalOverride = 30,
   DateTime? nowOverride,
   AcademicCalendarClient? academicCalendarService,
@@ -69,6 +71,7 @@ Future<void> pumpCourseSchedulePage(
         academicEamsService: academicEamsService,
         initialResult: initialResult,
         autoRefreshEnabledOverride: autoRefreshEnabledOverride,
+        fetchEnabledOverride: fetchEnabledOverride,
         autoRefreshIntervalOverride: autoRefreshIntervalOverride,
         nowOverride: nowOverride,
         academicCalendarService: academicCalendarService,
@@ -152,6 +155,36 @@ void main() {
     await tester.pump();
 
     expect(service.courseTableFetchCount, 2);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('页面停留期间停止教务获取会立即取消课表定时刷新', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+    addTearDown(() {
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+      SharedPreferences.setMockInitialValues({});
+    });
+    final service = _FakeAcademicEamsClient(result: _successResult);
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      autoRefreshEnabledOverride: true,
+      fetchEnabledOverride: null,
+      autoRefreshIntervalOverride: 1,
+    );
+    await pumpUntilFound(tester, find.text('高等数学'));
+    expect(service.courseTableFetchCount, 1);
+
+    await DataModulePreferences.instance.setFetchEnabled(
+      CampusDataModule.academicEams,
+      false,
+    );
+    await tester.pump();
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pump();
+
+    expect(service.courseTableFetchCount, 1);
     await disposeCourseSchedulePage(tester);
   });
 
@@ -546,6 +579,26 @@ void main() {
 
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('课程与考试日历可切换本周和整学期议程', (tester) async {
+    final service = _FakeAcademicEamsClient(result: _successResultWithExam);
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      initialResult: _successResultWithExam,
+      nowOverride: DateTime(2026, 5, 4, 9),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('课程与考试'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('academic-integrated-agenda')), findsOneWidget);
+    expect(find.text('考试：高等数学'), findsOneWidget);
+    expect(find.text('本周'), findsOneWidget);
+    expect(find.text('整学期'), findsOneWidget);
+    await disposeCourseSchedulePage(tester);
+  });
 }
 
 class _FakeAcademicEamsClient implements AcademicEamsClient {
@@ -797,6 +850,37 @@ final AcademicEamsQueryResult _successResult = AcademicEamsQueryResult(
       sourceUri: Uri.parse(
         'https://jx.sspu.edu.cn/eams/courseTableForStd.action',
       ),
+    ),
+  ),
+);
+
+final AcademicEamsQueryResult _successResultWithExam = AcademicEamsQueryResult(
+  status: AcademicEamsQueryStatus.success,
+  message: '本专科教务只读查询成功',
+  detail: '已读取当前学期课表与考试。',
+  checkedAt: DateTime(2026, 5, 2, 10),
+  entranceUri: Uri.parse(
+    'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
+  ),
+  snapshot: AcademicEamsSnapshot(
+    fetchedAt: DateTime(2026, 5, 2, 10),
+    sourceUri: Uri.parse('https://jx.sspu.edu.cn/eams/home.action'),
+    warnings: const [],
+    hasCourseOfferingEntry: true,
+    hasFreeClassroomEntry: true,
+    courseTable: _successResult.snapshot!.courseTable,
+    exams: AcademicExamSnapshot(
+      records: const [
+        AcademicExamRecord(
+          courseName: '高等数学',
+          rawCells: [],
+          examDate: '2026-05-05',
+          examArrange: '14:00-16:00',
+          examLocation: '教学楼 A101',
+        ),
+      ],
+      fetchedAt: DateTime(2026, 5, 2, 10),
+      sourceUri: Uri.parse('https://jx.sspu.edu.cn/eams/stdExamTable.action'),
     ),
   ),
 );
