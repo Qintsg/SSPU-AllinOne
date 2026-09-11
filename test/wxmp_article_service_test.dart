@@ -7,6 +7,7 @@
  */
 
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -17,8 +18,28 @@ import 'package:sspu_allinone/services/message_state_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 import 'package:sspu_allinone/services/wechat_article_service.dart';
 import 'package:sspu_allinone/services/wxmp_article_service.dart';
+import 'package:sspu_allinone/services/wxmp_auth_service.dart';
+import 'package:sspu_allinone/services/wxmp_config_service.dart';
 
 void main() {
+  late Directory configDirectory;
+
+  setUp(() async {
+    configDirectory = await Directory.systemTemp.createTemp(
+      'wxmp_article_test_',
+    );
+    WxmpConfigService.instance.debugSetConfigPathForTesting(
+      '${configDirectory.path}${Platform.pathSeparator}wxmp_config.toml',
+    );
+  });
+
+  tearDown(() async {
+    WxmpConfigService.instance.debugSetConfigPathForTesting(null);
+    if (await configDirectory.exists()) {
+      await configDirectory.delete(recursive: true);
+    }
+  });
+
   test('统一刷新结果区分部分失败与认证失效', () {
     final partial = WxmpFetchResult(
       messages: [
@@ -90,6 +111,7 @@ void main() {
     await StorageService.init();
 
     const fakeid = 'muted-source';
+    await WxmpAuthService.instance.saveAuth('test-cookie', '123456');
     await WxmpArticleService.instance.followMp(fakeid, '青春二工大');
     await MessageStateService.instance.setMpNotificationEnabled(fakeid, false);
 
