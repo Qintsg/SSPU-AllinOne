@@ -78,7 +78,7 @@
 - [x] T029 运行 `dart format --output=none --set-exit-if-changed lib test integration_test`、`flutter analyze --no-fatal-infos`、`flutter test` 与 `python scripts/ci/validate_spec_kit.py`
 - [x] T030 运行 `flutter build windows --debug` 和 `flutter run -d windows --debug`，按 `quickstart.md` 检查七个入口与控制台日志
 - [x] T031 使用 `$speckit-converge` 对照 spec/plan/tasks 收敛遗漏并将所有已完成任务标记为 `[x]`
-- [ ] T032 使用 Lore 提交、推送分支、创建目标为 `develop` 的 PR，等待 CI 后通过 PR 合并
+- [x] T032 使用 Lore 提交、推送分支、创建目标为 `develop` 的 PR，等待 CI 后通过 PR 合并
 
 ## Dependencies & Execution Order
 
