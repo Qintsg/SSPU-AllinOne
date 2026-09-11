@@ -106,12 +106,16 @@ mixin _SettingsPageSecurityPrivacyActions
     const stages = ['校园业务缓存', '信息中心消息缓存', '信息中心已读状态'];
     final completed = <String>[];
     try {
-      await AuthenticatedDataCacheService.clearAll();
-      completed.add(stages[0]);
-      await StorageService.remove(MessageChannelKeys.persistedMessages);
-      completed.add(stages[1]);
-      await StorageService.remove(MessageChannelKeys.readMessageIds);
-      completed.add(stages[2]);
+      await McpServerController.instance.runWithInvalidatedExecutionContext(
+        () async {
+          await AuthenticatedDataCacheService.clearAll();
+          completed.add(stages[0]);
+          await StorageService.remove(MessageChannelKeys.persistedMessages);
+          completed.add(stages[1]);
+          await StorageService.remove(MessageChannelKeys.readMessageIds);
+          completed.add(stages[2]);
+        },
+      );
     } catch (_) {
       throw _dataPrivacyFailure(stages, completed);
     }
@@ -136,10 +140,14 @@ mixin _SettingsPageSecurityPrivacyActions
     const stages = ['OA、体育与邮箱凭据及校园业务缓存', '微信公众号连接'];
     final completed = <String>[];
     try {
-      await AcademicCredentialsService.instance.clearAll();
-      completed.add(stages[0]);
-      await WxmpAuthService.instance.clearAuth();
-      completed.add(stages[1]);
+      await McpServerController.instance.runWithInvalidatedExecutionContext(
+        () async {
+          await AcademicCredentialsService.instance.clearAll();
+          completed.add(stages[0]);
+          await WxmpAuthService.instance.clearAuth();
+          completed.add(stages[1]);
+        },
+      );
       if (mounted) _showSuccessBar('账户连接已断开');
       return true;
     } catch (_) {
@@ -161,14 +169,19 @@ mixin _SettingsPageSecurityPrivacyActions
     const stages = ['OA、体育与邮箱凭据及校园业务缓存', '微信公众号连接', '本机偏好与信息缓存', '退出应用'];
     final completed = <String>[];
     try {
-      await AcademicCredentialsService.instance.clearAll();
-      completed.add(stages[0]);
-      await WxmpAuthService.instance.clearAuth();
-      completed.add(stages[1]);
-      await StorageService.clearAll();
-      completed.add(stages[2]);
-      await AppExitService.instance.exit();
-      completed.add(stages[3]);
+      await McpServerController.instance.runWithInvalidatedExecutionContext(
+        () async {
+          await AcademicCredentialsService.instance.clearAll();
+          completed.add(stages[0]);
+          await WxmpAuthService.instance.clearAuth();
+          completed.add(stages[1]);
+          await StorageService.clearAll();
+          completed.add(stages[2]);
+          await AppExitService.instance.exit();
+          completed.add(stages[3]);
+        },
+        restartWhenComplete: false,
+      );
       return true;
     } catch (_) {
       if (mounted) {

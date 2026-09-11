@@ -146,6 +146,33 @@ void main() {
       expect((await client.listTools()).tools, isEmpty);
     },
   );
+
+  test('port conflict fails closed with an actionable error', () async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+    final reservation = await ServerSocket.bind(
+      InternetAddress.loopbackIPv4,
+      0,
+    );
+    final controller = McpServerController();
+    addTearDown(() async {
+      await reservation.close();
+      await controller.disposeServer();
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+    });
+
+    await controller.saveConfig(
+      McpServerConfig(
+        enabled: true,
+        port: reservation.port,
+        apiKeyEnabled: false,
+      ),
+    );
+    await controller.start();
+
+    expect(controller.state.isRunning, isFalse);
+    expect(controller.state.errorMessage, contains('端口不可用'));
+  });
 }
 
 class _FakeMcpNetwork extends McpNetworkService {

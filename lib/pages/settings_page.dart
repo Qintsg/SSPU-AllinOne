@@ -27,6 +27,7 @@ import '../services/data_module_preferences.dart';
 import '../services/email_service.dart';
 import '../services/home_dashboard_preferences.dart';
 import '../services/message_state_service.dart';
+import '../services/mcp_server_controller.dart';
 import '../services/notification_service.dart';
 import '../services/password_service.dart';
 import '../services/sports_attendance_service.dart';

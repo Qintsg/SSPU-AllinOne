@@ -77,6 +77,7 @@ class McpServerController extends ChangeNotifier {
         ? config.copyWith(apiKeyEnabled: true)
         : config;
     final wasRunning = _state.isRunning;
+    if (wasRunning) invalidateExecutionContext();
     _config = normalized;
     await StorageService.setString(
       StorageKeys.mcpServerConfig,
@@ -97,6 +98,31 @@ class McpServerController extends ChangeNotifier {
   Future<void> setGrant(McpDataDomain domain, bool enabled) async {
     await authorization.setGrant(domain, enabled);
     if (_state.isRunning) await restart();
+  }
+
+  /// Invalidates every in-flight capability read before account, credential,
+  /// cache, or privacy state is changed.
+  void invalidateExecutionContext() {
+    registry.executionContext.invalidate();
+  }
+
+  /// Runs a sensitive local-data mutation with the listener closed.
+  ///
+  /// Calls already executing are invalidated synchronously before shutdown;
+  /// a previously running, still-enabled service resumes after the mutation.
+  Future<T> runWithInvalidatedExecutionContext<T>(
+    Future<T> Function() operation, {
+    bool restartWhenComplete = true,
+  }) async {
+    final shouldRestart =
+        restartWhenComplete && _state.isRunning && _config.enabled;
+    invalidateExecutionContext();
+    await stop();
+    try {
+      return await operation();
+    } finally {
+      if (shouldRestart && _config.enabled) await start();
+    }
   }
 
   Future<void> start() async {
@@ -188,6 +214,7 @@ class McpServerController extends ChangeNotifier {
         _state.phase == McpServerPhase.stopping) {
       return;
     }
+    invalidateExecutionContext();
     ++_generation;
     _stopNetworkMonitor();
     _publish(_state.copyWith(phase: McpServerPhase.stopping));
@@ -262,8 +289,10 @@ class McpServerController extends ChangeNotifier {
   String _friendlyStartError(Object error) {
     if (error is SocketException) {
       final code = error.osError?.errorCode;
-      if (code == 10048 || code == 98) return '端口已被占用，请更换端口。';
-      return '无法绑定 MCP 服务端口，请检查系统网络权限。';
+      if (code == 10048 || code == 10013 || code == 98 || code == 48) {
+        return '端口不可用或已被占用，请更换端口。';
+      }
+      return '端口不可用、已被占用或缺少网络权限，请更换端口并检查系统网络权限。';
     }
     if (error is StateError) {
       final message = error.message;

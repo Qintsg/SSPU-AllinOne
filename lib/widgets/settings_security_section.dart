@@ -16,6 +16,7 @@ import '../services/academic_credentials_service.dart';
 import '../services/academic_oa_session_prewarm_service.dart';
 import '../services/academic_login_validation_service.dart';
 import '../services/email_service.dart';
+import '../services/mcp_server_controller.dart';
 import '../services/sports_attendance_service.dart';
 import 'responsive_layout.dart';
 import 'settings_widgets.dart';
@@ -209,11 +210,15 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
     try {
       final previousStatus = await _academicCredentials.getStatus();
       final enteredOaPassword = _nullablePassword(_oaPasswordController.text);
-      await _academicCredentials.saveCredentials(
-        oaAccount: _oaAccountController.text,
-        oaPassword: enteredOaPassword,
-        sportsQueryPassword: _nullablePassword(_sportsPasswordController.text),
-        emailPassword: _nullablePassword(_emailPasswordController.text),
+      await McpServerController.instance.runWithInvalidatedExecutionContext(
+        () => _academicCredentials.saveCredentials(
+          oaAccount: _oaAccountController.text,
+          oaPassword: enteredOaPassword,
+          sportsQueryPassword: _nullablePassword(
+            _sportsPasswordController.text,
+          ),
+          emailPassword: _nullablePassword(_emailPasswordController.text),
+        ),
       );
       final status = await _academicCredentials.getStatus();
       if (!mounted) return;
@@ -244,7 +249,9 @@ class _SettingsSecuritySectionState extends State<SettingsSecuritySection> {
     setState(() => _isSavingCredentials = true);
 
     try {
-      await _academicCredentials.clearSecret(secret);
+      await McpServerController.instance.runWithInvalidatedExecutionContext(
+        () => _academicCredentials.clearSecret(secret),
+      );
       final status = await _academicCredentials.getStatus();
       if (!mounted) return;
       _clearPasswordInputs();

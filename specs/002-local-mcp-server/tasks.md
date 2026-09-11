@@ -141,3 +141,17 @@
 3. Add LAN and API-key policy enforcement.
 4. Deliver the top-level AI services destination as the only management surface.
 5. Validate protocol, security, responsive rendering, platform behavior, and full project gates.
+
+---
+
+## Phase 9: Convergence
+
+**Purpose**: Close the remaining context-safety, quantified acceptance, interoperability, and declared-platform evidence gaps found after implementation.
+
+- [X] T037 Add an execution-context generation guard around MCP snapshot reads and invalidate it before account disconnect, cache/data clearing, privacy lock, and related context changes per FR-017 and the account-change edge case (missing)
+- [X] T038 Complete the distinguishable error automation matrix for concurrency, timeout, oversized response, empty/stale data, authentication, authorization, request limits, and port conflicts, and record full scenario coverage per SC-008 and FR-021 (partial)
+- [X] T039 Validate initialize, tools/list, tools/call, pagination, empty/stale/denied behavior, and key rotation with a non-`mcp_dart` client and record reproducible evidence per SC-009 and plan: interoperability (missing)
+- [ ] T040 Validate packaged loopback mode on Windows, macOS, and Linux plus authenticated LAN access, revocation, scope tightening, and firewall allow/deny behavior from a second same-subnet device on every declared LAN platform per SC-010 and US3 (partial)
+- [X] T041 Add a repeatable 100-run fresh-install and upgrade-start harness that proves no MCP listener appears without prior explicit enablement per SC-001 (partial)
+- [X] T042 Perform and record a timed end-to-end enable, connection-copy, and authorized capability-discovery acceptance flow within two minutes per SC-002 (partial)
+- [X] T043 Add a reproducible local-snapshot performance acceptance run proving p95 first-result latency below 500 ms for result sets up to 100 records per SC-006 (partial)

@@ -8,6 +8,7 @@ import 'package:sspu_allinone/models/mcp_authorization.dart';
 import 'package:sspu_allinone/models/mcp_server_config.dart';
 import 'package:sspu_allinone/services/mcp_authorization_service.dart';
 import 'package:sspu_allinone/services/mcp_capability_registry.dart';
+import 'package:sspu_allinone/services/mcp_execution_context_service.dart';
 import 'package:sspu_allinone/services/mcp_server_controller.dart';
 import 'package:sspu_allinone/services/mcp_snapshot_adapters.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
@@ -170,6 +171,191 @@ void main() {
       contains('授权上下文已变化'),
     );
   });
+
+  test(
+    'account or data context changed during a call discards the snapshot',
+    () async {
+      final started = Completer<void>();
+      final release = Completer<McpSnapshotEnvelope>();
+      final context = McpExecutionContextService();
+      final adapters = FakeMcpSnapshotAdapters(
+        handlers: {
+          'profile': () {
+            if (!started.isCompleted) started.complete();
+            return release.future;
+          },
+        },
+      );
+      final authorization = McpAuthorizationService.instance;
+      await authorization.setGrant(McpDataDomain.profile, true);
+      final registry = McpCapabilityRegistry(
+        adapters: adapters,
+        authorization: authorization,
+        executionContext: context,
+      );
+      final controller = await _startController(registry, authorization);
+      final client = await _connect(controller.state.endpoint!);
+      addTearDown(() async {
+        await client.close();
+        await controller.disposeServer();
+      });
+
+      final pending = client.callTool(
+        const CallToolRequest(name: 'get_current_profile'),
+      );
+      await started.future;
+      context.invalidate();
+      release.complete(
+        const McpSnapshotEnvelope(status: 'ok', data: {'displayName': '旧账号'}),
+      );
+
+      final result = await pending;
+      expect(result.isError, isTrue);
+      expect(result.structuredContent, isNull);
+      expect(
+        result.content.whereType<TextContent>().single.text,
+        contains('数据上下文已变化'),
+      );
+    },
+  );
+
+  test('empty snapshots remain successful and distinguishable', () async {
+    final authorization = McpAuthorizationService.instance;
+    await authorization.setGrant(McpDataDomain.profile, true);
+    final registry = McpCapabilityRegistry(
+      adapters: FakeMcpSnapshotAdapters(),
+      authorization: authorization,
+    );
+    final controller = await _startController(registry, authorization);
+    final client = await _connect(controller.state.endpoint!);
+    addTearDown(() async {
+      await client.close();
+      await controller.disposeServer();
+    });
+
+    final result = await client.callTool(
+      const CallToolRequest(name: 'get_current_profile'),
+    );
+    expect(result.isError, isNot(true));
+    expect(result.structuredContent?['status'], 'empty');
+  });
+
+  test('a fifth concurrent capability call is rejected', () async {
+    final started = Completer<void>();
+    final releases = List.generate(4, (_) => Completer<McpSnapshotEnvelope>());
+    var callIndex = 0;
+    final adapters = FakeMcpSnapshotAdapters(
+      handlers: {
+        'profile': () {
+          final index = callIndex++;
+          if (index == 3 && !started.isCompleted) started.complete();
+          return releases[index].future;
+        },
+      },
+    );
+    final authorization = McpAuthorizationService.instance;
+    await authorization.setGrant(McpDataDomain.profile, true);
+    final registry = McpCapabilityRegistry(
+      adapters: adapters,
+      authorization: authorization,
+    );
+    final controller = await _startController(registry, authorization);
+    final clients = <McpClient>[];
+    for (var index = 0; index < 5; index++) {
+      clients.add(await _connect(controller.state.endpoint!));
+    }
+    addTearDown(() async {
+      for (final client in clients) {
+        await client.close();
+      }
+      await controller.disposeServer();
+    });
+
+    final pending = clients
+        .take(4)
+        .map(
+          (client) => client.callTool(
+            const CallToolRequest(name: 'get_current_profile'),
+          ),
+        )
+        .toList();
+    await started.future;
+    final rejected = await clients.last.callTool(
+      const CallToolRequest(name: 'get_current_profile'),
+    );
+    expect(rejected.isError, isTrue);
+    expect(
+      rejected.content.whereType<TextContent>().single.text,
+      contains('并发请求过多'),
+    );
+    for (final release in releases) {
+      release.complete(const McpSnapshotEnvelope(status: 'empty'));
+    }
+    await Future.wait(pending);
+  });
+
+  test('snapshot timeout returns a stable timeout result', () async {
+    final never = Completer<McpSnapshotEnvelope>();
+    final authorization = McpAuthorizationService.instance;
+    await authorization.setGrant(McpDataDomain.profile, true);
+    final registry = McpCapabilityRegistry(
+      adapters: FakeMcpSnapshotAdapters(
+        handlers: {'profile': () => never.future},
+      ),
+      authorization: authorization,
+      toolTimeout: const Duration(milliseconds: 20),
+    );
+    final controller = await _startController(registry, authorization);
+    final client = await _connect(controller.state.endpoint!);
+    addTearDown(() async {
+      await client.close();
+      await controller.disposeServer();
+    });
+
+    final result = await client.callTool(
+      const CallToolRequest(name: 'get_current_profile'),
+    );
+    expect(result.isError, isTrue);
+    expect(
+      result.content.whereType<TextContent>().single.text,
+      contains('读取本地快照超时'),
+    );
+  });
+
+  test(
+    'oversized tool results are rejected before transport response',
+    () async {
+      final authorization = McpAuthorizationService.instance;
+      await authorization.setGrant(McpDataDomain.profile, true);
+      final registry = McpCapabilityRegistry(
+        adapters: FakeMcpSnapshotAdapters(
+          values: {
+            'profile': McpSnapshotEnvelope(
+              status: 'ok',
+              data: {'displayName': 'x' * 1024},
+            ),
+          },
+        ),
+        authorization: authorization,
+        maxResponseBytes: 256,
+      );
+      final controller = await _startController(registry, authorization);
+      final client = await _connect(controller.state.endpoint!);
+      addTearDown(() async {
+        await client.close();
+        await controller.disposeServer();
+      });
+
+      final result = await client.callTool(
+        const CallToolRequest(name: 'get_current_profile'),
+      );
+      expect(result.isError, isTrue);
+      expect(
+        result.content.whereType<TextContent>().single.text,
+        contains('结果过大'),
+      );
+    },
+  );
 }
 
 Future<McpServerController> _startController(
