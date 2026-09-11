@@ -12,7 +12,7 @@ part of 'academic_page_test.dart';
 ///
 /// :returns: 无返回值。
 void _registerAcademicLayoutTests() {
-  testWidgets('教务总览窄屏使用完整短标题而不留下孤字修辞', (tester) async {
+  testWidgets('教务总览窄屏使用精简标题且不溢出', (tester) async {
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = const Size(360, 800);
     addTearDown(() {
@@ -36,18 +36,18 @@ void _registerAcademicLayoutTests() {
         cachedResult: _creditResult,
       ),
     );
-    final shortTitle = find.text('学习进度');
+    final shortTitle = find.text('教务中心');
     await pumpUntilFound(tester, shortTitle);
     expect(shortTitle, findsOneWidget);
     expect(MediaQuery.sizeOf(tester.element(shortTitle)).width, 360);
 
-    expect(find.text('学习进度'), findsOneWidget);
+    expect(find.text('教务中心'), findsOneWidget);
     expect(find.text('学习进度，一处看全。'), findsNothing);
     expect(tester.takeException(), isNull);
     await disposeAcademicPage(tester);
   });
 
-  testWidgets('教务总览宽屏让完成度按自身内容高度结束', (tester) async {
+  testWidgets('教务总览宽屏删除完成度和学习档案卡片', (tester) async {
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = const Size(1200, 900);
     addTearDown(() {
@@ -71,22 +71,9 @@ void _registerAcademicLayoutTests() {
         cachedResult: _creditResult,
       ),
     );
-    await pumpUntilFound(tester, find.text('完成度'));
-
-    final archiveCard = find.ancestor(
-      of: find.text('学习档案'),
-      matching: find.byType(YhCard),
-    );
-    final completionCard = find.ancestor(
-      of: find.text('完成度'),
-      matching: find.byType(YhCard),
-    );
-    expect(archiveCard, findsOneWidget);
-    expect(completionCard, findsOneWidget);
-    expect(
-      tester.getBottomLeft(completionCard).dy,
-      lessThan(tester.getBottomLeft(archiveCard).dy - 24),
-    );
+    await pumpUntilFound(tester, find.text('教务中心'));
+    expect(find.text('完成度'), findsNothing);
+    expect(find.text('学习档案'), findsNothing);
     expect(tester.takeException(), isNull);
     await disposeAcademicPage(tester);
   });
@@ -121,12 +108,8 @@ void _registerAcademicLayoutTests() {
     final sourceHeading = find.text('详细数据源');
     await pumpUntilFound(tester, sourceHeading);
 
-    expect(sourceJump, findsOneWidget);
+    expect(sourceJump, findsNothing);
     expect(sourceHeading, findsOneWidget);
-    expect(
-      tester.getTopLeft(sourceHeading).dy - tester.getBottomLeft(sourceJump).dy,
-      lessThanOrEqualTo(32),
-    );
     expect(tester.takeException(), isNull);
     await disposeAcademicPage(tester);
   });
@@ -170,7 +153,7 @@ void _registerAcademicLayoutTests() {
     await disposeAcademicPage(tester);
   });
 
-  testWidgets('教务总览窄屏将三个短指标收束为同一行', (tester) async {
+  testWidgets('教务总览窄屏将指标收束为二乘二布局', (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await pumpAcademicPage(
@@ -194,16 +177,14 @@ void _registerAcademicLayoutTests() {
 
     final labels = [find.text('平均绩点'), find.text('已获学分'), find.text('已读成绩')];
     final labelTops = [for (final label in labels) tester.getTopLeft(label).dy];
-    final spread =
-        labelTops.reduce((a, b) => a > b ? a : b) -
-        labelTops.reduce((a, b) => a < b ? a : b);
-    expect(spread, lessThan(2));
+    expect(labelTops[1], greaterThan(labelTops[0]));
+    expect(labelTops[2], closeTo(labelTops[1], 2));
     final overviewCard = find.ancestor(
-      of: find.text('本学期概览'),
+      of: find.text('教务中心'),
       matching: find.byType(YhCard),
     );
     expect(overviewCard, findsOneWidget);
-    expect(tester.getSize(overviewCard).height, lessThan(280));
+    expect(tester.getSize(overviewCard).height, lessThan(520));
     expect(tester.takeException(), isNull);
     await disposeAcademicPage(tester);
   });

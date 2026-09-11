@@ -49,9 +49,10 @@ extension _AcademicPageEamsSources on _AcademicPageState {
     if (cachedResult != null) {
       _setAcademicState(() => _academicEamsResult = cachedResult);
     }
-    await _loadAcademicExamCacheAndDefaultTerm();
-    if (!mounted || generation != _credentialGeneration) return;
-    await _loadAcademicGradeCache();
+    await Future.wait<void>([
+      _loadAcademicExamCacheAndDefaultTerm(),
+      _loadAcademicGradeCache(),
+    ]);
     if (!mounted || generation != _credentialGeneration) return;
     await _loadAcademicEamsAutoRefreshSettings();
   }
@@ -159,9 +160,23 @@ extension _AcademicPageEamsSources on _AcademicPageState {
   ///
   /// :param result: 当前换代的考试读取结果。
   void _applyAcademicExamResult(AcademicEamsQueryResult result) {
+    final previousSnapshot = _academicExamResult?.snapshot;
+    final visibleResult =
+        !result.isSuccess && result.snapshot == null && previousSnapshot != null
+        ? AcademicEamsQueryResult(
+            status: result.status,
+            message: result.message,
+            detail: result.detail,
+            checkedAt: result.checkedAt,
+            entranceUri: result.entranceUri,
+            finalUri: result.finalUri,
+            campusNetworkStatus: result.campusNetworkStatus,
+            snapshot: previousSnapshot,
+          )
+        : result;
     final selectedSemester = result.snapshot?.exams?.selectedSemester;
     _setAcademicState(() {
-      _academicExamResult = result;
+      _academicExamResult = visibleResult;
       _updateAcademicSourceFailure('考试', failed: !result.isSuccess);
       if (selectedSemester != null) {
         _writeAcademicExamSemesterSelection(selectedSemester);
@@ -186,8 +201,22 @@ extension _AcademicPageEamsSources on _AcademicPageState {
   ///
   /// :param result: 当前换代的成绩读取结果。
   void _applyAcademicGradeResult(AcademicEamsQueryResult result) {
+    final previousSnapshot = _academicGradeResult?.snapshot;
+    final visibleResult =
+        !result.isSuccess && result.snapshot == null && previousSnapshot != null
+        ? AcademicEamsQueryResult(
+            status: result.status,
+            message: result.message,
+            detail: result.detail,
+            checkedAt: result.checkedAt,
+            entranceUri: result.entranceUri,
+            finalUri: result.finalUri,
+            campusNetworkStatus: result.campusNetworkStatus,
+            snapshot: previousSnapshot,
+          )
+        : result;
     _setAcademicState(() {
-      _academicGradeResult = result;
+      _academicGradeResult = visibleResult;
       _updateAcademicSourceFailure('成绩', failed: !result.isSuccess);
     });
   }

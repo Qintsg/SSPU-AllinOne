@@ -193,6 +193,16 @@ class AcademicGradeSnapshot {
     ).fold(0, (sum, record) => sum + (record.credit ?? 0));
   }
 
+  /// 指定学期（或全部）已通过课程的学分之和。
+  ///
+  /// :param term: 目标学年学期名，null 表示统计全部。
+  /// :returns: 已通过学分合计，缺少学分的记录按 0 计。
+  double earnedCreditsForTerm(String? term) {
+    return recordsForTerm(term)
+        .where((record) => record.isPassed)
+        .fold(0, (sum, record) => sum + (record.credit ?? 0));
+  }
+
   /// 指定学期（或全部）的学分加权平均绩点。
   ///
   /// :param term: 目标学年学期名，null 表示统计全部。

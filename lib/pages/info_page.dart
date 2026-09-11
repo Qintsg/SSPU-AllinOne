@@ -87,8 +87,10 @@ class _InfoPageState extends State<InfoPage> {
 
   _InfoPrimarySource _primarySource = _InfoPrimarySource.all;
 
-  /// 搜索关键词
+  /// 搜索关键词（保留内部筛选逻辑，入口由紧凑控制区承载）。
   String _searchQuery = '';
+
+  final TextEditingController _searchController = TextEditingController();
 
   /// 筛选：来源类型（null 表示不筛选）
   MessageSourceType? _filterSourceType;
@@ -110,9 +112,6 @@ class _InfoPageState extends State<InfoPage> {
 
   /// 每页条数
   static const int _pageSize = 20;
-
-  /// 搜索框控制器
-  final TextEditingController _searchController = TextEditingController();
 
   /// 消息列表滚动控制器，避免移动端自动滚动条误用外层 PrimaryScrollController。
   final ScrollController _messageListController = ScrollController();
@@ -158,11 +157,15 @@ class _InfoPageState extends State<InfoPage> {
         ..addAll(widget.messagesOverride!);
       _filteredMessages = List<MessageItem>.of(_allMessages);
       _primarySource = _InfoPrimarySource.all;
-      _searchController.clear();
       _searchQuery = '';
       _lastLoadedAt = widget.nowOverride;
       _isInitializing = false;
       _loadError = null;
+    }
+    if (oldWidget.filterEmptyOverride != widget.filterEmptyOverride &&
+        widget.filterEmptyOverride) {
+      _searchController.clear();
+      _searchQuery = '';
     }
     if (oldWidget.wechatSourceConfiguredOverride !=
         widget.wechatSourceConfiguredOverride) {
@@ -174,7 +177,6 @@ class _InfoPageState extends State<InfoPage> {
   @override
   void dispose() {
     _detachRefreshListener();
-    _searchController.dispose();
     _messageListController.dispose();
     super.dispose();
   }
@@ -226,13 +228,15 @@ class _InfoPageState extends State<InfoPage> {
     }
   }
 
-  /// 刷新官网消息：抓取所有已启用渠道的新数据并与已有数据合并持久化
-  Future<void> _refreshSchoolWebsite() async {
-    final started = await _refreshService.startSchoolWebsiteRefresh();
+  /// 刷新所有已启用的信息渠道。
+  Future<void> _refreshAllEnabledSources() async {
+    final started = await _refreshService.startAllEnabledRefresh();
     if (!started && mounted) {
       showYhFeedback(context, message: '已有刷新任务正在进行');
     }
   }
+
+  Future<void> _refreshSchoolWebsite() => _refreshAllEnabledSources();
 
   /// 刷新微信公众号文章：通过 WechatArticleService 获取已关注公众号的推文
   Future<void> _refreshWechatArticles() async {
@@ -279,7 +283,12 @@ class _InfoPageState extends State<InfoPage> {
 
   /// 供同库 helper 跳转分页。
   void _setCurrentPage(int page) {
-    if (mounted) setState(() => _currentPage = page);
+    if (mounted) {
+      setState(() => _currentPage = page);
+      if (_messageListController.hasClients) {
+        _messageListController.jumpTo(0);
+      }
+    }
   }
 
   /// 应用搜索和筛选条件

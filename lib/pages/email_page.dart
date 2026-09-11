@@ -62,6 +62,8 @@ class EmailPage extends StatefulWidget {
 }
 
 class _EmailPageState extends State<EmailPage> {
+  final ScrollController _mailboxScrollController = ScrollController();
+  final ScrollController _detailScrollController = ScrollController();
   EmailProtocol _selectedProtocol = EmailProtocol.imap;
   EmailProtocol? _validatingProtocol;
   EmailMailboxQueryResult? _mailboxResult;
@@ -84,8 +86,6 @@ class _EmailPageState extends State<EmailPage> {
   final TextEditingController _bccController = TextEditingController();
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _bodyController = TextEditingController();
-  final TextEditingController _searchController = TextEditingController();
-  String _emailSearchQuery = '';
   final List<EmailAttachmentRequest> _composeAttachments = [];
   int _messageFetchCount = 10;
   bool _isLoadingMoreMessages = false;
@@ -120,7 +120,6 @@ class _EmailPageState extends State<EmailPage> {
     _credentialGeneration++;
     _mailboxGeneration++;
     _clearComposeInputs();
-    _clearEmailSearch();
     setState(() {
       _mailboxResult = null;
       _sendResult = null;
@@ -362,6 +361,8 @@ class _EmailPageState extends State<EmailPage> {
 
   @override
   void dispose() {
+    _mailboxScrollController.dispose();
+    _detailScrollController.dispose();
     _credentialChangeSubscription?.cancel();
     _dataAutoRefreshSubscription?.cancel();
     _dataModuleSubscription?.cancel();
@@ -371,27 +372,7 @@ class _EmailPageState extends State<EmailPage> {
     _bccController.dispose();
     _subjectController.dispose();
     _bodyController.dispose();
-    _searchController.dispose();
     super.dispose();
-  }
-
-  /// 在已经缓存的邮件快照内进行即时筛选，不触发网络请求。
-  void _setEmailSearchQuery(String value) {
-    final normalized = value.trim().toLowerCase();
-    if (normalized == _emailSearchQuery) return;
-    setState(() => _emailSearchQuery = normalized);
-  }
-
-  void _clearEmailSearch() {
-    _searchController.clear();
-    _emailSearchQuery = '';
-  }
-
-  /// 返回匹配主题、发件人、摘要或正文的本地邮件。
-  List<EmailMessageSnapshot> _filteredMessages(
-    List<EmailMessageSnapshot> messages,
-  ) {
-    return EmailService.filterLocalMessages(messages, _emailSearchQuery);
   }
 
   /// 校验指定协议登录状态。
@@ -466,7 +447,6 @@ class _EmailPageState extends State<EmailPage> {
   }
 
   void _selectProtocol(EmailProtocol protocol) {
-    _clearEmailSearch();
     setState(() {
       _mailboxGeneration++;
       _selectedProtocol = protocol;
@@ -720,9 +700,7 @@ class _EmailPageState extends State<EmailPage> {
               ),
               SizedBox(height: theme.spacing.s),
               Text(
-                composing
-                    ? '填写收件人、主题与普通文本正文；发送前仍可取消。'
-                    : '邮件原文只在本机读取；桌面采用列表—详情并列，移动端进入独立详情页。',
+                composing ? '填写收件人、主题与普通文本正文；发送前仍可取消。' : '本机快照 · 只读邮件',
                 style:
                     (compact ? theme.typography.small : theme.typography.body)
                         .copyWith(color: theme.color.muted),

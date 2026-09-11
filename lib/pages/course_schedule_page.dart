@@ -329,10 +329,6 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     final canPop = Navigator.of(context).canPop();
     final courseTable = _result?.snapshot?.courseTable;
     final viewportWidth = MediaQuery.sizeOf(context).width;
-    final viewportHeight = MediaQuery.sizeOf(context).height;
-    final fillViewport =
-        !(viewportWidth < theme.breakpoint.medium) &&
-        viewportHeight >= theme.control.regular * 16 + theme.spacing.s;
     final fluidPaddingProgress =
         ((viewportWidth - theme.breakpoint.medium) /
                 (theme.breakpoint.expanded - theme.breakpoint.medium))
@@ -364,56 +360,31 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
               ),
             )
           : null,
-      body: fillViewport
-          ? Align(
-              alignment: AlignmentDirectional.topCenter,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: theme.layout.pageContentWidth,
-                ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: horizontalPadding,
-                    vertical: verticalPadding,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildPageHeader(courseTable, viewportWidth),
-                      SizedBox(height: contentGap),
-                      Expanded(
-                        child: _buildContent(courseTable, fillHeight: true),
-                      ),
-                    ],
-                  ),
-                ),
+      body: SingleChildScrollView(
+        primary: true,
+        child: Align(
+          alignment: AlignmentDirectional.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: theme.layout.pageContentWidth,
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
               ),
-            )
-          : SingleChildScrollView(
-              primary: true,
-              child: Align(
-                alignment: AlignmentDirectional.topCenter,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: theme.layout.pageContentWidth,
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: horizontalPadding,
-                      vertical: verticalPadding,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildPageHeader(courseTable, viewportWidth),
-                        SizedBox(height: contentGap),
-                        _buildContent(courseTable),
-                      ],
-                    ),
-                  ),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildPageHeader(courseTable, viewportWidth),
+                  SizedBox(height: contentGap),
+                  _buildContent(courseTable),
+                ],
               ),
             ),
+          ),
+        ),
+      ),
     );
   }
 

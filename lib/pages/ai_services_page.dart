@@ -171,9 +171,38 @@ class _AiServicesPageState extends State<AiServicesPage> {
             SizedBox(height: theme.spacing.l),
             _buildServerCard(context),
             SizedBox(height: theme.spacing.l),
-            _buildAuthorizationCard(context),
-            SizedBox(height: theme.spacing.l),
-            _buildAuditCard(context),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final wide =
+                    constraints.maxWidth >=
+                    theme.breakpoint.expanded - theme.spacing.l * 2;
+                if (!wide) {
+                  return Column(
+                    key: const Key('ai-services-access-stack'),
+                    children: [
+                      _buildAuthorizationCard(context),
+                      SizedBox(height: theme.spacing.l),
+                      _buildAuditCard(context),
+                    ],
+                  );
+                }
+                return SizedBox(
+                  height: theme.control.regular * 12 + theme.spacing.s,
+                  child: Row(
+                    key: const Key('ai-services-access-columns'),
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        flex: 13,
+                        child: _buildAuthorizationCard(context),
+                      ),
+                      SizedBox(width: theme.spacing.l),
+                      Expanded(flex: 7, child: _buildAuditCard(context)),
+                    ],
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -310,12 +339,31 @@ class _AiServicesPageState extends State<AiServicesPage> {
             stackTrailing: false,
           ),
           SizedBox(height: theme.spacing.s),
-          YhTextField(
-            label: '端口',
-            controller: _portController,
-            enabled: _supportsServer,
-            keyboardType: TextInputType.number,
-            helper: '1024–65535；修改后需要重新启动服务',
+          Row(
+            key: const Key('mcp-port-action-row'),
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: YhTextField(
+                  label: '端口',
+                  controller: _portController,
+                  enabled: _supportsServer,
+                  keyboardType: TextInputType.number,
+                  helper: '1024–65535；修改后需要重新启动服务',
+                ),
+              ),
+              SizedBox(width: theme.spacing.s),
+              YhButton(
+                label: running ? '停止服务' : '开启服务',
+                leadingIcon: running ? YhIcons.power : YhIcons.connect,
+                variant: running
+                    ? YhButtonVariant.danger
+                    : YhButtonVariant.primary,
+                onTap: !_supportsServer || state.isBusy
+                    ? null
+                    : () => _saveAndStart(enabled: !running),
+              ),
+            ],
           ),
           if (state.endpoint != null) ...[
             SizedBox(height: theme.spacing.s),
@@ -341,15 +389,6 @@ class _AiServicesPageState extends State<AiServicesPage> {
               style: theme.typography.small.copyWith(color: theme.color.danger),
             ),
           ],
-          SizedBox(height: theme.spacing.m),
-          YhButton(
-            label: running ? '停止服务' : '开启服务',
-            leadingIcon: running ? YhIcons.power : YhIcons.connect,
-            variant: running ? YhButtonVariant.danger : YhButtonVariant.primary,
-            onTap: !_supportsServer || state.isBusy
-                ? null
-                : () => _saveAndStart(enabled: !running),
-          ),
         ],
       ),
     );
@@ -369,6 +408,7 @@ class _AiServicesPageState extends State<AiServicesPage> {
       McpDataDomain.email: '学校邮箱',
     };
     return YhCard(
+      key: const Key('mcp-authorization-card'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -412,6 +452,7 @@ class _AiServicesPageState extends State<AiServicesPage> {
   Widget _buildAuditCard(BuildContext context) {
     final theme = context.yhTheme;
     return YhCard(
+      key: const Key('mcp-api-audit-card'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

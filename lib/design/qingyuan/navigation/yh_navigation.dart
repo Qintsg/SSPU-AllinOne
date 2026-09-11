@@ -69,6 +69,7 @@ class YhNavRail extends StatelessWidget {
     this.extended = false,
     this.header,
     this.footer,
+    this.footerIndex,
   });
 
   final List<YhNavigationItem> items;
@@ -77,6 +78,9 @@ class YhNavRail extends StatelessWidget {
   final bool extended;
   final Widget? header;
   final Widget? footer;
+
+  /// Optional item index rendered in a fixed footer instead of the scroll area.
+  final int? footerIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -107,22 +111,40 @@ class YhNavRail extends StatelessWidget {
                         itemIndex < items.length;
                         itemIndex++
                       )
-                        Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: theme.spacing.s,
-                            vertical: theme.spacing.xs,
+                        if (itemIndex != footerIndex)
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: theme.spacing.s,
+                              vertical: theme.spacing.xs,
+                            ),
+                            child: _YhNavigationButton(
+                              item: items[itemIndex],
+                              selected: itemIndex == index,
+                              onPressed: () => onChanged(itemIndex),
+                              horizontal: extended,
+                            ),
                           ),
-                          child: _YhNavigationButton(
-                            item: items[itemIndex],
-                            selected: itemIndex == index,
-                            onPressed: () => onChanged(itemIndex),
-                            horizontal: extended,
-                          ),
-                        ),
                     ],
                   ),
                 ),
               ),
+              if (footerIndex != null &&
+                  footerIndex! >= 0 &&
+                  footerIndex! < items.length)
+                Padding(
+                  key: ValueKey('yh-nav-footer-${items[footerIndex!].label}'),
+                  padding: EdgeInsets.only(
+                    left: theme.spacing.s,
+                    right: theme.spacing.s,
+                    top: theme.spacing.s,
+                  ),
+                  child: _YhNavigationButton(
+                    item: items[footerIndex!],
+                    selected: footerIndex == index,
+                    onPressed: () => onChanged(footerIndex!),
+                    horizontal: extended,
+                  ),
+                ),
               ?footer,
             ],
           ),

@@ -16,7 +16,7 @@ import 'support/qingyuan_visual_fixtures.dart';
 ///
 /// :returns: 无返回值。
 void main() {
-  testWidgets('1200x900 桌面课表节次行保持参考稿的 82px 密度', (tester) async {
+  testWidgets('1200x900 桌面课表按单节时间轴定位跨节课程', (tester) async {
     const viewport = Size(1200, 900);
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = viewport;
@@ -44,15 +44,23 @@ void main() {
     );
     await tester.pump();
 
-    final firstRow = find.text('1–2');
-    final secondRow = find.text('3–4');
+    final firstRow = find.byKey(const Key('course-period-1'));
+    final secondRow = find.byKey(const Key('course-period-2'));
+    final courseBlock = find.byKey(const Key('course-week-block-1-1-数据结构'));
     final theme = tester.element(firstRow).yhTheme;
-    final expectedRowHeight =
-        theme.control.regular + theme.spacing.xl + theme.spacing.xs / 2;
+    final expectedRowHeight = theme.control.minimumTarget + theme.spacing.m;
     final actualRowHeight =
         tester.getTopLeft(secondRow).dy - tester.getTopLeft(firstRow).dy;
 
     expect(actualRowHeight, closeTo(expectedRowHeight, 0.5));
+    expect(
+      tester.getSize(courseBlock).height,
+      closeTo(expectedRowHeight * 2 - theme.spacing.xs * 2, 0.5),
+    );
+    expect(
+      tester.getTopLeft(courseBlock).dx,
+      greaterThan(tester.getTopLeft(firstRow).dx),
+    );
     expect(tester.takeException(), isNull);
   });
 

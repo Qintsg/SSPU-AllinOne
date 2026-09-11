@@ -412,35 +412,58 @@ class _TaskSourceStrip extends StatelessWidget {
             horizontal: theme.spacing.m,
             vertical: theme.spacing.s,
           ),
-          child: Row(
-            children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: accentColor,
-                  borderRadius: BorderRadius.circular(theme.radius.full),
+          child: compact
+              ? Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: theme.spacing.s,
+                  runSpacing: theme.spacing.xs,
+                  children: [
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: accentColor,
+                        borderRadius: BorderRadius.circular(theme.radius.full),
+                      ),
+                      child: SizedBox.square(dimension: theme.spacing.s),
+                    ),
+                    Text(
+                      '$sourceSymbol  $source',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.typography.small.copyWith(
+                        color: theme.color.muted,
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: accentColor,
+                        borderRadius: BorderRadius.circular(theme.radius.full),
+                      ),
+                      child: SizedBox.square(dimension: theme.spacing.s),
+                    ),
+                    SizedBox(width: theme.spacing.s),
+                    Expanded(
+                      child: Text(
+                        '$sourceSymbol  $source',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.typography.small.copyWith(
+                          color: theme.color.muted,
+                        ),
+                      ),
+                    ),
+                    if (timestamp != null)
+                      Text(
+                        timestamp!,
+                        style: theme.typography.small.copyWith(
+                          color: theme.color.muted,
+                        ),
+                      ),
+                  ],
                 ),
-                child: SizedBox.square(dimension: theme.spacing.s),
-              ),
-              SizedBox(width: theme.spacing.s),
-              Expanded(
-                child: Text(
-                  '$sourceSymbol  $source',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.typography.small.copyWith(
-                    color: theme.color.muted,
-                  ),
-                ),
-              ),
-              if (!compact && timestamp != null)
-                Text(
-                  timestamp!,
-                  style: theme.typography.small.copyWith(
-                    color: theme.color.muted,
-                  ),
-                ),
-            ],
-          ),
         ),
       ),
     );

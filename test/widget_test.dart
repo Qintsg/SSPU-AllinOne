@@ -31,6 +31,8 @@ import 'package:sspu_allinone/widgets/settings_general_section.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_config_dialog.dart';
 import 'package:sspu_allinone/widgets/settings_wechat_section.dart';
 
+import 'support/responsive_test_sizes.dart';
+
 part 'widget_test_shell.dart';
 part 'widget_test_settings.dart';
 

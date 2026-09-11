@@ -10,8 +10,6 @@ part of 'academic_page.dart';
 
 class _AcademicLegacySources extends StatelessWidget {
   const _AcademicLegacySources({
-    super.key,
-    required this.focusNode,
     required this.locked,
     required this.primary,
     required this.sports,
@@ -21,32 +19,24 @@ class _AcademicLegacySources extends StatelessWidget {
   final Widget primary;
   final Widget sports;
   final Widget secondClassroom;
-  final FocusNode focusNode;
   final bool locked;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    final content = Focus(
-      key: const ValueKey('academic-legacy-sources-focus'),
-      focusNode: focusNode,
-      canRequestFocus: !locked,
-      descendantsAreFocusable: !locked,
-      descendantsAreTraversable: !locked,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('详细数据源', style: theme.typography.h2),
-          SizedBox(height: theme.spacing.m),
-          _AcademicDashboardGrid(
-            primary: primary,
-            sports: sports,
-            secondClassroom: secondClassroom,
-          ),
-          SizedBox(height: theme.spacing.m),
-          const YhBanner(text: '只读边界：不提供选课、退课、调课、教学评价、提交申请或任何状态变更入口。'),
-        ],
-      ),
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('详细数据源', style: theme.typography.h2),
+        SizedBox(height: theme.spacing.m),
+        _AcademicDashboardGrid(
+          primary: primary,
+          sports: sports,
+          secondClassroom: secondClassroom,
+        ),
+        SizedBox(height: theme.spacing.m),
+        const YhBanner(text: '只读边界：不提供选课、退课、调课、教学评价、提交申请或任何状态变更入口。'),
+      ],
     );
     return Semantics(
       container: true,

@@ -102,8 +102,22 @@ class _SportsAttendanceCardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     final accent = theme.color.serviceSports;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final button = YhButton(
+      label: '查看考勤记录',
+      leadingIcon: YhIcons.visibility,
+      variant: YhButtonVariant.secondary,
+      onTap: canOpenDetail && summary != null
+          ? () => Navigator.of(context).push(
+              YhPageRoute(
+                builder: (_) => SportsAttendanceDetailPage(
+                  result: result,
+                  onRefresh: onDetailRefresh,
+                ),
+              ),
+            )
+          : null,
+    );
+    final identity = Row(
       children: [
         DecoratedBox(
           decoration: BoxDecoration(
@@ -123,24 +137,26 @@ class _SportsAttendanceCardHeader extends StatelessWidget {
             child: Text('课外活动考勤', style: theme.typography.h3),
           ),
         ),
-        SizedBox(width: theme.spacing.s),
-        YhButton(
-          label: '查看考勤记录',
-          leadingIcon: YhIcons.visibility,
-          variant: YhButtonVariant.secondary,
-          onTap: canOpenDetail && summary != null
-              ? () => Navigator.of(context).push(
-                  YhPageRoute(
-                    builder: (_) => SportsAttendanceDetailPage(
-                      result: result,
-                      onRefresh: onDetailRefresh,
-                    ),
-                  ),
-                )
-              : null,
-        ),
       ],
     );
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
+    return compact
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              identity,
+              SizedBox(height: theme.spacing.s),
+              button,
+            ],
+          )
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: identity),
+              SizedBox(width: theme.spacing.s),
+              button,
+            ],
+          );
   }
 }
 

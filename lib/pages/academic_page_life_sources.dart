@@ -139,12 +139,8 @@ extension _AcademicPageLifeSources on _AcademicPageState {
       '教务摘要' =>
         _academicEamsResult?.isSuccess == true &&
             _academicEamsResult?.snapshot != null,
-      '考试' =>
-        _academicExamResult?.isSuccess == true &&
-            _academicExamResult?.snapshot != null,
-      '成绩' =>
-        _academicGradeResult?.isSuccess == true &&
-            _academicGradeResult?.snapshot != null,
+      '考试' => _academicExamResult?.snapshot != null,
+      '成绩' => _academicGradeResult?.snapshot != null,
       '体育考勤' => _sportsAttendanceResult?.isSuccess == true,
       '第二课堂' => _studentReportResult?.isSuccess == true,
       _ => false,

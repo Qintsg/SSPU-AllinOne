@@ -119,32 +119,55 @@ class _SportsAttendanceRecordsPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '本学期运动证据',
-                      style: theme.typography.caption.copyWith(
-                        color: theme.color.serviceSports,
-                        fontWeight: FontWeight.w600,
+          if (compact)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '本学期运动证据',
+                  style: theme.typography.caption.copyWith(
+                    color: theme.color.serviceSports,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: theme.spacing.xs),
+                Text('考勤明细', style: theme.typography.h2),
+                SizedBox(height: theme.spacing.xs),
+                Text(
+                  '${summary.records.length} 条记录',
+                  style: theme.typography.small.copyWith(
+                    color: theme.color.muted,
+                  ),
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '本学期运动证据',
+                        style: theme.typography.caption.copyWith(
+                          color: theme.color.serviceSports,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: theme.spacing.xs),
-                    Text('考勤明细', style: theme.typography.h2),
-                  ],
+                      SizedBox(height: theme.spacing.xs),
+                      Text('考勤明细', style: theme.typography.h2),
+                    ],
+                  ),
                 ),
-              ),
-              Text(
-                '${summary.records.length} 条记录',
-                style: theme.typography.small.copyWith(
-                  color: theme.color.muted,
+                Text(
+                  '${summary.records.length} 条记录',
+                  style: theme.typography.small.copyWith(
+                    color: theme.color.muted,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           SizedBox(height: theme.spacing.m),
           Container(height: theme.layout.divider, color: theme.color.border),
           for (final record in summary.records)
@@ -247,21 +270,14 @@ class _SportsAttendanceEvidenceRecord extends StatelessWidget {
         return Padding(
           padding: EdgeInsets.symmetric(vertical: theme.spacing.m),
           child: compact
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     date,
-                    SizedBox(width: theme.spacing.m),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          details,
-                          SizedBox(height: theme.spacing.s),
-                          count,
-                        ],
-                      ),
-                    ),
+                    SizedBox(height: theme.spacing.s),
+                    count,
+                    SizedBox(height: theme.spacing.s),
+                    details,
                   ],
                 )
               : Row(

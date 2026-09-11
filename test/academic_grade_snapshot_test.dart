@@ -135,6 +135,52 @@ void main() {
     expect(snapshot.creditsForTerm('2025-2026-2'), 6);
   });
 
+  test('earnedCreditsForTerm 仅累计已通过且已去重的课程学分', () {
+    final snapshot = _snapshot(
+      current: [
+        _record(
+          courseName: '高等数学',
+          courseCode: 'MATH101',
+          termName: '2025-2026-2',
+          scoreText: '82',
+          credit: 3,
+        ),
+        _record(
+          courseName: '大学英语',
+          courseCode: 'ENG102',
+          termName: '2025-2026-2',
+          scoreText: '不及格',
+          credit: 2,
+        ),
+      ],
+      history: [
+        _record(
+          courseName: '高等数学',
+          courseCode: 'MATH101',
+          termName: '2025-2026-2',
+          scoreText: '82',
+          credit: 3,
+        ),
+        _record(
+          courseName: '程序设计基础',
+          courseCode: 'CS100',
+          termName: '2025-2026-1',
+          scoreText: '通过',
+          credit: 4,
+        ),
+        _record(
+          courseName: '形势与政策',
+          courseCode: 'POL100',
+          termName: '2025-2026-1',
+          scoreText: '及格',
+        ),
+      ],
+    );
+
+    expect(snapshot.earnedCreditsForTerm(null), 7);
+    expect(snapshot.earnedCreditsForTerm('2025-2026-2'), 3);
+  });
+
   test('recordsByTermDesc 按学期倒序且学期内保持原顺序', () {
     final snapshot = _snapshot(
       current: [_record(courseName: '高等数学', termName: '2025-2026-2')],

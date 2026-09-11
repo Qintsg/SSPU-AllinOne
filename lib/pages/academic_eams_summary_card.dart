@@ -233,7 +233,6 @@ class _AcademicEamsSnapshotView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    final profile = snapshot.profile;
     final courseCount = snapshot.courseTable?.entries.length ?? 0;
     final gradeCount = gradeSnapshot?.allRecords.length ?? 0;
     final examCount = examSnapshot?.records.length ?? 0;
@@ -241,8 +240,6 @@ class _AcademicEamsSnapshotView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (profile != null && profile.hasAnyValue)
-          _AcademicProfileSummary(profile: profile),
         Wrap(
           spacing: theme.spacing.s,
           runSpacing: theme.spacing.s,
@@ -309,43 +306,6 @@ class _AcademicEamsSnapshotView extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-class _AcademicProfileSummary extends StatelessWidget {
-  const _AcademicProfileSummary({required this.profile});
-  final AcademicEamsProfile profile;
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    final items = <String>[
-      if (profile.name?.isNotEmpty == true) '姓名：${profile.name}',
-      if (profile.studentId?.isNotEmpty == true) '学号：${profile.studentId}',
-      if (profile.department?.isNotEmpty == true) '院系：${profile.department}',
-      if (profile.major?.isNotEmpty == true) '专业：${profile.major}',
-      if (profile.className?.isNotEmpty == true) '班级：${profile.className}',
-    ];
-    return Padding(
-      padding: EdgeInsets.only(bottom: theme.spacing.m),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: theme.color.brandTint,
-          border: Border.all(color: theme.color.brand),
-          borderRadius: BorderRadius.circular(theme.radius.input),
-        ),
-        child: SizedBox(
-          width: double.infinity,
-          child: Padding(
-            padding: EdgeInsets.all(theme.spacing.m),
-            child: Wrap(
-              spacing: theme.spacing.s,
-              runSpacing: theme.spacing.xs,
-              children: [for (final item in items) Text(item)],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

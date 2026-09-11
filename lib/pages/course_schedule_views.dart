@@ -26,6 +26,12 @@ class _CourseScheduleAdaptiveView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
+    if (!compact) {
+      return _CourseWeekGridView(
+        entries: courseTable.entries,
+        currentWeekday: currentWeekday,
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -52,19 +58,13 @@ class _CourseScheduleAdaptiveView extends StatelessWidget {
           distributeEvenly: compact,
         ),
         SizedBox(height: theme.spacing.m - theme.spacing.xs),
-        if (compact)
-          _CourseDayScheduleView(
-            entries: _entriesForWeekday(
-              courseTable.entries,
-              selectedMobileWeekday,
-            ),
-            selectedWeekday: selectedMobileWeekday,
-          )
-        else
-          _CourseWeekGridView(
-            entries: courseTable.entries,
-            currentWeekday: currentWeekday,
+        _CourseDayScheduleView(
+          entries: _entriesForWeekday(
+            courseTable.entries,
+            selectedMobileWeekday,
           ),
+          selectedWeekday: selectedMobileWeekday,
+        ),
       ],
     );
   }
@@ -83,198 +83,151 @@ class _CourseWeekGridView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     const periodTable = CoursePeriodTable.standard;
-    final periodColumnWidth =
-        theme.control.regular + theme.spacing.l + theme.spacing.xs / 2;
-    final cellMinHeight =
-        theme.control.regular + theme.spacing.xl + theme.spacing.xs / 2;
-    var maxUnit = 1;
-    for (final entry in entries) {
-      if (entry.endUnit > maxUnit) maxUnit = entry.endUnit;
-    }
-    final groupCount = (maxUnit + 1) ~/ 2;
+    final timelineWidth = theme.control.regular + theme.spacing.l;
+    final headerHeight = theme.control.regular + theme.spacing.s;
+    final periodHeight = theme.control.minimumTarget + theme.spacing.m;
+    final totalHeight =
+        headerHeight + periodHeight * periodTable.periods.length;
+    final minimumGridWidth = theme.control.regular * 19;
 
-    return YhCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        children: [
-          _CourseGridHeader(
-            currentWeekday: currentWeekday,
-            periodColumnWidth: periodColumnWidth,
-          ),
-          for (var group = 0; group < groupCount; group++)
-            _buildRow(
-              group,
-              periodTable,
-              periodColumnWidth,
-              cellMinHeight,
-              theme,
-            ),
-        ],
-      ),
-    );
-  }
-
-  /// 构建单个固定密度的节次组行。
-  Widget _buildRow(
-    int group,
-    CoursePeriodTable periodTable,
-    double periodColumnWidth,
-    double cellMinHeight,
-    YhTheme theme,
-  ) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _CoursePeriodCell(
-            startUnit: group * 2 + 1,
-            endUnit: group * 2 + 1 == periodTable.periods.length
-                ? group * 2 + 1
-                : group * 2 + 2,
-            width: periodColumnWidth,
-            minHeight: cellMinHeight,
-          ),
-          for (var weekday = 1; weekday <= 7; weekday++)
-            Expanded(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: weekday == currentWeekday
-                      ? theme.color.brandTint
-                      : theme.color.surface,
-                  border: BorderDirectional(
-                    start: BorderSide(color: theme.color.border),
-                    top: BorderSide(color: theme.color.border),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final gridWidth = math.max(constraints.maxWidth, minimumGridWidth);
+        final dayWidth = (gridWidth - timelineWidth) / 7;
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: gridWidth,
+            height: totalHeight,
+            child: YhCard(
+              padding: EdgeInsets.zero,
+              child: Stack(
+                clipBehavior: Clip.hardEdge,
+                children: [
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    width: timelineWidth,
+                    height: headerHeight,
+                    child: _CourseGridHeaderCell(
+                      label: '时间',
+                      highlighted: false,
+                    ),
                   ),
-                ),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: cellMinHeight),
-                  child: Padding(
-                    padding: EdgeInsets.all(theme.spacing.s),
-                    child: _CourseGridCell(
-                      entries: _entriesStartingBetween(
-                        entries,
-                        weekday,
-                        group * 2 + 1,
-                        group * 2 + 2,
+                  for (var weekday = 1; weekday <= 7; weekday++)
+                    Positioned(
+                      key: ValueKey('course-week-header-$weekday'),
+                      left: timelineWidth + (weekday - 1) * dayWidth,
+                      top: 0,
+                      width: dayWidth,
+                      height: headerHeight,
+                      child: _CourseGridHeaderCell(
+                        label: _weekdayLabel(weekday),
+                        highlighted: weekday == currentWeekday,
                       ),
                     ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CourseGridHeader extends StatelessWidget {
-  const _CourseGridHeader({
-    required this.currentWeekday,
-    required this.periodColumnWidth,
-  });
-
-  final int currentWeekday;
-  final double periodColumnWidth;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return SizedBox(
-      height: theme.control.regular,
-      child: Row(
-        children: [
-          SizedBox(
-            width: periodColumnWidth,
-            child: Padding(
-              padding: EdgeInsets.all(theme.spacing.s),
-              child: Text(
-                '节次',
-                style: theme.typography.small.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                  for (
+                    var index = 0;
+                    index < periodTable.periods.length;
+                    index++
+                  )
+                    Positioned(
+                      key: ValueKey(
+                        'course-period-${periodTable.periods[index].unit}',
+                      ),
+                      left: 0,
+                      top: headerHeight + index * periodHeight,
+                      width: timelineWidth,
+                      height: periodHeight,
+                      child: _CourseTimelineCell(
+                        period: periodTable.periods[index],
+                      ),
+                    ),
+                  for (
+                    var periodIndex = 0;
+                    periodIndex < periodTable.periods.length;
+                    periodIndex++
+                  )
+                    for (var weekday = 1; weekday <= 7; weekday++)
+                      Positioned(
+                        left: timelineWidth + (weekday - 1) * dayWidth,
+                        top: headerHeight + periodIndex * periodHeight,
+                        width: dayWidth,
+                        height: periodHeight,
+                        child: _CourseGridBackgroundCell(
+                          highlighted: weekday == currentWeekday,
+                        ),
+                      ),
+                  for (final entry in entries)
+                    if (entry.weekday >= 1 && entry.weekday <= 7)
+                      Positioned(
+                        key: ValueKey(
+                          'course-week-block-${entry.weekday}-${entry.startUnit}-${entry.courseName}',
+                        ),
+                        left:
+                            timelineWidth +
+                            (entry.weekday - 1) * dayWidth +
+                            theme.spacing.xs,
+                        top:
+                            headerHeight +
+                            (entry.startUnit.clamp(
+                                      1,
+                                      periodTable.periods.length,
+                                    ) -
+                                    1) *
+                                periodHeight +
+                            theme.spacing.xs,
+                        width: dayWidth - theme.spacing.xs * 2,
+                        height:
+                            (entry.endUnit.clamp(
+                                      entry.startUnit.clamp(
+                                        1,
+                                        periodTable.periods.length,
+                                      ),
+                                      periodTable.periods.length,
+                                    ) -
+                                    entry.startUnit.clamp(
+                                      1,
+                                      periodTable.periods.length,
+                                    ) +
+                                    1) *
+                                periodHeight -
+                            theme.spacing.xs * 2,
+                        child: _CourseWeekBlock(entry: entry),
+                      ),
+                ],
               ),
             ),
           ),
-          for (var weekday = 1; weekday <= 7; weekday++)
-            Expanded(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: weekday == currentWeekday
-                      ? theme.color.brandTint
-                      : theme.color.sunken,
-                  border: BorderDirectional(
-                    start: BorderSide(color: theme.color.border),
-                  ),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.all(theme.spacing.s),
-                  child: Text(
-                    _weekdayLabel(weekday),
-                    textAlign: TextAlign.center,
-                    style: theme.typography.body.copyWith(
-                      color: weekday == currentWeekday
-                          ? theme.color.brandInk
-                          : theme.color.foreground,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
-class _CoursePeriodCell extends StatelessWidget {
-  const _CoursePeriodCell({
-    required this.startUnit,
-    required this.endUnit,
-    required this.width,
-    required this.minHeight,
-  });
+class _CourseGridHeaderCell extends StatelessWidget {
+  const _CourseGridHeaderCell({required this.label, required this.highlighted});
 
-  final int startUnit;
-  final int endUnit;
-  final double width;
-  final double minHeight;
+  final String label;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    final startPeriod = CoursePeriodTable.standard.periodOf(startUnit)!;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.color.sunken,
-        border: Border(top: BorderSide(color: theme.color.border)),
+        color: highlighted ? theme.color.brandTint : theme.color.sunken,
+        border: BorderDirectional(
+          start: BorderSide(color: theme.color.border),
+          bottom: BorderSide(color: theme.color.border),
+        ),
       ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: minHeight),
-        child: SizedBox(
-          width: width,
-          child: Padding(
-            padding: EdgeInsets.all(theme.spacing.s),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  startUnit == endUnit ? '$startUnit' : '$startUnit–$endUnit',
-                  style: theme.typography.body.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: theme.spacing.xs),
-                Text(
-                  startPeriod.timeRange.split('-').first,
-                  style: theme.typography.caption.copyWith(
-                    color: theme.color.muted,
-                  ),
-                ),
-              ],
-            ),
+      child: Center(
+        child: Text(
+          label,
+          style: theme.typography.body.copyWith(
+            color: highlighted ? theme.color.brandInk : theme.color.foreground,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -282,23 +235,131 @@ class _CoursePeriodCell extends StatelessWidget {
   }
 }
 
-class _CourseGridCell extends StatelessWidget {
-  const _CourseGridCell({required this.entries});
+class _CourseTimelineCell extends StatelessWidget {
+  const _CourseTimelineCell({required this.period});
 
-  final List<AcademicCourseTableEntry> entries;
+  final CoursePeriod period;
 
   @override
   Widget build(BuildContext context) {
-    if (entries.isEmpty) return const SizedBox.shrink();
     final theme = context.yhTheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < entries.length; i++) ...[
-          Expanded(child: _CourseBlock(entry: entries[i])),
-          if (i < entries.length - 1) SizedBox(width: theme.spacing.xs),
-        ],
-      ],
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.color.sunken,
+        border: BorderDirectional(
+          end: BorderSide(color: theme.color.border),
+          bottom: BorderSide(color: theme.color.border),
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: theme.spacing.s),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '${period.unit}',
+              style: theme.typography.body.copyWith(
+                fontWeight: FontWeight.w600,
+                fontFamily: YhTypographyTokens.fontFamilyMono,
+              ),
+            ),
+            SizedBox(height: theme.spacing.xs),
+            Text(
+              period.startTime,
+              style: theme.typography.caption.copyWith(
+                color: theme.color.muted,
+                fontFamily: YhTypographyTokens.fontFamilyMono,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CourseGridBackgroundCell extends StatelessWidget {
+  const _CourseGridBackgroundCell({required this.highlighted});
+
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: highlighted ? theme.color.brandTint : theme.color.surface,
+        border: BorderDirectional(
+          end: BorderSide(color: theme.color.border),
+          bottom: BorderSide(color: theme.color.border),
+        ),
+      ),
+    );
+  }
+}
+
+class _CourseWeekBlock extends StatelessWidget {
+  const _CourseWeekBlock({required this.entry});
+
+  final AcademicCourseTableEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    final colors = <Color>[
+      theme.color.serviceSchedule,
+      theme.color.serviceAcademic,
+      theme.color.serviceMail,
+      theme.color.serviceNews,
+      theme.color.serviceSports,
+      theme.color.serviceSecondClass,
+      theme.color.serviceFinance,
+    ];
+    final accent =
+        colors[(entry.courseName.hashCode & 0x7fffffff) % colors.length];
+    final span = math.max(1, entry.endUnit - entry.startUnit + 1);
+    final detail = <String>[
+      if (entry.location?.trim().isNotEmpty == true) entry.location!.trim(),
+      if (entry.teacher?.trim().isNotEmpty == true) entry.teacher!.trim(),
+      CoursePeriodTable.standard.rangeText(entry.startUnit, entry.endUnit),
+    ];
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Color.alphaBlend(
+          accent.withValues(alpha: 0.16),
+          theme.color.surface,
+        ),
+        border: Border.all(color: accent.withValues(alpha: 0.5)),
+        borderRadius: BorderRadius.circular(theme.radius.input),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(theme.spacing.s),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              entry.courseName,
+              maxLines: span == 1 ? 1 : 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.typography.small.copyWith(
+                color: accent,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (span > 1 && detail.isNotEmpty) ...[
+              SizedBox(height: theme.spacing.xs),
+              Text(
+                detail.join('\n'),
+                maxLines: math.min(3, span + 1),
+                overflow: TextOverflow.ellipsis,
+                style: theme.typography.caption.copyWith(
+                  color: theme.color.foreground,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -531,24 +592,6 @@ List<AcademicCourseTableEntry> _entriesForWeekday(
 ) {
   final filtered = entries.where((entry) => entry.weekday == weekday).toList();
   filtered.sort((a, b) => a.startUnit.compareTo(b.startUnit));
-  return filtered;
-}
-
-List<AcademicCourseTableEntry> _entriesStartingBetween(
-  List<AcademicCourseTableEntry> entries,
-  int weekday,
-  int startUnit,
-  int endUnit,
-) {
-  final filtered = entries
-      .where(
-        (entry) =>
-            entry.weekday == weekday &&
-            entry.startUnit >= startUnit &&
-            entry.startUnit <= endUnit,
-      )
-      .toList();
-  filtered.sort((a, b) => a.courseName.compareTo(b.courseName));
   return filtered;
 }
 

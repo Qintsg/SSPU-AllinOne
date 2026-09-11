@@ -40,7 +40,7 @@ void _registerAcademicEvidenceTests() {
 
     expect(find.text('课程表'), findsWidgets);
     expect(find.text('高等数学'), findsOneWidget);
-    expect(find.text('1–2'), findsOneWidget);
+    expect(find.text('1'), findsWidgets);
     expect(find.text('08:00'), findsOneWidget);
     await disposeAcademicPage(tester);
   });

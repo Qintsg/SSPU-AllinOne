@@ -241,31 +241,40 @@ class _QuickLinksContentState extends State<_QuickLinksContent> {
                         ),
                       ),
                       SizedBox(height: theme.spacing.l),
-                      for (
-                        var index = 0;
-                        index < group.items.length;
-                        index++
-                      ) ...[
-                        if (index > 0) SizedBox(height: theme.spacing.s),
-                        _QuickLinkDirectoryRow(
-                          item: group.items[index],
-                          icon: _resolveIcon(
-                            group.category,
-                            group.items[index],
-                          ),
-                          color: _resolveColor(
-                            group.category,
-                            group.items[index],
-                          ),
-                          description: _itemDescription(group.items[index]),
-                          favorite: _favoriteUrls.contains(
-                            group.items[index].url,
-                          ),
-                          onToggleFavorite: () =>
-                              _toggleFavorite(group.items[index]),
-                          onOpen: () => widget.onOpenItem(group.items[index]),
-                        ),
-                      ],
+                      LayoutBuilder(
+                        builder: (context, groupConstraints) {
+                          final columns =
+                              groupConstraints.maxWidth >=
+                                  theme.layout.popoverWidth - theme.spacing.l
+                              ? 2
+                              : 1;
+                          final gap = theme.spacing.s;
+                          final tileWidth = columns == 1
+                              ? groupConstraints.maxWidth
+                              : (groupConstraints.maxWidth - gap) / columns;
+                          return Wrap(
+                            spacing: gap,
+                            runSpacing: gap,
+                            children: [
+                              for (final item in group.items)
+                                SizedBox(
+                                  key: ValueKey('quick-link-tile-${item.url}'),
+                                  width: tileWidth,
+                                  child: _QuickLinkDirectoryRow(
+                                    item: item,
+                                    icon: _resolveIcon(group.category, item),
+                                    color: _resolveColor(group.category, item),
+                                    description: _itemDescription(item),
+                                    favorite: _favoriteUrls.contains(item.url),
+                                    onToggleFavorite: () =>
+                                        _toggleFavorite(item),
+                                    onOpen: () => widget.onOpenItem(item),
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),

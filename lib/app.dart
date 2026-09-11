@@ -313,6 +313,9 @@ class _DesktopNavigationShell extends StatelessWidget {
             index: selectedIndex,
             onChanged: onChanged,
             extended: extended,
+            footerIndex: destinations.indexWhere(
+              (destination) => destination.title == '设置',
+            ),
             header: Padding(
               padding: EdgeInsets.symmetric(horizontal: theme.spacing.s),
               child: Semantics(

@@ -170,8 +170,26 @@ class _SecondClassroomCardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     final accent = theme.color.serviceSecondClass;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final detailButton = YhTooltip(
+      message: '查看第二课堂学分详情',
+      child: YhIconButton(
+        key: const Key('academic-student-report-detail'),
+        icon: YhIcons.chevronRight,
+        semanticLabel: '查看第二课堂学分详情',
+        variant: YhIconButtonVariant.ghost,
+        onTap: canOpenDetail && summary != null
+            ? () => Navigator.of(context).push(
+                YhPageRoute(
+                  builder: (_) => StudentReportDetailPage(
+                    result: result,
+                    onRefresh: onDetailRefresh,
+                  ),
+                ),
+              )
+            : null,
+      ),
+    );
+    final identity = Row(
       children: [
         SizedBox.square(
           dimension: theme.spacing.l,
@@ -191,28 +209,24 @@ class _SecondClassroomCardHeader extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(width: theme.spacing.s),
-        YhTooltip(
-          message: '查看第二课堂学分详情',
-          child: YhIconButton(
-            key: const Key('academic-student-report-detail'),
-            icon: YhIcons.chevronRight,
-            semanticLabel: '查看第二课堂学分详情',
-            variant: YhIconButtonVariant.ghost,
-            onTap: canOpenDetail && summary != null
-                ? () => Navigator.of(context).push(
-                    YhPageRoute(
-                      builder: (_) => StudentReportDetailPage(
-                        result: result,
-                        onRefresh: onDetailRefresh,
-                      ),
-                    ),
-                  )
-                : null,
-          ),
-        ),
       ],
     );
+    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
+    return compact
+        ? Row(
+            children: [
+              Expanded(child: identity),
+              detailButton,
+            ],
+          )
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: identity),
+              SizedBox(width: theme.spacing.s),
+              detailButton,
+            ],
+          );
   }
 
   Widget _buildRefreshLine(BuildContext context) {

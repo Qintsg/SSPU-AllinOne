@@ -17,46 +17,41 @@ class _InfoHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    return Row(
-      key: Key(compact ? 'info-mobile-controls' : 'info-regular-controls'),
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      key: compact ? const Key('info-mobile-controls') : null,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '校园信息',
-                style: theme.typography.caption.copyWith(
-                  color: theme.color.brandInk,
-                  fontWeight: theme.typography.semibold,
-                ),
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '校园信息',
+                    style: theme.typography.caption.copyWith(
+                      color: theme.color.brandInk,
+                      fontWeight: theme.typography.semibold,
+                    ),
+                  ),
+                  SizedBox(height: theme.spacing.xs),
+                  Semantics(
+                    header: true,
+                    child: Text('校园资讯', style: theme.typography.h1),
+                  ),
+                ],
               ),
-              SizedBox(height: theme.spacing.xs),
-              Semantics(
-                header: true,
-                child: Text('校园资讯', style: theme.typography.h1),
-              ),
-              SizedBox(height: theme.spacing.s),
-              Text(
-                '先说明来源与更新时间，再提供标题和两行摘要；刷新时保留已有内容。',
-                style:
-                    (compact
-                            ? theme.typography.supporting
-                            : theme.typography.body)
-                        .copyWith(color: theme.color.muted),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(width: theme.spacing.s),
-        YhIconButton(
-          key: const Key('info-refresh-button'),
-          icon: YhIcons.refresh,
-          semanticLabel: '刷新校园资讯',
-          onTap: state._refreshService.isRefreshing
-              ? null
-              : state._refreshSchoolWebsite,
+            ),
+            SizedBox(width: theme.spacing.s),
+            YhIconButton(
+              key: const Key('info-refresh-button'),
+              icon: YhIcons.refresh,
+              semanticLabel: '刷新校园资讯',
+              onTap: state._refreshService.isRefreshing
+                  ? null
+                  : state._refreshAllEnabledSources,
+            ),
+          ],
         ),
       ],
     );
