@@ -10,6 +10,7 @@ import '../models/mcp_access_audit.dart';
 import '../models/mcp_authorization.dart';
 import 'mcp_access_audit_service.dart';
 import 'mcp_authorization_service.dart';
+import 'mcp_execution_context_service.dart';
 import 'mcp_snapshot_adapters.dart';
 
 class McpCapabilityRegistry {
@@ -17,9 +18,15 @@ class McpCapabilityRegistry {
     McpSnapshotAdapters? adapters,
     McpAccessAuditService? audit,
     McpAuthorizationService? authorization,
+    McpExecutionContextService? executionContext,
+    this.maxConcurrentCalls = defaultMaxConcurrentCalls,
+    this.toolTimeout = defaultToolTimeout,
+    this.maxResponseBytes = defaultMaxResponseBytes,
   }) : adapters = adapters ?? McpSnapshotAdapters(),
        audit = audit ?? McpAccessAuditService.instance,
        authorization = authorization ?? McpAuthorizationService.instance,
+       executionContext =
+           executionContext ?? McpExecutionContextService.instance,
        _cursorKey = Uint8List.fromList(
          List<int>.generate(32, (_) => Random.secure().nextInt(256)),
        );
@@ -27,13 +34,17 @@ class McpCapabilityRegistry {
   final McpSnapshotAdapters adapters;
   final McpAccessAuditService audit;
   final McpAuthorizationService authorization;
+  final McpExecutionContextService executionContext;
+  final int maxConcurrentCalls;
+  final Duration toolTimeout;
+  final int maxResponseBytes;
   final Uint8List _cursorKey;
   void Function()? onAuditAppended;
   int _activeCalls = 0;
 
-  static const maxConcurrentCalls = 4;
-  static const toolTimeout = Duration(seconds: 5);
-  static const maxResponseBytes = 1024 * 1024;
+  static const defaultMaxConcurrentCalls = 4;
+  static const defaultToolTimeout = Duration(seconds: 5);
+  static const defaultMaxResponseBytes = 1024 * 1024;
 
   static const _annotations = ToolAnnotations(
     readOnlyHint: true,
@@ -61,6 +72,7 @@ class McpCapabilityRegistry {
         annotations: _annotations,
         callback: (args, extra) async {
           final stopwatch = Stopwatch()..start();
+          final contextGeneration = executionContext.capture();
           final before = await this.authorization.read();
           if (!before.isAllowed(domain)) {
             await _audit(
@@ -93,7 +105,12 @@ class McpCapabilityRegistry {
             _validateFilters(name, args);
             final envelope = await handler(args).timeout(toolTimeout);
             final after = await this.authorization.read();
-            if (after.version != before.version || !after.isAllowed(domain)) {
+            final dataContextChanged = !executionContext.isCurrent(
+              contextGeneration,
+            );
+            final authorizationChanged =
+                after.version != before.version || !after.isAllowed(domain);
+            if (dataContextChanged || authorizationChanged) {
               await _audit(
                 name,
                 false,
@@ -101,8 +118,14 @@ class McpCapabilityRegistry {
                 stopwatch.elapsedMilliseconds,
                 source: _source(extra),
               );
-              return const CallToolResult(
-                content: [TextContent(text: '授权上下文已变化，请重新发起请求。')],
+              return CallToolResult(
+                content: [
+                  TextContent(
+                    text: dataContextChanged
+                        ? '数据上下文已变化，请重新发起请求。'
+                        : '授权上下文已变化，请重新发起请求。',
+                  ),
+                ],
                 isError: true,
               );
             }

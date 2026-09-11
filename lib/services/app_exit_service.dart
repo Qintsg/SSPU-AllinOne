@@ -106,6 +106,7 @@ class AppExitService {
     _isExiting = true;
 
     try {
+      McpServerController.instance.invalidateExecutionContext();
       await McpServerController.instance.stop();
       if (_supportsDesktopShell) {
         await _hideVisibleWindowBeforeExit();

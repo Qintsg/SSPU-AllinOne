@@ -11,6 +11,12 @@
   服务页面均包含在内。
 - `flutter analyze --no-fatal-infos`、Spec Kit 校验、Redocly OpenAPI lint 与
   `git diff --check` 已通过。
+- 收敛验收自动化已通过：`test/mcp_quantitative_acceptance_test.dart` 验证 100 次默认关闭启动、
+  2 分钟内启用/发现流程，以及 20 次最多 100 条快照查询的 p95 < 500 ms；
+  `test/mcp_independent_client_interop_test.dart` 使用不依赖 `mcp_dart` 的原始 HTTP 客户端验证
+  `server/discover`、`tools/list`、`tools/call`、分页、越权和 Key 轮换。
+- `test/mcp_capability_registry_test.dart` 现覆盖数据上下文撤销、empty、并发上限、超时和响应体上限；
+  `test/mcp_server_controller_test.dart` 覆盖端口冲突失败关闭。
 - AI 服务视觉 fixture 已采集 360×800、768×900、1200×900、1600×1000 的明暗主题；
   视觉采集测试在默认测试运行中按约定跳过，仅用于本地截图审查。
 - 尚未替代的外部证据：Windows 打包版人工点击、第二台设备 LAN 访问、系统防火墙允许/拒绝、

@@ -212,6 +212,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
 
   /// 手动上锁，从设置页触发
   void _lockApp() {
+    McpServerController.instance.invalidateExecutionContext();
     unawaited(McpServerController.instance.stop());
     setState(() => _isUnlocked = false);
   }
