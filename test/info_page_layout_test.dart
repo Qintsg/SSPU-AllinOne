@@ -328,8 +328,8 @@ void main() {
       expect(find.text('更多筛选'), findsNothing);
       expect(find.text('消息操作'), findsNothing);
       expect(
-        tester.widget<Row>(controls).crossAxisAlignment,
-        CrossAxisAlignment.start,
+        tester.widget<Column>(controls).crossAxisAlignment,
+        CrossAxisAlignment.stretch,
       );
 
       expect(tester.getSize(controls).height, lessThanOrEqualTo(160));
@@ -360,16 +360,11 @@ void main() {
 
       expect(title, findsOneWidget);
       expect(find.text('消息操作'), findsNothing);
-      expect(controls, findsOneWidget);
+      expect(controls, findsNothing);
       expect(pagination, findsOneWidget);
       expect(find.byKey(const Key('info-mobile-controls')), findsNothing);
       expect(find.byKey(const Key('info-mobile-pagination')), findsNothing);
       expect(list, findsOneWidget);
-      expect(
-        tester.widget<Row>(controls).crossAxisAlignment,
-        CrossAxisAlignment.start,
-      );
-      expect(tester.getSize(controls).height, lessThanOrEqualTo(144));
       expect(tester.getSize(pagination).height, 48);
       expect(tester.getSize(list).height, greaterThanOrEqualTo(380));
       expect(tester.getTopLeft(pagination).dy, greaterThan(760));

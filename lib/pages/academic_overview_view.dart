@@ -25,13 +25,7 @@ extension _AcademicOverviewStateView on _AcademicPageState {
     final state = _academicOverviewDisplayState;
     final failedSources = _academicOverviewEffectiveFailedSources;
     final grades = _academicGradeResult?.snapshot?.grades;
-    final completion = _academicEamsResult?.snapshot?.programCompletion;
-    final totalCredits = completion == null
-        ? 0.0
-        : completion.completedCredits + completion.pendingCredits;
-    final completionValue = totalCredits <= 0
-        ? 0.0
-        : completion!.completedCredits / totalCredits;
+    final profile = _academicEamsResult?.snapshot?.profile;
     final exams = _academicExamResult?.snapshot?.exams?.records ?? const [];
     AcademicExamRecord? nextExam;
     for (final exam in exams) {
@@ -47,13 +41,11 @@ extension _AcademicOverviewStateView on _AcademicPageState {
           this._academicExamSelectedTerm?.label ??
           this._academicExamSelectedSemester?.termChoice?.label ??
           '当前学期',
+      profile: profile,
       gpa: grades?.weightedGpaForTerm(null),
-      earnedCredits: completion?.completedCredits,
+      earnedCredits: grades?.earnedCreditsForTerm(null),
       gradeCount: grades?.allRecords.length,
       nextExam: nextExam,
-      completionValue: completionValue,
-      completedCredits: completion?.completedCredits,
-      totalCredits: totalCredits,
       failedSources: failedSources,
       failedSourcesWithoutFallback: failedSources
           .where((source) => !_academicSourceHasFallbackData(source))
@@ -75,21 +67,9 @@ extension _AcademicOverviewStateView on _AcademicPageState {
                   _academicAvailableRefreshSourceCount == 0)
           ? null
           : () => unawaited(_refreshAllAcademicSources()),
-      onOpenGrades: _isCoordinatedRefresh ? null : _openAcademicGradeDetail,
-      onOpenExams: _isCoordinatedRefresh ? null : _openAcademicExamDetail,
-      onOpenSchedule: _isCoordinatedRefresh ? null : _openCourseSchedule,
-      onOpenProgramPlan: _isCoordinatedRefresh
-          ? null
-          : _openAcademicProgramPlan,
-      onOpenFreeClassrooms: _isCoordinatedRefresh ? null : _openFreeClassrooms,
       onOpenAccountConnections: widget.onOpenAccountConnections,
       onAdjustAcademicTerm: widget.onAdjustAcademicTerm,
-      onOpenDetailedSources: _isCoordinatedRefresh
-          ? null
-          : () => unawaited(_openAcademicLegacySources()),
       legacyDetails: _AcademicLegacySources(
-        key: _academicLegacySourcesKey,
-        focusNode: _academicLegacySourcesFocusNode,
         locked: _isCoordinatedRefresh,
         primary: AcademicEamsSummaryCard(
           result: _academicEamsResult,

@@ -22,6 +22,8 @@ import 'package:sspu_allinone/services/academic_credentials_service.dart';
 import 'package:sspu_allinone/services/academic_eams_service.dart';
 import 'package:sspu_allinone/services/data_module_preferences.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
+
+import 'support/responsive_test_sizes.dart';
 import 'package:sspu_allinone/utils/course_week_parser.dart';
 
 /// 推进测试时钟直到目标组件出现或达到尝试上限。
@@ -210,12 +212,8 @@ void main() {
 
     expect(service.courseTableFetchCount, 1);
     expect(find.text('高等数学'), findsOneWidget);
-    expect(
-      find.byWidgetPredicate(
-        (widget) => widget is YhTabs<int> && widget.value == 1,
-      ),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('course-week-block-1-1-高等数学')), findsOneWidget);
+    expect(find.byKey(const Key('course-week-header-1')), findsOneWidget);
 
     completion.complete(_missingPassword);
     await tester.pump();
@@ -246,12 +244,7 @@ void main() {
     expect(find.bySemanticsLabel('正在刷新课程表'), findsOneWidget);
     expect(find.text('高等数学'), findsOneWidget);
     expect(find.textContaining('星期选择和校历入口保持可用'), findsOneWidget);
-    expect(
-      find.byWidgetPredicate(
-        (widget) => widget is YhTabs<int> && widget.value == 1,
-      ),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('course-week-block-1-1-高等数学')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('course-schedule-refresh')));
     await tester.pump();
@@ -415,6 +408,32 @@ void main() {
 
     expect(find.byKey(const Key('open-academic-calendar')), findsOneWidget);
     expect(find.bySemanticsLabel('刷新课程表'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await disposeCourseSchedulePage(tester);
+  });
+
+  testWidgets('1084x706 桌面周课表可滚动访问第 13 节且无底部溢出', (tester) async {
+    await setResponsiveTestViewport(tester, courseOverflowRegressionViewport);
+    addTearDown(() => resetResponsiveTestViewport(tester));
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: _FakeAcademicEamsClient(result: _successResult),
+      initialResult: _successResult,
+      nowOverride: DateTime(2026, 5, 4),
+    );
+    await tester.pump();
+
+    final finalPeriod = find.byKey(const Key('course-period-13'));
+    expect(finalPeriod, findsOneWidget);
+    await tester.scrollUntilVisible(
+      finalPeriod,
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(
+      tester.getBottomLeft(finalPeriod).dy,
+      lessThanOrEqualTo(courseOverflowRegressionViewport.height),
+    );
     expect(tester.takeException(), isNull);
     await disposeCourseSchedulePage(tester);
   });

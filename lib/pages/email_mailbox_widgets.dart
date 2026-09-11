@@ -20,6 +20,7 @@ class _EmailMailboxListPanel extends StatelessWidget {
     required this.formatDateTime,
     required this.onMessageFocused,
     required this.onMessagePressed,
+    required this.scrollController,
   });
 
   final EmailMailboxSnapshot snapshot;
@@ -32,6 +33,7 @@ class _EmailMailboxListPanel extends StatelessWidget {
   final String Function(DateTime? dateTime) formatDateTime;
   final ValueChanged<EmailMessageSnapshot> onMessageFocused;
   final ValueChanged<EmailMessageSnapshot> onMessagePressed;
+  final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -112,28 +114,35 @@ class _EmailMailboxListPanel extends StatelessWidget {
                   ),
                 )
               else
-                for (var index = 0; index < messages.length; index++) ...[
-                  Focus(
-                    canRequestFocus: false,
-                    skipTraversal: true,
-                    onFocusChange: (focused) {
-                      if (focused) onMessageFocused(messages[index]);
-                    },
-                    child: _EmailListRow(
-                      message: messages[index],
-                      selected: messages[index].id == selectedMessageId,
-                      showSenderAnchor: showSenderAnchor,
-                      senderLabel: senderLabel,
-                      formatDateTime: formatDateTime,
-                      onPressed: () => onMessagePressed(messages[index]),
+                Expanded(
+                  child: _EmailScrollbar(
+                    controller: scrollController,
+                    child: ListView.separated(
+                      controller: scrollController,
+                      padding: EdgeInsets.zero,
+                      itemCount: messages.length,
+                      separatorBuilder: (_, _) => Container(
+                        height: theme.layout.divider,
+                        color: theme.color.border,
+                      ),
+                      itemBuilder: (context, index) => Focus(
+                        canRequestFocus: false,
+                        skipTraversal: true,
+                        onFocusChange: (focused) {
+                          if (focused) onMessageFocused(messages[index]);
+                        },
+                        child: _EmailListRow(
+                          message: messages[index],
+                          selected: messages[index].id == selectedMessageId,
+                          showSenderAnchor: showSenderAnchor,
+                          senderLabel: senderLabel,
+                          formatDateTime: formatDateTime,
+                          onPressed: () => onMessagePressed(messages[index]),
+                        ),
+                      ),
                     ),
                   ),
-                  if (index != messages.length - 1)
-                    Container(
-                      height: theme.layout.divider,
-                      color: theme.color.border,
-                    ),
-                ],
+                ),
             ],
           ),
         ),
@@ -252,16 +261,6 @@ class _EmailListRow extends StatelessWidget {
                           height: theme.typography.body.height,
                         ),
                       ),
-                      SizedBox(height: theme.spacing.xs),
-                      Text(
-                        message.preview,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.typography.caption.copyWith(
-                          color: theme.color.muted,
-                          height: theme.typography.body.height,
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -313,6 +312,7 @@ class _EmailInlineDetailPanel extends StatelessWidget {
     required this.formatDateTime,
     required this.onDownloadAttachment,
     required this.downloadingAttachmentIds,
+    required this.scrollController,
   });
 
   final EmailMessageSnapshot? message;
@@ -326,6 +326,7 @@ class _EmailInlineDetailPanel extends StatelessWidget {
   )
   onDownloadAttachment;
   final Set<String> downloadingAttachmentIds;
+  final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -381,22 +382,58 @@ class _EmailInlineDetailPanel extends StatelessWidget {
             ),
             SizedBox(height: theme.spacing.m),
             Container(height: theme.layout.divider, color: theme.color.border),
-            SizedBox(height: theme.spacing.m),
-            YhSelectableText(
-              current.body.isEmpty ? '无可展示正文。' : current.body,
-              semanticLabel: '邮件正文快照',
-            ),
-            if (current.attachments.isNotEmpty) ...[
-              SizedBox(height: theme.spacing.l),
-              _EmailAttachmentList(
-                message: current,
-                downloadingAttachmentIds: downloadingAttachmentIds,
-                onDownloadAttachment: onDownloadAttachment,
+            Expanded(
+              child: _EmailScrollbar(
+                controller: scrollController,
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: EdgeInsets.only(top: theme.spacing.m),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      YhSelectableText(
+                        current.body.isEmpty ? '无可展示正文。' : current.body,
+                        semanticLabel: '邮件正文快照',
+                      ),
+                      if (current.attachments.isNotEmpty) ...[
+                        SizedBox(height: theme.spacing.l),
+                        _EmailAttachmentList(
+                          message: current,
+                          downloadingAttachmentIds: downloadingAttachmentIds,
+                          onDownloadAttachment: onDownloadAttachment,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
-            ],
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _EmailScrollbar extends StatelessWidget {
+  const _EmailScrollbar({required this.controller, required this.child});
+
+  final ScrollController controller;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    return RawScrollbar(
+      controller: controller,
+      thumbVisibility: true,
+      interactive: true,
+      thickness: theme.spacing.xs,
+      radius: Radius.circular(theme.radius.full),
+      thumbColor: theme.color.muted.withValues(
+        alpha: theme.opacity.timelineDot,
+      ),
+      child: child,
     );
   }
 }

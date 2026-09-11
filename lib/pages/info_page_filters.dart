@@ -8,7 +8,7 @@
 
 part of 'info_page.dart';
 
-enum _InfoPrimarySource { all, schoolWebsite, academicOffice, wechat }
+enum _InfoPrimarySource { all, schoolWebsite, wechat }
 
 Future<void> _filterInfoPageByEnabledChannels(_InfoPageState state) async {
   final messageSnapshot = List<MessageItem>.of(state._allMessages);
@@ -133,10 +133,7 @@ bool _matchesInfoPrimarySource(
 ) => switch (source) {
   _InfoPrimarySource.all => true,
   _InfoPrimarySource.schoolWebsite =>
-    message.sourceType == MessageSourceType.schoolWebsite &&
-        message.sourceName != MessageSourceName.jwc,
-  _InfoPrimarySource.academicOffice =>
-    message.sourceName == MessageSourceName.jwc,
+    message.sourceType == MessageSourceType.schoolWebsite,
   _InfoPrimarySource.wechat =>
     message.sourceType == MessageSourceType.wechatPublic ||
         message.sourceType == MessageSourceType.wechatService,

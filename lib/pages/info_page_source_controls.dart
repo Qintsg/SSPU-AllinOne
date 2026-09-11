@@ -107,22 +107,13 @@ List<Widget> _infoSourceButtons(
       '学校官网',
       state._allMessages
           .where(
-            (message) =>
-                message.sourceType == MessageSourceType.schoolWebsite &&
-                message.sourceName != MessageSourceName.jwc,
+            (message) => message.sourceType == MessageSourceType.schoolWebsite,
           )
           .length,
     ),
     (
-      _InfoPrimarySource.academicOffice,
-      '教务处',
-      state._allMessages
-          .where((message) => message.sourceName == MessageSourceName.jwc)
-          .length,
-    ),
-    (
       _InfoPrimarySource.wechat,
-      '微信公众号',
+      '微信公众号/服务号',
       state._allMessages
           .where(
             (message) =>
@@ -198,11 +189,7 @@ class _InfoSourceButton extends StatelessWidget {
 }
 
 int _infoEnabledPrimarySourceCount(_InfoPageState state) =>
-    [
-          _InfoPrimarySource.schoolWebsite,
-          _InfoPrimarySource.academicOffice,
-          _InfoPrimarySource.wechat,
-        ]
+    [_InfoPrimarySource.schoolWebsite, _InfoPrimarySource.wechat]
         .where(
           (source) => state._allMessages.any(
             (message) => _matchesInfoPrimarySource(message, source),

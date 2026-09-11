@@ -180,10 +180,6 @@ class _AcademicPageState extends State<AcademicPage> {
   AcademicCredentialsStatus? _credentialsStatus;
   Future<AcademicCredentialsStatus>? _credentialsStatusFuture;
   int _credentialGeneration = 0;
-  final GlobalKey _academicLegacySourcesKey = GlobalKey();
-  final FocusNode _academicLegacySourcesFocusNode = FocusNode(
-    debugLabel: 'academic-legacy-sources',
-  );
 
   SportsAttendanceClient get _sportsAttendanceService {
     return widget.sportsAttendanceService ?? SportsAttendanceService.instance;
@@ -195,26 +191,6 @@ class _AcademicPageState extends State<AcademicPage> {
 
   AcademicEamsClient get _academicEamsService {
     return widget.academicEamsService ?? AcademicEamsService.instance;
-  }
-
-  AcademicFreeClassroomClient get _freeClassroomService {
-    final override = widget.freeClassroomService;
-    if (override != null) return override;
-    final academicService = _academicEamsService;
-    if (academicService is AcademicFreeClassroomClient) {
-      return academicService as AcademicFreeClassroomClient;
-    }
-    return AcademicEamsService.instance;
-  }
-
-  AcademicProgramPlanClient get _programPlanService {
-    final override = widget.programPlanService;
-    if (override != null) return override;
-    final academicService = _academicEamsService;
-    if (academicService is AcademicProgramPlanClient) {
-      return academicService as AcademicProgramPlanClient;
-    }
-    return AcademicEamsService.instance;
   }
 
   AcademicTermService get _academicTermService {
@@ -530,22 +506,6 @@ class _AcademicPageState extends State<AcademicPage> {
     }
   }
 
-  Future<void> _openAcademicLegacySources() async {
-    final targetContext = _academicLegacySourcesKey.currentContext;
-    if (targetContext == null || _isCoordinatedRefresh) return;
-    final theme = context.yhTheme;
-    await Scrollable.ensureVisible(
-      targetContext,
-      duration: theme.motion.effective(
-        theme.motion.slow,
-        disableAnimations: MediaQuery.disableAnimationsOf(context),
-      ),
-      curve: theme.motion.curve,
-      alignment: 0,
-    );
-    if (mounted) _academicLegacySourcesFocusNode.requestFocus();
-  }
-
   bool get _anyAcademicSourceLoading =>
       _academicEamsRefreshController.isLoading ||
       _academicExamRefreshController.isLoading ||
@@ -590,7 +550,6 @@ class _AcademicPageState extends State<AcademicPage> {
     _credentialChangeSubscription?.cancel();
     _dataAutoRefreshSubscription?.cancel();
     _dataModuleSubscription?.cancel();
-    _academicLegacySourcesFocusNode.dispose();
     _academicEamsRefreshController
       ..removeListener(_handleRefreshControllerChanged)
       ..dispose();

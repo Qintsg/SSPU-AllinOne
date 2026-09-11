@@ -77,16 +77,17 @@ void _registerAcademicOverviewTests() {
     expect(academicClient.overviewFetchCount, 1);
     expect(sportsClient.fetchCount, 1);
 
-    final lockedSources = tester.getSemantics(
-      find.bySemanticsLabel('详细数据源，协同刷新期间不可用'),
+    expect(
+      tester
+          .getSemantics(find.bySemanticsLabel('详细数据源，协同刷新期间不可用'))
+          .flagsCollection
+          .isEnabled,
+      Tristate.isFalse,
     );
-    expect(lockedSources.flagsCollection.isEnabled, Tristate.isFalse);
-    final lockedFocus = tester.widget<Focus>(
+    expect(
       find.byKey(const ValueKey('academic-legacy-sources-focus')),
+      findsNothing,
     );
-    expect(lockedFocus.canRequestFocus, isFalse);
-    expect(lockedFocus.descendantsAreFocusable, isFalse);
-    expect(lockedFocus.descendantsAreTraversable, isFalse);
 
     final legacyDetail = find.byKey(
       const Key('academic-student-report-detail'),
@@ -137,6 +138,9 @@ void _registerAcademicOverviewTests() {
       studentReportService: reportClient,
     );
     await tester.pump();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('academic-overview-refresh')),
+    );
     await tester.tap(find.byKey(const ValueKey('academic-overview-refresh')));
     await tester.pump();
     expect(find.text('正在读取 5 个可用教务来源'), findsOneWidget);
@@ -188,7 +192,7 @@ void _registerAcademicOverviewTests() {
     FlutterSecureStorage.setMockInitialValues({});
   });
 
-  testWidgets('详细数据源入口满足触控尺寸并在跳转后转移键盘焦点', (tester) async {
+  testWidgets('详细数据源按钮删除但页内数据区域仍保留', (tester) async {
     await pumpAcademicPage(
       tester,
       academicEamsService: _FakeAcademicEamsClient(
@@ -206,23 +210,12 @@ void _registerAcademicOverviewTests() {
         cachedResult: _creditResult,
       ),
     );
-    await pumpUntilFound(tester, find.text('查看详细数据源'));
-
-    final shortcut = find.byKey(
-      const ValueKey('academic-overview-detailed-sources'),
+    await pumpUntilFound(tester, find.text('详细数据源'));
+    expect(
+      find.byKey(const ValueKey('academic-overview-detailed-sources')),
+      findsNothing,
     );
-    expect(tester.getSize(shortcut).height, greaterThanOrEqualTo(48));
-    await tester.ensureVisible(shortcut);
-    await tester.pumpAndSettle();
-    await tester.tap(shortcut);
-    await tester.pumpAndSettle();
-
-    final headingTop = tester.getTopLeft(find.text('详细数据源')).dy;
-    expect(headingTop, inInclusiveRange(0, tester.view.physicalSize.height));
-    final focus = tester.widget<Focus>(
-      find.byKey(const ValueKey('academic-legacy-sources-focus')),
-    );
-    expect(focus.focusNode?.hasFocus, isTrue);
+    expect(find.text('详细数据源'), findsOneWidget);
     await disposeAcademicPage(tester);
   });
 
@@ -299,6 +292,7 @@ void _registerAcademicOverviewTests() {
     expect(sportsClient.fetchCount, 0);
     expect(reportClient.fetchCount, 0);
 
+    await tester.ensureVisible(find.text('前往账户与连接'));
     await tester.tap(find.text('前往账户与连接'));
     await tester.pump();
     expect(openedConnections, 1);
@@ -332,10 +326,14 @@ void _registerAcademicOverviewTests() {
     await pumpUntilFound(tester, find.text('体育考勤连接未完成；刷新只会访问其余 4 个可用只读来源。'));
 
     expect(find.text('OA 数据已读取'), findsOneWidget);
+    await tester.ensureVisible(find.text('连接设置'));
     await tester.tap(find.text('连接设置'));
     await tester.pump();
     expect(openedConnections, 1);
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('academic-overview-refresh')),
+    );
     await tester.tap(find.byKey(const ValueKey('academic-overview-refresh')));
     await tester.pumpAndSettle();
 
@@ -437,12 +435,19 @@ void _registerAcademicOverviewTests() {
       sportsAttendanceService: sportsClient,
       studentReportService: reportClient,
     );
-    await pumpUntilFound(tester, find.text('3.0'));
+    final earnedCredits = find.descendant(
+      of: find.byKey(const ValueKey('academic-metric-earned-credits')),
+      matching: find.text('3.0', findRichText: true),
+    );
+    await pumpUntilFound(tester, earnedCredits);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('academic-overview-refresh')),
+    );
 
     await tester.tap(find.byKey(const ValueKey('academic-overview-refresh')));
     await tester.pumpAndSettle();
 
-    expect(find.text('3.0'), findsOneWidget);
+    expect(earnedCredits, findsOneWidget);
     final bannerTexts = tester
         .widgetList<Text>(
           find.descendant(
@@ -456,8 +461,8 @@ void _registerAcademicOverviewTests() {
       bannerTexts,
       contains(
         '考试、成绩、体育考勤、第二课堂未完成；'
-        '体育考勤、第二课堂继续显示最后有效数据；'
-        '考试、成绩暂无可保留数据；可使用页面顶部刷新按钮重试。',
+        '成绩、体育考勤、第二课堂继续显示最后有效数据；'
+        '考试暂无可保留数据；可使用页面顶部刷新按钮重试。',
       ),
     );
     expect(find.text('教务数据部分更新'), findsOneWidget);

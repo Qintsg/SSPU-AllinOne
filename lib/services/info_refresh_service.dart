@@ -13,7 +13,7 @@ import 'auto_refresh_service.dart';
 import 'message_state_service.dart';
 import 'wechat_article_service.dart';
 
-enum InfoRefreshKind { schoolWebsite, wechat }
+enum InfoRefreshKind { all, schoolWebsite, wechat }
 
 class InfoRefreshSnapshot {
   final bool isRefreshing;
@@ -75,25 +75,79 @@ class InfoRefreshService extends ChangeNotifier {
     return true;
   }
 
-  Future<void> _runSchoolWebsiteRefresh() async {
+  /// 一次刷新全部已启用的官网与微信渠道。
+  Future<bool> startAllEnabledRefresh() async {
+    if (_runningTask != null) return false;
+    _runningTask = _runAllEnabledRefresh();
+    notifyListeners();
+    await _runningTask;
+    return true;
+  }
+
+  Future<void> _runAllEnabledRefresh() async {
+    final websiteEnabled = await _autoRefreshService
+        .hasEnabledSchoolWebsiteChannel();
+    final wechatEnabled = await WechatArticleService.instance
+        .hasConfiguredRefreshTarget();
+    final totalEnabled = (websiteEnabled ? 1 : 0) + (wechatEnabled ? 1 : 0);
+    _update(
+      InfoRefreshSnapshot(
+        isRefreshing: true,
+        kind: InfoRefreshKind.all,
+        text: totalEnabled == 0 ? '没有启用的刷新渠道' : '正在刷新全部启用渠道…',
+        completed: 0,
+        total: totalEnabled,
+      ),
+    );
+    try {
+      if (websiteEnabled) {
+        await _runSchoolWebsiteRefresh(
+          finishWhenDone: false,
+          kind: InfoRefreshKind.all,
+        );
+      }
+      if (wechatEnabled) {
+        await _runWechatRefresh(
+          finishWhenDone: false,
+          kind: InfoRefreshKind.all,
+        );
+      }
+      _update(
+        InfoRefreshSnapshot(
+          isRefreshing: true,
+          kind: InfoRefreshKind.all,
+          text: '全部启用渠道刷新完成',
+          completed: totalEnabled,
+          total: totalEnabled,
+        ),
+      );
+    } finally {
+      _finishSoon();
+    }
+  }
+
+  Future<void> _runSchoolWebsiteRefresh({
+    bool finishWhenDone = true,
+    InfoRefreshKind kind = InfoRefreshKind.schoolWebsite,
+  }) async {
     if (!await _autoRefreshService.hasEnabledSchoolWebsiteChannel()) {
       _update(
-        const InfoRefreshSnapshot(
+        InfoRefreshSnapshot(
           isRefreshing: true,
-          kind: InfoRefreshKind.schoolWebsite,
+          kind: kind,
           text: '当前未启用任何官网消息刷新渠道',
           completed: 0,
           total: 0,
         ),
       );
-      _finishSoon();
+      if (finishWhenDone) _finishSoon();
       return;
     }
 
     _update(
-      const InfoRefreshSnapshot(
+      InfoRefreshSnapshot(
         isRefreshing: true,
-        kind: InfoRefreshKind.schoolWebsite,
+        kind: kind,
         text: '正在准备刷新官网消息...',
         completed: 0,
         total: 0,
@@ -108,7 +162,7 @@ class InfoRefreshService extends ChangeNotifier {
               _update(
                 InfoRefreshSnapshot(
                   isRefreshing: true,
-                  kind: InfoRefreshKind.schoolWebsite,
+                  kind: kind,
                   text: '已完成 $completed / $total 个渠道，新增 ${messages.length} 条',
                   completed: completed,
                   total: total,
@@ -119,7 +173,7 @@ class InfoRefreshService extends ChangeNotifier {
       _update(
         InfoRefreshSnapshot(
           isRefreshing: true,
-          kind: InfoRefreshKind.schoolWebsite,
+          kind: kind,
           text: '官网消息刷新完成，获取 ${fetched.length} 条候选消息',
           completed: _snapshot.total,
           total: _snapshot.total,
@@ -129,36 +183,39 @@ class InfoRefreshService extends ChangeNotifier {
       _update(
         InfoRefreshSnapshot(
           isRefreshing: true,
-          kind: InfoRefreshKind.schoolWebsite,
+          kind: kind,
           text: '官网消息刷新失败：$error',
           completed: _snapshot.completed,
           total: _snapshot.total,
         ),
       );
     } finally {
-      _finishSoon();
+      if (finishWhenDone) _finishSoon();
     }
   }
 
-  Future<void> _runWechatRefresh() async {
+  Future<void> _runWechatRefresh({
+    bool finishWhenDone = true,
+    InfoRefreshKind kind = InfoRefreshKind.wechat,
+  }) async {
     if (!await WechatArticleService.instance.hasConfiguredRefreshTarget()) {
       _update(
-        const InfoRefreshSnapshot(
+        InfoRefreshSnapshot(
           isRefreshing: true,
-          kind: InfoRefreshKind.wechat,
+          kind: kind,
           text: '当前未启用任何微信推文刷新项',
           completed: 0,
           total: 0,
         ),
       );
-      _finishSoon();
+      if (finishWhenDone) _finishSoon();
       return;
     }
 
     _update(
-      const InfoRefreshSnapshot(
+      InfoRefreshSnapshot(
         isRefreshing: true,
-        kind: InfoRefreshKind.wechat,
+        kind: kind,
         text: '正在刷新最新微信推文...',
         completed: 0,
         total: 0,
@@ -180,7 +237,7 @@ class InfoRefreshService extends ChangeNotifier {
           _update(
             InfoRefreshSnapshot(
               isRefreshing: true,
-              kind: InfoRefreshKind.wechat,
+              kind: kind,
               text:
                   '已完成 $completed / $total 个公众号：$accountName，新增 ${messages.length} 条',
               completed: completed,
@@ -192,7 +249,7 @@ class InfoRefreshService extends ChangeNotifier {
       _update(
         InfoRefreshSnapshot(
           isRefreshing: true,
-          kind: InfoRefreshKind.wechat,
+          kind: kind,
           text: result.summary,
           completed: result.completedAccounts,
           total: result.totalAccounts,
@@ -202,14 +259,14 @@ class InfoRefreshService extends ChangeNotifier {
       _update(
         InfoRefreshSnapshot(
           isRefreshing: true,
-          kind: InfoRefreshKind.wechat,
+          kind: kind,
           text: '微信推文刷新失败：$error',
           completed: _snapshot.completed,
           total: _snapshot.total,
         ),
       );
     } finally {
-      _finishSoon();
+      if (finishWhenDone) _finishSoon();
     }
   }
 

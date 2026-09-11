@@ -591,9 +591,11 @@ void main() {
       tester.getSize(row).height,
       closeTo(theme.control.regular * 2 - theme.layout.divider / 2, 0.1),
     );
-    final preview = tester.widget<Text>(find.text('缓存邮件内容。'));
-    expect(preview.style?.color, theme.color.muted);
-    expect(preview.style?.height, theme.typography.body.height);
+    expect(find.text('缓存邮件内容。'), findsNothing);
+    final senderFinder = find.descendant(of: row, matching: find.text('教务处'));
+    final sender = tester.widget<Text>(senderFinder);
+    expect(sender.style?.color, theme.color.muted);
+    expect(sender.style?.height, theme.typography.body.height);
   });
 
   testWidgets('邮箱列表暴露互斥选择语义并支持上下方向键漫游', (tester) async {
@@ -649,34 +651,19 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('邮箱页面可在本地缓存内即时搜索主题与正文', (tester) async {
+  testWidgets('邮箱页面不再显示搜索入口与旧布局说明', (tester) async {
     await pumpEmailPage(
       tester,
       emailService: _FakeEmailClient(cachedResult: _twoMessageMailboxResult),
       emailAutoRefreshEnabledOverride: false,
     );
-    await pumpUntilFound(tester, find.byKey(const Key('email-search-field')));
+    await pumpUntilFound(tester, find.text('第二封邮件'));
 
     expect(find.text('缓存通知'), findsOneWidget);
     expect(find.text('第二封邮件'), findsOneWidget);
-
-    await tester.enterText(find.byKey(const Key('email-search-field')), '第二封');
-    await tester.pump();
-
-    expect(find.text('第二封邮件'), findsOneWidget);
-    expect(find.text('缓存通知'), findsNothing);
-    expect(find.text('1/2 封邮件'), findsOneWidget);
-    expect(find.textContaining('仅筛选已缓存'), findsNothing);
-
-    await tester.enterText(find.byKey(const Key('email-search-field')), '不存在');
-    await tester.pump();
-    expect(find.text('没有匹配邮件'), findsOneWidget);
-    expect(find.textContaining('本地缓存的 2 封邮件'), findsOneWidget);
-
-    await tester.tap(find.bySemanticsLabel('清除邮件搜索'));
-    await tester.pump();
-    expect(find.text('缓存通知'), findsOneWidget);
-    expect(find.text('第二封邮件'), findsOneWidget);
+    expect(find.byKey(const Key('email-search-field')), findsNothing);
+    expect(find.textContaining('邮件原文只在本机读取'), findsNothing);
+    expect(find.textContaining('移动端进入独立详情页'), findsNothing);
   });
 
   testWidgets('邮箱页面按十封一组加载更早邮件', (tester) async {

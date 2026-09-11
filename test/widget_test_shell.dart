@@ -274,6 +274,39 @@ void _registerShellTests() {
     }
   });
 
+  testWidgets('桌面设置入口固定在导航轨底部并保持索引行为', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    StorageService.debugUseSharedPreferencesStorageForTesting(true);
+    final previousTargetPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    await setResponsiveTestViewport(tester, expandedTestViewport);
+    try {
+      await tester.pumpWidget(
+        const YhApp(
+          home: AppShell(destinationOverrides: {'设置': Text('设置页索引保持正确')}),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final rail = find.byType(qingyuan.YhNavRail);
+      final footer = find.byKey(const ValueKey('yh-nav-footer-设置'));
+      expect(footer, findsOneWidget);
+      expect(
+        tester.getBottomLeft(footer).dy,
+        greaterThan(tester.getSize(rail).height - 100),
+      );
+      await tester.tap(find.descendant(of: footer, matching: find.text('设置')));
+      await tester.pump();
+      expect(find.text('设置页索引保持正确'), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = previousTargetPlatform;
+      StorageService.debugUseSharedPreferencesStorageForTesting(null);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await resetResponsiveTestViewport(tester);
+    }
+  });
+
   testWidgets('多个校园网状态入口共享同一次检测结果', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     StorageService.debugUseSharedPreferencesStorageForTesting(true);

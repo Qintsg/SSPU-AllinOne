@@ -11,6 +11,8 @@ import 'package:sspu_allinone/services/academic_credentials_service.dart';
 import 'package:sspu_allinone/services/quick_links_config_service.dart';
 import 'package:sspu_allinone/services/storage_service.dart';
 
+import 'support/responsive_test_sizes.dart';
+
 void main() {
   const groups = <QuickLinkGroupConfig>[
     QuickLinkGroupConfig(
@@ -348,6 +350,33 @@ void main() {
     expect(tester.getTopLeft(third).dy, tester.getTopLeft(first).dy);
     expect(tester.getTopLeft(first).dx, lessThan(tester.getTopLeft(second).dx));
     expect(tester.getTopLeft(second).dx, lessThan(tester.getTopLeft(third).dx));
+  });
+
+  testWidgets('清源快速跳转在宽屏组卡内横向排列并自动换行', (tester) async {
+    await setResponsiveTestViewport(tester, expandedTestViewport);
+    addTearDown(() => resetResponsiveTestViewport(tester));
+    await tester.pumpWidget(
+      YhApp(
+        home: QuickLinksPage(
+          groupsLoader: () async => groups,
+          onOpenUrl: (_) async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final first = find.byKey(
+      const ValueKey('quick-link-tile-https://jwc.sspu.edu.cn/'),
+    );
+    final second = find.byKey(
+      const ValueKey('quick-link-tile-https://lib.sspu.edu.cn/'),
+    );
+    expect(tester.getTopLeft(second).dy, tester.getTopLeft(first).dy);
+    expect(
+      tester.getTopLeft(second).dx,
+      greaterThan(tester.getTopLeft(first).dx),
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('清源快速跳转空状态按内容收束而非填满窗口', (tester) async {

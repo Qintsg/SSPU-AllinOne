@@ -60,36 +60,74 @@ class YhBanner extends StatelessWidget {
             theme.spacing.s + theme.spacing.xs + theme.layout.divider * 2,
             theme.spacing.s + theme.spacing.xs + theme.layout.divider,
           ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: denseLeading
-                    ? theme.spacing.m
-                    : theme.spacing.m + theme.layout.divider * 2,
-                color: colors.$2,
-              ),
-              SizedBox(
-                width: denseLeading
-                    ? theme.spacing.s
-                    : theme.spacing.s + theme.layout.divider * 2,
-              ),
-              Expanded(
-                child: Text(
-                  text,
-                  style: theme.typography.small.copyWith(color: colors.$2),
+          child: compact && action != null
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          icon,
+                          size: denseLeading
+                              ? theme.spacing.m
+                              : theme.spacing.m + theme.layout.divider * 2,
+                          color: colors.$2,
+                        ),
+                        SizedBox(width: theme.spacing.s),
+                        Expanded(
+                          child: Text(
+                            text,
+                            style: theme.typography.small.copyWith(
+                              color: colors.$2,
+                            ),
+                          ),
+                        ),
+                        if (onClose != null)
+                          YhIconButton(
+                            icon: YhIcons.close,
+                            semanticLabel: '关闭提示',
+                            variant: YhIconButtonVariant.ghost,
+                            onTap: onClose,
+                          ),
+                      ],
+                    ),
+                    SizedBox(height: theme.spacing.s),
+                    action!,
+                  ],
+                )
+              : Row(
+                  children: [
+                    Icon(
+                      icon,
+                      size: denseLeading
+                          ? theme.spacing.m
+                          : theme.spacing.m + theme.layout.divider * 2,
+                      color: colors.$2,
+                    ),
+                    SizedBox(
+                      width: denseLeading
+                          ? theme.spacing.s
+                          : theme.spacing.s + theme.layout.divider * 2,
+                    ),
+                    Expanded(
+                      child: Text(
+                        text,
+                        style: theme.typography.small.copyWith(
+                          color: colors.$2,
+                        ),
+                      ),
+                    ),
+                    ?action,
+                    if (onClose != null)
+                      YhIconButton(
+                        icon: YhIcons.close,
+                        semanticLabel: '关闭提示',
+                        variant: YhIconButtonVariant.ghost,
+                        onTap: onClose,
+                      ),
+                  ],
                 ),
-              ),
-              ?action,
-              if (onClose != null)
-                YhIconButton(
-                  icon: YhIcons.close,
-                  semanticLabel: '关闭提示',
-                  variant: YhIconButtonVariant.ghost,
-                  onTap: onClose,
-                ),
-            ],
-          ),
         ),
       ),
     );

@@ -405,12 +405,14 @@ class EnoughMailGateway implements EmailGateway, AdvancedEmailGateway {
   String _extractBodyText(MimeMessage message) {
     final plainText = message.decodeTextPlainPart();
     if (plainText != null && plainText.trim().isNotEmpty) {
-      return _normalizeText(plainText);
+      return _normalizeBodyText(plainText);
     }
 
     final htmlText = message.decodeTextHtmlPart();
     if (htmlText == null || htmlText.trim().isEmpty) return '';
-    return _normalizeText(html_parser.parse(htmlText).body?.text ?? htmlText);
+    return _normalizeBodyText(
+      html_parser.parse(htmlText).body?.text ?? htmlText,
+    );
   }
 
   String _buildPreview(String body) {
@@ -432,6 +434,15 @@ class EnoughMailGateway implements EmailGateway, AdvancedEmailGateway {
 
   String _normalizeText(String value) {
     return value.replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
+  String _normalizeBodyText(String value) {
+    return value
+        .replaceAll('\r\n', '\n')
+        .split('\n')
+        .map((line) => line.replaceAll(RegExp(r'[ \t]+'), ' ').trimRight())
+        .join('\n')
+        .trim();
   }
 
   Future<void> _logoutImapSilently(ImapClient client) async {

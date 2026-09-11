@@ -12,13 +12,11 @@ class _AcademicOverviewPage extends StatelessWidget {
   const _AcademicOverviewPage({
     required this.state,
     required this.termLabel,
+    required this.profile,
     required this.gpa,
     required this.earnedCredits,
     required this.gradeCount,
     required this.nextExam,
-    required this.completionValue,
-    required this.completedCredits,
-    required this.totalCredits,
     required this.failedSources,
     required this.failedSourcesWithoutFallback,
     required this.hasContent,
@@ -29,26 +27,18 @@ class _AcademicOverviewPage extends StatelessWidget {
     required this.staleCheckedAt,
     required this.backgroundRefreshing,
     required this.onRefresh,
-    required this.onOpenGrades,
-    required this.onOpenExams,
-    required this.onOpenSchedule,
-    required this.onOpenProgramPlan,
-    required this.onOpenFreeClassrooms,
     required this.onOpenAccountConnections,
     required this.onAdjustAcademicTerm,
-    required this.onOpenDetailedSources,
     required this.legacyDetails,
   });
 
   final AcademicOverviewDisplayState state;
   final String termLabel;
+  final AcademicEamsProfile? profile;
   final double? gpa;
   final double? earnedCredits;
   final int? gradeCount;
   final AcademicExamRecord? nextExam;
-  final double completionValue;
-  final double? completedCredits;
-  final double totalCredits;
   final Set<String> failedSources;
   final Set<String> failedSourcesWithoutFallback;
   final bool hasContent;
@@ -59,14 +49,8 @@ class _AcademicOverviewPage extends StatelessWidget {
   final DateTime? staleCheckedAt;
   final bool backgroundRefreshing;
   final VoidCallback? onRefresh;
-  final VoidCallback? onOpenGrades;
-  final VoidCallback? onOpenExams;
-  final VoidCallback? onOpenSchedule;
-  final VoidCallback? onOpenProgramPlan;
-  final VoidCallback? onOpenFreeClassrooms;
   final VoidCallback? onOpenAccountConnections;
   final VoidCallback? onAdjustAcademicTerm;
-  final VoidCallback? onOpenDetailedSources;
   final Widget legacyDetails;
 
   bool get _showsContent =>
@@ -90,8 +74,6 @@ class _AcademicOverviewPage extends StatelessWidget {
                         theme.responsive.panelPaddingViewportPercent /
                         100)
                     .clamp(theme.spacing.l, theme.spacing.xl2);
-          final balancedGrid =
-              !compact && viewportWidth < theme.breakpoint.expanded;
           return SingleChildScrollView(
             key: const PageStorageKey('academic-overview-scroll'),
             padding: EdgeInsets.fromLTRB(
@@ -111,9 +93,15 @@ class _AcademicOverviewPage extends StatelessWidget {
                   children: [
                     _AcademicHeading(
                       compact: compact,
-                      balanced: balancedGrid,
+                      termLabel: termLabel,
+                      profile: profile,
+                      gpa: gpa,
+                      earnedCredits: earnedCredits,
+                      gradeCount: gradeCount,
+                      nextExam: nextExam,
                       onRefresh: onRefresh,
                     ),
+                    SizedBox(height: theme.spacing.m),
                     if (_showsContent) ...[
                       Wrap(
                         spacing: theme.spacing.s,
@@ -188,23 +176,6 @@ class _AcademicOverviewPage extends StatelessWidget {
                         ),
                         SizedBox(height: theme.spacing.m),
                       ],
-                      _AcademicContentGrid(
-                        compact: compact,
-                        balanced: balancedGrid,
-                        termLabel: termLabel,
-                        gpa: gpa,
-                        earnedCredits: earnedCredits,
-                        gradeCount: gradeCount,
-                        nextExam: nextExam,
-                        completionValue: completionValue,
-                        completedCredits: completedCredits,
-                        totalCredits: totalCredits,
-                        onOpenGrades: onOpenGrades,
-                        onOpenExams: onOpenExams,
-                        onOpenSchedule: onOpenSchedule,
-                        onOpenProgramPlan: onOpenProgramPlan,
-                        onOpenFreeClassrooms: onOpenFreeClassrooms,
-                      ),
                     ] else
                       _AcademicStatePanel(
                         state: state,
@@ -213,19 +184,6 @@ class _AcademicOverviewPage extends StatelessWidget {
                         onOpenAccountConnections: onOpenAccountConnections,
                         onAdjustAcademicTerm: onAdjustAcademicTerm,
                       ),
-                    SizedBox(height: theme.spacing.xl),
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: YhButton(
-                        key: const ValueKey(
-                          'academic-overview-detailed-sources',
-                        ),
-                        label: '查看详细数据源',
-                        variant: YhButtonVariant.secondary,
-                        leadingIcon: YhIcons.info,
-                        onTap: onOpenDetailedSources,
-                      ),
-                    ),
                     SizedBox(height: theme.spacing.xl),
                     legacyDetails,
                   ],
