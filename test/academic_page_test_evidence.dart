@@ -29,19 +29,8 @@ void _registerAcademicEvidenceTests() {
     await tester.tap(legacyRefresh);
     await pumpUntilFound(tester, find.textContaining('姓名：张三'));
 
-    expect(find.text('本专科教务'), findsOneWidget);
-    expect(find.textContaining('课表 1门'), findsOneWidget);
-    expect(find.textContaining('开课检索：入口已识别'), findsOneWidget);
-
-    final openCourseSchedule = find.byKey(const Key('open-course-schedule'));
-    await tester.ensureVisible(openCourseSchedule);
-    await tester.tap(openCourseSchedule);
-    await tester.pumpAndSettle();
-
-    expect(find.text('课程表'), findsWidgets);
-    expect(find.text('高等数学'), findsOneWidget);
-    expect(find.text('1'), findsWidgets);
-    expect(find.text('08:00'), findsOneWidget);
+    expect(find.text('本专科教务'), findsNothing);
+    expect(find.byKey(const Key('open-course-schedule')), findsNothing);
     await disposeAcademicPage(tester);
   });
 
@@ -61,51 +50,11 @@ void _registerAcademicEvidenceTests() {
     final refresh = find.byKey(const ValueKey('academic-overview-refresh'));
     await tester.ensureVisible(refresh);
     await tester.tap(refresh);
-    final gradeCard = find.byKey(const Key('academic-eams-grade-card'));
-    await pumpUntilFound(
-      tester,
-      find.descendant(of: gradeCard, matching: find.text('成绩门数')),
-    );
-
-    final primaryCard = find.byType(AcademicEamsSummaryCard);
-    expect(
-      find.descendant(of: primaryCard, matching: gradeCard),
-      findsOneWidget,
-    );
-    // 卡片仅展示 GPA 与成绩门数指标块，不再列课程预览。
-    expect(
-      find.descendant(of: gradeCard, matching: find.textContaining('GPA')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: gradeCard, matching: find.text('高等数学')),
-      findsNothing,
-    );
+    await pumpUntilFound(tester, find.text('已读成绩'));
+    expect(find.byKey(const Key('academic-eams-grade-card')), findsNothing);
+    expect(find.byType(AcademicEamsSummaryCard), findsNothing);
     expect(academicService.gradeFetchCount, 1);
-
-    final detailButton = find.byKey(const Key('academic-eams-grade-detail'));
-    await tester.ensureVisible(detailButton);
-    await tester.tap(detailButton);
-    await tester.pumpAndSettle();
-
-    expect(find.text('课程成绩'), findsWidgets);
-    expect(
-      find.byKey(const Key('academic-eams-grade-term-select')),
-      findsOneWidget,
-    );
-    // 默认查看全部学期。
-    expect(find.text('全部学期'), findsWidgets);
-    expect(find.text('高等数学'), findsWidgets);
-
-    // 命令栏进入过程化成绩三级页（按学期独立请求平时成绩明细）。
-    final processEntry = find.byKey(
-      const Key('academic-eams-grade-process-entry'),
-    );
-    expect(processEntry, findsOneWidget);
-    await tester.tap(processEntry);
-    await pumpUntilFound(tester, find.text('平时成绩Ⅰ'));
-    expect(find.text('高等数学D1'), findsWidgets);
-    expect(academicService.gradeProcessFetchCount, 1);
+    expect(find.byKey(const Key('academic-eams-grade-detail')), findsNothing);
     await disposeAcademicPage(tester);
   });
 

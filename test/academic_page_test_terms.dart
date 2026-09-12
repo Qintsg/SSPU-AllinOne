@@ -131,22 +131,9 @@ void _registerAcademicTermsTests() {
     await tester.tap(refresh);
     await pumpUntilFound(tester, find.text('大学生心理健康教育'));
 
-    expect(find.byKey(const Key('academic-eams-exam-card')), findsOneWidget);
-    final primaryCard = find.byType(AcademicEamsSummaryCard);
-    final examCard = find.byKey(const Key('academic-eams-exam-card'));
-    expect(
-      find.descendant(of: primaryCard, matching: examCard),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('academic-eams-exam-card')), findsNothing);
+    expect(find.byType(AcademicEamsSummaryCard), findsNothing);
     expect(find.text('大学生心理健康教育'), findsWidgets);
-    expect(find.text('高等数学D2'), findsNothing);
-    expect(find.text('通用学术英语B'), findsNothing);
-    expect(find.textContaining('考试情况尚未发布'), findsNothing);
-    expect(find.textContaining('暂无信息'), findsNothing);
-    expect(find.textContaining('2026-06-17'), findsOneWidget);
-    expect(find.textContaining('4201'), findsWidgets);
-    expect(find.textContaining('考试 3场'), findsOneWidget);
-    expect(find.textContaining('还有 2 门考试信息'), findsOneWidget);
     expect(
       find.byKey(const Key('academic-eams-exam-year-select')),
       findsNothing,
@@ -155,121 +142,10 @@ void _registerAcademicTermsTests() {
       find.byKey(const Key('academic-eams-exam-season-select')),
       findsNothing,
     );
-    expect(find.textContaining('教务学期'), findsNothing);
-    expect(find.textContaining('semester.id'), findsNothing);
     expect(academicService.overviewFetchCount, 1);
     expect(academicService.examFetchCount, 1);
 
-    final detailButton = find.byKey(const Key('academic-eams-exam-detail'));
-    await tester.ensureVisible(detailButton);
-    await tester.tap(detailButton);
-    await tester.pumpAndSettle();
-
-    expect(find.text('考试安排'), findsWidgets);
-    expect(
-      find.byKey(const Key('academic-eams-exam-year-select')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const Key('academic-eams-exam-season-select')),
-      findsOneWidget,
-    );
-    expect(find.text('2025–2026'), findsOneWidget);
-    expect(find.text('春季学期'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('academic-eams-exam-season-select')));
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const Key('academic-eams-exam-season-option-fall')),
-      findsWidgets,
-    );
-    expect(
-      find.byKey(const Key('academic-eams-exam-season-option-spring')),
-      findsWidgets,
-    );
-    expect(
-      find.byKey(const Key('academic-eams-exam-season-option-summer')),
-      findsWidgets,
-    );
-    await tester.tapAt(const Offset(10, 10));
-    await tester.pumpAndSettle();
-    expect(find.text('考试时间轴'), findsOneWidget);
-    expect(find.text('连续时间正序'), findsOneWidget);
-    expect(find.text('考试类型'), findsOneWidget);
-    expect(find.text('高等数学D2'), findsOneWidget);
-    expect(find.text('大学生心理健康教育'), findsWidgets);
-    expect(find.text('通用学术英语B'), findsOneWidget);
-    expect(find.textContaining('考试情况尚未发布'), findsNothing);
-    expect(find.textContaining('暂无信息'), findsNothing);
-    expect(find.textContaining('第17周期末考试'), findsWidgets);
-    expect(find.byType(Table), findsNothing);
-    expect(
-      tester.getTopLeft(find.text('大学生心理健康教育').first).dy,
-      lessThan(tester.getTopLeft(find.text('高等数学D2')).dy),
-      reason: '已排期考试应按时间排在无时间占位记录之前',
-    );
-
-    await tester.tap(find.byKey(const Key('academic-eams-exam-season-select')));
-    await tester.pumpAndSettle();
-    final fallOption = find
-        .byKey(const Key('academic-eams-exam-season-option-fall'))
-        .last;
-    await tester.tapAt(tester.getCenter(fallOption));
-    await tester.pumpAndSettle();
-
-    expect(academicService.examFetchCount, 1);
-    expect(find.text('大学生心理健康教育'), findsOneWidget);
-    expect(find.text('程序设计基础'), findsNothing);
-
-    await tester.tap(find.byKey(const Key('academic-eams-exam-detail-search')));
-    await pumpUntilFound(tester, find.text('程序设计基础'));
-
-    expect(
-      academicService.examTermValues.last?.season,
-      AcademicTermSeason.fall,
-    );
-    // 下拉解析出的真实 semester.id 会随查询传入，便于学期接口失败时复用。
-    expect(academicService.examSemesterValues.last?.id, '1041');
-    expect(find.text('考试课程'), findsOneWidget);
-    expect(find.text('已经排期'), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('academic-eams-exam-season-select')));
-    await tester.pumpAndSettle();
-    final summerOption = find
-        .byKey(const Key('academic-eams-exam-season-option-summer'))
-        .last;
-    await tester.tapAt(tester.getCenter(summerOption));
-    await tester.pumpAndSettle();
-    expect(academicService.examFetchCount, 2);
-    expect(find.text('程序设计基础'), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('academic-eams-exam-detail-search')));
-    await pumpUntilFound(tester, find.text('当前学期暂无可展示的考试信息。'));
-    expect(
-      academicService.examTermValues.last?.season,
-      AcademicTermSeason.summer,
-    );
-    expect(academicService.examSemesterValues.last, isNull);
-
-    await tester.tap(find.byKey(const Key('academic-eams-exam-season-select')));
-    await tester.pumpAndSettle();
-    final springOption = find
-        .byKey(const Key('academic-eams-exam-season-option-spring'))
-        .last;
-    await tester.tapAt(tester.getCenter(springOption));
-    await tester.pumpAndSettle();
-    expect(academicService.examFetchCount, 3);
-    await tester.tap(find.byKey(const Key('academic-eams-exam-detail-search')));
-    await pumpUntilFound(tester, find.text('大学生心理健康教育'));
-    expect(
-      academicService.examTermValues.last?.season,
-      AcademicTermSeason.spring,
-    );
-    expect(academicService.examSemesterValues.last, isNull);
-
-    await tester.tap(find.bySemanticsLabel('返回'));
-    await tester.pumpAndSettle();
-    expect(find.text('大学生心理健康教育'), findsWidgets);
-    expect(find.textContaining('考试 3场'), findsOneWidget);
+    expect(find.byKey(const Key('academic-eams-exam-detail')), findsNothing);
     await disposeAcademicPage(tester);
   });
 

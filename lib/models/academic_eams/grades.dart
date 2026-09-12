@@ -84,8 +84,20 @@ class AcademicGradeRecord {
     if (normalized.contains('不及格') || normalized.contains('未通过')) {
       return false;
     }
-    if (normalized.contains('通过') || normalized.contains('及格')) return true;
-    final numeric = double.tryParse(normalized.replaceAll('%', ''));
+    if (normalized.contains('通过') ||
+        normalized.contains('及格') ||
+        normalized.contains('合格') ||
+        normalized.contains('优秀') ||
+        normalized.contains('良好') ||
+        normalized == '优' ||
+        normalized == '良' ||
+        normalized == '中') {
+      return true;
+    }
+    final numericText = RegExp(
+      r'-?\d+(?:\.\d+)?',
+    ).firstMatch(normalized)?.group(0);
+    final numeric = double.tryParse(numericText ?? '');
     return numeric != null && numeric >= 60;
   }
 }

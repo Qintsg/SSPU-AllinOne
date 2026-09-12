@@ -27,6 +27,7 @@ class _AcademicOverviewPage extends StatelessWidget {
     required this.staleCheckedAt,
     required this.backgroundRefreshing,
     required this.onRefresh,
+    required this.onOpenSchedule,
     required this.onOpenAccountConnections,
     required this.onAdjustAcademicTerm,
     required this.legacyDetails,
@@ -49,6 +50,7 @@ class _AcademicOverviewPage extends StatelessWidget {
   final DateTime? staleCheckedAt;
   final bool backgroundRefreshing;
   final VoidCallback? onRefresh;
+  final VoidCallback? onOpenSchedule;
   final VoidCallback? onOpenAccountConnections;
   final VoidCallback? onAdjustAcademicTerm;
   final Widget legacyDetails;
@@ -100,36 +102,10 @@ class _AcademicOverviewPage extends StatelessWidget {
                       gradeCount: gradeCount,
                       nextExam: nextExam,
                       onRefresh: onRefresh,
+                      onOpenSchedule: onOpenSchedule,
                     ),
                     SizedBox(height: theme.spacing.m),
                     if (_showsContent) ...[
-                      Wrap(
-                        spacing: theme.spacing.s,
-                        runSpacing: theme.spacing.s,
-                        children: [
-                          YhStatusPill(
-                            label: oaStatusLabel,
-                            kind: oaStatusKind,
-                          ),
-                          const YhStatusPill(
-                            label: '本地快照可用',
-                            kind: YhStatusKind.success,
-                          ),
-                          const YhStatusPill(
-                            label: '只读访问',
-                            kind: YhStatusKind.info,
-                          ),
-                          if (backgroundRefreshing)
-                            Semantics(
-                              liveRegion: true,
-                              child: const YhStatusPill(
-                                label: '正在更新',
-                                kind: YhStatusKind.info,
-                              ),
-                            ),
-                        ],
-                      ),
-                      SizedBox(height: theme.spacing.m),
                       if (credentialsIncomplete) ...[
                         YhBanner(
                           kind: YhBannerKind.warn,

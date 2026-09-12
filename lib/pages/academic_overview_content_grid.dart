@@ -18,6 +18,7 @@ class _AcademicHeading extends StatelessWidget {
     required this.gradeCount,
     required this.nextExam,
     required this.onRefresh,
+    required this.onOpenSchedule,
   });
 
   final bool compact;
@@ -28,6 +29,7 @@ class _AcademicHeading extends StatelessWidget {
   final int? gradeCount;
   final AcademicExamRecord? nextExam;
   final VoidCallback? onRefresh;
+  final VoidCallback? onOpenSchedule;
 
   @override
   Widget build(BuildContext context) {
@@ -95,18 +97,29 @@ class _AcademicHeading extends StatelessWidget {
         children: [
           overview,
           SizedBox(height: theme.spacing.m),
-          _AcademicNextExamCard(nextExam: nextExam),
+          _AcademicNextExamCard(
+            nextExam: nextExam,
+            onOpenSchedule: onOpenSchedule,
+          ),
         ],
       );
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(flex: 8, child: overview),
-        SizedBox(width: theme.spacing.m),
-        Expanded(flex: 4, child: _AcademicNextExamCard(nextExam: nextExam)),
-      ],
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(flex: 8, child: overview),
+          SizedBox(width: theme.spacing.m),
+          Expanded(
+            flex: 4,
+            child: _AcademicNextExamCard(
+              nextExam: nextExam,
+              onOpenSchedule: onOpenSchedule,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -221,6 +234,28 @@ class _AcademicMetricsRow extends StatelessWidget {
       ),
       ('grade-count', '已读成绩', gradeCount == null ? '—' : '$gradeCount 门'),
     ];
+    Widget metricBox((String, String, String) metric) => _AcademicMetricBox(
+      label: metric.$2,
+      value: metric.$3,
+      balanced: true,
+      compact: compact,
+    );
+    if (!compact) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var index = 0; index < metrics.length; index++) ...[
+            Expanded(
+              child: KeyedSubtree(
+                key: ValueKey('academic-metric-${metrics[index].$1}'),
+                child: metricBox(metrics[index]),
+              ),
+            ),
+            if (index != metrics.length - 1) SizedBox(width: theme.spacing.s),
+          ],
+        ],
+      );
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         final columns =
@@ -240,12 +275,7 @@ class _AcademicMetricsRow extends StatelessWidget {
               SizedBox(
                 key: ValueKey('academic-metric-${metric.$1}'),
                 width: itemWidth,
-                child: _AcademicMetricBox(
-                  label: metric.$2,
-                  value: metric.$3,
-                  balanced: false,
-                  compact: compact,
-                ),
+                child: metricBox(metric),
               ),
           ],
         );

@@ -243,24 +243,6 @@ class _HomeTimelineEntry {
     );
   }
 
-  factory _HomeTimelineEntry.message(MessageItem message, DateTime now) {
-    final fallback = DateTime(now.year, now.month, now.day, 16);
-    final dateTime = DateTime.fromMillisecondsSinceEpoch(
-      message.timestamp ?? fallback.millisecondsSinceEpoch,
-    );
-    final minuteOfDay = dateTime.hour * 60 + dateTime.minute;
-    final time =
-        '${dateTime.hour.toString().padLeft(2, '0')}:'
-        '${dateTime.minute.toString().padLeft(2, '0')}';
-    return _HomeTimelineEntry(
-      time: time,
-      title: message.title,
-      detail: message.title.contains('作业') ? '在教务系统提交' : '在信息中心查看',
-      minuteOfDay: minuteOfDay,
-      minutesUntil: minuteOfDay - now.hour * 60 - now.minute,
-    );
-  }
-
   final String time;
   final String title;
   final String detail;

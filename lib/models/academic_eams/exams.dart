@@ -120,6 +120,7 @@ class AcademicExamRecord {
     required this.courseName,
     required this.rawCells,
     this.examType,
+    this.semesterLabel,
     this.courseSequence,
     String? examDate,
     this.examArrange,
@@ -136,6 +137,9 @@ class AcademicExamRecord {
 
   /// 考试类型。
   final String? examType;
+
+  /// 该条安排所属学期；聚合夏季考试与上一学期补考时用于保留来源语义。
+  final String? semesterLabel;
 
   /// 课程序号。
   final String? courseSequence;
@@ -212,6 +216,7 @@ class AcademicExamRecord {
       courseName: json['courseName'] as String? ?? '',
       rawCells: (json['rawCells'] as List<dynamic>? ?? const []).cast<String>(),
       examType: json['examType'] as String?,
+      semesterLabel: json['semesterLabel'] as String?,
       courseSequence: json['courseSequence'] as String?,
       examDate: json['examDate'] as String? ?? json['examTime'] as String?,
       examArrange: json['examArrange'] as String?,
@@ -229,6 +234,7 @@ class AcademicExamRecord {
   Map<String, dynamic> toJson() {
     return {
       'examType': examType,
+      'semesterLabel': semesterLabel,
       'courseSequence': courseSequence,
       'courseName': courseName,
       'rawCells': rawCells,

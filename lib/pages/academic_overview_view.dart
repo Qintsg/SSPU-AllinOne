@@ -67,29 +67,11 @@ extension _AcademicOverviewStateView on _AcademicPageState {
                   _academicAvailableRefreshSourceCount == 0)
           ? null
           : () => unawaited(_refreshAllAcademicSources()),
+      onOpenSchedule: _openCourseSchedule,
       onOpenAccountConnections: widget.onOpenAccountConnections,
       onAdjustAcademicTerm: widget.onAdjustAcademicTerm,
       legacyDetails: _AcademicLegacySources(
         locked: _isCoordinatedRefresh,
-        primary: AcademicEamsSummaryCard(
-          result: _academicEamsResult,
-          isLoading: _academicEamsRefreshController.isLoading,
-          autoRefreshEnabled: _academicEamsRefreshController.autoRefreshEnabled,
-          onOpenCourseSchedule: _openCourseSchedule,
-          examResult: _academicExamResult,
-          examSchedule: AcademicEamsExamCard(
-            result: _academicExamResult,
-            isLoading: _academicExamRefreshController.isLoading,
-            selectedTerm: this._academicExamSelectedTerm,
-            onOpenDetail: _openAcademicExamDetail,
-          ),
-          gradeResult: _academicGradeResult,
-          gradeCard: AcademicEamsGradeCard(
-            result: _academicGradeResult,
-            isLoading: _academicGradeRefreshController.isLoading,
-            onOpenDetail: _openAcademicGradeDetail,
-          ),
-        ),
         sports: AcademicSportsAttendanceCard(
           result: _sportsAttendanceResult,
           isLoading: _sportsAttendanceRefreshController.isLoading,

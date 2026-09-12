@@ -178,7 +178,7 @@ extension _HomeDashboardPrimaryLayout on _HomePageState {
                           ),
                           Text(
                             '${_todayCourseEntries.length} 节课 · '
-                            '${_latestMessages.length} 项待办',
+                            '${entries.length} 项安排',
                             style: _timelineMetaStyle(theme),
                           ),
                         ],

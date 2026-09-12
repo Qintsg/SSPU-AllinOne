@@ -23,7 +23,10 @@ class MessageTile extends StatelessWidget {
     return YhCard(
       semanticLabel: '打开消息：${message.title}',
       onTap: onTap,
-      padding: EdgeInsets.all(theme.spacing.l),
+      padding: EdgeInsets.symmetric(
+        horizontal: theme.spacing.m,
+        vertical: theme.spacing.s,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -50,20 +53,20 @@ class MessageTile extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: theme.spacing.s),
+          SizedBox(height: theme.spacing.xs),
           Text(
             message.title,
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.typography.feed.copyWith(
               color: isRead ? theme.color.muted : theme.color.foreground,
               fontWeight: isRead ? theme.typography.body.fontWeight : null,
             ),
           ),
-          SizedBox(height: theme.spacing.s),
+          SizedBox(height: theme.spacing.xs),
           Text(
             _summary,
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.typography.supporting.copyWith(
               color: theme.color.muted,

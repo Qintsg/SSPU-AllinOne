@@ -83,8 +83,6 @@ class _InfoPageState extends State<InfoPage> {
 
   Object? _loadError;
 
-  DateTime? _lastLoadedAt;
-
   _InfoPrimarySource _primarySource = _InfoPrimarySource.all;
 
   /// 搜索关键词（保留内部筛选逻辑，入口由紧凑控制区承载）。
@@ -131,7 +129,6 @@ class _InfoPageState extends State<InfoPage> {
       _allMessages.addAll(widget.messagesOverride!);
       _filteredMessages = List<MessageItem>.of(_allMessages);
       _wechatSourceConfigured = widget.wechatSourceConfiguredOverride ?? false;
-      _lastLoadedAt = widget.nowOverride;
       _isInitializing = false;
       return;
     }
@@ -158,7 +155,6 @@ class _InfoPageState extends State<InfoPage> {
       _filteredMessages = List<MessageItem>.of(_allMessages);
       _primarySource = _InfoPrimarySource.all;
       _searchQuery = '';
-      _lastLoadedAt = widget.nowOverride;
       _isInitializing = false;
       _loadError = null;
     }
@@ -203,7 +199,6 @@ class _InfoPageState extends State<InfoPage> {
       ..clear()
       ..addAll(persisted);
     await _filterByEnabledChannels();
-    _lastLoadedAt = widget.nowOverride ?? DateTime.now();
   }
 
   /// 初始化状态服务，从本地存储加载消息并根据渠道开关过滤显示

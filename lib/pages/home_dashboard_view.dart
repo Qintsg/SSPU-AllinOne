@@ -155,7 +155,7 @@ extension _HomeDashboardView on _HomePageState {
       _sportsAttendanceResult != null ||
       _studentReportResult != null ||
       _emailResult != null ||
-      _latestMessages.isNotEmpty;
+      (_messagesTileVisible && _latestMessages.isNotEmpty);
 
   bool get _hasStaleHomeCache {
     final now = widget.nowOverride ?? DateTime.now();

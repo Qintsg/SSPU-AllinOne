@@ -176,6 +176,8 @@ extension _AcademicExamEvidenceBody on _AcademicEamsExamDetailPageState {
                     placeholder: '地点待公布',
                   ),
                   detail: [
+                    if ((record.semesterLabel ?? '').trim().isNotEmpty)
+                      record.semesterLabel!.trim(),
                     if ((record.examType ?? '').trim().isNotEmpty)
                       record.examType!.trim(),
                     if ((record.displayExamSituation ?? '').trim().isNotEmpty)

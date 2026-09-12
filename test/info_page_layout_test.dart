@@ -128,7 +128,7 @@ void main() {
       );
 
       expect(find.text('校园资讯'), findsOneWidget);
-      expect(find.byKey(const Key('info-status-row')), findsOneWidget);
+      expect(find.byKey(const Key('info-status-row')), findsNothing);
       expect(
         find.byKey(const Key('info-compact-source-strip')),
         findsOneWidget,

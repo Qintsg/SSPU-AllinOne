@@ -77,13 +77,7 @@ void _registerAcademicOverviewTests() {
     expect(academicClient.overviewFetchCount, 1);
     expect(sportsClient.fetchCount, 1);
 
-    expect(
-      tester
-          .getSemantics(find.bySemanticsLabel('详细数据源，协同刷新期间不可用'))
-          .flagsCollection
-          .isEnabled,
-      Tristate.isFalse,
-    );
+    expect(find.bySemanticsLabel('教务辅助数据，协同刷新期间不可用'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('academic-legacy-sources-focus')),
       findsNothing,
@@ -161,12 +155,7 @@ void _registerAcademicOverviewTests() {
     await tester.pumpAndSettle();
 
     expect(find.text('教务数据已刷新'), findsNothing);
-    expect(
-      tester
-          .widget<AcademicEamsSummaryCard>(find.byType(AcademicEamsSummaryCard))
-          .result,
-      isNull,
-    );
+    expect(find.byType(AcademicEamsSummaryCard), findsNothing);
     expect(
       tester
           .widget<AcademicSportsAttendanceCard>(
@@ -210,12 +199,12 @@ void _registerAcademicOverviewTests() {
         cachedResult: _creditResult,
       ),
     );
-    await pumpUntilFound(tester, find.text('详细数据源'));
+    await pumpUntilFound(tester, find.text('课外活动考勤'));
     expect(
       find.byKey(const ValueKey('academic-overview-detailed-sources')),
       findsNothing,
     );
-    expect(find.text('详细数据源'), findsOneWidget);
+    expect(find.text('详细数据源'), findsNothing);
     await disposeAcademicPage(tester);
   });
 
@@ -236,10 +225,10 @@ void _registerAcademicOverviewTests() {
       studentReportService: _FakeStudentReportClient(result: _creditResult),
       sportsAttendanceAutoRefreshEnabledOverride: true,
     );
-    await pumpUntilFound(tester, find.text('正在更新'));
+    await pumpUntilFound(tester, find.text('课外活动考勤'));
 
-    expect(find.text('本地快照可用'), findsOneWidget);
-    expect(find.text('正在更新'), findsOneWidget);
+    expect(find.text('本地快照可用'), findsNothing);
+    expect(find.text('正在更新'), findsNothing);
     expect(
       tester
           .widget<AcademicSportsAttendanceCard>(
@@ -325,7 +314,7 @@ void _registerAcademicOverviewTests() {
     );
     await pumpUntilFound(tester, find.text('体育考勤连接未完成；刷新只会访问其余 4 个可用只读来源。'));
 
-    expect(find.text('OA 数据已读取'), findsOneWidget);
+    expect(find.text('OA 数据已读取'), findsNothing);
     await tester.ensureVisible(find.text('连接设置'));
     await tester.tap(find.text('连接设置'));
     await tester.pump();
