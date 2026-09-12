@@ -42,6 +42,8 @@
 - 修正夏季学期考试与上一教学学期补考聚合、课表学期上下文和整学期课程语义，避免历史课程误归入当前视图。
 - 收敛校园资讯、邮箱和快速跳转的响应式布局、滚动、分页、邮件正文空态及多列分类展示。
 - macOS Release 工作流改为 Developer ID 签名、公证、staple 和 Gatekeeper 校验，并统一生成 universal DMG，避免未公证 DMG 在首次打开时被系统拦截。
+- 修正 iOS 最低部署版本为 14.0，匹配 `file_picker_darwin` 的 podspec 与 Swift Package 要求，恢复 iOS Release 构建。
+- 修正 macOS Runner 目标 Release 配置：Xcode 构建阶段改用 ad-hoc 签名，再由发布流程以 Developer ID 重新签名、公证并 staple，避免构建因缺少开发团队而中断。
 
 ### 已知问题
 

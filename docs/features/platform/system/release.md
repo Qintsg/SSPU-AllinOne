@@ -16,7 +16,7 @@
 
 ## 2. 当前实现
 
-- macOS 正式发布路径要求 Developer ID 签名、公证、staple，并检查 Gatekeeper 与 universal 架构。
+- macOS 正式发布路径要求 Developer ID 签名、公证、staple，并检查 Gatekeeper 与 universal 架构；Runner 目标在 Xcode 构建阶段使用 ad-hoc 签名，避免依赖 `DEVELOPMENT_TEAM`，签名与公证统一由 workflow 完成。
 - Release workflow 缺少签名、公证凭据时 fail-closed，不生成可冒充正式产物的未签名 DMG。
 - 发布元数据和资产命名保持公开版本一致，避免用户下载到无法识别的产物。
 
@@ -29,4 +29,5 @@
 
 - [x] 接入签名、公证、staple、Gatekeeper 与 universal 架构门禁。
 - [x] 为缺少签名材料的正式路径设置 fail-closed。
+- [x] 修正 macOS Runner 目标签名配置与 iOS 14.0 最低部署版本，解除 Apple 平台构建阻断。
 - [ ] 在 macOS Runner 下载 DMG，完成安装、首次启动与钥匙串/权限回归并记录证据。

@@ -172,7 +172,9 @@ macOS 0.4.0-beta 首次启动问题（#327）的发布门槛是 Developer ID 签
 | macOS | universal | Developer ID 签名并公证的 DMG | 是 |
 | Linux | x64 | AppImage / deb / rpm / tar.gz | 是 |
 | Linux | arm64 | AppImage / deb / rpm / tar.gz | 是 |
-| iOS | arm64 | 未签名 `.app.zip`（需开发者账号安装） | 是 |
+| iOS | arm64 | 未签名 `.app.zip`（需开发者账号安装，最低 iOS 14.0） | 是 |
+
+iOS 最低支持版本为 14.0：`file_picker_darwin` 的 podspec 与 Swift Package 清单都要求该版本，低于 14.0 的工程配置会直接构建失败。macOS Release 目标在 Xcode 构建阶段使用 ad-hoc 签名，产物由 `Build & Release` workflow 以 Developer ID 重新签名、公证并 staple，因此构建 Runner 不需要配置 `DEVELOPMENT_TEAM`。
 
 Linux 正式发布必须同时覆盖 `x64` 与 `arm64`，并提供 AppImage、deb、rpm、tar.gz 四类产物。
 

@@ -152,6 +152,36 @@ void main() {
     }
   });
 
+  test('Apple 平台最低版本与发布签名配置匹配依赖要求', () {
+    final iosProject = _read('ios/Runner.xcodeproj/project.pbxproj');
+    final iosPodfile = _read('ios/Podfile');
+    final macosProject = _read('macos/Runner.xcodeproj/project.pbxproj');
+
+    // file_picker_darwin 的 podspec 与 Swift Package 清单都要求 iOS 14.0，
+    // 低于该版本的工程配置会让 iOS Release 构建在 Runner 上直接失败。
+    expect(
+      RegExp(
+        r'IPHONEOS_DEPLOYMENT_TARGET = 14\.0;',
+      ).allMatches(iosProject).length,
+      3,
+    );
+    expect(iosProject, isNot(contains('IPHONEOS_DEPLOYMENT_TARGET = 13.0;')));
+    expect(iosPodfile, contains("platform :ios, '14.0'"));
+
+    // macOS 发布产物由 Release workflow 使用 Developer ID 重新签名并公证，
+    // 因此 Runner Release 配置保持 ad-hoc 签名，避免构建要求 DEVELOPMENT_TEAM。
+    expect(
+      macosProject,
+      matches(
+        RegExp(
+          r'CODE_SIGN_ENTITLEMENTS = Runner/Release\.entitlements;\s+'
+          r'CODE_SIGN_IDENTITY = "-";\s+'
+          r'CODE_SIGN_STYLE = Manual;',
+        ),
+      ),
+    );
+  });
+
   test('Apple Xcode 版本号跟随 Flutter 构建元数据', () {
     final iosProject = _read('ios/Runner.xcodeproj/project.pbxproj');
     final macosAppInfo = _read('macos/Runner/Configs/AppInfo.xcconfig');
