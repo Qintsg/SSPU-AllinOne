@@ -421,9 +421,6 @@ extension _HomeDashboardContent on _HomePageState {
             now,
             timeOverride: widget.homeCourseTimeOverrides?[course.courseName],
           ),
-      if (_messagesTileVisible)
-        for (final message in _latestMessages.take(1))
-          _HomeTimelineEntry.message(message, now),
     ]..sort((a, b) => a.minuteOfDay.compareTo(b.minuteOfDay));
     return entries.take(3).toList(growable: false);
   }

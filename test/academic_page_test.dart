@@ -7,7 +7,6 @@
  */
 
 import 'dart:async';
-import 'dart:ui' show Tristate;
 
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';

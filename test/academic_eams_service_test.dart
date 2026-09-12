@@ -287,6 +287,64 @@ void main() {
     expect(gateway.lastSubmittedFields?['dataType'], 'semesterCalendar');
   });
 
+  test('夏季考试默认聚合当前学期期末与上一教学学期补考', () async {
+    await AcademicCredentialsService.instance.saveCredentials(
+      oaAccount: '20260001',
+      oaPassword: 'oa-pass',
+    );
+    await AcademicCredentialsService.instance.saveOaLoginSession(
+      academicEamsSessionSnapshot,
+    );
+    final gateway = FakeAcademicEamsGateway();
+    final service = buildAcademicEamsServiceForTest(
+      gateway: gateway,
+      campusReachable: true,
+    );
+
+    final result = await service.fetchExamSchedule(
+      term: const AcademicTermChoice(
+        academicYear: 2025,
+        season: AcademicTermSeason.summer,
+      ),
+    );
+
+    expect(result.status, AcademicEamsQueryStatus.success);
+    expect(result.snapshot?.exams?.selectedSemester?.id, '1043');
+    expect(result.snapshot?.exams?.selectedExamType, '1');
+    final records = result.snapshot!.exams!.records;
+    expect(
+      records.map((record) => '${record.courseName}:${record.examType}'),
+      containsAll(['暑期工程实践:期末考试', '线性代数:补考']),
+    );
+    expect(
+      records
+          .firstWhere((record) => record.courseName == '暑期工程实践')
+          .semesterLabel,
+      '2025-2026 学年夏季学期',
+    );
+    expect(
+      records.firstWhere((record) => record.courseName == '线性代数').semesterLabel,
+      '2025-2026 学年春季学期',
+    );
+    expect(
+      gateway.requestedPageUris,
+      containsAll([
+        predicate<Uri>(
+          (uri) =>
+              uri.path.contains('stdExamTable!examTable.action') &&
+              uri.queryParameters['semester.id'] == '1043' &&
+              uri.queryParameters['examType.id'] == '1',
+        ),
+        predicate<Uri>(
+          (uri) =>
+              uri.path.contains('stdExamTable!examTable.action') &&
+              uri.queryParameters['semester.id'] == '1042' &&
+              uri.queryParameters['examType.id'] == '3',
+        ),
+      ]),
+    );
+  });
+
   test('考试安排支持使用下拉选中的其它学期重新查询', () async {
     await AcademicCredentialsService.instance.saveCredentials(
       oaAccount: '20260001',

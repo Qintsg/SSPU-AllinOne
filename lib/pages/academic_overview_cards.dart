@@ -82,9 +82,13 @@ class _AcademicMetricBox extends StatelessWidget {
 }
 
 class _AcademicNextExamCard extends StatelessWidget {
-  const _AcademicNextExamCard({required this.nextExam});
+  const _AcademicNextExamCard({
+    required this.nextExam,
+    required this.onOpenSchedule,
+  });
 
   final AcademicExamRecord? nextExam;
+  final VoidCallback? onOpenSchedule;
 
   @override
   Widget build(BuildContext context) {
@@ -112,14 +116,27 @@ class _AcademicNextExamCard extends StatelessWidget {
     return _AcademicSectionCard(
       title: '下一场考试',
       summary: dayLabel == null ? '当前没有已发布日期的考试' : '离考试还有 $dayLabel',
-      child: nextExam == null
-          ? const _AcademicInlineEmpty(text: '考试日期尚未发布')
-          : _AcademicActionRow(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (nextExam == null)
+            const _AcademicInlineEmpty(text: '考试日期尚未发布')
+          else
+            _AcademicActionRow(
               icon: YhIcons.calendar,
               title: nextExam!.courseName,
               detail: detail,
               trail: dayLabel?.replaceAll(' ', ''),
             ),
+          SizedBox(height: context.yhTheme.spacing.m),
+          YhButton(
+            key: const Key('academic-open-course-schedule'),
+            label: '查看课表与考试',
+            variant: YhButtonVariant.secondary,
+            onTap: onOpenSchedule,
+          ),
+        ],
+      ),
     );
   }
 }

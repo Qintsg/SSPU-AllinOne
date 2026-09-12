@@ -75,7 +75,6 @@ class _InfoContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _InfoStatusRow(state: state),
         if (stale) ...[
           SizedBox(height: theme.spacing.m),
           const YhBanner(
@@ -106,10 +105,7 @@ class _InfoContent extends StatelessWidget {
                   children: [
                     SizedBox(
                       width: theme.layout.popoverWidth - theme.spacing.l,
-                      child: Align(
-                        alignment: Alignment.topCenter,
-                        child: _InfoSourcePanel(state: state),
-                      ),
+                      child: _InfoSourcePanel(state: state),
                     ),
                     SizedBox(width: theme.spacing.m),
                     Expanded(child: _InfoMessagePanel(state: state)),
@@ -124,46 +120,25 @@ class _InfoContent extends StatelessWidget {
               compact ? 'info-mobile-pagination' : 'info-regular-pagination',
             ),
             height: theme.control.minimumTarget,
-            child: Align(
-              alignment: Alignment.center,
-              child: YhPagination(
-                page: state._currentPage + 1,
-                pageCount: state._totalPages,
-                simple: compact,
-                onChanged: (page) => state._setCurrentPage(page - 1),
+            child: LayoutBuilder(
+              builder: (context, constraints) => Align(
+                alignment: Alignment.center,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: constraints.maxWidth,
+                    minWidth: compact ? 0 : theme.layout.formContentWidth,
+                  ),
+                  child: YhPagination(
+                    page: state._currentPage + 1,
+                    pageCount: state._totalPages,
+                    simple: compact,
+                    onChanged: (page) => state._setCurrentPage(page - 1),
+                  ),
+                ),
               ),
             ),
           ),
         ],
-      ],
-    );
-  }
-}
-
-class _InfoStatusRow extends StatelessWidget {
-  const _InfoStatusRow({required this.state});
-
-  final _InfoPageState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    final sourceCount = _infoEnabledPrimarySourceCount(state);
-    final updated = state._lastLoadedAt ?? state._now;
-    final time =
-        '${updated.hour.toString().padLeft(2, '0')}:'
-        '${updated.minute.toString().padLeft(2, '0')} 更新';
-    return Wrap(
-      key: const Key('info-status-row'),
-      spacing: theme.spacing.s,
-      runSpacing: theme.spacing.s,
-      children: [
-        YhStatusPill(label: '$sourceCount 个来源', kind: YhStatusKind.info),
-        YhStatusPill(
-          label: '${state._allMessages.length} 条资讯',
-          kind: YhStatusKind.info,
-        ),
-        YhStatusPill(label: time),
       ],
     );
   }

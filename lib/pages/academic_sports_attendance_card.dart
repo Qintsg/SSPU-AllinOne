@@ -247,21 +247,30 @@ class _SportsAttendanceSummaryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    return Wrap(
-      spacing: theme.spacing.l,
-      runSpacing: theme.spacing.m,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        ConstrainedBox(
-          constraints: BoxConstraints(
-            minWidth:
-                theme.spacing.xl2 * 3 + theme.spacing.s + theme.spacing.xs,
-            maxWidth: theme.breakpoint.compact / 3 + theme.spacing.l,
-          ),
-          child: _SportsAttendanceTotalMetric(count: summary.totalCount),
-        ),
-        _SportsAttendanceCountWrap(summary: summary),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < theme.breakpoint.compact;
+        final metric = _SportsAttendanceTotalMetric(count: summary.totalCount);
+        final counts = _SportsAttendanceCountWrap(summary: summary);
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              metric,
+              SizedBox(height: theme.spacing.m),
+              counts,
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 2, child: metric),
+            SizedBox(width: theme.spacing.l),
+            Expanded(flex: 3, child: counts),
+          ],
+        );
+      },
     );
   }
 }

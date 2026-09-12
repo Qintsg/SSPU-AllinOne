@@ -133,6 +133,7 @@ class McpSnapshotAdapters {
               (record) => {
                 'courseName': record.courseName,
                 'examType': record.examType,
+                'semesterLabel': record.semesterLabel,
                 'date': record.displayExamDate,
                 'arrangement': record.displayExamArrange,
                 'location': record.displayExamLocation,

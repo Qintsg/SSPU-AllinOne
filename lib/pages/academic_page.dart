@@ -12,7 +12,6 @@ import 'dart:math' as math;
 import '../controllers/card_auto_refresh_controller.dart';
 import '../controllers/retained_refresh_controller.dart';
 import '../design/qingyuan/qingyuan_ui.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/academic_eams.dart';
 import '../models/academic_credentials.dart';
@@ -61,7 +60,6 @@ part 'academic_page_display_utils.dart';
 part 'academic_page_life_sources.dart';
 part 'academic_page_eams_sources.dart';
 part 'academic_page_navigation.dart';
-part 'academic_dashboard_layout.dart';
 
 /// 教务中心页面。
 /// 已接入体育部考勤和第二课堂学分，其余教务能力保留规划入口。

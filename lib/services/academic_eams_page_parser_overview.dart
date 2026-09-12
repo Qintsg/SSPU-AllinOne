@@ -265,6 +265,7 @@ AcademicExamSnapshot? _parseExams(AcademicEamsHttpSnapshot? snapshot) {
       if (courseName == null || courseName.isEmpty) continue;
       final record = AcademicExamRecord(
         examType: _pickValue(rowMap, ['考试类型', '类型', 'Exam Type']),
+        semesterLabel: _pickValue(rowMap, ['考试学期', '学期', 'Exam Term']),
         courseSequence: _pickValue(rowMap, ['课程序号', '课程代码', '课程编号', 'Number']),
         courseName: courseName,
         examDate: _pickValue(rowMap, [
@@ -316,7 +317,7 @@ AcademicExamSnapshot? _parseExams(AcademicEamsHttpSnapshot? snapshot) {
   }
   if (foundExamTable) {
     return AcademicExamSnapshot(
-      records: List.unmodifiable(records),
+      records: List.unmodifiable(_dedupeAcademicExamRecords(records)),
       selectedSemester: selectedSemester,
       semesterOptions: semesterOptions,
       selectedExamType: selectedExamType,
@@ -339,6 +340,26 @@ AcademicExamSnapshot? _parseExams(AcademicEamsHttpSnapshot? snapshot) {
     );
   }
   return null;
+}
+
+List<AcademicExamRecord> _dedupeAcademicExamRecords(
+  Iterable<AcademicExamRecord> records,
+) {
+  final seen = <String>{};
+  final deduped = <AcademicExamRecord>[];
+  for (final record in records) {
+    final key = [
+      record.semesterLabel,
+      record.examType,
+      record.courseSequence,
+      record.courseName,
+      record.examDate,
+      record.examArrange,
+      record.examLocation,
+    ].map((value) => value?.trim() ?? '').join('\u001f');
+    if (seen.add(key)) deduped.add(record);
+  }
+  return deduped;
 }
 
 Map<String, String> _readExamTypeOptions(Map<String, Object?> metadata) {

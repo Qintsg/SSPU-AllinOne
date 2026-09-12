@@ -101,7 +101,6 @@ List<Widget> _infoSourceButtons(
 }) {
   final theme = context.yhTheme;
   final options = <(_InfoPrimarySource, String, int)>[
-    (_InfoPrimarySource.all, '全部信息', state._allMessages.length),
     (
       _InfoPrimarySource.schoolWebsite,
       '学校官网',

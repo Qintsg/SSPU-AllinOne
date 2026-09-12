@@ -133,6 +133,30 @@ void main() {
     await disposeCourseSchedulePage(tester);
   });
 
+  testWidgets('夏季课表刷新将学期上下文传给考试聚合查询', (tester) async {
+    final summerResult = _resultWithCourseTerm(
+      _successResult,
+      '2025-2026 第3学期',
+    );
+    final service = _FakeAcademicEamsClient(result: summerResult);
+
+    await pumpCourseSchedulePage(
+      tester,
+      academicEamsService: service,
+      autoRefreshEnabledOverride: true,
+      nowOverride: DateTime(2026, 7, 1),
+    );
+    await pumpUntilFound(tester, find.text('高等数学'));
+
+    expect(service.examFetchTerms, [
+      const AcademicTermChoice(
+        academicYear: 2025,
+        season: AcademicTermSeason.summer,
+      ),
+    ]);
+    await disposeCourseSchedulePage(tester);
+  });
+
   testWidgets('页面停留期间共享刷新时长变化会重启课表定时器', (tester) async {
     SharedPreferences.setMockInitialValues({});
     StorageService.debugUseSharedPreferencesStorageForTesting(true);
@@ -456,7 +480,7 @@ void main() {
 
     expect(find.text('课程表说明'), findsNothing);
     expect(find.text('2025-2026 学年春季学期（按校历推断）'), findsOneWidget);
-    expect(find.textContaining('周视图在桌面保持七天空间关系'), findsOneWidget);
+    expect(find.textContaining('周视图在桌面保持七天空间关系'), findsNothing);
     expect(tester.takeException(), isNull);
     await disposeCourseSchedulePage(tester);
   });
@@ -634,6 +658,7 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   final Completer<AcademicEamsQueryResult?>? pendingCachedCourseTable;
   int courseTableFetchCount = 0;
   int cachedCourseTableReadCount = 0;
+  final List<AcademicTermChoice?> examFetchTerms = [];
 
   @override
   Future<AcademicEamsQueryResult?> readLatestCachedCourseTable() async {
@@ -685,6 +710,7 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
     String? examTypeId,
     bool requireCampusNetwork = true,
   }) async {
+    examFetchTerms.add(term);
     return result;
   }
 
@@ -713,6 +739,37 @@ class _FakeAcademicEamsClient implements AcademicEamsClient {
   Future<AcademicEamsQueryResult?> readLatestCachedGradeProcess() async {
     return null;
   }
+}
+
+AcademicEamsQueryResult _resultWithCourseTerm(
+  AcademicEamsQueryResult source,
+  String termName,
+) {
+  final snapshot = source.snapshot!;
+  final courseTable = snapshot.courseTable!;
+  return AcademicEamsQueryResult(
+    status: source.status,
+    message: source.message,
+    detail: source.detail,
+    checkedAt: source.checkedAt,
+    entranceUri: source.entranceUri,
+    finalUri: source.finalUri,
+    campusNetworkStatus: source.campusNetworkStatus,
+    snapshot: AcademicEamsSnapshot(
+      fetchedAt: snapshot.fetchedAt,
+      sourceUri: snapshot.sourceUri,
+      warnings: snapshot.warnings,
+      hasCourseOfferingEntry: snapshot.hasCourseOfferingEntry,
+      hasFreeClassroomEntry: snapshot.hasFreeClassroomEntry,
+      courseTable: AcademicCourseTableSnapshot(
+        termName: termName,
+        entries: courseTable.entries,
+        fetchedAt: courseTable.fetchedAt,
+        sourceUri: courseTable.sourceUri,
+      ),
+      exams: snapshot.exams,
+    ),
+  );
 }
 
 class _FakeAcademicCalendarClient implements AcademicCalendarClient {

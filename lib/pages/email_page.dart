@@ -699,12 +699,13 @@ class _EmailPageState extends State<EmailPage> {
                 ),
               ),
               SizedBox(height: theme.spacing.s),
-              Text(
-                composing ? '填写收件人、主题与普通文本正文；发送前仍可取消。' : '本机快照 · 只读邮件',
-                style:
-                    (compact ? theme.typography.small : theme.typography.body)
-                        .copyWith(color: theme.color.muted),
-              ),
+              if (composing)
+                Text(
+                  '填写收件人、主题与普通文本正文；发送前仍可取消。',
+                  style:
+                      (compact ? theme.typography.small : theme.typography.body)
+                          .copyWith(color: theme.color.muted),
+                ),
             ],
           ),
         ),

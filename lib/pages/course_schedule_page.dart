@@ -213,13 +213,14 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
 
   Future<void> _loadCourseTable({bool silent = false}) async {
     final generation = _resultGeneration;
-    final examFuture = _academicEamsService.fetchExamSchedule(
-      requireCampusNetwork: silent,
-    );
     await _refreshController.refresh(
       () => _academicEamsService.fetchCourseTable(requireCampusNetwork: silent),
     );
-    final examResult = await examFuture;
+    if (!mounted || generation != _resultGeneration) return;
+    final examResult = await _academicEamsService.fetchExamSchedule(
+      term: _courseTableTermChoice(_result?.snapshot?.courseTable?.termName),
+      requireCampusNetwork: silent,
+    );
     if (mounted &&
         generation == _resultGeneration &&
         examResult.isSuccess &&
@@ -288,27 +289,32 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
     String? termName,
   ) {
     final value = termName?.trim() ?? '';
-    final match = RegExp(
-      r'(20\d{2})(?:\D+20\d{2})?\D+(1|2|3)',
-    ).firstMatch(value);
-    if (match != null) {
-      final year = int.tryParse(match.group(1)!);
-      final season = switch (match.group(2)) {
-        '1' => AcademicTermSeason.fall,
-        '2' => AcademicTermSeason.spring,
-        '3' => AcademicTermSeason.summer,
-        _ => null,
-      };
-      if (year != null && season != null) {
-        final exact = resolver.definitionFor(
-          AcademicTermChoice(academicYear: year, season: season),
-        );
-        if (exact != null) return exact;
-      }
-      return null;
-    }
+    final choice = _courseTableTermChoice(value);
+    if (choice != null) return resolver.definitionFor(choice);
     if (value.isNotEmpty) return null;
     return resolver.definitionForContext(_now);
+  }
+
+  AcademicTermChoice? _courseTableTermChoice(String? termName) {
+    final value = termName?.replaceAll(RegExp(r'\s+'), '') ?? '';
+    final yearMatch = RegExp(r'(20\d{2})(?:-20\d{2})?').firstMatch(value);
+    final academicYear = int.tryParse(yearMatch?.group(1) ?? '');
+    if (academicYear == null) return null;
+    final season = value.contains('夏')
+        ? AcademicTermSeason.summer
+        : value.contains('春')
+        ? AcademicTermSeason.spring
+        : value.contains('秋')
+        ? AcademicTermSeason.fall
+        : switch (RegExp(r'(?:第)?([123])学期').firstMatch(value)?.group(1)) {
+            '1' => AcademicTermSeason.fall,
+            '2' => AcademicTermSeason.spring,
+            '3' => AcademicTermSeason.summer,
+            _ => null,
+          };
+    return season == null
+        ? null
+        : AcademicTermChoice(academicYear: academicYear, season: season);
   }
 
   @override
@@ -455,16 +461,6 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
                   Semantics(
                     header: true,
                     child: Text('课程表', style: theme.typography.h1),
-                  ),
-                  SizedBox(height: theme.spacing.s),
-                  Text(
-                    '周视图在桌面保持七天空间关系，窄屏切换为按天列表；'
-                    '课程颜色只表达课表业务域。',
-                    style:
-                        (compact
-                                ? theme.typography.small
-                                : theme.typography.body)
-                            .copyWith(color: theme.color.muted),
                   ),
                 ],
               ),

@@ -161,26 +161,83 @@ extension _AcademicEamsShellFollowups on AcademicEamsService {
     };
 
     try {
-      final queryUri = actionUri.replace(
-        queryParameters: {
-          ...actionUri.queryParameters,
-          'semester.id': defaultSemester.id,
-          'examType.id': selectedType,
-        },
-      );
-      final snapshot = await _gateway.fetchPage(queryUri, timeout);
-      final isDegraded =
-          _isAuthenticationRequired(snapshot) || _isUnavailable(snapshot);
-      if (isDegraded) {
-        warnings.add('考试安排子表读取降级，已返回所选学期空安排');
+      final queries =
+          <
+            ({
+              AcademicEamsSemesterOption semester,
+              String examTypeId,
+              String examTypeLabel,
+            })
+          >[
+            (
+              semester: defaultSemester,
+              examTypeId: selectedType,
+              examTypeLabel: typeOptions[selectedType] ?? selectedType,
+            ),
+          ];
+      if (examTypeId == null &&
+          targetTerm?.season == AcademicTermSeason.summer &&
+          selectedType == '1' &&
+          typeOptions.containsKey('3')) {
+        final previousTerm = AcademicTermChoice(
+          academicYear: targetTerm!.academicYear,
+          season: AcademicTermSeason.spring,
+        );
+        final previousSemester = _selectExamSemester(
+          options: semesterOptions,
+          fallbackSemesterId: defaultSemester.id,
+          targetTerm: previousTerm,
+        );
+        queries.add((
+          semester: previousSemester,
+          examTypeId: '3',
+          examTypeLabel: typeOptions['3']!,
+        ));
       }
-      final body = isDegraded
-          ? emptyBody
-          : '<html><body>'
-                '${_injectExamTypeColumn(snapshot.body, typeOptions[selectedType] ?? selectedType)}'
-                '</body></html>';
+
+      final bodies = <String>[];
+      Uri? primaryQueryUri;
+      for (var index = 0; index < queries.length; index++) {
+        final query = queries[index];
+        final queryUri = actionUri.replace(
+          queryParameters: {
+            ...actionUri.queryParameters,
+            'semester.id': query.semester.id,
+            'examType.id': query.examTypeId,
+          },
+        );
+        primaryQueryUri ??= queryUri;
+        try {
+          final snapshot = await _gateway.fetchPage(queryUri, timeout);
+          final isDegraded =
+              _isAuthenticationRequired(snapshot) || _isUnavailable(snapshot);
+          if (isDegraded) {
+            warnings.add(
+              index == 0 ? '考试安排子表读取降级，已返回所选学期空安排' : '上一教学学期补考读取降级，已保留当前学期考试',
+            );
+          }
+          bodies.add(
+            isDegraded
+                ? emptyBody
+                : _injectExamTypeColumn(
+                    snapshot.body,
+                    query.examTypeLabel,
+                    semesterLabel:
+                        query.semester.termChoice?.label ??
+                        query.semester.label,
+                  ),
+          );
+        } on DioException {
+          if (index == 0) rethrow;
+          warnings.add('上一教学学期补考读取失败，已保留当前学期考试');
+        } on TimeoutException {
+          if (index == 0) rethrow;
+          warnings.add('上一教学学期补考读取超时，已保留当前学期考试');
+        }
+      }
+      final body = '<html><body>${bodies.join()}</body></html>';
       return AcademicEamsHttpSnapshot(
-        finalUri: queryUri,
+        finalUri: primaryQueryUri!,
         statusCode: 200,
         body: body,
         metadata: metadata,
@@ -564,7 +621,11 @@ extension _AcademicEamsShellFollowups on AcademicEamsService {
     );
   }
 
-  String _injectExamTypeColumn(String body, String examType) {
+  String _injectExamTypeColumn(
+    String body,
+    String examType, {
+    String? semesterLabel,
+  }) {
     final document = html_parser.parse(body);
     for (final table in document.querySelectorAll('table')) {
       final rows = table.querySelectorAll('tr');
@@ -577,6 +638,14 @@ extension _AcademicEamsShellFollowups on AcademicEamsService {
       for (final row in rows.skip(1)) {
         final cell = html_dom.Element.tag('td')..text = examType;
         row.nodes.insert(0, cell);
+      }
+      if (semesterLabel != null && semesterLabel.trim().isNotEmpty) {
+        final semesterHeader = html_dom.Element.tag('th')..text = '考试学期';
+        rows.first.nodes.insert(0, semesterHeader);
+        for (final row in rows.skip(1)) {
+          final semesterCell = html_dom.Element.tag('td')..text = semesterLabel;
+          row.nodes.insert(0, semesterCell);
+        }
       }
     }
     return document.body?.innerHtml ?? body;
