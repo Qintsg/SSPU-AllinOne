@@ -58,14 +58,14 @@ dependencies:
   tray_manager: ^0.5.3
 
   # HTTP 客户端，用于网络请求
-  dio: ^5.11.0
+  dio: ^5.11.1
 
   # 五端本地通知与课程/考试定时提醒
   flutter_local_notifications: ^22.3.0
   timezone: ^0.11.1
 
   # HTML 解析，用于网页内容提取
-  html: ^0.15.5
+  html: ^0.15.7
 
   # GBK / GB2312 解码，用于体育部查询系统旧版页面
   gbk_codec: ^0.4.0
@@ -82,7 +82,7 @@ dependencies:
   # 邮箱协议客户端，用于学校邮箱 IMAP / POP 只读收信和 SMTP 主动发信
   enough_mail: ^2.1.7
   file_picker: ^12.2.0
-  pdfrx: ^2.4.7
+  pdfrx: ^2.4.8
   pdfrx_engine: ^0.4.2
   mcp_dart: 2.4.2
 
