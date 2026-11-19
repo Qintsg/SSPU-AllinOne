@@ -46,8 +46,12 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
         );
       }
 
-      campusStatus = await _campusNetworkStatusService.checkStatus();
-      if (requireCampusNetwork && !campusStatus.canAccessRestrictedServices) {
+      if (!_usesPortal) {
+        campusStatus = await _campusNetworkStatusService.checkStatus();
+      }
+      if (requireCampusNetwork &&
+          campusStatus != null &&
+          !campusStatus.canAccessRestrictedServices) {
         final loginResult = await _refreshOaLogin(
           forceRefresh: true,
           requireCampusNetwork: false,
@@ -73,14 +77,22 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
         );
       }
 
-      final result = await _fetchWithOaSession(
-        scope,
-        campusStatus,
-        requireCampusNetwork: requireCampusNetwork,
-        examTerm: examTerm,
-        examSemester: examSemester,
-        examTypeId: examTypeId,
-      );
+      final result = _usesPortal
+          ? await _fetchPortal(
+              scope,
+              campusStatus,
+              account: oaAccount,
+              term: examTerm,
+              semesterId: examSemester?.id,
+            )
+          : await _fetchWithOaSession(
+              scope,
+              campusStatus,
+              requireCampusNetwork: requireCampusNetwork,
+              examTerm: examTerm,
+              examSemester: examSemester,
+              examTypeId: examTypeId,
+            );
       if (result.isSuccess && result.snapshot != null) {
         if (!await _hasSameOaCredentials(oaAccount, oaPassword)) {
           return _credentialsChangedResult(campusStatus, result.finalUri);
@@ -114,24 +126,22 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
       return _buildResult(
         AcademicEamsQueryStatus.networkError,
         message: '本专科教务查询超时',
-        detail: '访问 OA / EAMS 链路超时。',
+        detail: _usesPortal ? '访问新版教务或统一身份认证超时。' : '访问 OA / EAMS 链路超时。',
         campusNetworkStatus: campusStatus,
       );
     } on DioException catch (error) {
       return _buildResult(
         AcademicEamsQueryStatus.networkError,
         message: '本专科教务查询网络失败',
-        detail: HttpService.describeError(error),
-        finalUri: scope == _AcademicFetchScope.studentProfileOnly
-            ? AcademicEamsService._studentProfileUri
-            : error.requestOptions.uri,
+        detail: _usesPortal ? '请检查网络连接后重试。' : HttpService.describeError(error),
+        finalUri: _usesPortal ? entranceUri : error.requestOptions.uri,
         campusNetworkStatus: campusStatus,
       );
     } catch (error) {
       return _buildResult(
         AcademicEamsQueryStatus.unexpectedError,
         message: '本专科教务查询失败',
-        detail: '未归类异常：$error',
+        detail: _usesPortal ? '新版教务查询遇到异常，请稍后重试。' : '未归类异常：$error',
         campusNetworkStatus: campusStatus,
       );
     }
@@ -207,7 +217,7 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
   }) async {
     var sessionSnapshot = await _credentialsService.readOaLoginSession();
     final profileOnly = scope == _AcademicFetchScope.studentProfileOnly;
-    final profileGateway = profileOnly ? _createStudentProfileGateway() : null;
+    final profileGateway = profileOnly ? _createPortalGateway() : null;
     Future<AcademicEamsHttpSnapshot> openEntry() {
       return profileGateway == null
           ? _openEntryWithSession(sessionSnapshot)

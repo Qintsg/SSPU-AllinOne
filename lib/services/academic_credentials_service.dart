@@ -44,6 +44,8 @@ class AcademicCredentialsService {
 
   /// OA 登录会话快照存储键，保存 Cookie 等可复用身份信息。
   static const String _oaLoginSessionKey = 'academic_login_session_snapshot';
+  static const String _portalLoginSessionKey =
+      'academic_portal_login_session_snapshot';
 
   /// 学籍信息安全缓存存储键。
   static const String _studentProfileKey = 'academic_student_profile_snapshot';
@@ -120,6 +122,7 @@ class AcademicCredentialsService {
   Future<void> saveOaLoginSession(
     AcademicLoginSessionSnapshot sessionSnapshot, {
     String? ownerAccount,
+    bool forAcademicPortal = false,
   }) async {
     if (!sessionSnapshot.hasCookies) return;
     final normalizedOwnerAccount = _normalizeAccount(
@@ -132,7 +135,7 @@ class AcademicCredentialsService {
     );
     if (ownerCredentialHash.isEmpty) return;
     await _secureStorage.write(
-      key: _oaLoginSessionKey,
+      key: forAcademicPortal ? _portalLoginSessionKey : _oaLoginSessionKey,
       value: jsonEncode(
         sessionSnapshot
             .withOwnerAccount(
@@ -145,8 +148,11 @@ class AcademicCredentialsService {
   }
 
   /// 读取最近一次 OA 登录产生的会话快照。
-  Future<AcademicLoginSessionSnapshot?> readOaLoginSession() async {
-    final sessionPayload = await _readValue(_oaLoginSessionKey);
+  Future<AcademicLoginSessionSnapshot?> readOaLoginSession({
+    bool forAcademicPortal = false,
+  }) async {
+    final key = forAcademicPortal ? _portalLoginSessionKey : _oaLoginSessionKey;
+    final sessionPayload = await _readValue(key);
     if (sessionPayload == null || sessionPayload.trim().isEmpty) return null;
     try {
       final decodedPayload = jsonDecode(sessionPayload) as Map<String, dynamic>;
@@ -164,26 +170,33 @@ class AcademicCredentialsService {
           currentCredentialHash.isEmpty ||
           sessionSnapshot.ownerAccount != currentAccount ||
           sessionSnapshot.ownerCredentialHash != currentCredentialHash) {
-        await clearOaLoginSession();
+        await _secureStorage.delete(key: key);
         return null;
       }
       return sessionSnapshot;
     } catch (_) {
-      await clearOaLoginSession();
+      await _secureStorage.delete(key: key);
       return null;
     }
   }
 
   /// 读取指定 OA 相关网页可用的 Cookie 请求头。
   Future<String?> readOaCookieHeaderFor(Uri targetUri) async {
-    final sessionSnapshot = await readOaLoginSession();
+    final sessionSnapshot = await readOaLoginSession(
+      forAcademicPortal: targetUri.host == 'jw.sspu.edu.cn',
+    );
     final cookieHeader = sessionSnapshot?.cookieHeaderFor(targetUri).trim();
     return cookieHeader == null || cookieHeader.isEmpty ? null : cookieHeader;
   }
 
   /// 清除已保存的 OA 登录会话，避免继续复用已失效身份。
-  Future<void> clearOaLoginSession() async {
-    await _secureStorage.delete(key: _oaLoginSessionKey);
+  Future<void> clearOaLoginSession({bool? forAcademicPortal}) async {
+    if (forAcademicPortal != true) {
+      await _secureStorage.delete(key: _oaLoginSessionKey);
+    }
+    if (forAcademicPortal != false) {
+      await _secureStorage.delete(key: _portalLoginSessionKey);
+    }
   }
 
   /// 保存当前 OA 账号绑定的学籍信息。
@@ -267,6 +280,7 @@ class AcademicCredentialsService {
     _sportsQueryPasswordKey,
     _emailPasswordKey,
     _oaLoginSessionKey,
+    _portalLoginSessionKey,
     _studentProfileKey,
   ];
 

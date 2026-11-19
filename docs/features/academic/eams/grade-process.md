@@ -15,12 +15,12 @@
 读取指定学期的过程化成绩（平时成绩明细），作为成绩的补充。
 
 **验收要点**
-- 按学期独立请求（EAMS 中过程化为分学期页面）。
-- 解析各课程的平时成绩构成明细。
+- 从新版成绩单读取各课程已公布的分项成绩与占比。
+- 在应用中按实际可选学期查看分项。
 
 ## 2. 实现
 
-- 经 [EAMS 基座](foundation.md) `fetchGradeProcess({term, semester})`（scope=gradeProcessOnly）逐学期查询。
+- `fetchGradeProcess({term, semester})` 复用新版成绩查询的分项数据，并按选择的学期过滤。
 - per-account 缓存（gradeProcess collection）。
 
 ## 3. 关联
@@ -30,7 +30,7 @@
 
 ## 4. 约束
 
-- 只读；逐学期请求，敏感数据缓存按账号隔离。
+- 只读，缓存按账号隔离。
 
 ## 5. 待办与演进
 

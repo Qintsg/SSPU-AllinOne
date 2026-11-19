@@ -114,13 +114,11 @@ extension _AcademicPageEamsSources on _AcademicPageState {
   }) async {
     final generation = _credentialGeneration;
     _academicEamsLastRefreshHadExamFailure = false;
-    final (result, profile) = await (
-      _academicEamsService.fetchOverview(requireCampusNetwork: silent),
-      _academicEamsService.refreshStudentProfileIfIncomplete(
-        forceRefresh: true,
-      ),
-    ).wait;
+    final result = await _academicEamsService.fetchOverview(
+      requireCampusNetwork: silent,
+    );
     if (!mounted || generation != _credentialGeneration) return result;
+    final profile = result.snapshot?.profile;
     if (profile != null) _setAcademicState(() => _academicProfile = profile);
     if (!_isCoordinatedRefresh && (result.isSuccess || !silent)) {
       await _academicExamRefreshController.runRefresh(silent: silent);

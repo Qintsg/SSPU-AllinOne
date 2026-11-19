@@ -19,6 +19,7 @@ AcademicEamsService buildAcademicEamsServiceForTest({
   Future<bool> Function()? isFetchEnabled,
 }) {
   return AcademicEamsService(
+    homeUri: AcademicEamsService.defaultHomeUri,
     gateway: gateway,
     refreshOaLogin: refreshOaLogin,
     isFetchEnabled: isFetchEnabled,
@@ -83,8 +84,9 @@ class FakeAcademicEamsGateway implements AcademicEamsGateway {
   @override
   Future<AcademicEamsHttpSnapshot> fetchPage(
     Uri pageUri,
-    Duration timeout,
-  ) async {
+    Duration timeout, {
+    String? accept,
+  }) async {
     requestedPageUris.add(pageUri);
     final path = pageUri.path;
     if (path.contains('home!submenus.action') &&

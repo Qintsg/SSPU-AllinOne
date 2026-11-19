@@ -115,8 +115,10 @@ extension _AcademicExamEvidenceBody on _AcademicEamsExamDetailPageState {
       content = _AcademicDetailStateCard(
         child: _AcademicDetailMessageState(
           symbol: '○',
-          title: '当前没有考试安排记录',
-          message: '当前筛选范围没有可展示的原始记录；可调整学期或稍后在原位置重新读取。',
+          title: _onlyUpcoming ? '暂无未结束的考试' : '当前没有考试安排记录',
+          message: _onlyUpcoming
+              ? '目前没有可查看的未结束考试安排。'
+              : '当前筛选范围没有可展示的原始记录；可调整学期或稍后在原位置重新读取。',
           accent: theme.color.serviceAcademic,
           actionLabel: '重新读取',
           onAction: () => unawaited(_loadExamSchedule()),
@@ -145,10 +147,11 @@ extension _AcademicExamEvidenceBody on _AcademicEamsExamDetailPageState {
                 ? '连续时间正序'
                 : '连续时间倒序',
             title: '考试时间轴',
-            trailing:
-                snapshot.selectedExamTypeLabel ??
-                _examTypeOptions[_selectedExamType] ??
-                '考试安排',
+            trailing: _onlyUpcoming
+                ? '未结束'
+                : snapshot.selectedExamTypeLabel ??
+                      _examTypeOptions[_selectedExamType] ??
+                      '考试安排',
             action: YhSegmented<_AcademicExamSortOrder>(
               key: const Key('academic-eams-exam-sort'),
               options: const [
@@ -216,8 +219,7 @@ extension _AcademicExamEvidenceBody on _AcademicEamsExamDetailPageState {
           ),
           SizedBox(height: gap),
         ],
-        filter,
-        SizedBox(height: gap),
+        if (!_onlyUpcoming) ...[filter, SizedBox(height: gap)],
         content,
       ],
     );

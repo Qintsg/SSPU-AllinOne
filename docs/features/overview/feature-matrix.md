@@ -24,7 +24,7 @@
 | 教务·EAMS | 过程化成绩 | 已实现 | 全平台 | #177（已关闭） | [↗](../academic/eams/grade-process.md) |
 | 教务·EAMS | 考试安排 | 已实现 | 全平台 | #178（已关闭） | [↗](../academic/eams/exam-schedule.md) |
 | 教务·EAMS | 开课查询 | 部分实现 | 全平台 | #179（不再计划独立页面） | [↗](../academic/eams/course-offerings.md) |
-| 教务·EAMS | 空闲教室查询 | 已实现 | 全平台 | #176 | [↗](../academic/eams/free-classrooms.md) |
+| 教务·EAMS | 空闲教室查询 | 学生端入口已移除 | 全平台 | #353 | [↗](../academic/eams/free-classrooms.md) |
 | 教务·EAMS | 培养计划 | 已实现 | 全平台 | #174 | [↗](../academic/eams/program-plan.md) |
 | 教务·活动 | 体育打卡考勤 | 已实现 | 全平台 | — | [↗](../academic/activity/sports-attendance.md) |
 | 教务·活动 | 第二课堂学生报告 | 已实现 | 全平台 | — | [↗](../academic/activity/student-report.md) |

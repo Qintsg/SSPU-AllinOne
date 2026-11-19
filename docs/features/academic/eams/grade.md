@@ -7,7 +7,7 @@
 | 功能 ID | `academic.eams.grade` |
 | 状态 | 已实现 |
 | 平台 | 全平台 |
-| 关联 Issue | #177 |
+| 关联 Issue | #177、#353 |
 | 主要代码 | `lib/services/academic_eams_grade_flow.dart`、`academic_eams_service.dart`（`fetchGrades`）；`lib/models/academic_eams/*` |
 
 ## 1. 需求
@@ -20,7 +20,7 @@
 
 ## 2. 实现
 
-- 经 [EAMS 基座](foundation.md) `fetchGrades`（scope=gradesOnly）一次拉取当前 + 历史成绩。
+- 从新版成绩单一次读取各学期成绩，使用教务原页展示的总评和系统返回的通过状态。
 - 学期切换由前端按分组实现（不重复请求）。
 - per-account 缓存（grade collection）。
 

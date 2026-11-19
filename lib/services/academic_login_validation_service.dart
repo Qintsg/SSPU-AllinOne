@@ -92,6 +92,13 @@ class AcademicLoginValidationService {
   static final AcademicLoginValidationService instance =
       AcademicLoginValidationService();
 
+  /// 新版教务的统一身份认证服务，与其它 OA 功能分别缓存会话。
+  static final AcademicLoginValidationService academicPortalInstance =
+      AcademicLoginValidationService(entranceUri: academicPortalEntranceUri);
+
+  /// 新版教务统一认证入口。
+  static final Uri academicPortalEntranceUri = Uri.https('jw.sspu.edu.cn', '/');
+
   /// 本专科教务系统 OA 入口。
   static final Uri defaultEntranceUri = Uri.parse(
     'https://oa.sspu.edu.cn/interface/Entrance.jsp?id=bzkjw',
@@ -103,6 +110,9 @@ class AcademicLoginValidationService {
 
   /// 校验入口地址。
   final Uri entranceUri;
+
+  bool get _forAcademicPortal =>
+      entranceUri.origin == academicPortalEntranceUri.origin;
 
   /// 单次网络步骤超时时间。
   final Duration timeout;
@@ -224,6 +234,7 @@ class AcademicLoginValidationService {
         await _credentialsService.saveOaLoginSession(
           sessionSnapshot,
           ownerAccount: oaAccount,
+          forAcademicPortal: _forAcademicPortal,
         );
         return _buildResult(
           AcademicLoginValidationStatus.success,
@@ -243,7 +254,9 @@ class AcademicLoginValidationService {
         );
         if (currentAccount == oaAccount.toLowerCase() &&
             currentOaPassword == oaPassword) {
-          await _credentialsService.clearOaLoginSession();
+          await _credentialsService.clearOaLoginSession(
+            forAcademicPortal: _forAcademicPortal,
+          );
         }
       }
       return validationResult;
@@ -283,7 +296,9 @@ class AcademicLoginValidationService {
       );
     }
     if (!forceRefresh) {
-      final sessionSnapshot = await _credentialsService.readOaLoginSession();
+      final sessionSnapshot = await _credentialsService.readOaLoginSession(
+        forAcademicPortal: _forAcademicPortal,
+      );
       if (sessionSnapshot != null &&
           sessionSnapshot.hasCookies &&
           sessionSnapshot.ownerAccount == accountKey) {
@@ -429,6 +444,12 @@ class AcademicLoginValidationService {
   }
 
   bool _hasReachedOa(AcademicLoginHttpSnapshot snapshot) {
+    if (_forAcademicPortal) {
+      return snapshot.statusCode == 200 &&
+          snapshot.finalUri.origin == academicPortalEntranceUri.origin &&
+          (snapshot.finalUri.path == '/home/' ||
+              snapshot.finalUri.path == '/home');
+    }
     return snapshot.finalUri.host == 'oa.sspu.edu.cn' &&
         !_isCasLoginPage(snapshot);
   }

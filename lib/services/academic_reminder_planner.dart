@@ -38,7 +38,10 @@ class AcademicReminderPlanner {
     required Duration examLeadTime,
   }) {
     final reminders = <AcademicReminderRequest>[
-      if (courseTable != null && term != null)
+      if (courseTable != null &&
+          term != null &&
+          (courseTable.termChoice == null ||
+              courseTable.termChoice == term.choice))
         ..._courseReminders(
           courseTable,
           term,
