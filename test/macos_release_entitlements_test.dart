@@ -76,7 +76,7 @@ void main() {
     expect(releaseWorkflow, isNot(contains('dmg_suffix=arm64')));
   });
 
-  test('0.4.1-beta 的显式临时选项生成可校验的 ad-hoc macOS 测试包', () {
+  test('0.4.2-beta 的显式临时选项生成可校验的 ad-hoc macOS 测试包', () {
     final releaseWorkflow = File(
       '.github/workflows/release.yml',
     ).readAsStringSync();
@@ -86,7 +86,7 @@ void main() {
     );
     expect(
       releaseWorkflow,
-      contains("steps.release.outputs.public_version == '0.4.1-beta'"),
+      contains("steps.release.outputs.public_version == '0.4.2-beta'"),
     );
     expect(releaseWorkflow, contains('<!-- macos-distribution: ad-hoc -->'));
     expect(releaseWorkflow, contains('codesign --force --deep --sign -'));

@@ -51,7 +51,7 @@ jobs:
       macos_ad_hoc: >-
         ${{ github.event_name == 'pull_request'
           && steps.release.outputs.prerelease == 'true'
-          && steps.release.outputs.public_version == '0.4.1-beta'
+          && steps.release.outputs.public_version == '0.4.2-beta'
           && contains(github.event.pull_request.body, '<!-- macos-distribution: ad-hoc -->') }}
       release_title: ${{ steps.release.outputs.release_title }}
     steps:
