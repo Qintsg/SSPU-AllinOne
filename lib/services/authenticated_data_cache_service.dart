@@ -8,8 +8,7 @@
 
 import 'dart:convert';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
+import 'app_secure_storage.dart';
 import 'storage_service.dart';
 
 /// 鉴权业务数据缓存条目。
@@ -44,7 +43,7 @@ class AuthenticatedDataCacheService {
 
   static const String _ownerAccountKey = 'ownerAccount';
   static const String _secureDataPrefix = 'authenticated_data_cache';
-  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+  static const _secureStorage = appSecureStorage;
 
   /// 每类业务数据最多保留的历史记录数。
   static const int maxRecordsPerType = 3;

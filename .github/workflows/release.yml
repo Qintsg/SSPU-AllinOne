@@ -48,6 +48,11 @@ jobs:
       build_number: ${{ steps.release.outputs.build_number }}
       tag: ${{ steps.release.outputs.tag }}
       prerelease: ${{ steps.release.outputs.prerelease }}
+      macos_ad_hoc: >-
+        ${{ github.event_name == 'pull_request'
+          && steps.release.outputs.prerelease == 'true'
+          && steps.release.outputs.public_version == '0.4.1-beta'
+          && contains(github.event.pull_request.body, '<!-- macos-distribution: ad-hoc -->') }}
       release_title: ${{ steps.release.outputs.release_title }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -291,6 +296,7 @@ jobs:
     needs: prepare
     runs-on: macos-latest
     env:
+      MACOS_AD_HOC: ${{ needs.prepare.outputs.macos_ad_hoc }}
       MACOS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.MACOS_SIGNING_CERTIFICATE_BASE64 }}
       MACOS_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_SIGNING_CERTIFICATE_PASSWORD }}
       MACOS_NOTARY_APPLE_ID: ${{ secrets.MACOS_NOTARY_APPLE_ID }}
@@ -304,6 +310,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
 
       - name: 准备 macOS Developer ID 签名
+        if: ${{ needs.prepare.outputs.macos_ad_hoc != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -359,7 +366,14 @@ jobs:
           echo "MACOS_SIGNING_KEYCHAIN=$keychain_path" >> "$GITHUB_ENV"
 
       - name: 构建 macOS universal
-        run: flutter build macos --release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$MACOS_AD_HOC" == 'true' ]]; then
+            flutter build macos --release --dart-define=SSPU_MACOS_AD_HOC=true
+          else
+            flutter build macos --release
+          fi
 
       - name: 校验架构并签名 macOS App Bundle
         shell: bash
@@ -380,20 +394,32 @@ jobs:
             exit 1
           }
 
-          codesign --force --deep \
-            --sign "$MACOS_SIGNING_IDENTITY" \
-            --options runtime \
-            --timestamp \
-            "$macos_app_bundle"
-          codesign --force \
-            --sign "$MACOS_SIGNING_IDENTITY" \
-            --options runtime \
-            --timestamp \
-            --entitlements macos/Runner/Release.entitlements \
-            "$macos_app_bundle"
+          if [[ "$MACOS_AD_HOC" == 'true' ]]; then
+            codesign --force --deep --sign - \
+              --entitlements macos/Runner/Release-unsigned.entitlements \
+              "$macos_app_bundle"
+            app_entitlements="$(codesign -d --entitlements :- "$macos_app_bundle" 2>/dev/null)"
+            if grep -Eq 'com\.apple\.security\.|keychain-access-groups' <<< "$app_entitlements"; then
+              echo "macOS ad-hoc 产物携带受限 entitlement。" >&2
+              exit 1
+            fi
+          else
+            codesign --force --deep \
+              --sign "$MACOS_SIGNING_IDENTITY" \
+              --options runtime \
+              --timestamp \
+              "$macos_app_bundle"
+            codesign --force \
+              --sign "$MACOS_SIGNING_IDENTITY" \
+              --options runtime \
+              --timestamp \
+              --entitlements macos/Runner/Release.entitlements \
+              "$macos_app_bundle"
+          fi
           codesign --verify --deep --strict --verbose=2 "$macos_app_bundle"
 
       - name: 公证并装订 macOS App Bundle
+        if: ${{ needs.prepare.outputs.macos_ad_hoc != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -455,11 +481,15 @@ jobs:
           ./.github/npm/appdmg/node_modules/.bin/appdmg "$staging/config.json" "$dmg_path"
 
           rm -rf "$staging"
-          codesign --force --sign "$MACOS_SIGNING_IDENTITY" --timestamp "$dmg_path"
-          codesign --verify --verbose=2 "$dmg_path"
+          hdiutil verify "$dmg_path"
+          if [[ "$MACOS_AD_HOC" != 'true' ]]; then
+            codesign --force --sign "$MACOS_SIGNING_IDENTITY" --timestamp "$dmg_path"
+            codesign --verify --verbose=2 "$dmg_path"
+          fi
           echo "dmg_path=$dmg_path" >> "$GITHUB_OUTPUT"
 
       - name: 公证并验证 macOS DMG
+        if: ${{ needs.prepare.outputs.macos_ad_hoc != 'true' }}
         shell: bash
         run: |
           set -euo pipefail

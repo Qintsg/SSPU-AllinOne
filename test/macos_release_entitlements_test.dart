@@ -8,9 +8,19 @@
 
 import 'dart:io';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sspu_allinone/services/app_secure_storage.dart';
 
 void main() {
+  test('macOS 钥匙串选项由实际构建模式决定', () {
+    final options = appSecureStorage.mOptions as MacOsOptions;
+    expect(
+      options.usesDataProtectionKeychain,
+      !const bool.fromEnvironment('SSPU_MACOS_AD_HOC'),
+    );
+  });
+
   test('unsigned macOS release 使用空 entitlements 剥离受限权限', () {
     final unsignedEntitlements = File(
       'macos/Runner/Release-unsigned.entitlements',
@@ -21,7 +31,7 @@ void main() {
     expect(unsignedEntitlements, isNot(contains('keychain-access-groups')));
   });
 
-  test('macOS Release 必须使用 Developer ID 签名、公证并生成 universal DMG', () {
+  test('macOS Release 默认使用 Developer ID 签名、公证并生成 universal DMG', () {
     final releaseWorkflow = File(
       '.github/workflows/release.yml',
     ).readAsStringSync();
@@ -59,15 +69,33 @@ void main() {
     expect(releaseWorkflow, contains('spctl --assess'));
     expect(
       releaseWorkflow,
-      isNot(contains('codesign --force --deep --sign -')),
-    );
-    expect(
-      releaseWorkflow,
       contains(
         'dist/SSPU-AllinOne-v\${{ needs.prepare.outputs.version }}-macos-universal.dmg',
       ),
     );
     expect(releaseWorkflow, isNot(contains('dmg_suffix=arm64')));
+  });
+
+  test('0.4.1-beta 的显式临时选项生成可校验的 ad-hoc macOS 测试包', () {
+    final releaseWorkflow = File(
+      '.github/workflows/release.yml',
+    ).readAsStringSync();
+    expect(
+      releaseWorkflow,
+      contains("steps.release.outputs.prerelease == 'true'"),
+    );
+    expect(
+      releaseWorkflow,
+      contains("steps.release.outputs.public_version == '0.4.1-beta'"),
+    );
+    expect(releaseWorkflow, contains('<!-- macos-distribution: ad-hoc -->'));
+    expect(releaseWorkflow, contains('codesign --force --deep --sign -'));
+    expect(
+      releaseWorkflow,
+      contains('--entitlements macos/Runner/Release-unsigned.entitlements'),
+    );
+    expect(releaseWorkflow, contains('--dart-define=SSPU_MACOS_AD_HOC=true'));
+    expect(releaseWorkflow, contains('hdiutil verify "\$dmg_path"'));
   });
 
   test('macOS DMG 卷名保持在 appdmg 长度限制内', () {

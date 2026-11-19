@@ -1,9 +1,18 @@
+/*
+ * MCP 服务访问密钥与安全存储
+ * @Project : SSPU-AllinOne
+ * @File : mcp_server_auth_service.dart
+ * @Author : Qintsg, Codex
+ * @Date : 2026-11-19
+ */
+
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import 'app_secure_storage.dart';
 
 class McpApiKeyStatus {
   const McpApiKeyStatus({required this.hasKey, this.createdAt});
@@ -17,7 +26,7 @@ class McpServerAuthService {
 
   static const _secretKey = 'mcp_server_api_key';
   static const _createdAtKey = 'mcp_server_api_key_created_at';
-  static const _storage = FlutterSecureStorage();
+  static const _storage = appSecureStorage;
 
   Future<McpApiKeyStatus> status() async {
     final key = await _storage.read(key: _secretKey);
