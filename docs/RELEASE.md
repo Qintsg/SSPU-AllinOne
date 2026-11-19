@@ -176,7 +176,7 @@ macOS 0.4.0-beta 首次启动问题（#327）的发布门槛是 Developer ID 签
 
 iOS 最低支持版本为 14.0：`file_picker_darwin` 的 podspec 与 Swift Package 清单都要求该版本，低于 14.0 的工程配置会直接构建失败。macOS Release 目标在 Xcode 构建阶段使用 ad-hoc 签名，产物由 `Build & Release` workflow 以 Developer ID 重新签名、公证并 staple，因此构建 Runner 不需要配置 `DEVELOPMENT_TEAM`。
 
-Linux 正式发布必须同时覆盖 `x64` 与 `arm64`，并提供 AppImage、deb、rpm、tar.gz 四类产物。
+Linux 正式发布覆盖 `x64` 与 `arm64`，在 Ubuntu 24.04 上构建 AppImage、deb、rpm、tar.gz 四类产物。
 
 Windows installer 使用 Inno Setup 双模式安装器，x64 与 arm64 行为保持一致：全新安装默认当前用户范围，可在安装向导或命令行显式切换到所有用户范围；安装包文件名和 Release 资产类型仍保持 `windows-{arch}-installer.exe`。安装器可本地化展示应用名，但默认安装路径固定为 `SSPU-AllinOne`。安装器启动时会检测既有安装：不同版本进入升级安装，沿用既有当前用户 / 所有用户范围和目录并跳过目录选择；相同版本会询问是否重装，确认后先调用既有卸载器，卸载器负责询问是否保留用户的应用数据，再回到正常安装流程。安装器许可页使用 `assets/legal/legal_zh.txt`，需要与应用首次启动展示的完整法律与隐私说明保持同步。Android 正式 Release 构建必须提供 `ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`，缺少任一签名 Secret 都会直接失败，不允许回退到 debug 签名。macOS 正式 Release 构建必须提供 `MACOS_SIGNING_CERTIFICATE_BASE64`、`MACOS_SIGNING_CERTIFICATE_PASSWORD`、`MACOS_NOTARY_APPLE_ID`、`MACOS_NOTARY_TEAM_ID`、`MACOS_NOTARY_PASSWORD`，产物命名为 `macos-universal.dmg`，DMG 卷名需保持在 appdmg 的 27 字符限制内。
 
