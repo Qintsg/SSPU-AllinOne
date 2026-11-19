@@ -113,7 +113,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: '17'
@@ -167,7 +167,7 @@ jobs:
           cp build/app/outputs/flutter-apk/app-x86_64-release.apk \
             "dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-android-x86_64.apk"
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: android-assets
           path: |
@@ -210,7 +210,7 @@ jobs:
           bundle-dir: build\windows\x64\runner\Release
           output-path: dist\SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-windows-x64-portable.zip
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: windows-assets
           path: |
@@ -225,7 +225,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: '21'
@@ -280,7 +280,7 @@ jobs:
           bundle-dir: ${{ steps.windows-arm64-bundle.outputs.bundle-dir }}
           output-path: dist\SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-windows-arm64-portable.zip
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: windows-arm64-assets
           path: |
@@ -474,7 +474,7 @@ jobs:
           xcrun stapler validate "$dmg_path"
           spctl --assess --type open --context context:primary-signature --verbose=4 "$dmg_path"
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: macos-dmg
           path: ${{ steps.dmg.outputs.dmg_path }}
@@ -535,7 +535,7 @@ jobs:
           rpm-architecture: x86_64
           appimagetool-architecture: x86_64
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: linux-assets
           path: |
@@ -593,7 +593,7 @@ jobs:
           rpm-architecture: aarch64
           appimagetool-architecture: aarch64
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: linux-arm64-assets
           path: |
@@ -623,7 +623,7 @@ jobs:
           cd build/ios/iphoneos
           zip -r "$OLDPWD/dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-ios-arm64.app.zip" Runner.app
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ios-app
           path: dist/SSPU-AllinOne-v${{ needs.prepare.outputs.version }}-ios-arm64.app.zip
@@ -652,7 +652,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           run-pub-get: 'false'
 
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: dist
           merge-multiple: true
@@ -704,7 +704,7 @@ jobs:
           dart-version: ${{ steps.toolchain.outputs.dart_version }}
 
       - name: 发布 GitHub Release
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           target_commitish: ${{ github.sha }}
