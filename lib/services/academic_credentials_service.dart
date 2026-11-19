@@ -9,11 +9,10 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 import '../models/academic_credentials.dart';
 import '../models/academic_eams.dart';
 import '../models/academic_login_validation.dart';
+import 'app_secure_storage.dart';
 import 'authenticated_data_cache_service.dart';
 import 'storage_service.dart';
 
@@ -51,7 +50,7 @@ class AcademicCredentialsService {
 
   /// 系统安全存储实例。
   /// Android 端由 flutter_secure_storage 使用当前默认加密实现托管密钥。
-  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+  static const _secureStorage = appSecureStorage;
 
   final StreamController<int> _changeController =
       StreamController<int>.broadcast();
