@@ -18,6 +18,7 @@ class AcademicGradeRecord {
     this.gradePoint,
     this.processScoreText,
     this.totalScoreText,
+    this.passed,
   });
 
   /// 课程名称。
@@ -44,6 +45,9 @@ class AcademicGradeRecord {
   /// 当前学期总成绩文本。
   final String? totalScoreText;
 
+  /// 教务系统返回的通过状态。旧快照按成绩文本判断。
+  final bool? passed;
+
   /// 原始单元格文本。
   final List<String> rawCells;
 
@@ -59,6 +63,7 @@ class AcademicGradeRecord {
       gradePoint: (json['gradePoint'] as num?)?.toDouble(),
       processScoreText: json['processScoreText'] as String?,
       totalScoreText: json['totalScoreText'] as String?,
+      passed: json['passed'] as bool?,
     );
   }
 
@@ -74,11 +79,14 @@ class AcademicGradeRecord {
       'gradePoint': gradePoint,
       'processScoreText': processScoreText,
       'totalScoreText': totalScoreText,
+      if (passed != null) 'passed': passed,
     };
   }
 
   /// 是否可视为通过，用于培养计划完成情况的保守统计。
   bool get isPassed {
+    final official = passed;
+    if (official != null) return official;
     final normalized = scoreText.replaceAll(RegExp(r'\s+'), '').toLowerCase();
     if (normalized.isEmpty) return false;
     if (normalized.contains('不及格') || normalized.contains('未通过')) {
@@ -168,12 +176,12 @@ class AcademicGradeSnapshot {
     return List.unmodifiable(merged.values);
   }
 
-  /// 去重后出现过的学年学期名，按字典序倒序（最新学期在前）。
+  /// 去重后出现过的学年学期名，按教学顺序倒序。
   List<String> get availableTerms {
     final terms = <String>{
       for (final record in allRecords)
         if ((record.termName ?? '').trim().isNotEmpty) record.termName!.trim(),
-    }.toList()..sort((a, b) => b.compareTo(a));
+    }.toList()..sort(_compareTerms);
     return List.unmodifiable(terms);
   }
 
@@ -240,13 +248,37 @@ class AcademicGradeSnapshot {
       for (var i = 0; i < records.length; i++) records[i]: i,
     };
     records.sort((a, b) {
-      final termCompare = (b.termName ?? '').trim().compareTo(
+      final termCompare = _compareTerms(
         (a.termName ?? '').trim(),
+        (b.termName ?? '').trim(),
       );
       if (termCompare != 0) return termCompare;
       return originalIndex[a]!.compareTo(originalIndex[b]!);
     });
     return List.unmodifiable(records);
+  }
+
+  /// 同时识别旧系统数字学期和新系统季节名称。
+  static int _compareTerms(String a, String b) {
+    int order(String name) {
+      final year = RegExp(r'^(\d{4})\s*[-–—]\s*\d{4}').firstMatch(name);
+      if (year == null) return 0;
+      final suffix = name.substring(year.end);
+      final seasonCode = int.tryParse(
+        RegExp(r'[123]').stringMatch(suffix) ?? '',
+      );
+      final season = suffix.contains('夏')
+          ? 3
+          : suffix.contains('春')
+          ? 2
+          : suffix.contains('秋')
+          ? 1
+          : seasonCode ?? 0;
+      return int.parse(year[1]!) * 10 + season;
+    }
+
+    final result = order(b).compareTo(order(a));
+    return result == 0 ? b.compareTo(a) : result;
   }
 
   static String _recordKey(AcademicGradeRecord record) {

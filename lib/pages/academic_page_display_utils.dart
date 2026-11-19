@@ -15,6 +15,7 @@ AcademicEamsQueryResult? displayableExamCacheForTerm(
   AcademicEamsQueryResult? cachedResult,
   AcademicTermChoice? term,
 ) {
+  if (cachedResult?.snapshot?.exams?.onlyUpcoming == true) return cachedResult;
   if (term == null) return null;
   final matches =
       cachedResult?.snapshot?.exams?.selectedSemester?.matchesTerm(term) ??

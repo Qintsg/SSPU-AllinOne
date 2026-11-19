@@ -84,18 +84,6 @@ extension _AcademicPageNavigation on _AcademicPageState {
     );
   }
 
-  /// 打开可用的空闲教室查询。
-  void _openFreeClassrooms() {
-    if (_isCoordinatedRefresh) return;
-    Navigator.of(context).push(
-      YhPageRoute(
-        builder: (_) => AcademicFreeClassroomPage(
-          client: widget.freeClassroomService ?? AcademicEamsService.instance,
-        ),
-      ),
-    );
-  }
-
   /// 用默认浏览器打开新版教务的全校开课查询。
   void _openCourseOfferings() {
     if (!_isCoordinatedRefresh) {

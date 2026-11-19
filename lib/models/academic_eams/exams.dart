@@ -257,6 +257,7 @@ class AcademicExamSnapshot {
     this.semesterOptions = const [],
     this.selectedExamType,
     this.examTypeOptions = const {},
+    this.onlyUpcoming = false,
   });
 
   /// 已解析的考试记录。
@@ -273,6 +274,9 @@ class AcademicExamSnapshot {
 
   /// EAMS 考试类型选项，键为 examType.id，值为展示名称。
   final Map<String, String> examTypeOptions;
+
+  /// 新版教务只公布未结束考试，该列表不按历史学期切换。
+  final bool onlyUpcoming;
 
   /// 解析完成时间。
   final DateTime fetchedAt;
@@ -307,6 +311,7 @@ class AcademicExamSnapshot {
           (json['examTypeOptions'] as Map<dynamic, dynamic>? ?? const {}).map(
             (key, value) => MapEntry('$key', '$value'),
           ),
+      onlyUpcoming: json['onlyUpcoming'] as bool? ?? false,
       fetchedAt:
           DateTime.tryParse(json['fetchedAt'] as String? ?? '')?.toLocal() ??
           DateTime.fromMillisecondsSinceEpoch(0),
@@ -324,6 +329,7 @@ class AcademicExamSnapshot {
           .toList(),
       'selectedExamType': selectedExamType,
       'examTypeOptions': examTypeOptions,
+      'onlyUpcoming': onlyUpcoming,
       'fetchedAt': fetchedAt.toUtc().toIso8601String(),
       'sourceUri': sourceUri.toString(),
     };

@@ -21,7 +21,9 @@ import '../models/academic_term.dart';
 import '../models/campus_network_status.dart';
 import 'academic_credentials_service.dart';
 import 'academic_login_validation_service.dart';
+import 'academic_portal_parsers.dart';
 import 'academic_student_profile_parser.dart';
+import 'academic_term_service.dart';
 import 'authenticated_data_cache_service.dart';
 import 'campus_network_status_service.dart';
 import 'data_auto_refresh_preferences.dart';
@@ -40,6 +42,7 @@ part 'academic_eams_page_parser_tables.dart';
 part 'academic_eams_grade_flow.dart';
 part 'academic_eams_search_flow.dart';
 part 'academic_eams_shell_followups.dart';
+part 'academic_portal_queries.dart';
 
 /// 教务中心与课程表页可依赖的只读接口。
 abstract class AcademicEamsClient {
@@ -71,14 +74,14 @@ abstract class AcademicEamsClient {
     bool requireCampusNetwork = true,
   });
 
-  /// 只读取当前学期课表，供独立课程表页面使用。
+  /// 读取学生课表，使用全局选择的学期或教务默认学期。
   Future<AcademicEamsQueryResult> fetchCourseTable({
     bool requireCampusNetwork = true,
   });
 
-  /// 读取指定学期、指定考试类型的考试安排。
+  /// 读取学校公布的考试安排，新版教务返回未结束的考试。
   ///
-  /// [examTypeId] 默认期末考试（examType.id=1），可传入其它类型按需切换。
+  /// [term]、[semester] 和 [examTypeId] 用于支持筛选的来源。
   Future<AcademicEamsQueryResult> fetchExamSchedule({
     AcademicTermChoice? term,
     AcademicEamsSemesterOption? semester,
@@ -96,7 +99,7 @@ abstract class AcademicEamsClient {
 
   /// 读取指定学期的过程化成绩（平时成绩明细）。
   ///
-  /// 过程化成绩为 EAMS 中按学期独立请求的页面，需逐学期查询。
+  /// 新版教务使用成绩单中的分项及占比，由应用按学期过滤。
   Future<AcademicEamsQueryResult> fetchGradeProcess({
     AcademicTermChoice? term,
     AcademicEamsSemesterOption? semester,
@@ -154,7 +157,11 @@ abstract class AcademicEamsGateway {
   );
 
   /// 读取任意只读页面。
-  Future<AcademicEamsHttpSnapshot> fetchPage(Uri pageUri, Duration timeout);
+  Future<AcademicEamsHttpSnapshot> fetchPage(
+    Uri pageUri,
+    Duration timeout, {
+    String? accept,
+  });
 
   /// 只读提交搜索表单；仅允许查询型 GET / POST。
   Future<AcademicEamsHttpSnapshot> submitForm({
@@ -212,22 +219,28 @@ class AcademicEamsService
        _campusNetworkStatusService =
            campusNetworkStatusService ?? CampusNetworkStatusService.instance,
        _gateway = gateway ?? DioAcademicEamsGateway(),
-       _createStudentProfileGateway = (() =>
-           gateway ?? DioAcademicEamsGateway()),
+       _createPortalGateway = (() => gateway ?? DioAcademicEamsGateway()),
        _refreshOaLogin =
            refreshOaLogin ??
            (({bool forceRefresh = false, bool requireCampusNetwork = true}) =>
-               AcademicLoginValidationService.instance.ensureSavedSession(
-                 forceRefresh: forceRefresh,
-                 requireCampusNetwork: requireCampusNetwork,
-               )),
+               (homeUri == null || homeUri.host == 'jw.sspu.edu.cn'
+                       ? AcademicLoginValidationService.academicPortalInstance
+                       : AcademicLoginValidationService.instance)
+                   .ensureSavedSession(
+                     forceRefresh: forceRefresh,
+                     requireCampusNetwork: requireCampusNetwork,
+                   )),
        _isFetchEnabled =
            isFetchEnabled ??
            (() => DataModulePreferences.instance.isFetchEnabled(
              CampusDataModule.academicEams,
            )),
-       entranceUri = entranceUri ?? defaultEntranceUri,
-       homeUri = homeUri ?? defaultHomeUri,
+       entranceUri =
+           entranceUri ??
+           (homeUri == null || homeUri.host == 'jw.sspu.edu.cn'
+               ? AcademicLoginValidationService.academicPortalEntranceUri
+               : defaultEntranceUri),
+       homeUri = homeUri ?? Uri.https('jw.sspu.edu.cn', '/home/'),
        submenuBaseUri = submenuBaseUri ?? defaultSubmenuBaseUri,
        timeout = timeout ?? const Duration(seconds: 15);
 
@@ -268,7 +281,7 @@ class AcademicEamsService
   final AcademicCredentialsService _credentialsService;
   final CampusNetworkStatusService _campusNetworkStatusService;
   final AcademicEamsGateway _gateway;
-  final AcademicEamsGateway Function() _createStudentProfileGateway;
+  final AcademicEamsGateway Function() _createPortalGateway;
   final AcademicEamsOaLoginRefresher _refreshOaLogin;
   final Future<bool> Function() _isFetchEnabled;
 
@@ -283,6 +296,11 @@ class AcademicEamsService
 
   /// EAMS 首页候选地址。
   final Uri homeUri;
+
+  bool get _usesPortal => homeUri.host == 'jw.sspu.edu.cn';
+
+  /// 新版考试入口只读未结束的考试安排。
+  bool get usesUpcomingExamFeed => _usesPortal;
 
   /// 子菜单枚举接口地址。
   final Uri submenuBaseUri;
@@ -420,6 +438,14 @@ class AcademicEamsService
   Future<AcademicEamsQueryResult> searchFreeClassrooms(
     AcademicFreeClassroomSearchCriteria criteria,
   ) async {
+    if (_usesPortal) {
+      return _buildResult(
+        AcademicEamsQueryStatus.readOnlyEntryUnavailable,
+        message: '新版学生教务页未提供空闲教室查询',
+        detail: '学校已停止旧版教务系统服务。',
+        finalUri: entranceUri,
+      );
+    }
     return _searchReadonlyPage(
       entryFeature: _AcademicFeature.freeClassroomEntry,
       formParser: _parseFreeClassroomQueryForm,

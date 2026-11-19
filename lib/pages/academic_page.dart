@@ -93,9 +93,6 @@ class AcademicPage extends StatefulWidget {
   /// 本专科教务只读服务，测试中可替换为 fake。
   final AcademicEamsClient? academicEamsService;
 
-  /// 空闲教室只读查询服务，测试中可独立替换。
-  final AcademicFreeClassroomClient? freeClassroomService;
-
   /// 培养方案详情只读服务，测试中可独立替换。
   final AcademicProgramPlanClient? programPlanService;
 
@@ -134,7 +131,6 @@ class AcademicPage extends StatefulWidget {
     this.studentReportFetchEnabledOverride,
     this.studentReportAutoRefreshIntervalOverride,
     this.academicEamsService,
-    this.freeClassroomService,
     this.programPlanService,
     this.academicTermService,
     this.academicTermNow,

@@ -157,6 +157,10 @@ class _AcademicProgramPlanPageState extends State<AcademicProgramPlanPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (plan.sourceUri.host == 'jw.sspu.edu.cn' && completion != null) ...[
+          const YhBanner(text: '学分进度按已公布成绩估算。毕业要求以教务系统为准。'),
+          SizedBox(height: theme.spacing.s),
+        ],
         _AcademicEvidenceMetricsPanel(
           metrics: [
             _AcademicEvidenceMetric(

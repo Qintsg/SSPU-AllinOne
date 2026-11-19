@@ -77,9 +77,6 @@ extension _AcademicOverviewStateView on _AcademicPageState {
           ('成绩查询', '课程成绩与过程化成绩', YhIcons.certificate, _openGrades),
           ('培养方案', '课程模块与学分进度', YhIcons.academic, _openProgramPlan),
           ('全校开课', '在新版教务查看', YhIcons.open, _openCourseOfferings),
-          if ((_academicEamsResult?.snapshot?.hasFreeClassroomEntry ?? false) ||
-              widget.freeClassroomService != null)
-            ('空闲教室', '按日期和节次查询', YhIcons.location, _openFreeClassrooms),
         ],
         enabled: !_isCoordinatedRefresh,
       ),

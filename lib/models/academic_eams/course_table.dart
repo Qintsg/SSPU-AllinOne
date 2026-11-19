@@ -6,6 +6,8 @@
  * @Date : 2026-05-02
  */
 
+import '../academic_term.dart';
+
 /// 单条课表课程记录。
 class AcademicCourseTableEntry {
   const AcademicCourseTableEntry({
@@ -99,10 +101,14 @@ class AcademicCourseTableSnapshot {
     required this.fetchedAt,
     required this.sourceUri,
     this.termName,
+    this.termChoice,
   });
 
   /// 当前学期名称。
   final String? termName;
+
+  /// 学校实际返回的课表学期，旧版缓存允许为空。
+  final AcademicTermChoice? termChoice;
 
   /// 结构化课程记录。
   final List<AcademicCourseTableEntry> entries;
@@ -115,6 +121,7 @@ class AcademicCourseTableSnapshot {
 
   /// 从 JSON 恢复课表快照。
   factory AcademicCourseTableSnapshot.fromJson(Map<String, dynamic> json) {
+    final termJson = json['termChoice'];
     return AcademicCourseTableSnapshot(
       entries: (json['entries'] as List<dynamic>? ?? const [])
           .whereType<Map<String, dynamic>>()
@@ -125,6 +132,9 @@ class AcademicCourseTableSnapshot {
           DateTime.fromMillisecondsSinceEpoch(0),
       sourceUri: Uri.parse(json['sourceUri'] as String? ?? ''),
       termName: json['termName'] as String?,
+      termChoice: termJson is Map<String, dynamic>
+          ? AcademicTermChoice.fromJson(termJson)
+          : null,
     );
   }
 
@@ -135,6 +145,7 @@ class AcademicCourseTableSnapshot {
       'fetchedAt': fetchedAt.toUtc().toIso8601String(),
       'sourceUri': sourceUri.toString(),
       'termName': termName,
+      if (termChoice != null) 'termChoice': termChoice!.toJson(),
     };
   }
 }

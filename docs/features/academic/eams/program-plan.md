@@ -7,8 +7,8 @@
 | 功能 ID | `academic.eams.program-plan` |
 | 状态 | 已实现 |
 | 平台 | 全平台 |
-| 关联 Issue | #174 |
-| 主要代码 | `lib/pages/academic_program_plan_page.dart`；`lib/services/academic_eams_overview_flow.dart`、`academic_eams_page_parser*.dart`；`lib/models/academic_eams/program_plan.dart` |
+| 关联 Issue | #174、#353 |
+| 主要代码 | `lib/pages/academic_program_plan_page.dart`；`lib/services/academic_portal_queries.dart`、`lib/services/academic_portal_parsers.dart`；`lib/models/academic_eams/program_plan.dart` |
 
 ## 1. 需求
 
@@ -20,9 +20,9 @@
 
 ## 2. 实现
 
-- 经 [EAMS 基座](foundation.md) overview 流程解析；快照含 `programPlan` 与 `programCompletion`。
-- per-account 缓存（随 overview）。
-- 独立详情页展示总学分、模块进度、已完成/待完成课程，并支持状态筛选与原始要求浏览。
+- 经[教务基座](foundation.md)读取新版教务的我的培养方案，展示方案名称、课程模块、课程性质、学分及建议修读学期。
+- 方案和学分进度随教务概览按账号缓存。
+- 独立详情页支持按模块筛选课程。学分和课程完成进度根据已公布成绩估算，毕业要求以教务系统为准。
 - 课程要求为空时展示明确空态与“重新读取”；模块进度在窄屏纵向排列，避免摘要被截断。
 - 成功、空结果、登录失效和网络失败均有可恢复状态；刷新失败不会把已有有效方案误替换成空白页。
 

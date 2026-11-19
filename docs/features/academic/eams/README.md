@@ -4,7 +4,7 @@
 
 ## 1. 子系统职责
 
-复用 OA/CAS 会话，只读查询 `jx.sspu.edu.cn/eams` 教务系统的各项数据。所有功能共用 [EAMS 基座](foundation.md)（会话/网关/门禁/入口发现/缓存/locale/状态），各功能文档只描述自身数据与解析。
+通过统一身份认证读取 `jw.sspu.edu.cn` 的学生教务数据。学籍、课表、成绩、考试和培养方案共用[教务基座](foundation.md)提供的会话与账号校验。
 
 ## 2. 功能清单
 
@@ -17,11 +17,10 @@
 | 过程化成绩 | 已实现 | #177（已关闭） | [`grade-process.md`](grade-process.md) |
 | 考试安排 | 已实现 | #178（已关闭） | [`exam-schedule.md`](exam-schedule.md) |
 | 开课查询 | 部分实现 | #179（不再计划独立页面） | [`course-offerings.md`](course-offerings.md) |
-| 空闲教室查询 | 已实现 | #176 | [`free-classrooms.md`](free-classrooms.md) |
 | 培养计划 | 已实现 | #174 | [`program-plan.md`](program-plan.md) |
 
 ## 3. 共性约束
 
-- **严格只读**：`submitForm` 仅查询型 GET/POST；不提供选课、退课、调课、评教、确认、预约教室等写入入口。
-- 统一 `AcademicEamsSnapshot` + `AcademicEamsQueryStatus`；per-account 缓存；zh_CN 强制中文界面以保证解析。
+- 新版教务数据通过只读请求获取，结果使用现有快照模型并按账号缓存。
+- 学生端入口以[教务处新版手册](https://jwc.sspu.edu.cn/2026/1112/c897a173667/page.htm)及实际可见的功能为准。
 - 详见 [EAMS 基座](foundation.md)。

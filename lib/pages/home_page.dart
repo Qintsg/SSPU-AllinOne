@@ -23,6 +23,7 @@ import '../models/sports_attendance.dart';
 import '../models/student_report.dart';
 import '../services/academic_credentials_service.dart';
 import '../services/academic_eams_service.dart';
+import '../services/academic_term_service.dart';
 import '../services/campus_card_service.dart';
 import '../services/campus_network_status_service.dart';
 import '../services/data_auto_refresh_preferences.dart';
@@ -35,6 +36,7 @@ import '../services/quick_links_config_service.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/storage_service.dart';
 import '../services/student_report_service.dart';
+import '../utils/course_week_parser.dart';
 import '../utils/query_result_messages.dart';
 import '../widgets/campus_network_status_indicator.dart';
 import '../widgets/refresh_feedback_action.dart';
@@ -569,10 +571,28 @@ class _HomePageState extends State<HomePage> {
   }
 
   List<AcademicCourseTableEntry> get _todayCourseEntries {
-    final weekday = (widget.nowOverride ?? DateTime.now()).weekday;
+    final today = widget.nowOverride ?? DateTime.now();
+    final dedicated = _courseTableResult?.snapshot?.courseTable;
+    final overview = _academicOverviewResult?.snapshot?.courseTable;
+    final portalTables = [dedicated, overview]
+        .whereType<AcademicCourseTableSnapshot>()
+        .where((table) => table.termChoice != null);
+    AcademicCourseTableSnapshot? table = dedicated;
+    int? week;
+    if (portalTables.isNotEmpty) {
+      final term = AcademicCalendarResolver().definitionForDate(today);
+      week = term?.teachingSegmentFor(today)?.resolveWeek(today);
+      if (week == null) return const [];
+      table = portalTables
+          .where((table) => table.termChoice == term?.choice)
+          .firstOrNull;
+    }
     final entries = <AcademicCourseTableEntry>[
-      ...?_courseTableResult?.snapshot?.courseTable?.entries.where(
-        (entry) => entry.weekday == weekday,
+      ...?table?.entries.where(
+        (entry) =>
+            entry.weekday == today.weekday &&
+            (week == null ||
+                CourseWeekParser.parse(entry.weekDescription).contains(week)),
       ),
     ];
     entries.sort((a, b) => a.startUnit.compareTo(b.startUnit));

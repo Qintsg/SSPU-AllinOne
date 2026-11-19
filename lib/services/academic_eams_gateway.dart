@@ -47,8 +47,17 @@ class DioAcademicEamsGateway implements AcademicEamsGateway {
   }
 
   @override
-  Future<AcademicEamsHttpSnapshot> fetchPage(Uri pageUri, Duration timeout) {
-    return _sendWithRedirects(method: 'GET', uri: pageUri, timeout: timeout);
+  Future<AcademicEamsHttpSnapshot> fetchPage(
+    Uri pageUri,
+    Duration timeout, {
+    String? accept,
+  }) {
+    return _sendWithRedirects(
+      method: 'GET',
+      uri: pageUri,
+      timeout: timeout,
+      accept: accept,
+    );
   }
 
   @override

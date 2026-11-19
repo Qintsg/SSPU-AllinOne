@@ -179,6 +179,12 @@ class _AcademicEamsExamDetailPageState
     return options.isNotEmpty ? options : _fallbackExamTypeOptions;
   }
 
+  bool get _onlyUpcoming {
+    final service = widget.academicEamsService;
+    return _result?.snapshot?.exams?.onlyUpcoming ??
+        (service is AcademicEamsService && service.usesUpcomingExamFeed);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
@@ -208,7 +214,9 @@ class _AcademicEamsExamDetailPageState
       ),
       title: '考试安排',
       kicker: '本学期考试',
-      summary: '按时间顺序核对日期、地点与考试类型；待公布和临时说明不会被隐藏。',
+      summary: _onlyUpcoming
+          ? '查看教务系统公布且未结束的考试安排。'
+          : '按时间顺序核对日期、地点与考试类型；待公布和临时说明不会被隐藏。',
       source: '教务考试 · 本地快照',
       sourceSymbol: '学',
       appBarTitle: _academicTaskAppBarTitle('教务考试', _result?.checkedAt),
