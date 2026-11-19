@@ -8,7 +8,7 @@ on:
     types: [opened, reopened, synchronize, ready_for_review, edited, labeled, unlabeled]
 
 env:
-  FLUTTER_VERSION: '3.44.0'
+  FLUTTER_VERSION: '3.44.6'
 
 permissions:
   contents: read

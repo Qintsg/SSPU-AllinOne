@@ -18,7 +18,7 @@ class _AcademicDetailStateCard extends StatelessWidget {
     final theme = context.yhTheme;
     final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
     final disableAnimations = MediaQuery.disableAnimationsOf(context);
-    final stateCard = YhCard(
+    final stateCard = YhMiuixCard(
       padding: EdgeInsets.all(compact ? theme.spacing.s : theme.spacing.m),
       child: child,
     );

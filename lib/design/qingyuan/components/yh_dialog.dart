@@ -7,6 +7,7 @@
  */
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_miuix/miuix.dart' as miuix;
 
 import '../theme/yh_theme.dart';
 import 'yh_button.dart';
@@ -122,10 +123,12 @@ class YhDialog extends StatelessWidget {
                     BoxConstraints(maxWidth: theme.layout.dialogWidth),
                 child: DecoratedBox(
                   key: const Key('yh-dialog-surface'),
-                  decoration: BoxDecoration(
+                  decoration: ShapeDecoration(
                     color: theme.color.surface,
-                    borderRadius: BorderRadius.circular(theme.radius.l),
-                    boxShadow: theme.elevation.e3,
+                    shape: miuix.MiuixSquircleBorder(
+                      cornerRadius: theme.radius.l,
+                    ),
+                    shadows: theme.elevation.e3,
                   ),
                   child: Padding(
                     padding: EdgeInsets.all(theme.spacing.l),

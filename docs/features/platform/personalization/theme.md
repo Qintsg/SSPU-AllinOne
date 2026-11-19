@@ -1,6 +1,6 @@
 # 主题与深色模式
 
-> 子模块：[个性化](README.md)　·　状态：**已实现**（清源 token 体系 + 亮/暗/系统切换 + 偏好持久化）
+> 子模块：[个性化](README.md)　·　状态：**已实现**
 
 | 项 | 内容 |
 | --- | --- |
@@ -8,7 +8,7 @@
 | 状态 | 已实现 |
 | 平台 | 全平台（Android · iOS · Windows · macOS · Linux） |
 | 关联 Issue | #168 |
-| 主要代码 | `lib/design/qingyuan/theme/yh_theme.dart`；`lib/pages/settings_appearance_page.dart` |
+| 主要代码 | `lib/design/qingyuan/app/yh_app.dart`、`lib/design/qingyuan/components/yh_miuix.dart`、`lib/pages/settings_appearance_page.dart` |
 
 ## 1. 需求
 
@@ -16,13 +16,13 @@
 
 **验收要点**
 - 亮色 / 暗色 / **跟随系统** 三态切换。
-- 主题 token 双主题集中切换，零裸值（见 [`DESIGN.md`](../../../../DESIGN.md)）。
+- Monet 动态配色独立开关。支持系统取色的 Android 使用壁纸色，其他平台从品牌色生成配色。
 - 偏好本地持久化、即时生效。
 
 ## 2. 实现
 
-- 清源设计系统 token（`lib/design/qingyuan/theme/yh_theme.dart`）支持亮/暗双主题，映射 Flutter `ThemeExtension`。
-- 主题模式（亮/暗/系统）在 [设置中心](../shell/settings.md)「外观」分区（`SettingsAppearancePage`）选择，偏好通过 `StorageService.themeMode` 落 [本地存储](../system/storage-sync.md) 并即时生效。
+- 应用根节点使用 Miuix 主题控制器，将颜色映射到清源页面的背景、表面、交互和导航等语义角色。
+- 在[设置中心](../shell/settings.md)的“外观”页调整明暗模式或启用 Monet。两项偏好独立保存到[本地设置](../system/storage-sync.md)，切换时保留当前页面。
 
 ## 3. 关联
 

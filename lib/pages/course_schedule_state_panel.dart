@@ -44,7 +44,7 @@ class _ScheduleStatePanel extends StatelessWidget {
             theme.spacing.s -
             theme.spacing.xs) /
         2;
-    return YhCard(
+    return YhMiuixCard(
       child: ConstrainedBox(
         constraints: BoxConstraints(
           minHeight: compact

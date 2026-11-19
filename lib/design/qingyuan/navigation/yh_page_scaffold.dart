@@ -1,6 +1,13 @@
-/* 清源页面框架。 */
+/*
+ * 清源页面框架与安全区
+ * @Project : SSPU-AllinOne
+ * @File : yh_page_scaffold.dart
+ * @Author : Qintsg, Codex
+ * @Date : 2026-11-19
+ */
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_miuix/miuix.dart' as miuix;
 
 import '../theme/yh_theme.dart';
 import 'yh_app_bar.dart';
@@ -21,8 +28,9 @@ class YhPageScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
+    return miuix.MiuixSurface(
       color: backgroundColor ?? context.yhTheme.color.background,
+      contentColor: context.yhTheme.color.foreground,
       child: SafeArea(
         child: Column(
           children: [

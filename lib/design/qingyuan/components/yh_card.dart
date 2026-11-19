@@ -7,6 +7,7 @@
  */
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_miuix/miuix.dart' as miuix;
 
 import '../foundations/yh_pressable.dart';
 import '../theme/yh_theme.dart';
@@ -44,18 +45,22 @@ class YhCard extends StatelessWidget {
       duration: duration,
       curve: theme.motion.curve,
       padding: padding ?? EdgeInsets.all(theme.spacing.l),
-      decoration: BoxDecoration(
-        color: theme.color.surface,
-        border: elevated
-            ? null
-            : Border.all(
-                color: state?.hovered == true
-                    ? theme.color.brand
-                    : theme.color.border,
-                width: borderWidth ?? theme.layout.divider,
-              ),
-        borderRadius: BorderRadius.circular(radius ?? theme.radius.l),
-        boxShadow: elevated
+      decoration: ShapeDecoration(
+        color: state?.pressed == true
+            ? theme.color.sunken
+            : theme.color.surface,
+        shape: miuix.MiuixSquircleBorder(
+          cornerRadius: radius ?? theme.radius.l,
+          side: state?.hovered == true || state?.focused == true
+              ? BorderSide(
+                  color: theme.color.brand,
+                  width: theme.layout.divider,
+                )
+              : (borderWidth ?? 0) > 0
+              ? BorderSide(color: theme.color.border, width: borderWidth!)
+              : BorderSide.none,
+        ),
+        shadows: elevated
             ? (state?.hovered == true ? theme.elevation.e2 : theme.elevation.e1)
             : const [],
       ),

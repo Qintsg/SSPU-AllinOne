@@ -67,6 +67,11 @@ class _AcademicProgramPlanPageState extends State<AcademicProgramPlanPage> {
   Widget build(BuildContext context) {
     final plan = _result?.snapshot?.programPlan;
     return YhTaskPage(
+      useMiuix: true,
+      sourceAction: YhTaskPageAction(
+        label: '在新版教务查看',
+        onTap: () => AcademicPortalPage.programPlan.open(context),
+      ),
       title: '培养方案',
       kicker: '学程地图',
       summary: '按模块核对已修学分与待完成课程；课程要求以教务原始方案为准。',
@@ -76,6 +81,12 @@ class _AcademicProgramPlanPageState extends State<AcademicProgramPlanPage> {
       appBarTitle: _academicTaskAppBarTitle('培养方案', plan?.fetchedAt),
       primaryActionKey: const Key('academic-program-plan-refresh'),
       primaryActionLabel: _isLoading ? '正在刷新…' : '刷新方案',
+      moreActions: [
+        YhTaskPageAction(
+          label: '查看官方培养方案完成情况',
+          onTap: () => AcademicPortalPage.programCompletion.open(context),
+        ),
+      ],
       onPrimaryAction: _isLoading ? null : () => unawaited(_refresh()),
       width: YhTaskPageWidth.constrained,
       rhythm: YhTaskPageRhythm.relaxedCompact,

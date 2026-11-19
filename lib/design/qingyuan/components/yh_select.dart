@@ -6,8 +6,11 @@
  * @Date : 2026-08-14
  */
 
+import 'dart:math' as math;
+
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_miuix/miuix.dart' as miuix;
 
 import '../foundations/yh_pressable.dart';
 import '../icons/yh_icons.dart';
@@ -49,10 +52,13 @@ class YhSelect<T> extends StatefulWidget {
 
 class _YhSelectState<T> extends State<YhSelect<T>> {
   final LayerLink _layerLink = LayerLink();
+  final GlobalKey _triggerKey = GlobalKey();
   final FocusNode _menuFocusNode = FocusNode(debugLabel: 'YhSelect menu');
   OverlayEntry? _entry;
   int _highlighted = 0;
   double _triggerWidth = 0;
+  double _menuHeight = 0;
+  bool _openAbove = false;
 
   bool get _open => _entry != null;
   bool get _enabled => widget.enabled && widget.onChanged != null;
@@ -98,14 +104,40 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
   }
 
   void _show() {
-    final renderBox = context.findRenderObject() as RenderBox?;
-    _triggerWidth = renderBox?.size.width ?? 0;
+    final target = _triggerKey.currentContext?.findRenderObject();
+    final overlay = Overlay.of(context);
+    final overlayBox = overlay.context.findRenderObject();
+    if (target is! RenderBox || overlayBox is! RenderBox) return;
+    final theme = context.yhTheme;
+    final media = MediaQuery.of(context);
+    final overlayTop = overlayBox.localToGlobal(Offset.zero).dy;
+    final triggerTop = target
+        .localToGlobal(Offset.zero, ancestor: overlayBox)
+        .dy;
+    final usableTop = math.max(0.0, media.padding.top - overlayTop);
+    final usableBottom = math.min(
+      overlayBox.size.height,
+      media.size.height -
+          math.max(media.padding.bottom, media.viewInsets.bottom) -
+          overlayTop,
+    );
+    final gap = theme.spacing.xs;
+    final above = triggerTop - usableTop - gap;
+    final below = usableBottom - triggerTop - target.size.height - gap;
+    final requested = math.min(
+      theme.control.regular * 6,
+      theme.control.minimumTarget * widget.options.length + gap * 2,
+    );
+    _openAbove = below < requested && above > below;
+    _menuHeight = math.min(requested, _openAbove ? above : below);
+    if (_menuHeight <= 0) return;
+    _triggerWidth = target.size.width;
     final selectedIndex = widget.options.indexWhere(
       (option) => option.value == widget.value,
     );
     _highlighted = selectedIndex < 0 ? 0 : selectedIndex;
     _entry = OverlayEntry(builder: _buildOverlay);
-    Overlay.of(context).insert(_entry!);
+    overlay.insert(_entry!);
     setState(() {});
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_open) _menuFocusNode.requestFocus();
@@ -168,9 +200,9 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
         CompositedTransformFollower(
           link: _layerLink,
           showWhenUnlinked: false,
-          targetAnchor: Alignment.bottomLeft,
-          followerAnchor: Alignment.topLeft,
-          offset: Offset(0, theme.spacing.xs),
+          targetAnchor: _openAbove ? Alignment.topLeft : Alignment.bottomLeft,
+          followerAnchor: _openAbove ? Alignment.bottomLeft : Alignment.topLeft,
+          offset: Offset(0, _openAbove ? -theme.spacing.xs : theme.spacing.xs),
           child: Focus(
             focusNode: _menuFocusNode,
             onKeyEvent: _handleKey,
@@ -178,14 +210,15 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
               constraints: BoxConstraints(
                 minWidth: _triggerWidth,
                 maxWidth: _triggerWidth,
-                maxHeight: theme.control.regular * 6,
+                maxHeight: _menuHeight,
               ),
               child: DecoratedBox(
-                decoration: BoxDecoration(
+                decoration: ShapeDecoration(
                   color: theme.color.surface,
-                  border: Border.all(color: theme.color.border),
-                  borderRadius: BorderRadius.circular(theme.radius.input),
-                  boxShadow: theme.elevation.e2,
+                  shape: miuix.MiuixSquircleBorder(
+                    cornerRadius: theme.radius.m,
+                  ),
+                  shadows: theme.elevation.e2,
                 ),
                 child: SingleChildScrollView(
                   padding: EdgeInsets.symmetric(vertical: theme.spacing.xs),
@@ -254,23 +287,26 @@ class _YhSelectState<T> extends State<YhSelect<T>> {
             SizedBox(height: theme.spacing.xs),
           ],
           CompositedTransformTarget(
+            key: _triggerKey,
             link: _layerLink,
             child: YhPressable(
               semanticLabel:
                   '${widget.label}：${selected?.label ?? widget.hint}',
               onPressed: _enabled ? _toggle : null,
               builder: (context, state, child) => DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.color.surface,
-                  border: Border.all(
-                    color: _open || state.focused
-                        ? theme.color.brandStrong
-                        : state.hovered
-                        ? theme.color.brand
-                        : theme.color.border,
-                    width: _open || state.focused ? 2 : 1,
+                decoration: ShapeDecoration(
+                  color: theme.color.sunken,
+                  shape: miuix.MiuixSquircleBorder(
+                    cornerRadius: theme.radius.m,
+                    side: BorderSide(
+                      color: _open || state.focused
+                          ? theme.color.brandStrong
+                          : state.hovered
+                          ? theme.color.brand
+                          : theme.color.border,
+                      width: _open || state.focused ? 2 : 1,
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(theme.radius.input),
                 ),
                 child: child,
               ),

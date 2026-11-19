@@ -676,44 +676,11 @@ class _EmailPageState extends State<EmailPage> {
     final theme = context.yhTheme;
     final compact = viewportWidth < theme.breakpoint.medium;
     final composing = _showComposePane;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '学校邮箱',
-                style: theme.typography.caption.copyWith(
-                  color: theme.color.brandInk,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(height: theme.spacing.xs),
-              Semantics(
-                header: true,
-                child: Text(
-                  composing ? '撰写邮件' : '收件箱',
-                  style: theme.typography.h1,
-                ),
-              ),
-              SizedBox(height: theme.spacing.s),
-              if (composing)
-                Text(
-                  '填写收件人、主题与普通文本正文；发送前仍可取消。',
-                  style:
-                      (compact ? theme.typography.small : theme.typography.body)
-                          .copyWith(color: theme.color.muted),
-                ),
-            ],
-          ),
-        ),
-        if (!composing) ...[
-          SizedBox(width: theme.spacing.l),
-          Transform.translate(
-            offset: Offset(0, -theme.spacing.s),
-            child: Row(
+    return YhPageHeading(
+      title: composing ? '撰写邮件' : '收件箱',
+      trailing: composing
+          ? null
+          : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (compact)
@@ -738,9 +705,6 @@ class _EmailPageState extends State<EmailPage> {
                 ),
               ],
             ),
-          ),
-        ],
-      ],
     );
   }
 

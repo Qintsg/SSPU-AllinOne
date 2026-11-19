@@ -1,6 +1,7 @@
 /* 清源页签导航。 */
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_miuix/miuix.dart' as miuix;
 import 'package:flutter/services.dart';
 
 import '../foundations/yh_pressable.dart';
@@ -208,14 +209,12 @@ class _YhTabsState<T> extends State<YhTabs<T>> {
               return SizedBox(
                 height: theme.control.regular,
                 child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: selected
-                            ? theme.color.brandStrong
-                            : theme.color.surface.withValues(alpha: 0),
-                        width: theme.focus.ringWidth,
-                      ),
+                  decoration: ShapeDecoration(
+                    color: selected
+                        ? theme.color.brandTint
+                        : theme.color.surface.withValues(alpha: 0),
+                    shape: miuix.MiuixSquircleBorder(
+                      cornerRadius: theme.radius.m,
                     ),
                   ),
                   child: Padding(

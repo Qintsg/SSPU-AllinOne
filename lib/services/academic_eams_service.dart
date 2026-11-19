@@ -21,6 +21,7 @@ import '../models/academic_term.dart';
 import '../models/campus_network_status.dart';
 import 'academic_credentials_service.dart';
 import 'academic_login_validation_service.dart';
+import 'academic_student_profile_parser.dart';
 import 'authenticated_data_cache_service.dart';
 import 'campus_network_status_service.dart';
 import 'data_auto_refresh_preferences.dart';
@@ -146,7 +147,7 @@ abstract class AcademicEamsGateway {
   /// 重置 Cookie 会话，并注入最近一次 OA 登录得到的 Cookie。
   Future<void> resetSession(Map<String, String> cookieHeadersByHost);
 
-  /// 打开 OA 本专科教务入口。
+  /// 打开本专科教务入口并跟随认证跳转。
   Future<AcademicEamsHttpSnapshot> openEntryPage(
     Uri entranceUri,
     Duration timeout,
@@ -172,6 +173,7 @@ typedef AcademicEamsOaLoginRefresher =
 
 enum _AcademicFetchScope {
   overview,
+  studentProfileOnly,
   courseTableOnly,
   examScheduleOnly,
   gradesOnly,
@@ -210,6 +212,8 @@ class AcademicEamsService
        _campusNetworkStatusService =
            campusNetworkStatusService ?? CampusNetworkStatusService.instance,
        _gateway = gateway ?? DioAcademicEamsGateway(),
+       _createStudentProfileGateway = (() =>
+           gateway ?? DioAcademicEamsGateway()),
        _refreshOaLogin =
            refreshOaLogin ??
            (({bool forceRefresh = false, bool requireCampusNetwork = true}) =>
@@ -245,6 +249,11 @@ class AcademicEamsService
     'https://jx.sspu.edu.cn/eams/home!submenus.action',
   );
 
+  static final Uri _studentProfileUri = Uri.https(
+    'jw.sspu.edu.cn',
+    '/student/for-std/student-info',
+  );
+
   /// 教务自动刷新默认间隔，单位分钟。
   static const int defaultAutoRefreshIntervalMinutes = 30;
 
@@ -259,6 +268,7 @@ class AcademicEamsService
   final AcademicCredentialsService _credentialsService;
   final CampusNetworkStatusService _campusNetworkStatusService;
   final AcademicEamsGateway _gateway;
+  final AcademicEamsGateway Function() _createStudentProfileGateway;
   final AcademicEamsOaLoginRefresher _refreshOaLogin;
   final Future<bool> Function() _isFetchEnabled;
 
@@ -471,12 +481,12 @@ class AcademicEamsService
     if (!forceRefresh && cachedProfile?.hasHomeSummary == true) {
       return cachedProfile;
     }
-    final result = await fetchOverview(requireCampusNetwork: false);
-    if (result.isSuccess) {
-      return result.snapshot?.profile ??
-          await _credentialsService.readStudentProfile();
-    }
-    return cachedProfile;
+    final result = await _fetchSnapshot(
+      _AcademicFetchScope.studentProfileOnly,
+      requireCampusNetwork: false,
+    );
+    return result.snapshot?.profile ??
+        await _credentialsService.readStudentProfile();
   }
 
   /// 读取最近一次本地课表缓存。

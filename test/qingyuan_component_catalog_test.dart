@@ -3,6 +3,7 @@
 import 'dart:ui' show Tristate;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_miuix/miuix.dart' as miuix;
 import 'package:sspu_allinone/design/qingyuan/qingyuan_ui.dart';
 
 void main() {
@@ -554,16 +555,16 @@ void main() {
     expect(title.maxLines, 1);
     expect(title.overflow, TextOverflow.ellipsis);
 
-    final coloredBox = find.descendant(
+    final surface = find.descendant(
       of: find.byType(YhListItem),
-      matching: find.byType(ColoredBox),
+      matching: find.byType(miuix.MiuixSurface),
     );
-    final restColor = tester.widget<ColoredBox>(coloredBox).color;
+    final restColor = tester.widget<miuix.MiuixSurface>(surface).color;
     final gesture = await tester.startGesture(
       tester.getCenter(find.byType(YhListItem)),
     );
     await tester.pump();
-    expect(tester.widget<ColoredBox>(coloredBox).color, isNot(restColor));
+    expect(tester.widget<miuix.MiuixSurface>(surface).color, isNot(restColor));
     await gesture.up();
     semantics.dispose();
   });

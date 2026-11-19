@@ -147,111 +147,89 @@ extension _HomeDashboardPrimaryLayout on _HomePageState {
     return Semantics(
       label: '今日学程时间轨',
       container: true,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(theme.radius.l),
-        child: DecoratedBox(
-          key: const Key('home-today-courses-tile'),
-          decoration: BoxDecoration(color: theme.color.structural),
-          child: Stack(
+      child: YhMiuixCard(
+        key: const Key('home-today-courses-tile'),
+        color: theme.color.brandTint,
+        foreground: theme.color.brandInk,
+        padding: EdgeInsets.all(panelPadding),
+        child: DefaultTextStyle.merge(
+          style: theme.typography.body.copyWith(color: theme.color.brandInk),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _HomeTimelineBackdropPainter(theme),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(panelPadding),
-                child: DefaultTextStyle.merge(
-                  style: theme.typography.body.copyWith(
-                    color: theme.color.onStructural,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('今日学程时间轨', style: _timelineMetaStyle(theme)),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  Text(
+                    '${_todayCourseEntries.length} 节课 · '
+                    '${entries.length} 项安排',
+                    style: _timelineMetaStyle(theme),
+                  ),
+                ],
+              ),
+              _TimelineFlexibleGap(
+                minHeight: tightCompact
+                    ? theme.spacing.s
+                    : dense
+                    ? theme.spacing.l + theme.layout.divider * 2
+                    : theme.spacing.xl,
+                maxHeight: theme.spacing.xl2,
+              ),
+              if (next == null)
+                Text(
+                  '今天的已缓存日程已经看完',
+                  style: heroStyle.copyWith(color: theme.color.brandInk),
+                )
+              else
+                Text.rich(
+                  TextSpan(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '今日学程时间轨',
-                              style: _timelineMetaStyle(theme),
-                            ),
-                          ),
-                          Text(
-                            '${_todayCourseEntries.length} 节课 · '
-                            '${entries.length} 项安排',
-                            style: _timelineMetaStyle(theme),
-                          ),
-                        ],
-                      ),
-                      _TimelineFlexibleGap(
-                        minHeight: tightCompact
-                            ? theme.spacing.s
-                            : dense
-                            ? theme.spacing.l + theme.layout.divider * 2
-                            : theme.spacing.xl,
-                        maxHeight: theme.spacing.xl2,
-                      ),
-                      if (next == null)
-                        Text(
-                          '今天的已缓存日程已经看完',
-                          style: heroStyle.copyWith(
-                            color: theme.color.onStructural,
-                          ),
-                        )
-                      else
-                        Text.rich(
-                          TextSpan(
-                            children: [
-                              const TextSpan(text: '下一项是 '),
-                              TextSpan(
-                                text: next.title,
-                                style: TextStyle(
-                                  color: theme.color.onStructural,
-                                  fontWeight: theme.typography.semibold,
-                                ),
-                              ),
-                              TextSpan(
-                                text:
-                                    '\n还有 ${widget.homeCountdownMinutesOverride ?? next.minutesUntil} 分钟开始',
-                              ),
-                            ],
-                          ),
-                          style: heroStyle.copyWith(
-                            color: theme.color.onStructural,
-                          ),
+                      const TextSpan(text: '下一项是 '),
+                      TextSpan(
+                        text: next.title,
+                        style: TextStyle(
+                          color: theme.color.brandInk,
+                          fontWeight: theme.typography.semibold,
                         ),
-                      _TimelineFlexibleGap(
-                        minHeight: tightCompact
-                            ? theme.spacing.m + theme.spacing.xs
-                            : dense
-                            ? theme.spacing.xl + theme.layout.divider * 2
-                            : theme.spacing.xl,
-                        maxHeight: theme.spacing.xl2,
                       ),
-                      if (entries.isEmpty)
-                        Text(
-                          '打开课表或信息页刷新后，今天的课程与待办会显示在这里。',
-                          style: theme.typography.body.copyWith(
-                            color: _timelineDetailColor(theme),
-                          ),
-                        )
-                      else
-                        for (var index = 0; index < entries.length; index++)
-                          _HomeTimelineRow(
-                            entry: entries[index],
-                            current: index == nextIndex,
-                            last: index == entries.length - 1,
-                            dense: dense,
-                          ),
-                      _TimelineFlexibleGap(
-                        minHeight: theme.spacing.m,
-                        maxHeight: theme.spacing.xl2,
+                      TextSpan(
+                        text:
+                            '\n还有 ${widget.homeCountdownMinutesOverride ?? next.minutesUntil} 分钟开始',
                       ),
-                      if (!dense) SizedBox(height: theme.focus.ringWidth),
                     ],
                   ),
+                  style: heroStyle.copyWith(color: theme.color.brandInk),
                 ),
+              _TimelineFlexibleGap(
+                minHeight: tightCompact
+                    ? theme.spacing.m + theme.spacing.xs
+                    : dense
+                    ? theme.spacing.xl + theme.layout.divider * 2
+                    : theme.spacing.xl,
+                maxHeight: theme.spacing.xl2,
               ),
+              if (entries.isEmpty)
+                Text(
+                  '打开课表或信息页刷新后，今天的课程与待办会显示在这里。',
+                  style: theme.typography.body.copyWith(
+                    color: _timelineDetailColor(theme),
+                  ),
+                )
+              else
+                for (var index = 0; index < entries.length; index++)
+                  _HomeTimelineRow(
+                    entry: entries[index],
+                    current: index == nextIndex,
+                    last: index == entries.length - 1,
+                    dense: dense,
+                  ),
+              _TimelineFlexibleGap(
+                minHeight: theme.spacing.m,
+                maxHeight: theme.spacing.xl2,
+              ),
+              if (!dense) SizedBox(height: theme.focus.ringWidth),
             ],
           ),
         ),
@@ -261,15 +239,11 @@ extension _HomeDashboardPrimaryLayout on _HomePageState {
 
   TextStyle _timelineMetaStyle(YhTheme theme) {
     return theme.typography.small.copyWith(
-      color: theme.color.onStructural.withValues(
-        alpha: theme.opacity.timelineMeta,
-      ),
+      color: theme.color.brandInk.withValues(alpha: theme.opacity.timelineMeta),
     );
   }
 
   Color _timelineDetailColor(YhTheme theme) {
-    return theme.color.onStructural.withValues(
-      alpha: theme.opacity.timelineDetail,
-    );
+    return theme.color.brandInk.withValues(alpha: theme.opacity.timelineDetail);
   }
 }

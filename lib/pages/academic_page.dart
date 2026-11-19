@@ -25,6 +25,7 @@ import '../services/data_auto_refresh_preferences.dart';
 import '../services/data_module_preferences.dart';
 import '../services/sports_attendance_service.dart';
 import '../services/student_report_service.dart';
+import '../utils/academic_portal_links.dart';
 import '../utils/query_result_messages.dart';
 import 'course_schedule_page.dart';
 
@@ -60,6 +61,7 @@ part 'academic_page_display_utils.dart';
 part 'academic_page_life_sources.dart';
 part 'academic_page_eams_sources.dart';
 part 'academic_page_navigation.dart';
+part 'academic_query_directory.dart';
 
 /// 教务中心页面。
 /// 已接入体育部考勤和第二课堂学分，其余教务能力保留规划入口。
@@ -149,6 +151,7 @@ class AcademicPage extends StatefulWidget {
 }
 
 class _AcademicPageState extends State<AcademicPage> {
+  AcademicEamsProfile? _academicProfile;
   AcademicEamsQueryResult? _academicEamsResult;
   AcademicEamsQueryResult? _academicExamResult;
   AcademicTermChoice? _academicExamSelectedTerm;
@@ -349,6 +352,7 @@ class _AcademicPageState extends State<AcademicPage> {
       _isCoordinatedRefresh = false;
       _failedAcademicSources = const {};
       _credentialsStatus = null;
+      _academicProfile = null;
       _academicEamsResult = null;
       _academicExamResult = null;
       _academicExamSelectedSemester = null;

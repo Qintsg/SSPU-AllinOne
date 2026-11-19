@@ -116,6 +116,11 @@ class _AcademicEamsGradeDetailPageState
     final gpa = snapshot?.weightedGpaForTerm(currentTerm);
     final credits = snapshot?.creditsForTerm(currentTerm) ?? 0;
     return YhTaskPage(
+      useMiuix: true,
+      sourceAction: YhTaskPageAction(
+        label: '在新版教务查看',
+        onTap: () => AcademicPortalPage.grades.open(context),
+      ),
       title: '课程成绩',
       kicker: '成绩证据',
       summary: '按学期核对成绩、学分与绩点；原始分值保持原样，不在本机推断。',

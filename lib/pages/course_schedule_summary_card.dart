@@ -62,7 +62,7 @@ class CourseScheduleSummaryCard extends StatelessWidget {
         ),
     ];
 
-    return YhCard(
+    return YhMiuixCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

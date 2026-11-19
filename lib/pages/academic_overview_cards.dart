@@ -129,11 +129,10 @@ class _AcademicNextExamCard extends StatelessWidget {
               trail: dayLabel?.replaceAll(' ', ''),
             ),
           SizedBox(height: context.yhTheme.spacing.m),
-          YhButton(
+          YhMiuixButton(
             key: const Key('academic-open-course-schedule'),
             label: '查看课表与考试',
-            variant: YhButtonVariant.secondary,
-            onTap: onOpenSchedule,
+            onPressed: onOpenSchedule,
           ),
         ],
       ),
@@ -155,7 +154,7 @@ class _AcademicSectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    return YhCard(
+    return YhMiuixCard(
       padding: EdgeInsets.all(theme.spacing.l),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

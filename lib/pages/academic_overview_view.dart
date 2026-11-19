@@ -25,7 +25,7 @@ extension _AcademicOverviewStateView on _AcademicPageState {
     final state = _academicOverviewDisplayState;
     final failedSources = _academicOverviewEffectiveFailedSources;
     final grades = _academicGradeResult?.snapshot?.grades;
-    final profile = _academicEamsResult?.snapshot?.profile;
+    final profile = _academicProfile ?? _academicEamsResult?.snapshot?.profile;
     final exams = _academicExamResult?.snapshot?.exams?.records ?? const [];
     AcademicExamRecord? nextExam;
     for (final exam in exams) {
@@ -70,6 +70,19 @@ extension _AcademicOverviewStateView on _AcademicPageState {
       onOpenSchedule: _openCourseSchedule,
       onOpenAccountConnections: widget.onOpenAccountConnections,
       onAdjustAcademicTerm: widget.onAdjustAcademicTerm,
+      queryDirectory: _AcademicQueryDirectory(
+        entries: [
+          ('课表', '每周课程与教室', YhIcons.calendar, _openCourseSchedule),
+          ('考试安排', '时间、考场与座位', YhIcons.clock, _openExamSchedule),
+          ('成绩查询', '课程成绩与过程化成绩', YhIcons.certificate, _openGrades),
+          ('培养方案', '课程模块与学分进度', YhIcons.academic, _openProgramPlan),
+          ('全校开课', '在新版教务查看', YhIcons.open, _openCourseOfferings),
+          if ((_academicEamsResult?.snapshot?.hasFreeClassroomEntry ?? false) ||
+              widget.freeClassroomService != null)
+            ('空闲教室', '按日期和节次查询', YhIcons.location, _openFreeClassrooms),
+        ],
+        enabled: !_isCoordinatedRefresh,
+      ),
       legacyDetails: _AcademicLegacySources(
         locked: _isCoordinatedRefresh,
         sports: AcademicSportsAttendanceCard(
@@ -126,6 +139,7 @@ extension _AcademicOverviewStateView on _AcademicPageState {
   }
 
   bool get _academicOverviewHasContent =>
+      _academicProfile?.hasAnyValue == true ||
       _academicEamsResult?.snapshot?.hasAnyData == true ||
       (_academicGradeResult?.snapshot?.grades?.allRecords.isNotEmpty ??
           false) ||

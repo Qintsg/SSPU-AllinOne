@@ -1,6 +1,13 @@
-/* 清源页面顶栏。 */
+/*
+ * 清源页面顶栏
+ * @Project : SSPU-AllinOne
+ * @File : yh_app_bar.dart
+ * @Author : Qintsg, Codex
+ * @Date : 2026-11-19
+ */
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_miuix/miuix.dart' as miuix;
 
 import '../theme/yh_theme.dart';
 
@@ -33,14 +40,10 @@ class YhAppBar extends StatelessWidget {
     final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
     return SizedBox(
       height: theme.layout.appBarHeight,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: brand ? theme.color.brandStrong : theme.color.surface,
-          border: scrolled || !brand
-              ? Border(bottom: BorderSide(color: theme.color.border))
-              : null,
-          boxShadow: scrolled ? theme.elevation.e1 : const [],
-        ),
+      child: miuix.MiuixSurface(
+        color: brand ? theme.color.brandStrong : theme.color.background,
+        contentColor: foreground,
+        shadowElevation: scrolled ? theme.spacing.xs : 0,
         child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal:

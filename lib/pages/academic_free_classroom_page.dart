@@ -62,6 +62,7 @@ class _AcademicFreeClassroomPageState extends State<AcademicFreeClassroomPage> {
   Widget build(BuildContext context) {
     final search = _result?.freeClassrooms;
     return YhTaskPage(
+      useMiuix: true,
       title: '空闲教室',
       kicker: '学习空间',
       summary: '按日期和节次查找可用教室；结果仅供查看，不执行占用操作。',

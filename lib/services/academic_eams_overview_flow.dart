@@ -96,13 +96,18 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
           );
         }
         if (profile != null && profile.hasHomeSummary) {
-          await _credentialsService.saveStudentProfile(profile);
+          await _credentialsService.saveStudentProfile(
+            profile,
+            ownerAccount: oaAccount,
+          );
         }
-        await _saveAcademicEamsCache(
-          scope: scope,
-          accountKey: oaAccount,
-          snapshot: result.snapshot!,
-        );
+        if (scope != _AcademicFetchScope.studentProfileOnly) {
+          await _saveAcademicEamsCache(
+            scope: scope,
+            accountKey: oaAccount,
+            snapshot: result.snapshot!,
+          );
+        }
       }
       return result;
     } on TimeoutException {
@@ -117,7 +122,9 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
         AcademicEamsQueryStatus.networkError,
         message: '本专科教务查询网络失败',
         detail: HttpService.describeError(error),
-        finalUri: error.requestOptions.uri,
+        finalUri: scope == _AcademicFetchScope.studentProfileOnly
+            ? AcademicEamsService._studentProfileUri
+            : error.requestOptions.uri,
         campusNetworkStatus: campusStatus,
       );
     } catch (error) {
@@ -199,6 +206,14 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
     String? examTypeId,
   }) async {
     var sessionSnapshot = await _credentialsService.readOaLoginSession();
+    final profileOnly = scope == _AcademicFetchScope.studentProfileOnly;
+    final profileGateway = profileOnly ? _createStudentProfileGateway() : null;
+    Future<AcademicEamsHttpSnapshot> openEntry() {
+      return profileGateway == null
+          ? _openEntryWithSession(sessionSnapshot)
+          : _openStudentProfileWithSession(profileGateway, sessionSnapshot);
+    }
+
     var refreshedBeforeEntry = false;
     if (sessionSnapshot == null || !sessionSnapshot.hasCookies) {
       final loginResult = await _refreshOaLogin(requireCampusNetwork: false);
@@ -219,8 +234,9 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
           loginResult.sessionSnapshot;
       refreshedBeforeEntry = true;
     }
-    var entrySnapshot = await _openEntryWithSession(sessionSnapshot);
-    if (_isAuthenticationRequired(entrySnapshot)) {
+    var entrySnapshot = await openEntry();
+    if (_isAuthenticationRequired(entrySnapshot) ||
+        (profileOnly && entrySnapshot.statusCode == 401)) {
       if (!refreshedBeforeEntry) {
         final loginResult = await _refreshOaLogin(
           forceRefresh: true,
@@ -243,7 +259,11 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
             loginResult.sessionSnapshot;
         refreshedBeforeEntry = true;
       }
-      entrySnapshot = await _openEntryWithSession(sessionSnapshot);
+      entrySnapshot = await openEntry();
+    }
+
+    if (profileOnly) {
+      return _buildStudentProfileResult(entrySnapshot, campusNetworkStatus);
     }
 
     final homeSnapshot = await _ensureHomeSnapshot(entrySnapshot);
@@ -310,6 +330,73 @@ extension _AcademicEamsOverviewFlow on AcademicEamsService {
       examTerm: examTerm,
       examSemester: examSemester,
       examTypeId: examTypeId,
+    );
+  }
+
+  /// 用同一网关完成 CAS 跳转并读取新版学籍详情。
+  Future<AcademicEamsHttpSnapshot> _openStudentProfileWithSession(
+    AcademicEamsGateway gateway,
+    AcademicLoginSessionSnapshot? sessionSnapshot,
+  ) async {
+    final uri = AcademicEamsService._studentProfileUri;
+    await gateway.resetSession(sessionSnapshot?.cookieHeadersByHost ?? {});
+    final snapshot = await gateway.openEntryPage(uri, timeout);
+    if (snapshot.finalUri.origin == uri.origin &&
+        snapshot.finalUri.path == '/home/' &&
+        snapshot.statusCode == 200) {
+      return gateway.fetchPage(uri, timeout);
+    }
+    return snapshot;
+  }
+
+  /// 将新版学籍响应转换为现有的只读结果。
+  AcademicEamsQueryResult _buildStudentProfileResult(
+    AcademicEamsHttpSnapshot response,
+    CampusNetworkStatus? campusNetworkStatus,
+  ) {
+    final uri = AcademicEamsService._studentProfileUri;
+    if (_isAuthenticationRequired(response) || response.statusCode == 401) {
+      return _buildResult(
+        AcademicEamsQueryStatus.oaLoginRequired,
+        message: '统一身份认证会话已失效',
+        detail: '请重新验证账号后刷新新版教务学籍信息。',
+        finalUri: uri,
+        campusNetworkStatus: campusNetworkStatus,
+      );
+    }
+    if (response.finalUri.origin != uri.origin || response.statusCode != 200) {
+      return _buildResult(
+        AcademicEamsQueryStatus.systemUnavailable,
+        message: '新版教务学籍页面不可用',
+        detail: '学籍入口返回异常状态或跳转到其他站点。',
+        finalUri: uri,
+        campusNetworkStatus: campusNetworkStatus,
+      );
+    }
+    final profile = parseAcademicStudentProfile(response.body);
+    if (profile == null) {
+      return _buildResult(
+        AcademicEamsQueryStatus.parseFailed,
+        message: '未读取到新版教务学籍信息',
+        detail: '学籍详情页缺少可验证归属的学号。',
+        finalUri: uri,
+        campusNetworkStatus: campusNetworkStatus,
+      );
+    }
+    return _buildResult(
+      AcademicEamsQueryStatus.success,
+      message: '学籍信息读取成功',
+      detail: '已读取新版教务学籍信息。',
+      finalUri: uri,
+      campusNetworkStatus: campusNetworkStatus,
+      snapshot: AcademicEamsSnapshot(
+        fetchedAt: DateTime.now(),
+        sourceUri: uri,
+        warnings: const [],
+        hasCourseOfferingEntry: false,
+        hasFreeClassroomEntry: false,
+        profile: profile,
+      ),
     );
   }
 

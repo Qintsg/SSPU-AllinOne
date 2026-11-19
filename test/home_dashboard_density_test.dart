@@ -207,7 +207,9 @@ void main() {
     expect(title, findsOneWidget);
     expect(tester.widget<Text>(title).maxLines, 1);
     final dock = tester.getRect(find.byKey(const Key('home-utility-dock')));
-    final bottomNavigation = tester.getRect(find.byType(YhBottomNav));
+    final bottomNavigation = tester.getRect(
+      find.byKey(const Key('mobile-bottom-navigation')),
+    );
     expect(dock.bottom, lessThanOrEqualTo(bottomNavigation.top));
     expect(tester.takeException(), isNull);
   });

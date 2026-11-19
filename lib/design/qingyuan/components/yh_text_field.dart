@@ -1,7 +1,14 @@
-/* 清源文本输入框 — 标签与输入机械层分离。 */
+/*
+ * 清源文本输入框与编辑行为
+ * @Project : SSPU-AllinOne
+ * @File : yh_text_field.dart
+ * @Author : Qintsg, Codex
+ * @Date : 2026-11-19
+ */
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_miuix/miuix.dart' as miuix;
 
 import '../theme/yh_theme.dart';
 
@@ -161,15 +168,17 @@ class _YhTextFieldState extends State<YhTextField> {
                         ? theme.control.regular * widget.maxLines
                         : theme.control.regular,
                   ),
-                  decoration: BoxDecoration(
-                    color: widget.enabled || !widget.showDisabledAppearance
+                  decoration: ShapeDecoration(
+                    color: _focusNode.hasFocus
                         ? theme.color.surface
                         : theme.color.sunken,
-                    border: Border.all(
-                      color: borderColor,
-                      width: theme.layout.controlBorder,
+                    shape: miuix.MiuixSquircleBorder(
+                      cornerRadius: theme.radius.m,
+                      side: BorderSide(
+                        color: borderColor,
+                        width: theme.layout.controlBorder,
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(theme.radius.input),
                   ),
                   padding: EdgeInsets.symmetric(
                     horizontal: theme.spacing.m - theme.spacing.xs / 2,

@@ -44,11 +44,15 @@ extension _AcademicPageEamsSources on _AcademicPageState {
   /// :returns: 缓存与自动刷新策略均读取完成时结束。
   Future<void> _loadAcademicEamsCacheAndSettings() async {
     final generation = _credentialGeneration;
-    final cachedResult = await _academicEamsService.readLatestCachedOverview();
+    final (cachedResult, cachedProfile) = await (
+      _academicEamsService.readLatestCachedOverview(),
+      _academicEamsService.readCachedStudentProfile(),
+    ).wait;
     if (!mounted || generation != _credentialGeneration) return;
-    if (cachedResult != null) {
-      _setAcademicState(() => _academicEamsResult = cachedResult);
-    }
+    _setAcademicState(() {
+      _academicProfile = cachedProfile ?? _academicProfile;
+      _academicEamsResult = cachedResult ?? _academicEamsResult;
+    });
     await Future.wait<void>([
       _loadAcademicExamCacheAndDefaultTerm(),
       _loadAcademicGradeCache(),
@@ -110,10 +114,14 @@ extension _AcademicPageEamsSources on _AcademicPageState {
   }) async {
     final generation = _credentialGeneration;
     _academicEamsLastRefreshHadExamFailure = false;
-    final result = await _academicEamsService.fetchOverview(
-      requireCampusNetwork: silent,
-    );
+    final (result, profile) = await (
+      _academicEamsService.fetchOverview(requireCampusNetwork: silent),
+      _academicEamsService.refreshStudentProfileIfIncomplete(
+        forceRefresh: true,
+      ),
+    ).wait;
     if (!mounted || generation != _credentialGeneration) return result;
+    if (profile != null) _setAcademicState(() => _academicProfile = profile);
     if (!_isCoordinatedRefresh && (result.isSuccess || !silent)) {
       await _academicExamRefreshController.runRefresh(silent: silent);
       final examResult = _academicExamResult;

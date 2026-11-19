@@ -30,6 +30,7 @@ class StorageKeys {
 
   /// 清源主题模式（system / light / dark）。
   static const String themeMode = 'theme_mode';
+  static const String monetThemeEnabled = 'appearance_monet_enabled';
 
   /// 首页是否显示学籍信息卡片。
   static const String homeStudentProfileCardVisible =

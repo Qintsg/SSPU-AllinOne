@@ -229,7 +229,9 @@ void _registerAcademicTermsTests() {
       lessThan(tester.getTopLeft(find.text('大学物理')).dy),
     );
 
-    await tester.tap(find.text('倒序'));
+    final descending = find.text('倒序');
+    await tester.ensureVisible(descending);
+    await tester.tap(descending);
     await tester.pump();
     expect(find.text('连续时间倒序'), findsOneWidget);
     expect(

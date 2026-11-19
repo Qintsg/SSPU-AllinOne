@@ -43,9 +43,9 @@ extension _HomeDashboardView on _HomePageState {
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
                   pagePadding,
-                  compact ? theme.spacing.m : theme.spacing.xl,
-                  pagePadding,
                   compact ? theme.spacing.s : theme.spacing.xl,
+                  pagePadding,
+                  compact ? theme.spacing.xs : theme.spacing.xl,
                 ),
                 child: _buildHomeViewport(
                   theme,
@@ -367,14 +367,6 @@ extension _HomeDashboardView on _HomePageState {
                 )
               : Text(greeting.text, style: theme.typography.h1),
         ),
-        if (!compact) ...[
-          SizedBox(height: theme.spacing.s),
-          Text(
-            key: const Key('home-heading-description'),
-            '课程、待办和校园服务状态集中在同一条时间语境里，数据均保留在本机。',
-            style: theme.typography.body.copyWith(color: theme.color.muted),
-          ),
-        ],
       ],
     );
     final refreshAction = RefreshFeedbackAction(
