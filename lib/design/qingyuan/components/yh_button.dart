@@ -7,6 +7,7 @@
  */
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_miuix/miuix.dart' as miuix;
 
 import '../foundations/yh_pressable.dart';
 import '../theme/yh_theme.dart';
@@ -62,15 +63,17 @@ class YhButton extends StatelessWidget {
           opacity: state.disabled ? 0.4 : 1,
           child: DecoratedBox(
             key: const ValueKey('yh-button-surface'),
-            decoration: BoxDecoration(
+            decoration: ShapeDecoration(
               color: colors.background,
-              border: colors.border == null
-                  ? null
-                  : Border.all(
-                      color: colors.border!,
-                      width: theme.layout.controlBorder,
-                    ),
-              borderRadius: BorderRadius.circular(theme.radius.m),
+              shape: miuix.MiuixSquircleBorder(
+                cornerRadius: theme.radius.m,
+                side: state.focused
+                    ? BorderSide(
+                        color: colors.foreground,
+                        width: theme.focus.ringWidth,
+                      )
+                    : BorderSide.none,
+              ),
             ),
             child: ConstrainedBox(
               constraints: BoxConstraints(
@@ -135,9 +138,11 @@ class YhButton extends StatelessWidget {
         foreground: colors.onBrand,
       ),
       YhButtonVariant.secondary => _YhButtonColors(
-        background: colors.brand.withValues(alpha: overlayAlpha),
-        foreground: colors.brandStrong,
-        border: colors.brand,
+        background: Color.alphaBlend(
+          colors.brandInk.withValues(alpha: overlayAlpha),
+          colors.brandTint,
+        ),
+        foreground: colors.brandInk,
       ),
       YhButtonVariant.text => _YhButtonColors(
         background: colors.brand.withValues(alpha: overlayAlpha),
@@ -148,13 +153,8 @@ class YhButton extends StatelessWidget {
 }
 
 class _YhButtonColors {
-  const _YhButtonColors({
-    required this.background,
-    required this.foreground,
-    this.border,
-  });
+  const _YhButtonColors({required this.background, required this.foreground});
 
   final Color background;
   final Color foreground;
-  final Color? border;
 }

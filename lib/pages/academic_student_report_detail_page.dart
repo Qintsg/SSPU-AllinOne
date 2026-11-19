@@ -76,6 +76,7 @@ class _StudentReportDetailPageState extends State<StudentReportDetailPage> {
     final current = _refreshController.result;
     final summary = current?.summary ?? widget.summary;
     return YhTaskPage(
+      useMiuix: true,
       title: '第二课堂成绩单',
       kicker: '课外成长',
       summary: '完成度、积分证据和规则分开呈现；刷新失败保留可核验的活动记录。',

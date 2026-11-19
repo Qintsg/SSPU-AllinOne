@@ -18,6 +18,7 @@ class StudentReportRulesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
     return YhTaskPage(
+      useMiuix: true,
       title: '第二课堂积分规则',
       kicker: '计算说明',
       summary: '先看还差多少，再按类别找到可补齐的项目；规则缺失时不推测最终学分。',

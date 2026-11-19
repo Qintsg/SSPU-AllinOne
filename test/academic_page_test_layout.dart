@@ -144,7 +144,10 @@ void _registerAcademicLayoutTests() {
     final title = find.text('需要先完成教务账户连接');
     await pumpUntilFound(tester, title);
 
-    final stateCard = find.ancestor(of: title, matching: find.byType(YhCard));
+    final stateCard = find.ancestor(
+      of: title,
+      matching: find.byType(YhMiuixCard),
+    );
     expect(stateCard, findsOneWidget);
     expect(tester.getSize(stateCard).width, lessThanOrEqualTo(560));
     expect(tester.getSize(stateCard).height, lessThan(320));
@@ -180,8 +183,8 @@ void _registerAcademicLayoutTests() {
     expect(labelTops[1], greaterThan(labelTops[0]));
     expect(labelTops[2], closeTo(labelTops[1], 2));
     final overviewCard = find.ancestor(
-      of: find.text('教务中心'),
-      matching: find.byType(YhCard),
+      of: labels.first,
+      matching: find.byType(YhMiuixCard),
     );
     expect(overviewCard, findsOneWidget);
     expect(tester.getSize(overviewCard).height, lessThan(520));

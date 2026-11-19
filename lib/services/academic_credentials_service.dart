@@ -188,12 +188,22 @@ class AcademicCredentialsService {
   }
 
   /// 保存当前 OA 账号绑定的学籍信息。
-  Future<void> saveStudentProfile(AcademicEamsProfile profile) async {
-    final ownerAccount = _normalizeAccount(
+  ///
+  /// :param ownerAccount: 查询时的账号，用于确认保存时账号仍一致。
+  Future<void> saveStudentProfile(
+    AcademicEamsProfile profile, {
+    String? ownerAccount,
+  }) async {
+    final currentAccount = _normalizeAccount(
       await _readValue(_oaAccountKey) ?? '',
     );
-    if (ownerAccount.isEmpty || !profile.hasAnyValue) return;
-    final ownerHash = _ownerAccountHash(ownerAccount);
+    if (currentAccount.isEmpty ||
+        (ownerAccount != null &&
+            _normalizeAccount(ownerAccount) != currentAccount) ||
+        !profile.hasAnyValue) {
+      return;
+    }
+    final ownerHash = _ownerAccountHash(currentAccount);
     if (ownerHash.isEmpty) return;
     final payload = Map<String, dynamic>.from(profile.toJson());
     payload['ownerAccount'] = ownerHash;

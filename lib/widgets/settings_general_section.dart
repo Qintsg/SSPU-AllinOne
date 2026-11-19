@@ -206,13 +206,13 @@ class SettingsGeneralSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildApplicationExperienceSection(context),
+        SizedBox(height: spacing.l),
         _buildHomeDisplaySection(context),
         SizedBox(height: spacing.l),
         _buildDataAccessSection(context),
         SizedBox(height: spacing.l),
         _buildNotificationSection(context),
-        SizedBox(height: spacing.l),
-        _buildApplicationExperienceSection(context),
       ],
     );
   }
@@ -579,7 +579,10 @@ class SettingsGeneralSection extends StatelessWidget {
             context: context,
             icon: YhIcons.palette,
             title: _settingsTitle(context, '颜色主题'),
-            subtitle: _settingsSubtitle(context, '当前：${_themeModeLabel()}'),
+            subtitle: _settingsSubtitle(
+              context,
+              '${_themeModeLabel()} · ${YhMonetPreference.maybeOf(context)?.enabled == true ? 'Monet 动态配色' : '应用配色'}',
+            ),
             trailing: YhButton(
               label: '打开外观',
               variant: YhButtonVariant.text,

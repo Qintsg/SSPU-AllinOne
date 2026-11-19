@@ -16,44 +16,17 @@ class _InfoHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    return Column(
+    return YhPageHeading(
       key: compact ? const Key('info-mobile-controls') : null,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '校园信息',
-                    style: theme.typography.caption.copyWith(
-                      color: theme.color.brandInk,
-                      fontWeight: theme.typography.semibold,
-                    ),
-                  ),
-                  SizedBox(height: theme.spacing.xs),
-                  Semantics(
-                    header: true,
-                    child: Text('校园资讯', style: theme.typography.h1),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: theme.spacing.s),
-            YhIconButton(
-              key: const Key('info-refresh-button'),
-              icon: YhIcons.refresh,
-              semanticLabel: '刷新校园资讯',
-              onTap: state._refreshService.isRefreshing
-                  ? null
-                  : state._refreshAllEnabledSources,
-            ),
-          ],
-        ),
-      ],
+      title: '校园资讯',
+      trailing: YhIconButton(
+        key: const Key('info-refresh-button'),
+        icon: YhIcons.refresh,
+        semanticLabel: '刷新校园资讯',
+        onTap: state._refreshService.isRefreshing
+            ? null
+            : state._refreshAllEnabledSources,
+      ),
     );
   }
 }

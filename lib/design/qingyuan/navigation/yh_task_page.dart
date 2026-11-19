@@ -11,6 +11,7 @@ import 'package:flutter/widgets.dart';
 import '../components/yh_bottom_drawer.dart';
 import '../components/yh_button.dart';
 import '../components/yh_icon_button.dart';
+import '../components/yh_miuix.dart';
 import '../icons/yh_icons.dart';
 import '../theme/yh_theme.dart';
 import 'yh_app_bar.dart';
@@ -57,6 +58,8 @@ class YhTaskPage extends StatefulWidget {
     this.canPop = true,
     this.appBarEyebrow,
     this.appBarTitle,
+    this.useMiuix = true,
+    this.sourceAction,
     this.moreActions = const [],
   });
 
@@ -78,6 +81,8 @@ class YhTaskPage extends StatefulWidget {
   final bool canPop;
   final String? appBarEyebrow;
   final String? appBarTitle;
+  final bool useMiuix;
+  final YhTaskPageAction? sourceAction;
   final List<YhTaskPageAction> moreActions;
 
   @override
@@ -101,7 +106,8 @@ class _YhTaskPageState extends State<YhTaskPage> {
       canPop: widget.canPop,
       child: YhPageScaffold(
         appBar: YhAppBar(
-          eyebrow: widget.appBarEyebrow ?? widget.kicker,
+          eyebrow:
+              widget.appBarEyebrow ?? (widget.useMiuix ? null : widget.kicker),
           title: widget.appBarTitle ?? widget.source,
           leading: YhIconButton(
             icon: YhIcons.back,
@@ -177,25 +183,29 @@ class _YhTaskPageState extends State<YhTaskPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _TaskHeading(
-                        title: widget.title,
-                        kicker: widget.kicker,
-                        summary: widget.summary,
-                        actionLabel: widget.primaryActionLabel,
-                        onAction: widget.onPrimaryAction,
-                        actionKey: widget.primaryActionKey,
-                        compact: compact,
-                        accent: widget.accent,
-                      ),
-                      SizedBox(
-                        height: compact ? theme.spacing.m : theme.spacing.l,
-                      ),
-                      _TaskSourceStrip(
-                        source: widget.source,
-                        sourceSymbol: widget.sourceSymbol,
-                        timestamp: widget.sourceTimestamp,
-                        accent: widget.accent,
-                      ),
+                      if (widget.useMiuix)
+                        _MiuixTaskHeading(page: widget)
+                      else ...[
+                        _TaskHeading(
+                          title: widget.title,
+                          kicker: widget.kicker,
+                          summary: widget.summary,
+                          actionLabel: widget.primaryActionLabel,
+                          onAction: widget.onPrimaryAction,
+                          actionKey: widget.primaryActionKey,
+                          compact: compact,
+                          accent: widget.accent,
+                        ),
+                        SizedBox(
+                          height: compact ? theme.spacing.m : theme.spacing.l,
+                        ),
+                        _TaskSourceStrip(
+                          source: widget.source,
+                          sourceSymbol: widget.sourceSymbol,
+                          timestamp: widget.sourceTimestamp,
+                          accent: widget.accent,
+                        ),
+                      ],
                       SizedBox(
                         height: compact ? theme.spacing.m : theme.spacing.l,
                       ),
@@ -291,6 +301,88 @@ class _YhTaskPageState extends State<YhTaskPage> {
     if (!mounted) return;
     _moreActionsFocusNode.requestFocus();
     selectedAction?.onTap?.call();
+  }
+}
+
+class _MiuixTaskHeading extends StatelessWidget {
+  const _MiuixTaskHeading({required this.page});
+
+  final YhTaskPage page;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.yhTheme;
+    final timestamp = page.sourceTimestamp;
+    final hasSource =
+        page.source.isNotEmpty &&
+        page.source != (page.appBarTitle ?? page.source) &&
+        page.source != page.title;
+    return YhMiuixCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: theme.spacing.m,
+            runSpacing: theme.spacing.s,
+            children: [
+              Semantics(
+                header: true,
+                child: Text(page.title, style: theme.typography.h1),
+              ),
+              YhButton(
+                key: page.primaryActionKey,
+                label: page.primaryActionLabel,
+                onTap: page.onPrimaryAction,
+              ),
+            ],
+          ),
+          if (page.summary.isNotEmpty) ...[
+            SizedBox(height: theme.spacing.s),
+            Text(
+              page.summary,
+              style: theme.typography.body.copyWith(color: theme.color.muted),
+            ),
+          ],
+          if (hasSource || (timestamp?.isNotEmpty ?? false)) ...[
+            SizedBox(height: theme.spacing.s),
+            Wrap(
+              spacing: theme.spacing.m,
+              runSpacing: theme.spacing.xs,
+              children: [
+                if (hasSource)
+                  Text(
+                    page.source,
+                    style: theme.typography.small.copyWith(
+                      color: theme.color.muted,
+                    ),
+                  ),
+                if (timestamp != null && timestamp.isNotEmpty)
+                  Text(
+                    timestamp,
+                    style: theme.typography.small.copyWith(
+                      color: theme.color.muted,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+          if (page.sourceAction case final action?) ...[
+            SizedBox(height: theme.spacing.s),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: YhButton(
+                label: action.label,
+                variant: YhButtonVariant.text,
+                leadingIcon: YhIcons.open,
+                onTap: action.onTap,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 

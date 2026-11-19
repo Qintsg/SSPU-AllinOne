@@ -1,6 +1,13 @@
-/* 清源图标按钮。 */
+/*
+ * 清源图标按钮
+ * @Project : SSPU-AllinOne
+ * @File : yh_icon_button.dart
+ * @Author : Qintsg, Codex
+ * @Date : 2026-11-19
+ */
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_miuix/miuix.dart' as miuix;
 
 import '../foundations/yh_pressable.dart';
 import '../theme/yh_theme.dart';
@@ -43,23 +50,17 @@ class YhIconButton extends StatelessWidget {
         child: SizedBox.square(
           dimension: effectiveSize,
           child: DecoratedBox(
-            decoration: BoxDecoration(
+            decoration: ShapeDecoration(
               color: selected
                   ? theme.color.brandTint
                   : state.pressed
                   ? theme.color.brand.withValues(alpha: 0.16)
                   : state.hovered
                   ? theme.color.brand.withValues(alpha: 0.10)
+                  : variant == YhIconButtonVariant.outline
+                  ? theme.color.sunken
                   : theme.color.surface.withValues(alpha: 0),
-              border: variant == YhIconButtonVariant.outline
-                  ? Border.all(
-                      color: selected || state.hovered || state.focused
-                          ? theme.color.brandStrong
-                          : theme.color.border,
-                      width: theme.layout.controlBorder,
-                    )
-                  : null,
-              borderRadius: BorderRadius.circular(theme.radius.s),
+              shape: miuix.MiuixSquircleBorder(cornerRadius: theme.radius.m),
             ),
             child: Center(child: child),
           ),

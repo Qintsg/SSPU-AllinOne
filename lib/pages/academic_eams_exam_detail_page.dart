@@ -201,6 +201,11 @@ class _AcademicEamsExamDetailPageState
     final years = _academicExamAvailableYears(semesterOptions, currentTerm);
     final seasons = _academicExamAvailableSeasons(semesterOptions, currentTerm);
     return YhTaskPage(
+      useMiuix: true,
+      sourceAction: YhTaskPageAction(
+        label: '在新版教务查看',
+        onTap: () => AcademicPortalPage.exams.open(context),
+      ),
       title: '考试安排',
       kicker: '本学期考试',
       summary: '按时间顺序核对日期、地点与考试类型；待公布和临时说明不会被隐藏。',

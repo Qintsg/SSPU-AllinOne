@@ -72,7 +72,7 @@ void _registerAcademicLifeTests() {
     );
 
     expect(find.text('第二课堂成绩单'), findsOneWidget);
-    expect(find.text('课外成长'), findsWidgets);
+    expect(find.text('第二课堂 · 本地快照'), findsWidgets);
     expect(find.text('刷新成绩单'), findsOneWidget);
     expect(find.text('查看积分规则'), findsOneWidget);
     expect(find.text('已获积分记录'), findsOneWidget);

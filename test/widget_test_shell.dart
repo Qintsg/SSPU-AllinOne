@@ -62,8 +62,13 @@ void _registerShellTests() {
         matchesSemantics(
           label: '主页',
           isButton: true,
+          hasEnabledState: true,
+          isEnabled: true,
           hasSelectedState: true,
           isSelected: true,
+          isFocusable: true,
+          isInMutuallyExclusiveGroup: true,
+          hasFocusAction: true,
           hasTapAction: true,
         ),
       );
@@ -134,12 +139,15 @@ void _registerShellTests() {
         const Key('mobile-bottom-navigation'),
       );
       expect(bottomNavigation, findsOneWidget);
-      expect(tester.getBottomLeft(bottomNavigation).dy, 844);
+      expect(
+        tester.getBottomLeft(bottomNavigation).dy,
+        844 - 24 - YhTheme.light.spacing.s,
+      );
 
       await _configureMobileView(tester, bottomPadding: 24, keyboardInset: 320);
       await tester.pump();
 
-      expect(tester.getBottomLeft(bottomNavigation).dy, 844);
+      expect(bottomNavigation, findsNothing);
 
       await tester.pump(const Duration(milliseconds: 300));
     } finally {

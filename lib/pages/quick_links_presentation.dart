@@ -77,33 +77,7 @@ class _QuickLinksHeader extends StatelessWidget {
   const _QuickLinksHeader();
 
   @override
-  Widget build(BuildContext context) {
-    final theme = context.yhTheme;
-    final compact = MediaQuery.sizeOf(context).width < theme.breakpoint.medium;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '快速跳转',
-          style: theme.typography.caption.copyWith(
-            color: theme.color.brandInk,
-            fontWeight: theme.typography.semibold,
-          ),
-        ),
-        SizedBox(height: theme.spacing.xs),
-        Semantics(
-          header: true,
-          child: Text('常用校园入口', style: theme.typography.h1),
-        ),
-        SizedBox(height: theme.spacing.s),
-        Text(
-          '名称使用学生熟悉的任务语言；跳转前明确外部网站与当前登录要求。',
-          style: (compact ? theme.typography.small : theme.typography.body)
-              .copyWith(color: theme.color.muted),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => const YhPageHeading(title: '常用校园入口');
 }
 
 class _FocusQuickLinkSearchIntent extends Intent {

@@ -463,7 +463,7 @@ void _registerAcademicEvidenceTests() {
     final stateTitle = find.text('课程成绩暂不可用');
     final stateCard = find.ancestor(
       of: stateTitle,
-      matching: find.byType(YhCard),
+      matching: find.byType(YhMiuixCard),
     );
     final theme = tester.element(stateTitle).yhTheme;
     expect(stateCard, findsOneWidget);
@@ -510,7 +510,10 @@ void _registerAcademicEvidenceTests() {
     await tester.pumpAndSettle();
 
     final title = find.text('考试安排暂不可用');
-    final stateCard = find.ancestor(of: title, matching: find.byType(YhCard));
+    final stateCard = find.ancestor(
+      of: title,
+      matching: find.byType(YhMiuixCard),
+    );
     final action = find.ancestor(
       of: find.text('检查后重试'),
       matching: find.byType(YhButton),

@@ -4,7 +4,7 @@
 
 ## 固定环境
 
-- Flutter 3.44.0、MiSans、`zh_CN`、`Asia/Shanghai`。
+- Flutter 3.44.6、MiSans、`zh_CN`、`Asia/Shanghai`。
 - 固定时钟 `2026-07-18T09:30:00+08:00`，关闭动画并启用 `qingyuan-sanitized-v1` 脱敏 fixture。
 - 视口固定为 `360x800`、`768x900`、`1200x900`、`1600x1000`，每档同时采集 light / dark。
 - 文件名固定为 `<surface>--<state>--<theme>--<width>x<height>.png`；`surface` 与 `state` 必须来自 [`visual-manifest.json`](./resources/visual-manifest.json)。

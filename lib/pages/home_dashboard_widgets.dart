@@ -258,55 +258,6 @@ class _HomeTimelineEntry {
   }
 }
 
-class _HomeTimelineBackdropPainter extends CustomPainter {
-  const _HomeTimelineBackdropPainter(this.theme);
-
-  final YhTheme theme;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(
-      size.width - theme.spacing.xl2,
-      size.height - theme.spacing.xl2,
-    );
-    final radius = theme.layout.statusProgressWidth / 2;
-    final midSpread = theme.spacing.xl + theme.spacing.xs;
-    final outerSpread = theme.spacing.xl2 + theme.spacing.l;
-    canvas.drawCircle(
-      center,
-      radius + outerSpread,
-      Paint()
-        ..color = theme.color.onStructural.withValues(
-          alpha: theme.opacity.timelineOrbitOuter,
-        ),
-    );
-    canvas.drawCircle(
-      center,
-      radius + midSpread,
-      Paint()
-        ..color = theme.color.onStructural.withValues(
-          alpha: theme.opacity.timelineOrbitMid,
-        ),
-    );
-    canvas.drawCircle(center, radius, Paint()..color = theme.color.structural);
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = theme.layout.divider
-        ..color = theme.color.onStructural.withValues(
-          alpha: theme.opacity.timelineOrbit,
-        ),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _HomeTimelineBackdropPainter oldDelegate) {
-    return theme != oldDelegate.theme;
-  }
-}
-
 class _HomeTimelineRow extends StatelessWidget {
   const _HomeTimelineRow({
     required this.entry,
@@ -345,7 +296,7 @@ class _HomeTimelineRow extends StatelessWidget {
             child: Text(
               entry.time,
               style: theme.typography.small.copyWith(
-                color: theme.color.onStructural,
+                color: theme.color.brandInk,
                 fontFamily: YhTypographyTokens.fontFamilyMono,
                 fontWeight: theme.typography.semibold,
               ),
@@ -373,7 +324,7 @@ class _HomeTimelineRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.typography.body.copyWith(
-                    color: theme.color.onStructural,
+                    color: theme.color.brandInk,
                     fontWeight: theme.typography.semibold,
                   ),
                 ),
@@ -383,7 +334,7 @@ class _HomeTimelineRow extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.typography.caption.copyWith(
-                    color: theme.color.onStructural.withValues(
+                    color: theme.color.brandInk.withValues(
                       alpha: theme.opacity.timelineDetail,
                     ),
                   ),
@@ -416,7 +367,7 @@ class _HomeTimelineTrackPainter extends CustomPainter {
         Offset(center.dx, center.dy + theme.spacing.xs),
         Offset(center.dx, size.height),
         Paint()
-          ..color = theme.color.onStructural.withValues(
+          ..color = theme.color.brandInk.withValues(
             alpha: theme.opacity.timelineTrack,
           )
           ..strokeWidth = theme.layout.divider,
@@ -439,9 +390,7 @@ class _HomeTimelineTrackPainter extends CustomPainter {
       Paint()
         ..color = current
             ? theme.color.brandTint
-            : theme.color.onStructural.withValues(
-                alpha: theme.opacity.timelineDot,
-              ),
+            : theme.color.brandInk.withValues(alpha: theme.opacity.timelineDot),
     );
     canvas.drawCircle(
       center,
@@ -449,7 +398,7 @@ class _HomeTimelineTrackPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = theme.focus.ringWidth
-        ..color = theme.color.structural,
+        ..color = theme.color.brandTint,
     );
   }
 

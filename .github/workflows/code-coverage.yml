@@ -22,7 +22,7 @@ on:
   workflow_dispatch:
 
 env:
-  FLUTTER_VERSION: '3.44.0'
+  FLUTTER_VERSION: '3.44.6'
 
 permissions:
   contents: read

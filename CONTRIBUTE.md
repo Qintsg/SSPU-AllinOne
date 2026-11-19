@@ -25,8 +25,8 @@
 
 ### Flutter SDK
 
-- Flutter SDK >= 3.44.0
-- Dart SDK 3.12.0（随 Flutter 3.44.0 提供）
+- Flutter SDK >= 3.44.2
+- Dart SDK >= 3.12.2（随 Flutter 3.44.2 提供）
 - 各平台对应的开发工具详见 [使用文档](docs/USAGE.md)
 
 ```bash

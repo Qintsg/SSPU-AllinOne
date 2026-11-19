@@ -17,7 +17,6 @@ class _AcademicHeading extends StatelessWidget {
     required this.earnedCredits,
     required this.gradeCount,
     required this.nextExam,
-    required this.onRefresh,
     required this.onOpenSchedule,
   });
 
@@ -28,7 +27,6 @@ class _AcademicHeading extends StatelessWidget {
   final double? earnedCredits;
   final int? gradeCount;
   final AcademicExamRecord? nextExam;
-  final VoidCallback? onRefresh;
   final VoidCallback? onOpenSchedule;
 
   @override
@@ -43,43 +41,15 @@ class _AcademicHeading extends StatelessWidget {
 
   Widget _buildLayout(BuildContext context, bool compact) {
     final theme = context.yhTheme;
-    final overview = YhCard(
+    final overview = YhMiuixCard(
       padding: EdgeInsets.all(theme.spacing.l),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Semantics(
-                  header: true,
-                  child: Text('教务中心', style: theme.typography.h2),
-                ),
-              ),
-              SizedBox(width: theme.spacing.m),
-              if (compact)
-                YhIconButton(
-                  key: const ValueKey('academic-overview-refresh'),
-                  icon: YhIcons.refresh,
-                  semanticLabel: '刷新教务数据',
-                  onTap: onRefresh,
-                  disabled: onRefresh == null,
-                )
-              else
-                YhButton(
-                  key: const ValueKey('academic-overview-refresh'),
-                  label: '刷新',
-                  variant: YhButtonVariant.secondary,
-                  leadingIcon: YhIcons.refresh,
-                  onTap: onRefresh,
-                ),
-            ],
-          ),
           if (profile?.hasAnyValue == true) ...[
-            SizedBox(height: theme.spacing.m),
             _AcademicIdentityGrid(profile: profile!, compact: compact),
+            SizedBox(height: theme.spacing.l),
           ],
-          SizedBox(height: theme.spacing.m),
           _AcademicMetricsRow(
             compact: compact,
             termLabel: termLabel,
@@ -145,17 +115,25 @@ class _AcademicIdentityGrid extends StatelessWidget {
         ('班级', profile.className!.trim()),
     ];
     if (compact) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var index = 0; index < items.length; index++) ...[
-            _AcademicIdentityItem(
-              label: items[index].$1,
-              value: items[index].$2,
-            ),
-            if (index != items.length - 1) SizedBox(height: theme.spacing.xs),
-          ],
-        ],
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final gap = theme.spacing.m;
+          final itemWidth = (constraints.maxWidth - gap) / 2;
+          final double width = MediaQuery.textScalerOf(context).scale(16) > 24
+              ? constraints.maxWidth
+              : itemWidth;
+          return Wrap(
+            spacing: gap,
+            runSpacing: theme.spacing.s,
+            children: [
+              for (final (label, value) in items)
+                SizedBox(
+                  width: width,
+                  child: _AcademicIdentityItem(label: label, value: value),
+                ),
+            ],
+          );
+        },
       );
     }
     return Row(

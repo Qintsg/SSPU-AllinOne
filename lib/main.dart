@@ -99,6 +99,7 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
   int _initializationGeneration = 0;
 
   YhThemeMode _themeMode = YhThemeMode.system;
+  bool _monetEnabled = false;
 
   /// 清源应用内部导航器 key，用于在 WindowListener 回调中弹出对话框。
   final _navigatorKey = GlobalKey<NavigatorState>();
@@ -140,11 +141,15 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       final agreementsOk = await StorageService.areCurrentAgreementsAccepted();
       final hasPassword = await PasswordService.isPasswordSet();
       final themeMode = await StorageService.getThemeMode();
+      final monetEnabled = await StorageService.getBool(
+        StorageKeys.monetThemeEnabled,
+      );
       if (!mounted || generation != _initializationGeneration) return;
       setState(() {
         _agreementsAccepted = agreementsOk;
         _isUnlocked = !hasPassword;
         _isInitialized = true;
+        _monetEnabled = monetEnabled;
         _themeMode = switch (themeMode) {
           'light' => YhThemeMode.light,
           'dark' => YhThemeMode.dark,
@@ -191,6 +196,12 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
         YhThemeMode.system => 'system',
       }),
     );
+  }
+
+  /// 保存动态色偏好并刷新当前应用主题。
+  Future<void> _setMonetEnabled(bool enabled) async {
+    await StorageService.setBool(StorageKeys.monetThemeEnabled, enabled);
+    if (mounted) setState(() => _monetEnabled = enabled);
   }
 
   /// 初始化后台能力，不阻塞首屏渲染和用户进入主页。
@@ -366,6 +377,8 @@ class _SSPUAppState extends State<SSPUApp> with WindowListener, TrayListener {
       theme: YhTheme.light,
       darkTheme: YhTheme.dark,
       themeMode: _themeMode,
+      monetEnabled: _monetEnabled,
+      onMonetChanged: _setMonetEnabled,
       debugShowCheckedModeBanner: false,
       home: _buildHome(),
       builder: (context, child) {

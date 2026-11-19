@@ -1,8 +1,9 @@
 <!--
 Sync Impact Report
-Version change: scaffold → 1.0.0
-Modified principles: replaced all generic Spec Kit placeholders with SSPU-AllinOne rules
-Added sections: Flutter technology constraints; Git Flow and review quality gates
+Version change: 1.0.0 → 1.0.1
+Modified principles: none
+Modified constraints: Flutter and Dart patch versions required by the UI dependency
+Added sections: none
 Removed sections: none
 Deferred items: none
 -->
@@ -42,7 +43,7 @@ Deferred items: none
 
 ## Technology Constraints
 
-- 项目使用 Flutter `>= 3.44.0` 与 Dart `3.12.0`；依赖变更 MUST 同步更新锁文件并通过 CI。
+- 项目使用 Flutter `>= 3.44.2` 与 Dart `>= 3.12.2`。依赖变更 MUST 同步更新锁文件并通过 CI。
 - 本地状态 MUST 遵循 `README_agents.md` 中的平台路径和隐私约束，不得提交令牌、密钥或机器
   专属配置。
 - 新增 API 文档 MUST 使用 OpenAPI 3.0，并通过 Redocly CLI 校验。
@@ -62,4 +63,4 @@ Deferred items: none
 递增 PATCH。所有 PR 的审查者 MUST 检查规格链路、隐私约束和质量门禁是否满足；若规则与
 现有实现冲突，必须在合并前记录并解决例外。
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-30 | **Last Amended**: 2026-08-30
+**Version**: 1.0.1 | **Ratified**: 2026-08-30 | **Last Amended**: 2026-11-19

@@ -77,6 +77,7 @@ class _SportsAttendanceDetailPageState
     final current = _refreshController.result;
     final summary = current?.summary ?? widget.summary;
     return YhTaskPage(
+      useMiuix: true,
       title: '体育考勤',
       kicker: '本学期运动记录',
       summary: '汇总与原始考勤证据按日期连续展示；移动端保留全部字段且无需横向拖动。',

@@ -7,8 +7,8 @@
 | 功能 ID | `academic.eams.profile` |
 | 状态 | 已实现 |
 | 平台 | 全平台 |
-| 关联 Issue | — |
-| 主要代码 | `lib/services/academic_eams_page_parser_profile.dart`、`academic_eams_overview_flow.dart`；`lib/models/academic_eams/profile.dart` |
+| 关联 Issue | #353 |
+| 主要代码 | `lib/services/academic_student_profile_parser.dart`、`academic_eams_overview_flow.dart`；`lib/models/academic_eams/profile.dart` |
 
 ## 1. 需求
 
@@ -16,8 +16,8 @@
 
 ## 2. 实现
 
-- 经 [EAMS 基座](foundation.md) 的 overview 流程解析首页摘要 → `AcademicEamsProfile`。
-- 学籍信息**加密缓存**（绑定 OA 账号），缺失或不完整时静默刷新（`refreshStudentProfileIfIncomplete`）。
+- `refreshStudentProfileIfIncomplete` 复用统一身份认证会话，读取新版教务的 `/student/for-std/student-info`，将学籍详情映射为 `AcademicEamsProfile`。
+- 学籍信息按账号保存在**加密缓存**中。保存前校验响应学号与当前账号一致。
 
 ## 3. 关联
 

@@ -327,10 +327,7 @@ void main() {
       expect(find.text('筛选'), findsOneWidget);
       expect(find.text('更多筛选'), findsNothing);
       expect(find.text('消息操作'), findsNothing);
-      expect(
-        tester.widget<Column>(controls).crossAxisAlignment,
-        CrossAxisAlignment.stretch,
-      );
+      expect(tester.widget<YhPageHeading>(controls).title, '校园资讯');
 
       expect(tester.getSize(controls).height, lessThanOrEqualTo(160));
       expect(tester.getSize(pagination).height, 48);

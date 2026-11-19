@@ -28,7 +28,7 @@ class AcademicSportsAttendanceCard extends StatelessWidget {
     final theme = context.yhTheme;
     final summary = result?.summary;
 
-    return YhCard(
+    return YhMiuixCard(
       key: const Key('academic-sports-card'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
