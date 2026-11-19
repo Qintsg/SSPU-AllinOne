@@ -99,6 +99,11 @@ class _AcademicEamsGradeProcessPageState
     final options = _semesterOptions(snapshot);
     final currentSemester = _currentSemester(snapshot, options);
     return YhTaskPage(
+      useMiuix: true,
+      sourceAction: YhTaskPageAction(
+        label: '在新版教务查看',
+        onTap: () => AcademicPortalPage.grades.open(context),
+      ),
       title: '过程化成绩',
       kicker: '课程内评价',
       summary: '按学期核对课堂表现、作业与测验等原始评价证据，不与总评成绩混算。',

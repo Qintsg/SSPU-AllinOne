@@ -66,7 +66,7 @@ void main() {
 
     expect(find.byType(YhPageScaffold), findsOneWidget);
     expect(find.text('常用校园入口'), findsOneWidget);
-    expect(find.textContaining('名称使用学生熟悉的任务语言'), findsOneWidget);
+    expect(find.byKey(const Key('quick-links-search-field')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('quick-links-group-学习与教务')),
       findsOneWidget,
@@ -289,23 +289,22 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final kicker = find.text('快速跳转');
-    final description = find.textContaining('名称使用学生熟悉的任务语言');
+    final heading = find.text('常用校园入口');
     final search = find.byKey(const Key('quick-links-search-field'));
-    final theme = tester.element(kicker).yhTheme;
-    final safeTop = MediaQuery.paddingOf(tester.element(kicker)).top;
+    final theme = tester.element(heading).yhTheme;
+    final safeTop = MediaQuery.paddingOf(tester.element(heading)).top;
 
     expect(
-      tester.getTopLeft(kicker).dy,
+      tester.getTopLeft(heading).dy,
       safeTop + theme.spacing.l + theme.spacing.s + theme.layout.divider * 3,
     );
     expect(
-      tester.getTopLeft(search).dy - tester.getBottomLeft(description).dy,
+      tester.getTopLeft(search).dy - tester.getBottomLeft(heading).dy,
       theme.spacing.l + theme.spacing.xs,
     );
     expect(
-      tester.widget<Text>(description).style?.fontSize,
-      theme.typography.small.fontSize,
+      tester.widget<Text>(heading).style?.fontSize,
+      theme.typography.h1.fontSize,
     );
 
     final firstRow = find.bySemanticsLabel('教务处，外部链接，将打开外部应用');

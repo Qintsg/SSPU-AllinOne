@@ -113,7 +113,10 @@ Future<void> _expectMobileSafeAreaLayout(
 
     final bottomNavigation = find.byKey(const Key('mobile-bottom-navigation'));
     expect(bottomNavigation, findsOneWidget);
-    expect(tester.getBottomLeft(bottomNavigation).dy, 844);
+    expect(
+      tester.getBottomLeft(bottomNavigation).dy,
+      844 - bottomPadding - YhTheme.light.spacing.s,
+    );
 
     final selectedHomeLabel = find
         .descendant(of: bottomNavigation, matching: find.text('主页'))

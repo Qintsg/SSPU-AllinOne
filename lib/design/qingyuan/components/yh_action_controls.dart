@@ -2,6 +2,7 @@
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_miuix/miuix.dart' as miuix;
 
 import '../foundations/yh_pressable.dart';
 import '../icons/yh_icons.dart';
@@ -191,10 +192,9 @@ class _YhSegmentedState<T> extends State<YhSegmented<T>> {
           container: true,
           explicitChildNodes: true,
           child: DecoratedBox(
-            decoration: BoxDecoration(
+            decoration: ShapeDecoration(
               color: theme.color.sunken,
-              border: Border.all(color: theme.color.border),
-              borderRadius: BorderRadius.circular(theme.radius.input),
+              shape: miuix.MiuixSquircleBorder(cornerRadius: theme.radius.m),
             ),
             child: Padding(
               padding: EdgeInsets.all(theme.spacing.xs),
@@ -212,16 +212,15 @@ class _YhSegmentedState<T> extends State<YhSegmented<T>> {
                           : () =>
                                 widget.onChanged!(widget.options[index].value),
                       builder: (context, state, child) => DecoratedBox(
-                        decoration: BoxDecoration(
+                        decoration: ShapeDecoration(
                           color: widget.options[index].value == widget.value
-                              ? theme.color.surface
+                              ? theme.color.brandTint
                               : state.hovered
                               ? theme.color.brandTint
                               : theme.color.surface.withValues(alpha: 0),
-                          borderRadius: BorderRadius.circular(theme.radius.s),
-                          boxShadow: widget.options[index].value == widget.value
-                              ? theme.elevation.e1
-                              : const [],
+                          shape: miuix.MiuixSquircleBorder(
+                            cornerRadius: theme.radius.input,
+                          ),
                         ),
                         child: Padding(
                           padding: EdgeInsets.symmetric(

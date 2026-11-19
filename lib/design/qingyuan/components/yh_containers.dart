@@ -1,6 +1,13 @@
-/* 清源容器与反馈扩展。 */
+/*
+ * 清源容器、列表与反馈
+ * @Project : SSPU-AllinOne
+ * @File : yh_containers.dart
+ * @Author : Qintsg, Codex
+ * @Date : 2026-11-19
+ */
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_miuix/miuix.dart' as miuix;
 
 import '../foundations/yh_pressable.dart';
 import '../theme/yh_theme.dart';
@@ -28,16 +35,13 @@ class YhTile extends StatelessWidget {
       selected: selected,
       onPressed: onTap,
       builder: (context, state, child) => DecoratedBox(
-        decoration: BoxDecoration(
+        decoration: ShapeDecoration(
           color: selected
               ? theme.color.brandTint
               : state.hovered
               ? theme.color.sunken
               : theme.color.surface,
-          border: Border.all(
-            color: selected ? theme.color.brand : theme.color.border,
-          ),
-          borderRadius: BorderRadius.circular(theme.radius.tile),
+          shape: miuix.MiuixSquircleBorder(cornerRadius: theme.radius.tile),
         ),
         child: Padding(padding: EdgeInsets.all(theme.spacing.m), child: child),
       ),
@@ -71,7 +75,8 @@ class YhListItem extends StatelessWidget {
       semanticLabel: subtitle == null ? title : '$title，$subtitle',
       selected: selected,
       onPressed: onTap,
-      builder: (context, state, child) => ColoredBox(
+      builder: (context, state, child) => miuix.MiuixSurface(
+        cornerRadius: theme.radius.input,
         color: state.pressed
             ? theme.color.background
             : selected

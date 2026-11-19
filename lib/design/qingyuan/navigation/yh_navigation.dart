@@ -1,6 +1,13 @@
-/* 清源主导航 — 底栏与导航轨共享同一语义条目。 */
+/*
+ * 清源主导航与共享目的地
+ * @Project : SSPU-AllinOne
+ * @File : yh_navigation.dart
+ * @Author : Qintsg, Codex
+ * @Date : 2026-11-19
+ */
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_miuix/miuix.dart' as miuix;
 
 import '../foundations/yh_pressable.dart';
 import '../theme/yh_theme.dart';
@@ -85,11 +92,9 @@ class YhNavRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.color.surface,
-        border: Border(right: BorderSide(color: theme.color.border)),
-      ),
+    return miuix.MiuixSurface(
+      color: theme.color.surface,
+      contentColor: theme.color.foreground,
       child: SizedBox(
         width: extended
             ? theme.layout.navRailExpandedWidth
@@ -170,7 +175,7 @@ class _YhNavigationButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.yhTheme;
-    final foreground = selected ? theme.color.brandStrong : theme.color.muted;
+    final foreground = selected ? theme.color.brandInk : theme.color.muted;
     final label = item.badge > 0
         ? '${item.label}，${item.badge} 条未读'
         : item.label;
@@ -185,15 +190,13 @@ class _YhNavigationButton extends StatelessWidget {
           semanticLabel: label,
           onPressed: onPressed,
           builder: (context, state, child) => DecoratedBox(
-            decoration: BoxDecoration(
+            decoration: ShapeDecoration(
               color: selected
                   ? theme.color.brandTint
                   : state.hovered
                   ? theme.color.sunken
                   : theme.color.surface.withValues(alpha: 0),
-              borderRadius: BorderRadius.circular(
-                theme.radius.m + theme.focus.ringWidth,
-              ),
+              shape: miuix.MiuixSquircleBorder(cornerRadius: theme.radius.m),
             ),
             child: SizedBox(
               width: horizontal

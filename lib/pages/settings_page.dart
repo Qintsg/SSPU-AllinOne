@@ -300,20 +300,36 @@ class _SettingsPageState extends State<SettingsPage>
       );
     }
 
+    final theme = context.yhTheme;
     return YhPageScaffold(
-      appBar: const YhAppBar(title: '设置'),
-      body: ResponsiveBuilder(
-        builder: (context, _, constraints) {
-          final viewportWidth = MediaQuery.sizeOf(context).width;
-          if (viewportWidth <
-              context.yhTheme.breakpoint.settingsNavigationCompact) {
-            return _buildNarrowSettingsLayout(context);
-          }
-          if (viewportWidth < context.yhTheme.breakpoint.expanded) {
-            return _buildMediumSettingsLayout(context);
-          }
-          return _buildWideSettingsLayout(context);
-        },
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              theme.spacing.m,
+              theme.spacing.m,
+              theme.spacing.m,
+              theme.spacing.s,
+            ),
+            child: const YhPageHeading(title: '设置'),
+          ),
+          Expanded(
+            child: ResponsiveBuilder(
+              builder: (context, _, constraints) {
+                final viewportWidth = MediaQuery.sizeOf(context).width;
+                if (viewportWidth <
+                    theme.breakpoint.settingsNavigationCompact) {
+                  return _buildNarrowSettingsLayout(context);
+                }
+                if (viewportWidth < theme.breakpoint.expanded) {
+                  return _buildMediumSettingsLayout(context);
+                }
+                return _buildWideSettingsLayout(context);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -129,8 +129,12 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final destinations = _destinations;
-    final width = MediaQuery.sizeOf(context).width;
-    final useBottomNavigation = width < context.yhTheme.breakpoint.medium;
+    final size = MediaQuery.sizeOf(context);
+    final width = size.width;
+    final useBottomNavigation =
+        (YhMiuixFloatingNavigation.isSupported &&
+            size.shortestSide < context.yhTheme.breakpoint.compact) ||
+        width < context.yhTheme.breakpoint.medium;
     if (useBottomNavigation) {
       return _CompactNavigationShell(
         destinations: destinations,
@@ -218,6 +222,30 @@ class _CompactNavigationShell extends StatelessWidget {
     final navigationIndex = moreSelected
         ? navigationItems.length - 1
         : primaryIndexes.indexOf(selectedIndex);
+    final activeIndex = navigationIndex < 0 ? 0 : navigationIndex;
+    final body = _NavigationBody(
+      destinations: destinations,
+      selectedIndex: selectedIndex,
+      visitedIndexes: visitedIndexes,
+    );
+
+    void selectNavigationItem(int index) {
+      if (index < primaryIndexes.length) {
+        onChanged(primaryIndexes[index]);
+        return;
+      }
+      _openMoreDestinations(context, hiddenIndexes);
+    }
+
+    if (YhMiuixFloatingNavigation.isSupported) {
+      return YhMiuixFloatingNavigation(
+        items: navigationItems,
+        selectedIndex: activeIndex,
+        actionIndex: hiddenIndexes.isEmpty ? null : navigationItems.length - 1,
+        onSelected: selectNavigationItem,
+        child: body,
+      );
+    }
 
     return ColoredBox(
       color: context.yhTheme.color.background,
@@ -227,11 +255,7 @@ class _CompactNavigationShell extends StatelessWidget {
             child: MediaQuery.removePadding(
               context: context,
               removeBottom: true,
-              child: _NavigationBody(
-                destinations: destinations,
-                selectedIndex: selectedIndex,
-                visitedIndexes: visitedIndexes,
-              ),
+              child: body,
             ),
           ),
           Container(
@@ -241,14 +265,8 @@ class _CompactNavigationShell extends StatelessWidget {
               top: false,
               child: YhBottomNav(
                 items: navigationItems,
-                index: navigationIndex < 0 ? 0 : navigationIndex,
-                onChanged: (index) {
-                  if (index < primaryIndexes.length) {
-                    onChanged(primaryIndexes[index]);
-                    return;
-                  }
-                  _openMoreDestinations(context, hiddenIndexes);
-                },
+                index: activeIndex,
+                onChanged: selectNavigationItem,
               ),
             ),
           ),
@@ -264,19 +282,26 @@ class _CompactNavigationShell extends StatelessWidget {
     return YhBottomDrawer.show<void>(
       context,
       title: '更多',
-      builder: (drawerContext) => AppMoreDestinationsContent(
-        items: [
-          for (final index in hiddenIndexes)
-            AppMoreDestination(
-              label: destinations[index].title,
-              icon: destinations[index].icon,
-              selected: selectedIndex == index,
-              onSelected: () {
-                Navigator.of(drawerContext).pop();
-                onChanged(index);
-              },
-            ),
-        ],
+      builder: (drawerContext) => ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(drawerContext).height / 2,
+        ),
+        child: SingleChildScrollView(
+          child: AppMoreDestinationsContent(
+            items: [
+              for (final index in hiddenIndexes)
+                AppMoreDestination(
+                  label: destinations[index].title,
+                  icon: destinations[index].icon,
+                  selected: selectedIndex == index,
+                  onSelected: () {
+                    Navigator.of(drawerContext).pop();
+                    onChanged(index);
+                  },
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,4 +1,10 @@
-/* 清源应用启动状态表面。 */
+/*
+ * 应用启动状态与恢复操作
+ * @Project : SSPU-AllinOne
+ * @File : app_startup_status.dart
+ * @Author : Qintsg, Codex
+ * @Date : 2026-11-19
+ */
 
 import '../design/qingyuan/qingyuan_ui.dart';
 
@@ -26,83 +32,59 @@ class AppStartupStatus extends StatelessWidget {
           padding: EdgeInsets.all(theme.spacing.m),
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: theme.control.regular * 10),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: theme.color.surface,
-                border: Border.all(color: theme.color.border),
-                borderRadius: BorderRadius.circular(theme.radius.l),
-                boxShadow: theme.elevation.e2,
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(theme.spacing.xl),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: _StartupBrandMark(theme: theme),
+            child: YhMiuixCard(
+              padding: EdgeInsets.all(theme.spacing.xl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: _StartupBrandMark(theme: theme),
+                  ),
+                  SizedBox(height: theme.spacing.m),
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      hasError ? '暂时无法启动' : '正在准备清源',
+                      style: theme.typography.h1.copyWith(
+                        color: theme.color.foreground,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: theme.spacing.s),
+                  SizedBox(height: theme.spacing.l),
+                  if (hasError) ...[
+                    YhBanner(
+                      text: '$errorMessage请检查应用数据目录权限后重试。',
+                      kind: YhBannerKind.danger,
+                    ),
+                    if (onRetry != null) ...[
+                      SizedBox(height: theme.spacing.m),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: YhButton(
+                          label: '重试启动',
+                          leadingIcon: YhIcons.refresh,
+                          autofocus: true,
+                          onTap: onRetry,
+                        ),
+                      ),
+                    ],
+                  ] else ...[
+                    YhProgress(
+                      showPercent: false,
+                      semanticLabel: progressLabel ?? '正在准备清源',
                     ),
                     SizedBox(height: theme.spacing.m),
-                    Text(
-                      '应用启动',
-                      style: theme.typography.caption.copyWith(
-                        color: theme.color.brandStrong,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    _StartupStep(
+                      label: progressLabel ?? '读取本地设置',
+                      active: true,
                     ),
-                    SizedBox(height: theme.spacing.s),
-                    Semantics(
-                      header: true,
-                      child: Text(
-                        hasError ? '暂时无法启动' : '正在准备清源',
-                        style: theme.typography.h1.copyWith(
-                          color: theme.color.foreground,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: theme.spacing.s),
-                    Text(
-                      hasError
-                          ? '本地设置或缓存还未就绪，没有访问校园服务。'
-                          : '先恢复本地设置与安全状态，再决定是否访问校园服务。',
-                      style: theme.typography.body.copyWith(
-                        color: theme.color.muted,
-                      ),
-                    ),
-                    SizedBox(height: theme.spacing.l),
-                    if (hasError) ...[
-                      YhBanner(
-                        text: '$errorMessage请检查应用数据目录权限后重试。',
-                        kind: YhBannerKind.danger,
-                      ),
-                      if (onRetry != null) ...[
-                        SizedBox(height: theme.spacing.m),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: YhButton(
-                            label: '重试启动',
-                            leadingIcon: YhIcons.refresh,
-                            autofocus: true,
-                            onTap: onRetry,
-                          ),
-                        ),
-                      ],
-                    ] else ...[
-                      YhProgress(
-                        showPercent: false,
-                        semanticLabel: progressLabel ?? '正在准备清源',
-                      ),
-                      SizedBox(height: theme.spacing.m),
-                      _StartupStep(
-                        label: progressLabel ?? '读取本地设置',
-                        active: true,
-                      ),
-                      const _StartupStep(label: '恢复账户状态'),
-                      const _StartupStep(label: '准备校园服务'),
-                    ],
+                    const _StartupStep(label: '恢复账户状态'),
+                    const _StartupStep(label: '准备校园服务'),
                   ],
-                ),
+                ],
               ),
             ),
           ),
@@ -128,7 +110,7 @@ class _StartupBrandMark extends StatelessWidget {
         dimension: theme.control.regular + theme.spacing.l,
         child: Center(
           child: Text(
-            '源',
+            '工',
             style: theme.typography.h1.copyWith(
               color: theme.color.onStructural,
             ),

@@ -6,8 +6,8 @@ This file is the tracked source of truth for AI agents working in this repositor
 
 **SSPU-AllinOne（工大聚合）** is a Flutter campus services app for Shanghai Second Polytechnic University, built with the repository-owned Qingyuan design system. It targets Android, iOS, macOS, Linux, and Windows.
 
-- Flutter SDK: `>= 3.44.0`
-- Dart SDK: `3.12.0`
+- Flutter SDK: `>= 3.44.2`
+- Dart SDK: `>= 3.12.2`
 - License: Apache License 2.0
 - Shared agent skills: `.agents/skills/`
 - Local-only agent files: `AGENTS.md`, `CLAUDE.md`, `.codex/`, `.claude/`, `.opencode/`

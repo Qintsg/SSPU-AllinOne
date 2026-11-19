@@ -1,4 +1,10 @@
-/* 清源外观设置任务页测试。 */
+/*
+ * 外观设置、键盘操作与任务页回归测试
+ * @Project : SSPU-AllinOne
+ * @File : settings_appearance_page_test.dart
+ * @Author : Qintsg, Codex
+ * @Date : 2026-11-19
+ */
 
 import 'dart:ui' show Tristate;
 
@@ -23,7 +29,7 @@ void main() {
       ),
     );
 
-    expect(find.text('设置'), findsWidgets);
+    expect(find.bySemanticsLabel('返回'), findsOneWidget);
     expect(find.text('外观'), findsOneWidget);
     expect(find.text('本机外观设置'), findsWidgets);
     expect(find.text('跟随系统'), findsOneWidget);
@@ -41,7 +47,7 @@ void main() {
       Tristate.isTrue,
     );
 
-    await tester.tap(find.text('应用主题'));
+    await tester.tap(find.text('完成'));
     await tester.pump();
     expect(applied, isTrue);
 
@@ -108,7 +114,7 @@ void main() {
     );
   });
 
-  testWidgets('宽屏外观选择线按内容收束且没有冗余卡片', (tester) async {
+  testWidgets('宽屏外观选择在一张设置卡片中按内容收束', (tester) async {
     tester.view.physicalSize = const Size(1600, 1000);
     tester.view.devicePixelRatio = 1.0;
     await tester.binding.setSurfaceSize(const Size(1600, 1000));
@@ -132,7 +138,12 @@ void main() {
     expect(choice, findsOneWidget);
     expect(tester.getSize(choice).width, lessThan(300));
     expect(tester.getSize(choice).height, greaterThanOrEqualTo(48));
-    expect(find.byType(YhCard), findsNothing);
+    final group = find.ancestor(of: choice, matching: find.byType(YhCard));
+    expect(group, findsOneWidget);
+    expect(
+      tester.getSize(group).width,
+      lessThanOrEqualTo(YhTheme.light.layout.formContentWidth),
+    );
   });
 
   testWidgets('设置目的地本地导航栈接收根宿主的最新主题', (tester) async {

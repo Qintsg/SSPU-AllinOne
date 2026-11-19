@@ -30,6 +30,7 @@ class _AcademicOverviewPage extends StatelessWidget {
     required this.onOpenSchedule,
     required this.onOpenAccountConnections,
     required this.onAdjustAcademicTerm,
+    required this.queryDirectory,
     required this.legacyDetails,
   });
 
@@ -53,6 +54,7 @@ class _AcademicOverviewPage extends StatelessWidget {
   final VoidCallback? onOpenSchedule;
   final VoidCallback? onOpenAccountConnections;
   final VoidCallback? onAdjustAcademicTerm;
+  final Widget queryDirectory;
   final Widget legacyDetails;
 
   bool get _showsContent =>
@@ -93,6 +95,16 @@ class _AcademicOverviewPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    YhPageHeading(
+                      title: '教务中心',
+                      trailing: YhMiuixButton(
+                        key: const ValueKey('academic-overview-refresh'),
+                        label: '刷新',
+                        icon: YhIcons.refresh,
+                        onPressed: onRefresh,
+                      ),
+                    ),
+                    SizedBox(height: theme.spacing.m),
                     _AcademicHeading(
                       compact: compact,
                       termLabel: termLabel,
@@ -101,7 +113,6 @@ class _AcademicOverviewPage extends StatelessWidget {
                       earnedCredits: earnedCredits,
                       gradeCount: gradeCount,
                       nextExam: nextExam,
-                      onRefresh: onRefresh,
                       onOpenSchedule: onOpenSchedule,
                     ),
                     SizedBox(height: theme.spacing.m),
@@ -161,6 +172,18 @@ class _AcademicOverviewPage extends StatelessWidget {
                         onAdjustAcademicTerm: onAdjustAcademicTerm,
                       ),
                     SizedBox(height: theme.spacing.xl),
+                    Semantics(
+                      header: true,
+                      child: Text('常用查询', style: theme.typography.h3),
+                    ),
+                    SizedBox(height: theme.spacing.s),
+                    queryDirectory,
+                    SizedBox(height: theme.spacing.xl),
+                    Semantics(
+                      header: true,
+                      child: Text('校园活动', style: theme.typography.h3),
+                    ),
+                    SizedBox(height: theme.spacing.s),
                     legacyDetails,
                   ],
                 ),

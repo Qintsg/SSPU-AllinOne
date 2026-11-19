@@ -1,6 +1,13 @@
-/* 清源底部抽屉 — compact 低频入口与短表单容器。 */
+/*
+ * 清源底部抽屉与短表单容器
+ * @Project : SSPU-AllinOne
+ * @File : yh_bottom_drawer.dart
+ * @Author : Qintsg, Codex
+ * @Date : 2026-11-19
+ */
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_miuix/miuix.dart' as miuix;
 
 import '../theme/yh_theme.dart';
 
@@ -56,12 +63,10 @@ class YhBottomDrawer extends StatelessWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: theme.breakpoint.medium),
         child: DecoratedBox(
-          decoration: BoxDecoration(
+          decoration: ShapeDecoration(
             color: theme.color.surface,
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(theme.radius.l),
-            ),
-            boxShadow: theme.elevation.e3,
+            shape: miuix.MiuixSquircleBorder(cornerRadius: theme.radius.l),
+            shadows: theme.elevation.e3,
           ),
           child: Padding(
             padding: EdgeInsets.all(theme.spacing.l),

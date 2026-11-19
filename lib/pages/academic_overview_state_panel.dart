@@ -128,7 +128,7 @@ class _AcademicRecoverySurface extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: theme.layout.formContentWidth),
         child: SizedBox(
           width: double.infinity,
-          child: YhCard(child: child),
+          child: YhMiuixCard(child: child),
         ),
       ),
     );

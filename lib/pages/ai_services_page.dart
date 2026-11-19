@@ -161,13 +161,15 @@ class _AiServicesPageState extends State<AiServicesPage> {
     if (_loading) return const Center(child: YhProgress(showPercent: false));
     final theme = context.yhTheme;
     return YhPageScaffold(
-      appBar: const YhAppBar(title: 'AI 服务', eyebrow: '个人数据连接中心'),
       body: AnimatedBuilder(
         animation: _controller,
         builder: (context, _) => ListView(
           padding: EdgeInsets.all(theme.spacing.l),
           children: [
-            _buildHero(context),
+            const YhPageHeading(
+              title: 'AI 服务',
+              summary: '通过 MCP 向已授权的应用提供本地校园数据。',
+            ),
             SizedBox(height: theme.spacing.l),
             _buildServerCard(context),
             SizedBox(height: theme.spacing.l),
@@ -205,45 +207,6 @@ class _AiServicesPageState extends State<AiServicesPage> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHero(BuildContext context) {
-    final theme = context.yhTheme;
-    return YhCard(
-      elevated: true,
-      padding: EdgeInsets.all(theme.spacing.xl),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: theme.color.brandStrong,
-              borderRadius: BorderRadius.circular(theme.radius.l),
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(theme.spacing.m),
-              child: Icon(YhIcons.connect, color: theme.color.onBrand),
-            ),
-          ),
-          SizedBox(width: theme.spacing.m),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('让 Agent 读懂你的校园生活', style: theme.typography.h2),
-                SizedBox(height: theme.spacing.xs),
-                Text(
-                  '通过标准 MCP 连接，把你明确授权的本地快照交给其它 AI 应用。数据默认不出设备，也不会因为调用而自动联网。',
-                  style: theme.typography.body.copyWith(
-                    color: theme.color.muted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

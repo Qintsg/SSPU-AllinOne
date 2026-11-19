@@ -24,6 +24,7 @@ import '../services/academic_term_service.dart';
 import '../services/app_data_directory_service.dart';
 import '../services/data_auto_refresh_preferences.dart';
 import '../services/data_module_preferences.dart';
+import '../utils/academic_portal_links.dart';
 import 'academic_calendar_page.dart';
 
 part 'course_schedule_state_panel.dart';
@@ -498,6 +499,13 @@ class _CourseSchedulePageState extends State<CourseSchedulePage> {
           SizedBox(height: theme.spacing.s),
           YhBanner(text: _calendarExportMessage!),
         ],
+        SizedBox(height: theme.spacing.s),
+        YhButton(
+          label: '在新版教务查看',
+          leadingIcon: YhIcons.open,
+          variant: YhButtonVariant.text,
+          onTap: () => AcademicPortalPage.courseTable.open(context),
+        ),
         if (_result?.isSuccess == true && courseTable != null) ...[
           SizedBox(height: compact ? theme.spacing.m : theme.spacing.l),
           Wrap(

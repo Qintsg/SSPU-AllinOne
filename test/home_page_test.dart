@@ -175,7 +175,11 @@ void main() {
     final emphasized = findTextSpan(richText.text, '数据结构');
     final theme = tester.element(find.byType(HomePage)).yhTheme;
     expect(emphasized, isNotNull);
-    expect(emphasized!.style?.color, theme.color.onStructural);
+    expect(emphasized!.style?.color, theme.color.brandInk);
+    final contrast =
+        (theme.color.brandInk.computeLuminance() + 0.05) /
+        (theme.color.brandTint.computeLuminance() + 0.05);
+    expect(contrast, greaterThanOrEqualTo(4.5));
 
     await disposeHomePage(tester);
   });
@@ -988,7 +992,9 @@ void main() {
       findsNothing,
     );
     final dock = tester.getRect(find.byKey(const Key('home-utility-dock')));
-    final bottomNavigation = tester.getRect(find.byType(YhBottomNav));
+    final bottomNavigation = tester.getRect(
+      find.byKey(const Key('mobile-bottom-navigation')),
+    );
     final greetingPhrases = find.byKey(const Key('home-greeting-phrases'));
     final greetingPrefix = find.text('早上好，');
     final greetingFocus = find.text('先看清今天。');
@@ -1106,7 +1112,7 @@ void main() {
         .yhTheme;
     expect(
       tester.getTopLeft(find.byKey(const Key('home-campus-card-refresh'))).dy,
-      theme.spacing.m,
+      theme.spacing.s,
     );
     expect(find.byKey(const Key('home-customize')), findsNothing);
     expect(tester.takeException(), isNull);
